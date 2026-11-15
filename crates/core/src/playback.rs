@@ -640,9 +640,11 @@ impl Shared {
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
-        tracing::warn!(?ids, "reproducciones que no terminaron de cerrarse a tiempo");
+        tracing::warn!(
+            ?ids,
+            "reproducciones que no terminaron de cerrarse a tiempo"
+        );
     }
-
 
     fn emit_row(&self, slot: &Slot) {
         let row = slot.row.lock().expect("row").clone();

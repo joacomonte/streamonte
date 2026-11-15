@@ -326,7 +326,10 @@ impl Library {
             audio_options: crate::audio::play_options(&languages),
             languages,
             release: release_of(e),
-            downloaded_bytes: self.downloads.as_deref().and_then(|d| downloaded_bytes(e, d)),
+            downloaded_bytes: self
+                .downloads
+                .as_deref()
+                .and_then(|d| downloaded_bytes(e, d)),
             sort_key: crate::ranking::sort_key(&input, &score),
             entry: e.clone(),
         }
@@ -345,7 +348,10 @@ impl Library {
     /// Para el margen provisorio mientras se mide `hash` (con lo que se sabe al arrancar).
     pub fn live_scorer(&self, hash: &InfoHash) -> LiveScorer {
         LiveScorer {
-            rows: self.of_torrent(*hash).map(|e| (e.key, rank_input(e))).collect(),
+            rows: self
+                .of_torrent(*hash)
+                .map(|e| (e.key, rank_input(e)))
+                .collect(),
             ranking: self.ranking.clone(),
             speed_factor: self.speed_factor,
         }
@@ -822,15 +828,25 @@ mod tests {
         let e2 = lib.add_from_catalog(&pack, "m", origin(3, 2, Some(1)), Some(20));
         assert_ne!(e1, e2);
         assert_eq!(lib.len(), 2);
-        assert_eq!(lib.get(&e1).unwrap().origin.as_ref().unwrap().episode, Some(1));
-        assert_eq!(lib.get(&e2).unwrap().origin.as_ref().unwrap().episode, Some(2));
+        assert_eq!(
+            lib.get(&e1).unwrap().origin.as_ref().unwrap().episode,
+            Some(1)
+        );
+        assert_eq!(
+            lib.get(&e2).unwrap().origin.as_ref().unwrap().episode,
+            Some(2)
+        );
         assert_eq!(lib.view(lib.get(&e1).unwrap()).release.episode, Some(1));
         // El mismo episodio otra vez (otro addon, otro fileIdx): no se duplica.
         lib.add_from_catalog(&pack, "m", origin(3, 2, Some(7)), None);
         assert_eq!(lib.len(), 2);
 
         let updated = lib.update_torrent(&hash, |e| e.live = Some(measured(3e6, 1_000_000_000)));
-        assert_eq!(updated.len(), 2, "lo medido vale para cada episodio del pack");
+        assert_eq!(
+            updated.len(),
+            2,
+            "lo medido vale para cada episodio del pack"
+        );
         assert_eq!(lib.hashes(), [hash]);
         assert!(lib.unmeasured().is_empty());
 
@@ -842,12 +858,19 @@ mod tests {
             lib.get(&VideoKey::whole(hash)).unwrap().live.is_some(),
             "la fila nueva hereda lo medido del torrent"
         );
-        assert_eq!(lib.get(&e1).unwrap().origin.as_ref().unwrap().episode, Some(1));
+        assert_eq!(
+            lib.get(&e1).unwrap().origin.as_ref().unwrap().episode,
+            Some(1)
+        );
 
         lib.save().unwrap();
         let mut lib = Library::load(path.clone()).unwrap();
         assert_eq!(lib.len(), 3);
-        assert_eq!(lib.get(&e2).unwrap().key, e2, "la clave se recalcula al cargar");
+        assert_eq!(
+            lib.get(&e2).unwrap().key,
+            e2,
+            "la clave se recalcula al cargar"
+        );
         assert!(lib.remove(&e1));
         assert!(lib.has_torrent(&hash), "quedan otros episodios del torrent");
         std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
@@ -914,7 +937,11 @@ mod tests {
         let e2 = lib.add_from_catalog(&pack, "m", origin(3, 2, Some(1)), Some(20));
         let solo = magnet(7, "Otra");
         lib.add_or_touch(&solo, "m");
-        assert_eq!(lib.view(lib.get(&e1).unwrap()).downloaded_bytes, None, "sin medir");
+        assert_eq!(
+            lib.view(lib.get(&e1).unwrap()).downloaded_bytes,
+            None,
+            "sin medir"
+        );
 
         // Se midió E1 (el analizador elige con la primera fila del torrent).
         lib.update_torrent(&hash, |e| {
@@ -928,7 +955,11 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("The.Bear.S03E01.mkv"), vec![1u8; 200_000]).unwrap();
         let v1 = lib.view(lib.get(&e1).unwrap());
-        assert!(v1.downloaded_bytes.is_some_and(|b| b > 0), "{:?}", v1.downloaded_bytes);
+        assert!(
+            v1.downloaded_bytes.is_some_and(|b| b > 0),
+            "{:?}",
+            v1.downloaded_bytes
+        );
         let v2 = lib.view(lib.get(&e2).unwrap());
         assert_eq!(v2.downloaded_bytes, None, "E2 no es el medido");
 

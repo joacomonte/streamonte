@@ -456,7 +456,11 @@ pub fn play_options(langs: &[AudioLang]) -> Vec<AudioOption> {
         .filter(|l| l.code != "?" && l.code != "multi")
         .map(|l| AudioOption {
             code: l.code.clone(),
-            label: if l.code == "es" { "Español".into() } else { l.label.clone() },
+            label: if l.code == "es" {
+                "Español".into()
+            } else {
+                l.label.clone()
+            },
             aid: l.aids.first().copied(),
             confirmed: l.confirmed,
         })
@@ -526,7 +530,10 @@ mod tests {
 
     #[test]
     fn nombre_da_una_pista_sin_confirmar() {
-        let l = languages(None, "Dune.Part.Two.2024.1080p.WEB-DL.Dual.Latino-Ingles.mkv");
+        let l = languages(
+            None,
+            "Dune.Part.Two.2024.1080p.WEB-DL.Dual.Latino-Ingles.mkv",
+        );
         // "Dual" = varios audios (antes solo el catálogo lo decía; ahora también la biblioteca).
         assert_eq!(codes(&l), ["lat", "en", "multi"]);
         assert!(l.iter().all(|x| !x.confirmed));
@@ -628,7 +635,10 @@ mod tests {
     fn pistas_reales_mandan_sobre_el_nombre() {
         let tracks = [track(Some("eng"), None)];
         assert_eq!(codes(&languages(Some(&tracks), "Peli Dual Latino")), ["en"]);
-        assert_eq!(codes(&languages(None, "Peli Dual Latino")), ["lat", "multi"]);
+        assert_eq!(
+            codes(&languages(None, "Peli Dual Latino")),
+            ["lat", "multi"]
+        );
         assert_eq!(codes(&languages(Some(&[]), "Peli Latino")), ["lat"]);
     }
 
@@ -650,7 +660,11 @@ mod tests {
         // MULTI + castellano: Latino e Inglés primero, después lo que dice el nombre.
         assert_eq!(
             option_codes(&languages(None, "Peli.2024.Castellano.MULTI.1080p")),
-            [pair("lat", "Latino"), pair("en", "Inglés"), pair("cast", "Castellano")]
+            [
+                pair("lat", "Latino"),
+                pair("en", "Inglés"),
+                pair("cast", "Castellano")
+            ]
         );
         // Bandera mexicana al final del nombre: Latino igual va primero.
         assert_eq!(

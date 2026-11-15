@@ -13,8 +13,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::providers::{
-    self, GestdownProvider, OpenSubtitlesOrgProvider, OpenSubtitlesProvider, SubdivxProvider, SubtitleProvider,
-    SubtitulamosProvider, TorrentProvider, TorrentSubtitleFile, WyzieProvider,
+    self, GestdownProvider, OpenSubtitlesOrgProvider, OpenSubtitlesProvider, SubdivxProvider,
+    SubtitleProvider, SubtitulamosProvider, TorrentProvider, TorrentSubtitleFile, WyzieProvider,
 };
 use super::{
     top_candidates, SubtitleCandidate, SubtitleChoice, VideoIdentity, CHOICE_ALL, MAX_SUBTITLES,
@@ -227,7 +227,9 @@ async fn search_all(
     languages: &[SubtitleLanguage],
 ) -> Vec<(&'static str, crate::Result<Vec<SubtitleCandidate>>)> {
     let mut set = tokio::task::JoinSet::new();
-    let pairs = providers.iter().flat_map(|p| languages.iter().map(move |l| (p, *l)));
+    let pairs = providers
+        .iter()
+        .flat_map(|p| languages.iter().map(move |l| (p, *l)));
     for (i, (p, lang)) in pairs.enumerate() {
         let p = p.clone();
         let video = video.clone();

@@ -33,14 +33,14 @@ pub mod release;
 pub mod video_key;
 
 pub mod cleanup;
-mod http;
-mod secrets;
 pub mod clipboard;
 pub mod engine;
 mod external;
+mod http;
 pub mod library;
 mod mpv_ipc;
 pub mod player;
+mod secrets;
 pub mod trackers;
 
 pub mod analyzer;

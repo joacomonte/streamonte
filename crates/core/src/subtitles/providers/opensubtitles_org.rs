@@ -38,7 +38,9 @@ pub struct OpenSubtitlesOrgProvider {
 // ---------- XML-RPC mínimo ----------
 
 fn escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 fn call_xml(method: &str, params: &[String]) -> String {
@@ -114,7 +116,8 @@ fn scalar(value: &str) -> String {
                 ""
             } else {
                 let body = &rest[tag_end + 1..];
-                body.find(&format!("</{tag}>")).map_or(body, |end| &body[..end])
+                body.find(&format!("</{tag}>"))
+                    .map_or(body, |end| &body[..end])
             }
         }
         None => inner,
@@ -164,10 +167,18 @@ pub(super) fn parse_search(
 ) -> Vec<SubtitleCandidate> {
     results(xml)
         .into_iter()
-        .filter(|r| matches!(r.get("SubFormat").map(String::as_str), Some("srt" | "ass" | "ssa" | "vtt")))
+        .filter(|r| {
+            matches!(
+                r.get("SubFormat").map(String::as_str),
+                Some("srt" | "ass" | "ssa" | "vtt")
+            )
+        })
         .filter_map(|r| {
             let id = r.get("IDSubtitleFile")?.trim().to_string();
-            let code = r.get("SubLanguageID").map(String::as_str).unwrap_or_default();
+            let code = r
+                .get("SubLanguageID")
+                .map(String::as_str)
+                .unwrap_or_default();
             let (language, variant) = match code {
                 "spl" => (SubtitleLanguage::Es, SpanishVariant::Latino),
                 "spa" | "spn" => (SubtitleLanguage::Es, SpanishVariant::Unknown),
@@ -192,7 +203,10 @@ pub(super) fn parse_search(
                 match_kind: release_match(video, &release),
                 release_name: release,
                 language,
-                downloads: r.get("SubDownloadsCnt").and_then(|d| d.parse().ok()).unwrap_or(0),
+                downloads: r
+                    .get("SubDownloadsCnt")
+                    .and_then(|d| d.parse().ok())
+                    .unwrap_or(0),
                 variant,
                 url: String::new(),
             })
@@ -220,13 +234,21 @@ async fn rpc(method: &str, params: &[String]) -> Result<String> {
         .header(reqwest::header::CONTENT_TYPE, "text/xml")
         .header(reqwest::header::USER_AGENT, USER_AGENT)
         .body(call_xml(method, params));
-    let resp = send(req).await.map_err(|e| http_err(OPENSUBTITLES_ORG, e))?;
+    let resp = send(req)
+        .await
+        .map_err(|e| http_err(OPENSUBTITLES_ORG, e))?;
     let status = resp.status().as_u16();
     let bytes = read_capped(resp, 20 * 1024 * 1024)
         .await
         .map_err(|e| http_err(OPENSUBTITLES_ORG, e))?;
     if !(200..300).contains(&status) {
-        return Err(http_err(OPENSUBTITLES_ORG, HttpError::Status { status, body: bytes }));
+        return Err(http_err(
+            OPENSUBTITLES_ORG,
+            HttpError::Status {
+                status,
+                body: bytes,
+            },
+        ));
     }
     Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
@@ -236,9 +258,12 @@ impl OpenSubtitlesOrgProvider {
     async fn token(&self) -> Option<String> {
         self.token
             .get_or_init(|| async {
-                let xml = rpc("LogIn", &[string(""), string(""), string("eng"), string(USER_AGENT)])
-                    .await
-                    .ok()?;
+                let xml = rpc(
+                    "LogIn",
+                    &[string(""), string(""), string("eng"), string(USER_AGENT)],
+                )
+                .await
+                .ok()?;
                 if !status(&xml).starts_with("200") {
                     tracing::warn!("OpenSubtitles.org no dio sesión anónima: {}", status(&xml));
                     return None;
@@ -277,10 +302,16 @@ impl SubtitleProvider for OpenSubtitlesOrgProvider {
             SubtitleLanguage::None => return Ok(Vec::new()),
         };
         if LIMIT_REACHED.load(Ordering::Relaxed) {
-            return Err(err(OPENSUBTITLES_ORG, "límite de descargas anónimas del día alcanzado"));
+            return Err(err(
+                OPENSUBTITLES_ORG,
+                "límite de descargas anónimas del día alcanzado",
+            ));
         }
         // Por IMDb (con temporada/episodio en series); sin IMDb, por título.
-        let mut criterion = vec![format!("<member><name>sublanguageid</name><value>{}</value></member>", string(codes))];
+        let mut criterion = vec![format!(
+            "<member><name>sublanguageid</name><value>{}</value></member>",
+            string(codes)
+        )];
         match (&video.imdb_id, &video.title) {
             (Some(imdb), _) => criterion.push(format!(
                 "<member><name>imdbid</name><value>{}</value></member>",
@@ -293,8 +324,12 @@ impl SubtitleProvider for OpenSubtitlesOrgProvider {
             (None, None) => return Ok(Vec::new()),
         }
         if let (Some(s), Some(e)) = (video.season, video.episode) {
-            criterion.push(format!("<member><name>season</name><value><int>{s}</int></value></member>"));
-            criterion.push(format!("<member><name>episode</name><value><int>{e}</int></value></member>"));
+            criterion.push(format!(
+                "<member><name>season</name><value><int>{s}</int></value></member>"
+            ));
+            criterion.push(format!(
+                "<member><name>episode</name><value><int>{e}</int></value></member>"
+            ));
         }
         let Some(token) = self.token().await else {
             return Err(err(OPENSUBTITLES_ORG, "no dio sesión anónima"));
@@ -321,7 +356,10 @@ impl SubtitleProvider for OpenSubtitlesOrgProvider {
         let st = status(&xml);
         if st.starts_with("407") {
             LIMIT_REACHED.store(true, Ordering::Relaxed);
-            return Err(err(OPENSUBTITLES_ORG, "límite de descargas anónimas del día alcanzado"));
+            return Err(err(
+                OPENSUBTITLES_ORG,
+                "límite de descargas anónimas del día alcanzado",
+            ));
         }
         let bytes = decode_download(&xml)
             .ok_or_else(|| err(OPENSUBTITLES_ORG, format!("descarga inválida ({st})")))?;
@@ -374,10 +412,17 @@ mod tests {
             ..Default::default()
         };
         let found = parse_search(SEARCH, &video, SubtitleLanguage::Es);
-        assert_eq!(found.len(), 2, "ni el .sub ni el de otra serie (14x01) mal cargado con este IMDb");
+        assert_eq!(
+            found.len(),
+            2,
+            "ni el .sub ni el de otra serie (14x01) mal cargado con este IMDb"
+        );
         assert_eq!(found[0].provider_id, "1955627137");
         assert_eq!(found[0].downloads, 23567);
-        assert_eq!(found[0].release_name, "Ozark.S01E01.Sugarwood.720p.WEBRip.x264-STRiFE");
+        assert_eq!(
+            found[0].release_name,
+            "Ozark.S01E01.Sugarwood.720p.WEBRip.x264-STRiFE"
+        );
         assert_eq!(found[1].variant, SpanishVariant::Latino);
         assert_eq!(found[1].release_name, "Ozark S01E01 & más");
         assert!(parse_search(SEARCH, &video, SubtitleLanguage::En).is_empty());

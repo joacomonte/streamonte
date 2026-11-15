@@ -160,7 +160,6 @@ pub struct MeasureCtl {
     pub progress: ProgressSink,
 }
 
-
 /// Dependencias inyectadas (permite pruebas con motor falso).
 pub struct AnalyzerDeps {
     pub paths: AppPaths,

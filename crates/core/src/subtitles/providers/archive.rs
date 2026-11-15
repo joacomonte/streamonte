@@ -83,13 +83,9 @@ fn largest_subtitle(dir: &Path) -> Option<PathBuf> {
                 stack.push(path);
                 continue;
             }
-            let is_sub = path
-                .extension()
-                .and_then(|e| e.to_str())
-                .is_some_and(|e| {
-                    crate::subtitles::SUBTITLE_EXTENSIONS
-                        .contains(&e.to_ascii_lowercase().as_str())
-                });
+            let is_sub = path.extension().and_then(|e| e.to_str()).is_some_and(|e| {
+                crate::subtitles::SUBTITLE_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str())
+            });
             let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
             let bigger = match &best {
                 Some((s, _)) => size > *s,

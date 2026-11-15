@@ -6,8 +6,8 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use super::err;
-pub(super) use crate::http::{read_capped, send, HttpError};
 use crate::http::Limits;
+pub(super) use crate::http::{read_capped, send, HttpError};
 use crate::Result;
 
 const USER_AGENT: &str = concat!("tstream v", env!("CARGO_PKG_VERSION"));
@@ -63,7 +63,10 @@ pub(in crate::subtitles) async fn fetch_range(url: &str, start: u64, len: u64) -
     if resp.status() != reqwest::StatusCode::PARTIAL_CONTENT {
         return Err(err(
             "motor",
-            format!("pedido parcial no respetado (HTTP {})", resp.status().as_u16()),
+            format!(
+                "pedido parcial no respetado (HTTP {})",
+                resp.status().as_u16()
+            ),
         ));
     }
     read_capped(resp, len as usize)

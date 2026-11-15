@@ -327,9 +327,8 @@ fn is_cam(text: &str) -> bool {
             _ => part,
         };
         let t = tokens(part);
-        let is_year = |t: &String| {
-            t.len() == 4 && t.parse::<u16>().is_ok_and(|y| (1900..=2099).contains(&y))
-        };
+        let is_year =
+            |t: &String| t.len() == 4 && t.parse::<u16>().is_ok_and(|y| (1900..=2099).contains(&y));
         let from = t.iter().position(is_year).map_or(0, |i| i + 1);
         t[from..].iter().any(|t| CAM.contains(&t.as_str()))
     })

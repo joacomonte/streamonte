@@ -66,7 +66,8 @@ fn spawn_player(exe: &Path, args: &[String], background: bool) -> Result<tokio::
             cmd.creation_flags(CREATE_NO_WINDOW);
         }
     }
-    cmd.spawn().map_err(|e| CoreError::Player(format!("{}: {e}", exe.display())))
+    cmd.spawn()
+        .map_err(|e| CoreError::Player(format!("{}: {e}", exe.display())))
 }
 
 /// Muerto de golpe, mpv no borra su socket unix (en Windows el named pipe se va solo).

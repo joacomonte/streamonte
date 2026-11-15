@@ -55,8 +55,8 @@ pub(super) fn parse_choices(html: &str, block: &str) -> Vec<(u32, String, bool)>
             let (tag, rest) = a.split_once('>')?;
             let number = rest.split('<').next()?.trim().parse().ok()?;
             let href = attr(tag, "href").filter(|h| h.starts_with('/') && !h.starts_with("//"))?;
-            let selected = attr(tag, "class")
-                .is_some_and(|c| c.split_whitespace().any(|c| c == "selected"));
+            let selected =
+                attr(tag, "class").is_some_and(|c| c.split_whitespace().any(|c| c == "selected"));
             Some((number, href, selected))
         })
         .collect()
@@ -152,7 +152,8 @@ impl SubtitleProvider for SubtitulamosProvider {
         video: &VideoIdentity,
         lang: SubtitleLanguage,
     ) -> Result<Vec<SubtitleCandidate>> {
-        let (Some(title), Some(season), Some(episode)) = (&video.title, video.season, video.episode)
+        let (Some(title), Some(season), Some(episode)) =
+            (&video.title, video.season, video.episode)
         else {
             return Ok(Vec::new()); // solo series
         };
@@ -266,7 +267,14 @@ mod tests {
     fn subtitulamos_temporadas_y_episodios() {
         let seasons = parse_choices(PAGE, "season-choices");
         assert_eq!(seasons.len(), 2);
-        assert_eq!(seasons[0], (7, "/episodes/9/game-of-thrones-7x01-dragonstone".into(), true));
+        assert_eq!(
+            seasons[0],
+            (
+                7,
+                "/episodes/9/game-of-thrones-7x01-dragonstone".into(),
+                true
+            )
+        );
         assert!(!seasons[1].2);
         assert!(
             !seasons.iter().any(|(n, _, _)| *n == 3),
@@ -303,6 +311,9 @@ mod tests {
         );
         assert_eq!(c[1].match_kind, MatchKind::Release, "por el grupo MOROSE");
         assert_eq!(c[1].release_name, "iNTERNAL WEBRip MOROSE");
-        assert_eq!(c[0].url, "https://www.subtitulamos.tv/subtitles/12115/download");
+        assert_eq!(
+            c[0].url,
+            "https://www.subtitulamos.tv/subtitles/12115/download"
+        );
     }
 }

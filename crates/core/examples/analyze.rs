@@ -42,7 +42,10 @@ impl EventSink for ConsoleSink {
                 if entry.entry.status == EntryStatus::Measured {
                     s.measured += 1;
                 }
-                println!("[{t:6.1} s] {} → {:?}", entry.entry.name, entry.entry.status);
+                println!(
+                    "[{t:6.1} s] {} → {:?}",
+                    entry.entry.name, entry.entry.status
+                );
             }
             CoreEvent::Status { message, .. } => println!("[{t:6.1} s] estado: {message}"),
             _ => {}

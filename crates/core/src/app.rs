@@ -271,7 +271,8 @@ impl AppCore {
         self.events.emit(CoreEvent::LibraryEntryRemoved { key });
         if last_of_torrent {
             let _ = self.analyzer.cancel_one(key.info_hash).await;
-            self.delete_analysis(&[key.info_hash], ANALYSIS_RELEASE_WAIT).await;
+            self.delete_analysis(&[key.info_hash], ANALYSIS_RELEASE_WAIT)
+                .await;
         }
         Ok(())
     }
@@ -469,10 +470,12 @@ impl AppCore {
     }
     /// Qué servicios tienen key (Ajustes), sin devolver nunca la key.
     pub fn api_keys(&self) -> Vec<ApiKeyStatus> {
-        let subtitles = crate::subtitles::secrets::KEY_PROVIDERS.iter().map(|p| ApiKeyStatus {
-            service: (*p).to_string(),
-            configured: crate::subtitles::secrets::has_api_key(p),
-        });
+        let subtitles = crate::subtitles::secrets::KEY_PROVIDERS
+            .iter()
+            .map(|p| ApiKeyStatus {
+                service: (*p).to_string(),
+                configured: crate::subtitles::secrets::has_api_key(p),
+            });
         subtitles
             .chain(std::iter::once(ApiKeyStatus {
                 service: crate::catalog::tmdb::TMDB.to_string(),
@@ -504,7 +507,10 @@ impl AppCore {
     ) -> std::collections::HashMap<InfoHash, crate::trackers::ScrapeResult> {
         let (trackers, timeout) = {
             let cfg = self.config.read().await;
-            (cfg.trackers.clone(), Duration::from_secs(cfg.analyzer.scrape_timeout_secs))
+            (
+                cfg.trackers.clone(),
+                Duration::from_secs(cfg.analyzer.scrape_timeout_secs),
+            )
         };
         self.catalog.rescrape(hashes, &trackers, timeout).await
     }
@@ -538,11 +544,17 @@ impl AppCore {
         language: crate::config::SubtitleLanguage,
     ) -> Result<Vec<SubtitleFound>> {
         let video = VideoId::parse(video_id)?;
-        let c = self.catalog.candidate(&video, hash).ok_or_else(|| CoreError::Catalog {
-            user: "Esa opción ya no está en la lista: actualizá las opciones.".into(),
-            detail: format!("candidato {hash} no encontrado"),
-        })?;
-        let file = c.file_name.clone().unwrap_or_else(|| c.release_name.clone());
+        let c = self
+            .catalog
+            .candidate(&video, hash)
+            .ok_or_else(|| CoreError::Catalog {
+                user: "Esa opción ya no está en la lista: actualizá las opciones.".into(),
+                detail: format!("candidato {hash} no encontrado"),
+            })?;
+        let file = c
+            .file_name
+            .clone()
+            .unwrap_or_else(|| c.release_name.clone());
         let mut identity = crate::subtitles::VideoIdentity::for_file(
             &file,
             &c.release_name,
@@ -562,14 +574,22 @@ impl AppCore {
             let progress = progress.clone();
             move || {
                 let (downloading, done, total) = *progress.lock().expect("progreso");
-                events.emit(CoreEvent::CatalogSubtitlesProgress { video_id: vid.clone(), downloading, done, total });
+                events.emit(CoreEvent::CatalogSubtitlesProgress {
+                    video_id: vid.clone(),
+                    downloading,
+                    done,
+                    total,
+                });
             }
         };
         emit();
         let log: crate::subtitles::session::LogFn = Arc::new(move |line| {
             tracing::info!(target: "tstream_core::subtitles", "{line}");
             let mut changed = false;
-            if let Some(n) = line.strip_prefix("subtítulos: bajando ").and_then(|n| n.trim().parse::<usize>().ok()) {
+            if let Some(n) = line
+                .strip_prefix("subtítulos: bajando ")
+                .and_then(|n| n.trim().parse::<usize>().ok())
+            {
                 let mut p = progress.lock().expect("progreso");
                 p.0 = true;
                 p.2 += n;
@@ -630,7 +650,9 @@ impl AppCore {
         skip: u32,
     ) -> Result<BrowsePage> {
         let timeout = self.catalog_timeout().await;
-        self.catalog.browse(kind, sort, year, genre, skip, timeout).await
+        self.catalog
+            .browse(kind, sort, year, genre, skip, timeout)
+            .await
     }
 
     /// Explorar por fecha de estreno (`AAAA-MM-DD`, bordes incluidos; sin `to` = hasta hoy).
@@ -684,7 +706,9 @@ impl AppCore {
     ) -> Result<Vec<LibraryRowView>> {
         let added = self.catalog_add(kind, video_id, &hashes).await?;
         let hashes = added.iter().map(|row| row.entry.info_hash).collect();
-        self.analyzer.enqueue(AnalyzeScope::Selected(hashes)).await?;
+        self.analyzer
+            .enqueue(AnalyzeScope::Selected(hashes))
+            .await?;
         Ok(added)
     }
 

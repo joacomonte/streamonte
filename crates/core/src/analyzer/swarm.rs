@@ -82,7 +82,8 @@ pub async fn count(
     let slots = Arc::new(tokio::sync::Semaphore::new(CONCURRENCY));
     let mut tasks = tokio::task::JoinSet::new();
     for (m, dir) in magnets.into_iter().zip(dirs.clone()) {
-        let (engine, paths, cfg, slots) = (engine.clone(), paths.clone(), cfg.clone(), slots.clone());
+        let (engine, paths, cfg, slots) =
+            (engine.clone(), paths.clone(), cfg.clone(), slots.clone());
         tasks.spawn(async move {
             let _slot = slots.acquire_owned().await.ok()?;
             let cleanup = Cleanup::new(paths.clone());
@@ -116,7 +117,9 @@ async fn count_one(
     dir: &std::path::Path,
     (min_secs, max_secs, stable_secs): (u64, u64, u64),
 ) -> Option<(InfoHash, SwarmCount)> {
-    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg).await.ok()?;
+    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg)
+        .await
+        .ok()?;
     let result = async {
         // Sin `wait_metadata`: acá que no respondan es un resultado, no un error para el log.
         // Se corta antes si a los `DEAD_SECS` la red no conoce ni un peer.

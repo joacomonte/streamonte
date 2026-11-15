@@ -344,7 +344,10 @@ pub async fn add_cached_or_magnet(
         return engine.add(TorrentSource::Magnet(magnet), opts).await;
     }
     match engine
-        .add(TorrentSource::TorrentFile(cached.to_path_buf()), opts.clone())
+        .add(
+            TorrentSource::TorrentFile(cached.to_path_buf()),
+            opts.clone(),
+        )
         .await
     {
         Err(e) if !matches!(e, CoreError::Cancelled) => {

@@ -58,7 +58,12 @@ pub(super) struct CalibrationSampler {
 }
 
 impl CalibrationSampler {
-    pub(super) fn push(&mut self, playing_for: Duration, stats: &crate::engine::Stats, download_paused: bool) {
+    pub(super) fn push(
+        &mut self,
+        playing_for: Duration,
+        stats: &crate::engine::Stats,
+        download_paused: bool,
+    ) {
         let now = Instant::now();
         let bytes = stats.received_bytes;
         if let Some((t, b)) = self.prev {
@@ -220,8 +225,8 @@ mod tests {
     }
 
     fn paths_under(name: &str) -> AppPaths {
-        let root = std::env::temp_dir()
-            .join(format!("tstream-test-calib-{name}-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("tstream-test-calib-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let paths = AppPaths::under(&root);
         paths.ensure_dirs().unwrap();

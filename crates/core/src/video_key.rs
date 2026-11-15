@@ -110,7 +110,10 @@ mod tests {
         let hex = h.to_hex();
         for (key, text) in [
             (VideoKey::whole(h), hex.clone()),
-            (VideoKey::new(h, Some((3, 2)), Some(9)), format!("{hex}:s3e2")),
+            (
+                VideoKey::new(h, Some((3, 2)), Some(9)),
+                format!("{hex}:s3e2"),
+            ),
             (VideoKey::new(h, None, Some(12)), format!("{hex}:f12")),
         ] {
             assert_eq!(key.to_string(), text);

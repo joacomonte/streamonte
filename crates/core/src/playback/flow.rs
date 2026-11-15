@@ -286,7 +286,12 @@ pub(super) async fn run(
     let closed_by_user = exit.is_some();
     // mpv que sale con error sin haber mostrado imagen = no pudo abrir el video: no preguntar.
     let failed_to_open = player_kind == PlayerKind::Mpv
-        && slot.row.lock().expect("row").time_to_first_frame_secs.is_none()
+        && slot
+            .row
+            .lock()
+            .expect("row")
+            .time_to_first_frame_secs
+            .is_none()
         && matches!(&exit, Some(Ok(status)) if !status.success());
     if failed_to_open {
         let code = match &exit {

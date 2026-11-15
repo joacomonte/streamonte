@@ -295,7 +295,9 @@ mod f2 {
         assert_eq!(light(&measured("a", 1.0)), Light::Yellow);
         assert_eq!(light(&measured("r", 0.99)), Light::Red);
         assert_eq!(light(&unmeasured("x", 3, 3)), Light::Unknown);
-        let margin = ranking::score(&measured("v", 2.0), &cfg, 1.0).margin.unwrap();
+        let margin = ranking::score(&measured("v", 2.0), &cfg, 1.0)
+            .margin
+            .unwrap();
         assert!((margin - 2.0).abs() < 1e-9, "margen = velocidad ÷ necesita");
     }
 

@@ -267,7 +267,10 @@ mod tests {
     #[test]
     fn stats_completan_rangos_sin_range_ready() {
         let a = ByteRange { start: 0, end: 10 };
-        let b = ByteRange { start: 90, end: 100 };
+        let b = ByteRange {
+            start: 90,
+            end: 100,
+        };
         let progress = |range, pieces_done, pieces_total| RangeProgress {
             range,
             pieces_done,

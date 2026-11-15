@@ -63,7 +63,9 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
         }));
     }
     let (a, b) = (core.clone(), core.clone());
-    tasks.push(tokio::spawn(async move { a.set_network(false, true).await.unwrap() }));
+    tasks.push(tokio::spawn(async move {
+        a.set_network(false, true).await.unwrap()
+    }));
     tasks.push(tokio::spawn(async move {
         b.catalog_set_exclude_japanese(false).await.unwrap()
     }));
@@ -73,7 +75,10 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
     let disk = ConfigStore::new(&paths).load().unwrap();
     assert_eq!(disk, core.config().await, "disco = memoria");
     for i in 0..20 {
-        assert!(disk.trackers.contains(&format!("udp://t{i}:1/announce")), "tracker {i}");
+        assert!(
+            disk.trackers.contains(&format!("udp://t{i}:1/announce")),
+            "tracker {i}"
+        );
     }
     assert!(!disk.engine.incoming && disk.engine.upnp);
     assert!(!disk.catalog.exclude_japanese);
@@ -94,15 +99,23 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
     assert_eq!(disk.trackers.len(), core.config().await.trackers.len());
 
     // 3. Cambiar uno no toca otro: deshabilitar el addon deja Red y "Sin anime" como estaban.
-    core.catalog_set_addon_enabled(&view.id, false).await.unwrap();
+    core.catalog_set_addon_enabled(&view.id, false)
+        .await
+        .unwrap();
     let after = ConfigStore::new(&paths).load().unwrap();
     assert_eq!(
         (after.engine.clone(), after.catalog.exclude_japanese),
         (disk.engine.clone(), true)
     );
     core.catalog_remove_addon(&view.id).await.unwrap();
-    assert!(core.catalog_set_addon_enabled(&view.id, true).await.is_err());
-    assert_eq!(ConfigStore::new(&paths).load().unwrap(), core.config().await);
+    assert!(core
+        .catalog_set_addon_enabled(&view.id, true)
+        .await
+        .is_err());
+    assert_eq!(
+        ConfigStore::new(&paths).load().unwrap(),
+        core.config().await
+    );
 
     drop(core);
     let _ = std::fs::remove_dir_all(root);

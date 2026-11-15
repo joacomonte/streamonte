@@ -171,7 +171,11 @@ pub fn score(input: &RankInput, cfg: &RankingConfig, speed_factor: f64) -> RankS
         effective_speed_bps: effective,
         speed_factor: factor,
         margin,
-        light: if capped_by_estimate { Light::Yellow } else { raw },
+        light: if capped_by_estimate {
+            Light::Yellow
+        } else {
+            raw
+        },
         capped_by_estimate,
         green_margin: cfg.green_margin,
         yellow_margin: cfg.yellow_margin,
@@ -212,7 +216,10 @@ mod tests {
             &cfg,
             f64::NAN,
         );
-        assert_eq!((s.needed_bps, s.margin, s.light), (None, None, Light::Unknown));
+        assert_eq!(
+            (s.needed_bps, s.margin, s.light),
+            (None, None, Light::Unknown)
+        );
     }
 
     const MB: u64 = 1_000_000;

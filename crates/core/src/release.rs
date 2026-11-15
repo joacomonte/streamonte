@@ -133,7 +133,10 @@ fn parse_season_episode(token: &str) -> Option<(u16, Option<u16>)> {
         };
     }
     let (s, e) = token.split_once('x')?;
-    Some((digits(s).filter(|_| s.len() <= 2)?, Some(digits(e).filter(|_| e.len() >= 2)?)))
+    Some((
+        digits(s).filter(|_| s.len() <= 2)?,
+        Some(digits(e).filter(|_| e.len() >= 2)?),
+    ))
 }
 
 /// Fuente del release (`WEB-DL`, `BluRay`, `CAM`…) por una palabra del nombre.

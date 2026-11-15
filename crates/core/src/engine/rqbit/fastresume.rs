@@ -91,7 +91,9 @@ mod tests {
 
         // 1ª vez (sin bitfield): chequeo completo; el bitfield queda junto a los datos aunque
         // librqbit borre el suyo al quitar el torrent. 4 piezas → 1111_0000.
-        let e = RqbitEmbedded::spawn(&cfg, root.join("rqbit"), None).await.unwrap();
+        let e = RqbitEmbedded::spawn(&cfg, root.join("rqbit"), None)
+            .await
+            .unwrap();
         let h = e
             .add(TorrentSource::TorrentFile(torrent_file.clone()), opts())
             .await
@@ -106,7 +108,9 @@ mod tests {
         // 2ª vez con un bitfield que dice "nada": si librqbit re-verificara el disco volvería a
         // 1111_0000; con fastresume lo usa tal cual y no hashea el archivo.
         std::fs::write(&bitv, [0u8]).unwrap();
-        let e = RqbitEmbedded::spawn(&cfg, root.join("rqbit"), None).await.unwrap();
+        let e = RqbitEmbedded::spawn(&cfg, root.join("rqbit"), None)
+            .await
+            .unwrap();
         let h = e
             .add(TorrentSource::TorrentFile(torrent_file), opts())
             .await

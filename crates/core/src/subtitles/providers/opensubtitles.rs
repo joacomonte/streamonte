@@ -1,4 +1,4 @@
-//! 4. OpenSubtitles (Q-01): API REST v1 con la key gratuita del usuario; cuota de 20
+//! Proveedor 4, OpenSubtitles (Q-01): API REST v1 con la key gratuita del usuario; cuota de 20
 //! descargas/día, por eso va último. La cuota se controla ANTES de cada descarga con un único
 //! [`QuotaGate`] para toda la app (ADR-12).
 
@@ -12,9 +12,7 @@ use serde_json::Value;
 
 use super::cache::{cached, save};
 use super::http::{get_bytes, http, HttpError};
-use super::{
-    body_detail, err, http_err, release_match, SubtitleProvider, OPENSUBTITLES,
-};
+use super::{body_detail, err, http_err, release_match, SubtitleProvider, OPENSUBTITLES};
 use crate::config::SubtitleLanguage;
 use crate::subtitles::{MatchKind, Quota, SpanishVariant, SubtitleCandidate, VideoIdentity};
 use crate::{CoreError, Result};
@@ -105,7 +103,10 @@ impl QuotaGate {
         *state = state.current(now);
         if state.remaining == Some(0) {
             let when = state.resets_at.map_or(String::new(), |t| {
-                format!(": se renueva {}", t.with_timezone(&chrono::Local).format("%d/%m %H:%M"))
+                format!(
+                    ": se renueva {}",
+                    t.with_timezone(&chrono::Local).format("%d/%m %H:%M")
+                )
             });
             return Err(err(OPENSUBTITLES, format!("cuota diaria agotada{when}")));
         }
@@ -324,7 +325,10 @@ mod tests {
             });
         }
         let passed = set.join_all().await.into_iter().filter(|p| *p).count();
-        assert_eq!((passed, asked.load(std::sync::atomic::Ordering::SeqCst)), (1, 1));
+        assert_eq!(
+            (passed, asked.load(std::sync::atomic::Ordering::SeqCst)),
+            (1, 1)
+        );
     }
 
     /// 406 → no se vuelve a pedir hasta la renovación (la del servidor o el próximo día UTC).
@@ -348,7 +352,10 @@ mod tests {
                 body: Vec::new(),
             })
         };
-        let e = gate.spend(at("2026-11-15T23:59:59Z"), server).await.unwrap_err();
+        let e = gate
+            .spend(at("2026-11-15T23:59:59Z"), server)
+            .await
+            .unwrap_err();
         assert!(e.to_string().contains("agotada: se renueva"), "{e}");
         // Sin hora del servidor: el próximo día UTC se puede de nuevo.
         let next_day = at("2026-11-16T00:00:00Z");

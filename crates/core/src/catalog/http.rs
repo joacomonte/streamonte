@@ -9,8 +9,8 @@ use std::time::Duration;
 
 use tokio::sync::Semaphore;
 
-use crate::http::{HttpError, Limits};
 pub use crate::http::redact;
+use crate::http::{HttpError, Limits};
 
 /// Tamaño máximo de una respuesta (NFR-24).
 pub const MAX_BODY: usize = 5 * 1024 * 1024;

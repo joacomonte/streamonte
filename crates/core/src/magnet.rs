@@ -214,9 +214,8 @@ fn magnet_spans(text: &str) -> Vec<&str> {
 /// (`dn=Sintel+(2010)` conserva su paréntesis).
 fn trim_trailing_punct(mut span: &str) -> &str {
     loop {
-        let unbalanced = |open: char, close: char| {
-            span.matches(close).count() > span.matches(open).count()
-        };
+        let unbalanced =
+            |open: char, close: char| span.matches(close).count() > span.matches(open).count();
         span = match span.chars().last() {
             Some(',' | '.' | ';') => &span[..span.len() - 1],
             Some(')') if unbalanced('(', ')') => &span[..span.len() - 1],

@@ -121,7 +121,11 @@ impl Queue {
     pub(super) async fn run(mut self, mut rx: mpsc::Receiver<Command>) {
         loop {
             if !self.paused && self.running().is_none() {
-                if self.jobs.values().any(|j| matches!(j.stage, Stage::Pending)) {
+                if self
+                    .jobs
+                    .values()
+                    .any(|j| matches!(j.stage, Stage::Pending))
+                {
                     let batch = self.scrape_pending().await;
                     // Fase rápida en paralelo; los comandos que llegan mientras tanto se atienden después.
                     let buffered = self.quick_pending(batch, &mut rx).await;
@@ -256,7 +260,7 @@ impl Queue {
         }
         run.stop = match (run.stop, stop) {
             (Some(Stop::Cancel), _) => Some(Stop::Cancel), // cancelar gana siempre
-            (Some(old), Stop::Requeue) => Some(old), // la pausa general no pisa algo puntual
+            (Some(old), Stop::Requeue) => Some(old),       // la pausa general no pisa algo puntual
             _ => Some(stop),
         };
         run.cancel.cancel();
@@ -284,9 +288,7 @@ impl Queue {
                     false,
                 ),
                 AnalyzeScope::Selected(hs) => (
-                    hs.into_iter()
-                        .filter(|h| library.has_torrent(h))
-                        .collect(),
+                    hs.into_iter().filter(|h| library.has_torrent(h)).collect(),
                     true,
                 ),
             }
@@ -430,11 +432,11 @@ impl Queue {
     }
 
     async fn start_next(&mut self) {
-        while let Some(pos) = self
-            .order
-            .iter()
-            .position(|h| self.jobs.get(h).is_some_and(|j| matches!(j.stage, Stage::Queued)))
-        {
+        while let Some(pos) = self.order.iter().position(|h| {
+            self.jobs
+                .get(h)
+                .is_some_and(|j| matches!(j.stage, Stage::Queued))
+        }) {
             let Some(hash) = self.order.remove(pos) else {
                 return;
             };
@@ -1044,7 +1046,10 @@ mod tests {
         assert_eq!(s.fake.measured.lock().unwrap().len(), 1, "en pausa no mide");
         {
             let lib = s.library.lock().await;
-            assert!(lib.any_of(&hash(3)).unwrap().live.is_some(), "lo medido queda");
+            assert!(
+                lib.any_of(&hash(3)).unwrap().live.is_some(),
+                "lo medido queda"
+            );
             assert_eq!(lib.any_of(&hash(2)).unwrap().status, EntryStatus::Scraped);
         }
         assert!(s.sink.0.lock().unwrap().iter().any(|e| matches!(
@@ -1190,7 +1195,6 @@ mod tests {
         s.cleanup();
     }
 
-
     #[tokio::test]
     async fn analisis_rapido_no_mide_velocidad() {
         let s = setup("quick-only", &[0, 5], 5, 0, 0).await;
@@ -1202,7 +1206,14 @@ mod tests {
         s.wait_idle().await;
         assert_eq!(*s.fake.quicked.lock().unwrap(), vec![hash(0)]);
         assert!(s.fake.measured.lock().unwrap().is_empty(), "no mide");
-        let st = s.library.lock().await.any_of(&hash(0)).unwrap().status.clone();
+        let st = s
+            .library
+            .lock()
+            .await
+            .any_of(&hash(0))
+            .unwrap()
+            .status
+            .clone();
         assert_eq!(st, EntryStatus::Scraped);
         // "Medir velocidad" después sí mide.
         s.handle.enqueue(AnalyzeScope::One(hash(0))).await.unwrap();
@@ -1226,7 +1237,14 @@ mod tests {
         let s = setup("retry-fail", &[5], 5, 10, 1).await;
         s.handle.enqueue(AnalyzeScope::All).await.unwrap();
         s.wait_idle().await;
-        let status = s.library.lock().await.any_of(&hash(5)).unwrap().status.clone();
+        let status = s
+            .library
+            .lock()
+            .await
+            .any_of(&hash(5))
+            .unwrap()
+            .status
+            .clone();
         assert!(matches!(status, EntryStatus::Failed { .. }), "{status:?}");
         s.cleanup();
     }

@@ -94,7 +94,10 @@ mod tests {
             r#"{"movie_results":[],"tv_results":[{"poster_path":null},{"poster_path":"/x.jpg"}]}"#,
         )
         .unwrap();
-        assert_eq!(poster_url(r).as_deref(), Some("https://image.tmdb.org/t/p/w500/x.jpg"));
+        assert_eq!(
+            poster_url(r).as_deref(),
+            Some("https://image.tmdb.org/t/p/w500/x.jpg")
+        );
         let empty: FindResponse = serde_json::from_str("{}").unwrap();
         assert_eq!(poster_url(empty), None);
     }

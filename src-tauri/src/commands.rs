@@ -5,9 +5,11 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
+use tstream_core::analyzer::swarm::SwarmCount;
 use tstream_core::analyzer::AnalyzeScope;
 use tstream_core::app::{
-    AppCore, ApiKeyStatus, ClipboardPreview, ClipboardReadReport, LibraryView, SubtitleFound, TempUsage,
+    ApiKeyStatus, AppCore, ClipboardPreview, ClipboardReadReport, LibraryView, SubtitleFound,
+    TempUsage,
 };
 use tstream_core::catalog::cinemeta::{BrowseCursor, BrowsePage, BrowseSort, Meta, SearchResults};
 use tstream_core::catalog::{AddonView, MediaKind};
@@ -15,9 +17,8 @@ use tstream_core::cleanup::CleanupReport;
 use tstream_core::config::{Config, PlayerKind, SubtitleLanguage};
 use tstream_core::library::LibraryRowView;
 use tstream_core::magnet::InfoHash;
-use tstream_core::analyzer::swarm::SwarmCount;
-use tstream_core::trackers::ScrapeResult;
 use tstream_core::playback::{OnAppClose, PlaybackAction, PlaybackId, PlaybackRow, StartRequest};
+use tstream_core::trackers::ScrapeResult;
 use tstream_core::video_key::VideoKey;
 use tstream_core::CoreError;
 

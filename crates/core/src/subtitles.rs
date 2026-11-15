@@ -558,7 +558,13 @@ mod tests {
         let mut x = x;
         x.apply_catalog(&[origin(Some(3), Some(1), None)], 0);
         assert_eq!(x.imdb_id, None, "otro episodio del pack: no aplica");
-        x.apply_catalog(&[origin(Some(3), Some(1), None), origin(Some(3), Some(2), None)], 0);
+        x.apply_catalog(
+            &[
+                origin(Some(3), Some(1), None),
+                origin(Some(3), Some(2), None),
+            ],
+            0,
+        );
         assert_eq!(x.video_id(), "tt0944947-s03e02");
         let mut movie = ep("Dune.Part.Two.2024.mkv", a);
         movie.apply_catalog(&[origin(None, None, Some(4))], 3);
@@ -606,8 +612,11 @@ mod tests {
             language: SubtitleLanguage::En,
         };
         mem.set(&h, choice.clone()).unwrap();
-        mem.set(&VideoKey::whole(InfoHash::from_bytes([8; 20])), choice.clone())
-            .unwrap();
+        mem.set(
+            &VideoKey::whole(InfoHash::from_bytes([8; 20])),
+            choice.clone(),
+        )
+        .unwrap();
         assert_eq!(mem.get(&h).unwrap(), Some(choice.clone()));
         // Otro episodio del mismo pack no hereda la elección.
         let e2 = VideoKey::new(InfoHash::from_bytes([7; 20]), Some((3, 2)), None);

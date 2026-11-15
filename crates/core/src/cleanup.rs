@@ -506,10 +506,17 @@ mod tests {
         let d = f.dir_with("analisis", None, 10);
         assert!(f.cleanup.try_reserve(&d));
         let wait = Duration::from_millis(200);
-        assert_eq!(rt.block_on(f.cleanup.remove_dir_when_free(&d, wait)).unwrap(), None);
+        assert_eq!(
+            rt.block_on(f.cleanup.remove_dir_when_free(&d, wait))
+                .unwrap(),
+            None
+        );
         assert!(d.exists(), "en uso: no se toca");
         f.cleanup.release(&d);
-        assert!(rt.block_on(f.cleanup.remove_dir_when_free(&d, wait)).unwrap().is_some());
+        assert!(rt
+            .block_on(f.cleanup.remove_dir_when_free(&d, wait))
+            .unwrap()
+            .is_some());
         assert!(!d.exists());
         assert!(f.cleanup.try_reserve(&d), "queda libre después de borrar");
         f.cleanup.release(&d);

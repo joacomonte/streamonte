@@ -111,7 +111,8 @@ impl RqbitEmbedded {
         let playback = dht_file.is_some();
         let lease = dht_file.as_ref().and_then(|_| net::DhtLease::take());
         let persist = dht_file.as_deref().filter(|_| lease.is_some());
-        let listen_port = (playback && config.incoming).then(|| net::free_port(config.listen_ports));
+        let listen_port =
+            (playback && config.incoming).then(|| net::free_port(config.listen_ports));
         static INSTANCE: AtomicU64 = AtomicU64::new(0);
         // shortcut: si la app muere, esta carpeta (pocos KB) queda en %TEMP%; limpiarla al arrancar si molesta.
         let state_dir = default_dir.with_file_name("rqbit-state").join(format!(
@@ -135,9 +136,12 @@ impl RqbitEmbedded {
             Err(e) if listen_port.is_some() || persist.is_some() => {
                 tracing::warn!("rqbit: {e:#}; se reintenta sin escucha ni DHT persistente");
                 fallback = Some(format!("{e:#}"));
-                Session::new_with_opts(default_dir, net::session_opts(config, None, None, &state_dir))
-                    .await
-                    .map_err(|e| CoreError::Engine(format!("no se pudo iniciar rqbit: {e:#}")))?
+                Session::new_with_opts(
+                    default_dir,
+                    net::session_opts(config, None, None, &state_dir),
+                )
+                .await
+                .map_err(|e| CoreError::Engine(format!("no se pudo iniciar rqbit: {e:#}")))?
             }
             Err(e) => {
                 return Err(CoreError::Engine(format!(

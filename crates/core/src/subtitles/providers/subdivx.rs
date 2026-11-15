@@ -8,11 +8,9 @@ use serde_json::Value;
 use super::archive::extract_if_archive;
 use super::cache::{cached, sanitize, save, to_utf8};
 use super::http::{get_bytes, http, pct, read_capped, send, HttpError, MAX_BODY_BYTES};
-use super::{
-    err, http_err, normalized_title, release_match, words, SubtitleProvider, SUBDIVX,
-};
-use crate::config::SubtitleLanguage;
+use super::{err, http_err, normalized_title, release_match, words, SubtitleProvider, SUBDIVX};
 use crate::audio::spanish_variant;
+use crate::config::SubtitleLanguage;
 use crate::subtitles::{Quota, SubtitleCandidate, VideoIdentity};
 use crate::Result;
 

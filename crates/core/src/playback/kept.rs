@@ -256,9 +256,9 @@ fn migrated_key(r: &KeptRecord, rows: &[VideoKey]) -> VideoKey {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::playback::clock;
     use crate::library::Library;
     use crate::paths::AppPaths;
+    use crate::playback::clock;
     use crate::playback::{PlaybackDeps, PlaybackManager};
 
     #[test]
@@ -371,7 +371,11 @@ mod tests {
                 key: e1,
             },
         );
-        assert_eq!(manager.rows()[0].key, e1, "la fila pausada dice qué video es");
+        assert_eq!(
+            manager.rows()[0].key,
+            e1,
+            "la fila pausada dice qué video es"
+        );
         assert!(shared.take_kept(&e2).is_none());
         assert!(shared.take_kept(&VideoKey::whole(hash)).is_none());
         let (got, kept) = shared.take_kept(&e1).unwrap();

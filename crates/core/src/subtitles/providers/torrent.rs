@@ -8,8 +8,8 @@ use super::cache::{cached, save};
 use super::http::{get_bytes, local_http};
 use super::http_err;
 use super::lang::lang_from_name;
-use crate::config::SubtitleLanguage;
 use super::{SubtitleProvider, TORRENT_PROVIDER};
+use crate::config::SubtitleLanguage;
 use crate::subtitles::{MatchKind, Quota, SubtitleCandidate, VideoIdentity};
 use crate::Result;
 

@@ -130,7 +130,11 @@ fn is_cam(c: &StreamCandidate) -> bool {
 
 /// `b` gana si viene del addon de mayor prioridad (menor `addon_rank`); si no, solo completa.
 fn prefer<T>(a: &mut Option<T>, b: Option<T>, b_first: bool) {
-    *a = if b_first { b.or(a.take()) } else { a.take().or(b) };
+    *a = if b_first {
+        b.or(a.take())
+    } else {
+        a.take().or(b)
+    };
 }
 
 /// FR-44: unión de addons/trackers/sitios/idiomas, máx. seeders, tamaño exacto preferido,
@@ -478,7 +482,11 @@ mod tests {
             let mut cam = cand(1, "x", 1);
             cam.source = Some("CAM".into());
             let clean = cand(1, "y", 0);
-            let (p, q) = if first_cam { (cam, clean) } else { (clean, cam) };
+            let (p, q) = if first_cam {
+                (cam, clean)
+            } else {
+                (clean, cam)
+            };
             m.add(p);
             m.add(q);
             assert!(m.sorted().is_empty());

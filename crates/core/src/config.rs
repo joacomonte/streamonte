@@ -197,11 +197,17 @@ impl RankingConfig {
     fn fix_invalid(&mut self) {
         let d = Self::default();
         if self.movie_minutes == 0 {
-            tracing::warn!("config: ranking.movie_minutes = 0; se usa {}", d.movie_minutes);
+            tracing::warn!(
+                "config: ranking.movie_minutes = 0; se usa {}",
+                d.movie_minutes
+            );
             self.movie_minutes = d.movie_minutes;
         }
         if self.episode_minutes == 0 {
-            tracing::warn!("config: ranking.episode_minutes = 0; se usa {}", d.episode_minutes);
+            tracing::warn!(
+                "config: ranking.episode_minutes = 0; se usa {}",
+                d.episode_minutes
+            );
             self.episode_minutes = d.episode_minutes;
         }
     }

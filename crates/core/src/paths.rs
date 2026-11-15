@@ -273,7 +273,11 @@ mod tests {
         std::fs::write(old.join("pieza"), b"x").unwrap();
 
         p.migrate_downloads_from_temp();
-        assert!(p.downloads_dir().join("abc-analisis").join("pieza").is_file());
+        assert!(p
+            .downloads_dir()
+            .join("abc-analisis")
+            .join("pieza")
+            .is_file());
         assert!(!p.temp_dir.join("downloads").exists());
         p.migrate_downloads_from_temp(); // sin nada que mover: no falla
         std::fs::remove_dir_all(&root).unwrap();

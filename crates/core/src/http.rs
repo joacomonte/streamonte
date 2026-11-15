@@ -15,10 +15,15 @@ const TRANSIENT_WAIT: Duration = Duration::from_millis(300);
 #[derive(Debug)]
 pub(crate) enum HttpError {
     /// Respuesta fuera de 2xx, con su cuerpo (para detectar Cloudflare o leer el detalle).
-    Status { status: u16, body: Vec<u8> },
+    Status {
+        status: u16,
+        body: Vec<u8>,
+    },
     /// Error de red, ya SIN la URL (la de un addon o de Wyzie puede llevar claves).
     Network(reqwest::Error),
-    TooLarge { max: usize },
+    TooLarge {
+        max: usize,
+    },
 }
 
 /// Límites de un [`get_bytes`].
@@ -82,9 +87,12 @@ pub(crate) async fn get_bytes(
             (HttpError::Network(e), _) if limits.retry_transient && !is_timeout(e) => {
                 TRANSIENT_WAIT
             }
-            (HttpError::Status { status: 500..=599, .. }, _) if limits.retry_transient => {
-                TRANSIENT_WAIT
-            }
+            (
+                HttpError::Status {
+                    status: 500..=599, ..
+                },
+                _,
+            ) if limits.retry_transient => TRANSIENT_WAIT,
             _ => return Err(err),
         };
         let Some(next) = next.filter(|_| !retried) else {
@@ -130,7 +138,11 @@ fn retry_after(v: &str) -> Option<Duration> {
         return Some(Duration::from_secs(secs));
     }
     let at = chrono::DateTime::parse_from_rfc2822(v).ok()?;
-    Some((at.to_utc() - chrono::Utc::now()).to_std().unwrap_or_default())
+    Some(
+        (at.to_utc() - chrono::Utc::now())
+            .to_std()
+            .unwrap_or_default(),
+    )
 }
 
 /// URL para logs y UI: si lleva configuración en el path o en el query (puede tener claves), se
