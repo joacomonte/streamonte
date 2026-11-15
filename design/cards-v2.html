@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarjetas: ronda 2</title>
+<style>
+:root {
+  --bg: #0d1014; --surface: #161a20; --surface-2: #1c2129; --surface-3: #232a34; --sunk: #11151a;
+  --border: #252b34; --border-strong: #353d48; --track: #46505d;
+  --text: #e7eaee; --muted: #9aa3ae; --dim: #8b949f;
+  --green: #4ade80; --yellow: #facc15; --red: #f87171;
+  --accent: #2563eb; --accent-hover: #1d4fd8; --accent-fg: #7ab0ff;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --out: cubic-bezier(.16, 1, .3, 1);
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scrollbar-color: var(--border-strong) var(--bg); }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; border: 3px solid var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; caret-color: var(--accent-fg); }
+::selection { background: color-mix(in srgb, var(--accent) 45%, transparent); color: #fff; }
+:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; border-radius: 6px; }
+.page { max-width: 1080px; margin: 0 auto; padding: 48px 24px 120px; }
+.page > h1 { font: 600 30px/1.15 var(--display); letter-spacing: -.02em; margin: 0 0 10px; text-wrap: balance; }
+.page > p { color: var(--muted); margin: 0; max-width: 68ch; font-size: 15px; }
+.variant { margin-top: 72px; }
+.variant > header { margin-bottom: 18px; }
+.variant > header h2 { font: 600 19px/1.2 var(--display); margin: 0 0 4px; letter-spacing: -.01em; }
+.variant > header p { color: var(--muted); font-size: 13.5px; margin: 0; max-width: 72ch; }
+.num, .spd, .ratio, .kv, .dl, .mz { font-variant-numeric: tabular-nums; }
+svg.i { width: 16px; height: 16px; flex: none; }
+h4 { font-size: 11.5px; font-weight: 600; color: var(--dim); margin: 0 0 6px; letter-spacing: .02em; }
+.dim { color: var(--dim); }
+.mz { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+
+/* ---------- piezas compartidas ---------- */
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; position: relative; }
+button:disabled { opacity: .55; cursor: default; }
+.ib { width: 32px; height: 32px; border-radius: 8px; display: inline-grid; place-items: center; color: var(--muted); flex: none; transition: background .15s, color .15s, transform .12s var(--ease); }
+.ib:hover { background: var(--surface-2); color: var(--text); }
+.ib[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 600; white-space: nowrap; transition: background .15s, color .15s, border-color .15s, transform .12s var(--ease); }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12.5px; gap: 6px; }
+.btn.sm svg.i { width: 14px; height: 14px; }
+.btn.pri { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .45); }
+.btn.pri:hover { background: var(--accent-hover); }
+.btn.sec { background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text); }
+.btn.sec:hover { background: var(--surface-3); }
+.btn.qt { color: var(--muted); }
+.btn.qt:hover { color: var(--text); background: var(--surface-2); }
+.btn.lk { color: var(--accent-fg); }
+.btn.lk:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.btn.wide { width: 100%; }
+.play { width: 36px; height: 36px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--accent); color: #fff; flex: none; box-shadow: 0 2px 6px -1px rgb(0 0 0 / .5); transition: background .15s, transform .12s var(--ease); }
+.play:hover { background: var(--accent-hover); }
+.play svg, .btn > svg[data-p] { margin-left: 2px; }
+button:not(:disabled):active { transform: scale(.95); }
+.exp svg.i { transition: transform .45s var(--out); }
+.exp[aria-expanded="true"] svg.i { transform: rotate(180deg); }
+.busy { pointer-events: none; }
+.busy > * { visibility: hidden; }
+.busy::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+
+.ttl { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.ttl .tn { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.yr { color: var(--muted); white-space: nowrap; flex: none; }
+.raw { font: 11.5px/1.5 var(--mono); color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 11px; font-weight: 600; line-height: 1.3; padding: 3px 8px; border-radius: 5px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
+.chip.q { color: var(--text); border-color: var(--border-strong); }
+.tag { font-size: 12px; color: var(--muted); border: 1px dashed var(--track); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.lgs { display: inline-flex; gap: 4px; flex: none; }
+.lang { font-size: 11px; font-weight: 700; letter-spacing: .05em; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border-strong); color: var(--muted); line-height: 1; white-space: nowrap; cursor: help; }
+.lang.lat { color: var(--green); border-color: color-mix(in srgb, var(--green) 35%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
+.lang.en { color: var(--accent-fg); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.lang.guess { border-style: dashed; background: transparent; }
+
+.sig { display: inline-flex; align-items: flex-end; gap: 2px; height: 20px; padding: 2px; flex: none; cursor: help; }
+.sig i { width: 4px; border-radius: 1px; background: var(--track); }
+.sig i:nth-child(1) { height: 30%; } .sig i:nth-child(2) { height: 55%; } .sig i:nth-child(3) { height: 78%; } .sig i:nth-child(4) { height: 100%; }
+.sig.l4 i, .sig.l3 i:nth-child(-n+3) { background: var(--green); }
+.sig.l2 i:nth-child(-n+2) { background: var(--yellow); }
+.sig.l1 i:nth-child(1) { background: var(--red); }
+
+.spd { white-space: nowrap; color: var(--muted); font-size: 12px; }
+.spd b { font: 600 22px/1 var(--display); color: var(--text); letter-spacing: -.02em; margin-right: 4px; }
+.ratio { font-weight: 700; letter-spacing: -.01em; white-space: nowrap; cursor: help; }
+.ratio.g { color: var(--green); } .ratio.y { color: var(--yellow); } .ratio.r { color: var(--red); }
+.ratio.prov { color: var(--muted); font-weight: 600; }
+.ratio.none { color: var(--dim); font-weight: 500; }
+
+.dl { display: grid; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.dl-t { display: flex; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; }
+.dl-t b { color: var(--text); font-weight: 600; }
+.dl-bar { height: 6px; border-radius: 3px; background: var(--sunk); box-shadow: inset 0 0 0 1px var(--border); overflow: hidden; }
+.dl-bar i { display: block; height: 100%; background: var(--accent-fg); border-radius: 3px; }
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px 20px; margin: 0; }
+.kv dt { font-size: 11.5px; color: var(--dim); }
+.kv dd { margin: 2px 0 0; font-weight: 600; }
+.kv dd small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.aud { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.aud li { display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap; }
+.aud .lang { cursor: default; }
+.rawfull { display: grid; gap: 3px; }
+.rawfull span { font-size: 11.5px; color: var(--dim); }
+.rawfull code { font: 12px/1.5 var(--mono); color: var(--muted); word-break: break-all; user-select: all; }
+
+/* revelado: alto animado con grid-rows (interrumpible: es una transición CSS) */
+.more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .5s var(--out); }
+.more > div { min-height: 0; overflow: hidden; }
+.tc.open .more { grid-template-rows: 1fr; }
+.more-in { opacity: 0; transform: translateY(-6px); transition: opacity .22s ease, transform .5s var(--out); }
+.tc.open .more-in { opacity: 1; transform: none; transition-delay: .05s; }
+.tc[data-x] { cursor: pointer; }
+.tc[data-x] .more, .tc .rawfull { cursor: auto; }
+
+/* ---------- 1 · Fila que se abre ---------- */
+.w1 { display: grid; grid-template-columns: 22px minmax(0,1fr) auto auto auto auto 32px; column-gap: 14px; border-top: 1px solid var(--border); }
+.d1 { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; border-bottom: 1px solid var(--border); padding: 0 8px; transition: background .2s; }
+.d1:hover, .d1.open { background: var(--surface); }
+.d1 .hd { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 64px; padding: 10px 0; }
+.d1 .id { min-width: 0; }
+.d1 .ttl .tn { font-size: 15px; }
+.d1 .v { display: grid; justify-items: end; gap: 3px; }
+.d1 .v small { font-size: 11.5px; color: var(--dim); white-space: nowrap; }
+.d1 .rt { font-size: 15px; text-align: right; }
+.d1 .ac { display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
+.d1 .more { grid-column: 1 / -1; }
+.d1 .panel { margin: 0 0 14px 36px; padding: 16px; background: var(--sunk); border: 1px solid var(--border); border-radius: 10px; display: grid; gap: 16px; }
+.d1 .cols { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap: 20px; }
+
+/* ---------- 2 · Baldosa de margen ---------- */
+.w2 { display: grid; gap: 10px; }
+.d2 { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px; transition: border-color .2s; }
+.d2:hover, .d2.open { border-color: var(--border-strong); }
+.d2 .hd { display: grid; grid-template-columns: 108px minmax(0,1fr) auto; gap: 16px; align-items: center; }
+.d2 .tile { align-self: stretch; min-height: 84px; border-radius: 10px; display: grid; place-content: center; justify-items: center; gap: 5px; text-align: center; padding: 8px; background: var(--sunk); cursor: help; }
+.d2 .tile .ratio { font: 700 30px/1 var(--display); letter-spacing: -.03em; }
+.d2 .tile small { font-size: 11px; color: var(--muted); }
+.d2 .tile.g { background: color-mix(in srgb, var(--green) 11%, var(--surface)); }
+.d2 .tile.g small { color: color-mix(in srgb, var(--green) 45%, var(--text)); }
+.d2 .tile.r { background: color-mix(in srgb, var(--red) 11%, var(--surface)); }
+.d2 .tile.r small { color: color-mix(in srgb, var(--red) 45%, var(--text)); }
+.d2 .tile.y { background: color-mix(in srgb, var(--yellow) 10%, var(--surface)); }
+.d2 button.tile { cursor: pointer; background: color-mix(in srgb, var(--accent) 18%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); color: #cfe0ff; font-weight: 600; font-size: 12.5px; line-height: 1.25; }
+.d2 button.tile:hover { background: color-mix(in srgb, var(--accent) 26%, var(--surface)); }
+.d2 button.tile svg.i { width: 22px; height: 22px; }
+.d2 .tl { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.d2 .tl .ttl { flex: 0 1 auto; }
+.d2 .ttl .tn { font-size: 15.5px; }
+.d2 .facts { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; margin-top: 8px; color: var(--muted); font-size: 12.5px; }
+.d2 .facts .sw { display: inline-flex; align-items: center; gap: 8px; }
+.d2 .ac { display: flex; gap: 4px; align-items: center; padding-right: 4px; }
+.d2 .more-in { display: grid; gap: 12px; padding: 12px 6px 6px; }
+.d2 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
+.d2 .mt { background: var(--sunk); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; align-content: start; }
+.d2 .mt > span { font-size: 11.5px; color: var(--dim); }
+.d2 .mt > b { font-weight: 600; font-size: 15px; }
+.d2 .mt > small { color: var(--muted); font-size: 12px; }
+.d2 .mt.wide { grid-column: span 2; gap: 8px; }
+
+/* ---------- 3 · Columna de ver ---------- */
+.w3 { display: grid; gap: 12px; }
+.d3 { display: grid; grid-template-columns: minmax(0,1fr) 252px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color .2s; }
+.d3:hover, .d3.open { border-color: var(--border-strong); }
+.d3 .main { padding: 16px 18px; min-width: 0; display: grid; gap: 8px; align-content: start; }
+.d3 .ttl .tn { font: 600 19px/1.2 var(--display); letter-spacing: -.015em; }
+.d3 .chrow { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-top: 2px; }
+.d3 .facts { color: var(--muted); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.d3 .more-in { display: grid; gap: 16px; padding-top: 10px; }
+.d3 .side { background: var(--sunk); border-left: 1px solid var(--border); padding: 14px; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+.d3 .meter { display: flex; align-items: center; gap: 10px; }
+.d3 .spd b { font-size: 30px; }
+.d3 .sub { font-size: 12.5px; color: var(--muted); display: flex; gap: 8px; align-items: baseline; }
+.d3 .sub .ratio { font-size: 15px; }
+.d3 .row2 { display: flex; gap: 6px; align-items: center; }
+.d3 .row2 .btn { flex: 1; }
+
+/* ---------- 4 · Etapas ---------- */
+.w4 { display: grid; gap: 12px; }
+.d4 { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color .2s; }
+.d4:hover, .d4.open { border-color: var(--border-strong); }
+.d4 .hd { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 18px; align-items: center; padding: 14px 16px 12px; }
+.d4 .id { min-width: 0; display: grid; gap: 4px; }
+.d4 .ttl .tn { font-size: 16px; }
+.d4 .meter { display: flex; align-items: center; gap: 10px; }
+.d4 .meter .ratio { font-size: 15px; }
+.d4 .ac { display: flex; gap: 4px; align-items: center; }
+.d4 .steps { list-style: none; margin: 0; padding: 12px 16px 14px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; background: var(--sunk); }
+.d4 .st { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
+.d4 .nd { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; color: var(--muted); border: 1px dashed var(--track); flex: none; }
+.d4 .nd svg.i { width: 13px; height: 13px; }
+.d4 .st.ok .nd { border: 0; background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+.d4 .st.now .nd { border: 2px solid var(--accent-fg); color: var(--accent-fg); }
+.d4 .st.live .nd i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-fg); }
+.d4 .sx { display: grid; line-height: 1.3; }
+.d4 .sx b { font-size: 12.5px; font-weight: 600; }
+.d4 .sx span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.d4 .st:not(.ok):not(.now) .sx b { color: var(--muted); }
+.d4 .cn { flex: 0 1 40px; min-width: 16px; height: 2px; border-radius: 1px; background: var(--track); }
+.d4 .cn.ok { background: color-mix(in srgb, var(--green) 55%, var(--track)); }
+.d4 .pn { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr); gap: 16px 24px; padding: 14px 16px 16px; border-top: 1px solid var(--border); }
+.d4 .pn .rawfull { grid-column: 1 / -1; }
+.d4 .base { position: relative; height: 4px; background: var(--border); transition: height .5s var(--out); overflow: hidden; }
+.d4 .base > i { position: absolute; inset: 0 auto 0 0; background: var(--accent-fg); transition: background .3s; }
+.d4.open .base { height: 30px; }
+.d4.open .base > i { background: color-mix(in srgb, var(--accent) 55%, var(--sunk)); }
+.d4 .base > span { position: absolute; inset: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px; font-size: 12px; color: var(--text); opacity: 0; transition: opacity .2s; white-space: nowrap; }
+.d4 .base > span em { font-style: normal; color: var(--muted); margin-left: auto; }
+.d4.open .base > span { opacity: 1; transition-delay: .12s; }
+
+/* ---------- 5 · Tipográfico ---------- */
+.w5 { border-bottom: 1px solid var(--border); }
+.d5 { padding: 28px 4px; border-top: 1px solid var(--border); }
+.d5 .hd { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 28px; align-items: start; }
+.d5 .big { font: 600 30px/1.12 var(--display); letter-spacing: -.025em; margin: 0; text-wrap: balance; }
+.d5 .big .yr { font-weight: 300; }
+.d5 .raw { margin-top: 6px; white-space: normal; word-break: break-all; }
+.d5 .sent { margin: 12px 0 0; font-size: 15px; line-height: 1.65; color: var(--muted); max-width: 64ch; }
+.d5 .sent b { color: var(--text); font-weight: 600; }
+.d5 .sent .lgs { vertical-align: 1px; margin-left: 4px; }
+.d5 .fig { display: grid; justify-items: end; gap: 8px; padding-top: 4px; }
+.d5 .fig .row { display: flex; align-items: center; gap: 12px; }
+.d5 .fig .sig { height: 28px; } .d5 .fig .sig i { width: 5px; }
+.d5 .fig .spd b { font: 300 52px/1 var(--display); letter-spacing: -.03em; }
+.d5 .fig .ratio { font-size: 17px; }
+.d5 .fig small { font-size: 12px; color: var(--muted); }
+.d5 .links { display: flex; flex-wrap: wrap; gap: 4px; margin: 14px 0 0 -10px; align-items: center; }
+.d5 .links .btn.pri, .d5 .links .tag { margin-left: 10px; }
+.d5 .more-in { padding-top: 6px; display: grid; gap: 16px; max-width: 64ch; }
+
+/* ---------- 6 · Galería ---------- */
+.w6 { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+.d6 { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; transition: border-color .2s; }
+.d6:hover, .d6.open { border-color: var(--border-strong); }
+.d6 .hd { display: grid; gap: 6px; }
+.d6 .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; min-height: 24px; }
+.d6 .sw { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.d6 .ttl { flex-wrap: wrap; row-gap: 0; }
+.d6 .ttl .tn { font: 600 21px/1.2 var(--display); letter-spacing: -.02em; white-space: normal; }
+.d6 .chips { margin-top: 4px; }
+.d6 .fig { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-top: 12px; }
+.d6 .fig .spd b { font-size: 36px; }
+.d6 .fig .ratio { font-size: 18px; }
+.d6 .more-in { display: grid; gap: 14px; padding-top: 14px; }
+.d6 .more-in .kv { grid-template-columns: 1fr 1fr; }
+.d6 .foot { display: flex; gap: 6px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.d6 .foot > .btn:first-child { flex: 1; }
+
+/* ---------- selector de audio: el único momento de movimiento ---------- */
+.pk { position: fixed; z-index: 20; width: 260px; padding: 8px; background: var(--surface-3); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 14px 34px -10px rgb(0 0 0 / .75), 0 2px 8px rgb(0 0 0 / .4);
+  opacity: 0; transform: scale(.94); clip-path: inset(0 0 100% 0 round 12px);
+  transition: opacity .12s ease, transform .14s ease, clip-path .14s ease; }
+.pk.up { clip-path: inset(100% 0 0 0 round 12px); }
+.pk.on { opacity: 1; transform: none; clip-path: inset(-30px -30px -50px -30px round 12px); transition: opacity .18s ease, transform .5s var(--out), clip-path .5s var(--out); }
+.pk-h { font-size: 11.5px; font-weight: 600; color: var(--muted); padding: 4px 8px 8px; }
+.pk-o { width: 100%; display: grid; grid-template-columns: 18px minmax(0,1fr) 16px; gap: 10px; align-items: center; text-align: left; padding: 9px 10px; border-radius: 8px; color: var(--text); opacity: 0; transform: translateY(-6px); transition: background .15s, opacity .2s ease, transform .5s var(--out); }
+.pk.on .pk-o { opacity: 1; transform: none; }
+.pk.on .pk-o:nth-child(2) { transition-delay: 0s, .06s, .06s; }
+.pk-o + .pk-o { margin-top: 4px; }
+.pk-o b { display: block; font-weight: 600; font-size: 14px; }
+.pk-o small { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-o > svg:last-child { opacity: .7; }
+.pk-o:hover, .pk-o:focus-visible { background: var(--surface-2); }
+.pk-o.pri { background: var(--accent); color: #fff; }
+.pk-o.pri small { color: #dbe7ff; }
+.pk-o.pri:hover, .pk-o.pri:focus-visible { background: var(--accent-hover); }
+.pk-o:focus-visible { outline-offset: 1px; }
+
+.tip { position: fixed; z-index: 30; max-width: 270px; padding: 8px 11px; border-radius: 8px; background: #262d38; border: 1px solid var(--border-strong); color: var(--text); font-size: 12.5px; line-height: 1.45; box-shadow: 0 8px 22px -6px rgb(0 0 0 / .65); pointer-events: none; opacity: 0; transform: translateY(3px); transition: opacity .14s ease, transform .25s var(--out); }
+.tip.below { transform: translateY(-3px); }
+.tip.on { opacity: 1; transform: none; }
+.toast { position: fixed; left: 50%; bottom: 24px; z-index: 25; display: flex; gap: 10px; align-items: center; padding: 10px 16px; border-radius: 10px; background: var(--surface-3); border: 1px solid var(--border-strong); box-shadow: 0 10px 28px -8px rgb(0 0 0 / .7); font-size: 13px; opacity: 0; transform: translate(-50%, 8px); transition: opacity .2s ease, transform .4s var(--out); pointer-events: none; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+.toast svg { color: var(--green); }
+
+@media (max-width: 860px) {
+  .d1 .cols, .d4 .pn { grid-template-columns: 1fr; }
+  .d3 { grid-template-columns: minmax(0,1fr) 232px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="play" viewBox="0 0 24 24"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" fill="currentColor"/></symbol>
+  <symbol id="pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5"/><path d="M20 4v4.5h-4.5"/></g></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="scan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h11M4 11h6M4 16h5"/><circle cx="15.5" cy="14.5" r="3.5"/><path d="M18.2 17.2L21 20"/></g></symbol>
+  <symbol id="gauge" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 18.5a9 9 0 1 1 14.8 0"/><path d="M12 14.5l4.2-5"/><path d="M7 10.5l.9.6M12 6.8v1M17 10.5l-.9.6"/></g><circle cx="12" cy="14.5" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="speaker" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></g></symbol>
+</svg>
+
+<main class="page">
+  <h1>Tarjetas de torrent, ronda 2</h1>
+  <p>Seis armados distintos con todo lo que elegiste de la ronda 1. En cada uno están los cinco casos: Dune analizado y abierto, The Bear midiendo velocidad, Oppenheimer con datos rápidos, uno sin analizar y Severance, que no llega. Tocá una tarjeta para abrirla o cerrarla, tocá Ver para elegir el audio y pasá el mouse (o el teclado) por cualquier dato para ver qué significa.</p>
+  <div id="designs"></div>
+</main>
+
+<div id="tip" class="tip" role="tooltip" hidden></div>
+<div id="pk" class="pk" role="dialog" aria-labelledby="pkh" hidden><div class="pk-h" id="pkh">Elegí el audio</div><div class="pk-l"></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+// Títulos, año/episodio y chips de calidad están cargados a mano a partir del nombre crudo.
+// La app real va a necesitar un parser de nombres de release (título, año, T/E, resolución, HDR, audio, fuente).
+const T = [
+  { id: 'a', state: 'done', open: true, title: 'Dune: Part Two', sub: '2024',
+    raw: 'Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX',
+    chips: [['4K', 1], ['Dolby Vision'], ['HDR'], ['Atmos 5.1'], ['WEB-DL']],
+    size: '23,4 GB', dur: '2:46:00', durH: '2 h 46 min', speed: 78, need: 20, ratio: 3.9,
+    seeds: 18, peers: 41, trk: [412, 88],
+    langs: [{ k: 'lat', ok: 1, det: 'AC3 5.1 · «Español Latino»' }, { k: 'en', ok: 1, det: 'EAC3 5.1 · predeterminada' }, { k: 'cast', ok: 1, det: 'AC3 5.1' }],
+    dl: { pct: 12, got: '2,8', of: '23,4 GB', note: 'Pausaste la reproducción en 0:19:58' } },
+  { id: 'b', state: 'live', title: 'The Bear', sub: 'T3 · E1', raw: 'The.Bear.S03E01.1080p.WEB.h264-ETHEL',
+    chips: [['1080p', 1], ['WEB']], size: '2,1 GB', dur: '~45 min', durH: 'unos 45 min', durEst: 1,
+    speed: 34, sec: 17, need: 6.2, seeds: 9, peers: 22, trk: [155, 31],
+    langs: [{ k: 'lat', ok: 0 }, { k: 'en', ok: 0 }] },
+  { id: 'c', state: 'quick', title: 'Oppenheimer', sub: '2023', raw: 'Oppenheimer.2023.1080p.BluRay.x264-SPARKS',
+    chips: [['1080p', 1], ['BluRay']], size: '12,7 GB', dur: '3:00:00', durH: '3 h', need: 9.4,
+    seeds: 1, peers: 4, trk: [9, 2], langs: [{ k: 'en', ok: 1, det: 'DTS 5.1' }] },
+  { id: 'd', state: 'none', title: 'Torrentio', raw: 'magnet · dn=Torrentio · btih 8F3A9C…C21D' },
+  { id: 'e', state: 'done', title: 'Severance', sub: 'T2 · E5', raw: 'Severance.S02E05.2160p.ATVP.WEB-DL.DV.HDR.H.265-FLUX',
+    chips: [['4K', 1], ['Dolby Vision'], ['HDR'], ['WEB-DL'], ['Apple TV+']], size: '6,2 GB', dur: '0:45:00', durH: '45 min',
+    speed: 7.2, need: 18, ratio: 0.4, seeds: 1, peers: 4, trk: [6, 3],
+    langs: [{ k: 'lat', ok: 1, det: 'AC3 5.1' }, { k: 'en', ok: 1, det: 'EAC3 5.1 · predeterminada' }] },
+];
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const nf = n => n.toLocaleString('es-AR', { maximumFractionDigits: 1 });
+const nf1 = n => n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const I = id => `<svg class="i" aria-hidden="true"><use href="#${id}"/></svg>`;
+const LN = { lat: ['LAT', 'Latino', 'español latino'], en: ['EN', 'Inglés', 'inglés'], cast: ['CAST', 'Castellano', 'castellano'] };
+const ORD = { lat: 0, en: 1, cast: 2 };
+T.forEach(d => d.langs && d.langs.sort((a, b) => ORD[a.k] - ORD[b.k]));
+const LV = ['sin señal', 'señal débil', 'señal regular', 'señal buena', 'señal fuerte'];
+const lvl = s => s >= 12 ? 4 : s >= 6 ? 3 : s >= 3 ? 2 : s >= 1 ? 1 : 0;
+const rc = r => r >= 1.5 ? 'g' : r >= 1 ? 'y' : 'r';
+const TIP = {
+  analyze: 'Analizar datos: lee rápido el nombre, la duración, los idiomas de audio y cuántos seeds hay. Tarda unos segundos.',
+  speed: 'Medir velocidad: baja un pedazo durante unas decenas de segundos para saber si se va a cortar. Se mide un torrent por vez.',
+  re: 'Analizar de nuevo: vuelve a leer los datos y a medir la velocidad, por si cambiaron los seeds.',
+  done: 'Listo: corta la medición ahora y se queda con lo que midió hasta acá.',
+  pause: 'Pausar la medición sin perder lo medido. Tocá de nuevo para seguir.',
+  watch: 'Ver: elegí el idioma del audio y se abre en mpv.',
+  more: 'Mostrar u ocultar todos los datos del análisis.',
+};
+
+const sig = d => {
+  if (d.state === 'none') return '';
+  const l = lvl(d.seeds), t = `${d.seeds} ${d.seeds === 1 ? 'seed conectado' : 'seeds conectados'}: ${LV[l]}.`;
+  return `<span class="sig l${l}" tabindex="0" role="img" aria-label="${t}" data-tip="${t}"><i></i><i></i><i></i><i></i></span>`;
+};
+const seedsTxt = d => `${d.seeds} ${d.seeds === 1 ? 'seed' : 'seeds'} · ${d.peers} peers`;
+const langTip = l => {
+  const [, n, full] = LN[l.k];
+  return l.ok ? `${n}: confirmado, el torrent trae una pista de audio en ${full}${l.det ? ` (${l.det})` : ''}.`
+              : `${n}: adivinado por el nombre del torrent. Todavía no leímos las pistas de audio reales.`;
+};
+const lang = (l, f = 1) => `<span class="lang ${l.k}${l.ok ? '' : ' guess'}" role="img" aria-label="${langTip(l)}"${f ? ` tabindex="0" data-tip="${langTip(l)}"` : ''}>${LN[l.k][0]}</span>`;
+const langs = (d, f = 1) => d.langs ? `<span class="lgs">${d.langs.map(l => lang(l, f)).join('')}</span>` : '';
+
+function rinfo(d) {
+  const r = d.ratio, s = nf(r ?? 0);
+  if (d.state === 'done') return { cls: rc(r), txt: `${s}×`, tip:
+    r >= 1.5 ? `Baja ${s} veces más rápido de lo que el video consume: no se corta.`
+    : r >= 1 ? `Baja apenas ${s} veces más rápido de lo que el video consume: puede cortarse si la velocidad cae.`
+    : `Baja a ${s} de lo que el video consume: se va a cortar. Conviene dejarlo bajar un rato antes de ver.` };
+  if (d.state === 'live') return { cls: 'prov', txt: `≈<span data-live="ratio">${nf1(d.speed / d.need)}</span>×`,
+    tip: 'Provisorio: sale de lo medido hasta ahora y puede cambiar hasta que termine la medición.' };
+  if (d.state === 'quick') return { cls: 'none', txt: '—×', tip: `Falta medir la velocidad para saber si se corta. Este video consume unos ${nf(d.need)} Mbps.` };
+}
+const ratio = d => { const r = rinfo(d); return r ? `<span class="ratio ${r.cls}" tabindex="0" data-tip="${r.tip}">${r.txt}</span>` : ''; };
+const spd = d => d.state === 'done' ? `<span class="spd"><b>${nf(d.speed)}</b>Mbps</span>`
+  : d.state === 'live' ? `<span class="spd"><b data-live="spd">${d.speed}</b>Mbps</span>` : '';
+const sec = d => `<span data-live="sec">${d.sec}</span> s`;
+
+const AC = { analyze: ['scan', 'Analizar datos'], speed: ['gauge', 'Medir velocidad'], re: ['refresh', 'Analizar de nuevo'] };
+const act = (k, c = 'ib') => { const [ic, l] = AC[k];
+  return c === 'ib' ? `<button class="ib" data-busy aria-label="${l}" data-tip="${TIP[k]}">${I(ic)}</button>`
+                    : `<button class="btn ${c}" data-busy data-tip="${TIP[k]}">${I(ic)}<span>${l}</span></button>`; };
+const live = (c = 'sec sm') => `<button class="btn ${c}" data-act="done" data-tip="${TIP.done}">${I('check')}<span>Listo</span></button><button class="ib" data-act="pause" aria-pressed="false" aria-label="Pausar medición" data-tip="${TIP.pause}">${I('pause')}</button>`;
+const watch = (d, c) => { if (d.state === 'none') return '';
+  const a = `data-watch aria-haspopup="dialog" aria-expanded="false" data-tip="${TIP.watch}"`;
+  return c ? `<button class="btn ${c}" ${a}>${I('play')}<span>Ver</span></button>` : `<button class="play" ${a} aria-label="Ver">${I('play')}</button>`; };
+const exp = (d, label) => d.state === 'none' ? '' : label
+  ? `<button class="btn qt sm exp" aria-expanded="${!!d.open}" data-tip="${TIP.more}"><span>Detalles</span>${I('chev')}</button>`
+  : `<button class="ib exp" aria-expanded="${!!d.open}" aria-label="Detalles" data-tip="${TIP.more}">${I('chev')}</button>`;
+const tag = '<span class="tag">Sin analizar</span>';
+const title = d => `<div class="ttl"><span class="tn">${d.title}</span>${d.sub ? `<span class="yr">${d.sub}</span>` : ''}</div>`;
+const raw = d => `<div class="raw">${d.raw}</div>`;
+const chips = d => d.chips ? `<div class="chips">${d.chips.map(([t, q]) => `<span class="chip${q ? ' q' : ''}">${t}</span>`).join('')}</div>` : '';
+const dl = d => !d.dl ? '' : `<div class="dl"><div class="dl-t"><span><b>${d.dl.pct} % bajado</b> · ${d.dl.got} de ${d.dl.of}</span><span>${d.dl.note}</span></div><div class="dl-bar" role="progressbar" aria-label="Descargado" aria-valuenow="${d.dl.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${d.dl.pct}%"></i></div></div>`;
+const more = (d, h) => d.state === 'none' ? '' : `<div class="more"><div><div class="more-in">${h}</div></div></div>`;
+function kv(d) {
+  const o = [];
+  if (d.state === 'done') o.push(['Velocidad real', `${nf(d.speed)} Mbps`, `el video consume ${nf(d.need)}`]);
+  if (d.state === 'live') o.push(['Midiendo', `<span data-live="spd">${d.speed}</span> Mbps`, `${sec(d)} · consume ~${nf(d.need)}`]);
+  if (d.state === 'quick') o.push(['Velocidad', 'sin medir', `el video consume ~${nf(d.need)} Mbps`]);
+  o.push(['Conectados', `${d.seeds} ${d.seeds === 1 ? 'seed' : 'seeds'}`, `${d.peers} peers`],
+         ['Tracker', `${d.trk[0]} seeders`, `${d.trk[1]} leechers`],
+         ['Duración', d.dur, d.durEst ? 'estimada' : ''], ['Tamaño', d.size, '']);
+  return o;
+}
+const kvDl = d => !d.trk ? "" : `<dl class="kv">${kv(d).map(([k, v, s]) => `<div><dt>${k}</dt><dd>${v}${s ? `<small>${s}</small>` : ''}</dd></div>`).join('')}</dl>`;
+const audio = d => !d.langs ? "" : `<ul class="aud">${d.langs.map(l => `<li>${lang(l, 0)}<span>${LN[l.k][1]}</span><span class="dim">${l.ok ? (l.det || 'confirmado') : 'adivinado por el nombre'}</span></li>`).join('')}</ul>`;
+const rawFull = d => `<div class="rawfull"><span>Nombre exacto del torrent</span><code>${d.raw}</code></div>`;
+const art = (d, n, h) => `<article class="tc d${n}${d.open ? ' open' : ''}" data-id="${d.id}" data-state="${d.state}"${d.state === 'none' ? '' : ' data-x'}>${h}</article>`;
+
+/* 1 · Fila que se abre */
+function r1(d) {
+  const s = d.state;
+  const v = s === 'done' ? `<div class="v">${spd(d)}<small>consume ${nf(d.need)} Mbps</small></div>`
+    : s === 'live' ? `<div class="v">${spd(d)}<small>midiendo · ${sec(d)}</small></div>`
+    : `<div class="v">${act(s === 'quick' ? 'speed' : 'analyze', 'pri sm')}</div>`;
+  const a = s === 'done' ? act('re') + watch(d) : s === 'live' ? live() + watch(d) : s === 'quick' ? act('analyze') + watch(d) : '';
+  return art(d, 1, `<div class="hd"><div class="s">${sig(d)}</div><div class="id">${title(d)}${raw(d)}</div>
+    <div class="lg">${s === 'none' ? tag : langs(d)}</div>${v}<div class="rt">${ratio(d)}</div><div class="ac">${a}</div><div class="ex">${exp(d)}</div></div>
+    ${more(d, `<div class="panel">${dl(d)}<div class="cols">${kvDl(d)}<div style="display:grid;gap:14px"><div><h4>Audio</h4>${audio(d)}</div><div><h4>Calidad</h4>${chips(d)}</div></div></div>${rawFull(d)}</div>`)}`);
+}
+
+/* 2 · Baldosa de margen */
+function r2(d) {
+  const s = d.state, r = rinfo(d);
+  const tile = s === 'done' ? `<div class="tile ${r.cls}" tabindex="0" data-tip="${r.tip}"><span class="ratio ${r.cls}">${r.txt}</span><small>vs. consumo</small></div>`
+    : s === 'live' ? `<div class="tile" tabindex="0" data-tip="${r.tip}"><span class="ratio prov">${r.txt}</span><small>provisorio</small></div>`
+    : s === 'quick' ? `<button class="tile" data-busy data-tip="${TIP.speed}">${I('gauge')}<span>Medir velocidad</span></button>`
+    : `<button class="tile" data-busy data-tip="${TIP.analyze}">${I('scan')}<span>Analizar datos</span></button>`;
+  const facts = s === 'none' ? tag : `<span class="sw">${sig(d)}${s === 'quick' ? `<span>${seedsTxt(d)}</span>` : spd(d)}</span>${s === 'live' ? `<span>midiendo · ${sec(d)}</span>` : ''}<span>${d.size}</span><span>${d.dur}</span>`;
+  const a = s === 'done' ? act('re') + watch(d) : s === 'live' ? live() + watch(d) : s === 'quick' ? act('analyze') + watch(d) : '';
+  return art(d, 2, `<div class="hd">${tile}<div class="id"><div class="tl">${title(d)}${langs(d)}</div>${raw(d)}<div class="facts">${facts}</div></div><div class="ac">${a}${exp(d)}</div></div>
+    ${more(d, `${dl(d)}<div class="grid">${(d.trk ? kv(d) : []).map(([k, v, x]) => `<div class="mt"><span>${k}</span><b>${v}</b>${x ? `<small>${x}</small>` : ''}</div>`).join('')}<div class="mt wide"><span>Audio</span>${audio(d)}</div><div class="mt wide"><span>Calidad</span>${chips(d)}</div></div>${rawFull(d)}`)}`);
+}
+
+/* 3 · Columna de ver */
+function r3(d) {
+  const s = d.state;
+  const side = s === 'done' ? `<div class="meter">${sig(d)}${spd(d)}</div><div class="sub">${ratio(d)}<span>consume ${nf(d.need)} Mbps</span></div>${watch(d, 'pri wide')}<div class="row2">${exp(d, 1)}${act('re')}</div>`
+    : s === 'live' ? `<div class="meter">${sig(d)}${spd(d)}</div><div class="sub">${ratio(d)}<span>midiendo · ${sec(d)}</span></div><div class="row2">${live('pri sm')}</div>${watch(d, 'sec wide')}<div class="row2">${exp(d, 1)}</div>`
+    : s === 'quick' ? `<div class="meter">${sig(d)}<span class="mz">${seedsTxt(d)} · sin medir</span></div>${act('speed', 'pri wide')}<div class="row2">${act('analyze', 'sec sm')}${watch(d, 'sec sm')}</div><div class="row2">${exp(d, 1)}</div>`
+    : `<span class="mz">Todavía no hay datos.</span>${act('analyze', 'pri wide')}`;
+  const facts = s === 'none' ? '' : `<div class="facts"><span>${d.size}</span><span>${d.dur}${d.durEst ? ' (estimada)' : ''}</span>${s === 'quick' ? '' : `<span>${seedsTxt(d)}</span>`}</div>`;
+  return art(d, 3, `<div class="main">${title(d)}${raw(d)}<div class="chrow">${s === 'none' ? tag : chips(d) + langs(d)}</div>${facts}
+    ${more(d, `${dl(d)}${kvDl(d)}<div><h4>Audio</h4>${audio(d)}</div>${rawFull(d)}`)}</div><aside class="side">${side}</aside>`);
+}
+
+/* 4 · Etapas */
+function r4(d) {
+  const s = d.state;
+  const meter = s === 'none' ? tag : `<div class="meter">${sig(d)}${s === 'quick' ? '<span class="mz">sin medir</span>' : spd(d)}${ratio(d)}</div>`;
+  const st1 = s === 'none'
+    ? `<li class="st now"><span class="nd">1</span><div class="sx"><b>Datos rápidos</b><span>nombre, duración, audio y seeds</span></div>${act('analyze', 'pri sm')}</li>`
+    : `<li class="st ok"><span class="nd">${I('check')}</span><div class="sx"><b>Datos rápidos</b><span>${d.size} · ${d.dur}</span></div>${langs(d)}</li>`;
+  const st2 = s === 'done' ? `<li class="st ok"><span class="nd">${I('check')}</span><div class="sx"><b>Velocidad medida</b><span>consume ${nf(d.need)} Mbps</span></div>${act('re')}</li>`
+    : s === 'live' ? `<li class="st now live"><span class="nd"><i></i></span><div class="sx"><b>Midiendo velocidad</b><span>${sec(d)} medidos</span></div>${live('pri sm')}</li>`
+    : s === 'quick' ? `<li class="st now"><span class="nd">2</span><div class="sx"><b>Velocidad</b><span>falta medir</span></div>${act('speed', 'pri sm')}</li>`
+    : `<li class="st"><span class="nd">2</span><div class="sx"><b>Velocidad</b><span>después de los datos</span></div></li>`;
+  const base = d.dl ? `<div class="base" role="progressbar" aria-label="Descargado" aria-valuenow="${d.dl.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${d.dl.pct}%"></i><span><b>${d.dl.pct} % bajado</b> · ${d.dl.got} de ${d.dl.of}<em>${d.dl.note}</em></span></div>` : '';
+  return art(d, 4, `<div class="hd"><div class="id">${title(d)}${raw(d)}</div>${meter}<div class="ac">${watch(d)}${exp(d)}</div></div>
+    <ol class="steps">${st1}<li class="cn${s === 'none' ? '' : ' ok'}" role="presentation"></li>${st2}</ol>
+    ${more(d, `<div class="pn">${kvDl(d)}<div style="display:grid;gap:14px"><div><h4>Audio</h4>${audio(d)}</div><div><h4>Calidad</h4>${chips(d)}</div></div>${rawFull(d)}</div>`)}${base}`);
+}
+
+/* 5 · Tipográfico */
+const list = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1];
+function r5(d) {
+  const s = d.state;
+  let sent = 'Todavía no sabemos nada de este torrent: ni cuánto dura, ni qué audio trae, ni cuántos seeds tiene.';
+  if (s !== 'none') sent = `${d.chips.map(c => c[0]).join(' · ')}. Pesa <b>${d.size}</b> y dura <b>${d.durH}</b>. ` + (
+    s === 'done' ? `Baja a <b>${nf(d.speed)} Mbps</b> y el video consume ${nf(d.need)}.`
+    : s === 'live' ? `Estamos midiendo la velocidad hace <b>${sec(d)}</b>.`
+    : `Falta medir la velocidad: el video consume unos ${nf(d.need)} Mbps.`) + ` Audio${langs(d)}`;
+  const fig = s === 'done' || s === 'live' ? `<div class="fig"><div class="row">${sig(d)}${spd(d)}</div><div>${ratio(d)} <small>${s === 'live' ? 'provisorio' : 'lo que consume'}</small></div></div>`
+    : s === 'quick' ? `<div class="fig"><div class="row">${sig(d)}<span class="mz">sin medir</span></div></div>` : '<div></div>';
+  const links = s === 'done' ? watch(d, 'lk') + act('re', 'qt') + exp(d, 1)
+    : s === 'live' ? watch(d, 'lk') + live('qt') + exp(d, 1)
+    : s === 'quick' ? act('speed', 'pri') + act('analyze', 'qt') + watch(d, 'lk') + exp(d, 1)
+    : tag + act('analyze', 'pri');
+  const second = s === 'none' ? '' : `Hay ${d.seeds} ${d.seeds === 1 ? 'seed' : 'seeds'} y ${d.peers} peers conectados; el tracker anuncia ${d.trk[0]} seeders y ${d.trk[1]} leechers. Audio en ${list(d.langs.map(l => `${LN[l.k][1].toLowerCase()} (${l.ok ? l.det || 'confirmado' : 'adivinado por el nombre'})`))}.`;
+  return art(d, 5, `<div class="hd"><div class="id"><h3 class="big">${d.title}${d.sub ? ` <span class="yr">${d.sub}</span>` : ''}</h3>${raw(d)}<p class="sent">${sent}</p><div class="links">${links}</div></div>${fig}</div>
+    ${more(d, `<p class="sent">${second}</p>${dl(d)}`)}`);
+}
+
+/* 6 · Galería */
+function r6(d) {
+  const s = d.state;
+  const top = s === 'none' ? tag : `<span class="sw">${sig(d)}<span>${seedsTxt(d)}</span></span>${langs(d)}`;
+  const fig = s === 'done' ? `<div class="fig">${spd(d)}${ratio(d)}<span class="mz">${d.size} · ${d.dur}</span></div>`
+    : s === 'live' ? `<div class="fig">${spd(d)}${ratio(d)}<span class="mz">midiendo · ${sec(d)}</span></div>`
+    : s === 'quick' ? `<div class="fig"><span class="mz">${d.size} · ${d.dur} · velocidad sin medir</span></div>` : '';
+  const foot = s === 'done' ? watch(d, 'pri') + act('re') + exp(d)
+    : s === 'live' ? watch(d, 'sec') + live() + exp(d)
+    : s === 'quick' ? act('speed', 'pri') + act('analyze') + watch(d) + exp(d)
+    : act('analyze', 'pri');
+  return art(d, 6, `<div class="hd"><div class="top">${top}</div>${title(d)}${raw(d)}${chips(d)}${fig}</div>
+    ${more(d, `${kvDl(d)}<div><h4>Audio</h4>${audio(d)}</div>${dl(d)}${rawFull(d)}`)}<div class="foot">${foot}</div>`);
+}
+
+const D = [
+  ['Fila que se abre', 'Lista densa con columnas alineadas entre filas; al tocar una fila se abre un panel de detalle debajo.', r1],
+  ['Baldosa de margen', 'El 3,9× manda desde una baldosa a la izquierda; si todavía falta medir, la baldosa es el botón.', r2],
+  ['Columna de ver', 'Dos columnas: los datos a la izquierda y una columna fija a la derecha para medir y ver.', r3],
+  ['Etapas', 'El análisis como línea de tiempo (datos, después velocidad) con cada acción en su paso; la descarga es el borde inferior.', r4],
+  ['Tipográfico', 'Título grande, los datos contados en una frase y un solo número enorme.', r5],
+  ['Galería', 'Fichas verticales en grilla, como un catálogo; cada ficha crece dentro de su columna.', r6],
+];
+document.getElementById('designs').innerHTML = D.map(([name, idea, fn], i) =>
+  `<section class="variant" aria-labelledby="h${i + 1}"><header><h2 id="h${i + 1}">${i + 1} · ${name}</h2><p>${idea}</p></header><div class="w${i + 1}">${T.map(fn).join('')}</div></section>`).join('');
+
+/* ---------- comportamiento ---------- */
+const $ = s => document.querySelector(s);
+document.querySelectorAll('.tc').forEach((c, i) => {
+  const m = c.querySelector('.more'); if (!m) return;
+  m.id = 'more-' + i; m.inert = !c.classList.contains('open');
+  c.querySelector('.exp').setAttribute('aria-controls', m.id);
+});
+function toggle(c) {
+  const open = c.classList.toggle('open'), m = c.querySelector('.more');
+  m.inert = !open;
+  c.querySelector('.exp').setAttribute('aria-expanded', open);
+}
+function busy(b) {
+  if (b.classList.contains('busy')) return;
+  b.classList.add('busy'); b.setAttribute('aria-busy', 'true');
+  setTimeout(() => { b.classList.remove('busy'); b.removeAttribute('aria-busy'); }, 1400);
+}
+
+// medición en vivo (The Bear): número que se mueve suave, contador de segundos, Listo y pausa
+const Lv = new Map();
+document.querySelectorAll('.tc[data-state="live"]').forEach(c => { const d = T.find(x => x.id === c.dataset.id); Lv.set(c, { spd: d.speed, sec: d.sec, need: d.need, paused: false }); });
+setInterval(() => Lv.forEach((s, c) => { if (s.paused) return; s.sec++; c.querySelectorAll('[data-live="sec"]').forEach(e => e.textContent = s.sec); }), 1000);
+setInterval(() => Lv.forEach((s, c) => {
+  if (s.paused) return;
+  const from = s.spd, to = 30 + Math.round(Math.random() * 7), t0 = performance.now(), dur = reduce ? 0 : 700;
+  s.spd = to;
+  const step = now => {
+    const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = k === 1 ? 1 : 1 - Math.pow(2, -10 * k), v = Math.round(from + (to - from) * e);
+    c.querySelectorAll('[data-live="spd"]').forEach(x => x.textContent = v);
+    c.querySelectorAll('[data-live="ratio"]').forEach(x => x.textContent = nf1(v / s.need));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}), 2000);
+function liveAct(b) {
+  const c = b.closest('.tc'), s = Lv.get(c);
+  if (b.dataset.act === 'pause') {
+    s.paused = !s.paused;
+    b.setAttribute('aria-pressed', s.paused);
+    b.setAttribute('aria-label', s.paused ? 'Seguir midiendo' : 'Pausar medición');
+    b.dataset.tip = s.paused ? 'Seguir midiendo: retoma la medición desde donde quedó.' : TIP.pause;
+    b.querySelector('use').setAttribute('href', s.paused ? '#play' : '#pause');
+  } else {
+    s.paused = true;
+    c.querySelectorAll('[data-act]').forEach(x => x.disabled = true);
+    b.querySelector('span').textContent = 'Medido';
+    toast(`Quedó medido: ${s.spd} Mbps en ${s.sec} s`);
+  }
+}
+
+let toastT;
+function toast(msg) {
+  const t = $('#toast'); t.innerHTML = I('check') + `<span>${msg}</span>`;
+  t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600);
+}
+
+// tooltip propio: hover y foco de teclado, con demora corta
+const tip = $('#tip'); let tipT, tipEl = null, tipFor = null;
+function hideTip() { clearTimeout(tipT); tip.classList.remove('on'); tip.hidden = true; tipFor?.removeAttribute('aria-describedby'); tipFor = null; }
+function want(el) {
+  if (el === tipEl) return;
+  tipEl = el; clearTimeout(tipT);
+  if (!el) { hideTip(); return; }
+  tipT = setTimeout(() => {
+    if (!pk.hidden || !el.isConnected) return;
+    tipFor?.removeAttribute('aria-describedby');
+    tip.textContent = el.dataset.tip; tip.hidden = false; tip.classList.remove('on', 'below');
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    let y = r.top - h - 8; if (y < 8) { y = r.bottom + 8; tip.classList.add('below'); }
+    tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+    tip.style.top = y + 'px';
+    el.setAttribute('aria-describedby', 'tip'); tipFor = el;
+    requestAnimationFrame(() => tip.classList.add('on'));
+  }, tip.classList.contains('on') ? 60 : 420);
+}
+document.addEventListener('pointerover', e => want(e.target.closest('[data-tip]')));
+document.addEventListener('pointerout', e => { if (!e.relatedTarget) want(null); });
+document.addEventListener('focusin', e => { const el = e.target.closest('[data-tip]'); want(el && el.matches(':focus-visible') ? el : null); });
+document.addEventListener('focusout', () => want(null));
+let pkY = 0; // cerrar solo si el scroll mueve de verdad la página, no por un ajuste chico
+addEventListener('scroll', () => { want(null); if (pkBtn && Math.abs(scrollY - pkY) > 40) closePk(false); }, { passive: true });
+
+// selector de audio anclado al botón Ver
+const pk = $('#pk'); let pkBtn = null, pkT;
+function openPk(btn) {
+  if (pkBtn === btn) { closePk(true); return; }
+  if (pkBtn) closePk(false, true);
+  want(null);
+  const d = T.find(x => x.id === btn.closest('.tc').dataset.id);
+  const opts = d.langs.filter(l => l.k !== 'cast');
+  pk.querySelector('.pk-l').innerHTML = opts.map((l, i) =>
+    `<button class="pk-o${i ? '' : ' pri'}" data-k="${l.k}">${I('speaker')}<span><b>${LN[l.k][1]}</b><small>${l.ok ? l.det || 'Pista confirmada' : 'Adivinado por el nombre'}</small></span>${I('play')}</button>`).join('');
+  pk.dataset.title = d.title;
+  clearTimeout(pkT); pk.hidden = false; pk.classList.remove('on', 'up');
+  const r = btn.getBoundingClientRect(), w = pk.offsetWidth, h = pk.offsetHeight;
+  const left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w));
+  const up = r.bottom + 8 + h > innerHeight - 8 && r.top - h - 8 > 8;
+  pk.classList.toggle('up', up);
+  pk.style.left = left + 'px';
+  pk.style.top = (up ? r.top - h - 8 : r.bottom + 8) + 'px';
+  pk.style.transformOrigin = `${r.left + r.width / 2 - left}px ${up ? '100%' : '0'}`;
+  pkBtn = btn; pkY = scrollY; btn.setAttribute('aria-expanded', 'true');
+  pk.offsetWidth; // fuerza el estado inicial antes de animar
+  pk.classList.add('on');
+  pk.querySelector('.pk-o').focus({ preventScroll: true });
+}
+function closePk(refocus, instant) {
+  if (!pkBtn) return;
+  pk.classList.remove('on'); pkBtn.setAttribute('aria-expanded', 'false');
+  if (refocus) pkBtn.focus({ preventScroll: true });
+  pkBtn = null; clearTimeout(pkT);
+  if (instant) pk.hidden = true; else pkT = setTimeout(() => pk.hidden = true, 160);
+}
+pk.addEventListener('click', e => {
+  const o = e.target.closest('.pk-o'); if (!o) return;
+  const btn = pkBtn, name = LN[o.dataset.k][1].toLowerCase();
+  closePk(true); busy(btn);
+  toast(`Abriendo ${pk.dataset.title} en mpv, audio ${name}`);
+});
+pk.addEventListener('keydown', e => {
+  const os = [...pk.querySelectorAll('.pk-o')], i = os.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); os[(i + (e.key === 'ArrowDown' ? 1 : -1) + os.length) % os.length].focus(); }
+});
+pk.addEventListener('focusout', e => { if (pkBtn && e.relatedTarget && !pk.contains(e.relatedTarget) && e.relatedTarget !== pkBtn) closePk(false); });
+document.addEventListener('pointerdown', e => { if (pkBtn && !pk.contains(e.target) && !pkBtn.contains(e.target)) closePk(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (pkBtn) closePk(true); else want(null); } });
+
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (pk.contains(t)) return;
+  let b;
+  if ((b = t.closest('[data-watch]'))) return openPk(b);
+  if ((b = t.closest('[data-act]'))) return liveAct(b);
+  if ((b = t.closest('[data-busy]'))) return busy(b);
+  if ((b = t.closest('.exp'))) return toggle(b.closest('.tc'));
+  const c = t.closest('.tc[data-x]');
+  if (c && !t.closest('button, .more') && !String(getSelection())) toggle(c);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "tstream-engine-webtorrent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sidecar del motor webtorrent para Torrent Stream v2 (JSON-RPC por stdio, ver docs/engine-protocol.md)",
+  "type": "module",
+  "main": "src/main.mjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/main.mjs"
+  },
+  "dependencies": {
+    "webtorrent": "^3.0.21"
+  }
+}

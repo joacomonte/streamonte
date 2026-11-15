@@ -1,0 +1,107 @@
+//! Cáscara Tauri: crea la ventana, arranca `AppCore`, registra comandos y reenvía eventos.
+//! No contiene lógica de negocio (NFR-01).
+
+mod commands;
+
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+use tauri::{Emitter, Manager, WindowEvent};
+use tstream_core::app::AppCore;
+use tstream_core::events::{CoreEvent, EventSink};
+use tstream_core::playback::OnAppClose;
+
+/// `true` cuando ya se hizo la limpieza de cierre y la ventana puede cerrarse de verdad.
+pub(crate) static CLOSING: AtomicBool = AtomicBool::new(false);
+
+/// Reenvía `CoreEvent` a la UI como evento `core://event`.
+struct TauriSink(tauri::AppHandle);
+
+impl EventSink for TauriSink {
+    fn emit(&self, event: CoreEvent) {
+        if let Err(e) = self.0.emit("core://event", &event) {
+            tracing::warn!("no se pudo emitir evento a la UI: {e}");
+        }
+    }
+}
+
+pub fn run() {
+    tauri::Builder::default()
+        .setup(|app| {
+            let sink = Arc::new(TauriSink(app.handle().clone()));
+            let core = tauri::async_runtime::block_on(AppCore::start(sink))?;
+            app.manage(core);
+            Ok(())
+        })
+        // FR-17 / FR-20: cerrar la ventana nunca deja procesos ni carpetas huérfanas.
+        // Con reproducciones activas se le pregunta a la UI (Detener todo / Dejar mpv abierto);
+        // sin ellas se limpia y se cierra directo.
+        .on_window_event(|window, event| {
+            let WindowEvent::CloseRequested { api, .. } = event else {
+                return;
+            };
+            if CLOSING.load(Ordering::SeqCst) {
+                return;
+            }
+            api.prevent_close();
+            let app = window.app_handle().clone();
+            let core = app.state::<Arc<AppCore>>().inner().clone();
+            if core.active_playbacks() > 0 {
+                let _ = app.emit("core://confirm-close", core.active_playbacks());
+                return;
+            }
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = core.on_close(OnAppClose::StopAll).await {
+                    tracing::warn!("al cerrar: {e}");
+                }
+                CLOSING.store(true, Ordering::SeqCst);
+                app.exit(0);
+            });
+        })
+        .invoke_handler(tauri::generate_handler![
+            commands::library_get,
+            commands::library_read_clipboard,
+            commands::library_add_text,
+            commands::library_remove,
+            commands::library_clear,
+            commands::library_magnet,
+            commands::analyze,
+            commands::analyzer_pause,
+            commands::analyzer_resume,
+            commands::analyzer_finish,
+            commands::analyzer_pause_one,
+            commands::analyzer_resume_one,
+            commands::analyzer_restart,
+            commands::clipboard_preview,
+            commands::library_add_selected,
+            commands::play,
+            commands::playback_action,
+            commands::playbacks_get,
+            commands::playback_log,
+            commands::stop_all_and_clean,
+            commands::active_playbacks,
+            commands::on_close,
+            commands::temp_usage,
+            commands::clean_temp,
+            commands::open_downloads_folder,
+            commands::config_get,
+            commands::config_set,
+            commands::subtitles_set_api_key,
+            commands::subtitles_api_keys,
+            commands::open_key_page,
+            commands::catalog_search,
+            commands::catalog_meta,
+            commands::catalog_browse,
+            commands::catalog_browse_released,
+            commands::catalog_streams,
+            commands::catalog_stop_streams,
+            commands::catalog_analyze,
+            commands::catalog_addons,
+            commands::catalog_add_addon,
+            commands::catalog_remove_addon,
+            commands::catalog_set_addon_enabled,
+            commands::catalog_reset_addons,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error al iniciar Torrent Stream");
+}

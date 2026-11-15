@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filas: ronda 5</title>
+<style>
+:root {
+  --bg: #0d1014; --surface: #161a20; --surface-2: #1c2129; --surface-3: #232a34; --sunk: #11151a;
+  --border: #252b34; --border-strong: #353d48; --track: #46505d;
+  --text: #e7eaee; --muted: #9aa3ae; --dim: #8b949f;
+  --green: #4ade80; --yellow: #facc15; --red: #f87171;
+  --accent: #2563eb; --accent-hover: #1d4fd8; --accent-fg: #7ab0ff;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --out: cubic-bezier(.16, 1, .3, 1);
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scrollbar-color: var(--border-strong) var(--bg); }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; border: 3px solid var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; caret-color: var(--accent-fg); }
+::selection { background: color-mix(in srgb, var(--accent) 45%, transparent); color: #fff; }
+:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; border-radius: 6px; }
+.page { max-width: 1180px; margin: 0 auto; padding: 48px 24px 120px; }
+.page > h1 { font: 600 30px/1.15 var(--display); letter-spacing: -.02em; margin: 0 0 10px; text-wrap: balance; }
+.page > p { color: var(--muted); margin: 0; max-width: 70ch; font-size: 15px; }
+#designs { margin-top: 32px; }
+.u, .mt, .det { font-variant-numeric: tabular-nums; }
+svg.i { width: 16px; height: 16px; flex: none; }
+.dim { color: var(--dim); }
+
+/* ---------- piezas compartidas ---------- */
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; position: relative; }
+button:disabled { opacity: .55; cursor: default; }
+.ib { width: 28px; height: 28px; border-radius: 7px; display: inline-grid; place-items: center; color: var(--muted); flex: none; transition: background .15s, color .15s, opacity .15s, transform .12s var(--ease); }
+.ib:hover { background: var(--surface-3); color: var(--text); }
+.ib[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+.play { width: 32px; height: 32px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--accent); color: #fff; flex: none; box-shadow: 0 2px 6px -1px rgb(0 0 0 / .5); transition: background .15s, transform .12s var(--ease); }
+.play:hover { background: var(--accent-hover); }
+.play svg { margin-left: 2px; width: 15px; height: 15px; }
+button:not(:disabled):active { transform: scale(.95); }
+.exp svg.i { transition: transform .45s var(--out); }
+.exp[aria-expanded="true"] svg.i { transform: rotate(180deg); }
+.busy { pointer-events: none; }
+.busy > * { visibility: hidden; }
+.busy::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+
+.id { min-width: 0; }
+.ttl { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tn { font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.yr { color: var(--muted); white-space: nowrap; flex: none; font-size: 13.5px; }
+.rw { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.raw { font: 11.5px/1.5 var(--mono); color: var(--dim); overflow: hidden; white-space: nowrap; min-width: 0; flex: 0 1 auto; }
+.raw > span { display: inline-block; will-change: transform; }
+/* nombre largo: se desvanece en el borde por donde sigue */
+.raw.ov { mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+.raw.ov.end { mask-image: linear-gradient(90deg, transparent, #000 28px); }
+.cp { width: 22px; height: 20px; margin: -2px 0; border-radius: 5px; opacity: 0; }
+.cp svg.i { width: 13px; height: 13px; }
+.cp.ok { color: var(--green); opacity: 1; }
+.row:hover .cp, .row:focus-within .cp { opacity: 1; }
+@media (hover: none) { .cp { opacity: 1; } }
+.ph { font-size: 12.5px; color: var(--dim); white-space: nowrap; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 11px; font-weight: 600; line-height: 1.3; padding: 2px 8px; border-radius: 5px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; flex: none; }
+.chip.q { color: var(--text); border-color: var(--border-strong); }
+.lgs { display: inline-flex; gap: 4px; flex: none; }
+.lang { font-size: 11px; font-weight: 700; letter-spacing: .05em; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border-strong); color: var(--muted); line-height: 1; white-space: nowrap; cursor: help; }
+.lang.lat { color: var(--green); border-color: color-mix(in srgb, var(--green) 35%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
+.lang.en { color: var(--accent-fg); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.lang.guess { border-style: dashed; background: transparent; }
+.mt { color: var(--muted); font-size: 12.5px; white-space: nowrap; cursor: default; }
+.sep { color: var(--track); margin: 0 6px; }
+.g { --c: var(--green); } .y { --c: var(--yellow); } .r { --c: var(--red); } .prov { --c: var(--muted); }
+.u { cursor: help; white-space: nowrap; }
+.pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fg); margin-right: 6px; vertical-align: 2px; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+.paused .pulse { animation: none; opacity: .35; }
+
+/* ---------- la fila (común a las seis) ---------- */
+.lst { display: grid; column-gap: 14px; border-top: 1px solid var(--border); }
+.row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; border-bottom: 1px solid var(--border); padding: 0 8px; position: relative; transition: background .2s; }
+.row:hover, .row.open { background: var(--surface); }
+.row[data-x] { cursor: pointer; }
+.row .more { cursor: auto; }
+.hd { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 50px; padding: 6px 0; }
+.ac { display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
+.ex { display: flex; justify-content: flex-end; }
+.cell-r { display: flex; justify-content: flex-end; }
+
+/* revelado: alto animado con grid-rows (interrumpible) */
+.more { grid-column: 1 / -1; display: grid; grid-template-rows: 0fr; transition: grid-template-rows .45s var(--out); }
+.more > div { min-height: 0; overflow: hidden; }
+.row.open .more { grid-template-rows: 1fr; }
+.det { opacity: 0; transform: translateY(-4px); transition: opacity .2s ease, transform .45s var(--out); font-size: 12.5px; color: var(--muted); }
+.row.open .det { opacity: 1; transform: none; transition-delay: .04s; }
+.det b { color: var(--text); font-weight: 600; }
+.bar { display: inline-block; width: 64px; height: 4px; border-radius: 2px; background: var(--surface-3); overflow: hidden; vertical-align: middle; margin: 0 8px; }
+.bar i { display: block; height: 100%; background: var(--accent-fg); }
+
+/* ---------- 2 · Fracción y sello ---------- */
+.w2 { grid-template-columns: minmax(0,1fr) auto auto auto auto auto; }
+.u2 { display: inline-flex; align-items: center; gap: 10px; }
+.u2-l { display: grid; justify-items: end; line-height: 1.2; }
+.fr { font-size: 12px; color: var(--dim); min-width: 92px; text-align: right; white-space: nowrap; }
+.fr .nd { display: inline-block; max-width: 0; opacity: 0; overflow: hidden; vertical-align: bottom; white-space: pre; transition: max-width .35s var(--out), opacity .2s ease; }
+.u2:hover .nd, .u2:focus-visible .nd { max-width: 48px; opacity: 1; }
+.fr b { font: 600 15px/1 var(--display); color: var(--text); margin-right: 3px; }
+.u2-l small { font-size: 11px; color: var(--dim); }
+.xb { font-size: 12px; font-weight: 700; line-height: 1; padding: 5px 8px; border-radius: 999px; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); border: 1px solid color-mix(in srgb, var(--c) 32%, transparent); min-width: 50px; text-align: center; }
+.xb.prov { border-style: dashed; background: transparent; }
+.w2 .det { margin: 0 0 8px; padding: 8px 12px; background: var(--sunk); border: 1px solid var(--border); border-radius: 8px; }
+.w2 .top { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; min-height: 26px; }
+.w2 .top .bar { width: 72px; }
+.mx { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--accent-fg); transition: background .15s; }
+.mx:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.mx svg.i { width: 14px; height: 14px; transition: transform .45s var(--out); }
+.mx[aria-expanded="true"] svg.i { transform: rotate(180deg); }
+.xtra { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .4s var(--out); }
+.xtra > div { min-height: 0; overflow: hidden; }
+.xtra.on { grid-template-rows: 1fr; }
+.xtra-in { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; padding-top: 8px; margin-top: 6px; border-top: 1px solid var(--border); opacity: 0; transition: opacity .2s ease; }
+.xtra.on .xtra-in { opacity: 1; transition-delay: .05s; }
+.sw { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; cursor: default; }
+
+/* ---------- selector de audio ---------- */
+.pk { position: fixed; z-index: 20; width: 260px; padding: 8px; background: var(--surface-3); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 14px 34px -10px rgb(0 0 0 / .75), 0 2px 8px rgb(0 0 0 / .4);
+  opacity: 0; transform: scale(.94); clip-path: inset(0 0 100% 0 round 12px);
+  transition: opacity .12s ease, transform .14s ease, clip-path .14s ease; }
+.pk.up { clip-path: inset(100% 0 0 0 round 12px); }
+.pk.on { opacity: 1; transform: none; clip-path: inset(-30px -30px -50px -30px round 12px); transition: opacity .18s ease, transform .5s var(--out), clip-path .5s var(--out); }
+.pk-h { font-size: 11.5px; font-weight: 600; color: var(--muted); padding: 4px 8px 8px; }
+.pk-o { width: 100%; display: grid; grid-template-columns: 18px minmax(0,1fr) 16px; gap: 10px; align-items: center; text-align: left; padding: 9px 10px; border-radius: 8px; color: var(--text); opacity: 0; transform: translateY(-6px); transition: background .15s, opacity .2s ease, transform .5s var(--out); }
+.pk.on .pk-o { opacity: 1; transform: none; }
+.pk.on .pk-o:nth-child(2) { transition-delay: 0s, .06s, .06s; }
+.pk-o + .pk-o { margin-top: 4px; }
+.pk-o b { display: block; font-weight: 600; font-size: 14px; }
+.pk-o small { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-o > svg:last-child { opacity: .7; }
+.pk-o:hover, .pk-o:focus-visible { background: var(--surface-2); }
+.pk-o.pri { background: var(--accent); color: #fff; }
+.pk-o.pri small { color: #dbe7ff; }
+.pk-o.pri:hover, .pk-o.pri:focus-visible { background: var(--accent-hover); }
+.pk-o:focus-visible { outline-offset: 1px; }
+
+.tip { position: fixed; z-index: 30; max-width: 280px; padding: 8px 11px; border-radius: 8px; background: #262d38; border: 1px solid var(--border-strong); color: var(--text); font-size: 12.5px; line-height: 1.45; box-shadow: 0 8px 22px -6px rgb(0 0 0 / .65); pointer-events: none; opacity: 0; transform: translateY(3px); transition: opacity .14s ease, transform .25s var(--out); overflow-wrap: anywhere; }
+.tip.below { transform: translateY(-3px); }
+.tip.on { opacity: 1; transform: none; }
+.toast { position: fixed; left: 50%; bottom: 24px; z-index: 25; display: flex; gap: 10px; align-items: center; padding: 10px 16px; border-radius: 10px; background: var(--surface-3); border: 1px solid var(--border-strong); box-shadow: 0 10px 28px -8px rgb(0 0 0 / .7); font-size: 13px; opacity: 0; transform: translate(-50%, 8px); transition: opacity .2s ease, transform .4s var(--out); pointer-events: none; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+.toast svg { color: var(--green); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="play" viewBox="0 0 24 24"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" fill="currentColor"/></symbol>
+  <symbol id="pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="gauge" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 18.5a9 9 0 1 1 14.8 0"/><path d="M12 14.5l4.2-5"/><path d="M7 10.5l.9.6M12 6.8v1M17 10.5l-.9.6"/></g><circle cx="12" cy="14.5" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="speaker" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></g></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></g></symbol>
+  <symbol id="quick" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L20 20"/><path d="M11.5 6.8L9 10.8h3l-2.3 3.6"/></g></symbol>
+</svg>
+
+<main class="page">
+  <h1>Filas de torrent, ronda 5</h1>
+  <p>Fracción y sello: la calidad pasa al detalle, el nombre del torrent se desliza al pasar por la fila y las dos acciones de análisis quedan siempre a mano.</p>
+  <div id="designs"></div>
+</main>
+
+<div id="tip" class="tip" role="tooltip" hidden></div>
+<div id="pk" class="pk" role="dialog" aria-labelledby="pkh" hidden><div class="pk-h" id="pkh">Elegí el audio</div><div class="pk-l"></div></div>
+<div id="sr" class="sr" aria-live="polite"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+// Títulos, año/episodio y chips de calidad están cargados a mano a partir del nombre crudo.
+const T = [
+  { id: 'a', state: 'done', open: true, title: 'Dune: Part Two', sub: '2024',
+    raw: 'Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX',
+    chips: [['4K', 1], ['Dolby Vision'], ['HDR'], ['Atmos'], ['WEB-DL']],
+    size: '23,4 GB', durS: '2 h 46', durH: '2 h 46 min', speed: 78, need: 20, ratio: 3.9,
+    seeds: 18, peers: 41, trk: [412, 88],
+    langs: [{ k: 'lat', ok: 1 }, { k: 'en', ok: 1 }, { k: 'cast', ok: 1 }],
+    measured: 'hace 5 min', dl: { pct: 12, got: '2,8', of: '23,4 GB', note: 'pausaste en 0:19:58' } },
+  { id: 'b', state: 'live', title: 'The Bear', sub: 'T3 · E1', raw: 'The.Bear.S03E01.1080p.WEB.h264-ETHEL',
+    chips: [['1080p', 1], ['WEB']], size: '2,1 GB', durS: '~45 min', durH: 'unos 45 min', durEst: 1,
+    speed: 34, sec: 17, need: 6.2, seeds: 9, peers: 22, trk: [155, 31],
+    langs: [{ k: 'lat', ok: 0 }, { k: 'en', ok: 0 }] },
+  { id: 'c', state: 'quick', title: 'Oppenheimer', sub: '2023', raw: 'Oppenheimer.2023.1080p.BluRay.x264-SPARKS',
+    chips: [['1080p', 1], ['BluRay']], size: '12,7 GB', durS: '3 h', durH: '3 h', need: 9.4,
+    seeds: 1, peers: 4, trk: [9, 2], read: 'hace 2 min', langs: [{ k: 'en', ok: 1 }] },
+  { id: 'd', state: 'none', title: 'Torrentio', raw: 'magnet · dn=Torrentio · btih 8F3A9C…C21D' },
+  { id: 'e', state: 'done', title: 'Severance', sub: 'T2 · E5', raw: 'Severance.S02E05.2160p.ATVP.WEB-DL.DV.HDR.H.265-FLUX',
+    chips: [['4K', 1], ['Dolby Vision'], ['HDR'], ['WEB-DL'], ['Apple TV+']], size: '6,2 GB', durS: '45 min', durH: '45 min',
+    speed: 7.2, need: 18, ratio: 0.4, measured: 'hace 12 min', seeds: 1, peers: 4, trk: [6, 3],
+    langs: [{ k: 'lat', ok: 1 }, { k: 'en', ok: 1 }] },
+];
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const nf = n => n.toLocaleString('es-AR', { maximumFractionDigits: 1 });
+const nf1 = n => n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const I = id => `<svg class="i" aria-hidden="true"><use href="#${id}"/></svg>`;
+const LN = { lat: ['LAT', 'Latino', 'español latino'], en: ['EN', 'Inglés', 'inglés'], cast: ['CAST', 'Castellano', 'castellano'] };
+const ORD = { lat: 0, en: 1, cast: 2 };
+T.forEach(d => d.langs && d.langs.sort((a, b) => ORD[a.k] - ORD[b.k]));
+const rc = r => r >= 1.5 ? 'g' : r >= 1 ? 'y' : 'r';
+const TIP = {
+  analyze: 'Análisis rápido: trae el nombre, la duración, los idiomas de audio, la calidad y los seeds en unos segundos. Se pueden analizar varios a la vez.',
+  speed: 'Medir velocidad: baja un pedazo durante unas decenas de segundos para saber la velocidad real y si se va a cortar. Se mide un torrent por vez; con Listo la cortás antes.',
+  re: 'Medir de nuevo: vuelve a bajar un pedazo unas decenas de segundos para medir la velocidad real, por si cambiaron los seeds. Un torrent por vez; con Listo la cortás antes.',
+  done: 'Listo: corta la medición ahora y se queda con lo que midió hasta acá.',
+  pause: 'Pausar la medición sin perder lo medido. Tocá de nuevo para seguir.',
+  watch: 'Ver: elegí el idioma del audio y se abre en mpv.',
+  more: 'Mostrar u ocultar el detalle del análisis.',
+  mx: 'Seeds, peers y lo que anuncia el tracker.',
+  seeds: 'Seeds conectados: usuarios con el archivo completo que te están mandando datos ahora.',
+  peers: 'Peers conectados: todos los que están conectados con vos ahora, tengan el archivo completo o no.',
+  tseed: 'Seeders del tracker: cuántos usuarios con el archivo completo anuncia el tracker en total. No todos se conectan con vos.',
+  tleech: 'Leechers del tracker: cuántos lo están bajando según el tracker.',
+  when: 'Cuándo se midió la velocidad por última vez.',
+  copy: 'Copiar nombre del torrent',
+};
+const SCALE = ' Verde desde 1,5×, amarillo entre 1 y 1,5×, rojo debajo de 1×.';
+
+const langTip = l => {
+  const [, n, full] = LN[l.k];
+  return l.ok ? `${n}: confirmado, el torrent trae una pista de audio en ${full}.`
+              : `${n}: adivinado por el nombre del torrent. Todavía no leímos las pistas de audio reales.`;
+};
+const lang = l => `<span class="lang ${l.k}${l.ok ? '' : ' guess'}" role="img" tabindex="0" aria-label="${langTip(l)}" data-tip="${langTip(l)}">${LN[l.k][0]}</span>`;
+const langs = d => d.langs ? `<span class="lgs">${d.langs.filter(l => l.k !== 'cast').map(lang).join('')}</span>` : '';
+const lgCell = d => `<div>${langs(d)}</div>`;
+
+// texto del tooltip de la unidad velocidad / ×
+function uinfo(d) {
+  if (d.state === 'done') {
+    const r = d.ratio, s = nf(r), cls = rc(r);
+    const verdict = r >= 1.5 ? 'Sobra margen: no se corta.' : r >= 1 ? 'Justo: puede cortarse si la velocidad cae.' : 'No llega: se va a cortar. Conviene dejarlo bajar un rato antes de ver.';
+    return { cls, x: `${s}×`, tip: `${s}× = ${nf(d.speed)} Mbps reales ÷ ${nf(d.need)} Mbps que consume el video. ${verdict}${SCALE}` };
+  }
+  if (d.state === 'live') return { cls: 'prov', x: `≈<span data-live="ratio">${nf1(d.speed / d.need)}</span>×`,
+    tip: `Midiendo: la velocidad y el × son provisorios hasta que termine. El video consume unos ${nf(d.need)} Mbps.${SCALE}` };
+}
+const lvS = d => `<span data-live="spd">${d.speed}</span>`;
+const lvSec = d => `<span data-live="sec">${d.sec}</span> s`;
+const uAttr = i => `tabindex="0" role="group" aria-label="${i.tip}" data-tip="${i.tip}"`;
+
+const AC = { analyze: ['quick', 'Análisis rápido'], speed: ['gauge', 'Medir velocidad'], re: ['gauge', 'Medir de nuevo'] };
+const act = k => { const [ic, l] = AC[k]; return `<button class="ib" data-busy aria-label="${l}" data-tip="${TIP[k]}">${I(ic)}</button>`; };
+const slotBtn = d => `<span class="ph">${d.state === 'quick' ? 'sin medir' : 'sin analizar'}</span>`;
+const liveBtns = () => `<button class="ib" data-act="done" aria-label="Listo" data-tip="${TIP.done}">${I('check')}</button><button class="ib" data-act="pause" aria-pressed="false" aria-label="Pausar medición" data-tip="${TIP.pause}">${I('pause')}</button>`;
+const watch = d => d.state === 'none' ? '' : `<button class="play" data-watch aria-haspopup="dialog" aria-expanded="false" aria-label="Ver" data-tip="${TIP.watch}">${I('play')}</button>`;
+const second = d => ({ done: act('re'), live: liveBtns(), quick: act('speed'), none: act('analyze') })[d.state];
+const acts = d => `<div class="ac">${second(d)}${watch(d)}</div>`;
+const exp = d => `<div class="ex">${d.state === 'none' ? '' : `<button class="ib exp" aria-expanded="${!!d.open}" aria-label="Detalles" data-tip="${TIP.more}">${I('chev')}</button>`}</div>`;
+const title = d => `<div class="id"><div class="ttl"><span class="tn">${d.title}</span>${d.sub ? `<span class="yr">${d.sub}</span>` : ''}</div><div class="rw"><div class="raw"><span>${d.raw}</span></div>${d.state === 'none' ? '' : `<button class="ib cp" aria-label="${TIP.copy}" data-tip="${TIP.copy}">${I('copy')}</button>`}</div></div>`;
+const metaTip = d => `Pesa ${d.size} y dura ${d.durH}${d.durEst ? ' (estimada por el tamaño)' : ''}.`;
+const meta = d => d.state === 'none' ? '<div></div>' : `<div class="mt" data-tip="${metaTip(d)}">${d.size}<span class="sep" aria-hidden="true">·</span>${d.durS}</div>`;
+
+const bar = d => `<span class="bar" role="progressbar" aria-label="Descargado" aria-valuenow="${d.dl.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${d.dl.pct}%"></i></span>`;
+const more = (d, h) => d.state === 'none' ? '' : `<div class="more"><div>${h}</div></div>`;
+const row = (d, h) => `<article class="row${d.open ? ' open' : ''}" data-id="${d.id}" data-state="${d.state}"${d.state === 'none' ? '' : ' data-x'}><div class="hd">${h[0]}</div>${more(d, h[1])}</article>`;
+
+/* 2 · Fracción y sello: "78 / 20 Mbps" y el × como sello */
+function r2(d) {
+  const s = d.state, i = uinfo(d);
+  const u = s === 'done' ? `<div class="u u2" ${uAttr(i)}><span class="fr"><b>${nf(d.speed)}</b><span class="nd">/ ${nf(d.need)} </span>Mbps</span><span class="xb ${i.cls}">${i.x}</span></div>`
+    : s === 'live' ? `<div class="u u2" ${uAttr(i)}><span class="u2-l"><span class="fr"><b>${lvS(d)}</b><span class="nd">/ ${nf(d.need)} </span>Mbps</span><small><i class="pulse"></i>midiendo · ${lvSec(d)}</small></span><span class="xb prov">${i.x}</span></div>`
+    : slotBtn(d);
+  // a la vista: lo bajado o un resumen; "Más datos" abre el enjambre
+  const sum = s === 'live' ? 'Midiendo la velocidad ahora: el × es provisorio'
+    : s === 'quick' ? `Datos leídos ${d.read}: falta medir la velocidad` : `Medido ${d.measured}`;
+  const top = d.dl ? `<span><b>${d.dl.pct} %</b> bajado${bar(d)}${d.dl.got} de ${d.dl.of}<span class="sep" aria-hidden="true">·</span>${d.dl.note}</span>` : `<span>${sum}</span>`;
+  const q = `<span class="chips">${d.chips ? d.chips.map(([t, k]) => `<span class="chip${k ? ' q' : ''}">${t}</span>`).join('') : ''}</span>`;
+  const sw = (k, v, t) => `<span class="sw" data-tip="${t}"><span class="dim">${k}</span><b>${v}</b></span>`;
+  const xtra = s === 'none' ? '' : `<div class="xtra" id="x-${d.id}"><div><div class="xtra-in">${sw('Seeds conectados', d.seeds, TIP.seeds)}${sw('Peers conectados', d.peers, TIP.peers)}${sw('Seeders del tracker', d.trk[0], TIP.tseed)}${sw('Leechers del tracker', d.trk[1], TIP.tleech)}${d.dl ? sw('Medido', d.measured, TIP.when) : ''}</div></div></div>`;
+  return row(d, [`${title(d)}${meta(d)}${lgCell(d)}<div class="cell-r">${u}</div>${acts(d)}${exp(d)}`,
+    `<div class="det"><div class="top">${top}${q}<button class="mx" aria-expanded="false" data-tip="${TIP.mx}"><span>Más datos</span>${I('chev')}</button></div>${xtra}</div>`]);
+}
+
+document.getElementById('designs').innerHTML = `<div class="lst w2">${T.map(r2).join('')}</div>`;
+
+/* ---------- comportamiento ---------- */
+const $ = s => document.querySelector(s);
+document.querySelectorAll('.row').forEach((c, i) => {
+  const m = c.querySelector('.more'); if (!m) return;
+  m.id = 'more-' + i; m.inert = !c.classList.contains('open');
+  c.querySelector('.exp').setAttribute('aria-controls', m.id);
+  const x = c.querySelector('.xtra'); x.inert = true; c.querySelector('.mx').setAttribute('aria-controls', x.id);
+});
+// título cortado: tooltip con el texto completo y foco de teclado
+function markTrunc() {
+  document.querySelectorAll('.tn').forEach(e => {
+    if (e.scrollWidth > e.clientWidth + 1) { e.dataset.tip = e.textContent; e.tabIndex = 0; }
+    else { delete e.dataset.tip; e.removeAttribute('tabindex'); }
+  });
+  // nombre crudo largo: marquesina al pasar por la fila; con movimiento reducido, tooltip con el nombre entero
+  document.querySelectorAll('.raw').forEach(e => {
+    const ov = e.firstElementChild.scrollWidth > e.clientWidth + 1;
+    e.classList.toggle('ov', ov);
+    if (ov && reduce) { e.dataset.tip = 'Nombre del torrent: ' + e.textContent; e.tabIndex = 0; }
+    else { delete e.dataset.tip; e.removeAttribute('tabindex'); }
+  });
+}
+addEventListener('resize', markTrunc);
+const MQ = new Map(), MQ_PX_S = 32;
+function mqStart(row) {
+  const raw = row.querySelector('.raw'), t = raw.firstElementChild, d = t.scrollWidth - raw.clientWidth;
+  if (reduce || d <= 1 || MQ.has(row)) return;
+  const st = {}, dur = Math.max(1.5, d / MQ_PX_S); MQ.set(row, st);
+  const go = (x, next) => { t.style.transition = `transform ${dur}s linear`; t.style.transform = `translateX(${x}px)`; raw.classList.toggle('end', x !== 0); st.t = setTimeout(next, dur * 1000 + 1400); };
+  const fwd = () => go(-d, back), back = () => go(0, fwd);
+  st.t = setTimeout(fwd, 700);
+}
+function mqStop(row) {
+  const st = MQ.get(row); if (!st) return;
+  clearTimeout(st.t); MQ.delete(row);
+  const raw = row.querySelector('.raw'), t = raw.firstElementChild;
+  t.style.transition = 'transform .5s cubic-bezier(.16, 1, .3, 1)'; t.style.transform = ''; raw.classList.remove('end');
+}
+document.querySelectorAll('.row').forEach(r => {
+  r.addEventListener('pointerenter', () => mqStart(r));
+  r.addEventListener('pointerleave', () => { if (!r.contains(document.activeElement)) mqStop(r); });
+  r.addEventListener('focusin', () => mqStart(r));
+  r.addEventListener('focusout', e => { if (!r.contains(e.relatedTarget) && !r.matches(':hover')) mqStop(r); });
+});
+async function copyRaw(b) {
+  const raw = b.closest('.rw').querySelector('.raw').textContent;
+  try { await navigator.clipboard.writeText(raw); } catch { toast('No se pudo copiar: seleccioná el nombre y copialo a mano'); return; }
+  b.classList.add('ok'); b.querySelector('use').setAttribute('href', '#check'); $('#sr').textContent = 'Copiado';
+  clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove('ok'); b.querySelector('use').setAttribute('href', '#copy'); $('#sr').textContent = ''; }, 1500);
+}
+function toggle(c) {
+  const open = c.classList.toggle('open');
+  c.querySelector('.more').inert = !open;
+  c.querySelector('.exp').setAttribute('aria-expanded', open);
+  markTrunc();
+}
+markTrunc();
+function busy(b) {
+  if (b.classList.contains('busy')) return;
+  b.classList.add('busy'); b.setAttribute('aria-busy', 'true');
+  setTimeout(() => { b.classList.remove('busy'); b.removeAttribute('aria-busy'); }, 1400);
+}
+
+// medición en vivo (The Bear)
+const Lv = new Map();
+document.querySelectorAll('.row[data-state="live"]').forEach(c => { const d = T.find(x => x.id === c.dataset.id); Lv.set(c, { spd: d.speed, sec: d.sec, need: d.need, paused: false }); });
+setInterval(() => Lv.forEach((s, c) => {
+  if (s.paused) return; s.sec++;
+  c.querySelectorAll('[data-live="sec"]').forEach(e => e.textContent = s.sec);
+}), 1000);
+setInterval(() => Lv.forEach((s, c) => {
+  if (s.paused) return;
+  const from = s.spd, to = 30 + Math.round(Math.random() * 7), t0 = performance.now(), dur = reduce ? 0 : 700;
+  s.spd = to;
+  const step = now => {
+    const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = k === 1 ? 1 : 1 - Math.pow(2, -10 * k), v = Math.round(from + (to - from) * e);
+    c.querySelectorAll('[data-live="spd"]').forEach(x => x.textContent = v);
+    c.querySelectorAll('[data-live="ratio"]').forEach(x => x.textContent = nf1(v / s.need));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}), 2000);
+function liveAct(b) {
+  const c = b.closest('.row'), s = Lv.get(c);
+  if (b.dataset.act === 'pause') {
+    s.paused = !s.paused; c.classList.toggle('paused', s.paused);
+    b.setAttribute('aria-pressed', s.paused);
+    b.setAttribute('aria-label', s.paused ? 'Seguir midiendo' : 'Pausar medición');
+    b.dataset.tip = s.paused ? 'Seguir midiendo: retoma la medición desde donde quedó.' : TIP.pause;
+    b.querySelector('use').setAttribute('href', s.paused ? '#play' : '#pause');
+  } else {
+    s.paused = true; c.classList.add('paused');
+    c.querySelectorAll('[data-act]').forEach(x => x.disabled = true);
+    b.setAttribute('aria-label', 'Medido');
+    toast(`Quedó medido: ${s.spd} Mbps en ${s.sec} s`);
+  }
+}
+
+let toastT;
+function toast(msg) {
+  const t = $('#toast'); t.innerHTML = I('check') + `<span>${msg}</span>`;
+  t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600);
+}
+
+// tooltip propio: hover y foco de teclado, con demora corta
+const tip = $('#tip'); let tipT, tipEl = null, tipFor = null;
+function hideTip() { clearTimeout(tipT); tip.classList.remove('on'); tip.hidden = true; tipFor?.removeAttribute('aria-describedby'); tipFor = null; }
+function want(el) {
+  if (el === tipEl) return;
+  tipEl = el; clearTimeout(tipT);
+  if (!el) { hideTip(); return; }
+  tipT = setTimeout(() => {
+    if (!pk.hidden || !el.isConnected) return;
+    tipFor?.removeAttribute('aria-describedby');
+    tip.textContent = el.dataset.tip; tip.hidden = false; tip.classList.remove('on', 'below');
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    let y = r.top - h - 8; if (y < 8) { y = r.bottom + 8; tip.classList.add('below'); }
+    tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+    tip.style.top = y + 'px';
+    if (!el.hasAttribute('aria-label')) { el.setAttribute('aria-describedby', 'tip'); tipFor = el; }
+    requestAnimationFrame(() => tip.classList.add('on'));
+  }, tip.classList.contains('on') ? 60 : 420);
+}
+document.addEventListener('pointerover', e => want(e.target.closest('[data-tip]')));
+document.addEventListener('pointerout', e => { if (!e.relatedTarget) want(null); });
+document.addEventListener('focusin', e => { const el = e.target.closest('[data-tip]'); want(el && el.matches(':focus-visible') ? el : null); });
+document.addEventListener('focusout', () => want(null));
+let pkY = 0;
+addEventListener('scroll', () => { want(null); if (pkBtn && Math.abs(scrollY - pkY) > 40) closePk(false); }, { passive: true });
+
+// selector de audio anclado al botón Ver
+const pk = $('#pk'); let pkBtn = null, pkT;
+function openPk(btn) {
+  if (pkBtn === btn) { closePk(true); return; }
+  if (pkBtn) closePk(false, true);
+  want(null);
+  const d = T.find(x => x.id === btn.closest('.row').dataset.id);
+  const opts = d.langs.filter(l => l.k !== 'cast');
+  pk.querySelector('.pk-l').innerHTML = opts.map((l, i) =>
+    `<button class="pk-o${i ? '' : ' pri'}" data-k="${l.k}">${I('speaker')}<span><b>${LN[l.k][1]}</b><small>${l.ok ? 'Pista confirmada' : 'Adivinado por el nombre'}</small></span>${I('play')}</button>`).join('');
+  pk.dataset.title = d.title;
+  clearTimeout(pkT); pk.hidden = false; pk.classList.remove('on', 'up');
+  const r = btn.getBoundingClientRect(), w = pk.offsetWidth, h = pk.offsetHeight;
+  const left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w));
+  const up = r.bottom + 8 + h > innerHeight - 8 && r.top - h - 8 > 8;
+  pk.classList.toggle('up', up);
+  pk.style.left = left + 'px';
+  pk.style.top = (up ? r.top - h - 8 : r.bottom + 8) + 'px';
+  pk.style.transformOrigin = `${r.left + r.width / 2 - left}px ${up ? '100%' : '0'}`;
+  pkBtn = btn; pkY = scrollY; btn.setAttribute('aria-expanded', 'true');
+  pk.offsetWidth;
+  pk.classList.add('on');
+  pk.querySelector('.pk-o').focus({ preventScroll: true });
+}
+function closePk(refocus, instant) {
+  if (!pkBtn) return;
+  pk.classList.remove('on'); pkBtn.setAttribute('aria-expanded', 'false');
+  if (refocus) pkBtn.focus({ preventScroll: true });
+  pkBtn = null; clearTimeout(pkT);
+  if (instant) pk.hidden = true; else pkT = setTimeout(() => pk.hidden = true, 160);
+}
+pk.addEventListener('click', e => {
+  const o = e.target.closest('.pk-o'); if (!o) return;
+  const btn = pkBtn, name = LN[o.dataset.k][1].toLowerCase();
+  closePk(true); busy(btn);
+  toast(`Abriendo ${pk.dataset.title} en mpv, audio ${name}`);
+});
+pk.addEventListener('keydown', e => {
+  const os = [...pk.querySelectorAll('.pk-o')], i = os.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); os[(i + (e.key === 'ArrowDown' ? 1 : -1) + os.length) % os.length].focus(); }
+});
+pk.addEventListener('focusout', e => { if (pkBtn && e.relatedTarget && !pk.contains(e.relatedTarget) && e.relatedTarget !== pkBtn) closePk(false); });
+document.addEventListener('pointerdown', e => { if (pkBtn && !pk.contains(e.target) && !pkBtn.contains(e.target)) closePk(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (pkBtn) closePk(true); else want(null); } });
+
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (pk.contains(t)) return;
+  let b;
+  if ((b = t.closest('[data-watch]'))) return openPk(b);
+  if ((b = t.closest('[data-act]'))) return liveAct(b);
+  if ((b = t.closest('.cp'))) return copyRaw(b);
+  if ((b = t.closest('[data-busy]'))) return busy(b);
+  if ((b = t.closest('.exp'))) return toggle(b.closest('.row'));
+  if ((b = t.closest('.mx'))) { const x = b.closest('.det').querySelector('.xtra'), on = x.classList.toggle('on');
+    b.setAttribute('aria-expanded', on); b.querySelector('span').textContent = on ? 'Menos' : 'Más datos'; x.inert = !on; return; }
+  const c = t.closest('.row[data-x]');
+  if (c && !t.closest('button, .more') && !String(getSelection())) toggle(c);
+});
+</script>
+</body>
+</html>

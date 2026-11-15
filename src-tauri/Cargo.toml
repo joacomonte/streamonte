@@ -1,0 +1,22 @@
+[package]
+name = "tstream"
+description = "Torrent Stream v2 — cáscara Tauri (ventana, comandos, eventos)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "tstream_app"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tstream-core = { path = "../crates/core" }
+tauri = { version = "2", features = [] }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true

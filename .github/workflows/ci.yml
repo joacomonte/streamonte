@@ -1,0 +1,17 @@
+# CI de pruebas (F0, NFR-17). Las pruebas de red (#[ignore = "... network"]) NO corren acá:
+# se corren en la sesión real del usuario (lección 7).
+name: ci
+on: [push, pull_request]
+jobs:
+  core:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: "clippy, rustfmt" }
+      - run: cargo fmt --all --check
+      - run: cargo clippy -p tstream-core --all-targets -- -D warnings
+      - run: cargo test -p tstream-core

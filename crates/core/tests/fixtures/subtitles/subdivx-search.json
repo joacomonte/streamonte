@@ -1,0 +1,44 @@
+{
+  "sEcho": "0",
+  "iTotalRecords": 5,
+  "iTotalDisplayRecords": 5,
+  "aaData": [
+    {
+      "id": 725040,
+      "titulo": "Sintel (2010)",
+      "descripcion": "Subtítulos en español latino para Sintel.2010.720p.BluRay.x264-SURFER, sincronizados.",
+      "descargas": 12345,
+      "comentarios": 3,
+      "formato": "SubRip",
+      "calificacion": "4",
+      "fecha_subida": "2011-02-01 10:00:00",
+      "nick": "usuario1"
+    },
+    {
+      "id": "725041",
+      "titulo": "Sintel (2010)",
+      "descripcion": "Castellano de España, para la versión de 1080p",
+      "descargas": 300,
+      "nick": "usuario2"
+    },
+    {
+      "id": 725042,
+      "titulo": "Sintel",
+      "descripcion": "Para todas las versiones de la web oficial",
+      "descargas": "1.502",
+      "nick": "usuario3"
+    },
+    {
+      "id": 811111,
+      "titulo": "Sintel (1995)",
+      "descripcion": "Otra película con el mismo nombre",
+      "descargas": 10
+    },
+    {
+      "id": 999999,
+      "titulo": "Single Street (2019)",
+      "descripcion": "Nada que ver",
+      "descargas": 50000
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+/* Catálogo (F4b, spec 09 §11). Separado de styles.css: usa sus variables y .lang/.dialog/.empty. */
+.tabs { display: flex; gap: 4px; margin-right: auto; margin-left: 16px; }
+.tab { background: none; border-color: transparent; color: var(--muted); }
+.tab.active { color: var(--text); background: var(--bg); border-color: var(--border); font-weight: 600; }
+
+.catalog { overflow: auto; padding: 12px 16px; background: var(--bg); min-height: 0; }
+.catalog[hidden] { display: none; }
+.cat-bar { display: flex; gap: 8px; align-items: center; position: sticky; top: -12px; padding: 4px 0 8px; background: var(--bg); z-index: 2; }
+.cat-bar input[type="search"] { flex: 1; font-size: 15px; padding: 8px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.cat-filter { font-size: 12px; color: var(--muted); white-space: nowrap; opacity: .8; }
+.cat-h { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 8px; }
+
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+.cat-card { display: flex; flex-direction: column; gap: 4px; padding: 0; text-align: left; background: none; border: none; cursor: pointer; }
+.cat-card img, .cat-card .cat-noposter { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+.cat-card:hover img { border-color: var(--accent); }
+.cat-card-name { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-card-year { font-size: 12px; color: var(--muted); }
+.cat-noposter { display: grid; place-items: center; font-size: 32px; color: var(--muted); }
+
+.cat-meta { position: relative; display: flex; gap: 16px; padding: 16px; border-radius: var(--radius-card); background: var(--surface); border: 1px solid var(--border); overflow: hidden; }
+.cat-backdrop { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .12; filter: blur(6px); pointer-events: none; }
+.cat-poster { position: relative; flex: none; width: 140px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: var(--radius); }
+.cat-meta-text { position: relative; min-width: 0; }
+.cat-meta-text h2 { margin: 8px 0 4px; }
+.cat-desc { max-width: 70ch; line-height: 1.45; }
+
+.cat-seasons { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 8px; }
+.chip.active { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+.cat-episodes { display: grid; gap: 4px; max-height: 260px; overflow: auto; }
+.cat-ep { width: 100%; text-align: left; background: var(--surface); }
+.cat-ep.active { border-color: var(--accent); }
+
+.cat-streams-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.cat-streams-head .spacer { flex: 1; }
+.cat-addons { display: flex; flex-wrap: wrap; gap: 6px; }
+.cat-addon { font-size: 11px; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--border); color: var(--muted); cursor: help; }
+.cat-addon.ok { color: var(--green); }
+.cat-addon.error { color: var(--red); }
+.cat-addon.needs-config { color: var(--yellow); }
+
+.cat-group-head { display: block; width: 100%; text-align: left; background: none; border: none; padding: 8px 2px 4px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.cat-group-head:hover { color: var(--text); }
+.cat-group ul { display: grid; gap: 4px; }
+.cat-row {
+  display: grid; align-items: center; gap: 10px;
+  grid-template-columns: auto 66px minmax(0, 1fr) 56px 64px auto auto;
+  padding: 4px 8px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border);
+}
+.cat-row:hover { background: color-mix(in srgb, var(--surface) 85%, var(--text) 4%); }
+.cat-num { font-size: 12.5px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cat-speed { color: var(--text); font-weight: 600; }
+
+.cat-sources { display: grid; gap: 6px; margin: 8px 0; }
+.cat-sources li { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.cat-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-add-url { flex: 1; }
+
+.cat-res-bar { display: flex; flex-wrap: wrap; gap: 6px; position: sticky; top: 34px; z-index: 1; padding: 6px 0; background: var(--bg); }
+.cat-badges { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
+.cat-hdr { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 35%, transparent); }
+.cat-res { font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.lang.cat-af { color: var(--muted); }
+/* Semáforo: punto antes de la resolución (solo si se analizó). */
+.cat-row:is(.light-green, .light-yellow, .light-red, .light-measuring) .cat-res::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.cat-row.light-green .cat-res::before { background: var(--green); }
+.cat-row.light-yellow .cat-res::before { background: var(--yellow); }
+.cat-row.light-red .cat-res::before { background: var(--red); }
+.cat-row.light-measuring .cat-res::before { background: var(--accent); }
+.cat-size { color: var(--text); font-weight: 600; }
+.cat-sent { font-size: 12px; color: var(--green); white-space: nowrap; }
+.cat-browse-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 12px; }
+.cat-browse-bar select { padding: 4px 8px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; }
+.cat-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+.cat-more { display: flex; justify-content: center; margin: 16px 0; }
+/* Rango de fecha de estreno (como release_date de IMDb). */
+.cat-released { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 12px; }
+.cat-released-label { font-size: 12px; color: var(--muted); margin-right: 2px; }
+.cat-date { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.cat-date input { padding: 3px 6px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; }
+.cat-date input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cat-hoy { font-size: 12px; color: var(--text); margin-left: -2px; }

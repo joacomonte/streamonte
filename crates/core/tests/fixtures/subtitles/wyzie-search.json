@@ -1,0 +1,65 @@
+[
+  {
+    "id": "1955024019",
+    "url": "https://sub.wyzie.io/c/198e0c4d/id/1955024019?format=srt&encoding=UTF-8&tok=abc",
+    "flagUrl": "https://flagsapi.com/MX/flat/24.png",
+    "format": "srt",
+    "encoding": "UTF-8",
+    "display": "Spanish",
+    "language": "es",
+    "media": "Sintel",
+    "isHearingImpaired": false,
+    "source": "charlie",
+    "release": "Sintel.2010.1080p.WEB-DL",
+    "releases": ["Sintel.2010.1080p.WEB-DL"],
+    "fileName": "sintel.2010.1080p.web-dl.srt",
+    "downloadCount": 4821,
+    "origin": "WEB-DL",
+    "ai": false,
+    "match": { "score": 100, "reasons": ["hash", "source"] }
+  },
+  {
+    "id": 1955024020,
+    "url": "https://sub.wyzie.io/c/198e0c4d/id/1955024020?format=srt&tok=def",
+    "flagUrl": "https://flagsapi.com/ES/flat/24.png",
+    "format": "srt",
+    "display": "Spanish",
+    "language": "es",
+    "media": "Sintel",
+    "release": "Sintel.2010.720p.BluRay.x264-SURFER",
+    "downloadCount": 120,
+    "ai": false
+  },
+  {
+    "id": "1955024021",
+    "url": "https://sub.wyzie.io/c/198e0c4d/id/1955024021?format=ass&tok=ghi",
+    "flagUrl": "https://flagsapi.com/US/flat/24.png",
+    "format": "ass",
+    "display": "Spanish",
+    "language": "es",
+    "media": "Sintel",
+    "release": "Sintel.DVDRip",
+    "ai": false
+  },
+  {
+    "id": "1955024022",
+    "url": "https://sub.wyzie.io/c/198e0c4d/id/1955024022?format=srt&tok=jkl",
+    "flagUrl": "https://flagsapi.com/US/flat/24.png",
+    "format": "srt",
+    "display": "English",
+    "language": "en",
+    "media": "Sintel",
+    "release": "Sintel.2010.1080p.WEB-DL",
+    "downloadCount": 99999,
+    "ai": false
+  },
+  {
+    "id": "ai-es-1",
+    "url": "https://sub.wyzie.io/c/198e0c4d/ai/es?tok=mno",
+    "display": "Spanish",
+    "language": "es",
+    "media": "Sintel",
+    "release": "AI translation",
+    "ai": true
+  }
+]

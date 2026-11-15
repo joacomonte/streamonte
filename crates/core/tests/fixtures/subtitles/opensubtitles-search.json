@@ -1,0 +1,56 @@
+{
+  "total_pages": 1,
+  "total_count": 4,
+  "per_page": 60,
+  "page": 1,
+  "data": [
+    {
+      "id": "5001",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "5001",
+        "language": "ea",
+        "download_count": 2500,
+        "hearing_impaired": false,
+        "release": "Sintel.2010.Web",
+        "moviehash_match": true,
+        "files": [{ "file_id": 7001, "cd_number": 1, "file_name": "Sintel.2010.Web.srt" }],
+        "feature_details": { "feature_type": "Movie", "year": 2010, "title": "Sintel", "imdb_id": 1727587 }
+      }
+    },
+    {
+      "id": "5002",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "5002",
+        "language": "sp",
+        "download_count": 900,
+        "release": "Sintel.2010.720p.BluRay.x264-SURFER",
+        "moviehash_match": false,
+        "files": [{ "file_id": 7002, "file_name": "Sintel.2010.720p.BluRay.x264-SURFER.srt" }]
+      }
+    },
+    {
+      "id": "5003",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "5003",
+        "language": "es",
+        "download_count": 50,
+        "release": "Sintel",
+        "files": [{ "file_id": 7003, "file_name": "Sintel.srt" }]
+      }
+    },
+    {
+      "id": "5004",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "5004",
+        "language": "en",
+        "download_count": 99999,
+        "release": "Sintel.2010",
+        "files": [{ "file_id": 7004, "file_name": "Sintel.en.srt" }]
+      }
+    }
+  ]
+}

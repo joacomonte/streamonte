@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "pulsing-dot",
+        "value": "*",
+        "files": [
+          "ui/index.html"
+        ],
+        "createdAt": "2026-11-14T22:54:39.696Z",
+        "reason": "intentional: the dot marks a live speed measurement whose number changes every second and stops on pause/Listo; part of the approved row design design/cards-v3.html"
+      }
+    ]
+  }
+}

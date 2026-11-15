@@ -1,0 +1,9 @@
+/target
+**/node_modules
+/src-tauri/gen
+/src-tauri/binaries/*
+!/src-tauri/binaries/.gitkeep
+*.log
+
+# Snapshots del navegador de Claude (Playwright MCP)
+/.playwright-mcp

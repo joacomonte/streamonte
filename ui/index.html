@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Torrent Stream</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="catalog.css">
+  <script type="module" src="src/app.js"></script>
+  <script type="module" src="src/catalog.js"></script>
+</head>
+<body>
+  <!-- FR-29: barra superior con acción primaria destacada -->
+  <header class="topbar">
+    <h1 class="brand">Torrent Stream</h1>
+    <!-- F4b: pestañas Mis magnets / Buscar (spec 09 §11.1) -->
+    <nav class="tabs"><button class="tab active" data-tab="library">Mis magnets</button><button class="tab" data-tab="catalog" title="Buscar película o serie (Ctrl+F)">Buscar</button></nav>
+    <div class="actions">
+      <button id="btn-play" class="primary" disabled title="Reproducir el seleccionado (Enter)">▶ Reproducir</button>
+      <button id="btn-clipboard" title="Leer portapapeles (Ctrl+V)">Leer portapapeles</button>
+      <button id="btn-folder" title="Abrir carpeta de descargas">Carpeta</button>
+      <button id="btn-clean" title="Limpiar temporales">Limpiar</button>
+      <button id="btn-settings" title="Ajustes">⚙</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- FR-03: lista agrupada -->
+    <section class="library" aria-label="Magnets">
+      <div id="empty" class="empty">
+        <h2>Copiá un magnet</h2>
+        <p>Con la app abierta, todo magnet que copies aparece acá solo. Después tocá <b>Analizar</b> para ver cuál va a reproducirse mejor.</p>
+      </div>
+      <!-- Análisis: seleccionar qué analizar, todo, o pausar todo -->
+      <div id="lib-toolbar" class="lib-toolbar" hidden>
+        <label class="check-all" title="Marcar / desmarcar todos"><input id="check-all" type="checkbox"> Todos</label>
+        <button id="btn-analyze-selected" class="small" disabled title="Analizar solo los marcados">Analizar seleccionados</button>
+        <button id="btn-analyze" class="small primary" title="Analizar todos los magnets (F5)">Analizar todo</button>
+        <button id="btn-pause-all" class="small" hidden title="Pausar / reanudar todo el análisis">Pausar todo</button>
+        <button id="btn-stop-all" class="small danger" title="Detener todo y borrar todo lo descargado, también lo pausado">Borrar descargas</button>
+        <!-- Derecha libre: ahí flota la burbuja de actividad (ui/src/activity.js) -->
+        <span class="spacer"></span>
+      </div>
+      <div id="group-now" class="group" hidden><h3>Pegados ahora</h3><ul></ul></div>
+      <div id="group-prev" class="group" hidden><h3>Anteriores</h3><ul></ul></div>
+    </section>
+
+    <!-- F4b: catálogo (ui/src/catalog.js) -->
+    <section id="catalog" class="catalog" aria-label="Buscar" hidden></section>
+
+    <!-- FR-14: el panel de reproducciones se quitó (2026-11-14): el estado y Detener van en la
+         fila; carpeta, borrar y log en su menú contextual. -->
+  </main>
+
+  <!-- Ajustes (mínimo, F4 completa): API keys de subtítulos y teclas en mpv -->
+  <dialog id="dlg-settings" class="dialog wide">
+    <h3>Ajustes</h3>
+    <h4>Subtítulos en español (hasta 5 a la vez)</h4>
+    <p class="hint">Primero se usan los que trae el torrent. Para buscar más hacen falta estas keys gratuitas; se guardan en el almacén seguro de Windows y nunca se muestran.</p>
+    <div class="key-row">
+      <label for="key-wyzie">Wyzie Subs <span id="key-wyzie-state" class="key-state"></span></label>
+      <input id="key-wyzie" type="password" placeholder="Pegá la key" autocomplete="off">
+      <button data-save-key="wyzie">Guardar</button>
+      <button class="link" data-key-page="wyzie">Pedir key (solo email, 1000/día)</button>
+    </div>
+    <div class="key-row">
+      <label for="key-opensubtitles">OpenSubtitles <span id="key-opensubtitles-state" class="key-state"></span></label>
+      <input id="key-opensubtitles" type="password" placeholder="Pegá la key" autocomplete="off">
+      <button data-save-key="opensubtitles">Guardar</button>
+      <button class="link" data-key-page="opensubtitles">Crear key (cuenta gratis, 20 descargas/día)</button>
+    </div>
+    <h4>Red</h4>
+    <label class="setting-check"><input id="set-incoming" type="checkbox"> Aceptar conexiones entrantes de peers (más fuentes, suele bajar más rápido)</label>
+    <label class="setting-check"><input id="set-upnp" type="checkbox"> Abrir el puerto en el router automáticamente (UPnP)</label>
+    <p class="hint">Aplica desde la próxima reproducción. Si el firewall o el router lo bloquean, todo sigue funcionando solo con conexiones salientes.</p>
+    <h4>Teclas en el reproductor</h4>
+    <table class="kv keys">
+      <tr><th>1 – 5</th><td>Dejar solo ese subtítulo</td></tr>
+      <tr><th>0</th><td>Ver todos a la vez para comparar</td></tr>
+      <tr><th>S</th><td>Ocultar / mostrar subtítulos</td></tr>
+      <tr><th>Z / X</th><td>La voz llega antes / después (±0,1 s; con Shift ±1 s)</td></tr>
+      <tr><th>R</th><td>Volver la sincronización a cero</td></tr>
+    </table>
+    <div class="dialog-actions"><button data-close>Cerrar</button></div>
+  </dialog>
+
+  <!-- Leer portapapeles: elegir qué magnets del historial agregar -->
+  <dialog id="dlg-clipboard" class="dialog wide">
+    <h3>Magnets en tu portapapeles</h3>
+    <p id="clip-note" class="hint"></p>
+    <div class="clip-head">
+      <label class="check-all"><input id="clip-all" type="checkbox" checked> Seleccionar todos</label>
+      <span id="clip-count" class="hint"></span>
+    </div>
+    <ul id="clip-list" class="clip-list"></ul>
+    <div class="dialog-actions">
+      <button data-close>Cancelar</button>
+      <button id="clip-add" class="primary">Agregar</button>
+    </div>
+  </dialog>
+
+  <!-- FR-30: menú contextual de un magnet -->
+  <div id="ctx-menu" class="ctx-menu" role="menu" hidden></div>
+
+  <!-- FR-30 "Ver análisis": detalle completo de la medición -->
+  <dialog id="dlg-analysis" class="dialog wide">
+    <h3 id="dlg-analysis-title">Análisis</h3>
+    <table id="dlg-analysis-body" class="kv"></table>
+    <div class="dialog-actions"><button data-close>Cerrar</button></div>
+  </dialog>
+
+  <!-- FR-15: detalle (log en vivo) de una reproducción -->
+  <dialog id="dlg-log" class="dialog wide">
+    <h3 id="dlg-log-title">Detalle</h3>
+    <pre id="dlg-log-body"></pre>
+    <div class="dialog-actions"><button data-close>Cerrar</button></div>
+  </dialog>
+
+  <!-- Confirmaciones (FR-17 cierre, FR-19 limpiar) -->
+  <dialog id="dlg-confirm" class="dialog">
+    <h3 id="dlg-confirm-title"></h3>
+    <p id="dlg-confirm-text"></p>
+    <div id="dlg-confirm-actions" class="dialog-actions"></div>
+  </dialog>
+
+  <!-- FR-29: barra de estado con progreso -->
+  <footer class="statusbar">
+    <span id="status">Listo</span>
+    <progress id="progress" max="1" value="0" hidden></progress>
+  </footer>
+</body>
+</html>

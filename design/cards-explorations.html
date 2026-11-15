@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarjetas: 12 direcciones</title>
+<style>
+:root {
+  --bg: #0d1014; --surface: #161a20; --surface-2: #1c2129; --sunk: #11151a;
+  --border: #252b34; --border-strong: #353d48;
+  --text: #e7eaee; --muted: #9aa3ae; --dim: #8b949f;
+  --green: #4ade80; --yellow: #facc15; --red: #f87171;
+  --accent: #2563eb; --accent-fg: #7ab0ff;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+::selection { background: color-mix(in srgb, var(--accent) 40%, transparent); }
+:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+.page { max-width: 1080px; margin: 0 auto; padding: 48px 24px 96px; }
+.page > h1 { font: 600 28px/1.15 "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; letter-spacing: -.02em; margin: 0 0 8px; }
+.page > p { color: var(--muted); margin: 0 0 40px; max-width: 64ch; }
+.variant { margin-bottom: 56px; }
+.variant > header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.variant > header h2 { font: 600 17px/1.2 "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; margin: 0; }
+.variant > header span { color: var(--muted); font-size: 13px; }
+.stack { display: grid; gap: 8px; }
+.num { font-variant-numeric: tabular-nums; }
+svg.i { width: 16px; height: 16px; flex: none; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
+.play { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; box-shadow: 0 2px 6px -1px rgb(0 0 0 / .5); transition: filter .15s var(--ease), transform .15s var(--ease); }
+.play:hover { filter: brightness(1.12); }
+.play:active { transform: scale(.95); }
+.play svg { margin-left: 2px; }
+.ghost { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); transition: background .15s, color .15s; }
+.ghost:hover { background: var(--surface-2); color: var(--text); }
+.done-btn { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 7px; background: var(--accent); color: #fff; }
+.lang { font-size: 11px; font-weight: 700; letter-spacing: .05em; padding: 4px 7px; border-radius: 5px; border: 1px solid var(--border); color: var(--muted); line-height: 1; }
+.lang.lat { color: var(--green); border-color: color-mix(in srgb, var(--green) 30%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
+.lang.en { color: var(--accent-fg); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.lang.guess { border-style: dashed; background: transparent; }
+.g { color: var(--green); } .y { color: var(--yellow); } .r { color: var(--red); }
+.ellip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+@keyframes scan { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+@keyframes breathe { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* 1 · Ledger: sin tarjeta, filas de libro contable */
+.v1 .row { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 20px; padding: 14px 4px; border-bottom: 1px solid var(--border); }
+.v1 .row:first-child { border-top: 1px solid var(--border); }
+.v1 .t { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.v1 .meta { color: var(--dim); font-size: 12.5px; margin-top: 3px; }
+.v1 .meta b { color: var(--muted); font-weight: 500; }
+.v1 .spd { text-align: right; }
+.v1 .spd .big { font: 600 20px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif; letter-spacing: -.01em; }
+.v1 .spd small { display: block; color: var(--dim); font-size: 11.5px; margin-top: 4px; }
+.v1 .act { display: flex; gap: 6px; align-items: center; }
+.v1 .row.live .big { animation: breathe 1.4s ease-in-out infinite; }
+
+/* 2 · Headroom: barra de velocidad real vs. necesaria */
+.v2 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px 16px; align-items: center; }
+.v2 .t { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.v2 .track { grid-column: 1; position: relative; height: 8px; border-radius: 4px; background: var(--sunk); }
+.v2 .fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+.v2 .need { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); border-radius: 1px; }
+.v2 .need::after { content: 'necesita'; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--dim); }
+.v2 .legend { grid-column: 1; display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+.v2 .legend b { color: var(--text); font-weight: 600; }
+.v2 .side { grid-column: 2; grid-row: 1 / 4; display: flex; align-items: center; gap: 8px; }
+.v2 .card.live .fill { background: linear-gradient(90deg, var(--accent), var(--accent-fg)); background-size: 200% 100%; animation: scan 1.6s linear infinite; }
+
+/* 3 · Verdict tile: el margen como número protagonista */
+.v3 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px; display: grid; grid-template-columns: 76px minmax(0,1fr) auto; gap: 14px; align-items: center; }
+.v3 .tile { height: 64px; border-radius: 10px; display: grid; place-content: center; text-align: center; }
+.v3 .tile strong { font: 700 22px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif; letter-spacing: -.02em; }
+.v3 .tile small { font-size: 11px; font-weight: 600; margin-top: 4px; }
+.v3 .tile.g { background: color-mix(in srgb, var(--green) 12%, transparent); }
+.v3 .tile.wait { background: var(--sunk); color: var(--muted); }
+.v3 .tile.wait strong { animation: breathe 1.4s ease-in-out infinite; }
+.v3 .t { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.v3 .facts { display: flex; gap: 16px; color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+.v3 .facts span { display: inline-flex; gap: 5px; align-items: center; }
+.v3 .facts svg { width: 13px; height: 13px; color: var(--dim); }
+.v3 .side { display: flex; gap: 6px; align-items: center; padding-right: 6px; }
+
+/* 4 · Título limpio + chips de calidad (el nombre crudo pasa a segundo plano) */
+.v4 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 20px; }
+.v4 .title { font: 600 19px/1.2 "Segoe UI Variable Display", "Segoe UI", sans-serif; letter-spacing: -.015em; display: flex; gap: 10px; align-items: baseline; }
+.v4 .title .yr { color: var(--dim); font-weight: 400; }
+.v4 .raw { color: var(--dim); font-size: 11.5px; }
+.v4 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.v4 .chip { font-size: 11.5px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+.v4 .chip.q { color: var(--text); font-weight: 600; }
+.v4 .side { grid-column: 2; grid-row: 1 / 4; display: grid; justify-items: end; align-content: center; gap: 8px; }
+.v4 .verdict { font-weight: 600; font-size: 13px; text-align: right; }
+.v4 .verdict small { display: block; color: var(--dim); font-weight: 400; font-size: 11.5px; }
+
+/* 5 · Stat grid etiquetado: cada dato con su nombre, sin encabezados de columna */
+.v5 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.v5 .top { display: flex; gap: 10px; align-items: center; padding: 12px 14px 10px; }
+.v5 .top .t { font-weight: 600; flex: 1; }
+.v5 .grid { display: grid; grid-template-columns: repeat(6, 1fr) auto; border-top: 1px solid var(--border); }
+.v5 .cell { padding: 10px 14px; border-right: 1px solid var(--border); }
+.v5 .cell b { display: block; font-size: 15px; font-weight: 600; }
+.v5 .cell span { font-size: 11px; color: var(--dim); letter-spacing: .02em; }
+.v5 .cell.end { border-right: 0; display: flex; align-items: center; gap: 6px; padding: 0 12px; }
+.v5 .card.live .grid { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 10%, transparent), transparent) no-repeat; background-size: 40% 100%; animation: scan 2s linear infinite; }
+
+/* 6 · Carrera de buffer: ¿se baja antes de que la película llegue? */
+.v6 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px 18px; align-items: center; }
+.v6 .t { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.v6 .race { grid-column: 1; display: grid; grid-template-columns: 72px 1fr auto; gap: 6px 10px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.v6 .bar { height: 6px; border-radius: 3px; background: var(--sunk); position: relative; overflow: hidden; }
+.v6 .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+.v6 .bar.film i { background: var(--border-strong); width: 100%; }
+.v6 .bar.dl i { background: var(--green); }
+.v6 .race b { color: var(--text); font-weight: 600; }
+.v6 .side { grid-column: 2; grid-row: 1 / 3; display: flex; gap: 8px; align-items: center; }
+.v6 .card.live .bar.dl i { background: var(--accent-fg); animation: breathe 1.4s ease-in-out infinite; }
+
+/* 7 · Swiss: regla superior gruesa con el color del veredicto, etiquetas en versalitas */
+.v7 .card { background: var(--surface); border-top: 3px solid var(--border-strong); padding: 12px 2px 14px; display: grid; grid-template-columns: minmax(0,1fr) repeat(4, 84px) auto; gap: 16px; align-items: end; }
+.v7 .card.ok { border-top-color: var(--green); }
+.v7 .card.live { border-top-color: var(--accent); }
+.v7 .lbl { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-bottom: 4px; }
+.v7 .val { font: 600 16px/1.1 "Segoe UI Variable Display", "Segoe UI", sans-serif; }
+.v7 .name .val { font-size: 15px; }
+.v7 .side { display: flex; gap: 6px; align-items: center; }
+
+/* 8 · Señal: salud del enjambre como barras de señal */
+.v8 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: 34px minmax(0,1fr) auto auto; gap: 14px; align-items: center; }
+.v8 .sig { display: flex; align-items: flex-end; gap: 3px; height: 22px; }
+.v8 .sig i { width: 5px; border-radius: 1.5px; background: var(--border-strong); }
+.v8 .sig i:nth-child(1) { height: 25%; } .v8 .sig i:nth-child(2) { height: 50%; } .v8 .sig i:nth-child(3) { height: 75%; } .v8 .sig i:nth-child(4) { height: 100%; }
+.v8 .sig.s4 i { background: var(--green); }
+.v8 .sig.s2 i:nth-child(-n+2) { background: var(--accent-fg); }
+.v8 .card.live .sig i:nth-child(-n+2) { animation: breathe 1.2s ease-in-out infinite; }
+.v8 .t { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.v8 .sub { color: var(--dim); font-size: 12px; margin-top: 2px; }
+.v8 .spd { text-align: right; }
+.v8 .spd b { font: 600 18px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif; }
+.v8 .spd small { display: block; font-size: 11px; color: var(--dim); margin-top: 3px; }
+.v8 .side { display: flex; gap: 6px; align-items: center; }
+
+/* 9 · Acción partida: panel derecho dedicado a "ver" */
+.v9 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; display: grid; grid-template-columns: minmax(0,1fr) 196px; overflow: hidden; }
+.v9 .main { padding: 14px 16px; }
+.v9 .t { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.v9 .facts { color: var(--muted); font-size: 12.5px; margin-top: 6px; display: flex; gap: 14px; }
+.v9 .act { background: var(--sunk); border-left: 1px solid var(--border); padding: 12px 14px; display: grid; align-content: center; gap: 8px; }
+.v9 .act .verdict { font-size: 12px; color: var(--muted); }
+.v9 .act .verdict b { font-weight: 600; }
+.v9 .watch { display: flex; align-items: center; justify-content: center; gap: 8px; height: 34px; border-radius: 9px; background: var(--accent); color: #fff; font-weight: 600; font-size: 13px; }
+.v9 .watch.alt { background: var(--surface-2); color: var(--text); border: 1px solid var(--border-strong); }
+
+/* 10 · Píldoras: todo en una línea fluida de datos */
+.v10 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 28px; padding: 6px 6px 6px 18px; display: flex; align-items: center; gap: 14px; }
+.v10 .t { font-weight: 600; flex: 1 1 140px; min-width: 0; }
+.v10 .pills { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex: 0 1 auto; min-width: 0; }
+.v10 .pill { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.v10 .pill b { color: var(--text); font-weight: 600; }
+.v10 .pill.ok { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); font-weight: 600; }
+.v10 .pill.run { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent-fg); font-weight: 600; animation: breathe 1.4s ease-in-out infinite; }
+
+/* 11 · Revelado progresivo: compacta por defecto, se expande la elegida */
+.v11 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; transition: border-color .2s var(--ease); }
+.v11 .card[open] { border-color: var(--border-strong); }
+.v11 summary { list-style: none; display: grid; grid-template-columns: 8px minmax(0,1fr) auto auto auto; gap: 12px; align-items: center; padding: 10px 12px; cursor: pointer; }
+.v11 summary::-webkit-details-marker { display: none; }
+.v11 .dot { width: 8px; height: 8px; border-radius: 50%; }
+.v11 .t { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.v11 .brief { color: var(--muted); font-size: 12.5px; }
+.v11 .more { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-top: 1px solid var(--border); border-radius: 0 0 12px 12px; overflow: hidden; }
+.v11 .more div { background: var(--surface); padding: 10px 14px; }
+.v11 .more span { display: block; font-size: 11px; color: var(--dim); }
+.v11 .more b { font-weight: 600; }
+.v11 .chev { color: var(--dim); transition: transform .2s var(--ease); }
+.v11 .card[open] .chev { transform: rotate(180deg); }
+
+/* 12 · Banda de estado: el veredicto encabeza la tarjeta */
+.v12 .card { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.v12 .band { display: flex; align-items: center; gap: 10px; padding: 7px 14px; font-size: 12px; font-weight: 600; }
+.v12 .band.ok { background: color-mix(in srgb, var(--green) 13%, var(--surface)); color: var(--green); }
+.v12 .band.run { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--accent-fg); background-image: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 22%, transparent), transparent); background-size: 40% 100%; background-repeat: no-repeat; animation: scan 1.8s linear infinite; }
+.v12 .band .sp { flex: 1; }
+.v12 .band small { font-weight: 500; opacity: .85; }
+.v12 .body { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 16px; padding: 12px 14px; align-items: center; }
+.v12 .t { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.v12 .facts { color: var(--muted); font-size: 12.5px; display: flex; gap: 14px; }
+.v12 .side { grid-column: 2; grid-row: 1 / 3; display: flex; gap: 6px; align-items: center; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="play" viewBox="0 0 24 24"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" fill="currentColor"/></symbol>
+  <symbol id="pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5"/><path d="M20 4v4.5h-4.5"/></g></symbol>
+  <symbol id="disk" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></g></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></g></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<main class="page">
+  <h1>Tarjetas de torrent: 12 direcciones</h1>
+  <p>Mismos dos torrents en cada una: arriba uno ya medido (Dune, sobrado), abajo uno midiendo velocidad (The Bear). Elegí partes de cada una: el número de la izquierda es el que me decís.</p>
+
+  <!-- 1 -->
+  <section class="variant v1">
+    <header><h2>1 · Libro contable</h2><span>Sin tarjeta: líneas finas, la velocidad grande a la derecha.</span></header>
+    <div>
+      <div class="row">
+        <div class="ellip"><div class="t"><span class="ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span><span class="lang lat">LAT</span><span class="lang en">EN</span></div>
+          <div class="meta num"><b>23,4 GB</b> · 2:46:00 · <b>18</b> seeds · 41 peers · tracker 412 / 88</div></div>
+        <div class="spd num"><div class="big g">78 Mbps</div><small>necesita 20 · sobrado</small></div>
+        <div class="act"><button class="ghost" aria-label="Analizar de nuevo"><svg class="i"><use href="#refresh"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+      <div class="row live">
+        <div class="ellip"><div class="t"><span class="ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span></div>
+          <div class="meta num"><b>2,1 GB</b> · midiendo 17 s · <b>9</b> seeds · 22 peers</div></div>
+        <div class="spd num"><div class="big">≈34 Mbps</div><small>todavía puede cambiar</small></div>
+        <div class="act"><button class="done-btn">Listo</button><button class="ghost" aria-label="Pausar"><svg class="i"><use href="#pause"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="variant v2">
+    <header><h2>2 · Margen visible</h2><span>Una barra: velocidad real contra la marca de lo que necesita el video.</span></header>
+    <div class="stack">
+      <div class="card">
+        <div class="t ellip"><span class="ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span><span class="lang lat">LAT</span><span class="lang en">EN</span></div>
+        <div class="track" style="margin-top:14px"><i class="fill" style="width:78%;background:var(--green)"></i><i class="need" style="left:20%"></i></div>
+        <div class="legend num"><span><b class="g">78 Mbps</b> real · 3,9× lo necesario</span><span>23,4 GB</span><span>2:46:00</span><span>18 seeds · 41 peers</span></div>
+        <div class="side"><button class="ghost" aria-label="Analizar de nuevo"><svg class="i"><use href="#refresh"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+      <div class="card live">
+        <div class="t ellip"><span class="ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span></div>
+        <div class="track" style="margin-top:14px"><i class="fill" style="width:34%"></i><i class="need" style="left:7%"></i></div>
+        <div class="legend num"><span><b>≈34 Mbps</b> midiendo · 17 s</span><span>2,1 GB</span><span>9 seeds · 22 peers</span></div>
+        <div class="side"><button class="done-btn">Listo</button><button class="ghost" aria-label="Pausar"><svg class="i"><use href="#pause"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="variant v3">
+    <header><h2>3 · Baldosa de veredicto</h2><span>El margen (3,9×) es lo primero que se lee.</span></header>
+    <div class="stack">
+      <div class="card">
+        <div class="tile g num"><strong>3,9×</strong><small>Sobrado</small></div>
+        <div class="ellip"><div class="t"><span class="ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span><span class="lang lat">LAT</span><span class="lang en">EN</span></div>
+          <div class="facts num"><span><svg class="i"><use href="#disk"/></svg>23,4 GB</span><span><svg class="i"><use href="#clock"/></svg>2:46:00</span><span><svg class="i"><use href="#users"/></svg>18 seeds · 41 peers</span><span>78 / 20 Mbps</span></div></div>
+        <div class="side"><button class="ghost" aria-label="Analizar de nuevo"><svg class="i"><use href="#refresh"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+      <div class="card">
+        <div class="tile wait num"><strong>17 s</strong><small>midiendo</small></div>
+        <div class="ellip"><div class="t"><span class="ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span></div>
+          <div class="facts num"><span><svg class="i"><use href="#disk"/></svg>2,1 GB</span><span><svg class="i"><use href="#users"/></svg>9 seeds · 22 peers</span><span>≈34 Mbps</span></div></div>
+        <div class="side"><button class="done-btn">Listo</button><button class="ghost" aria-label="Pausar"><svg class="i"><use href="#pause"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="variant v4">
+    <header><h2>4 · Título limpio</h2><span>"Dune: Part Two" grande; calidad como chips; el nombre crudo, chiquito.</span></header>
+    <div class="stack">
+      <div class="card">
+        <div class="title"><span class="ellip">Dune: Part Two</span><span class="yr">2024</span></div>
+        <div class="raw ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</div>
+        <div class="chips num"><span class="chip q">4K</span><span class="chip">Dolby Vision · HDR</span><span class="chip">Atmos 5.1</span><span class="chip">23,4 GB</span><span class="chip">2 h 46</span><span class="lang lat">LAT</span><span class="lang en">EN</span></div>
+        <div class="side"><div class="verdict g num">Sobrado<small>78 de 20 Mbps</small></div><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+      <div class="card">
+        <div class="title"><span class="ellip">The Bear</span><span class="yr">T3 · E1</span></div>
+        <div class="raw ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</div>
+        <div class="chips num"><span class="chip q">1080p</span><span class="chip">WEB</span><span class="chip">2,1 GB</span><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span></div>
+        <div class="side"><div class="verdict num" style="color:var(--accent-fg)">Midiendo…<small>≈34 Mbps · 17 s</small></div><div style="display:flex;gap:6px"><button class="done-btn">Listo</button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="variant v5">
+    <header><h2>5 · Grilla etiquetada</h2><span>Cada número con su nombre debajo: no hacen falta encabezados de columna.</span></header>
+    <div class="stack">
+      <div class="card">
+        <div class="top"><span class="t ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span><span class="lang lat">LAT</span><span class="lang en">EN</span></div>
+        <div class="grid num">
+          <div class="cell"><b class="g">Sobrado</b><span>veredicto</span></div>
+          <div class="cell"><b>78 / 20</b><span>Mbps real / necesita</span></div>
+          <div class="cell"><b>23,4 GB</b><span>tamaño</span></div>
+          <div class="cell"><b>2:46:00</b><span>duración</span></div>
+          <div class="cell"><b>18 · 41</b><span>seeds · peers</span></div>
+          <div class="cell"><b>412 · 88</b><span>tracker</span></div>
+          <div class="cell end"><button class="ghost" aria-label="Analizar de nuevo"><svg class="i"><use href="#refresh"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+        </div>
+      </div>
+      <div class="card live">
+        <div class="top"><span class="t ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span></div>
+        <div class="grid num">
+          <div class="cell"><b style="color:var(--accent-fg)">Midiendo</b><span>17 s</span></div>
+          <div class="cell"><b>≈34 / ?</b><span>Mbps real / necesita</span></div>
+          <div class="cell"><b>2,1 GB</b><span>tamaño</span></div>
+          <div class="cell"><b>—</b><span>duración</span></div>
+          <div class="cell"><b>9 · 22</b><span>seeds · peers</span></div>
+          <div class="cell"><b>155 · 31</b><span>tracker</span></div>
+          <div class="cell end"><button class="done-btn">Listo</button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="variant v6">
+    <header><h2>6 · Carrera contra la película</h2><span>Traduce la velocidad a tiempo: se baja entera en 41 min, la peli dura 2 h 46.</span></header>
+    <div class="stack">
+      <div class="card">
+        <div class="t ellip"><span class="ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span><span class="lang lat">LAT</span><span class="lang en">EN</span></div>
+        <div class="race num">
+          <span>película</span><div class="bar film"><i></i></div><b>2 h 46</b>
+          <span>descarga</span><div class="bar dl"><i style="width:25%"></i></div><b class="g">41 min</b>
+        </div>
+        <div class="side"><button class="ghost" aria-label="Analizar de nuevo"><svg class="i"><use href="#refresh"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+      <div class="card live">
+        <div class="t ellip"><span class="ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span></div>
+        <div class="race num">
+          <span>episodio</span><div class="bar film"><i></i></div><b>~45 min</b>
+          <span>descarga</span><div class="bar dl"><i style="width:19%"></i></div><b>≈8 min · midiendo</b>
+        </div>
+        <div class="side"><button class="done-btn">Listo</button><button class="ghost" aria-label="Pausar"><svg class="i"><use href="#pause"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="variant v7">
+    <header><h2>7 · Suizo</h2><span>Sin caja: una regla gruesa del color del veredicto y etiquetas en versalitas.</span></header>
+    <div class="stack" style="gap:18px">
+      <div class="card ok num">
+        <div class="name ellip"><div class="lbl">Torrent · <span class="g">Sobrado</span></div><div class="val ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</div></div>
+        <div><div class="lbl">Real</div><div class="val g">78 Mbps</div></div>
+        <div><div class="lbl">Necesita</div><div class="val">20 Mbps</div></div>
+        <div><div class="lbl">Tamaño</div><div class="val">23,4 GB</div></div>
+        <div><div class="lbl">Seeds</div><div class="val">18 / 41</div></div>
+        <div class="side"><button class="ghost" aria-label="Analizar de nuevo"><svg class="i"><use href="#refresh"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+      <div class="card live num">
+        <div class="name ellip"><div class="lbl">Torrent · <span style="color:var(--accent-fg)">Midiendo 17 s</span></div><div class="val ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</div></div>
+        <div><div class="lbl">Real</div><div class="val">≈34 Mbps</div></div>
+        <div><div class="lbl">Necesita</div><div class="val">—</div></div>
+        <div><div class="lbl">Tamaño</div><div class="val">2,1 GB</div></div>
+        <div><div class="lbl">Seeds</div><div class="val">9 / 22</div></div>
+        <div class="side"><button class="done-btn">Listo</button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="variant v8">
+    <header><h2>8 · Señal</h2><span>La salud del enjambre como barras de señal; un dato grande, el resto abajo.</span></header>
+    <div class="stack">
+      <div class="card">
+        <div class="sig s4" title="Señal fuerte: 18 seeds conectados"><i></i><i></i><i></i><i></i></div>
+        <div class="ellip"><div class="t"><span class="ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span><span class="lang lat">LAT</span><span class="lang en">EN</span></div>
+          <div class="sub num">23,4 GB · 2:46:00 · 18 seeds · 41 peers</div></div>
+        <div class="spd num"><b class="g">78 Mbps</b><small>sobrado · necesita 20</small></div>
+        <div class="side"><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+      <div class="card live">
+        <div class="sig s2" title="Midiendo"><i></i><i></i><i></i><i></i></div>
+        <div class="ellip"><div class="t"><span class="ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span></div>
+          <div class="sub num">2,1 GB · 9 seeds · 22 peers · midiendo 17 s</div></div>
+        <div class="spd num"><b>≈34 Mbps</b><small>todavía puede cambiar</small></div>
+        <div class="side"><button class="done-btn">Listo</button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="variant v9">
+    <header><h2>9 · Acción partida</h2><span>Un panel propio para "ver", con el idioma de audio en el botón.</span></header>
+    <div class="stack">
+      <div class="card">
+        <div class="main ellip"><div class="t"><span class="ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span></div>
+          <div class="facts num"><span>23,4 GB</span><span>2:46:00</span><span>18 seeds · 41 peers</span><span>78 / 20 Mbps</span></div></div>
+        <div class="act"><div class="verdict"><b class="g">Sobrado</b> · 3,9× de margen</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><button class="watch"><svg class="i"><use href="#play"/></svg>Latino</button><button class="watch alt">Inglés</button></div></div>
+      </div>
+      <div class="card">
+        <div class="main ellip"><div class="t"><span class="ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span></div>
+          <div class="facts num"><span>2,1 GB</span><span>9 seeds · 22 peers</span><span>≈34 Mbps</span></div></div>
+        <div class="act"><div class="verdict"><b style="color:var(--accent-fg)">Midiendo</b> · 17 s</div><div style="display:grid;grid-template-columns:1fr auto;gap:6px"><button class="watch"><svg class="i"><use href="#play"/></svg>Ver</button><button class="done-btn" style="height:34px">Listo</button></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="variant v10">
+    <header><h2>10 · Cápsula</h2><span>Una línea redondeada; los datos como píldoras.</span></header>
+    <div class="stack">
+      <div class="card num">
+        <span class="t ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span>
+        <div class="pills"><span class="lang lat">LAT</span><span class="lang en">EN</span><span class="pill"><b>23,4</b> GB</span><span class="pill">2:46</span><span class="pill"><b>18</b> seeds</span><span class="pill ok">Sobrado · 78 Mbps</span></div>
+        <button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button>
+      </div>
+      <div class="card num">
+        <span class="t ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span>
+        <div class="pills"><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span><span class="pill"><b>2,1</b> GB</span><span class="pill"><b>9</b> seeds</span><span class="pill run">Midiendo ≈34 Mbps</span></div>
+        <button class="done-btn">Listo</button>
+        <button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="variant v11">
+    <header><h2>11 · Revelado progresivo</h2><span>Compacta por defecto; al tocarla se abre el detalle (probá hacer clic).</span></header>
+    <div class="stack">
+      <details class="card" open>
+        <summary><i class="dot" style="background:var(--green)"></i><span class="t ellip"><span class="ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span><span class="lang lat">LAT</span><span class="lang en">EN</span></span><span class="brief num"><span class="g">Sobrado</span> · 23,4 GB</span><svg class="i chev"><use href="#chev"/></svg><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></summary>
+        <div class="more num"><div><span>Real / necesita</span><b>78 / 20 Mbps</b></div><div><span>Duración</span><b>2:46:00</b></div><div><span>Seeds · peers</span><b>18 · 41</b></div><div><span>Tracker</span><b>412 · 88</b></div></div>
+      </details>
+      <details class="card">
+        <summary><i class="dot" style="background:var(--accent-fg);animation:breathe 1.2s infinite"></i><span class="t ellip"><span class="ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span></span><span class="brief num" style="color:var(--accent-fg)">Midiendo ≈34 Mbps</span><svg class="i chev"><use href="#chev"/></svg><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></summary>
+        <div class="more num"><div><span>Medido</span><b>17 s</b></div><div><span>Tamaño</span><b>2,1 GB</b></div><div><span>Seeds · peers</span><b>9 · 22</b></div><div><span>Tracker</span><b>155 · 31</b></div></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="variant v12">
+    <header><h2>12 · Banda de estado</h2><span>El veredicto encabeza la tarjeta como una franja.</span></header>
+    <div class="stack">
+      <div class="card">
+        <div class="band ok num">Sobrado<small>· baja 3,9× más rápido de lo que consume</small><span class="sp"></span><small>78 / 20 Mbps</small></div>
+        <div class="body">
+          <div class="t ellip"><span class="ellip">Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-FLUX</span><span class="lang lat">LAT</span><span class="lang en">EN</span></div>
+          <div class="facts num"><span>23,4 GB</span><span>2:46:00</span><span>18 seeds · 41 peers</span><span>tracker 412 / 88</span></div>
+          <div class="side"><button class="ghost" aria-label="Analizar de nuevo"><svg class="i"><use href="#refresh"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="band run num">Midiendo velocidad<small>· 17 s, todavía puede cambiar</small><span class="sp"></span><small>≈34 Mbps</small></div>
+        <div class="body">
+          <div class="t ellip"><span class="ellip">The.Bear.S03E01.1080p.WEB.h264-ETHEL</span><span class="lang lat guess">LAT</span><span class="lang en guess">EN</span></div>
+          <div class="facts num"><span>2,1 GB</span><span>9 seeds · 22 peers</span><span>tracker 155 / 31</span></div>
+          <div class="side"><button class="done-btn">Listo</button><button class="ghost" aria-label="Pausar"><svg class="i"><use href="#pause"/></svg></button><button class="play" aria-label="Reproducir"><svg class="i"><use href="#play"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
