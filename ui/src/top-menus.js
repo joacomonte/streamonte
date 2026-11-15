@@ -5,7 +5,7 @@ import { api } from './api.js';
 import { play } from './audio-picker.js';
 import { cleanTemp, openLog, stopAllAndClean } from './dialogs.js';
 import { $, el, setStatus, showError } from './dom.js';
-import { ago, humanBytes, mbps } from './format.js';
+import { ago, humanBytes, mbps, playbackText } from './format.js';
 import { state, titleOf } from './state.js';
 
 const pop = el('div', { id: 'top-pop', class: 'top-pop', role: 'dialog', hidden: true });
@@ -41,18 +41,6 @@ document.addEventListener('pointerdown', (ev) => {
 });
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && open && !document.querySelector('dialog[open]')) closePop(); });
 window.addEventListener('resize', closePop);
-
-/** Estado de una reproducción en una línea. */
-function pbText(pb) {
-  const k = pb.state.kind;
-  if (k === 'fetching-metadata') return 'buscando metadatos…';
-  if (k === 'preparing') return `preparando ${Math.round((pb.state.fraction ?? 0) * 100)} %`;
-  if (k === 'stopping') return 'cerrando…';
-  if (k === 'download-paused') return 'reproduciendo · descarga en pausa';
-  if (k === 'ask-after-close') return 'cerraste el reproductor…';
-  if (k === 'background') return `bajando de fondo · ${Math.floor((pb.progress ?? 0) * 100)} %`;
-  return 'reproduciendo';
-}
 
 const section = (title, ...children) => el('section', { class: 'pop-section' }, el('h4', {}, title), ...children);
 const empty = (text) => el('p', { class: 'pop-empty' }, text);
@@ -119,7 +107,7 @@ function playbackItem(r) {
   const pct = Math.floor((r.progress ?? 0) * 100);
   const speed = r.speed_bps > 0 ? ` · ${mbps(r.speed_bps)}` : '';
   const paused = r.state.kind === 'paused';
-  const sub = paused ? `pausada · ${pct} % bajado` : r.state.kind === 'failed' ? `falló: ${r.state.message}` : `${pbText(r)} · ${pct} %${speed}${r.peers ? ` · ${r.peers} peers` : ''}`;
+  const sub = paused || r.state.kind === 'failed' ? playbackText(r) : `${playbackText(r)} · ${pct} %${speed}${r.peers ? ` · ${r.peers} peers` : ''}`;
   return el('li', { class: 'pop-item' },
     el('div', { class: 'pop-item-text' },
       el('span', { class: 'pop-item-title' }, titleOf(r.key)),
@@ -155,7 +143,7 @@ function renderDownloads() {
   const rows = [...state.playbacks.values()];
   const running = rows.filter(ACTIVE);
   const kept = rows.filter((r) => !ACTIVE(r));
-  const afterClean = async (fn) => { await fn(); usage = await api.tempUsage().catch(() => usage); if (open?.btn.id === 'btn-downloads') renderDownloads(); };
+  const afterClean = async (fn) => { await fn(); usage = await api.tempUsage().catch(() => usage); refreshCache(); if (open?.btn.id === 'btn-downloads') renderDownloads(); };
   pop.replaceChildren(
     el('div', { class: 'pop-head' }, el('div', {}, el('h3', {}, 'Descargas'), el('p', { class: 'pop-sub' }, 'Lo que se reproduce o baja, lo guardado y la limpieza.'))),
     section(`En curso${running.length ? ` · ${running.length}` : ''}`,
@@ -166,10 +154,10 @@ function renderDownloads() {
     section('Espacio en disco',
       el('div', { class: 'pop-disk' },
         el('span', { class: 'pop-disk-size' }, usage ? humanBytes(usage.bytes) : '…'),
-        el('span', { class: 'pop-item-sub' }, 'en restos que se pueden limpiar')),
+        el('span', { class: 'pop-item-sub' }, 'de caché (lo analizado y restos) que se puede borrar')),
       el('div', { class: 'pop-actions wrap' },
         el('button', { id: 'dl-open-folder', class: 'pop-btn', onclick: () => api.openDownloadsFolder().catch(showError) }, 'Abrir carpeta'),
-        el('button', { id: 'dl-clean', class: 'pop-btn', title: 'Borra restos que no están en uso (no toca lo activo, lo pausado ni tu lista)', onclick: () => afterClean(cleanTemp) }, 'Limpiar temporales'),
+        el('button', { id: 'dl-clean', class: 'pop-btn', title: 'Borra lo analizado y los restos que no están en uso (no toca lo activo ni lo guardado)', onclick: () => afterClean(cleanTemp) }, 'Borrar caché'),
         el('button', { id: 'dl-stop-all', class: 'pop-btn danger', title: 'Detiene todo y borra todo lo descargado, también lo pausado', onclick: () => afterClean(stopAllAndClean) }, 'Detener y borrar todo'))));
 }
 
@@ -191,6 +179,22 @@ function downloadedBytes() {
     total += Math.max(e?.downloaded_bytes ?? 0, (r.progress ?? 0) * size);
   }
   return total;
+}
+
+// ---------- Caché (2026-11-15: "no quiero que vaya dejando basura por la PC") ----------
+/** Lo que se puede borrar sin tocar lo activo ni lo guardado (lo analizado y restos). Recorre
+ *  carpetas en disco: se pide al abrir, cada 30 s y después de limpiar, no con cada evento. */
+export async function refreshCache() {
+  const usage = await api.tempUsage().catch(() => null);
+  const btn = $('#btn-cache');
+  btn.hidden = !usage || usage.bytes < 1024 ** 2;
+  if (usage) $('#cache-size').textContent = ` · ${humanBytes(usage.bytes)}`;
+}
+
+export async function onCacheClick() {
+  await cleanTemp();
+  await refreshCache();
+  if (open?.btn.id === 'btn-downloads') { usage = await api.tempUsage().catch(() => usage); renderDownloads(); }
 }
 
 /** Lo llama app.js con cada evento de reproducción o análisis: tamaño, badge y menú abierto al día. */

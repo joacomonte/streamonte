@@ -22,7 +22,6 @@ pub enum CoreEvent {
     LibraryEntryRemoved {
         key: crate::video_key::VideoKey,
     },
-    LibraryCleared,
 
     /// Historial Win+V desactivado o no disponible (FR-02, NFR-13).
     ClipboardHistoryUnavailable {

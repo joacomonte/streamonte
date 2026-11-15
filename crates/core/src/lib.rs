@@ -37,6 +37,7 @@ pub mod clipboard;
 pub mod engine;
 mod external;
 mod http;
+pub mod incoming;
 pub mod library;
 mod mpv_ipc;
 pub mod player;

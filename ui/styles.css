@@ -131,6 +131,7 @@ ul { list-style: none; margin: 0; padding: 0; }
   border-top: 1px solid var(--border);
 }
 .statusbar progress { flex: 0 0 160px; }
+.statusbar #status { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---- F3: lista mínima, panel de reproducciones, diálogos (diseño final en F4) ---- */
 button.small { padding: 3px 8px; font-size: 12px; }
@@ -228,6 +229,25 @@ button.danger { color: var(--red); }
 .key-row input { padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); }
 .key-state { font-size: 11px; color: var(--muted); margin-left: 4px; }
 .key-state.ok { color: var(--green); }
+/* Ajustes › Red: guía del router y verificación del puerto (2026-11-15). */
+.net-guide { margin: 6px 0 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.net-steps { margin: 6px 0 10px; padding-left: 18px; display: grid; gap: 6px; font-size: 12.5px; color: var(--text); }
+.net-steps code { font-family: var(--mono); font-size: 12px; }
+.net-check { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.net-check-result { font-size: 12.5px; color: var(--muted); }
+.net-check-result.ok { color: var(--green); }
+.net-check-result.bad { color: var(--red); }
+/* Panel de calibración en Ajustes (2026-11-15). */
+.calib-panel { display: grid; gap: 6px; margin: 6px 0 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.calib-panel h5 { margin: 6px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.calib-status { margin: 0; font-weight: 600; }
+.calib-bar { height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; }
+.calib-bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+.calib-list { display: grid; gap: 6px; max-height: 180px; overflow: auto; font-size: 12.5px; }
+.calib-list li { display: grid; gap: 1px; }
+.calib-list b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calib-list span { color: var(--muted); }
+.calib-note { font-size: 11.5px; }
 button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; font-size: 12px; text-decoration: underline; }
 .kv.keys th { width: 90px; font-family: ui-monospace, monospace; }
 
@@ -245,19 +265,20 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
    Descargas, con lo que se está haciendo; quieta se achica a un circulito. Al tocarla se
    despliega abajo el log completo. ---- */
 #status { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.act { position: relative; display: flex; min-width: 0; max-width: min(340px, 30vw); }
+/* En la barra inferior (2026-11-15): píldora chica a la derecha; el panel abre hacia arriba. */
+.act { position: relative; display: flex; min-width: 0; max-width: min(420px, 40vw); margin-left: auto; }
 .act[data-state="hidden"] { display: none; }
 .act-line {
-  display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 42px;
-  padding: 0 14px 0 16px; border: 1px solid var(--border); border-radius: 999px;
-  background: var(--bg); color: var(--text); font-size: 13.5px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 28px;
+  padding: 0 10px 0 12px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--bg); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer;
   animation: act-pop .45s var(--out); transition: background .15s var(--ease), border-color .15s var(--ease);
 }
 .act-line:hover, .act[data-state="open"] .act-line { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
 .act-line:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @keyframes act-pop { from { opacity: .4; transform: scale(.92); } }
 /* Quieta: circulito con el contador de novedades. */
-.act[data-state="mini"] .act-line { width: 42px; padding: 0; justify-content: center; gap: 0; }
+.act[data-state="mini"] .act-line { width: 28px; padding: 0; justify-content: center; gap: 0; }
 .act[data-state="mini"] .act-sum, .act[data-state="mini"] .act-chev { display: none; }
 .act[data-state="mini"] .act-n { position: absolute; top: -4px; right: -4px; }
 .act-line { position: relative; }
@@ -277,14 +298,24 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .act-chev svg { display: block; }
 .act[data-state="open"] .act-chev { transform: rotate(180deg); }
 .act-panel {
-  display: none; position: absolute; top: calc(100% + 8px); right: 0; z-index: 50;
-  flex-direction: column; width: min(420px, calc(100vw - 24px)); max-height: 50vh;
+  display: none; position: fixed; bottom: 44px; right: 12px; z-index: 50;
+  flex-direction: column; width: min(980px, calc(100vw - 24px)); height: min(72vh, 720px);
   background: var(--pk-bg); border: 1px solid var(--border-strong); border-radius: 12px; overflow: hidden;
   box-shadow: 0 24px 60px rgb(0 0 0 / .45);
-  transform-origin: top right; animation: act-in .25s var(--out);
+  transform-origin: bottom right; animation: act-in .25s var(--out);
 }
 .act[data-state="open"] .act-panel { display: flex; }
-@keyframes act-in { from { opacity: .6; transform: translateY(-6px) scale(.97); } }
+@keyframes act-in { from { opacity: .6; transform: translateY(6px) scale(.97); } }
+.act-tabs { display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--bg); }
+.act-tab { height: 24px; padding: 0 10px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 12px; font-weight: 600; }
+.act-tab[aria-selected="true"] { background: var(--surface-2); color: var(--text); }
+.act-filter { height: 26px; padding: 0 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12px; }
+.act-b[hidden] { display: none; }
+.act-list[hidden] { display: none; }
+.act-detail { padding: 6px 12px; font: 11.5px/1.5 var(--mono); }
+.act-d { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
+.act-d.warn { color: var(--yellow); }
+.act-d.debug { color: var(--dim); }
 .act-h { display: flex; align-items: center; gap: 8px; padding: 7px 6px 7px 12px; border-bottom: 1px solid var(--border); }
 .act-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
 .act-h .act-sum { flex: 1; font-size: 12px; color: var(--muted); }
@@ -292,7 +323,7 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .act-b svg { display: block; }
 .act-b:hover, .act-b[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
 .act-b[aria-pressed="true"] { color: var(--accent-fg); }
-.act-list { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; overscroll-behavior: contain; min-height: 0; font-size: 12.5px; }
+.act-list { flex: 1; list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; overscroll-behavior: contain; min-height: 0; font-size: 12.5px; }
 .act-l { display: grid; grid-template-columns: auto 16px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 4px 12px; color: var(--text); }
 .act-l.in { animation: act-line .4s var(--out); }
 @keyframes act-line { from { transform: translateY(8px); } }
@@ -314,6 +345,7 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
   font-size: 15px; font-weight: 600; transition: background .15s var(--ease), border-color .15s var(--ease);
 }
 .top-btn:hover, .top-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+.top-btn[hidden] { display: none; }
 .top-btn.icon { width: 42px; padding: 0; justify-content: center; font-size: 17px; }
 .top-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .top-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 12px; font-weight: 700; display: inline-grid; place-items: center; }

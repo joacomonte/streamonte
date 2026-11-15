@@ -3,23 +3,24 @@
 //! 1. Registra las teclas de la app en mpv con `define-section` + `enable-section` (IPC):
 //!    son una capa encima de la config del usuario, que no se toca (FR-34). Se eligió esto y no
 //!    `--input-conf` porque `--input-conf` REEMPLAZA el `input.conf` personal del usuario.
-//! 2. En segundo plano (NFR-10: la película ya está andando): busca y baja hasta 5
-//!    ([`super::fetch`]).
+//! 2. La búsqueda y descarga de hasta 5 ([`super::fetch`]) ya viene lanzada desde antes de abrir
+//!    mpv ([`prefetch`], en paralelo con la precarga): acá solo se espera su resultado.
 //! 3. Carga en mpv cada uno como pista propia + el ASS fusionado "comparar" (FR-25, ADR-11).
 //! 4. Teclas: 1–5 elige uno · 0 todos · S on/off · Z/X ±0,1 s · Shift+Z/X ±1 s · R reset.
 //!    Cada elección y cada ajuste se recuerdan por info hash (FR-28).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde_json::{json, Value};
 use tokio::sync::broadcast::error::RecvError;
+use tokio::task::JoinHandle;
 
-use super::providers::{self, TorrentSubtitleFile};
+use super::providers;
 use super::{
     apply_sync_key, merge_ass, sync_message, LabeledSubtitle, SubtitleCandidate, SubtitleChoice,
-    SubtitleMemory, SyncKey, VideoIdentity, CHOICE_ALL,
+    SubtitleMemory, SyncKey, CHOICE_ALL,
 };
 use crate::config::SubtitleLanguage;
 use crate::player::{MpvControl, MpvEvent};
@@ -50,21 +51,58 @@ R script-message tstream sync-reset
 const OSD: Duration = Duration::from_secs(4);
 const SYNC_HELP: &str = "Z: la voz llega antes · X: la voz llega después · Shift = 1 s · R: reset";
 
+/// Búsqueda y descarga lanzadas antes de abrir mpv ([`prefetch`]). Se aborta al soltarse: si la
+/// reproducción termina antes de abrir mpv, no sigue buscando ni escribiendo en la carpeta.
+pub struct Prefetch {
+    task: AbortOnDrop<Vec<(SubtitleCandidate, PathBuf)>>,
+    /// Subtítulos de ESTE video, en la carpeta de su descarga
+    /// ([`crate::paths::AppPaths::video_subtitles_dir`]); ahí va también el ASS "comparar".
+    cache_dir: PathBuf,
+}
+
+/// Tarea que se aborta al soltarse: si quien la lanzó se corta (el flujo hace `abort()` de la
+/// sesión), no queda buscando ni escribiendo en una carpeta borrada o un mpv cerrado.
+struct AbortOnDrop<T>(JoinHandle<T>);
+
+impl<T> Drop for AbortOnDrop<T> {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+/// Arranca la búsqueda y descarga ya (sin mpv), con la elección recordada de `key` (FR-28).
+pub fn prefetch(mut req: Fetch, key: &VideoKey, memory_file: &Path) -> Prefetch {
+    let memory = SubtitleMemory::new(memory_file.to_path_buf());
+    req.remembered = remembered_choice(&memory, key, req.language);
+    let cache_dir = req.cache_dir.clone();
+    Prefetch {
+        task: AbortOnDrop(tokio::spawn(fetch(req))),
+        cache_dir,
+    }
+}
+
+/// FR-28: una elección recordada de otro idioma no aplica a esta sesión.
+fn remembered_choice(
+    memory: &SubtitleMemory,
+    key: &VideoKey,
+    language: SubtitleLanguage,
+) -> Option<SubtitleChoice> {
+    memory
+        .get(key)
+        .ok()
+        .flatten()
+        .filter(|c| c.language == language)
+}
+
 pub struct SessionRequest {
     pub mpv: Arc<dyn MpvControl>,
     /// El video que se ve: la elección recordada (FR-28) es de ESTE episodio, no del pack.
     pub key: VideoKey,
-    /// Ya parseado del nombre (sin hash ni IMDb: los calcula la sesión).
-    pub video: VideoIdentity,
-    /// URL del video en el motor (para leer los 64 KiB del principio y del final → hash).
-    pub video_url: String,
-    pub torrent_files: Vec<TorrentSubtitleFile>,
+    /// La búsqueda ya lanzada para este mismo video ([`prefetch`]).
+    pub found: Prefetch,
     pub language: SubtitleLanguage,
     /// Audio ya en español (eligió Latino): se cargan igual pero arrancan ocultos (S los muestra).
     pub start_hidden: bool,
-    /// Subtítulos de ESTE video, en la carpeta de su descarga
-    /// ([`crate::paths::AppPaths::video_subtitles_dir`]).
-    pub cache_dir: PathBuf,
     pub memory_file: PathBuf,
     pub log: LogFn,
 }
@@ -103,18 +141,12 @@ pub async fn run(req: SessionRequest) {
     }
     let memory = Arc::new(SubtitleMemory::new(req.memory_file.clone()));
     let language = req.language;
-    // FR-28: una elección recordada de otro idioma no aplica a esta sesión.
-    let remembered = memory
-        .get(&req.key)
-        .ok()
-        .flatten()
-        .filter(|c| c.language == language);
+    let remembered = remembered_choice(&memory, &req.key, language);
     let state = Arc::new(Mutex::new(State::default()));
     let key = req.key;
 
-    let search = tokio::spawn(find_and_load(req, state.clone(), remembered));
+    let _search = AbortOnDrop(tokio::spawn(find_and_load(req, state.clone(), remembered)));
     key_loop(events, mpv, state, memory, key, language, log).await;
-    search.abort();
 }
 
 async fn bind_keys(mpv: &dyn MpvControl) -> crate::Result<()> {
@@ -133,7 +165,7 @@ async fn bind_keys(mpv: &dyn MpvControl) -> crate::Result<()> {
 // ---------- carga en mpv ----------
 
 async fn find_and_load(
-    req: SessionRequest,
+    mut req: SessionRequest,
     state: Arc<Mutex<State>>,
     remembered: Option<SubtitleChoice>,
 ) {
@@ -143,17 +175,8 @@ async fn find_and_load(
     let start_hidden = req.start_hidden;
     let t0 = std::time::Instant::now();
 
-    let loaded = fetch(Fetch {
-        video: req.video.clone(),
-        video_url: Some(req.video_url.clone()),
-        torrent_files: req.torrent_files.clone(),
-        language: lang,
-        cache_dir: req.cache_dir.clone(),
-        remembered: remembered.clone(),
-        opensubtitles: true,
-        log: log.clone(),
-    })
-    .await;
+    // Suele estar listo: arrancó junto con la precarga. Si la tarea murió, como sin resultados.
+    let loaded = (&mut req.found.task.0).await.unwrap_or_default();
 
     if loaded.is_empty() {
         log("subtítulos: no encontré ninguno".into());
@@ -204,7 +227,7 @@ async fn find_and_load(
         });
     }
     let merged_sid = if labeled.len() >= 2 {
-        load_merged(mpv.as_ref(), &labeled, &req.cache_dir, &log).await
+        load_merged(mpv.as_ref(), &labeled, &req.found.cache_dir, &log).await
     } else {
         None
     };

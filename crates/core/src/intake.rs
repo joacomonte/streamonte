@@ -175,7 +175,7 @@ impl Intake {
 }
 
 /// Al pegar: 1) metadatos de todos a la vez para mostrar el nombre real en segundos (el `dn` de
-/// Torrentio es genérico) y 2) si `analyzer.auto_on_paste`, análisis completo de esos magnets.
+/// Torrentio es genérico) y 2) si `analyzer.auto_on_paste`, análisis rápido de esos magnets.
 /// Agrupa lo que llega en [`BATCH_WINDOW`].
 fn spawn_batches(
     paths: AppPaths,

@@ -5,7 +5,9 @@
 //! 1. `plan()` → rangos (inicio siempre; final solo MP4/MOV).
 //! 2. `engine.prioritize_ranges(.., Exclusive)`.
 //! 3. Esperar `RangeReady` de todos, o `fallback_open_secs` (plan B), o cancelación.
-//! 4. `engine.select_file()` → el resto del archivo sigue bajando.
+//! 4. Si `select_after`: `engine.select_file()` → el resto del archivo sigue bajando (reproducir).
+//!    El análisis rápido no lo pide: solo necesita el principio y el final para leer duración e
+//!    idiomas, y bajar el archivo entero llenaba el disco (2026-11-15: 36 GB en una tarde).
 //!
 //! Con diagnóstico activo: cada 2 s, `RangeProgress` por rango al target `diag::preload`.
 
@@ -124,13 +126,15 @@ pub fn plan(file: &FileInfo, cfg: &PreloadConfig) -> PreloadPlan {
 }
 
 /// Ejecuta la precarga. Devuelve `Err(Cancelled)` si `cancel` se dispara (el usuario detuvo).
-/// Al terminar (listo o plan B) selecciona el archivo completo: el resto sigue bajando.
+/// Al terminar (listo o plan B) selecciona el archivo completo si `select_after`: el resto sigue
+/// bajando.
 pub async fn run(
     engine: &dyn TorrentEngine,
     handle: TorrentHandle,
     plan: &PreloadPlan,
     cfg: &PreloadConfig,
     cancel: CancellationToken,
+    select_after: bool,
     on_progress: &(dyn Fn(PreloadProgress) + Send + Sync),
 ) -> Result<PreloadOutcome> {
     // Suscribirse ANTES de pedir los rangos para no perder un `RangeReady` rápido.
@@ -145,6 +149,8 @@ pub async fn run(
     let mut tick = tokio::time::interval(Duration::from_secs(1));
     let mut ticks: u64 = 0;
     let mut fraction = 0.0_f32;
+    // (mejor fracción vista, cuándo se vio): para detectar la precarga estancada.
+    let mut advance = (0.0_f32, Duration::ZERO);
 
     let outcome = loop {
         if pending.is_empty() {
@@ -152,7 +158,7 @@ pub async fn run(
                 elapsed: started.elapsed(),
             };
         }
-        if started.elapsed() >= deadline {
+        if started.elapsed() >= deadline || stalled(fraction, &mut advance, started.elapsed()) {
             break PreloadOutcome::TimedOut {
                 elapsed: started.elapsed(),
                 fraction,
@@ -215,8 +221,23 @@ pub async fn run(
         elapsed_secs: started.elapsed().as_secs_f32(),
     });
     tracing::info!(?outcome, "precarga terminada");
-    engine.select_file(handle, plan.file_index).await?;
+    if select_after {
+        engine.select_file(handle, plan.file_index).await?;
+    }
     Ok(outcome)
+}
+
+/// Sin avance en este lapso se abre ya: en logs reales mpv por HTTP arrancó en ~6 s donde la
+/// precarga seguía en 0 % a los 45 s, y cuando sí avanza suele hacerlo en los primeros 4–10 s.
+const STALL: Duration = Duration::from_secs(12);
+
+/// Precarga estancada: la fracción no subió en `STALL` (incluye "sigue en 0 % desde el inicio").
+/// `advance` = (mejor fracción vista, cuándo se vio); se actualiza acá.
+fn stalled(fraction: f32, advance: &mut (f32, Duration), elapsed: Duration) -> bool {
+    if fraction > advance.0 {
+        *advance = (fraction, elapsed);
+    }
+    elapsed.saturating_sub(advance.1) >= STALL
 }
 
 /// Saca de `pending` los rangos que las stats ya dan completos.
@@ -283,6 +304,22 @@ mod tests {
         // Sin piezas conocidas no se da por completo.
         drop_completed(&mut pending, &[progress(b, 0, 0)]);
         assert_eq!(pending, vec![b]);
+    }
+
+    #[test]
+    fn estancada_si_no_avanza_en_stall() {
+        let s = Duration::from_secs;
+        let mut adv = (0.0, Duration::ZERO);
+        assert!(!stalled(0.0, &mut adv, s(11)));
+        assert!(stalled(0.0, &mut adv, s(12)), "sigue en 0 % a los 12 s");
+        let mut adv = (0.0, Duration::ZERO);
+        assert!(!stalled(0.1, &mut adv, s(10)));
+        assert!(
+            !stalled(0.1, &mut adv, s(21)),
+            "avanzó a los 10 s: cuenta desde ahí"
+        );
+        assert!(!stalled(0.3, &mut adv, s(22)));
+        assert!(stalled(0.3, &mut adv, s(34)), "trabada en 30 % 12 s");
     }
 
     /// Salidas fijadas de la tabla única (antes había dos listas: acá y en `engine/rqbit/http.rs`).

@@ -16,19 +16,12 @@ const invoke = (cmd, args) => tauri.core.invoke(cmd, args);
 export const api = {
   // Biblioteca (FR-01–04)
   library: () => invoke('library_get'),
-  readClipboard: () => invoke('library_read_clipboard'),
-  addText: (text) => invoke('library_add_text', { text }),
-  /** @param {VideoKey} key  la fila (un episodio de un pack es una fila propia) */
-  clearLibrary: () => invoke('library_clear'),
 
   // Análisis (FR-05–08)
   /** @param {AnalyzeScope} scope */
   analyze: (scope) => invoke('analyze', { scope }),
   analyzerPause: () => invoke('analyzer_pause'),
   analyzerResume: () => invoke('analyzer_resume'),
-  /** "Listo": terminar la medición de velocidad en curso con lo medido. */
-  /** Pausar / reanudar el análisis de un solo magnet. */
-  /** "Reiniciar análisis" de uno (rápido o con medición), aunque esté en cola o midiéndose. */
   /** Menú Portapapeles: magnets del historial con fecha, para agregar uno o todos. */
   clipboardPreview: () => invoke('clipboard_preview'),
   /** Agrega solo los magnets elegidos (texto original de cada uno). */
@@ -46,7 +39,6 @@ export const api = {
   playbacks: () => invoke('playbacks_get'),
   playbackLog: (id) => invoke('playback_log', { id }),
   stopAllAndClean: () => invoke('stop_all_and_clean'),
-  activePlaybacks: () => invoke('active_playbacks'),
   /** @param {'stop-all'|'leave-running'} choice */
   onClose: (choice) => invoke('on_close', { choice }),
 
@@ -61,8 +53,6 @@ export const api = {
   catalogPoster: (imdbId) => invoke('catalog_poster', { imdbId }),
   /** "Contar seeders reales": se conecta a cada enjambre (~50 s por tanda). {hash: {seeds, peers}}; falta = no se pudo. */
   catalogSwarm: (hashes, deep = false) => invoke('catalog_swarm', { hashes, deep }),
-  /** Análisis rápido: seeders/leechers según los trackers. {hash: {seeders, leechers, trackers_ok, …}}. */
-  catalogScrape: (hashes) => invoke('catalog_scrape', { hashes }),
   /** "Bajar subtítulos" de una opción: hasta 5, `language` ('es'|'en') primero. Devuelve [{provider, language, release_name}]. */
   catalogSubtitles: (videoId, hash, language) => invoke('catalog_subtitles', { videoId, hash, language }),
 
@@ -92,6 +82,12 @@ export const api = {
   // Limpieza (FR-18–20)
   tempUsage: () => invoke('temp_usage'),
   cleanTemp: () => invoke('clean_temp'),
+  /** ¿El puerto entrante llega desde internet? {port, reachable: bool|null, local_ip, problem}. */
+  checkIncoming: () => invoke('check_incoming'),
+  /** Últimas líneas del log detallado del núcleo (con nivel: INFO/WARN/ERROR/DEBUG). */
+  logsTail: (max = 2000) => invoke('logs_tail', { max }),
+  /** Copia los logs (y la actividad visible) a Descargas y muestra la carpeta. Devuelve la ruta. */
+  exportLogs: (friendly) => invoke('export_logs', { friendly }),
   openDownloadsFolder: () => invoke('open_downloads_folder'),
 
   // Configuración (NFR-04)
@@ -103,7 +99,7 @@ export const api = {
 
 /**
  * Suscripción a eventos del núcleo (ver crates/core/src/events.rs).
- * Tipos: library-entry-updated · library-entry-removed · library-cleared ·
+ * Tipos: library-entry-updated · library-entry-removed ·
  * clipboard-history-unavailable · analyzer-progress · analyzer-queue · playback-updated ·
  * playback-removed · playback-log · catalog-streams · catalog-excluded · activity · status
  * @param {(event: {type: string} & Record<string, any>) => void} handler

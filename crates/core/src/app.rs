@@ -4,7 +4,6 @@
 //! Ningún comando hace `panic`: los errores vuelven como [`CoreError`] con mensaje para el usuario.
 
 use std::collections::HashSet;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -131,13 +130,14 @@ impl AppCore {
         paths.migrate_downloads_from_temp();
         let mut library = Library::load(paths.library_file())?;
         // FR-20 / T-05: restos de una ejecución anterior (app cerrada a la fuerza, corte de luz).
-        // FR-06d: lo analizado de los magnets que siguen en la lista NO es resto; el de los que
-        // ya no están, sí. En segundo plano: borrar varios GB no debe demorar la ventana (NFR-10).
+        // Lo analizado también es resto (2026-11-15: "no quiero que vaya dejando basura"): solo
+        // quedan las descargas guardadas (`.tstream-kept.json`). En segundo plano: borrar varios GB
+        // no debe demorar la ventana (NFR-10).
         {
             let cleanup = Cleanup::new(paths.clone());
             let events = events.clone();
             // Todavía no hay reproducciones de esta sesión.
-            let keep = protected_dirs(&paths, HashSet::new(), &library.hashes());
+            let keep = HashSet::new();
             // Los subtítulos ahora van con cada video: la caché aparte de antes ya no se usa.
             let legacy_subs = paths.legacy_subtitle_cache_dir();
             tokio::task::spawn_blocking(move || {
@@ -282,21 +282,6 @@ impl AppCore {
         Ok(())
     }
 
-    /// Limpiar lista (FR-04). Corta el análisis en curso: no tiene sentido medir lo que se borró.
-    /// FR-06d: borra también lo bajado al analizar.
-    pub async fn clear_library(&self) -> Result<()> {
-        let _ = self.analyzer.cancel().await;
-        let hashes = {
-            let mut library = self.library.lock().await;
-            let hashes = library.hashes();
-            library.clear();
-            hashes
-        };
-        self.events.emit(CoreEvent::LibraryCleared);
-        self.delete_analysis(&hashes, ANALYSIS_RELEASE_WAIT).await;
-        Ok(())
-    }
-
     /// Borra los datos de análisis (FR-06d). Nunca una carpeta que una medición todavía usa:
     /// espera hasta `wait` a que la suelte (tras cancelar el analizador) y si no, la deja para
     /// la limpieza del próximo inicio.
@@ -370,7 +355,7 @@ impl AppCore {
         self.playback.stop_all(true).await?;
         let hashes = self.library.lock().await.hashes();
         self.delete_analysis(&hashes, ANALYSIS_RELEASE_WAIT).await;
-        let active = protected_dirs(&self.paths, self.playback.active_dirs(), &[]);
+        let active = self.playback.active_dirs();
         let cleanup = Cleanup::new(self.paths.clone());
         tokio::task::spawn_blocking(move || cleanup.clean_orphans(&active))
             .await
@@ -386,12 +371,9 @@ impl AppCore {
             tracing::warn!("guardar library.json al cerrar: {e}");
         }
         self.playback.on_app_close(choice).await?;
-        // FR-20 al cerrar: restos sin dueño vivo (lo propio ya se borró al detener).
-        let keep = protected_dirs(
-            &self.paths,
-            self.playback.active_dirs(),
-            &self.library.lock().await.hashes(),
-        );
+        // FR-20 al cerrar: restos sin dueño vivo (lo propio ya se borró al detener; lo analizado
+        // en esta sesión se borra al abrir la próxima).
+        let keep = self.playback.active_dirs();
         let cleanup = Cleanup::new(self.paths.clone());
         // Recorre procesos y borra carpetas: fuera de los hilos de tokio.
         match tokio::task::spawn_blocking(move || cleanup.clean_orphans(&keep)).await {
@@ -406,25 +388,64 @@ impl AppCore {
     /// Cuánto liberaría "Limpiar temporales" (para la confirmación, FR-19).
     pub fn temp_usage(&self) -> Result<TempUsage> {
         Ok(TempUsage {
-            bytes: self.cleanup.temp_size(&protected_dirs(
-                &self.paths,
-                self.playback.active_dirs(),
-                &[],
-            ))?,
+            bytes: self.cleanup.temp_size(&self.playback.active_dirs())?,
             folder: self.paths.downloads_dir().display().to_string(),
         })
     }
     /// "Limpiar temporales" (FR-19): nunca toca reproducciones activas ni el historial. Lo
     /// analizado de los magnets de la lista SÍ se borra (decidido), salvo lo que se esté midiendo.
     pub fn clean_temp(&self) -> Result<CleanupReport> {
-        self.cleanup.clean(&protected_dirs(
-            &self.paths,
-            self.playback.active_dirs(),
-            &[],
-        ))
+        self.cleanup.clean(&self.playback.active_dirs())
     }
     pub fn open_downloads_folder(&self) -> Result<()> {
         crate::cleanup::open_in_file_manager(&self.paths.downloads_dir())
+    }
+
+    // ----- Logs (panel de actividad, 2026-11-15) -----
+    /// Últimas `max` líneas del log general (el detallado, con niveles), del archivo más nuevo.
+    pub fn logs_tail(&self, max: usize) -> Result<Vec<String>> {
+        let Some(file) = newest_log(&self.paths.log_dir) else {
+            return Ok(Vec::new());
+        };
+        let text = std::fs::read_to_string(&file).map_err(|source| CoreError::Io {
+            path: file.clone(),
+            source,
+        })?;
+        let lines: Vec<&str> = text.lines().collect();
+        Ok(lines[lines.len().saturating_sub(max)..]
+            .iter()
+            .map(|l| l.to_string())
+            .collect())
+    }
+
+    /// "Descargar logs": copia los logs (y lo que vio el usuario en el panel, `friendly`) a una
+    /// carpeta nueva en Descargas y la muestra en el Finder / Explorador. Devuelve la carpeta.
+    pub fn export_logs(&self, friendly: &str) -> Result<std::path::PathBuf> {
+        let base = directories::UserDirs::new()
+            .and_then(|u| u.download_dir().map(|d| d.to_path_buf()))
+            .ok_or(CoreError::Unsupported("carpeta de Descargas"))?;
+        let dest = base.join(format!(
+            "streamonte-logs-{}",
+            chrono::Local::now().format("%Y%m%d-%H%M%S")
+        ));
+        let io = |path: &std::path::Path| {
+            let path = path.to_path_buf();
+            move |source| CoreError::Io { path, source }
+        };
+        std::fs::create_dir_all(&dest).map_err(io(&dest))?;
+        let entries = std::fs::read_dir(&self.paths.log_dir).map_err(io(&self.paths.log_dir))?;
+        for entry in entries.flatten() {
+            let from = entry.path();
+            // Los de diagnóstico vacíos no aportan nada.
+            if from.is_file() && entry.metadata().is_ok_and(|m| m.len() > 0) {
+                let to = dest.join(entry.file_name());
+                std::fs::copy(&from, &to).map_err(io(&to))?;
+            }
+        }
+        let activity = dest.join("actividad.txt");
+        std::fs::write(&activity, friendly).map_err(io(&activity))?;
+        crate::cleanup::open_in_file_manager(&dest)?;
+        Ok(dest)
     }
 
     // ----- Configuración (NFR-04, Q-06) -----
@@ -453,6 +474,12 @@ impl AppCore {
     }
 
     /// Ajustes → Red (ADR-30): entrantes / UPnP. Aplica desde la próxima reproducción.
+    /// "Verificar" en Ajustes › Red: ¿el puerto de las reproducciones llega desde internet?
+    pub async fn check_incoming(&self) -> crate::incoming::IncomingCheck {
+        let port = self.config.read().await.engine.listen_ports[0];
+        crate::incoming::check(port).await
+    }
+
     pub async fn set_network(&self, incoming: bool, upnp: bool) -> Result<()> {
         self.update_config(|c| {
             c.engine.incoming = incoming;
@@ -503,21 +530,6 @@ impl AppCore {
     pub async fn catalog_poster(&self, imdb_id: &str) -> Option<String> {
         let timeout = self.catalog_timeout().await;
         self.catalog.poster(imdb_id, timeout).await
-    }
-
-    /// Análisis rápido de opciones del catálogo: seeders/leechers según los trackers (segundos).
-    pub async fn catalog_scrape(
-        &self,
-        hashes: &[InfoHash],
-    ) -> std::collections::HashMap<InfoHash, crate::trackers::ScrapeResult> {
-        let (trackers, timeout) = {
-            let cfg = self.config.read().await;
-            (
-                cfg.trackers.clone(),
-                Duration::from_secs(cfg.analyzer.scrape_timeout_secs),
-            )
-        };
-        self.catalog.rescrape(hashes, &trackers, timeout).await
     }
 
     /// "Contar seeders reales" de opciones del catálogo (2026-11-15): se conecta al enjambre de
@@ -821,21 +833,6 @@ impl AppCore {
     }
 }
 
-/// Lo que una limpieza no toca, para TODAS (al abrir, al cerrar, FR-16, FR-19 y su tamaño):
-/// las reproducciones (activas y pausadas) + el análisis (FR-06d) de `list_analysis`. Las
-/// automáticas (abrir/cerrar, FR-20) pasan los magnets de la lista; las que pide el usuario
-/// (FR-16, FR-19) pasan `&[]`: ahí lo analizado se borra (decidido). Lo que se está usando
-/// ahora lo cuida además `cleanup` (registro en uso), aunque no esté acá.
-fn protected_dirs(
-    paths: &AppPaths,
-    playbacks: HashSet<PathBuf>,
-    list_analysis: &[InfoHash],
-) -> HashSet<PathBuf> {
-    let mut dirs = playbacks;
-    dirs.extend(list_analysis.iter().map(|h| paths.analysis_dir(h)));
-    dirs
-}
-
 /// "1,2 GB", "350 MB" — para mensajes de la barra de estado.
 pub fn human_bytes(bytes: u64) -> String {
     const GB: f64 = 1024.0 * 1024.0 * 1024.0;
@@ -892,4 +889,14 @@ fn spawn_library_saver(library: &Arc<Mutex<Library>>) {
             }
         }
     });
+}
+
+/// El log general más nuevo (`tstream.<fecha>.log`, rota por día).
+fn newest_log(dir: &std::path::Path) -> Option<std::path::PathBuf> {
+    std::fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .filter(|e| e.file_name().to_string_lossy().starts_with("tstream."))
+        .max_by_key(|e| e.metadata().and_then(|m| m.modified()).ok())
+        .map(|e| e.path())
 }

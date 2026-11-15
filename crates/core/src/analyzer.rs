@@ -51,8 +51,9 @@ pub enum AnalyzeScope {
     OnlyUnmeasured,
     /// "Re-analizar" uno (FR-08).
     One(InfoHash),
-    /// Recién pegados: análisis automático al pegar (pedido del usuario, 2026-11-13).
-    /// Como `All` pero solo estos (no forzados: sin seeders en el tracker no se miden).
+    /// Recién pegados: análisis automático al pegar (pedido del usuario, 2026-11-13). Solo la
+    /// fase rápida, como [`Self::QuickOnly`]: medir la velocidad bajaba el video entero en la
+    /// carpeta de análisis (2026-11-15: decenas de GB) y sin "Mis magnets" nadie lo veía.
     Pasted(Vec<InfoHash>),
     /// Los que el usuario marcó en la lista (2026-11-14). Forzados, como `One`.
     Selected(Vec<InfoHash>),

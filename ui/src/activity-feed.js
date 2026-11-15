@@ -83,9 +83,6 @@ export function logEvent(ev) {
     case 'library-entry-removed':
       A('general', `Quitado de la lista: ${titleOf(ev.key)}`);
       break;
-    case 'library-cleared':
-      A('general', 'Lista vaciada');
-      break;
     case 'playback-updated': {
       const r = ev.row;
       const k = r.state.kind;

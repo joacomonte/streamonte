@@ -476,11 +476,6 @@ impl Library {
         removed
     }
 
-    pub fn clear(&mut self) {
-        self.dirty |= !self.entries.is_empty();
-        self.entries.clear();
-    }
-
     pub fn len(&self) -> usize {
         self.entries.len()
     }

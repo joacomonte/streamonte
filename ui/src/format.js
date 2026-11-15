@@ -36,3 +36,17 @@ export function ago(iso) {
   const h = Math.round(mins / 60);
   return h < 48 ? `hace ${h} h` : `hace ${Math.round(h / 24)} días`;
 }
+
+/** Estado de una reproducción en palabras (menú Descargas y la card del catálogo). */
+export function playbackText(pb) {
+  const k = pb.state.kind;
+  if (k === 'fetching-metadata') return 'buscando metadatos…';
+  if (k === 'preparing') return `preparando ${Math.round((pb.state.fraction ?? 0) * 100)} %`;
+  if (k === 'stopping') return 'cerrando…';
+  if (k === 'download-paused') return 'reproduciendo · descarga en pausa';
+  if (k === 'ask-after-close') return 'cerraste el reproductor…';
+  if (k === 'background') return `bajando de fondo · ${Math.floor((pb.progress ?? 0) * 100)} %`;
+  if (k === 'paused') return `pausada · ${Math.floor((pb.progress ?? 0) * 100)} % bajado`;
+  if (k === 'failed') return `falló: ${pb.state.message}`;
+  return 'reproduciendo';
+}

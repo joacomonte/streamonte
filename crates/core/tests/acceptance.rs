@@ -498,10 +498,11 @@ mod fr06d {
         !dir.exists()
     }
 
-    /// Reabrir la app borra el análisis de magnets que ya no están (huérfanos) y conserva el de
-    /// los que siguen; quitar un magnet o limpiar la lista borra el suyo.
+    /// Reabrir la app borra todo lo analizado, también lo de los magnets que siguen en la lista
+    /// (2026-11-15: "no quiero que vaya dejando basura por la PC"). Lo guardado a propósito
+    /// (`.tstream-kept.json`) no es análisis y no entra acá.
     #[tokio::test]
-    async fn fr_06d_analisis_vive_mientras_el_magnet_esta_en_la_lista() {
+    async fn fr_06d_lo_analizado_se_borra_al_abrir() {
         let root = std::env::temp_dir().join(format!("tstream-acc-fr06d-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let paths = AppPaths::under(&root);
@@ -528,18 +529,10 @@ mod fr06d {
         .unwrap();
         assert!(wait_gone(&d_tos).await, "huérfano borrado al abrir");
         assert!(
-            d_sintel.exists() && d_bbb.exists(),
-            "los de la lista quedan"
+            wait_gone(&d_sintel).await,
+            "lo de la lista también se borra"
         );
-
-        core.remove(tstream_core::video_key::VideoKey::whole(sintel.info_hash))
-            .await
-            .unwrap();
-        assert!(!d_sintel.exists(), "quitar el magnet borra su análisis");
-        assert!(d_bbb.exists());
-
-        core.clear_library().await.unwrap();
-        assert!(!d_bbb.exists(), "limpiar la lista borra todo el análisis");
+        assert!(wait_gone(&d_bbb).await, "lo de la lista también se borra");
         drop(core);
         let _ = std::fs::remove_dir_all(root);
     }

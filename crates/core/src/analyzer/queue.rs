@@ -268,7 +268,7 @@ impl Queue {
     }
 
     async fn enqueue(&mut self, scope: AnalyzeScope) {
-        let quick_only = matches!(scope, AnalyzeScope::QuickOnly(_));
+        let quick_only = matches!(scope, AnalyzeScope::QuickOnly(_) | AnalyzeScope::Pasted(_));
         let (hashes, forced) = {
             let library = self.deps.library.lock().await;
             match scope {
@@ -283,7 +283,7 @@ impl Queue {
                 ),
                 AnalyzeScope::Pasted(hs) => (
                     hs.into_iter()
-                        .filter(|h| library.any_of(h).is_some_and(|e| !e.speed_measured()))
+                        .filter(|h| library.any_of(h).is_some_and(|e| e.live.is_none()))
                         .collect(),
                     false,
                 ),

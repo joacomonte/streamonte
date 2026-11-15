@@ -8,8 +8,7 @@ use tauri::State;
 use tstream_core::analyzer::swarm::SwarmCount;
 use tstream_core::analyzer::AnalyzeScope;
 use tstream_core::app::{
-    ApiKeyStatus, AppCore, ClipboardPreview, ClipboardReadReport, LibraryView, SubtitleFound,
-    TempUsage,
+    ApiKeyStatus, AppCore, ClipboardPreview, LibraryView, SubtitleFound, TempUsage,
 };
 use tstream_core::catalog::cinemeta::{BrowseCursor, BrowsePage, BrowseSort, Meta, SearchResults};
 use tstream_core::catalog::{AddonView, MediaKind};
@@ -18,7 +17,6 @@ use tstream_core::config::{Config, PlayerKind, SubtitleLanguage};
 use tstream_core::library::LibraryRowView;
 use tstream_core::magnet::InfoHash;
 use tstream_core::playback::{OnAppClose, PlaybackAction, PlaybackId, PlaybackRow, StartRequest};
-use tstream_core::trackers::ScrapeResult;
 use tstream_core::video_key::VideoKey;
 use tstream_core::CoreError;
 
@@ -45,22 +43,10 @@ impl From<CoreError> for UiError {
 pub async fn library_get(core: Core<'_>) -> CmdResult<LibraryView> {
     Ok(core.library().await)
 }
-#[tauri::command]
-pub async fn library_read_clipboard(core: Core<'_>) -> CmdResult<ClipboardReadReport> {
-    Ok(core.read_clipboard().await?)
-}
-#[tauri::command]
-pub async fn library_add_text(core: Core<'_>, text: String) -> CmdResult<usize> {
-    Ok(core.add_from_text(&text).await?)
-}
 /// `key`: la fila (un video; ver `VideoKey`), no el torrent.
 #[tauri::command]
 pub async fn library_remove(core: Core<'_>, key: VideoKey) -> CmdResult<()> {
     Ok(core.remove(key).await?)
-}
-#[tauri::command]
-pub async fn library_clear(core: Core<'_>) -> CmdResult<()> {
-    Ok(core.clear_library().await?)
 }
 
 // ----- Análisis -----
@@ -152,10 +138,6 @@ pub async fn stop_all_and_clean(core: Core<'_>) -> CmdResult<CleanupReport> {
     Ok(core.stop_all_and_clean().await?)
 }
 #[tauri::command]
-pub fn active_playbacks(core: Core<'_>) -> usize {
-    core.active_playbacks()
-}
-#[tauri::command]
 /// Respuesta al diálogo de cierre (FR-17): aplica la elección, limpia y cierra la app.
 pub async fn on_close(app: tauri::AppHandle, core: Core<'_>, choice: OnAppClose) -> CmdResult<()> {
     let result = core.on_close(choice).await;
@@ -190,6 +172,20 @@ pub async fn temp_usage(core: Core<'_>) -> CmdResult<TempUsage> {
 pub async fn clean_temp(core: Core<'_>) -> CmdResult<CleanupReport> {
     let core = core.inner().clone();
     blocking(move || Ok(core.clean_temp()?)).await
+}
+#[tauri::command]
+pub async fn check_incoming(core: Core<'_>) -> CmdResult<tstream_core::incoming::IncomingCheck> {
+    Ok(core.check_incoming().await)
+}
+#[tauri::command]
+pub async fn logs_tail(core: Core<'_>, max: usize) -> CmdResult<Vec<String>> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.logs_tail(max)?)).await
+}
+#[tauri::command]
+pub async fn export_logs(core: Core<'_>, friendly: String) -> CmdResult<String> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.export_logs(&friendly)?.display().to_string())).await
 }
 #[tauri::command]
 pub async fn open_downloads_folder(core: Core<'_>) -> CmdResult<()> {
@@ -228,14 +224,6 @@ pub async fn api_keys(core: Core<'_>) -> CmdResult<Vec<ApiKeyStatus>> {
 pub async fn open_key_page(core: Core<'_>, service: String) -> CmdResult<()> {
     let core = core.inner().clone();
     blocking(move || Ok(core.open_key_page(&service)?)).await
-}
-/// Análisis rápido de opciones del catálogo (trackers, segundos).
-#[tauri::command]
-pub async fn catalog_scrape(
-    core: Core<'_>,
-    hashes: Vec<InfoHash>,
-) -> CmdResult<std::collections::HashMap<InfoHash, ScrapeResult>> {
-    Ok(core.catalog_scrape(&hashes).await)
 }
 /// "Contar seeders reales" de opciones del catálogo (se conecta al enjambre; ~50 s por tanda).
 #[tauri::command]

@@ -3,10 +3,10 @@
 // selector de audio en audio-picker.js y la burbuja de actividad en activity-feed.js.
 import { api, onCoreEvent } from './api.js';
 import { logEvent, renderActivity } from './activity-feed.js';
-import { askAfterClose, onConfirmClose, onHealthCalibration, openSettings, saveKey, saveNetwork } from './dialogs.js';
+import { askAfterClose, onConfirmClose, onHealthCalibration, onNetCheck, openSettings, saveKey, saveNetwork } from './dialogs.js';
 import { $, setStatus, showError } from './dom.js';
 import { state } from './state.js';
-import { refreshDownloads, toggleClipboard, toggleDownloads } from './top-menus.js';
+import { onCacheClick, refreshCache, refreshDownloads, toggleClipboard, toggleDownloads } from './top-menus.js';
 import './tooltip.js'; // tooltips propios en toda la app (se instala solo)
 import './updater.js'; // aviso de versión nueva (GitHub Releases)
 
@@ -52,9 +52,6 @@ function onEvent(event) {
     case 'library-entry-removed':
       state.entries.delete(event.key);
       break;
-    case 'library-cleared':
-      state.entries.clear();
-      break;
     case 'confirm-close':
       onConfirmClose(event.active);
       break;
@@ -93,9 +90,11 @@ function onEvent(event) {
 async function init() {
   $('#btn-clipboard').addEventListener('click', toggleClipboard);
   $('#btn-downloads').addEventListener('click', toggleDownloads);
+  $('#btn-cache').addEventListener('click', onCacheClick);
   $('#btn-settings').addEventListener('click', openSettings);
   $('#set-incoming').addEventListener('change', saveNetwork);
   $('#set-upnp').addEventListener('change', saveNetwork);
+  $('#btn-net-check').addEventListener('click', onNetCheck);
   $('#btn-health-fix').addEventListener('click', () => onHealthCalibration('fix'));
   $('#btn-health-recalibrate').addEventListener('click', () => onHealthCalibration('recalibrate'));
   $('#btn-health-reset').addEventListener('click', () => onHealthCalibration('reset'));
@@ -113,6 +112,8 @@ async function init() {
   for (const r of await api.playbacks()) state.playbacks.set(r.id, r);
   renderActivity();
   refreshDownloads();
+  refreshCache();
+  setInterval(refreshCache, 30_000);
 }
 
 init().catch(showError);

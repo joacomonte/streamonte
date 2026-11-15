@@ -431,39 +431,6 @@ impl Catalog {
         }
     }
 
-    /// Candidato de la consulta vigente (la del último `start_streams`), solo si es de `video`:
-    /// con la ficha de otro episodio abierta, su `fileIdx` sería el de otro video.
-    /// Análisis rápido (2026-11-15): pregunta ya a los trackers por esas opciones (los de cada
-    /// una + los de la config), un pedido por tracker para todas. Actualiza la lista vigente.
-    pub async fn rescrape(
-        &self,
-        hashes: &[InfoHash],
-        cfg_trackers: &[String],
-        timeout: Duration,
-    ) -> HashMap<InfoHash, crate::trackers::ScrapeResult> {
-        let mut trackers: Vec<String> = {
-            let latest = self.latest.lock().expect("latest");
-            latest
-                .candidates
-                .iter()
-                .filter(|c| hashes.contains(&c.info_hash))
-                .flat_map(|c| c.trackers.iter().cloned())
-                .collect()
-        };
-        trackers.extend(cfg_trackers.iter().cloned());
-        trackers.sort();
-        trackers.dedup();
-        let found = crate::trackers::scrape_batch(hashes, &trackers, timeout).await;
-        let mut latest = self.latest.lock().expect("latest");
-        for c in latest.candidates.iter_mut() {
-            if let Some(s) = found.get(&c.info_hash) {
-                c.seeders = Some(s.seeders);
-                c.leechers = Some(s.leechers);
-            }
-        }
-        found
-    }
-
     /// Magnets (con sus trackers) de opciones de la lista vigente, para contar su enjambre.
     pub fn magnets_of(&self, hashes: &[InfoHash]) -> Vec<Magnet> {
         self.latest

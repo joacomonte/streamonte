@@ -47,7 +47,7 @@
 .side-body { overflow: auto; padding: 16px 18px; min-height: 0; flex: 1; }
 
 .cat-badges { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
-.cat-hdr { color: var(--text); border-color: var(--border-strong); }
+.cat-opt .lang.cat-hdr { background: var(--text); color: var(--bg); border-color: transparent; font-size: 10px; font-weight: 800; letter-spacing: .04em; padding: 2px 6px; cursor: help; }
 /* Semáforo: punto antes del peso (solo si se analizó). */
 .cat-opt:is(.light-green, .light-yellow, .light-red, .light-measuring) .cat-size::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
 .cat-opt.light-green .cat-size::before { background: var(--green); }
@@ -153,9 +153,8 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-options { display: grid; gap: 10px; }
 .cat-opt {
   display: grid; align-items: center; gap: 6px 14px;
-  /* Seeds + leechers no entran en una columna fija junto a los badges (se pisaban): los badges
-     van debajo de los números, en la misma columna. */
-  grid-template-columns: minmax(96px, auto) minmax(0, 1fr) auto;
+  /* Una sola línea (2026-11-15): peso · seeds · badges a la derecha · acciones. */
+  grid-template-columns: minmax(110px, auto) auto minmax(0, 1fr) auto;
   padding: 14px 18px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border);
   transition: border-color .15s var(--ease), background .15s var(--ease);
 }
@@ -197,9 +196,9 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-size-cell .cat-speed.bg-yellow { color: var(--yellow); }
 .cat-size-cell .cat-speed.bg-red { color: var(--red); }
 .cat-icon-btn.on { color: var(--accent); border-color: var(--accent); }
-.cat-seeds-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border-radius: 999px; border: 1px solid transparent; background: none; font-size: 16px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; justify-self: start; }
+.cat-seeds-btn { display: inline-flex; height: auto; min-height: 44px; padding: 4px 10px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; border-radius: 12px; border: 1px solid transparent; background: none; font-size: 16px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; justify-self: start; }
 .cat-seeds-btn:hover { border-color: var(--border); color: var(--text); }
-.cat-seeds-btn.checked { color: var(--text); }
+.cat-seeds-btn.analyzed { color: var(--text); }
 .cat-seeds-hint { display: inline-flex; opacity: 0; transition: opacity .15s var(--ease); }
 .cat-seeds-btn:hover .cat-seeds-hint, .cat-seeds-btn:focus-visible .cat-seeds-hint { opacity: .8; }
 .cat-seeds-btn.busy .cat-seeds-hint { opacity: 1; animation: spin 1s linear infinite; }
@@ -208,13 +207,10 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-seeds-spin { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
 .cat-seeds-btn.busy { color: var(--muted); cursor: progress; }
 .cat-seeds-btn:disabled { opacity: 1; }
-.cat-opt-head .spacer { flex: 1; }
 .cat-count-all { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--bg); color: var(--text); }
 .cat-count-all:hover { border-color: var(--accent); }
 .cat-count-all.busy { color: var(--muted); }
-.cat-count-done { font-size: 12px; color: var(--muted); }
 .cat-count-all:disabled { opacity: 1; cursor: progress; }
-.cat-seeds-btn { height: auto; min-height: 44px; padding: 4px 10px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; border-radius: 12px; }
 .cat-stat { display: inline-flex; align-items: baseline; gap: 5px; line-height: 1.1; }
 .cat-stat > [aria-hidden] { align-self: center; }
 .cat-seeds-n { font-size: 18px; font-weight: 700; }
@@ -222,7 +218,6 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-stat-sub { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; line-height: 1.2; color: var(--muted); }
 .cat-stat-sub:empty { display: none; }
 .cat-stat-sub > span + span::before { content: "·"; margin-right: 6px; color: var(--muted); }
-.cat-depth-chip { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; color: var(--green); }
 /* Un solo verde: analizado (a cualquier profundidad, dice cuál el chip). Sin analizar: gris. */
 .cat-seeds-btn .cat-seeds-n { color: var(--muted); }
 .cat-seeds-btn.analyzed .cat-seeds-n { color: var(--green); }
@@ -234,12 +229,10 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-opt-head { flex-wrap: wrap; row-gap: 8px; }
 .cat-opt-head > * { white-space: nowrap; flex: none; }
 .cat-opt-head .spacer { flex: 1 1 0; min-width: 0; }
-.cat-count-left { min-width: 20px; height: 18px; padding: 0 6px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 11px; color: var(--muted); display: inline-grid; place-items: center; }
 /* Subtítulos del video: un único botón "Subs ▾" con menú de idioma (2026-11-15). */
 .cat-subs-box { position: relative; }
 .cat-subs-get { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: none; border-radius: 8px; background: none; color: var(--muted); font-size: 12px; font-weight: 500; }
 .cat-subs-get:hover:not(:disabled), .cat-subs-get[aria-expanded="true"] { color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent); }
-.cat-subs-get.done { color: var(--green); }
 .cat-subs-get:disabled { cursor: progress; }
 .cat-subs-caret { font-size: 10px; opacity: .7; }
 .cat-subs-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; min-width: 120px; padding: 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 10px 24px rgb(0 0 0 / .35); display: grid; }
@@ -307,7 +300,6 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .side-head { padding-right: 76px; }
 .wz-head .wz-back { margin-bottom: 4px; }
 .wz-head { justify-items: start; }
-.wz-sub { margin: 0; font-size: 13px; color: var(--muted); }
 .cat-subs-counts { display: inline-flex; gap: 8px; }
 .cat-subs-n { font-weight: 500; font-size: 12px; }
 .cat-subs-n.es { color: var(--green); }
@@ -326,22 +318,12 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 @keyframes cat-pop-tag { from { opacity: 0; transform: scale(.7); } }
 @media (prefers-reduced-motion: reduce) { .cat-seeds-btn.flash, .cat-opt.new-best, .cat-opt.new-best .cat-best-tag { animation: none; } }
 .cat-opt .lang.cat-heavy { color: var(--yellow, #d29922); border-color: color-mix(in srgb, var(--yellow, #d29922) 40%, transparent); background: color-mix(in srgb, var(--yellow, #d29922) 10%, transparent); }
-.cat-depth-box { justify-self: start; }
-.cat-opt > .cat-size-cell { grid-row: 1 / 3; }
-.cat-opt > .cat-depth-box { grid-column: 2; grid-row: 1; }
-.cat-opt > .cat-badges { grid-column: 2; grid-row: 2; }
-.cat-opt > .cat-badges:empty { display: none; }
-.cat-opt > .cat-opt-actions { grid-column: 3; grid-row: 1 / 3; }
-.cat-depth-menu { min-width: 210px; }
-.cat-depth-menu button { display: flex; justify-content: space-between; align-items: center; gap: 12px; height: 34px; }
-.cat-depth-menu small { color: var(--muted); font-weight: 500; font-size: 11px; }
+.cat-opt > .cat-stats-cell { display: flex; align-items: center; gap: 6px; justify-self: start; }
+/* Angosto: los badges bajan de línea en vez de cortarse. */
+.cat-opt > .cat-badges { justify-content: flex-end; align-items: center; flex-wrap: wrap; overflow: visible; }
 /* Descartados por el embudo del análisis (motivo en el tooltip de seeders) y salud estimada. */
 .cat-opt.skipped { opacity: .6; }
 .cat-opt.skipped:hover, .cat-opt.skipped:focus-within { opacity: 1; }
-.cat-opt .lang.cat-health-great { color: var(--bg); border-color: var(--green); background: var(--green); font-weight: 700; }
-.cat-opt .lang.cat-health-good { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
-.cat-opt .lang.cat-health-fair { color: var(--yellow, #d29922); border-color: color-mix(in srgb, var(--yellow, #d29922) 40%, transparent); background: color-mix(in srgb, var(--yellow, #d29922) 10%, transparent); }
-.cat-opt .lang.cat-health-risky { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); background: color-mix(in srgb, var(--red) 10%, transparent); }
 /* Contando en vivo (2026-11-15): punto que late, texto en acento y un brillo que recorre la fila. */
 .cat-stat-sub.cat-live { color: var(--accent); gap: 6px; }
 .cat-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: cat-live-pulse 1.2s ease-in-out infinite var(--live-phase, 0s); }
@@ -349,3 +331,12 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-opt:has(.cat-seeds-btn.busy) { background-image: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--accent) 9%, transparent) 50%, transparent 70%); background-size: 250% 100%; animation: cat-live-sweep 1.8s linear infinite var(--live-phase, 0s); }
 @keyframes cat-live-sweep { from { background-position: 100% 0; } to { background-position: -150% 0; } }
 @media (prefers-reduced-motion: reduce) { .cat-live-dot, .cat-opt:has(.cat-seeds-btn.busy) { animation: none; } }
+/* Salud estimada como ícono de señal (2026-11-15): barras llenas según el nivel, detalle al pasar. */
+.cat-health-ic { display: inline-grid; place-items: center; width: 22px; height: 22px; cursor: help; }
+.cat-health-ic rect { fill: color-mix(in srgb, var(--muted) 35%, transparent); }
+.cat-health-good rect.on { fill: var(--green); }
+.cat-health-fair rect.on { fill: var(--yellow, #d29922); }
+.cat-health-risky rect.on { fill: var(--red); }
+/* Análisis profundo: ícono chico al lado de los seeds. */
+.cat-deep-ic { display: inline-flex; align-self: center; color: var(--green); cursor: help; }
+.cat-size-cell .cat-pb { color: var(--accent-fg, var(--accent)); }

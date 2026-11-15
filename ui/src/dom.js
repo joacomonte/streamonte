@@ -27,6 +27,8 @@ const ICONS = {
   // Filas (diseño cards-v3)
   chev: '<path d="M6 9l6 6 6-6"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="2.4"/>',
+  // Análisis profundo: un radar (se conectó y "escuchó" al enjambre).
+  radar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l5.5-5.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
   gauge: '<path d="M4.6 18.5a9 9 0 1 1 14.8 0"/><path d="M12 14.5l4.2-5"/><path d="M7 10.5l.9.6M12 6.8v1M17 10.5l-.9.6"/><circle cx="12" cy="14.5" r="1.6" fill="currentColor"/>',
   speaker: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/>',

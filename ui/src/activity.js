@@ -1,9 +1,13 @@
 // Actividad de fondo (2026-11-14, rev. 2 del usuario: "una bubble minimal con el último comando
-// o proceso que se está haciendo"; 2026-11-15: va en la barra superior, al lado de Descargas).
+// o proceso que se está haciendo"; 2026-11-15: va en la barra inferior y abre un panel grande con
+// dos vistas: "Resumen" (lo amigable, filtrable por tipo) y "Detallado" (el log del núcleo,
+// filtrable por nivel), más "Descargar logs" para debuguear).
 // - Píldora en la barra: mientras algo corre (o hasta 8 s después de lo último que pasó) muestra
 //   spinner + qué se está haciendo; después se achica a un circulito con el contador de novedades.
 // - Al tocarla se despliega abajo el log completo; Escape, tocar afuera o "Cerrar" lo cierran
 //   (salvo fijado). Las líneas del mismo trabajo (`key`) o repetidas se actualizan en su lugar.
+
+import { api } from './api.js';
 
 const KEEP = 300;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -26,6 +30,8 @@ const ICON = {
   pin: '<path d="M9 4h6l-1 5 3 3H7l3-3z"/><path d="M12 15v5"/>',
   clear: '<path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13"/>',
   min: '<path d="M6 9l6 6 6-6"/>',
+  download: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
+  refresh: '<path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5"/><path d="M20 4v4.5h-4.5"/>',
 };
 
 function h(tag, attrs = {}, html = '') {
@@ -51,18 +57,29 @@ const head = h('div', { class: 'act-h' });
 const title = h('span', { class: 'act-title', id: 'act-title' }, 'Actividad');
 const headSum = h('span', { class: 'act-sum' });
 const btn = (label, icon, extra = {}) => h('button', { type: 'button', class: 'act-b', 'aria-label': label, 'data-tip': label, ...extra }, svg(ICON[icon]));
+const tabBtn = (id, label) => h('button', { type: 'button', id, class: 'act-tab', role: 'tab' }, label);
+const tabFriendly = tabBtn('act-tab-friendly', 'Resumen');
+const tabDetail = tabBtn('act-tab-detail', 'Detallado');
+const tabs = h('div', { class: 'act-tabs', role: 'tablist' });
+tabs.append(tabFriendly, tabDetail);
+// Filtro: por tipo (Resumen) o por nivel (Detallado). Las opciones se arman al cambiar de vista.
+const filter = h('select', { id: 'act-filter', class: 'act-filter', 'aria-label': 'Filtrar' });
+const refreshBtn = btn('Actualizar el log detallado', 'refresh', { id: 'act-refresh' });
+const exportBtn = btn('Descargar logs (para debuguear)', 'download', { id: 'act-export' });
 const pinBtn = btn('Fijar: que no se cierre al tocar afuera', 'pin', { id: 'act-pin', 'aria-pressed': 'false' });
 const clearBtn = btn('Vaciar la lista', 'clear', { id: 'act-clear' });
 const minBtn = btn('Cerrar', 'min', { id: 'act-close' });
-head.append(title, headSum, pinBtn, clearBtn, minBtn);
+head.append(title, tabs, headSum, filter, refreshBtn, exportBtn, pinBtn, clearBtn, minBtn);
 const list = h('ol', { class: 'act-list', tabindex: '0', 'aria-label': 'Lo que está pasando, lo más nuevo abajo', 'aria-live': 'off' });
+const detail = h('ol', { class: 'act-list act-detail', tabindex: '0', 'aria-label': 'Log detallado del núcleo, lo más nuevo abajo' });
+detail.hidden = true;
 const newChip = h('button', { type: 'button', id: 'act-new', class: 'act-new' }, '↓ nuevas');
 newChip.hidden = true;
 const live = h('div', { class: 'sr', 'aria-live': 'polite' });
-panel.append(head, list, newChip);
+panel.append(head, list, detail, newChip);
 root.append(line, panel, live);
-// En la barra superior, a la derecha de Descargas.
-document.querySelector('#btn-downloads').after(root);
+// En la barra inferior, a la derecha del estado (2026-11-15).
+document.querySelector('.statusbar').append(root);
 
 let state = 'hidden';
 let pinned = false;
@@ -151,10 +168,12 @@ function push(l) {
     same.li.querySelector('.act-msg').textContent = l.text;
     same.li.querySelector('.act-rep').textContent = same.n > 1 ? `×${same.n}` : '';
     same.li.className = `act-l ${level}`;
+    same.li.dataset.area = area;
     // La línea compacta muestra lo último que se movió.
     if (same !== lastLine) { lines.splice(lines.indexOf(same), 1); lines.push(same); }
   } else {
-    const li = h('li', { class: `act-l ${level}${reduceMotion ? '' : ' in'}` });
+    const li = h('li', { class: `act-l ${level}${reduceMotion ? '' : ' in'}`, 'data-area': area });
+    li.hidden = view === 'friendly' && filter.value !== 'all' && filter.value !== area;
     const ic = h('span', { class: `act-ic ${area}`, role: 'img', 'aria-label': AREA[area][0] }, svg(AREA[area][1]));
     const t = h('time', { datetime: at.toISOString() });
     t.textContent = hhmmss(at);
@@ -183,6 +202,73 @@ function setBusy(text) {
   settle();
 }
 
+// ---------- vistas: Resumen (amigable) y Detallado (log del núcleo) ----------
+let view = 'friendly';
+const LEVELS = [['all', 'Todos los niveles'], ['warn', 'Avisos y errores'], ['info', 'Info'], ['debug', 'Debug / verbose']];
+/** Nivel de una línea del log de tracing ("2026-…Z  INFO tstream_core::…: mensaje"). */
+const levelOf = (l) => (/\b(ERROR|WARN)\b/.test(l) ? 'warn' : /\b(DEBUG|TRACE)\b/.test(l) ? 'debug' : 'info');
+
+function setView(v) {
+  view = v;
+  tabFriendly.setAttribute('aria-selected', String(v === 'friendly'));
+  tabDetail.setAttribute('aria-selected', String(v === 'detail'));
+  list.hidden = v !== 'friendly';
+  detail.hidden = v !== 'detail';
+  refreshBtn.hidden = v !== 'detail';
+  clearBtn.hidden = v !== 'friendly';
+  const opts = v === 'friendly'
+    ? [['all', 'Todos los tipos'], ...Object.entries(AREA).filter(([a]) => lines.some((x) => x.area === a)).map(([a, [name]]) => [a, name])]
+    : LEVELS;
+  filter.replaceChildren(...opts.map(([value, label]) => { const o = h('option', { value }); o.textContent = label; return o; }));
+  applyFilter();
+  if (v === 'detail') loadDetail();
+}
+
+function applyFilter() {
+  if (view === 'friendly') {
+    for (const x of lines) x.li.hidden = filter.value !== 'all' && x.area !== filter.value;
+    stickToBottom(true);
+  } else {
+    for (const li of detail.children) li.hidden = filter.value !== 'all' && li.dataset.level !== filter.value;
+    detail.scrollTop = detail.scrollHeight;
+  }
+}
+
+/** Trae el log del núcleo; las líneas seguidas con el mismo mensaje se agrupan en una con ×N. */
+async function loadDetail() {
+  const raw = await api.logsTail(2000).catch(() => []);
+  const msg = (l) => l.replace(/^\S+\s+/, ''); // sin la fecha: así se ven iguales las repetidas
+  const groups = [];
+  for (const l of raw) {
+    const last = groups[groups.length - 1];
+    if (last && msg(last.line) === msg(l)) { last.n += 1; last.line = l; } else groups.push({ line: l, n: 1 });
+  }
+  detail.replaceChildren(...groups.map(({ line: l, n }) => {
+    const li = h('li', { class: `act-d ${levelOf(l)}`, 'data-level': levelOf(l) });
+    li.textContent = l;
+    if (n > 1) li.append(h('span', { class: 'act-rep' }, ` ×${n}`));
+    return li;
+  }));
+  applyFilter();
+}
+
+/** "Descargar logs": el núcleo copia sus logs y esto (lo que se ve en Resumen) a Descargas. */
+async function exportLogs() {
+  const friendly = lines.map((x) => `${x.li.querySelector('time').textContent} [${AREA[x.area][0]}] ${x.text}${x.n > 1 ? ` ×${x.n}` : ''}`).join('\n');
+  try {
+    const dir = await api.exportLogs(friendly);
+    push({ area: 'general', text: `Logs guardados en ${dir}` });
+  } catch (e) {
+    push({ area: 'general', level: 'error', text: e?.message ?? String(e) });
+  }
+}
+
+tabFriendly.addEventListener('click', () => setView('friendly'));
+tabDetail.addEventListener('click', () => setView('detail'));
+filter.addEventListener('change', applyFilter);
+refreshBtn.addEventListener('click', loadDetail);
+exportBtn.addEventListener('click', exportLogs);
+
 function close(refocus) {
   setState('line');
   settle();
@@ -190,7 +276,7 @@ function close(refocus) {
 }
 line.addEventListener('click', () => {
   if (state === 'open') close(false);
-  else { setState('open'); list.focus({ preventScroll: true }); }
+  else { setState('open'); setView(view); (view === 'friendly' ? list : detail).focus({ preventScroll: true }); }
 });
 minBtn.addEventListener('click', () => close(true));
 pinBtn.addEventListener('click', () => {

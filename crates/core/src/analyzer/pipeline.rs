@@ -97,6 +97,7 @@ async fn preload_file(
     cfg: &Config,
     fallback_open_secs: u64,
     cancel: CancellationToken,
+    select_after: bool,
 ) -> Result<crate::preload::PreloadOutcome> {
     let plan = crate::preload::plan(file, &cfg.preload);
     let mut preload_cfg = cfg.preload.clone();
@@ -107,6 +108,7 @@ async fn preload_file(
         &plan,
         &preload_cfg,
         cancel,
+        select_after,
         &|_: crate::preload::PreloadProgress| {},
     )
     .await
@@ -180,10 +182,14 @@ pub(super) async fn quick_one(
                 cfg,
                 QUICK_PRELOAD_FALLBACK_SECS,
                 CancellationToken::new(),
+                false, // solo principio y final: no bajar el video entero
             ),
             count,
         );
+        // Sin nada del principio (precarga trabada en 0 %), mpv no puede leer la duración: se
+        // esperaban 20 s en vano (2026-11-15, logs: 6 de 8 timeouts). Se estima sin probe.
         let media = match preload {
+            Ok(crate::preload::PreloadOutcome::TimedOut { fraction: 0.0, .. }) => None,
             Ok(_) => probe(engine, handle, &file, cfg, QUICK_PROBE_TIMEOUT).await?,
             Err(_) => None,
         };
@@ -247,6 +253,7 @@ pub(super) async fn measure_with(
             cfg,
             measure_preload_fallback_secs(cfg),
             ctl.cancel.clone(),
+            true, // medir velocidad necesita que siga bajando
         ),
         sample_speed(
             engine,

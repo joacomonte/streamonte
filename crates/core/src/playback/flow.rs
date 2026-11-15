@@ -129,6 +129,28 @@ pub(super) async fn run(
     slot.set_state(PlaybackState::Preparing { fraction: 0.0 });
     shared.emit_row(slot);
 
+    // 3b. Subtítulos (FR-22–28): la búsqueda arranca ya, en paralelo con la precarga, para que
+    //     estén listos al abrir mpv. Si la reproducción termina antes, se aborta al soltarse.
+    let subtitles_found = if player_kind == PlayerKind::Mpv
+        && !slot.background
+        && cfg.subtitles.language != SubtitleLanguage::None
+    {
+        Some(
+            prefetch_subtitles(
+                shared,
+                slot,
+                engine.as_ref(),
+                handle,
+                &metadata,
+                &file,
+                cfg.subtitles.language,
+            )
+            .await,
+        )
+    } else {
+        None
+    };
+
     // 4. Precarga exclusiva inicio (+ final en MP4) (FR-11). Al retomar, lo ya bajado se reusa.
     let plan = preload::plan(&file, &cfg.preload);
     shared.log(
@@ -153,6 +175,7 @@ pub(super) async fn run(
         &plan,
         &cfg.preload,
         slot.cancel.clone(),
+        true,
         &on_progress,
     )
     .await?;
@@ -211,7 +234,7 @@ pub(super) async fn run(
     let mut player = launcher
         .launch(LaunchRequest {
             kind: player_kind,
-            url: url.clone(),
+            url,
             title: file_display_name(&file.name),
             subtitle_files: Vec::new(),
             log_file: None,
@@ -232,23 +255,16 @@ pub(super) async fn run(
     if let Some(mpv) = &player.mpv {
         spawn_first_frame_watcher(shared.clone(), slot.clone(), mpv.events());
     }
-    // 5b. Subtítulos (FR-22–28): en segundo plano, la película ya arrancó (NFR-10).
-    let subtitles = match &player.mpv {
-        Some(mpv) if cfg.subtitles.language != SubtitleLanguage::None => Some(
-            spawn_subtitles(
-                shared,
-                slot,
-                mpv.clone(),
-                engine.as_ref(),
-                handle,
-                &metadata,
-                &file,
-                url,
-                cfg.subtitles.language,
-                hide_subs,
-            )
-            .await,
-        ),
+    // 5b. Subtítulos (FR-22–28): la sesión carga en mpv lo que la búsqueda (3b) ya bajó o baje.
+    let subtitles = match (&player.mpv, subtitles_found) {
+        (Some(mpv), Some(found)) => Some(spawn_subtitles(
+            shared,
+            slot,
+            mpv.clone(),
+            found,
+            cfg.subtitles.language,
+            hide_subs,
+        )),
         _ => None,
     };
 
@@ -413,21 +429,20 @@ fn spawn_engine_log_forwarder(
     });
 }
 
-/// Arma lo que la sesión de subtítulos necesita (archivos del torrent por el stream del motor,
-/// identidad del video) y la lanza. Termina sola cuando mpv se cierra.
-#[allow(clippy::too_many_arguments)]
-async fn spawn_subtitles(
+/// Arma lo que la búsqueda de subtítulos necesita (archivos del torrent y el video por el stream
+/// del motor, identidad del video) y la lanza ya, sin mpv ([`subtitles::session::prefetch`]).
+async fn prefetch_subtitles(
     shared: &Arc<Shared>,
     slot: &Arc<Slot>,
-    mpv: Arc<dyn crate::player::MpvControl>,
     engine: &dyn TorrentEngine,
     handle: TorrentHandle,
     metadata: &Metadata,
     file: &FileInfo,
-    video_url: String,
     language: SubtitleLanguage,
-    start_hidden: bool,
-) -> tokio::task::JoinHandle<()> {
+) -> subtitles::session::Prefetch {
+    // El hash lee 64 KiB del principio y del final por este stream; durante la precarga el final
+    // puede no estar todavía: lo acota `HASH_TIMEOUT` y se busca igual sin hash.
+    let video_url = engine.stream_url(handle, file.index).await.ok();
     // Los .srt/.ass del torrent se leen por el stream del motor: el stream pide solo esas
     // piezas (con rqbit y webtorrent), sin cambiar la selección del video.
     let mut torrent_files = Vec::new();
@@ -465,20 +480,45 @@ async fn spawn_subtitles(
             tracing::warn!("no se pudieron mover los subtítulos del catálogo: {e}");
         }
     }
-    let (log_shared, log_slot) = (shared.clone(), slot.clone());
-    let request = subtitles::session::SessionRequest {
-        mpv,
-        key,
+    let fetch = subtitles::session::Fetch {
         video,
         video_url,
         torrent_files,
         language,
-        start_hidden,
         cache_dir,
-        memory_file: paths.subtitles_memory_file(),
-        log: Arc::new(move |line| log_shared.log(&log_slot, line)),
+        remembered: None, // la completa `prefetch` desde la memoria (FR-28)
+        opensubtitles: true,
+        log: subtitles_log(shared, slot),
+    };
+    subtitles::session::prefetch(fetch, &key, &paths.subtitles_memory_file())
+}
+
+/// Lanza la sesión de subtítulos en mpv con la búsqueda ya en marcha. Termina sola cuando mpv
+/// se cierra.
+fn spawn_subtitles(
+    shared: &Arc<Shared>,
+    slot: &Arc<Slot>,
+    mpv: Arc<dyn crate::player::MpvControl>,
+    found: subtitles::session::Prefetch,
+    language: SubtitleLanguage,
+    start_hidden: bool,
+) -> tokio::task::JoinHandle<()> {
+    let key = slot.row.lock().expect("row").key;
+    let request = subtitles::session::SessionRequest {
+        mpv,
+        key,
+        found,
+        language,
+        start_hidden,
+        memory_file: shared.deps.paths.subtitles_memory_file(),
+        log: subtitles_log(shared, slot),
     };
     tokio::spawn(subtitles::session::run(request))
+}
+
+fn subtitles_log(shared: &Arc<Shared>, slot: &Arc<Slot>) -> subtitles::session::LogFn {
+    let (shared, slot) = (shared.clone(), slot.clone());
+    Arc::new(move |line| shared.log(&slot, line))
 }
 
 fn spawn_first_frame_watcher(

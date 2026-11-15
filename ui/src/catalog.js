@@ -1,13 +1,13 @@
 // Catálogo (F4b, spec 09 §11): Buscar / Explorar → al tocar una película o serie se abre un panel
 // a la derecha (pedido 2026-11-15). Película: sus opciones. Serie: Serie › Temporada › Episodio ›
-// opciones, como migas de pan. Cada opción: análisis rápido, cargar en background o Reproducir.
+// opciones, como migas de pan. Cada opción: análisis profundo, cargar en background o Reproducir.
 // Todo texto que viene de Cinemeta o de los addons entra como texto, nunca como HTML (NFR-24).
 
 import { api, onCoreEvent } from './api.js';
 import { play } from './audio-picker.js';
 import { $, el, icon, setStatus, showError as reportError } from './dom.js';
-import { humanBytes, mbps, nf1 } from './format.js';
-import { addBgSample, healthCalibration } from './health-calib.js';
+import { humanBytes, mbps, nf1, playbackText } from './format.js';
+import { healthCalibration, speedOf, trackPlayback } from './health-calib.js';
 import { state as lib } from './state.js';
 
 /** Errores del catálogo: solo en la barra de estado (no en la burbuja) y sin los "Cancelado." de
@@ -288,8 +288,13 @@ function onStreams(update) {
 
 /** Filas de la biblioteca de ese torrent (una por episodio de un pack; el análisis es del torrent). */
 function rowsOf(hash) {
+  if (libByHash) return libByHash.get(hash) ?? [];
   return [...state.library.values()].filter((e) => e.info_hash === hash);
 }
+/** Durante un redibujo de la lista (`renderStreamsOnly`): la biblioteca indexada por info_hash y la
+ *  calibración de la salud, armadas una vez y no por fila (con 200+ opciones se notaba). Fuera, null. */
+let libByHash = null;
+let renderCal = null;
 
 function lightOf(c) {
   const e = rowsOf(c.info_hash)[0];
@@ -302,10 +307,12 @@ function lightOf(c) {
   return { cls: light, text: speed ? `${mbps(speed)}${e.score?.margin ? ` · ${nf1(e.score.margin)}×` : ''}` : '' };
 }
 
-/** Lo que se sabe de seeders: el mayor entre trackers y fuente (un tracker que no conoce el torrent da 0). */
+/** Seeders sin análisis profundo: los de los trackers (chequeados recién, al cargar las opciones)
+ *  mandan; un 0 de tracker con la fuente diciendo más suele ser un tracker que no conoce el torrent,
+ *  y ahí vale la fuente. */
+const trackersWin = (c) => c.seeders > 0 || (c.seeders === 0 && !(c.seeders_declared > 0));
 function seedsOf(c) {
-  const v = Math.max(c.seeders ?? -1, c.seeders_declared ?? -1);
-  return v < 0 ? null : v;
+  return trackersWin(c) ? c.seeders : c.seeders_declared ?? null;
 }
 
 /** Orden de las opciones: analizadas primero, después por seeders, leechers y peso. */
@@ -321,13 +328,13 @@ function tierOf(c) {
  *  (aunque sea 0), medidos al reproducir o cargar, según los trackers y, por último, la fuente. */
 function knownSeeds(c) {
   return counted.get(c.info_hash)?.seeds ?? rowsOf(c.info_hash).find((e) => e.live)?.live.seeds
-    ?? trackerCounted.get(c.info_hash)?.seeders ?? seedsOf(c);
+    ?? seedsOf(c);
 }
 /** Leechers (desempate): conectados sin el archivo completo al contar, o los del scrape automático. */
 function leechersOf(c) {
   const n = counted.get(c.info_hash) ?? rowsOf(c.info_hash).find((e) => e.live)?.live;
   if (n?.reached === false) return null; // nadie respondió: esos peers solo los conoce la DHT
-  return n ? Math.max(0, n.peers - n.seeds) : trackerCounted.get(c.info_hash)?.leechers ?? c.leechers ?? null;
+  return n ? Math.max(0, n.peers - n.seeds) : c.leechers ?? null;
 }
 
 let onlyHdr = safeGet('tstream.catalog.onlyHdr') === '1';
@@ -345,12 +352,10 @@ function optionsHead() {
   const res = openRes || state.side?.flow?.res || null;
   const scope = (state.update?.candidates ?? []).filter((c) => inScope(c, res)).map((c) => c.info_hash);
   return el('div', { class: 'cat-opt-head' },
-    deepRunning ? null : depthMenu('all', 'cat-analyze-all',
-      el('button', {
-        id: 'cat-analyze-all', class: 'cat-count-all', 'aria-haspopup': 'menu', 'aria-expanded': String(depthOpen === 'all'), onclick: toggleDepth('all'),
-        title: `Analizar de nuevo las ${scope.length} opciones${res ? ` de ${resLabel(res)}` : ''}: elegí qué tan a fondo. No baja el video.`,
-      }, icon('refresh', 13), 'Analizar', el('span', { class: 'cat-subs-caret', 'aria-hidden': 'true' }, '▾')),
-      (depth) => reanalyze(scope, depth, res)),
+    deepRunning ? null : el('button', {
+      id: 'cat-analyze-all', class: 'cat-count-all', onclick: () => reanalyze(scope, res),
+      title: `Análisis profundo de las ${scope.length} opciones${res ? ` de ${resLabel(res)}` : ''}: se conecta a las ${TOP} mejores y cuenta los seeders reales (${DEEP_ETA}). No baja el video.`,
+    }, icon('refresh', 13), 'Analizar a fondo'),
     deepRunning ? deepProgress()
       : analyzing ? el('span', { id: 'cat-analyzing', class: 'cat-analyzing', role: 'status' },
         el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' }), `Analizando ${analyzing}`) : null,
@@ -363,18 +368,16 @@ function optionsHead() {
     }, 'Solo HDR'));
 }
 
-/** Etapa del embudo en curso (`runDeep`): "Etapa 2/2 · a fondo 7 de 25" y avance total 0–1. */
-function stageStatus(f) {
-  const now = f.stage ?? 1;
-  const n = f.stageHashes?.length ?? 0;
-  const done = f.stageHashes?.filter((h) => stageDone.has(h)).length ?? 0;
-  const what = now === 1 ? 'consultando trackers' : `a fondo ${done} de ${n}`;
-  return { text: `Etapa ${now}/2 · ${what}`, frac: (now - 1 + (n ? done / n : 0)) / 2 };
+/** Avance del análisis profundo en curso (`runDeep`): "A fondo 7 de 15" y fracción 0–1. */
+function deepStatus(f) {
+  const n = f.deepHashes?.length ?? 0;
+  const done = f.deepHashes?.filter((h) => deepDone.has(h)).length ?? 0;
+  return { text: `A fondo ${done} de ${n}`, frac: n ? done / n : 0 };
 }
 
 /** Progreso del análisis del asistente sobre la lista: etapa del embudo con barra. */
 function deepProgress() {
-  const { text, frac } = stageStatus(state.side.flow);
+  const { text, frac } = deepStatus(state.side.flow);
   return el('span', { id: 'cat-analyzing', class: 'cat-analyzing', role: 'status' },
     el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' }), text,
     el('span', { class: 'cat-progress' }, el('i', { style: `width:${Math.round(frac * 100)}%` })));
@@ -382,16 +385,6 @@ function deepProgress() {
 
 /** Contados al analizar en esta sesión (conectándose al enjambre): hash → SwarmCount. */
 const counted = new Map();
-/** Análisis rápido: hash → {seeders, leechers, trackers_ok} según los trackers (sin ✓: no es real). */
-const trackerCounted = new Map();
-/** Pregunta a los trackers por esos hashes y guarda lo que respondan. `false` si mientras tanto se
- *  cambió de video (el resultado no se usa). Un error se propaga a quien llama. */
-async function scrapeTrackers(hashes, video) {
-  const found = await api.catalogScrape(hashes);
-  if (state.side?.videoId !== video) return false;
-  for (const [h, r] of Object.entries(found)) trackerCounted.set(h, r);
-  return true;
-}
 /** Subtítulos bajados desde el catálogo en esta sesión, por VIDEO (película o episodio, no por
  *  torrent): videoId → [{provider, language, release_name}]. */
 const subsFound = new Map();
@@ -399,7 +392,7 @@ const subsBusy = new Set();
 /** Progreso de "Bajar subtítulos" por video: {downloading, done, total} (lo emite el núcleo). */
 const subsProgress = new Map();
 document.addEventListener('click', (ev) => {
-  if ((subsMenuOpen || depthOpen) && !ev.target.closest?.('.cat-subs-box')) { subsMenuOpen = false; depthOpen = null; renderStreamsOnly(); }
+  if (subsMenuOpen && !ev.target.closest?.('.cat-subs-box')) { subsMenuOpen = false; renderStreamsOnly(); }
 });
 /** Idioma de "Bajar subtítulos" (2026-11-15): español por defecto; el otro completa hasta 5. */
 let subsLang = safeGet('tstream.catalog.subsLang') === 'en' ? 'en' : 'es';
@@ -435,40 +428,41 @@ function heavyBadge(c, badge) {
  *  seeder y el tope de la conexión salen de lo medido en esta PC (`health-calib.js`,
  *  ajustable en Ajustes); un leecher aporta una fracción fija de un seeder. */
 const LEECH_SHARE = 1 / 6;
-function healthBadge(c, badge) {
+function healthBadge(c) {
   const n = counted.get(c.info_hash);
   if (!n?.reached) return null; // sin contar o nadie respondió (ya se ve con ✕)
   const leech = Math.max(0, n.peers - n.seeds);
   const need = neededBps(c) && toMbps(neededBps(c));
-  const cal = healthCalibration(state.library.values());
+  const cal = renderCal ?? healthCalibration(state.library.values());
   const raw = (n.seeds + leech * LEECH_SHARE) * cal.seedMbps;
   const supply = cal.capMbps ? Math.min(raw, cal.capMbps) : raw;
   const ratio = need ? supply / need : null;
   // Una palabra, no "N×": no es una velocidad medida (eso lo da la carga en background).
-  const level = ratio != null ? (ratio >= 3 ? 0 : ratio >= 2 ? 1 : ratio >= 1 ? 2 : 3)
-    : n.seeds >= 20 ? 0 : n.seeds >= 10 ? 1 : n.seeds >= 4 ? 2 : 3;
-  const [text, cls] = [['Excelente', 'cat-health-great'], ['Bueno', 'cat-health-good'], ['Justo', 'cat-health-fair'], ['Malo', 'cat-health-risky']][level];
+  // Tres niveles (2026-11-15): la estimación es gruesa; más niveles serían ruido.
+  const level = ratio != null ? (ratio >= 2 ? 0 : ratio >= 1 ? 1 : 2)
+    : n.seeds >= 10 ? 0 : n.seeds >= 4 ? 1 : 2;
+  const [text, cls, bars] = [['Bueno', 'cat-health-good', 3], ['Justo', 'cat-health-fair', 2], ['Malo', 'cat-health-risky', 1]][level];
   const basis = need
-    ? `Pide ~${Math.round(need)} Mbps; ${n.seeds} seeders y ${leech} leechers conectados aportarían ~${Math.round(supply)} Mbps (${nf1(ratio)}×). Excelente desde 3×, bueno desde 2×, justo desde 1×.`
-    : `Sin duración conocida: solo por seeders conectados (${n.seeds}). Excelente desde 20, bueno desde 10, justo desde 4.`;
-  return badge(text, `cat-health ${cls}`, `Salud estimada del stream, no medida. ${basis} Supone ~${nf1(cal.seedMbps)} Mbps por seeder (${cal.source === 'measured' ? `calibrado con ${cal.n} mediciones de esta PC` : cal.source === 'manual' ? 'fijado en Ajustes' : 'valor por defecto'}) y un sexto de eso por leecher${cal.capMbps ? `, con tope de ~${Math.round(cal.capMbps)} Mbps (lo más rápido que bajó esta PC)` : ''}; el conteo se corta en 30 conexiones. Para saberlo de verdad: cargarlo en background (⤓).`);
+    ? `Pide ~${Math.round(need)} Mbps; ${n.seeds} seeders y ${leech} leechers conectados aportarían ~${Math.round(supply)} Mbps (${nf1(ratio)}×). Bueno desde 2×, justo desde 1×.`
+    : `Sin duración conocida: solo por seeders conectados (${n.seeds}). Bueno desde 10, justo desde 4.`;
+  // Ícono de señal (2026-11-15): tantas barras llenas como el nivel; el detalle va en el tooltip.
+  const tipText = `Salud estimada del stream: ${text}. No es una medición. ${basis} Supone ~${nf1(cal.seedMbps)} Mbps por seeder (${cal.source === 'measured' ? `calibrado con ${cal.n} mediciones de esta PC` : cal.source === 'manual' ? 'fijado en Ajustes' : 'valor por defecto'}) y un sexto de eso por leecher${cal.capMbps ? `, con tope de ~${Math.round(cal.capMbps)} Mbps (lo más rápido que bajó esta PC)` : ''}; el conteo se corta en 30 conexiones. Para saberlo de verdad: cargarlo en background (⤓).`;
+  const ic = el('span', { class: `cat-health-ic ${cls}`, title: tipText, role: 'img', 'aria-label': `Salud estimada: ${text}` });
+  ic.innerHTML = `<svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}"/>`).join('')}</svg>`;
+  return ic;
 }
 
-/** "Cargar en background" (2026-11-15): info_hash → {key, sum, n, row}. `sum / n` = promedio de
- *  `speed_bps` (bytes/s, una muestra por segundo) mientras baja de fondo; `row` = última fila. */
+/** "Cargar en background" (2026-11-15): info_hash → {key, row}; `row` = última fila. La velocidad
+ *  la mide `health-calib.js` (la misma medición calibra la salud estimada). */
 const bgLoads = new Map();
 const BG_GREEN = 1.5; // mismos márgenes que el ranking (`green_margin` / `yellow_margin`)
 const BG_YELLOW = 1;
-/** Fila de una reproducción: si es de una carga en background, suma la muestra. ¿Era de una? */
-function onBgRow(row) {
-  const [hash, b] = [...bgLoads.entries()].find(([, x]) => x.key === row.key) ?? [];
-  if (!b) return false;
-  b.row = row;
-  if (row.state.kind === 'background') { b.sum += row.speed_bps; b.n += 1; b.max = Math.max(b.max ?? 0, row.speed_bps); }
-  // Calibra la salud estimada con los seeders contados al analizar (cada 10 s, mientras baja de verdad).
-  const seeds = counted.get(hash)?.seeds;
-  if (seeds > 0 && b.n && b.n % 10 === 0 && (row.progress ?? 0) < 0.999) addBgSample(hash, { seeds, avg_speed_bps: b.sum / b.n, max_speed_bps: b.max, measured_secs: b.n });
-  return true;
+/** Fila de una reproducción: la mide (calibra la salud si se conocen sus seeders) y, si es de una
+ *  carga en background, la guarda para su texto. */
+function measurePlayback(row) {
+  trackPlayback(row, counted.get(row.key.split(':')[0])?.seeds);
+  const b = [...bgLoads.values()].find((x) => x.key === row.key);
+  if (b) b.row = row;
 }
 /** Texto de la card: "2,3× · alcanza" = promedio ÷ bitrate (tamaño ÷ duración). Sin duración
  *  (o pack) solo la velocidad. */
@@ -476,9 +470,10 @@ function bgText(c) {
   const b = bgLoads.get(c.info_hash);
   if (!b) return null;
   if (b.row?.state.kind === 'failed') return { cls: 'red', text: 'falló', tip: b.row.state.message };
-  if (!b.n) return { cls: 'measuring', text: 'cargando…', tip: 'Buscando metadatos y precargando el principio; después mide la velocidad.' };
-  const avg = b.sum / b.n;
-  const done = (b.row?.progress ?? 0) >= 0.999 ? 'completo · ' : '';
+  const speed = speedOf(b.key);
+  if (!speed?.n) return { cls: 'measuring', text: 'cargando…', tip: 'Buscando metadatos y precargando el principio; después mide la velocidad.' };
+  const avg = speed.avg;
+  const done = speed.done ? 'completo · ' : '';
   const need = neededBps(c);
   if (!need) return { cls: 'none', text: `${done}${mbps(avg)}`, tip: `${mbps(avg)} de promedio bajando de fondo (sin duración conocida no se calcula si alcanza).` };
   const x = avg / need;
@@ -499,7 +494,7 @@ async function toggleBg(hash, btn) {
     } else {
       const [row] = await api.catalogAdd(state.side.kind, state.side.videoId, [hash]);
       if (!row) return;
-      bgLoads.set(hash, { key: row.key, sum: 0, n: 0, row: null });
+      bgLoads.set(hash, { key: row.key, row: null });
       await api.playBackground(row.key);
       setStatus('Cargando en background: la velocidad promedio aparece en la opción.');
     }
@@ -513,58 +508,60 @@ async function toggleBg(hash, btn) {
 function optionRow(c, best = false) {
   const light = lightOf(c);
   const bg = bgText(c);
+  // Al dar ▶, los estados de la reproducción en la card (2026-11-15).
+  const pb = [...lib.playbacks.values()].find((r) => r.key.split(':')[0] === c.info_hash);
+  const pbStatus = starting.has(c.info_hash) && !pb ? 'preparando…' : pb && pb.state.kind !== 'background' ? playbackText(pb) : null;
   const live = rowsOf(c.info_hash).find((e) => e.live)?.live ?? null;
   const scraped = counted.get(c.info_hash);
   const busy = counting.has(c.info_hash);
   const tip = [c.release_name, c.resolution && `Resolución: ${c.resolution}`, c.file_name && `Archivo: ${c.file_name}`, c.is_pack && 'Pack: varios episodios en un torrent', `Fuentes: ${c.addons.join(' + ')}${c.sites.length ? ` (${c.sites.join(', ')})` : ''}`].filter(Boolean).join('\n');
   const badge = (text, cls = '', title = '') => el('span', { class: `lang ${cls}`, title }, text);
   const hdrTip = c.hdr.map((x) => HDR_TIP[x]).filter(Boolean).join('\n');
-  // ✓ = verificado: contado a mano en los trackers o visto conectado al analizarlo.
-  // Lo más reciente gana: un recuento a mano pisa lo visto al analizar.
-  const tracker = trackerCounted.get(c.info_hash);
+  const checked = checkedBy(c);
   const partial = busy ? liveCount.get(c.info_hash) : null; // en vivo mientras cuenta
   const seedsNow = partial?.reached ? partial.seeds : knownSeeds(c);
   const dead = scraped?.reached === false;
   const seedsTip = skipped.has(c.info_hash) && !scraped ? (skipped.get(c.info_hash) === 'dead'
     ? 'No se analizó: los trackers y la fuente dan 0 seeders y 0 leechers (casi seguro muerto). Tocá para analizarlo igual.'
-    : `No se analizó: quedó fuera de los ${TOP} mejores según los trackers. Tocá para analizarlo.`)
+    : `No se analizó a fondo: quedó fuera de los ${TOP} mejores según los trackers. Tocá para analizarlo.`)
     : dead
     ? (scraped.peers ? `Nadie respondió: la red conoce ${scraped.peers} peers de este torrent pero ninguno contestó. Muy flojo, probablemente no arranque. Tocá para analizarlo.` : 'Nadie lo está compartiendo ahora (0 peers). Casi seguro muerto. Tocá para analizarlo.')
-    : scraped ? `Conectado al enjambre: ${scraped.seeds} seeders (archivo completo) de ${scraped.peers} peers${tracker ? ` (los trackers anuncian ${tracker.seeders}, sin verificar)` : ''}. Es lo que respondió de verdad; al reproducir suelen aparecer algunos más. Tocá para analizarlo.`
+    : scraped ? `Conectado al enjambre: ${scraped.seeds} seeders (archivo completo) de ${scraped.peers} peers${c.seeders != null ? ` (los trackers anuncian ${c.seeders}, sin verificar)` : ''}. Es lo que respondió de verdad; al reproducir suelen aparecer algunos más. Tocá para analizarlo.`
     : live && live.seeds === 0 ? 'Al analizarlo no se vio ningún seeder conectado (puede ser el momento). Tocá para analizarlo.'
     : live ? `Seeders vistos al analizarlo: ${live.seeds} (${live.peers} peers conectados). Tocá para analizarlo.`
-      : tracker ? `Según ${tracker.trackers_ok} tracker(s): ${tracker.seeders} seeders, ${tracker.leechers} leechers. Tocá para analizarlo.`
-        : 'Según la fuente. Tocá para analizarlo.';
+      : checked === 'trackers' ? `${TRACKERS_TIP} ${c.seeders} seeders, ${c.leechers ?? 0} leechers. Tocá para el análisis profundo (se conecta y cuenta los reales).`
+        : 'Según la fuente (los trackers no lo conocen o no respondieron). Tocá para el análisis profundo.';
   return el('li', { class: `cat-opt light-${light.cls} ${best ? 'best' : ''} ${skipped.has(c.info_hash) ? 'skipped' : ''}`, title: tip, 'data-hash': c.info_hash,
     // Cada redibujo recrea la fila: la fase sale del reloj para que la animación no reinicie.
     style: busy ? `--live-phase:-${Date.now() % 3600}ms` : null },
     best ? el('span', { class: 'cat-best-tag' }, 'Mejor opción') : null,
     el('span', { class: 'cat-size-cell' },
       el('span', { class: 'cat-size' }, humanBytes(c.size_bytes)),
-      bg ? el('span', { class: `cat-speed bg-${bg.cls}`, title: bg.tip ?? '', role: 'status' }, bg.text)
+      pbStatus ? el('span', { class: `cat-speed cat-pb ${pb?.state.kind === 'failed' ? 'bg-red' : ''}`, role: 'status' }, pbStatus)
+        : bg ? el('span', { class: `cat-speed bg-${bg.cls}`, title: bg.tip ?? '', role: 'status' }, bg.text)
         : light.text ? el('span', { class: 'cat-speed', title: 'Velocidad medida · margen' }, light.text) : null),
-    depthMenu(c.info_hash, `cat-seeds-${c.info_hash}`, el('button', {
-      id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${analyzedDepth(c.info_hash) ? 'analyzed' : ''} ${(live || scraped) && seedsNow > 0 ? 'checked' : ''} ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTip,
-      'aria-label': `${seedsNow ?? 'Sin dato de'} seeders: analizar`, 'aria-haspopup': 'menu', 'aria-expanded': String(depthOpen === c.info_hash), 'aria-busy': busy ? 'true' : null, disabled: busy,
-      onclick: toggleDepth(c.info_hash),
+    // Seeds/leechers y, a su derecha, la salud estimada que sale de ellos (2026-11-15).
+    el('span', { class: 'cat-stats-cell' }, el('button', {
+      id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${checked === 'deep' ? 'analyzed' : ''} ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTip,
+      'aria-label': `${seedsNow ?? 'Sin dato de'} seeders: análisis profundo`, 'aria-busy': busy ? 'true' : null, disabled: busy,
+      onclick: () => reanalyze([c.info_hash]),
     }, // Seeds primero y grande; leechers y profundidad como una línea chica debajo.
     el('span', { class: 'cat-stat seeds' }, el('span', { class: 'cat-seeds-n' }, seedsNow ?? '—'), el('span', { class: 'cat-stat-label' }, 'seeds'),
       busy ? el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' })
         : dead ? el('span', { class: 'cat-seeds-dead', 'aria-hidden': 'true' }, '✕')
-        : analyzedDepth(c.info_hash) ? null
+        : checked === 'deep' ? el('span', { class: 'cat-deep-ic', title: 'Análisis profundo: se conectó al enjambre y contó los seeders reales.', role: 'img', 'aria-label': 'Análisis profundo' }, icon('radar', 14))
           : el('span', { class: 'cat-seeds-hint', 'aria-hidden': 'true' }, icon('refresh', 13))),
     busy ? el('span', { class: 'cat-stat-sub cat-live' }, el('span', { class: 'cat-live-dot', 'aria-hidden': 'true' }),
       !partial ? 'analizando · conectando…'
         : partial.reached ? `analizando · ${partial.peers} ${partial.peers === 1 ? 'peer conectado' : 'peers conectados'}`
           : `analizando · ${partial.peers} en la red, esperando respuesta…`)
     : el('span', { class: 'cat-stat-sub' },
-      leechersOf(c) != null ? el('span', { title: 'Leechers: bajando ahora; comparten los pedazos que ya tienen' }, `${leechersOf(c)} leechers`) : null,
-      analyzedDepth(c.info_hash) && !busy && !dead ? el('span', { class: 'cat-depth-chip', title: 'Analizado: profundidad usada' }, icon('check', 11), DEPTH_LABEL[analyzedDepth(c.info_hash)]) : null)), (depth) => reanalyze([c.info_hash], depth)),
+      leechersOf(c) != null ? el('span', { title: 'Leechers: bajando ahora; comparten los pedazos que ya tienen' }, `${leechersOf(c)} leechers`) : null)),
+    healthBadge(c)),
     el('span', { class: 'cat-badges' },
       latBadge(c, badge),
-      hdrTip ? badge('HDR', 'cat-hdr', hdrTip) : null,
-      healthBadge(c, badge),
-      heavyBadge(c, badge)),
+      heavyBadge(c, badge),
+      hdrTip ? badge('HDR', 'cat-hdr', hdrTip) : null),
     el('span', { class: 'cat-opt-actions' },
       el('button', { id: `cat-bg-${c.info_hash}`, class: `cat-icon-btn ${bgLoads.has(c.info_hash) ? 'on' : ''}`, 'aria-pressed': String(bgLoads.has(c.info_hash)),
         title: bgLoads.has(c.info_hash) ? 'Cancelar la carga en background (lo bajado queda guardado)' : 'Cargar en background: lo deja bajando sin abrir el reproductor y dice si la velocidad alcanza para verlo',
@@ -646,10 +643,8 @@ async function countSeeds(hashes) {
   renderStreamsOnly();
   const video = state.side?.videoId;
   try {
-    // Trackers en paralelo (segundos): completan el conteo, que es un piso.
-    const [found, trackers] = await Promise.all([api.catalogSwarm(todo, true), api.catalogScrape(todo).catch(() => ({}))]);
+    const found = await api.catalogSwarm(todo, true);
     if (state.side?.videoId !== video) return; // se fue de ese video: el resultado no se usa
-    for (const [h, r] of Object.entries(trackers)) trackerCounted.set(h, r);
     // Sin resultado = ningún peer dio los metadatos a tiempo: cuenta como "nadie respondió", no se
     // queda con el número de los trackers (que suele ser justamente el inflado).
     for (const h of todo) counted.set(h, found[h] ?? { seeds: 0, peers: 0, reached: false });
@@ -660,9 +655,11 @@ async function countSeeds(hashes) {
   }
 }
 
-const DEPTH_LABEL = { long: 'profundo', fast: 'rápido' };
-/** Profundidad con la que se analizó (leyenda de la fila): contado = profundo; solo trackers = rápido. */
-const analyzedDepth = (h) => (counted.has(h) ? 'long' : trackerCounted.has(h) ? 'fast' : null);
+/** Qué se sabe de los seeders de una opción (leyenda de la fila): 'deep' = contados al conectarse
+ *  (análisis profundo); 'trackers' = chequeados en los trackers al cargar las opciones (lo hace el
+ *  núcleo solo, siempre); null = solo lo que dice la fuente. */
+const TRACKERS_TIP = 'Chequeado recién en los trackers al cargar las opciones: más fiel que lo que dice la fuente.';
+const checkedBy = (c) => (counted.has(c.info_hash) ? 'deep' : trackersWin(c) ? 'trackers' : null);
 
 /** Etapa 2 del embudo: cuántos se cuentan a fondo (los mejores según los trackers), todos a la vez
  *  (el núcleo cuenta hasta 25 en paralelo, `swarm::CONCURRENCY`). 15 y no 25 (pedido 2026-11-15): cada uno abre hasta 30
@@ -679,40 +676,18 @@ function finalists(cands) {
     .slice(0, FINALISTS).map((c) => c.info_hash);
 }
 /** Hashes de la etapa en curso que ya respondieron (evento `catalog-swarm-counted`). */
-const stageDone = new Set();
+const deepDone = new Set();
 /** Salteados por el análisis (2026-11-15), hash → por qué: 'dead' = trackers con 0 seeders y 0
  *  leechers y la fuente sin seeders; 'rest' = fuera de los `TOP`. Se analizan igual desde su fila. */
 const skipped = new Map();
-const unlikely = (c) => {
-  const t = trackerCounted.get(c.info_hash);
-  return !!t && t.trackers_ok > 0 && !t.seeders && !t.leechers && !(seedsOf(c) > 0);
-};
-/** Menú de profundidad (2026-11-15), para "Analizar" arriba y para cada fila: `key` = cuál está
- *  abierto ('all' o un hash). `n` = cuántos torrents, para el tiempo aproximado. */
-let depthOpen = null;
-const toggleDepth = (key) => (ev) => { ev.stopPropagation(); depthOpen = depthOpen === key ? null : key; renderStreamsOnly(); };
-/** `trigger`: el botón que abre el menú (con `onclick: toggleDepth(key)`). */
-function depthMenu(key, id, trigger, onPick) {
-  const open = depthOpen === key;
-  const pick = (depth) => () => { depthOpen = null; onPick(depth); };
-  const item = (depth, name, desc) => el('button', { id: `${id}-${depth}`, role: 'menuitem', onclick: pick(depth) }, el('b', {}, name), el('small', {}, desc));
-  return el('span', { class: 'cat-subs-box cat-depth-box' },
-    trigger,
-    open ? el('div', { class: 'cat-subs-menu cat-depth-menu', role: 'menu' },
-      item('fast', 'Rápido', 'solo trackers · segundos'),
-      item('long', 'Profundo', `se conecta y cuenta · ${DEEP_ETA}`)) : null);
-}
-
-/** Reanaliza esas opciones desde cero con la profundidad elegida (borra lo contado antes). */
-async function reanalyze(hashes, depth, res = null) {
+const unlikely = (c) => c.seeders === 0 && c.leechers === 0 && !(c.seeders_declared > 0);
+/** Análisis profundo desde cero de esas opciones (borra lo contado antes). Una sola: se cuenta ya;
+ *  varias: el embudo de `runDeep`. */
+function reanalyze(hashes, res = null) {
   const video = state.side?.videoId;
   if (hashes.length === 1) quickAnalyze(hashes);
   hashes.forEach((h) => { counted.delete(h); if (hashes.length === 1) skipped.delete(h); });
-  if (depth === 'fast') {
-    hashes.forEach((h) => counting.add(h));
-    renderStreamsOnly();
-    try { await scrapeTrackers(hashes, video); } catch (e) { showError(e); } finally { hashes.forEach((h) => counting.delete(h)); renderStreamsOnly(); }
-  } else if (hashes.length === 1) {
+  if (hashes.length === 1) {
     countSeeds(hashes);
   } else {
     const f = state.side.flow ?? (state.side.flow = { step: 'done' });
@@ -728,7 +703,13 @@ function renderStreamsOnly() {
   const rows = () => [...box.querySelectorAll('.cat-opt[data-hash]')];
   const before = new Map(rows().map((n) => [n.dataset.hash, { top: n.getBoundingClientRect().top, seeds: n.querySelector('.cat-seeds-btn')?.textContent }]));
   const prevBest = box.querySelector('.cat-opt.best')?.dataset.hash;
-  renderStreamsBody(box);
+  libByHash = new Map();
+  for (const e of state.library.values()) {
+    const list = libByHash.get(e.info_hash);
+    if (list) list.push(e); else libByHash.set(e.info_hash, [e]);
+  }
+  renderCal = healthCalibration(state.library.values());
+  try { renderStreamsBody(box); } finally { libByHash = renderCal = null; }
   if (!before.size || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const now = performance.now();
   for (const n of rows()) {
@@ -751,6 +732,8 @@ function renderStreamsOnly() {
     }
   }
 }
+/** Último texto de reproducción mostrado por opción (hash → firma): evita redibujos iguales. */
+const cardSig = new Map();
 /** Efectos en curso: `flash|hash` / `best|hash` → cuándo empezaron (ms). */
 const fx = new Map();
 
@@ -805,7 +788,7 @@ function wizardSteps(u) {
   const f = state.side.flow;
   // Mientras las fuentes siguen respondiendo no se sabe si hay HDR: se pregunta igual.
   const hdr = f.res && (!u?.done || u.candidates.some((c) => resKey(c) === f.res && c.hdr.length));
-  return ['res', hdr ? 'hdr' : null, 'analysis', f.mode === 'none' ? null : 'depth'].filter(Boolean);
+  return ['res', hdr ? 'hdr' : null, 'analysis'].filter(Boolean);
 }
 
 function wizardHead(u, title, sub) {
@@ -884,31 +867,22 @@ function renderWizard(box, u) {
   const n = cands.filter((c) => inScope(c, f.res)).length;
   const scope = `${n} opciones en ${resLabel(f.res)}${onlyHdr ? ' HDR' : ''}`;
   if (f.step === 'analysis') {
-    box.append(el('div', { class: `wz ${enter ? 'enter' : ''}` },
-      wizardHead(u, '¿Analizo los torrents?', `${scope}. Cuenta cuántos lo comparten de verdad para elegir el mejor.`),
-      el('div', { class: 'wz-list' },
-        bigChoice({ id: 'wz-an-yes', title: 'Analizar', desc: 'Elegís qué tan a fondo en el paso siguiente', tag: 'Recomendado', primary: true, onclick: () => { if (f.mode === 'none') f.mode = null; flowStep('depth'); } }),
-        bigChoice({ id: 'wz-an-none', title: 'No analizar', desc: 'Usa lo que dicen las fuentes', onclick: () => start('none') })),
-      sourcesNote));
-    return;
-  }
-  if (f.step === 'depth') {
     const mins = `${DEEP_ETA}${searchingNow ? ' (todavía llegan opciones)' : ''}`;
     box.append(el('div', { class: `wz ${enter ? 'enter' : ''}` },
-      wizardHead(u, '¿Qué tan a fondo?', `${scope}. Arranca de fondo apenas elijas; mientras, podés seguir.`),
+      wizardHead(u, '¿Análisis profundo?', `${scope}. Los seeders ya se chequean solos en los trackers; el profundo se conecta y cuenta los reales.`),
       el('div', { class: 'wz-list' },
-        bigChoice({ id: 'wz-an-long', title: 'Profundo', desc: `Toma los ${TOP} mejores según los trackers y se conecta a todos a la vez para contar los seeders reales · ${mins}`, tag: 'Recomendado', primary: true, onclick: () => start('deep') }),
-        bigChoice({ id: 'wz-an-fast', title: 'Rápido', desc: 'Solo pregunta a los trackers: menos confiable · unos segundos', onclick: () => start('fast') })),
+        bigChoice({ id: 'wz-an-deep', title: 'Analizar a fondo', desc: `Toma los ${TOP} mejores según los trackers y se conecta a todos a la vez para contar los seeders reales · ${mins}`, tag: 'Recomendado', primary: true, onclick: () => start('deep') }),
+        bigChoice({ id: 'wz-an-none', title: 'No, alcanza con los trackers', desc: 'Ordena por lo que respondieron los trackers al cargar las opciones', onclick: () => start('none') })),
       sourcesNote));
     return;
   }
   // Cargando: cada proceso con su estado y progreso.
   const res = cands.filter((c) => inScope(c, f.res));
-  const stageNow = stageStatus(f);
+  const deepNow = deepStatus(f);
   const nSkipped = res.filter((c) => skipped.has(c.info_hash)).length;
   const subsState = subsFound.has(state.side.videoId) && !subsBusy.has(state.side.videoId) ? 'ok' : 'run';
-  const analysisDone = !searchingNow && (f.mode === 'none' || (f.mode === 'fast' && f.fast === 'done') || (f.mode === 'deep' && f.deep === 'done'));
-  const pct = analysisDone ? 100 : f.mode === 'deep' ? Math.round(stageNow.frac * 100) : 40;
+  const analysisDone = !searchingNow && (f.mode === 'none' || f.deep === 'done');
+  const pct = analysisDone ? 100 : f.mode === 'deep' ? Math.round(deepNow.frac * 100) : 40;
   const row = (stateCls, title, detail) => el('li', { class: `wz-task ${stateCls}` },
     el('span', { class: 'wz-dot', 'aria-hidden': 'true' }, stateCls === 'ok' ? icon('check', 14) : stateCls === 'run' ? el('span', { class: 'cat-seeds-spin' }) : '·'),
     el('span', { class: 'wz-task-text' }, el('b', {}, title), detail ? el('span', {}, detail) : null));
@@ -922,9 +896,8 @@ function renderWizard(box, u) {
         : `${cands.length} encontrados · ${res.length} en ${resLabel(f.res)}`),
       // Subtítulos antes que el análisis: el análisis suele ser lo último en terminar.
       row(subsState, 'Subtítulos en español', subsState === 'ok' ? `${subsFound.get(state.side.videoId)?.length ?? 0} descargados` : subsLabel(state.side.videoId, true)),
-      f.mode === 'none' ? row('skip', 'Sin análisis', 'Se ordena por lo que dicen las fuentes')
-        : f.mode === 'fast' ? row(f.fast === 'done' ? 'ok' : 'run', 'Seeders según los trackers', f.fast === 'done' ? `${res.filter((c) => trackerCounted.has(c.info_hash)).length} de ${res.length} respondieron` : `Consultando trackers por ${res.length} torrents…`)
-          : row(f.deep === 'done' ? 'ok' : 'run', 'Conectándose a cada torrent', `${f.deep === 'done' ? `${res.filter((c) => counted.has(c.info_hash)).length} contados` : stageNow.text}${nSkipped ? ` · ${nSkipped} descartados (sin señales o fuera del top ${TOP})` : ''}`)),
+      f.mode === 'none' ? row('skip', 'Sin análisis profundo', 'Se ordena por lo que respondieron los trackers')
+        : row(f.deep === 'done' ? 'ok' : 'run', 'Conectándose a cada torrent', `${f.deep === 'done' ? `${res.filter((c) => counted.has(c.info_hash)).length} contados` : deepNow.text}${nSkipped ? ` · ${nSkipped} descartados (sin señales o fuera del top ${TOP})` : ''}`)),
     el('button', { id: 'wz-see', class: `wz-see ${analysisDone ? 'primary' : ''}`, onclick: () => flowStep('done') }, analysisDone ? 'Ver opciones' : 'Ver lo que hay hasta ahora')));
   if (analysisDone && f.autoDone !== true) { f.autoDone = true; setTimeout(() => { if (state.side?.flow === f && f.step === 'loading') flowStep('done'); }, 900); }
 }
@@ -935,42 +908,27 @@ function startAnalysisWhenReady() {
   if (!f?.mode || f.started || !state.update?.done) return;
   f.started = true;
   if (f.mode === 'deep') runDeep(state.side.videoId, f.res);
-  if (f.mode === 'fast') runFast(state.side.videoId, f.res);
 }
 
-/** Análisis rápido: todos los de la resolución en un solo pedido a los trackers (segundos). */
-async function runFast(video, res) {
-  const f = state.side.flow;
-  f.fast = 'run';
-  const hashes = (state.update?.candidates ?? []).filter((c) => inScope(c, res)).map((c) => c.info_hash);
-  try { await scrapeTrackers(hashes, video); } catch (e) { showError(e); } finally {
-    if (state.side?.flow === f) { f.fast = 'done'; renderStreamsOnly(); }
-  }
-}
-
-/** Análisis profundo en embudo (2026-11-15): 1 trackers de todos (segundos; descarta solo los
- *  `unlikely`) · 2 ventana larga sobre los `TOP` mejores según los trackers. Sin etapa normal: su
- *  conteo corto no servía ni para ordenar ni para descartar. El progreso va en `f.stage` /
- *  `f.stageHashes` / `stageDone`. Se corta al salir del video. */
+/** Análisis profundo (2026-11-15): los trackers ya respondieron al cargar las opciones (el núcleo
+ *  los consulta solo), así que de ahí sale el orden: se descartan los `unlikely` y se cuentan a
+ *  fondo, todos a la vez, los `TOP` mejores. El progreso va en `f.deepHashes` / `deepDone`. Se
+ *  corta al salir del video. */
 async function runDeep(video, res) {
   const f = state.side.flow ?? (state.side.flow = { step: 'done' });
   if (f.deep === 'run') return;
   f.deep = 'run';
-  const stage = (n, hashes = []) => { f.stage = n; f.stageHashes = hashes; stageDone.clear(); renderStreamsOnly(); };
-  stage(1);
-  // Etapa 1: trackers de todos; los que ya tenían dato también, reanalizar decide de nuevo.
   const all = (state.update?.candidates ?? []).filter((c) => inScope(c, res));
-  // Si los trackers fallan se sigue igual: la etapa 2 ordena con lo que diga la fuente.
-  if (all.length && !(await scrapeTrackers(all.map((c) => c.info_hash), video).catch(() => state.side?.videoId === video))) return;
-  const prior = (c) => trackerCounted.get(c.info_hash)?.seeders ?? seedsOf(c) ?? -1;
   const todo = all.filter((c) => !counted.has(c.info_hash) && !counting.has(c.info_hash));
   todo.forEach((c) => skipped.delete(c.info_hash)); // reanalizar decide de nuevo
   todo.filter(unlikely).forEach((c) => skipped.set(c.info_hash, 'dead'));
-  // Etapa 2: a fondo solo los TOP mejores según los trackers (más abajo casi nunca se ven bien).
-  const ranked = todo.filter((c) => !skipped.has(c.info_hash)).sort((a, b) => prior(b) - prior(a));
+  // Solo los TOP mejores según los trackers (más abajo casi nunca se ven bien).
+  const ranked = todo.filter((c) => !skipped.has(c.info_hash)).sort((a, b) => (seedsOf(b) ?? -1) - (seedsOf(a) ?? -1));
   ranked.slice(TOP).forEach((c) => skipped.set(c.info_hash, 'rest'));
-  stage(2, ranked.slice(0, TOP).map((c) => c.info_hash));
-  if (f.stageHashes.length && state.side?.videoId === video) await countSeeds(f.stageHashes);
+  f.deepHashes = ranked.slice(0, TOP).map((c) => c.info_hash);
+  deepDone.clear();
+  renderStreamsOnly();
+  if (f.deepHashes.length) await countSeeds(f.deepHashes);
   if (state.side?.flow === f) { f.deep = 'done'; renderStreamsOnly(); }
   // Los finalistas, además, con análisis rápido (metadatos, duración, idiomas reales).
   if (state.side?.videoId === video) quickAnalyze(finalists(all));
@@ -1396,7 +1354,7 @@ async function init() {
         counted.set(event.hash, event.count);
         counting.delete(event.hash);
         liveCount.delete(event.hash);
-        stageDone.add(event.hash);
+        deepDone.add(event.hash);
         if (state.update?.candidates.some((c) => c.info_hash === event.hash)) renderStreamsOnly();
         break;
       case 'catalog-subtitles-progress':
@@ -1417,14 +1375,22 @@ async function init() {
         refreshPasted();
         if (state.update) renderStreamsOnly();
         break;
-      case 'library-cleared': state.library.clear(); refreshPasted(); if (state.update) renderStreamsOnly(); break;
       case 'playback-updated': {
         const n = starting.size;
         onPlaybackRow(event.row);
-        const bg = onBgRow(event.row);
-        if ((bg || starting.size !== n) && state.update) renderStreamsOnly();
+        measurePlayback(event.row);
+        // Redibuja si cambió lo que muestra la card de esa opción (llega una fila por segundo
+        // mientras reproduce y casi siempre dice lo mismo, 2026-11-15).
+        const hash = event.row.key.split(':')[0];
+        const c = state.update?.candidates.find((x) => x.info_hash === hash);
+        const sig = c ? `${playbackText(event.row)}|${bgText(c)?.text ?? ''}` : null;
+        const changed = c && cardSig.get(hash) !== sig;
+        if (c) cardSig.set(hash, sig);
+        if (state.update && (starting.size !== n || changed)) renderStreamsOnly();
         break;
       }
+      // La card deja de mostrar el estado (app.js ya la sacó de `lib.playbacks`).
+      case 'playback-removed': if (state.update) renderStreamsOnly(); break;
       default: break;
     }
   });

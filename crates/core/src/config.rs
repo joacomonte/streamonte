@@ -139,7 +139,8 @@ pub struct AnalyzerConfig {
     /// Reintentos automáticos si el medidor falla (FR-08, NFR-12).
     pub retries: u32,
     pub scrape_timeout_secs: u64,
-    /// Al pegar magnets: buscar el nombre real y analizarlos solos (pedido del usuario, 2026-11-13).
+    /// Al pegar magnets: buscar el nombre real y hacerles el análisis rápido solos (pedido del
+    /// usuario, 2026-11-13; sin medir velocidad desde 2026-11-15).
     /// Ojo (R-11): analizar expone la IP a cada swarm aunque no se reproduzca.
     pub auto_on_paste: bool,
     /// Máximo de la medición de velocidad (s): se mide hasta que se estabiliza o hasta acá,

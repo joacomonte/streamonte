@@ -2,8 +2,8 @@
 // Ajustes y cierre con reproducciones activas (FR-17).
 import { api } from './api.js';
 import { $, el, setStatus, showError } from './dom.js';
-import { humanBytes, mbps } from './format.js';
-import { DEFAULT_SEED_MBPS, MIN_SAMPLES, healthCalibration, recalibrate, resetCalibration, setSeedMbps } from './health-calib.js';
+import { ago, humanBytes, mbps, nf1 } from './format.js';
+import { DEFAULT_SEED_MBPS, MIN_SAMPLES, MIN_SECS, healthCalibration, measuringNow, recalibrate, resetCalibration, setSeedMbps } from './health-calib.js';
 import { state, titleOf } from './state.js';
 
 /** Diálogo de confirmación con botones; devuelve el `value` del botón elegido (o null).
@@ -64,17 +64,17 @@ export async function cleanTemp() {
   try {
     const usage = await api.tempUsage();
     if (usage.bytes === 0) {
-      setStatus('No hay temporales para limpiar.');
+      setStatus('La caché está vacía.');
       return;
     }
     const ok = await confirmDialog(
-      'Limpiar temporales',
-      `Se van a borrar ${humanBytes(usage.bytes)} de restos que no están en uso. Las reproducciones activas, las pausadas y tu lista no se tocan.`,
+      'Borrar caché',
+      `Se van a borrar ${humanBytes(usage.bytes)}: lo analizado y restos que no están en uso. No se tocan lo que se está reproduciendo ni las descargas guardadas.`,
       [{ label: 'Cancelar', value: false }, { label: `Borrar ${humanBytes(usage.bytes)}`, value: true, primary: true }],
     );
     if (!ok) return;
     const r = await api.cleanTemp();
-    setStatus(`Limpieza: ${r.dirs_removed} carpeta(s), ${humanBytes(r.bytes_freed)} liberados${r.failures.length ? ` · ${r.failures.length} no se pudieron borrar (se reintenta al abrir)` : ''}.`);
+    setStatus(`Caché borrada: ${r.dirs_removed} carpeta(s), ${humanBytes(r.bytes_freed)} liberados${r.failures.length ? ` · ${r.failures.length} no se pudieron borrar (se reintenta al abrir)` : ''}.`);
   } catch (e) {
     showError(e);
   }
@@ -117,12 +117,40 @@ export async function openSettings() {
 }
 
 // ---------- Ajustes: calibración de la salud estimada (2026-11-15) ----------
+/** Panel de calibración (2026-11-15): estado, lo que se mide ahora y cada medición. Se redibuja
+ *  solo mientras Ajustes está abierto (`health-calib-changed`). */
 function showHealthCalibration() {
   const cal = healthCalibration(state.entries.values());
-  $('#set-seed-mbps').value = Math.round(cal.seedMbps * 10) / 10;
+  const editing = document.activeElement === $('#set-seed-mbps');
+  if (!editing) $('#set-seed-mbps').value = Math.round(cal.seedMbps * 10) / 10;
   $('#health-calib-state').textContent = { measured: 'calibrado', manual: 'fijado a mano', default: 'por defecto' }[cal.source];
-  $('#health-calib-detail').textContent = `${cal.n} medición(es) de velocidad útiles${cal.n < MIN_SAMPLES ? ` (con ${MIN_SAMPLES} se calibra solo; hasta entonces ${DEFAULT_SEED_MBPS} Mbps)` : ''}${cal.capMbps ? ` · tope de tu conexión: ~${Math.round(cal.capMbps)} Mbps` : ''}.`;
+  const perSeed = (l) => `${nf1((l.avg_speed_bps * 8) / 1e6 / l.seeds)} Mbps/seeder`;
+  const status = cal.source === 'manual'
+    ? `Fijado a mano en ${nf1(cal.seedMbps)} Mbps por seeder; lo medido sigue juntándose (${cal.n}).`
+    : cal.source === 'measured'
+      ? `Calibrado con ${cal.n} mediciones: ${nf1(cal.seedMbps)} Mbps por seeder${cal.capMbps ? ` · tu conexión llegó a ~${Math.round(cal.capMbps)} Mbps` : ''}.`
+      : `Juntando mediciones: ${cal.n} de ${MIN_SAMPLES}. Hasta entonces se usa ${DEFAULT_SEED_MBPS} Mbps por seeder.`;
+  const now = measuringNow();
+  $('#health-calib-panel').replaceChildren(
+    el('p', { class: 'calib-status' }, status),
+    cal.source === 'default' ? el('div', { class: 'calib-bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(MIN_SAMPLES), 'aria-valuenow': String(cal.n) },
+      el('i', { style: `width:${Math.round((cal.n / MIN_SAMPLES) * 100)}%` })) : null,
+    el('h5', {}, 'Midiendo ahora'),
+    now.length
+      ? el('ul', { class: 'calib-list' }, now.map((t) => el('li', {},
+        el('b', {}, t.name), el('span', {}, `${t.source} · ${mbps(t.avg_speed_bps)} · ${t.secs} s`),
+        el('span', { class: 'calib-note' }, !t.seeds ? 'sin seeders contados: no calibra (analizalo antes de verlo)'
+          : t.secs < MIN_SECS ? `cuenta a partir de los ${MIN_SECS} s` : `${t.seeds} seeders · ${perSeed(t)}`))))
+      : el('p', { class: 'hint' }, 'Nada ahora. Se mide solo cuando ves o cargás en background una opción ya analizada.'),
+    el('h5', {}, `Mediciones (${cal.n})`),
+    cal.samples.length
+      ? el('ul', { class: 'calib-list' }, cal.samples.map((l) => el('li', {},
+        el('b', {}, l.name ?? 'torrent'),
+        el('span', {}, `${l.source ?? 'background'} · ${l.seeds} seeders · ${mbps(l.avg_speed_bps)} en ${Math.round(l.measured_secs)} s`),
+        el('span', { class: 'calib-note' }, `${perSeed(l)} · ${ago(l.measured_at)}`))))
+      : el('p', { class: 'hint' }, 'Todavía ninguna.'));
 }
+window.addEventListener('health-calib-changed', () => { if ($('#dlg-settings').open) showHealthCalibration(); });
 
 export function onHealthCalibration(action) {
   const v = Number($('#set-seed-mbps').value);
@@ -178,5 +206,27 @@ export async function onConfirmClose(count) {
   if (choice) {
     setStatus('Cerrando…');
     await api.onClose(choice).catch(showError);
+  }
+}
+
+// ---------- Ajustes › Red: verificar el puerto entrante (2026-11-15) ----------
+export async function onNetCheck() {
+  const btn = $('#btn-net-check');
+  const out = $('#net-check-result');
+  btn.disabled = true;
+  out.className = 'net-check-result';
+  out.textContent = 'Probando desde internet…';
+  try {
+    const r = await api.checkIncoming();
+    const ip = r.local_ip ? ` · IP de esta PC: ${r.local_ip}` : '';
+    out.className = `net-check-result ${r.reachable === true ? 'ok' : r.reachable === false ? 'bad' : ''}`;
+    out.textContent = r.reachable === true ? `Abierto: el puerto ${r.port} llega desde internet${ip}`
+      : r.reachable === false ? `Cerrado: el puerto ${r.port} no llega desde internet. Seguí los pasos de arriba${ip}`
+        : `${r.problem ?? 'No se pudo probar.'}${ip}`;
+  } catch (e) {
+    showError(e);
+    out.textContent = '';
+  } finally {
+    btn.disabled = false;
   }
 }

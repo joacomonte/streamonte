@@ -17,6 +17,7 @@
       <!-- 2026-11-15: menús desplegables (ui/src/top-menus.js) -->
       <button id="btn-clipboard" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Magnets en tu portapapeles (Ctrl+V)">Portapapeles</button>
       <button id="btn-downloads" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Lo descargado, lo que se reproduce o baja de fondo, y limpieza">Descargas<span id="downloads-size" class="top-size" hidden></span><span id="downloads-badge" class="top-badge" hidden></span></button>
+      <button id="btn-cache" class="top-btn" hidden title="Caché de la app: lo analizado y restos que no se están usando. Tocá para borrarlo (no toca lo que se reproduce ni las descargas guardadas).">Caché<span id="cache-size" class="top-size"></span></button>
       <button id="btn-settings" class="top-btn icon" title="Ajustes" aria-label="Ajustes">⚙</button>
     </div>
   </header>
@@ -61,15 +62,30 @@
     <label class="setting-check"><input id="set-incoming" type="checkbox"> Aceptar conexiones entrantes de peers (más fuentes, suele bajar más rápido)</label>
     <label class="setting-check"><input id="set-upnp" type="checkbox"> Abrir el puerto en el router automáticamente (UPnP)</label>
     <p class="hint">Aplica desde la próxima reproducción. Si el firewall o el router lo bloquean, todo sigue funcionando solo con conexiones salientes.</p>
-    <h4>Salud estimada de los torrents</h4>
-    <p class="hint">Cuánto aporta cada seeder conectado, para el badge Excelente / Bueno / Justo / Malo del catálogo. Se calibra solo en esta PC con la carga en background del catálogo (de opciones ya analizadas).</p>
+    <div class="net-guide">
+      <p class="hint"><b>Para recibir conexiones entrantes</b> (más peers; suele bajar más rápido):</p>
+      <ol class="net-steps">
+        <li><b>Probá con UPnP:</b> dejá activadas las dos opciones de arriba y verificá. Si el router lo soporta, abre el puerto solo. Algunos lo rechazan (por ejemplo, los Sagemcom de los cable-módems).</li>
+        <li><b>Si da cerrado, abrí el puerto a mano:</b> entrá al router (suele ser <code>192.168.0.1</code> o <code>192.168.1.1</code>), buscá "Reenvío de puertos", "Port forwarding" o "NAT" y creá una regla: protocolo <b>TCP</b>, puerto externo e interno <b>41850</b>, hacia la IP de esta PC (la muestra "Verificar"). Conviene reservar esa IP en el DHCP del router para que no cambie.</li>
+        <li><b>Firewall:</b> en macOS, Ajustes del Sistema › Red › Firewall › Opciones: permití las conexiones entrantes de Streamonte. En Windows, aceptá el aviso del firewall la primera vez.</li>
+        <li><b>Si aun así da cerrado:</b> tu proveedor puede usar CGNAT (sin IP pública propia). Pedile una IP pública; sin eso no se pueden recibir entrantes.</li>
+      </ol>
+      <div class="net-check">
+        <button id="btn-net-check">Verificar puerto</button>
+        <span id="net-check-result" class="net-check-result" role="status"></span>
+      </div>
+      <p class="hint">"Verificar" abre el puerto un momento y le pide a portchecker.io que intente conectarse a tu IP pública (que averigua con api.ipify.org).</p>
+    </div>
+    <h4>Calibración de la salud estimada</h4>
+    <p class="hint">Automática: cuando ves o cargás en background una opción ya analizada, se mide cuánto aporta cada seeder en tu conexión. Con eso se calcula el badge Bueno / Justo / Malo del catálogo.</p>
+    <div id="health-calib-panel" class="calib-panel" aria-live="polite"></div>
     <div class="key-row">
       <label for="set-seed-mbps">Mbps por seeder <span id="health-calib-state" class="key-state"></span></label>
       <input id="set-seed-mbps" type="number" min="0.1" step="0.5" inputmode="decimal">
       <button id="btn-health-fix">Fijar</button>
-      <button id="btn-health-recalibrate">Recalibrar</button>
+      <button id="btn-health-recalibrate">Usar lo medido</button>
     </div>
-    <p class="hint"><span id="health-calib-detail"></span> <button id="btn-health-reset" class="link">Restablecer (olvidar mediciones)</button></p>
+    <p class="hint"><button id="btn-health-reset" class="link">Restablecer (olvidar mediciones)</button></p>
     <h4>Teclas en el reproductor</h4>
     <table class="kv keys">
       <tr><th>1 – 5</th><td>Dejar solo ese subtítulo</td></tr>

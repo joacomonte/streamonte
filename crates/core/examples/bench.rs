@@ -207,7 +207,7 @@ async fn run_once(
 
         let file = largest_video(&meta.files).ok_or("sin archivos")?;
         let plan = preload::plan(&file, &cfg.preload);
-        preload::run(engine.as_ref(), handle, &plan, &cfg.preload, CancellationToken::new(), &|_| {})
+        preload::run(engine.as_ref(), handle, &plan, &cfg.preload, CancellationToken::new(), true, &|_| {})
             .await
             .map_err(|e| e.to_string())?;
         r.preload_s = Some(secs(t0));
