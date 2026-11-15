@@ -83,10 +83,7 @@ async function askAudio(e, anchor) {
   // Ya ordenadas y con etiquetas cortas por el núcleo (`audio::play_options`).
   const opts = e?.audio_options ?? [];
   if (opts.length < 2) return null;
-  const at = anchor
-    ?? document.querySelector(`.row[data-key="${e.key}"] [data-watch]`)
-    ?? document.querySelector(`.row[data-key="${e.key}"]`)
-    ?? $('.topbar');
+  const at = anchor ?? $('.topbar');
   const i = await openPk(at, opts);
   return i === undefined ? undefined : { code: opts[i].code, aid: opts[i].aid };
 }

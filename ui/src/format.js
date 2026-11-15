@@ -1,4 +1,4 @@
-// Formatos de números compartidos por Mis magnets y el catálogo: bytes, Mbps, duraciones y fechas
+// Formatos de números compartidos por la app: bytes, Mbps, duraciones y fechas
 // relativas, en español de Argentina (coma decimal).
 
 /** "1,4 GB" / "734 MB"; sin dato, "—". */
@@ -26,30 +26,6 @@ export function clock(secs, shortUnderHour = false) {
   const ss = String(s).padStart(2, '0');
   if (shortUnderHour && h === 0) return `${m}:${ss}`;
   return `${h}:${String(m).padStart(2, '0')}:${ss}`;
-}
-
-/** Duración en palabras: "2 h 46" corto y "2 h 46 min" largo; estimada: "~45 min" / "unos 45 min". */
-export function durationWords(d) {
-  const h = Math.floor(d.secs / 3600), m = Math.round((d.secs % 3600) / 60);
-  const short = h ? `${h} h${m ? ` ${String(m).padStart(2, '0')}` : ''}` : `${m} min`;
-  const long = h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`;
-  return d.estimated ? [`~${short}`, `unos ${long}`] : [short, long];
-}
-
-/** Textos del veredicto a partir del puntaje del núcleo (`score`: semáforo, umbrales de la config
- *  y si el rojo pasó a amarillo por duración estimada). No recalcula nada: el color y el texto
- *  salen de la misma decisión. */
-export function verdict(s) {
-  const text = {
-    green: 'Sobra margen: no se corta.',
-    yellow: s.capped_by_estimate
-      ? 'Con la duración estimada no llega, pero la estimación puede estar inflada: puede cortarse.'
-      : 'Justo: puede cortarse si la velocidad cae.',
-    red: 'No llega: se va a cortar. Conviene dejarlo bajar un rato antes de ver.',
-    unknown: 'Todavía no se midió la velocidad real.',
-  }[s.light];
-  const g = nf(s.green_margin), y = nf(s.yellow_margin);
-  return { text, scale: `Verde desde ${g}×, amarillo entre ${y} y ${g}×, rojo debajo de ${y}×.` };
 }
 
 /** "recién", "hace 5 min", "hace 3 h", "hace 2 días". */

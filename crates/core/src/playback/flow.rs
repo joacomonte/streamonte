@@ -171,6 +171,10 @@ pub(super) async fn run(
         ),
     }
     slot.row.lock().expect("row").preload_secs = Some(preload_secs);
+    if slot.background {
+        background_download(shared, slot, engine.as_ref(), handle).await;
+        return Ok(());
+    }
 
     // 5. Reproductor (FR-09). Al retomar, mpv arranca unos segundos antes de donde se dejó.
     let url = engine.stream_url(handle, file.index).await?;
@@ -448,8 +452,19 @@ async fn spawn_subtitles(
         .and_then(|e| e.origin.clone());
     video.apply_catalog(origin.as_ref(), file.index);
     let paths = &shared.deps.paths;
-    // Por video, no por torrent: reusa lo que bajó el análisis de cualquier torrent suyo.
-    let cache_dir = paths.subtitle_cache_dir().join(video.video_id());
+    // Con el video, en su carpeta (lo del análisis ya vino adentro al adoptarla). Lo pedido
+    // desde el catálogo antes de reproducir se mueve acá, salvo que ya haya guardados.
+    let video_id = video.video_id();
+    let cache_dir = crate::paths::AppPaths::video_subtitles_dir(&slot.dir, &video_id);
+    let pending = paths.pending_subtitles_dir(&video_id);
+    if pending.is_dir() && !cache_dir.exists() {
+        if let Some(parent) = cache_dir.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        if let Err(e) = std::fs::rename(&pending, &cache_dir) {
+            tracing::warn!("no se pudieron mover los subtítulos del catálogo: {e}");
+        }
+    }
     let (log_shared, log_slot) = (shared.clone(), slot.clone());
     let request = subtitles::session::SessionRequest {
         mpv,

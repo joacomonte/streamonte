@@ -93,6 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         player: Some(player),
         file_index: None,
         audio: None,
+        background: false,
     })
     .await?;
 

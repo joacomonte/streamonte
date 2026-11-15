@@ -85,7 +85,7 @@ impl SubsCtx {
                     video_url: None,
                     torrent_files: Vec::new(), // los de adentro del torrent se leen al reproducir
                     language: lang,
-                    cache_dir: self.paths.subtitle_cache_dir().join(&id),
+                    cache_dir: AppPaths::video_subtitles_dir(&dir, &id),
                     remembered: None,
                     opensubtitles: false, // su cuota diaria queda para cuando se reproduce
                     log,
@@ -93,6 +93,8 @@ impl SubsCtx {
                 .await
             })
             .await;
+        // Otro torrent del mismo video bajó primero: copia a la carpeta de este (no pisa).
+        crate::subtitles::session::save_copy(&AppPaths::video_subtitles_dir(&dir, &id), lang, got);
         // La carpeta pudo cambiar mientras tanto (la reproducción adopta la del análisis).
         let copied = measured_file(&dir, &torrent_name, &file_name)
             .map_or(0, |video_path| copy_next_to_video(&video_path, got));

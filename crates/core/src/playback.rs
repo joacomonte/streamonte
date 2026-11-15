@@ -129,6 +129,9 @@ pub struct StartRequest {
     pub file_index: Option<usize>,
     /// Audio elegido (inglés / latino…). `None` → el de la pausada, o el que traiga por defecto.
     pub audio: Option<crate::audio::AudioPick>,
+    /// "Cargar en background" desde el catálogo: precarga y baja de fondo sin abrir el reproductor
+    /// ni pausar lo que se esté viendo. Reproducir después la retoma con lo ya bajado.
+    pub background: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -173,9 +176,15 @@ struct Slot {
     audio: Option<crate::audio::AudioPick>,
     /// "Seguir bajando" al cerrar el reproductor (`PlaybackAction::KeepDownloading`).
     keep_downloading: tokio::sync::Notify,
+    /// Arrancó con [`StartRequest::background`]: nunca abre reproductor.
+    background: bool,
 }
 
 impl Slot {
+    /// Baja sin reproductor: arrancó como carga en background o ya pasó a bajar de fondo.
+    fn without_player(&self, state: &PlaybackState) -> bool {
+        self.background || *state == PlaybackState::Background
+    }
     /// Única puerta para cambiar `row.state`: pasa a `next` solo si `allowed(estado actual)`.
     /// Devuelve si cambió. No emite: quien llama decide cuándo avisar al panel.
     fn transition(
@@ -246,12 +255,14 @@ impl PlaybackManager {
         // Ya se está reproduciendo ese mismo video: nada que hacer. Si solo baja de fondo (o
         // espera "¿seguir bajando?"), se corta y se retoma abajo con reproductor.
         if let Some(id) = self.shared.active_id_for(&req.key) {
-            if !self.shared.stop_background(id).await {
+            if req.background || !self.shared.stop_background(id).await {
                 return Ok(id);
             }
         }
-        let closing = self.shared.pause_active();
-        self.shared.wait_gone(&closing, CLOSE_WAIT).await;
+        if !req.background {
+            let closing = self.shared.pause_active();
+            self.shared.wait_gone(&closing, CLOSE_WAIT).await;
+        }
 
         let kept = self.shared.take_kept(&req.key);
         let player = match (req.player, &kept) {
@@ -320,6 +331,7 @@ impl PlaybackManager {
             delete_on_stop: AtomicBool::new(false),
             keep_player: AtomicBool::new(false),
             keep_downloading: tokio::sync::Notify::new(),
+            background: req.background,
             resume_from,
             engine: Mutex::new(None),
             position: Mutex::new(resume_from),
@@ -386,6 +398,7 @@ impl PlaybackManager {
                         player: None,
                         file_index: None,
                         audio: None, // el de la pausada
+                        background: false,
                     })
                     .await
                     .map(drop),
@@ -615,7 +628,7 @@ impl Shared {
                 continue;
             }
             if !slot.cancel.is_cancelled() {
-                if state == PlaybackState::Background {
+                if slot.without_player(&state) {
                     continue;
                 }
                 slot.delete_on_stop.store(false, Ordering::Relaxed);
@@ -730,10 +743,7 @@ impl Shared {
             return false;
         };
         let state = slot.row.lock().expect("row").state.clone();
-        if !matches!(
-            state,
-            PlaybackState::Background | PlaybackState::AskAfterClose
-        ) {
+        if !slot.without_player(&state) && state != PlaybackState::AskAfterClose {
             return false;
         }
         slot.cancel.cancel();

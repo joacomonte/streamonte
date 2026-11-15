@@ -43,7 +43,6 @@ impl AppPaths {
             &self.temp_dir,
             &self.log_dir,
             &self.torrent_cache_dir(),
-            &self.subtitle_cache_dir(),
             &self.downloads_dir(),
         ] {
             std::fs::create_dir_all(dir).map_err(|source| crate::CoreError::Io {
@@ -90,7 +89,18 @@ impl AppPaths {
         self.torrent_cache_dir()
             .join(format!("{}.torrent", hash.to_hex()))
     }
-    pub fn subtitle_cache_dir(&self) -> PathBuf {
+    /// Subtítulos de un video, adentro de la carpeta de su descarga (`<dir>/subs/<video_id>`):
+    /// al borrar el video se van con él (2026-11-15: "todo en un mismo lugar").
+    pub fn video_subtitles_dir(dir: &Path, video_id: &str) -> PathBuf {
+        dir.join("subs").join(video_id)
+    }
+    /// Subtítulos pedidos desde el catálogo antes de que exista la carpeta del video; la
+    /// reproducción los mueve adentro de la suya. Sin dueño: la limpieza de restos los borra.
+    pub fn pending_subtitles_dir(&self, video_id: &str) -> PathBuf {
+        self.downloads_dir().join(format!("subs-{video_id}"))
+    }
+    /// Caché vieja (antes de 2026-11-15), una carpeta aparte para todos los subtítulos: se borra.
+    pub fn legacy_subtitle_cache_dir(&self) -> PathBuf {
         self.cache_dir.join("subtitles")
     }
     /// Una subcarpeta por reproducción/medición: `downloads/<hash>-<id>` (FR-12, FR-19).

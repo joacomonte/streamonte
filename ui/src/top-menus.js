@@ -6,7 +6,6 @@ import { play } from './audio-picker.js';
 import { cleanTemp, openLog, stopAllAndClean } from './dialogs.js';
 import { $, el, setStatus, showError } from './dom.js';
 import { ago, humanBytes, mbps } from './format.js';
-import { pbText } from './library-rows.js';
 import { state, titleOf } from './state.js';
 
 const pop = el('div', { id: 'top-pop', class: 'top-pop', role: 'dialog', hidden: true });
@@ -43,6 +42,18 @@ document.addEventListener('pointerdown', (ev) => {
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && open && !document.querySelector('dialog[open]')) closePop(); });
 window.addEventListener('resize', closePop);
 
+/** Estado de una reproducción en una línea. */
+function pbText(pb) {
+  const k = pb.state.kind;
+  if (k === 'fetching-metadata') return 'buscando metadatos…';
+  if (k === 'preparing') return `preparando ${Math.round((pb.state.fraction ?? 0) * 100)} %`;
+  if (k === 'stopping') return 'cerrando…';
+  if (k === 'download-paused') return 'reproduciendo · descarga en pausa';
+  if (k === 'ask-after-close') return 'cerraste el reproductor…';
+  if (k === 'background') return `bajando de fondo · ${Math.floor((pb.progress ?? 0) * 100)} %`;
+  return 'reproduciendo';
+}
+
 const section = (title, ...children) => el('section', { class: 'pop-section' }, el('h4', {}, title), ...children);
 const empty = (text) => el('p', { class: 'pop-empty' }, text);
 
@@ -60,7 +71,7 @@ function copiedAt(iso) {
 async function addRaws(raws) {
   try {
     const n = await api.addSelected(raws);
-    setStatus(n ? `${n} magnet(s) agregado(s): ya se están analizando en Mis magnets.` : 'Esos magnets ya estaban en la lista.');
+    setStatus(n ? `${n} magnet(s) agregado(s): están en Buscar › Pegados.` : 'Esos magnets ya estaban en la lista.');
     clip = await api.clipboardPreview();
     renderClipboard();
   } catch (e) { showError(e); }

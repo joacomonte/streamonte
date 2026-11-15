@@ -20,12 +20,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NOTES: |
-            Mac: the universal .dmg (Apple Silicon and Intel). The first time, right click → Open (the app isn't notarized).
+            Mac: the universal .dmg (Apple Silicon and Intel). The first time macOS blocks it (not notarized): System Settings → Privacy & Security → "Open Anyway".
             Windows: the -setup.exe. If SmartScreen warns, "More info" → "Run anyway".
             Requires mpv installed (https://mpv.io/installation/); if it isn't found, set its path in Settings.
         # The id comes from the create response: a draft isn't findable by its tag until it's published.
         run: |
-          id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" -f tag_name="$GITHUB_REF_NAME" -f name="Torrent Stream $GITHUB_REF_NAME" \
+          id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" -f tag_name="$GITHUB_REF_NAME" -f name="Streamonte $GITHUB_REF_NAME" \
             -F draft=true -f body="$NOTES" --jq .id)
           test -n "$id"
           echo "id=$id" >> "$GITHUB_OUTPUT"

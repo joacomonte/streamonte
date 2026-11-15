@@ -445,7 +445,11 @@ pub fn default_addons() -> Vec<AddonEntry> {
         public("peerflix", "Peerflix", "https://addon.peerflix.mov/manifest.json", None),
         public("comet", "Comet", "https://comet.feels.legal/manifest.json", None),
         public("torrentsdb", "TorrentsDB", "https://torrentsdb.com/manifest.json", None),
-        public("cometa", "Cometa", "https://cometa.stremaddon.net/manifest.json", Some(8_000)),
+        // Apagada por defecto (2026-11-15): no respondía nunca y cada búsqueda la esperaba 8 s.
+        AddonEntry {
+            enabled: false,
+            ..public("cometa", "Cometa", "https://cometa.stremaddon.net/manifest.json", Some(8_000))
+        },
     ]
 }
 

@@ -19,9 +19,7 @@ export const api = {
   readClipboard: () => invoke('library_read_clipboard'),
   addText: (text) => invoke('library_add_text', { text }),
   /** @param {VideoKey} key  la fila (un episodio de un pack es una fila propia) */
-  remove: (key) => invoke('library_remove', { key }),
   clearLibrary: () => invoke('library_clear'),
-  magnet: (hash) => invoke('library_magnet', { hash }),
 
   // Análisis (FR-05–08)
   /** @param {AnalyzeScope} scope */
@@ -29,21 +27,20 @@ export const api = {
   analyzerPause: () => invoke('analyzer_pause'),
   analyzerResume: () => invoke('analyzer_resume'),
   /** "Listo": terminar la medición de velocidad en curso con lo medido. */
-  analyzerFinish: () => invoke('analyzer_finish'),
   /** Pausar / reanudar el análisis de un solo magnet. */
-  analyzerPauseOne: (hash) => invoke('analyzer_pause_one', { hash }),
-  analyzerResumeOne: (hash) => invoke('analyzer_resume_one', { hash }),
   /** "Reiniciar análisis" de uno (rápido o con medición), aunque esté en cola o midiéndose. */
-  analyzerRestart: (hash, quick) => invoke('analyzer_restart', { hash, quick }),
   /** Menú Portapapeles: magnets del historial con fecha, para agregar uno o todos. */
   clipboardPreview: () => invoke('clipboard_preview'),
   /** Agrega solo los magnets elegidos (texto original de cada uno). */
+  remove: (key) => invoke('library_remove', { key }),
   addSelected: (raws) => invoke('library_add_selected', { raws }),
 
   // Reproducción (FR-09–17)
   /** @param {VideoKey} key @param {PlayerKind=} player */
   /** @param {{code:string, aid:?number}=} audio  audio elegido (inglés / latino…) */
   play: (key, player = null, fileIndex = null, audio = null) => invoke('play', { key, player, fileIndex, audio }),
+  /** "Cargar en background" (catálogo): baja de fondo sin reproductor; Reproducir después la retoma. */
+  playBackground: (key) => invoke('play', { key, background: true }),
   /** @param {PlaybackId} id @param {PlaybackAction} action */
   playbackAction: (id, action) => invoke('playback_action', { id, action }),
   playbacks: () => invoke('playbacks_get'),
@@ -81,9 +78,7 @@ export const api = {
   /** FR-42: los streams llegan por el evento catalog-streams. */
   catalogStreams: (kind, videoId) => invoke('catalog_streams', { kind, videoId }),
   catalogStopStreams: () => invoke('catalog_stop_streams'),
-  /** Agrega a Mis magnets (con su origen) y pide metadatos + velocidad. Devuelve las filas. */
-  catalogAnalyze: (kind, videoId, hashes) => invoke('catalog_analyze', { kind, videoId, hashes }),
-  /** Agrega a Mis magnets sin analizar ("Reproducir" desde el catálogo). Devuelve las filas. */
+  /** Agrega a la biblioteca sin analizar ("Reproducir" desde el catálogo). Devuelve las filas. */
   catalogAdd: (kind, videoId, hashes) => invoke('catalog_add', { kind, videoId, hashes }),
   /** Ajustes → Fuentes (FR-41). Las URLs secretas vuelven enmascaradas. */
   catalogAddons: () => invoke('catalog_addons'),

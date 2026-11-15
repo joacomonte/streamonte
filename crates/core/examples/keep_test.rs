@@ -74,6 +74,7 @@ async fn main() {
         player: None,
         file_index: None,
         audio: None,
+        background: false,
     };
 
     println!("== 1. reproducir A ==");

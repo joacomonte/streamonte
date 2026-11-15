@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Root-fix Streamonte</title>
+<style>
+  :root { --bg:#f7f7f8; --card:#fff; --text:#1c1d21; --muted:#5d6170; --border:#e2e4ea;
+          --new:#1f9d55; --mod:#2f6fde; --same:#9aa0ad; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14161b; --card:#1d2027; --text:#e8e9ee; --muted:#9aa0ad; --border:#2c3039; } }
+  body { margin:0; padding:24px 16px; background:var(--bg); color:var(--text); font:15px/1.5 system-ui, sans-serif; }
+  main { max-width:980px; margin:0 auto; display:grid; gap:18px; }
+  h1 { font-size:22px; margin:0; } h2 { font-size:15px; margin:0 0 10px; }
+  p { margin:0; color:var(--muted); }
+  .legend { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+  .box { border:1px solid var(--border); border-radius:14px; padding:16px; background:var(--card); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(270px,1fr)); gap:12px; }
+  .card { border:1px solid var(--border); border-radius:10px; padding:12px; }
+  .card h3 { margin:0 0 8px; font-size:14px; }
+  ul { margin:0; padding-left:0; list-style:none; display:grid; gap:6px; font-size:13.5px; }
+  li { padding-left:16px; position:relative; }
+  li::before { content:""; position:absolute; left:0; top:7px; width:9px; height:9px; border-radius:3px; background:var(--c); }
+  .n { --c:var(--new); } .m { --c:var(--mod); } .s { --c:var(--same); }
+  code { font-size:12.5px; }
+  .flow { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; }
+  .chip { border:1px solid var(--border); border-radius:999px; padding:3px 10px; background:var(--card); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Root-fix de lo sin commitear</h1>
+  <p>Lo de hoy (Buscar, subtítulos por video, embudo + salud, carga en background, quitar Mis magnets) se construyó en capas y por varias sesiones a la vez. Varias reglas quedaron decididas en 3 o 4 lugares (Mbps necesarios, orden de seeders, filtro de resolución + HDR, consulta a trackers) y quedaron comandos y estados que ya nadie usaba. Ahora cada regla vive en un solo lugar y lo huérfano se fue, sin cambiar lo que ve el usuario.</p>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--new)"></span>nuevo</span>
+    <span><span class="dot" style="background:var(--mod)"></span>modificado</span>
+    <span><span class="dot" style="background:var(--same)"></span>ya existía, sin cambios</span>
+  </div>
+
+  <section class="box">
+    <h2>tstream-v2</h2>
+    <div class="grid">
+      <div class="card"><h3>UI · Buscar (ui/src/catalog.js)</h3><ul>
+        <li class="n"><code>neededBps</code>: tamaño ÷ duración, una vez (Pesado, salud y carga en background).</li>
+        <li class="n"><code>knownSeeds</code>: qué número de seeders manda; lo usan el orden y la fila.</li>
+        <li class="n"><code>inScope</code> / <code>setOnlyHdr</code>: resolución + "Solo HDR" en un lugar.</li>
+        <li class="n"><code>scrapeTrackers</code>: consultar trackers y guardar, antes copiado 3 veces.</li>
+        <li class="m"><code>bySeeds</code> reemplaza un objeto de órdenes con una sola clave.</li>
+        <li class="m">Se fueron <code>depthUsed</code> y <code>f.subs</code> (siempre valían lo mismo).</li>
+        <li class="m">Comentarios viejos corregidos (botón 🔍, "Contar seeders").</li>
+      </ul></div>
+      <div class="card"><h3>UI · resto</h3><ul>
+        <li class="m"><code>health-calib.js</code>: comentarios sin "Medir velocidad".</li>
+        <li class="s">app, dialogs, top-menus, api: ya quedaron limpios al quitar Mis magnets.</li>
+      </ul></div>
+      <div class="card"><h3>Núcleo (crates/core)</h3><ul>
+        <li class="n"><code>Slot::without_player</code>: "baja sin reproductor" decidido una vez.</li>
+        <li class="m"><code>playback.rs</code>: pausar al reproducir otro y cortar lo de fondo lo usan.</li>
+        <li class="s">Subtítulos por video, embudo, swarm: revisados, sin cambios.</li>
+      </ul></div>
+      <div class="card"><h3>Cáscara Tauri (src-tauri)</h3><ul>
+        <li class="m">Fuera 5 comandos que solo usaba Mis magnets (pausar/reanudar/reiniciar uno, terminar análisis, magnet).</li>
+        <li class="s">El núcleo conserva esas funciones.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>Sistemas externos</h2>
+    <ul>
+      <li class="s">Trackers, fuentes de torrents, proveedores de subtítulos: sin cambios.</li>
+      <li class="s">Archivos en disco (biblioteca, subtítulos con el video): sin cambios de formato.</li>
+    </ul>
+  </section>
+
+  <section class="box">
+    <h2>Flujo</h2>
+    <div class="flow">
+      <span class="chip">Analizar ▾</span>→<span class="chip">scrapeTrackers (todos)</span>→<span class="chip">inScope + top 15</span>→<span class="chip">catalog_swarm</span>→<span class="chip">knownSeeds / bySeeds</span>→<span class="chip">badges con neededBps</span>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>Al pie</h2>
+    <p>Sin código comentado ni en desuso nuevo. El usuario no debería notar nada. Pendiente a propósito: partir catalog.js (1400 líneas) en módulos, y borrar 4 comandos que ya estaban sin uso antes de hoy.</p>
+  </section>
+</main>
+</body>
+</html>

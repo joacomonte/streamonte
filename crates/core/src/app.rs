@@ -138,19 +138,24 @@ impl AppCore {
             let events = events.clone();
             // Todavía no hay reproducciones de esta sesión.
             let keep = protected_dirs(&paths, HashSet::new(), &library.hashes());
-            tokio::task::spawn_blocking(move || match cleanup.clean_orphans(&keep) {
-                Ok(r) if !r.is_empty() => {
-                    tracing::info!(?r, "restos de la sesión anterior limpiados");
-                    events.emit(CoreEvent::Status {
-                        level: StatusLevel::Info,
-                        message: format!(
-                            "Se limpiaron restos de la sesión anterior ({}).",
-                            human_bytes(r.bytes_freed)
-                        ),
-                    });
+            // Los subtítulos ahora van con cada video: la caché aparte de antes ya no se usa.
+            let legacy_subs = paths.legacy_subtitle_cache_dir();
+            tokio::task::spawn_blocking(move || {
+                let _ = std::fs::remove_dir_all(&legacy_subs);
+                match cleanup.clean_orphans(&keep) {
+                    Ok(r) if !r.is_empty() => {
+                        tracing::info!(?r, "restos de la sesión anterior limpiados");
+                        events.emit(CoreEvent::Status {
+                            level: StatusLevel::Info,
+                            message: format!(
+                                "Se limpiaron restos de la sesión anterior ({}).",
+                                human_bytes(r.bytes_freed)
+                            ),
+                        });
+                    }
+                    Ok(_) => {}
+                    Err(e) => tracing::warn!("limpieza al abrir: {e}"),
                 }
-                Ok(_) => {}
-                Err(e) => tracing::warn!("limpieza al abrir: {e}"),
             });
         }
 
@@ -528,7 +533,13 @@ impl AppCore {
         let cfg = self.config.read().await.clone();
         crate::analyzer::swarm::count(&self.paths, &cfg, magnets, deep, cancel, {
             let events = self.events.clone();
-            move |hash, count| events.emit(CoreEvent::CatalogSwarmCounted { hash, count })
+            move |hash, count, done| {
+                events.emit(if done {
+                    CoreEvent::CatalogSwarmCounted { hash, count }
+                } else {
+                    CoreEvent::CatalogSwarmProgress { hash, count }
+                })
+            }
         })
         .await
     }
@@ -607,7 +618,7 @@ impl AppCore {
             video_url: None,
             torrent_files: Vec::new(),
             language,
-            cache_dir: self.paths.subtitle_cache_dir().join(&id),
+            cache_dir: self.paths.pending_subtitles_dir(&id),
             remembered: None,
             // Lo pidió el usuario: OpenSubtitles completa si hace falta (respeta su cuota diaria).
             opensubtitles: true,
@@ -694,22 +705,6 @@ impl AppCore {
         self.catalog.stop_streams();
         // Corta los conteos de enjambre de ese video; los próximos usan un token nuevo.
         std::mem::take(&mut *self.swarm_cancel.lock().expect("swarm")).cancel();
-    }
-
-    /// "Analizar" desde el catálogo (Q-14: el usuario elige qué medir): lo agrega a *Mis magnets*
-    /// con su origen y pide metadatos + velocidad con el archivo correcto (FR-48, FR-50).
-    pub async fn catalog_analyze(
-        &self,
-        kind: MediaKind,
-        video_id: &str,
-        hashes: Vec<InfoHash>,
-    ) -> Result<Vec<LibraryRowView>> {
-        let added = self.catalog_add(kind, video_id, &hashes).await?;
-        let hashes = added.iter().map(|row| row.entry.info_hash).collect();
-        self.analyzer
-            .enqueue(AnalyzeScope::Selected(hashes))
-            .await?;
-        Ok(added)
     }
 
     /// Candidatos → filas de la biblioteca con `origin` (spec 09 §8.1), sin analizar ("Reproducir"

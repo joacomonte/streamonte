@@ -67,14 +67,9 @@ pub fn run() {
             commands::library_add_text,
             commands::library_remove,
             commands::library_clear,
-            commands::library_magnet,
             commands::analyze,
             commands::analyzer_pause,
             commands::analyzer_resume,
-            commands::analyzer_finish,
-            commands::analyzer_pause_one,
-            commands::analyzer_resume_one,
-            commands::analyzer_restart,
             commands::clipboard_preview,
             commands::library_add_selected,
             commands::play,
@@ -102,7 +97,6 @@ pub fn run() {
             commands::catalog_browse_released,
             commands::catalog_streams,
             commands::catalog_stop_streams,
-            commands::catalog_analyze,
             commands::catalog_add,
             commands::catalog_addons,
             commands::catalog_add_addon,
@@ -112,5 +106,5 @@ pub fn run() {
             commands::catalog_set_exclude_japanese,
         ])
         .run(tauri::generate_context!())
-        .expect("error al iniciar Torrent Stream");
+        .expect("error al iniciar Streamonte");
 }

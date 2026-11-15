@@ -1,4 +1,4 @@
-# Torrent Stream v2
+# Streamonte
 
 App de escritorio (Tauri v2) para reproducir magnets por streaming en mpv, con análisis del swarm,
 limpieza automática y subtítulos. Spec: `C:\Users\Monti\bin\tstream-v2-spec\` (00→08).

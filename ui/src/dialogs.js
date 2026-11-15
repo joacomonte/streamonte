@@ -1,10 +1,10 @@
-// Diálogos de Mis magnets: confirmación (cola), "Ver análisis" (FR-30),
-// log de una reproducción (FR-15), seguir bajando tras cerrar mpv (FR-12c), limpieza (FR-16/19),
+// Diálogos: confirmación (cola), log de una reproducción (FR-15), seguir bajando tras cerrar mpv (FR-12c), limpieza (FR-16/19),
 // Ajustes y cierre con reproducciones activas (FR-17).
 import { api } from './api.js';
 import { $, el, setStatus, showError } from './dom.js';
-import { ago, clock, humanBytes, mbps, verdict } from './format.js';
-import { fullName, state, titleOf } from './state.js';
+import { humanBytes, mbps } from './format.js';
+import { DEFAULT_SEED_MBPS, MIN_SAMPLES, healthCalibration, recalibrate, resetCalibration, setSeedMbps } from './health-calib.js';
+import { state, titleOf } from './state.js';
 
 /** Diálogo de confirmación con botones; devuelve el `value` del botón elegido (o null).
  *  Hay un solo <dialog>: los pedidos se encolan y se muestran de a uno. */
@@ -33,57 +33,6 @@ function showConfirm(title, text, buttons) {
 
 // ---------- "Ver análisis" (FR-30) ----------
 // Veredicto: velocidad real contra lo que consume el video (bitrate = tamaño ÷ duración).
-const LIGHT_LABEL = { green: 'Sobrado', yellow: 'Justo', red: 'Mal', unknown: 'Sin medir' };
-const STATUS_LABEL = {
-  new: 'Sin analizar',
-  scraping: 'Consultando trackers…',
-  scraped: 'Trackers consultados',
-  measuring: 'Midiendo velocidad real…',
-  measured: 'Medido',
-  failed: 'Falló la medición',
-};
-
-function langSummary(e) {
-  const langs = e.languages ?? [];
-  if (!langs.length) return e.live?.audio ? 'sin pistas de audio con idioma' : null;
-  const src = langs[0].confirmed ? '' : ' (según el nombre, sin confirmar)';
-  return langs.map((l) => `${l.label}${l.detail ? ` — ${l.detail}` : ''}`).join('\n') + src;
-}
-
-export function showAnalysis(key) {
-  const e = state.entries.get(key);
-  if (!e) return;
-  const s = e.score;
-  const live = e.live;
-  const row = (k, v) => (v == null || v === '' ? null : el('tr', {}, el('th', {}, k), el('td', {}, String(v))));
-  const status = e.status?.kind ?? 'new';
-  $('#dlg-analysis-title').textContent = fullName(e);
-  $('#dlg-analysis-body').replaceChildren(
-    ...[
-      row('Nombre real del torrent', e.torrent_name ?? live?.torrent_name ?? '(todavía no llegaron los metadatos)'),
-      row('Nombre en el magnet (dn)', e.name),
-      row('Info hash', e.info_hash),
-      row('Archivo de video', live?.file_name),
-      row('Idiomas de audio', langSummary(e)),
-      row('Tamaño', (e.video_size ?? live?.file_size) ? humanBytes(e.video_size ?? live.file_size) : null),
-      row('Duración', s.duration ? `${s.duration.estimated ? '~' : ''}${clock(s.duration.secs, true)}${s.duration.estimated ? ' (estimada: falta medir)' : ' (real)'}` : null),
-      row('Seeders / leechers (trackers)', e.scrape ? `${e.scrape.seeders} / ${e.scrape.leechers} · respondieron ${e.scrape.trackers_ok} tracker(s) ${ago(e.scrape.scraped_at)}` : 'sin consultar'),
-      row('Seeders conectados (reales)', live ? live.seeds ?? 0 : null),
-      row('Peers conectados al medir', live?.peers),
-      row('Precisión', live ? (live.partial ? `Parcial: ${Math.round(live.measured_secs)} s medidos (se pausó el análisis)` : `Completa: ${Math.round(live.measured_secs || 0)} s medidos`) : null),
-      row('Velocidad real (promedio / máxima)', live ? `${mbps(live.avg_speed_bps)} / ${mbps(live.max_speed_bps)}` : 'sin medir'),
-      row('Velocidad calibrada', s.effective_speed_bps != null && s.speed_factor !== 1 ? `${mbps(s.effective_speed_bps)} (×${s.speed_factor.toFixed(2).replace('.', ',')} según tus reproducciones)` : null),
-      row('Velocidad que necesita', s.needed_bps ? mbps(s.needed_bps) : null),
-      row('Margen', s.margin != null ? `${s.margin.toFixed(2).replace('.', ',')}× (verde ≥ ${s.green_margin.toLocaleString('es-AR')} · amarillo ≥ ${s.yellow_margin.toLocaleString('es-AR')})` : null),
-      row('Semáforo', `${LIGHT_LABEL[s.light]}: ${verdict(s).text}`),
-      row('Estado', `${STATUS_LABEL[status] ?? status}${status === 'failed' && e.status.reason ? `: ${e.status.reason}` : ''}`),
-      row('Medido', live ? ago(live.measured_at) : null),
-      row('Agregado', ago(e.added_at)),
-    ].filter(Boolean),
-  );
-  $('#dlg-analysis').showModal();
-}
-
 // ---------- reproducción: después de cerrar mpv y log en vivo ----------
 /** Se cerró mpv sin terminar de bajar: ¿seguir bajando de fondo o pausar? (2026-11-14) */
 export async function askAfterClose(row) {
@@ -163,7 +112,26 @@ export async function openSettings() {
   } catch (e) {
     showError(e);
   }
+  showHealthCalibration();
   $('#dlg-settings').showModal();
+}
+
+// ---------- Ajustes: calibración de la salud estimada (2026-11-15) ----------
+function showHealthCalibration() {
+  const cal = healthCalibration(state.entries.values());
+  $('#set-seed-mbps').value = Math.round(cal.seedMbps * 10) / 10;
+  $('#health-calib-state').textContent = { measured: 'calibrado', manual: 'fijado a mano', default: 'por defecto' }[cal.source];
+  $('#health-calib-detail').textContent = `${cal.n} medición(es) de velocidad útiles${cal.n < MIN_SAMPLES ? ` (con ${MIN_SAMPLES} se calibra solo; hasta entonces ${DEFAULT_SEED_MBPS} Mbps)` : ''}${cal.capMbps ? ` · tope de tu conexión: ~${Math.round(cal.capMbps)} Mbps` : ''}.`;
+}
+
+export function onHealthCalibration(action) {
+  const v = Number($('#set-seed-mbps').value);
+  if (action === 'fix' && !(v > 0)) { setStatus('Poné un número mayor a 0.'); return; }
+  if (action === 'fix') setSeedMbps(v);
+  if (action === 'recalibrate') recalibrate();
+  if (action === 'reset') resetCalibration();
+  showHealthCalibration();
+  setStatus('Salud estimada: se aplica al volver a dibujar el catálogo.');
 }
 
 // ADR-30: entrantes / UPnP. El motor se crea por reproducción, así que aplica en la próxima.
@@ -198,7 +166,7 @@ export async function onConfirmClose(count) {
   if (closeAsking) return;
   closeAsking = true;
   const choice = await confirmDialog(
-    'Cerrar Torrent Stream',
+    'Cerrar Streamonte',
     `Hay ${count} reproducción(es) activa(s). En los dos casos la descarga queda pausada y guardada para retomarla al volver a abrir la app.`,
     [
       { label: 'Cancelar', value: null },

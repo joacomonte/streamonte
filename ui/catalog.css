@@ -1,7 +1,4 @@
 /* Catálogo (F4b, spec 09 §11). Separado de styles.css: usa sus variables y .lang/.dialog/.empty. */
-.tabs { display: flex; gap: 4px; margin-right: auto; margin-left: 16px; }
-.tab { background: none; border-color: transparent; color: var(--muted); }
-.tab.active { color: var(--text); background: var(--bg); border-color: var(--border); font-weight: 600; }
 
 /* Grilla a la izquierda; al elegir un título, panel de opciones a la derecha (2026-11-15). */
 .catalog { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; background: var(--bg); }
@@ -18,7 +15,6 @@
 .cat-search input[type="search"] { width: 100%; box-sizing: border-box; font-size: 15px; padding: 12px 20px 12px 46px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); outline: none; transition: border-color .15s, box-shadow .15s; }
 .cat-search input[type="search"]::placeholder { color: var(--muted); }
 .cat-search input[type="search"]:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
-
 
 /* Cards grandes: menos por fila (2026-11-15). */
 .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 28px; transition: opacity .25s, filter .25s; }
@@ -42,7 +38,6 @@
 }
 .cat-noposter-title { font-size: 20px; font-weight: 800; line-height: 1.1; color: #fff; text-wrap: balance; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
 .cat-noposter-year { font-size: 13px; color: rgb(255 255 255 / .7); font-weight: 600; }
-.chip.active { background: var(--accent); color: var(--accent-text); border-color: transparent; }
 
 /* Panel lateral: migas de pan (serie) + temporadas / episodios / opciones. */
 .cat-side { display: none; }
@@ -50,7 +45,6 @@
 .side-head { display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
 .side-head .spacer { flex: 1; }
 .side-body { overflow: auto; padding: 16px 18px; min-height: 0; flex: 1; }
-
 
 .cat-badges { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
 .cat-hdr { color: var(--text); border-color: var(--border-strong); }
@@ -158,8 +152,10 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 /* Opciones: encabezado sutil ordenable + filas grandes (2026-11-15). */
 .cat-options { display: grid; gap: 10px; }
 .cat-opt {
-  display: grid; align-items: center; gap: 14px;
-  grid-template-columns: minmax(96px, auto) 120px minmax(0, 1fr) auto;
+  display: grid; align-items: center; gap: 6px 14px;
+  /* Seeds + leechers no entran en una columna fija junto a los badges (se pisaban): los badges
+     van debajo de los números, en la misma columna. */
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr) auto;
   padding: 14px 18px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border);
   transition: border-color .15s var(--ease), background .15s var(--ease);
 }
@@ -197,10 +193,13 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 /* Fila de opción sin solapes (2026-11-15): velocidad debajo del peso; seeders como botón. */
 .cat-size-cell { display: grid; gap: 2px; min-width: 0; }
 .cat-size-cell .cat-speed { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.cat-size-cell .cat-speed.bg-green { color: var(--green); }
+.cat-size-cell .cat-speed.bg-yellow { color: var(--yellow); }
+.cat-size-cell .cat-speed.bg-red { color: var(--red); }
+.cat-icon-btn.on { color: var(--accent); border-color: var(--accent); }
 .cat-seeds-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border-radius: 999px; border: 1px solid transparent; background: none; font-size: 16px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; justify-self: start; }
 .cat-seeds-btn:hover { border-color: var(--border); color: var(--text); }
 .cat-seeds-btn.checked { color: var(--text); }
-.cat-seeds-btn .cat-seeds-check { display: inline-flex; color: var(--green); }
 .cat-seeds-hint { display: inline-flex; opacity: 0; transition: opacity .15s var(--ease); }
 .cat-seeds-btn:hover .cat-seeds-hint, .cat-seeds-btn:focus-visible .cat-seeds-hint { opacity: .8; }
 .cat-seeds-btn.busy .cat-seeds-hint { opacity: 1; animation: spin 1s linear infinite; }
@@ -215,7 +214,18 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-count-all.busy { color: var(--muted); }
 .cat-count-done { font-size: 12px; color: var(--muted); }
 .cat-count-all:disabled { opacity: 1; cursor: progress; }
-.cat-leechers { font-size: 12px; font-weight: 600; color: var(--muted); opacity: .85; }
+.cat-seeds-btn { height: auto; min-height: 44px; padding: 4px 10px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; border-radius: 12px; }
+.cat-stat { display: inline-flex; align-items: baseline; gap: 5px; line-height: 1.1; }
+.cat-stat > [aria-hidden] { align-self: center; }
+.cat-seeds-n { font-size: 18px; font-weight: 700; }
+.cat-stat-label { font-size: 12px; font-weight: 500; color: var(--muted); }
+.cat-stat-sub { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; line-height: 1.2; color: var(--muted); }
+.cat-stat-sub:empty { display: none; }
+.cat-stat-sub > span + span::before { content: "·"; margin-right: 6px; color: var(--muted); }
+.cat-depth-chip { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; color: var(--green); }
+/* Un solo verde: analizado (a cualquier profundidad, dice cuál el chip). Sin analizar: gris. */
+.cat-seeds-btn .cat-seeds-n { color: var(--muted); }
+.cat-seeds-btn.analyzed .cat-seeds-n { color: var(--green); }
 .cat-seeds-btn.dead { color: var(--muted); opacity: .7; }
 .cat-seeds-dead { font-size: 12px; color: var(--red); opacity: .8; }
 /* Subtítulos desde el catálogo (2026-11-15). */
@@ -251,7 +261,14 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
   transition: transform .2s var(--out), border-color .2s var(--ease), background .2s var(--ease), box-shadow .2s var(--ease);
 }
 .wz-choice:hover { transform: translateY(-2px); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg)); box-shadow: 0 14px 30px rgb(0 0 0 / .3); }
-.wz-choice.primary { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.wz-choice.primary, .wz-choice.primary:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); background: color-mix(in srgb, var(--accent) 8%, var(--bg)); color: var(--text); }
+/* Pegados del portapapeles, arriba del catálogo (2026-11-15). */
+.cat-pasted { margin-bottom: 28px; }
+.cat-pasted h3 { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cat-pasted ul { display: grid; gap: 8px; }
+.cat-pasted-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.cat-pasted-name { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-pasted-size { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .wz-choice-text { display: grid; gap: 4px; }
 .wz-choice-text b { font-size: 20px; font-weight: 800; }
 .wz-choice-text span { font-size: 13px; color: var(--muted); }
@@ -310,6 +327,25 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 @media (prefers-reduced-motion: reduce) { .cat-seeds-btn.flash, .cat-opt.new-best, .cat-opt.new-best .cat-best-tag { animation: none; } }
 .cat-opt .lang.cat-heavy { color: var(--yellow, #d29922); border-color: color-mix(in srgb, var(--yellow, #d29922) 40%, transparent); background: color-mix(in srgb, var(--yellow, #d29922) 10%, transparent); }
 .cat-depth-box { justify-self: start; }
+.cat-opt > .cat-size-cell { grid-row: 1 / 3; }
+.cat-opt > .cat-depth-box { grid-column: 2; grid-row: 1; }
+.cat-opt > .cat-badges { grid-column: 2; grid-row: 2; }
+.cat-opt > .cat-badges:empty { display: none; }
+.cat-opt > .cat-opt-actions { grid-column: 3; grid-row: 1 / 3; }
 .cat-depth-menu { min-width: 210px; }
 .cat-depth-menu button { display: flex; justify-content: space-between; align-items: center; gap: 12px; height: 34px; }
 .cat-depth-menu small { color: var(--muted); font-weight: 500; font-size: 11px; }
+/* Descartados por el embudo del análisis (motivo en el tooltip de seeders) y salud estimada. */
+.cat-opt.skipped { opacity: .6; }
+.cat-opt.skipped:hover, .cat-opt.skipped:focus-within { opacity: 1; }
+.cat-opt .lang.cat-health-great { color: var(--bg); border-color: var(--green); background: var(--green); font-weight: 700; }
+.cat-opt .lang.cat-health-good { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
+.cat-opt .lang.cat-health-fair { color: var(--yellow, #d29922); border-color: color-mix(in srgb, var(--yellow, #d29922) 40%, transparent); background: color-mix(in srgb, var(--yellow, #d29922) 10%, transparent); }
+.cat-opt .lang.cat-health-risky { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); background: color-mix(in srgb, var(--red) 10%, transparent); }
+/* Contando en vivo (2026-11-15): punto que late, texto en acento y un brillo que recorre la fila. */
+.cat-stat-sub.cat-live { color: var(--accent); gap: 6px; }
+.cat-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: cat-live-pulse 1.2s ease-in-out infinite var(--live-phase, 0s); }
+@keyframes cat-live-pulse { 0%, 100% { opacity: .35; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+.cat-opt:has(.cat-seeds-btn.busy) { background-image: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--accent) 9%, transparent) 50%, transparent 70%); background-size: 250% 100%; animation: cat-live-sweep 1.8s linear infinite var(--live-phase, 0s); }
+@keyframes cat-live-sweep { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+@media (prefers-reduced-motion: reduce) { .cat-live-dot, .cat-opt:has(.cat-seeds-btn.busy) { animation: none; } }

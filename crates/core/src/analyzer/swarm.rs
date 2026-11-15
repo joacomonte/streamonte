@@ -6,7 +6,8 @@
 //! Un pedido = un motor propio para todos sus torrents (deseleccionados: solo metadatos y
 //! conexiones), con `CONCURRENCY` contando a la vez: apenas termina uno entra el siguiente (sin
 //! esperar al más lento de una tanda). Cortable con `cancel`; al terminar o cortar se borran las
-//! carpetas descartables. Cada resultado se avisa apenas sale (`on_count`).
+//! carpetas descartables. Cada resultado se avisa apenas sale (`on_count` con `done = true`), y
+//! mientras cuenta, cada cambio (`done = false`): la UI lo muestra en vivo.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -49,16 +50,19 @@ pub struct SwarmCount {
 }
 
 /// Cuenta el enjambre de cada magnet. Falta en el resultado = no se pudo (sin metadatos a tiempo,
-/// o se cortó). Nunca deja el motor ni las carpetas de fondo.
+/// o se cortó). Nunca deja el motor ni las carpetas de fondo. `on_count(hash, count, done)`:
+/// parcial mientras cuenta (sin metadatos todavía: `reached = false` y los peers de la DHT) y el
+/// final con `done = true`.
 pub async fn count(
     paths: &AppPaths,
     cfg: &Config,
     magnets: Vec<Magnet>,
     deep: bool,
     cancel: CancellationToken,
-    on_count: impl Fn(InfoHash, SwarmCount) + Send + Sync + 'static,
+    on_count: impl Fn(InfoHash, SwarmCount, bool) + Send + Sync + 'static,
 ) -> HashMap<InfoHash, SwarmCount> {
     let window = if deep { WINDOW_DEEP } else { WINDOW };
+    let on_count = Arc::new(on_count);
     let cleanup = Cleanup::new(paths.clone());
     let mut engine_cfg = cfg.engine.clone();
     engine_cfg.max_connections = MAX_PEERS;
@@ -82,19 +86,35 @@ pub async fn count(
     let slots = Arc::new(tokio::sync::Semaphore::new(CONCURRENCY));
     let mut tasks = tokio::task::JoinSet::new();
     for (m, dir) in magnets.into_iter().zip(dirs.clone()) {
-        let (engine, paths, cfg, slots) =
-            (engine.clone(), paths.clone(), cfg.clone(), slots.clone());
+        let (engine, paths, cfg, slots, report) = (
+            engine.clone(),
+            paths.clone(),
+            cfg.clone(),
+            slots.clone(),
+            on_count.clone(),
+        );
         tasks.spawn(async move {
             let _slot = slots.acquire_owned().await.ok()?;
             let cleanup = Cleanup::new(paths.clone());
-            count_one(engine.as_ref(), &paths, &cleanup, &cfg, &m, &dir, window).await
+            let progress = |n: SwarmCount| report(m.info_hash, n, false);
+            count_one(
+                engine.as_ref(),
+                &paths,
+                &cleanup,
+                &cfg,
+                &m,
+                &dir,
+                window,
+                &progress,
+            )
+            .await
         });
     }
     let mut found = HashMap::new();
     loop {
         tokio::select! {
             next = tasks.join_next() => match next {
-                Some(Ok(Some((hash, n)))) => { on_count(hash, n); found.insert(hash, n); }
+                Some(Ok(Some((hash, n)))) => { on_count(hash, n, true); found.insert(hash, n); }
                 Some(_) => {}
                 None => break,
             },
@@ -108,6 +128,7 @@ pub async fn count(
     found
 }
 
+#[allow(clippy::too_many_arguments)] // todos son del pedido; agruparlos solo movería el ruido
 async fn count_one(
     engine: &dyn TorrentEngine,
     paths: &AppPaths,
@@ -116,6 +137,7 @@ async fn count_one(
     magnet: &Magnet,
     dir: &std::path::Path,
     (min_secs, max_secs, stable_secs): (u64, u64, u64),
+    progress: &(dyn Fn(SwarmCount) + Sync),
 ) -> Option<(InfoHash, SwarmCount)> {
     let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg)
         .await
@@ -126,6 +148,7 @@ async fn count_one(
         let meta = engine.metadata(handle);
         tokio::pin!(meta);
         let start = Instant::now();
+        let mut dht_peers = 0;
         let got = loop {
             tokio::select! {
                 r = &mut meta => break r.ok(),
@@ -134,8 +157,15 @@ async fn count_one(
                     if secs >= METADATA_SECS {
                         break None;
                     }
+                    let waiting = engine.waiting_on(handle).await;
+                    if let Some(crate::engine::Waiting::Metadata { peers: Some(n) }) = waiting {
+                        if n as u32 != dht_peers {
+                            dht_peers = n as u32;
+                            progress(SwarmCount { seeds: 0, peers: dht_peers, reached: false });
+                        }
+                    }
                     if secs >= DEAD_SECS
-                        && matches!(engine.waiting_on(handle).await, Some(crate::engine::Waiting::Metadata { peers: Some(0) }))
+                        && matches!(waiting, Some(crate::engine::Waiting::Metadata { peers: Some(0) }))
                     {
                         break None;
                     }
@@ -162,6 +192,7 @@ async fn count_one(
             }
         }
         let mut best = SwarmCount { seeds: 0, peers: 0, reached: true };
+        progress(best); // ya hay metadatos: empieza a contar
         let mut last_rise = 0;
         for sec in 1..=max_secs {
             tokio::time::sleep(Duration::from_secs(1)).await;
@@ -170,9 +201,10 @@ async fn count_one(
             {
                 if s.peers > best.peers || s.seeds > best.seeds {
                     last_rise = sec;
+                    best.peers = best.peers.max(s.peers);
+                    best.seeds = best.seeds.max(s.seeds);
+                    progress(best);
                 }
-                best.peers = best.peers.max(s.peers);
-                best.seeds = best.seeds.max(s.seeds);
             }
             if sec >= min_secs && sec - last_rise >= stable_secs {
                 break;

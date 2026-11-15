@@ -26,7 +26,7 @@ use crate::player::{MpvControl, MpvEvent};
 use crate::video_key::VideoKey;
 
 // La búsqueda vive en `fetch`; se re-exporta acá porque el analizador la llama por este camino.
-pub use super::fetch::{fetch, Fetch, LogFn};
+pub use super::fetch::{fetch, save_copy, Fetch, LogFn};
 
 /// Teclas de la app (FR-25, FR-26). `Z`/`X` en mayúscula = Shift.
 const KEY_SECTION: &str = "tstream-subtitulos";
@@ -62,8 +62,8 @@ pub struct SessionRequest {
     pub language: SubtitleLanguage,
     /// Audio ya en español (eligió Latino): se cargan igual pero arrancan ocultos (S los muestra).
     pub start_hidden: bool,
-    /// Carpeta de caché de ESTE video (`subtitle_cache_dir()/<video_id>`, compartida con los otros
-    /// torrents del mismo video y con el análisis).
+    /// Subtítulos de ESTE video, en la carpeta de su descarga
+    /// ([`crate::paths::AppPaths::video_subtitles_dir`]).
     pub cache_dir: PathBuf,
     pub memory_file: PathBuf,
     pub log: LogFn,

@@ -62,10 +62,6 @@ pub async fn library_remove(core: Core<'_>, key: VideoKey) -> CmdResult<()> {
 pub async fn library_clear(core: Core<'_>) -> CmdResult<()> {
     Ok(core.clear_library().await?)
 }
-#[tauri::command]
-pub async fn library_magnet(core: Core<'_>, hash: InfoHash) -> CmdResult<String> {
-    Ok(core.magnet_of(hash).await?)
-}
 
 // ----- Análisis -----
 #[derive(Debug, Deserialize)]
@@ -106,28 +102,12 @@ pub async fn analyzer_resume(core: Core<'_>) -> CmdResult<()> {
     Ok(core.analyzer_resume().await?)
 }
 #[tauri::command]
-pub async fn analyzer_pause_one(core: Core<'_>, hash: InfoHash) -> CmdResult<()> {
-    Ok(core.analyzer_pause_one(hash).await?)
-}
-#[tauri::command]
-pub async fn analyzer_resume_one(core: Core<'_>, hash: InfoHash) -> CmdResult<()> {
-    Ok(core.analyzer_resume_one(hash).await?)
-}
-#[tauri::command]
-pub async fn analyzer_restart(core: Core<'_>, hash: InfoHash, quick: bool) -> CmdResult<()> {
-    Ok(core.analyzer_restart(hash, quick).await?)
-}
-#[tauri::command]
 pub async fn clipboard_preview(core: Core<'_>) -> CmdResult<ClipboardPreview> {
     Ok(core.clipboard_preview().await?)
 }
 #[tauri::command]
 pub async fn library_add_selected(core: Core<'_>, raws: Vec<String>) -> CmdResult<usize> {
     Ok(core.add_selected_magnets(raws).await?)
-}
-#[tauri::command]
-pub async fn analyzer_finish(core: Core<'_>) -> CmdResult<()> {
-    Ok(core.analyzer_finish().await?)
 }
 
 // ----- Reproducción -----
@@ -138,6 +118,7 @@ pub async fn play(
     player: Option<PlayerKind>,
     file_index: Option<usize>,
     audio: Option<tstream_core::audio::AudioPick>,
+    background: Option<bool>,
 ) -> CmdResult<PlaybackId> {
     Ok(core
         .play(StartRequest {
@@ -146,6 +127,7 @@ pub async fn play(
             player,
             file_index,
             audio,
+            background: background.unwrap_or(false),
         })
         .await?)
 }
@@ -296,15 +278,6 @@ pub async fn catalog_streams(core: Core<'_>, kind: MediaKind, video_id: String) 
 #[tauri::command]
 pub fn catalog_stop_streams(core: Core<'_>) {
     core.catalog_stop_streams();
-}
-#[tauri::command]
-pub async fn catalog_analyze(
-    core: Core<'_>,
-    kind: MediaKind,
-    video_id: String,
-    hashes: Vec<InfoHash>,
-) -> CmdResult<Vec<LibraryRowView>> {
-    Ok(core.catalog_analyze(kind, &video_id, hashes).await?)
 }
 #[tauri::command]
 pub async fn catalog_add(

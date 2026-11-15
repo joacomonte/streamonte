@@ -1,12 +1,13 @@
 // Catálogo (F4b, spec 09 §11): Buscar / Explorar → al tocar una película o serie se abre un panel
 // a la derecha (pedido 2026-11-15). Película: sus opciones. Serie: Serie › Temporada › Episodio ›
-// opciones, como migas de pan. Cada opción: Analizar (va a Mis magnets y mide) o Reproducir.
+// opciones, como migas de pan. Cada opción: análisis rápido, cargar en background o Reproducir.
 // Todo texto que viene de Cinemeta o de los addons entra como texto, nunca como HTML (NFR-24).
 
 import { api, onCoreEvent } from './api.js';
 import { play } from './audio-picker.js';
 import { $, el, icon, setStatus, showError as reportError } from './dom.js';
 import { humanBytes, mbps, nf1 } from './format.js';
+import { addBgSample, healthCalibration } from './health-calib.js';
 import { state as lib } from './state.js';
 
 /** Errores del catálogo: solo en la barra de estado (no en la burbuja) y sin los "Cancelado." de
@@ -20,7 +21,7 @@ const HDR_TIP = {
   DV: 'Dolby Vision: HDR dinámico de Dolby. En pantallas sin Dolby Vision puede verse con colores raros (verde/violeta).',
 };
 /** Audio (pedido 2026-11-15): solo el latino, con badge LAT; los demás idiomas no se muestran. Lo que dice
- *  la fuente va en gris hasta que el análisis en Mis magnets lo confirma con las pistas reales. */
+ *  la fuente va en gris hasta que el análisis rápido lo confirma con las pistas reales. */
 function latBadge(c, badge) {
   if (!c.audio.includes('lat')) return null;
   const confirmed = rowsOf(c.info_hash).some((e) => e.live?.audio?.length);
@@ -41,20 +42,12 @@ const state = {
   // Panel lateral: lo que se eligió. Serie: `meta` (episodios) → `season` → `episode`/`videoId`.
   side: null,             // {kind, id, name, meta, season, episode, videoId}
   update: null,           // último StreamsUpdate del video del panel
-  library: new Map(),     // clave de video → fila de Mis magnets (semáforo, velocidad)
+  library: new Map(),     // clave de video → fila de la biblioteca del núcleo
 };
 let searchSeq = 0;
 /** El último panel pedido gana: abrir otro o cerrarlo invalida la ficha pendiente. */
 let sideSeq = 0;
 let searchTimer = null;
-
-// ---------- pestañas ----------
-function showTab(tab) {
-  document.querySelectorAll('.tab[data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
-  $('.library').hidden = tab !== 'library';
-  $('#catalog').hidden = tab !== 'catalog';
-  if (tab === 'catalog') $('#cat-q').focus();
-}
 
 // ---------- búsqueda (FR-36) ----------
 function onQueryInput() {
@@ -293,7 +286,7 @@ function onStreams(update) {
   renderStreamsOnly();
 }
 
-/** Filas de Mis magnets de ese torrent (una por episodio de un pack; el análisis es del torrent). */
+/** Filas de la biblioteca de ese torrent (una por episodio de un pack; el análisis es del torrent). */
 function rowsOf(hash) {
   return [...state.library.values()].filter((e) => e.info_hash === hash);
 }
@@ -315,14 +308,18 @@ function seedsOf(c) {
   return v < 0 ? null : v;
 }
 
-/** Orden de las opciones (pedido 2026-11-15): por seeders (o por peso, tocando la columna). */
-const SORTS = {
-  seeds: (a, b) => (rankSeeds(b) ?? -1) - (rankSeeds(a) ?? -1) || (leechersOf(b) ?? -1) - (leechersOf(a) ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0),
-};
+/** Orden de las opciones: analizadas primero, después por seeders, leechers y peso. */
+const bySeeds = (a, b) => tierOf(b) - tierOf(a) || (knownSeeds(b) ?? -1) - (knownSeeds(a) ?? -1) || (leechersOf(b) ?? -1) - (leechersOf(a) ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0);
 
-/** Seeders para ordenar (2026-11-15): lo chequeado manda (contado a mano en los trackers o visto
- *  al analizar), aunque sea 0; sin chequear, lo que dice la fuente. */
-function rankSeeds(c) {
+/** Grupo para ordenar (2026-11-15): 2 = analizado a fondo (va siempre arriba), 1 = el resto
+ *  (trackers, fuente o una medición vieja de la biblioteca), 0 = nadie respondió al analizarlo. */
+function tierOf(c) {
+  const n = counted.get(c.info_hash);
+  return !n ? 1 : n.reached === false ? 0 : 2;
+}
+/** Seeders que se saben de una opción, de lo más confiable a lo menos: contados al analizar
+ *  (aunque sea 0), medidos al reproducir o cargar, según los trackers y, por último, la fuente. */
+function knownSeeds(c) {
   return counted.get(c.info_hash)?.seeds ?? rowsOf(c.info_hash).find((e) => e.live)?.live.seeds
     ?? trackerCounted.get(c.info_hash)?.seeders ?? seedsOf(c);
 }
@@ -334,6 +331,9 @@ function leechersOf(c) {
 }
 
 let onlyHdr = safeGet('tstream.catalog.onlyHdr') === '1';
+function setOnlyHdr(v) { onlyHdr = v; safeSet('tstream.catalog.onlyHdr', v ? '1' : '0'); }
+/** Lo que entra en un análisis: esa resolución (o todas, sin `res`) y, si se pidió, solo HDR. */
+const inScope = (c, res) => (!res || resKey(c) === res) && (!onlyHdr || c.hdr.length);
 
 /** Arriba de la lista (2026-11-15): contar seeders, subtítulos del video y el filtro HDR.
  *  La lista se ordena siempre por seeders. */
@@ -343,14 +343,14 @@ function optionsHead() {
   const deepRunning = state.side?.flow?.deep === 'run';
   // "Analizar ▾" (2026-11-15): (re)analiza todas las del grupo abierto con la profundidad elegida.
   const res = openRes || state.side?.flow?.res || null;
-  const scope = (state.update?.candidates ?? []).filter((c) => (!res || resKey(c) === res) && (!onlyHdr || c.hdr.length)).map((c) => c.info_hash);
+  const scope = (state.update?.candidates ?? []).filter((c) => inScope(c, res)).map((c) => c.info_hash);
   return el('div', { class: 'cat-opt-head' },
     deepRunning ? null : depthMenu('all', 'cat-analyze-all',
       el('button', {
         id: 'cat-analyze-all', class: 'cat-count-all', 'aria-haspopup': 'menu', 'aria-expanded': String(depthOpen === 'all'), onclick: toggleDepth('all'),
         title: `Analizar de nuevo las ${scope.length} opciones${res ? ` de ${resLabel(res)}` : ''}: elegí qué tan a fondo. No baja el video.`,
       }, icon('refresh', 13), 'Analizar', el('span', { class: 'cat-subs-caret', 'aria-hidden': 'true' }, '▾')),
-      scope.length, (depth) => reanalyze(scope, depth, res)),
+      (depth) => reanalyze(scope, depth, res)),
     deepRunning ? deepProgress()
       : analyzing ? el('span', { id: 'cat-analyzing', class: 'cat-analyzing', role: 'status' },
         el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' }), `Analizando ${analyzing}`) : null,
@@ -359,24 +359,39 @@ function optionsHead() {
     el('button', {
       id: 'cat-only-hdr', class: `cat-hdr-filter ${onlyHdr ? 'active' : ''}`, 'aria-pressed': String(onlyHdr),
       title: 'Mostrar solo HDR / Dolby Vision',
-      onclick: () => { onlyHdr = !onlyHdr; safeSet('tstream.catalog.onlyHdr', onlyHdr ? '1' : '0'); renderStreamsOnly(); },
+      onclick: () => { setOnlyHdr(!onlyHdr); renderStreamsOnly(); },
     }, 'Solo HDR'));
 }
 
-/** Progreso del análisis del asistente sobre la lista: "Contando 12 de 51" con barra. */
-function deepProgress() {
-  const f = state.side.flow;
-  const scope = (state.update?.candidates ?? []).filter((c) => (!f.res || resKey(c) === f.res) && (!onlyHdr || c.hdr.length) && !skipped.has(c.info_hash));
-  const done = scope.filter((c) => counted.has(c.info_hash)).length;
-  return el('span', { id: 'cat-analyzing', class: 'cat-analyzing', role: 'status' },
-    el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' }), `Contando ${done} de ${scope.length}`,
-    el('span', { class: 'cat-progress' }, el('i', { style: `width:${Math.round((done / Math.max(1, scope.length)) * 100)}%` })));
+/** Etapa del embudo en curso (`runDeep`): "Etapa 2/2 · a fondo 7 de 25" y avance total 0–1. */
+function stageStatus(f) {
+  const now = f.stage ?? 1;
+  const n = f.stageHashes?.length ?? 0;
+  const done = f.stageHashes?.filter((h) => stageDone.has(h)).length ?? 0;
+  const what = now === 1 ? 'consultando trackers' : `a fondo ${done} de ${n}`;
+  return { text: `Etapa ${now}/2 · ${what}`, frac: (now - 1 + (n ? done / n : 0)) / 2 };
 }
 
-/** Seeders contados a mano en esta sesión ("Contar seeders"): hash → resultado del scrape. */
+/** Progreso del análisis del asistente sobre la lista: etapa del embudo con barra. */
+function deepProgress() {
+  const { text, frac } = stageStatus(state.side.flow);
+  return el('span', { id: 'cat-analyzing', class: 'cat-analyzing', role: 'status' },
+    el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' }), text,
+    el('span', { class: 'cat-progress' }, el('i', { style: `width:${Math.round(frac * 100)}%` })));
+}
+
+/** Contados al analizar en esta sesión (conectándose al enjambre): hash → SwarmCount. */
 const counted = new Map();
 /** Análisis rápido: hash → {seeders, leechers, trackers_ok} según los trackers (sin ✓: no es real). */
 const trackerCounted = new Map();
+/** Pregunta a los trackers por esos hashes y guarda lo que respondan. `false` si mientras tanto se
+ *  cambió de video (el resultado no se usa). Un error se propaga a quien llama. */
+async function scrapeTrackers(hashes, video) {
+  const found = await api.catalogScrape(hashes);
+  if (state.side?.videoId !== video) return false;
+  for (const [h, r] of Object.entries(found)) trackerCounted.set(h, r);
+  return true;
+}
 /** Subtítulos bajados desde el catálogo en esta sesión, por VIDEO (película o episodio, no por
  *  torrent): videoId → [{provider, language, release_name}]. */
 const subsFound = new Map();
@@ -390,27 +405,114 @@ document.addEventListener('click', (ev) => {
 let subsLang = safeGet('tstream.catalog.subsLang') === 'en' ? 'en' : 'es';
 /** Hashes con un recuento en curso: el spinner sobrevive a los redibujos (varios a la vez). */
 const counting = new Set();
+/** Conteo parcial de los que están contando (evento `catalog-swarm-progress`), hash → SwarmCount. */
+const liveCount = new Map();
+let liveRender = null;
 /** ▶ tocado: info_hash → `key` del video (null mientras se agrega). Spinner hasta que la
  *  reproducción arranca o falla (evento `playback-updated`), no solo hasta que vuelve el invoke. */
 const starting = new Map();
 const PB_STARTING = new Set(['fetching-metadata', 'preparing']);
 
-/** Una opción, de lo más barato a lo más caro (2026-11-15), sin salir del catálogo:
- *  seeders (tocar = contarlos ya en los trackers) · 🔍 análisis rápido (metadatos, duración e
- *  idiomas reales) · ⏱ velocidad + precarga · ▶ reproducir. */
 /** "Pesado" (2026-11-15): solo una precaución, no cambia el orden. Mbps que hay que bajar
  *  sostenidos para verlo sin cortes = tamaño ÷ duración. Los packs (varios episodios) no aplican. */
+/** Bytes/s que hay que bajar sostenidos para verlo sin cortes = tamaño ÷ duración. `null` sin
+ *  duración o sin tamaño, y en packs (varios episodios en un archivo no tienen una duración). */
+function neededBps(c) {
+  const min = state.side?.runtime;
+  return min && c.size_bytes && !c.is_pack ? c.size_bytes / (min * 60) : null;
+}
+const toMbps = (bps) => (bps * 8) / 1e6;
 const HEAVY_MBPS = 35; // un remux 4K anda en 60–80; un 4K web en 15–25; un 1080p en 5–10
 function heavyBadge(c, badge) {
-  const min = state.side?.runtime;
-  if (!min || !c.size_bytes || c.is_pack) return null;
-  const need = (c.size_bytes * 8) / (min * 60) / 1e6;
-  if (need < HEAVY_MBPS) return null;
-  return badge('Pesado', 'cat-heavy', `Necesita ~${Math.round(need)} Mbps sostenidos (${humanBytes(c.size_bytes)} en ${min} min). Con pocos seeders puede cortarse: conviene medir la velocidad (⏱) o elegir uno más liviano.`);
+  const bps = neededBps(c);
+  if (!bps || toMbps(bps) < HEAVY_MBPS) return null;
+  const need = toMbps(bps);
+  return badge('Pesado', 'cat-heavy', `Necesita ~${Math.round(need)} Mbps sostenidos (${humanBytes(c.size_bytes)} en ${state.side.runtime} min). Con pocos seeders puede cortarse: conviene cargarlo en background (⤓) para ver si la velocidad alcanza, o elegir uno más liviano.`);
 }
 
+/** Salud estimada del stream (2026-11-15): lo que aportarían los conectados al contar contra los
+ *  Mbps que pide (tamaño ÷ duración). Solo una estimación: no cambia el orden. El aporte por
+ *  seeder y el tope de la conexión salen de lo medido en esta PC (`health-calib.js`,
+ *  ajustable en Ajustes); un leecher aporta una fracción fija de un seeder. */
+const LEECH_SHARE = 1 / 6;
+function healthBadge(c, badge) {
+  const n = counted.get(c.info_hash);
+  if (!n?.reached) return null; // sin contar o nadie respondió (ya se ve con ✕)
+  const leech = Math.max(0, n.peers - n.seeds);
+  const need = neededBps(c) && toMbps(neededBps(c));
+  const cal = healthCalibration(state.library.values());
+  const raw = (n.seeds + leech * LEECH_SHARE) * cal.seedMbps;
+  const supply = cal.capMbps ? Math.min(raw, cal.capMbps) : raw;
+  const ratio = need ? supply / need : null;
+  // Una palabra, no "N×": no es una velocidad medida (eso lo da la carga en background).
+  const level = ratio != null ? (ratio >= 3 ? 0 : ratio >= 2 ? 1 : ratio >= 1 ? 2 : 3)
+    : n.seeds >= 20 ? 0 : n.seeds >= 10 ? 1 : n.seeds >= 4 ? 2 : 3;
+  const [text, cls] = [['Excelente', 'cat-health-great'], ['Bueno', 'cat-health-good'], ['Justo', 'cat-health-fair'], ['Malo', 'cat-health-risky']][level];
+  const basis = need
+    ? `Pide ~${Math.round(need)} Mbps; ${n.seeds} seeders y ${leech} leechers conectados aportarían ~${Math.round(supply)} Mbps (${nf1(ratio)}×). Excelente desde 3×, bueno desde 2×, justo desde 1×.`
+    : `Sin duración conocida: solo por seeders conectados (${n.seeds}). Excelente desde 20, bueno desde 10, justo desde 4.`;
+  return badge(text, `cat-health ${cls}`, `Salud estimada del stream, no medida. ${basis} Supone ~${nf1(cal.seedMbps)} Mbps por seeder (${cal.source === 'measured' ? `calibrado con ${cal.n} mediciones de esta PC` : cal.source === 'manual' ? 'fijado en Ajustes' : 'valor por defecto'}) y un sexto de eso por leecher${cal.capMbps ? `, con tope de ~${Math.round(cal.capMbps)} Mbps (lo más rápido que bajó esta PC)` : ''}; el conteo se corta en 30 conexiones. Para saberlo de verdad: cargarlo en background (⤓).`);
+}
+
+/** "Cargar en background" (2026-11-15): info_hash → {key, sum, n, row}. `sum / n` = promedio de
+ *  `speed_bps` (bytes/s, una muestra por segundo) mientras baja de fondo; `row` = última fila. */
+const bgLoads = new Map();
+const BG_GREEN = 1.5; // mismos márgenes que el ranking (`green_margin` / `yellow_margin`)
+const BG_YELLOW = 1;
+/** Fila de una reproducción: si es de una carga en background, suma la muestra. ¿Era de una? */
+function onBgRow(row) {
+  const [hash, b] = [...bgLoads.entries()].find(([, x]) => x.key === row.key) ?? [];
+  if (!b) return false;
+  b.row = row;
+  if (row.state.kind === 'background') { b.sum += row.speed_bps; b.n += 1; b.max = Math.max(b.max ?? 0, row.speed_bps); }
+  // Calibra la salud estimada con los seeders contados al analizar (cada 10 s, mientras baja de verdad).
+  const seeds = counted.get(hash)?.seeds;
+  if (seeds > 0 && b.n && b.n % 10 === 0 && (row.progress ?? 0) < 0.999) addBgSample(hash, { seeds, avg_speed_bps: b.sum / b.n, max_speed_bps: b.max, measured_secs: b.n });
+  return true;
+}
+/** Texto de la card: "2,3× · alcanza" = promedio ÷ bitrate (tamaño ÷ duración). Sin duración
+ *  (o pack) solo la velocidad. */
+function bgText(c) {
+  const b = bgLoads.get(c.info_hash);
+  if (!b) return null;
+  if (b.row?.state.kind === 'failed') return { cls: 'red', text: 'falló', tip: b.row.state.message };
+  if (!b.n) return { cls: 'measuring', text: 'cargando…', tip: 'Buscando metadatos y precargando el principio; después mide la velocidad.' };
+  const avg = b.sum / b.n;
+  const done = (b.row?.progress ?? 0) >= 0.999 ? 'completo · ' : '';
+  const need = neededBps(c);
+  if (!need) return { cls: 'none', text: `${done}${mbps(avg)}`, tip: `${mbps(avg)} de promedio bajando de fondo (sin duración conocida no se calcula si alcanza).` };
+  const x = avg / need;
+  const [cls, verdict] = x >= BG_GREEN ? ['green', 'alcanza'] : x >= BG_YELLOW ? ['yellow', 'justo'] : ['red', 'no alcanza'];
+  return { cls, text: `${done}${nf1(x)}× · ${verdict}`, tip: `${mbps(avg)} de promedio ÷ ${mbps(need)} que consume el video.` };
+}
+/** Arranca o cancela la carga en background. Cancelar = Detener: lo bajado queda guardado y
+ *  Reproducir lo retoma. */
+async function toggleBg(hash, btn) {
+  btn.disabled = true;
+  const b = bgLoads.get(hash);
+  try {
+    if (b) {
+      bgLoads.delete(hash);
+      // Si ya se está viendo (Reproducir la retomó), cancelar no cierra el reproductor.
+      if (b.row && ['fetching-metadata', 'preparing', 'background'].includes(b.row.state.kind)) await api.playbackAction(b.row.id, 'stop');
+      setStatus('Carga en background cancelada: lo bajado queda guardado.');
+    } else {
+      const [row] = await api.catalogAdd(state.side.kind, state.side.videoId, [hash]);
+      if (!row) return;
+      bgLoads.set(hash, { key: row.key, sum: 0, n: 0, row: null });
+      await api.playBackground(row.key);
+      setStatus('Cargando en background: la velocidad promedio aparece en la opción.');
+    }
+  } catch (e) { if (!b) bgLoads.delete(hash); showError(e); } finally {
+    btn.disabled = false;
+    if (state.update) renderStreamsOnly();
+  }
+}
+
+/** Una opción: peso, seeders (tocar = analizar), badges, ⤓ cargar en background y ▶ reproducir. */
 function optionRow(c, best = false) {
   const light = lightOf(c);
+  const bg = bgText(c);
   const live = rowsOf(c.info_hash).find((e) => e.live)?.live ?? null;
   const scraped = counted.get(c.info_hash);
   const busy = counting.has(c.info_hash);
@@ -420,7 +522,8 @@ function optionRow(c, best = false) {
   // ✓ = verificado: contado a mano en los trackers o visto conectado al analizarlo.
   // Lo más reciente gana: un recuento a mano pisa lo visto al analizar.
   const tracker = trackerCounted.get(c.info_hash);
-  const seedsNow = scraped ? scraped.seeds : live ? live.seeds : tracker ? tracker.seeders : seedsOf(c);
+  const partial = busy ? liveCount.get(c.info_hash) : null; // en vivo mientras cuenta
+  const seedsNow = partial?.reached ? partial.seeds : knownSeeds(c);
   const dead = scraped?.reached === false;
   const seedsTip = skipped.has(c.info_hash) && !scraped ? (skipped.get(c.info_hash) === 'dead'
     ? 'No se analizó: los trackers y la fuente dan 0 seeders y 0 leechers (casi seguro muerto). Tocá para analizarlo igual.'
@@ -432,33 +535,43 @@ function optionRow(c, best = false) {
     : live ? `Seeders vistos al analizarlo: ${live.seeds} (${live.peers} peers conectados). Tocá para analizarlo.`
       : tracker ? `Según ${tracker.trackers_ok} tracker(s): ${tracker.seeders} seeders, ${tracker.leechers} leechers. Tocá para analizarlo.`
         : 'Según la fuente. Tocá para analizarlo.';
-  return el('li', { class: `cat-opt light-${light.cls} ${best ? 'best' : ''}`, title: tip, 'data-hash': c.info_hash },
+  return el('li', { class: `cat-opt light-${light.cls} ${best ? 'best' : ''} ${skipped.has(c.info_hash) ? 'skipped' : ''}`, title: tip, 'data-hash': c.info_hash,
+    // Cada redibujo recrea la fila: la fase sale del reloj para que la animación no reinicie.
+    style: busy ? `--live-phase:-${Date.now() % 3600}ms` : null },
     best ? el('span', { class: 'cat-best-tag' }, 'Mejor opción') : null,
     el('span', { class: 'cat-size-cell' },
       el('span', { class: 'cat-size' }, humanBytes(c.size_bytes)),
-      light.text ? el('span', { class: 'cat-speed', title: 'Velocidad medida · margen' }, light.text) : null),
+      bg ? el('span', { class: `cat-speed bg-${bg.cls}`, title: bg.tip ?? '', role: 'status' }, bg.text)
+        : light.text ? el('span', { class: 'cat-speed', title: 'Velocidad medida · margen' }, light.text) : null),
     depthMenu(c.info_hash, `cat-seeds-${c.info_hash}`, el('button', {
-      id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${(live || scraped) && seedsNow > 0 ? 'checked' : ''} ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTip,
+      id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${analyzedDepth(c.info_hash) ? 'analyzed' : ''} ${(live || scraped) && seedsNow > 0 ? 'checked' : ''} ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTip,
       'aria-label': `${seedsNow ?? 'Sin dato de'} seeders: analizar`, 'aria-haspopup': 'menu', 'aria-expanded': String(depthOpen === c.info_hash), 'aria-busy': busy ? 'true' : null, disabled: busy,
       onclick: toggleDepth(c.info_hash),
-    }, el('span', { class: 'cat-seeds-n' }, seedsNow ?? '—'),
-    leechersOf(c) != null ? el('span', { class: 'cat-leechers', title: 'Leechers: bajando ahora; comparten los pedazos que ya tienen' }, `${leechersOf(c)} L`) : null,
-    busy ? el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' })
-      : dead ? el('span', { class: 'cat-seeds-dead', 'aria-hidden': 'true' }, '✕')
-      : live || scraped ? el('span', { class: 'cat-seeds-check', 'aria-hidden': 'true' }, icon('check', 14))
-        : el('span', { class: 'cat-seeds-hint', 'aria-hidden': 'true' }, icon('refresh', 13))), 1, (depth) => reanalyze([c.info_hash], depth)),
+    }, // Seeds primero y grande; leechers y profundidad como una línea chica debajo.
+    el('span', { class: 'cat-stat seeds' }, el('span', { class: 'cat-seeds-n' }, seedsNow ?? '—'), el('span', { class: 'cat-stat-label' }, 'seeds'),
+      busy ? el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' })
+        : dead ? el('span', { class: 'cat-seeds-dead', 'aria-hidden': 'true' }, '✕')
+        : analyzedDepth(c.info_hash) ? null
+          : el('span', { class: 'cat-seeds-hint', 'aria-hidden': 'true' }, icon('refresh', 13))),
+    busy ? el('span', { class: 'cat-stat-sub cat-live' }, el('span', { class: 'cat-live-dot', 'aria-hidden': 'true' }),
+      !partial ? 'analizando · conectando…'
+        : partial.reached ? `analizando · ${partial.peers} ${partial.peers === 1 ? 'peer conectado' : 'peers conectados'}`
+          : `analizando · ${partial.peers} en la red, esperando respuesta…`)
+    : el('span', { class: 'cat-stat-sub' },
+      leechersOf(c) != null ? el('span', { title: 'Leechers: bajando ahora; comparten los pedazos que ya tienen' }, `${leechersOf(c)} leechers`) : null,
+      analyzedDepth(c.info_hash) && !busy && !dead ? el('span', { class: 'cat-depth-chip', title: 'Analizado: profundidad usada' }, icon('check', 11), DEPTH_LABEL[analyzedDepth(c.info_hash)]) : null)), (depth) => reanalyze([c.info_hash], depth)),
     el('span', { class: 'cat-badges' },
       latBadge(c, badge),
       hdrTip ? badge('HDR', 'cat-hdr', hdrTip) : null,
+      healthBadge(c, badge),
       heavyBadge(c, badge)),
     el('span', { class: 'cat-opt-actions' },
-      el('button', { id: `cat-quick-${c.info_hash}`, class: 'cat-icon-btn', title: 'Análisis rápido: metadatos, duración e idiomas reales', 'aria-label': 'Análisis rápido', onclick: (ev) => analyze(c.info_hash, ev.currentTarget, true) }, icon('quick', 18)),
-      el('button', { id: `cat-analyze-${c.info_hash}`, class: 'cat-icon-btn', title: 'Velocidad y precarga: mide si llega a verse sin cortes', 'aria-label': 'Medir velocidad', onclick: (ev) => analyze(c.info_hash, ev.currentTarget, false) }, icon('gauge', 18)),
+      el('button', { id: `cat-bg-${c.info_hash}`, class: `cat-icon-btn ${bgLoads.has(c.info_hash) ? 'on' : ''}`, 'aria-pressed': String(bgLoads.has(c.info_hash)),
+        title: bgLoads.has(c.info_hash) ? 'Cancelar la carga en background (lo bajado queda guardado)' : 'Cargar en background: lo deja bajando sin abrir el reproductor y dice si la velocidad alcanza para verlo',
+        'aria-label': bgLoads.has(c.info_hash) ? 'Cancelar carga en background' : 'Cargar en background', onclick: (ev) => toggleBg(c.info_hash, ev.currentTarget) }, icon(bgLoads.has(c.info_hash) ? 'stop' : 'download', 18)),
       el('button', { id: `cat-play-${c.info_hash}`, class: `cat-icon-btn primary ${starting.has(c.info_hash) ? 'busy' : ''}`, title: starting.has(c.info_hash) ? 'Preparando la reproducción…' : 'Reproducir ya', 'aria-label': 'Reproducir', 'aria-busy': starting.has(c.info_hash) ? 'true' : null, disabled: starting.has(c.info_hash), onclick: (ev) => playOption(c.info_hash, ev.currentTarget) }, icon('play', 18))));
 }
 
-/** "Bajar subtítulos" del video abierto (arriba, 2026-11-15): son del episodio/película, no de
- *  un torrent. Usa el release de la mejor opción para afinar la coincidencia. */
 /** Resultado por idioma (2026-11-15): "2 ES" en verde, "3 EN" en amarillo; ninguno = rojo. */
 function subsCounts(found) {
   const es = found.filter((f) => f.language === 'es').length;
@@ -502,9 +615,11 @@ function subsButton() {
       el('button', { id: 'cat-subs-en', role: 'menuitem', onclick: pick('en') }, 'Inglés')) : null);
 }
 
+/** "Bajar subtítulos" del video abierto: son del episodio/película, no de un torrent; usa el
+ *  release de la mejor opción para afinar la coincidencia. */
 async function fetchSubs() {
   const video = state.side?.videoId;
-  const best = [...(state.update?.candidates ?? [])].sort(SORTS.seeds)[0];
+  const best = [...(state.update?.candidates ?? [])].sort(bySeeds)[0];
   if (!video || !best || subsBusy.has(video)) return;
   subsBusy.add(video);
   renderStreamsOnly();
@@ -523,8 +638,8 @@ async function fetchSubs() {
   } catch (e) { showError(e); } finally { subsBusy.delete(video); renderStreamsOnly(); }
 }
 
-/** "Contar seeders reales": se conecta a cada enjambre y deja el número con ✓ (sin cambiar de pestaña). */
-async function countSeeds(hashes, long = false) {
+/** Análisis profundo de esas opciones: se conecta a cada enjambre y cuenta los seeders reales. */
+async function countSeeds(hashes) {
   const todo = hashes.filter((h) => !counting.has(h));
   if (!todo.length) return;
   todo.forEach((h) => counting.add(h));
@@ -532,21 +647,39 @@ async function countSeeds(hashes, long = false) {
   const video = state.side?.videoId;
   try {
     // Trackers en paralelo (segundos): completan el conteo, que es un piso.
-    const [found, trackers] = await Promise.all([api.catalogSwarm(todo, long), api.catalogScrape(todo).catch(() => ({}))]);
+    const [found, trackers] = await Promise.all([api.catalogSwarm(todo, true), api.catalogScrape(todo).catch(() => ({}))]);
     if (state.side?.videoId !== video) return; // se fue de ese video: el resultado no se usa
     for (const [h, r] of Object.entries(trackers)) trackerCounted.set(h, r);
-    for (const [h, r] of Object.entries(found)) counted.set(h, r);
-    if (todo.length === 1 && !found[todo[0]]) setStatus('No se pudo contar ese torrent.');
+    // Sin resultado = ningún peer dio los metadatos a tiempo: cuenta como "nadie respondió", no se
+    // queda con el número de los trackers (que suele ser justamente el inflado).
+    for (const h of todo) counted.set(h, found[h] ?? { seeds: 0, peers: 0, reached: false });
+    if (todo.length === 1 && !found[todo[0]]) setStatus('No se pudo contar ese torrent: nadie respondió a tiempo.');
   } catch (e) { showError(e); } finally {
-    todo.forEach((h) => counting.delete(h));
+    todo.forEach((h) => { counting.delete(h); liveCount.delete(h); });
     renderStreamsOnly();
   }
 }
 
-/** Cuántos cuenta el núcleo a la vez (igual a `swarm::CONCURRENCY`): solo para textos y tiempos. */
-const BATCH = 25;
-/** Cuántos se analizan conectándose (los mejores según los trackers). */
-const TOP = 20;
+const DEPTH_LABEL = { long: 'profundo', fast: 'rápido' };
+/** Profundidad con la que se analizó (leyenda de la fila): contado = profundo; solo trackers = rápido. */
+const analyzedDepth = (h) => (counted.has(h) ? 'long' : trackerCounted.has(h) ? 'fast' : null);
+
+/** Etapa 2 del embudo: cuántos se cuentan a fondo (los mejores según los trackers), todos a la vez
+ *  (el núcleo cuenta hasta 25 en paralelo, `swarm::CONCURRENCY`). 15 y no 25 (pedido 2026-11-15): cada uno abre hasta 30
+ *  conexiones y con 25 la red se cargaba de más. */
+const TOP = 15;
+/** Tiempo del análisis profundo (todos a la vez, ver `swarm.rs`): trackers unos segundos +
+ *  metadatos hasta 35 s + conteo de 45 a 85 s. Los muertos se liberan a los 15 s. */
+const DEEP_ETA = '1 a 2 min';
+/** Finalistas que además reciben el análisis rápido (metadatos, duración, idiomas). */
+const FINALISTS = 8;
+function finalists(cands) {
+  return cands.filter((c) => counted.get(c.info_hash)?.seeds > 0)
+    .sort((a, b) => counted.get(b.info_hash).seeds - counted.get(a.info_hash).seeds || counted.get(b.info_hash).peers - counted.get(a.info_hash).peers)
+    .slice(0, FINALISTS).map((c) => c.info_hash);
+}
+/** Hashes de la etapa en curso que ya respondieron (evento `catalog-swarm-counted`). */
+const stageDone = new Set();
 /** Salteados por el análisis (2026-11-15), hash → por qué: 'dead' = trackers con 0 seeders y 0
  *  leechers y la fuente sin seeders; 'rest' = fuera de los `TOP`. Se analizan igual desde su fila. */
 const skipped = new Map();
@@ -559,36 +692,31 @@ const unlikely = (c) => {
 let depthOpen = null;
 const toggleDepth = (key) => (ev) => { ev.stopPropagation(); depthOpen = depthOpen === key ? null : key; renderStreamsOnly(); };
 /** `trigger`: el botón que abre el menú (con `onclick: toggleDepth(key)`). */
-function depthMenu(key, id, trigger, n, onPick) {
+function depthMenu(key, id, trigger, onPick) {
   const open = depthOpen === key;
-  const batches = Math.max(1, Math.ceil(Math.min(n, TOP) / BATCH));
   const pick = (depth) => () => { depthOpen = null; onPick(depth); };
   const item = (depth, name, desc) => el('button', { id: `${id}-${depth}`, role: 'menuitem', onclick: pick(depth) }, el('b', {}, name), el('small', {}, desc));
   return el('span', { class: 'cat-subs-box cat-depth-box' },
     trigger,
     open ? el('div', { class: 'cat-subs-menu cat-depth-menu', role: 'menu' },
-      item('long', 'Profundo', `el más preciso · ≈ ${batches * 2} min`),
-      item('normal', 'Normal', `se conecta · ≈ ${batches} min`),
-      item('fast', 'Rápido', 'solo trackers · segundos')) : null);
+      item('fast', 'Rápido', 'solo trackers · segundos'),
+      item('long', 'Profundo', `se conecta y cuenta · ${DEEP_ETA}`)) : null);
 }
 
 /** Reanaliza esas opciones desde cero con la profundidad elegida (borra lo contado antes). */
 async function reanalyze(hashes, depth, res = null) {
   const video = state.side?.videoId;
+  if (hashes.length === 1) quickAnalyze(hashes);
   hashes.forEach((h) => { counted.delete(h); if (hashes.length === 1) skipped.delete(h); });
   if (depth === 'fast') {
     hashes.forEach((h) => counting.add(h));
     renderStreamsOnly();
-    try {
-      const found = await api.catalogScrape(hashes);
-      if (state.side?.videoId !== video) return;
-      for (const [h, r] of Object.entries(found)) trackerCounted.set(h, r);
-    } catch (e) { showError(e); } finally { hashes.forEach((h) => counting.delete(h)); renderStreamsOnly(); }
+    try { await scrapeTrackers(hashes, video); } catch (e) { showError(e); } finally { hashes.forEach((h) => counting.delete(h)); renderStreamsOnly(); }
   } else if (hashes.length === 1) {
-    countSeeds(hashes, depth === 'long');
+    countSeeds(hashes);
   } else {
     const f = state.side.flow ?? (state.side.flow = { step: 'done' });
-    if (f.deep !== 'run') { f.deep = null; runDeep(video, res, depth === 'long'); }
+    if (f.deep !== 'run') { f.deep = null; runDeep(video, res); }
   }
 }
 
@@ -664,7 +792,7 @@ function renderStreamsBody(box) {
         el('span', { class: 'cat-group-name' }, resLabel(r)),
         el('span', { class: 'cat-res-count' }, `${groups.get(r).length} ${groups.get(r).length === 1 ? 'opción' : 'opciones'}`),
         el('span', { class: 'cat-chev' }, icon('chev', 18))),
-      open ? el('ul', { class: 'cat-options' }, groups.get(r).sort(SORTS.seeds).map((c, i) => optionRow(c, i === 0 && r === state.side?.flow?.res))) : null);
+      open ? el('ul', { class: 'cat-options' }, groups.get(r).sort(bySeeds).map((c, i) => optionRow(c, i === 0 && r === state.side?.flow?.res))) : null);
   }));
   if (body) body.scrollTop = scroll;
 }
@@ -677,7 +805,7 @@ function wizardSteps(u) {
   const f = state.side.flow;
   // Mientras las fuentes siguen respondiendo no se sabe si hay HDR: se pregunta igual.
   const hdr = f.res && (!u?.done || u.candidates.some((c) => resKey(c) === f.res && c.hdr.length));
-  return ['res', hdr ? 'hdr' : null, 'analysis', f.mode === 'none' ? null : 'depth', 'subs'].filter(Boolean);
+  return ['res', hdr ? 'hdr' : null, 'analysis', f.mode === 'none' ? null : 'depth'].filter(Boolean);
 }
 
 function wizardHead(u, title, sub) {
@@ -712,8 +840,6 @@ function renderWizard(box, u) {
         : `${cands.length} torrents · consultando sus seeders…`) : null;
   const groups = new Map(RES_ORDER.map((r) => [r, cands.filter((c) => resKey(c) === r)]));
   const present = RES_ORDER.filter((r) => groups.get(r).length);
-  // Lo que entra en el análisis: la resolución elegida y, si se pidió, solo HDR.
-  const inScope = (c) => resKey(c) === f.res && (!onlyHdr || c.hdr.length);
   if (f.step === 'res') {
     const shown = searchingNow ? RES_ORDER : present;
     box.append(el('div', { class: `wz ${enter ? 'enter' : ''}` },
@@ -727,7 +853,7 @@ function renderWizard(box, u) {
             f.res = r;
             openRes = r;
             const hasHdr = searchingNow || groups.get(r).some((c) => c.hdr.length);
-            if (!hasHdr) { onlyHdr = false; safeSet('tstream.catalog.onlyHdr', '0'); }
+            if (!hasHdr) setOnlyHdr(false);
             flowStep(hasHdr ? 'hdr' : 'analysis');
           },
         });
@@ -738,7 +864,7 @@ function renderWizard(box, u) {
   if (f.step === 'hdr') {
     const all = groups.get(f.res);
     const hdrN = all.filter((c) => c.hdr.length).length;
-    const choose = (only) => () => { onlyHdr = only; safeSet('tstream.catalog.onlyHdr', only ? '1' : '0'); flowStep('analysis'); };
+    const choose = (only) => () => { setOnlyHdr(only); flowStep('analysis'); };
     box.append(el('div', { class: `wz ${enter ? 'enter' : ''}` },
       wizardHead(u, '¿Lo querés en HDR?', 'HDR / Dolby Vision se aprovecha con pantalla HDR; en una común se ve igual o más apagado.'),
       el('div', { class: 'wz-list' },
@@ -747,13 +873,15 @@ function renderWizard(box, u) {
       sourcesNote));
     return;
   }
-  const start = (mode, long = false) => {
+  const start = (mode) => {
     f.mode = mode;
-    f.long = long;
     startAnalysisWhenReady();
-    flowStep('subs');
+    // Sin paso de idioma (2026-11-15): siempre intenta bajar subtítulos en español.
+    subsLang = 'es';
+    fetchSubs();
+    flowStep('loading');
   };
-  const n = cands.filter(inScope).length;
+  const n = cands.filter((c) => inScope(c, f.res)).length;
   const scope = `${n} opciones en ${resLabel(f.res)}${onlyHdr ? ' HDR' : ''}`;
   if (f.step === 'analysis') {
     box.append(el('div', { class: `wz ${enter ? 'enter' : ''}` },
@@ -765,36 +893,22 @@ function renderWizard(box, u) {
     return;
   }
   if (f.step === 'depth') {
-    // Tiempo aproximado: se conectan solo los TOP, `BATCH` a la vez: ~1 min (normal) o ~2 min (profundo).
-    const batches = Math.max(1, Math.ceil(Math.min(n, TOP) / BATCH));
-    const mins = (per) => `≈ ${batches * per} min${searchingNow ? ' (todavía llegan opciones)' : ''}`;
+    const mins = `${DEEP_ETA}${searchingNow ? ' (todavía llegan opciones)' : ''}`;
     box.append(el('div', { class: `wz ${enter ? 'enter' : ''}` },
       wizardHead(u, '¿Qué tan a fondo?', `${scope}. Arranca de fondo apenas elijas; mientras, podés seguir.`),
       el('div', { class: 'wz-list' },
-        bigChoice({ id: 'wz-an-long', title: 'Profundo', desc: `Se queda conectado a cada uno hasta ~2 min: el número más preciso · ${mins(2)}`, tag: 'Recomendado', primary: true, onclick: () => start('deep', true) }),
-        bigChoice({ id: 'wz-an-deep', title: 'Normal', desc: `Se conecta a cada uno ~1 min y cuenta los seeders reales · ${mins(1)}`, onclick: () => start('deep') }),
+        bigChoice({ id: 'wz-an-long', title: 'Profundo', desc: `Toma los ${TOP} mejores según los trackers y se conecta a todos a la vez para contar los seeders reales · ${mins}`, tag: 'Recomendado', primary: true, onclick: () => start('deep') }),
         bigChoice({ id: 'wz-an-fast', title: 'Rápido', desc: 'Solo pregunta a los trackers: menos confiable · unos segundos', onclick: () => start('fast') })),
       sourcesNote));
     return;
   }
-  if (f.step === 'subs') {
-    const pick = (lang) => () => { f.subs = lang; if (lang) { subsLang = lang; safeSet('tstream.catalog.subsLang', lang); fetchSubs(); } flowStep('loading'); };
-    box.append(el('div', { class: `wz ${enter ? 'enter' : ''}` },
-      wizardHead(u, '¿Subtítulos en qué idioma?', 'Busco y bajo hasta 5 mientras se analiza.'),
-      el('div', { class: 'wz-list' },
-        bigChoice({ id: 'wz-subs-es', title: 'Español', desc: 'Hasta 5, listos para cambiar en el reproductor', primary: true, onclick: pick('es') }),
-        bigChoice({ id: 'wz-subs-en', title: 'Inglés', desc: 'Hasta 5, listos para cambiar en el reproductor', onclick: pick('en') }),
-        bigChoice({ id: 'wz-subs-none', title: 'Sin subtítulos', desc: 'Solo los que traiga el torrent', onclick: pick(null) })),
-      sourcesNote));
-    return;
-  }
   // Cargando: cada proceso con su estado y progreso.
-  const res = cands.filter(inScope);
-  const doneSeeds = res.filter((c) => counted.has(c.info_hash)).length;
-  const toCount = res.filter((c) => !skipped.has(c.info_hash)).length;
-  const subsState = !f.subs ? null : subsBusy.has(state.side.videoId) ? 'run' : subsFound.has(state.side.videoId) ? 'ok' : 'run';
+  const res = cands.filter((c) => inScope(c, f.res));
+  const stageNow = stageStatus(f);
+  const nSkipped = res.filter((c) => skipped.has(c.info_hash)).length;
+  const subsState = subsFound.has(state.side.videoId) && !subsBusy.has(state.side.videoId) ? 'ok' : 'run';
   const analysisDone = !searchingNow && (f.mode === 'none' || (f.mode === 'fast' && f.fast === 'done') || (f.mode === 'deep' && f.deep === 'done'));
-  const pct = f.mode === 'deep' ? Math.round((doneSeeds / Math.max(1, toCount)) * 100) : analysisDone ? 100 : 40;
+  const pct = analysisDone ? 100 : f.mode === 'deep' ? Math.round(stageNow.frac * 100) : 40;
   const row = (stateCls, title, detail) => el('li', { class: `wz-task ${stateCls}` },
     el('span', { class: 'wz-dot', 'aria-hidden': 'true' }, stateCls === 'ok' ? icon('check', 14) : stateCls === 'run' ? el('span', { class: 'cat-seeds-spin' }) : '·'),
     el('span', { class: 'wz-task-text' }, el('b', {}, title), detail ? el('span', {}, detail) : null));
@@ -807,10 +921,10 @@ function renderWizard(box, u) {
         ? `${answered} de ${u?.addons.length ?? '…'} fuentes · ${cands.length} encontrados`
         : `${cands.length} encontrados · ${res.length} en ${resLabel(f.res)}`),
       // Subtítulos antes que el análisis: el análisis suele ser lo último en terminar.
-      f.subs ? row(subsState, `Subtítulos en ${f.subs === 'es' ? 'español' : 'inglés'}`, subsState === 'ok' ? `${subsFound.get(state.side.videoId)?.length ?? 0} descargados` : subsLabel(state.side.videoId, true)) : null,
+      row(subsState, 'Subtítulos en español', subsState === 'ok' ? `${subsFound.get(state.side.videoId)?.length ?? 0} descargados` : subsLabel(state.side.videoId, true)),
       f.mode === 'none' ? row('skip', 'Sin análisis', 'Se ordena por lo que dicen las fuentes')
         : f.mode === 'fast' ? row(f.fast === 'done' ? 'ok' : 'run', 'Seeders según los trackers', f.fast === 'done' ? `${res.filter((c) => trackerCounted.has(c.info_hash)).length} de ${res.length} respondieron` : `Consultando trackers por ${res.length} torrents…`)
-          : row(f.deep === 'done' ? 'ok' : 'run', 'Conectándose a cada torrent', `${doneSeeds} de ${toCount} contados · ${BATCH} a la vez${res.length > toCount ? ` · ${res.length - toCount} salteados (fuera del top ${TOP} o sin señales)` : ''}${f.long ? ' · profundo' : ''}`)),
+          : row(f.deep === 'done' ? 'ok' : 'run', 'Conectándose a cada torrent', `${f.deep === 'done' ? `${res.filter((c) => counted.has(c.info_hash)).length} contados` : stageNow.text}${nSkipped ? ` · ${nSkipped} descartados (sin señales o fuera del top ${TOP})` : ''}`)),
     el('button', { id: 'wz-see', class: `wz-see ${analysisDone ? 'primary' : ''}`, onclick: () => flowStep('done') }, analysisDone ? 'Ver opciones' : 'Ver lo que hay hasta ahora')));
   if (analysisDone && f.autoDone !== true) { f.autoDone = true; setTimeout(() => { if (state.side?.flow === f && f.step === 'loading') flowStep('done'); }, 900); }
 }
@@ -820,7 +934,7 @@ function startAnalysisWhenReady() {
   const f = state.side?.flow;
   if (!f?.mode || f.started || !state.update?.done) return;
   f.started = true;
-  if (f.mode === 'deep') runDeep(state.side.videoId, f.res, f.long);
+  if (f.mode === 'deep') runDeep(state.side.videoId, f.res);
   if (f.mode === 'fast') runFast(state.side.videoId, f.res);
 }
 
@@ -828,42 +942,38 @@ function startAnalysisWhenReady() {
 async function runFast(video, res) {
   const f = state.side.flow;
   f.fast = 'run';
-  const hashes = (state.update?.candidates ?? []).filter((c) => resKey(c) === res && (!onlyHdr || c.hdr.length)).map((c) => c.info_hash);
-  try {
-    const found = await api.catalogScrape(hashes);
-    if (state.side?.videoId !== video) return;
-    for (const [h, r] of Object.entries(found)) trackerCounted.set(h, r);
-  } catch (e) { showError(e); } finally {
+  const hashes = (state.update?.candidates ?? []).filter((c) => inScope(c, res)).map((c) => c.info_hash);
+  try { await scrapeTrackers(hashes, video); } catch (e) { showError(e); } finally {
     if (state.side?.flow === f) { f.fast = 'done'; renderStreamsOnly(); }
   }
 }
 
-/** Análisis normal/profundo: los de la resolución en un solo pedido (el núcleo cuenta de a
- *  `BATCH` a la vez y avisa cada uno), primero los que los trackers dan mejor. Se saltean solo los
- *  que tienen todo en contra (`unlikely`). Se corta al salir del video. */
-async function runDeep(video, res, long = false) {
+/** Análisis profundo en embudo (2026-11-15): 1 trackers de todos (segundos; descarta solo los
+ *  `unlikely`) · 2 ventana larga sobre los `TOP` mejores según los trackers. Sin etapa normal: su
+ *  conteo corto no servía ni para ordenar ni para descartar. El progreso va en `f.stage` /
+ *  `f.stageHashes` / `stageDone`. Se corta al salir del video. */
+async function runDeep(video, res) {
   const f = state.side.flow ?? (state.side.flow = { step: 'done' });
   if (f.deep === 'run') return;
   f.deep = 'run';
-  renderStreamsOnly();
-  const inRes = (c) => (!res || resKey(c) === res) && (!onlyHdr || c.hdr.length);
-  // Chequeo rápido con trackers (segundos): ordena, y descarta solo lo que tiene todo en contra.
-  const unscraped = (state.update?.candidates ?? []).filter((c) => inRes(c) && !trackerCounted.has(c.info_hash)).map((c) => c.info_hash);
-  if (unscraped.length) {
-    const found = await api.catalogScrape(unscraped).catch(() => ({}));
-    if (state.side?.videoId !== video) return;
-    for (const [h, r] of Object.entries(found)) trackerCounted.set(h, r);
-  }
+  const stage = (n, hashes = []) => { f.stage = n; f.stageHashes = hashes; stageDone.clear(); renderStreamsOnly(); };
+  stage(1);
+  // Etapa 1: trackers de todos; los que ya tenían dato también, reanalizar decide de nuevo.
+  const all = (state.update?.candidates ?? []).filter((c) => inScope(c, res));
+  // Si los trackers fallan se sigue igual: la etapa 2 ordena con lo que diga la fuente.
+  if (all.length && !(await scrapeTrackers(all.map((c) => c.info_hash), video).catch(() => state.side?.videoId === video))) return;
   const prior = (c) => trackerCounted.get(c.info_hash)?.seeders ?? seedsOf(c) ?? -1;
-  const todo = (state.update?.candidates ?? []).filter((c) => inRes(c) && !counted.has(c.info_hash) && !counting.has(c.info_hash));
+  const todo = all.filter((c) => !counted.has(c.info_hash) && !counting.has(c.info_hash));
   todo.forEach((c) => skipped.delete(c.info_hash)); // reanalizar decide de nuevo
   todo.filter(unlikely).forEach((c) => skipped.set(c.info_hash, 'dead'));
-  // Solo los TOP mejores según el chequeo rápido (pedido 2026-11-15: más abajo casi nunca se ven bien).
+  // Etapa 2: a fondo solo los TOP mejores según los trackers (más abajo casi nunca se ven bien).
   const ranked = todo.filter((c) => !skipped.has(c.info_hash)).sort((a, b) => prior(b) - prior(a));
   ranked.slice(TOP).forEach((c) => skipped.set(c.info_hash, 'rest'));
-  const hashes = ranked.slice(0, TOP).map((c) => c.info_hash);
-  if (hashes.length && state.side?.videoId === video) await countSeeds(hashes, long);
+  stage(2, ranked.slice(0, TOP).map((c) => c.info_hash));
+  if (f.stageHashes.length && state.side?.videoId === video) await countSeeds(f.stageHashes);
   if (state.side?.flow === f) { f.deep = 'done'; renderStreamsOnly(); }
+  // Los finalistas, además, con análisis rápido (metadatos, duración, idiomas reales).
+  if (state.side?.videoId === video) quickAnalyze(finalists(all));
 }
 
 /** Grupos de resolución (2026-11-15): 4K, 1080p, 720p y "Otras" (1440p, SD y sin dato). */
@@ -879,24 +989,17 @@ const resLabel = (r) => ({ '2160p': '4K', other: 'Otras' }[r] ?? r);
 /** Grupo de resolución abierto (uno a la vez). */
 let openRes = safeGet('tstream.catalog.openRes');
 
-/** Análisis rápido (`quick`) o velocidad + precarga, sin salir del catálogo (2026-11-15): se
- *  agrega a Mis magnets y el resultado aparece en la fila (semáforo, seeders reales, velocidad). */
-async function analyze(hash, btn, quick) {
-  btn.disabled = true;
-  btn.classList.add('busy');
+/** Análisis rápido sin salir del catálogo (2026-11-15): se agrega a la biblioteca y el resultado
+ *  aparece en la fila (duración, idiomas). Sin botón propio: va solo con cada "Analizar". */
+async function quickAnalyze(hashes) {
+  if (!hashes.length) return;
   try {
-    if (quick) {
-      await api.catalogAdd(state.side.kind, state.side.videoId, [hash]);
-      await api.analyze({ kind: 'quick', hash });
-      setStatus('Análisis rápido en curso: metadatos, duración e idiomas.');
-    } else {
-      await api.catalogAnalyze(state.side.kind, state.side.videoId, [hash]);
-      setStatus('Midiendo velocidad y precarga: el resultado aparece en la fila.');
-    }
-  } catch (e) { showError(e); } finally { btn.disabled = false; btn.classList.remove('busy'); }
+    await api.catalogAdd(state.side.kind, state.side.videoId, hashes);
+    await Promise.all(hashes.map((hash) => api.analyze({ kind: 'quick', hash })));
+  } catch (e) { showError(e); }
 }
 
-/** Reproducir: lo agrega a Mis magnets y lo abre con el mismo flujo que allá (elige el audio si hay
+/** Reproducir: lo agrega a la biblioteca y lo abre (elige el audio si hay
  *  varios). Se queda en el catálogo (pedido 2026-11-15). */
 async function playOption(hash, btn) {
   btn.disabled = true;
@@ -1194,7 +1297,38 @@ document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && menu) { menu = null; renderFilters(); }
 });
 
+/** Magnets pegados del portapapeles (sin ficha del catálogo), arriba de todo (2026-11-15: reemplaza
+ *  a "Mis magnets"). Lo más nuevo primero. */
+function pastedSection() {
+  const rows = [...state.library.values()].filter((e) => !e.origin)
+    .sort((a, b) => String(b.added_at ?? '').localeCompare(String(a.added_at ?? '')));
+  if (!rows.length) return null;
+  const name = (e) => {
+    const r = e.release;
+    const ep = r?.season != null && r?.episode != null ? ` T${r.season}·E${r.episode}` : '';
+    return r?.title ? `${r.title}${ep}` : e.torrent_name || e.name;
+  };
+  return el('section', { id: 'cat-pasted', class: 'cat-pasted', 'aria-label': 'Pegados' },
+    el('h3', {}, 'Pegados'),
+    el('ul', {}, rows.map((e) => el('li', { class: 'cat-pasted-row' },
+      el('span', { class: 'cat-pasted-name', title: e.torrent_name || e.name }, name(e)),
+      e.video_size ? el('span', { class: 'cat-pasted-size' }, humanBytes(e.video_size)) : null,
+      el('button', { id: `cat-pasted-rm-${e.key}`, class: 'cat-icon-btn', title: 'Quitar de Pegados', 'aria-label': 'Quitar', onclick: () => api.remove(e.key).catch(showError) }, '✕'),
+      el('button', { id: `cat-pasted-play-${e.key}`, class: 'cat-icon-btn primary', title: 'Reproducir', 'aria-label': 'Reproducir', onclick: (ev) => play(e.key, ev.currentTarget, e) }, icon('play', 16))))));
+}
+/** Redibuja solo la sección de pegados (llega una fila nueva o se quita una). */
+function refreshPasted() {
+  if (state.results || state.searching) return;
+  const now = pastedSection();
+  const old = $('#cat-pasted');
+  if (old && now) old.replaceWith(now);
+  else if (old) old.remove();
+  else if (now) $('#cat-body')?.prepend(now);
+}
+
 function renderBrowse(root) {
+  const pasted = pastedSection();
+  if (pasted) root.append(pasted);
   const items = browseItems().slice(0, browse.shown);
   const stale = !items.length && browse.loading;
   if (items.length) root.append(el('div', { class: 'cat-grid' }, items.map(cardFor)));
@@ -1235,11 +1369,10 @@ async function init() {
       el('div', { id: 'cat-body' })),
     el('aside', { id: 'cat-side', class: 'cat-side', 'aria-label': 'Opciones' }));
   $('#btn-sources').addEventListener('click', openSources); // en Ajustes (2026-11-15)
-  document.querySelectorAll('.tab[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
   document.addEventListener('keydown', (ev) => {
-    if (ev.ctrlKey && ev.key.toLowerCase() === 'f') { ev.preventDefault(); showTab('catalog'); }
+    if (ev.ctrlKey && ev.key.toLowerCase() === 'f') { ev.preventDefault(); $('#cat-q').focus(); }
     // Esc cierra el panel, salvo que esté abierto un diálogo o el selector de audio (cierran ellos).
-    if (ev.key === 'Escape' && state.side && !$('#catalog').hidden
+    if (ev.key === 'Escape' && state.side
       && !document.querySelector('dialog[open]') && !document.querySelector('#pk.on')) closeSide();
   });
   try {
@@ -1253,9 +1386,17 @@ async function init() {
   await onCoreEvent((event) => {
     switch (event.type) {
       case 'catalog-streams': onStreams(event.update); break;
+      case 'catalog-swarm-progress':
+        // En vivo (2026-11-15): llega en cada cambio de cada torrent; se redibuja como mucho cada 400 ms.
+        if (!counting.has(event.hash)) break;
+        liveCount.set(event.hash, event.count);
+        if (!liveRender) liveRender = setTimeout(() => { liveRender = null; if (state.update) renderStreamsOnly(); }, 400);
+        break;
       case 'catalog-swarm-counted':
         counted.set(event.hash, event.count);
         counting.delete(event.hash);
+        liveCount.delete(event.hash);
+        stageDone.add(event.hash);
         if (state.update?.candidates.some((c) => c.info_hash === event.hash)) renderStreamsOnly();
         break;
       case 'catalog-subtitles-progress':
@@ -1268,17 +1409,20 @@ async function init() {
         break;
       case 'library-entry-updated':
         state.library.set(event.entry.key, event.entry);
+        if (!event.entry.origin) refreshPasted();
         if (state.update?.candidates.some((c) => c.info_hash === event.entry.info_hash)) renderStreamsOnly();
         break;
       case 'library-entry-removed':
         state.library.delete(event.key);
+        refreshPasted();
         if (state.update) renderStreamsOnly();
         break;
-      case 'library-cleared': state.library.clear(); if (state.update) renderStreamsOnly(); break;
+      case 'library-cleared': state.library.clear(); refreshPasted(); if (state.update) renderStreamsOnly(); break;
       case 'playback-updated': {
         const n = starting.size;
         onPlaybackRow(event.row);
-        if (starting.size !== n && state.update) renderStreamsOnly();
+        const bg = onBgRow(event.row);
+        if ((bg || starting.size !== n) && state.update) renderStreamsOnly();
         break;
       }
       default: break;

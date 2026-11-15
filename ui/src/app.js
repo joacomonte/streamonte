@@ -1,14 +1,10 @@
-// UI de Mis magnets: arranque (botones, atajos de teclado, estado inicial) y despacho de los
-// eventos del núcleo al estado compartido (state.js) y a las vistas. Las filas viven en
-// library-rows.js, los diálogos en dialogs.js, el selector de audio en audio-picker.js y lo que
-// se cuenta en la burbuja de actividad en activity-feed.js.
+// Arranque (botones, atajos, estado inicial) y despacho de los eventos del núcleo al estado
+// compartido (state.js). La vista es Buscar (catalog.js); los diálogos viven en dialogs.js, el
+// selector de audio en audio-picker.js y la burbuja de actividad en activity-feed.js.
 import { api, onCoreEvent } from './api.js';
-import { logEvent } from './activity-feed.js';
-import { onAnalyzeAll, onAnalyzeSelected, onCheckAll, onPauseAll, renderAnalyzer } from './analysis-toolbar.js';
-import { play } from './audio-picker.js';
-import { askAfterClose, onConfirmClose, openSettings, saveKey, saveNetwork } from './dialogs.js';
+import { logEvent, renderActivity } from './activity-feed.js';
+import { askAfterClose, onConfirmClose, onHealthCalibration, openSettings, saveKey, saveNetwork } from './dialogs.js';
 import { $, setStatus, showError } from './dom.js';
-import { clearEntries, closeMenu, loadLibrary, removeEntry, renderLibrary, upsertEntry } from './library-rows.js';
 import { state } from './state.js';
 import { refreshDownloads, toggleClipboard, toggleDownloads } from './top-menus.js';
 import './tooltip.js'; // tooltips propios en toda la app (se instala solo)
@@ -22,9 +18,7 @@ function onShortcut(ev) {
   if (document.querySelector('dialog[open]')) return;
   const typing = ev.target.closest?.('input, textarea, select, [contenteditable]');
   const clickIfUsable = (b) => { if (!b.disabled && !b.hidden && b.offsetParent) b.click(); };
-  if (ev.key === 'F5') clickIfUsable($('#btn-analyze'));
-  else if (ev.key === 'Enter' && !typing && !ev.target.closest?.('button, a') && !$('.library').hidden && state.selected) play(state.selected);
-  else if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'v' && !typing) clickIfUsable($('#btn-clipboard'));
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'v' && !typing) clickIfUsable($('#btn-clipboard'));
 }
 
 // ---------- eventos del núcleo ----------
@@ -39,10 +33,8 @@ function onEvent(event) {
       state.analyzerState = event.state;
       if (event.state.kind === 'idle') state.pending.clear();
       if (event.state.kind === 'measuring' && event.state.current) state.pending.delete(event.state.current);
-      renderAnalyzer();
-      renderLibrary(); // velocidad en vivo, "Listo", "en cola"
+      renderActivity();
       refreshDownloads();
-      if (wasRunning && event.state.kind === 'idle') setStatus('Análisis terminado: la lista quedó ordenada de mejor a peor.');
       break;
     }
     case 'analyzer-queue':
@@ -50,18 +42,18 @@ function onEvent(event) {
       for (const h of [...event.queued, ...event.held]) if (state.pending.get(h) === 'speed') state.pending.delete(h);
       state.queued = event.queued;
       state.held = new Set(event.held);
-      renderLibrary();
+      renderActivity();
       break;
     case 'library-entry-updated':
       // Fila completa del núcleo (misma forma que `library()`): se reemplaza y se reordena.
       if (event.entry.live && state.pending.get(event.entry.info_hash) === 'quick') state.pending.delete(event.entry.info_hash);
-      upsertEntry(event.entry);
+      state.entries.set(event.entry.key, event.entry);
       break;
     case 'library-entry-removed':
-      removeEntry(event.key);
+      state.entries.delete(event.key);
       break;
     case 'library-cleared':
-      clearEntries();
+      state.entries.clear();
       break;
     case 'confirm-close':
       onConfirmClose(event.active);
@@ -70,13 +62,13 @@ function onEvent(event) {
       if (event.row.state.kind === 'failed' && state.playbacks.get(event.row.id)?.state.kind !== 'failed') setStatus(`No se pudo reproducir: ${event.row.state.message}`);
       if (event.row.state.kind === 'ask-after-close' && state.playbacks.get(event.row.id)?.state.kind !== 'ask-after-close') askAfterClose(event.row);
       state.playbacks.set(event.row.id, event.row);
-      renderLibrary(); // "% bajado · pausaste en…" del detalle
+      renderActivity();
       refreshDownloads();
       break;
     case 'playback-removed':
       state.playbacks.delete(event.id);
       state.logs.delete(event.id);
-      renderLibrary();
+      renderActivity();
       refreshDownloads();
       break;
     case 'playback-log': {
@@ -101,28 +93,25 @@ function onEvent(event) {
 async function init() {
   $('#btn-clipboard').addEventListener('click', toggleClipboard);
   $('#btn-downloads').addEventListener('click', toggleDownloads);
-  $('#btn-analyze').addEventListener('click', onAnalyzeAll);
-  $('#btn-pause-all').addEventListener('click', onPauseAll);
-  $('#btn-analyze-selected').addEventListener('click', onAnalyzeSelected);
-  $('#check-all').addEventListener('change', onCheckAll);
   $('#btn-settings').addEventListener('click', openSettings);
   $('#set-incoming').addEventListener('change', saveNetwork);
   $('#set-upnp').addEventListener('change', saveNetwork);
+  $('#btn-health-fix').addEventListener('click', () => onHealthCalibration('fix'));
+  $('#btn-health-recalibrate').addEventListener('click', () => onHealthCalibration('recalibrate'));
+  $('#btn-health-reset').addEventListener('click', () => onHealthCalibration('reset'));
   document.querySelectorAll('[data-save-key]').forEach((b) => b.addEventListener('click', () => saveKey(b.dataset.saveKey)));
   document.querySelectorAll('[data-key-page]').forEach((b) => b.addEventListener('click', () => api.openKeyPage(b.dataset.keyPage).catch(showError)));
   document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
-  document.addEventListener('click', (ev) => { if (!ev.target.closest('#ctx-menu')) closeMenu(); });
-  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') closeMenu(); });
   document.addEventListener('keydown', onShortcut);
-  window.addEventListener('blur', closeMenu);
   $('#dlg-log').addEventListener('close', () => (state.logOpenFor = null));
 
   await onCoreEvent(onEvent);
 
   // Estado inicial.
-  await loadLibrary();
+  const view = await api.library();
+  for (const e of [...view.pasted_now, ...view.previous]) if (!state.entries.has(e.key)) state.entries.set(e.key, e);
   for (const r of await api.playbacks()) state.playbacks.set(r.id, r);
-  renderLibrary();
+  renderActivity();
   refreshDownloads();
 }
 

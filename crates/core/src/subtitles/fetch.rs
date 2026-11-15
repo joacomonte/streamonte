@@ -8,7 +8,7 @@
 //! Idiomas (2026-11-15): primero el elegido (español: latino, después España/sin variante) y,
 //! si no llegan a 5, se completa con el otro (inglés). Una sola tanda, un solo trabajo.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -36,7 +36,7 @@ pub struct Fetch {
     pub torrent_files: Vec<TorrentSubtitleFile>,
     /// El idioma elegido: va primero; el otro completa hasta 5.
     pub language: SubtitleLanguage,
-    /// Carpeta de ESTE video ([`VideoIdentity::video_id`]): la comparten todos sus torrents.
+    /// Carpeta de subtítulos de ESTE video ([`VideoIdentity::video_id`]), con su `subs.json`.
     pub cache_dir: PathBuf,
     pub remembered: Option<SubtitleChoice>,
     /// Completar con OpenSubtitles (cuota de 20/día): sí al reproducir, no al analizar.
@@ -52,6 +52,21 @@ pub async fn fetch(req: Fetch) -> Vec<(SubtitleCandidate, PathBuf)> {
     let remembered = req.remembered.clone();
     if lang == SubtitleLanguage::None {
         return Vec::new();
+    }
+    // 2026-11-15: "si ya está guardado, que lea los ya guardados, que no haya el searching".
+    if let Some(mut saved) = load_saved(&req.cache_dir, lang) {
+        log(format!(
+            "subtítulos: {} guardado(s) con el video, sin buscar",
+            saved.len()
+        ));
+        if let Some(i) = remembered
+            .as_ref()
+            .and_then(|choice| saved.iter().position(|(c, _)| c.key() == choice.subtitle))
+        {
+            let c = saved.remove(i);
+            saved.insert(0, c);
+        }
+        return saved;
     }
     let languages = languages(lang);
     // 1. Identidad: hash del video (inicio/fin) e IMDb id (si el catálogo no lo dio), en paralelo.
@@ -209,7 +224,94 @@ pub async fn fetch(req: Fetch) -> Vec<(SubtitleCandidate, PathBuf)> {
         }
     }
     dedup_by_content(&mut loaded, &log);
+    save(&req.cache_dir, lang, &loaded);
     loaded
+}
+
+/// Índice de lo bajado para un video (`subs.json` en su carpeta de subtítulos): qué es cada
+/// archivo, para reusarlo sin volver a buscar.
+const SAVED_FILE: &str = "subs.json";
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Saved {
+    /// El idioma elegido cuando se bajaron: con otro idioma se busca de nuevo.
+    language: SubtitleLanguage,
+    subs: Vec<SavedSub>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct SavedSub {
+    key: String,
+    release_name: String,
+    language: SubtitleLanguage,
+    downloads: u32,
+    /// Nombre del archivo dentro de la misma carpeta.
+    file: String,
+}
+
+/// Lo guardado con el video, si es del mismo idioma y siguen todos sus archivos.
+fn load_saved(dir: &Path, lang: SubtitleLanguage) -> Option<Vec<(SubtitleCandidate, PathBuf)>> {
+    let saved: Saved = crate::fsutil::read_json(&dir.join(SAVED_FILE)).ok()??;
+    if saved.language != lang || saved.subs.is_empty() {
+        return None;
+    }
+    saved
+        .subs
+        .into_iter()
+        .map(|s| {
+            let path = dir.join(&s.file);
+            path.is_file().then(|| {
+                let mut c = remembered_candidate(&s.key, &s.release_name, s.language);
+                c.release_name = s.release_name;
+                c.downloads = s.downloads;
+                (c, path)
+            })
+        })
+        .collect()
+}
+
+/// Escribe el índice; los archivos ya tienen que estar en `dir`. Sin resultados no escribe nada
+/// (la próxima vez se vuelve a buscar).
+fn save(dir: &Path, lang: SubtitleLanguage, loaded: &[(SubtitleCandidate, PathBuf)]) {
+    let subs: Vec<SavedSub> = loaded
+        .iter()
+        .filter(|(_, path)| path.parent() == Some(dir))
+        .filter_map(|(c, path)| {
+            Some(SavedSub {
+                key: c.key(),
+                release_name: c.release_name.clone(),
+                language: c.language,
+                downloads: c.downloads,
+                file: path.file_name()?.to_str()?.to_string(),
+            })
+        })
+        .collect();
+    if subs.is_empty() {
+        return;
+    }
+    let saved = Saved {
+        language: lang,
+        subs,
+    };
+    if let Err(e) = crate::fsutil::write_json_atomic(&dir.join(SAVED_FILE), &saved) {
+        tracing::warn!("no se pudo guardar {SAVED_FILE}: {e}");
+    }
+}
+
+/// Copia lo bajado para un video a la carpeta de otro torrent del mismo video (análisis de
+/// varios torrents: se busca una vez) y escribe su índice. No pisa lo que ya está.
+pub fn save_copy(dir: &Path, lang: SubtitleLanguage, got: &[(SubtitleCandidate, PathBuf)]) {
+    if got.is_empty() || std::fs::create_dir_all(dir).is_err() {
+        return;
+    }
+    let copied: Vec<(SubtitleCandidate, PathBuf)> = got
+        .iter()
+        .filter_map(|(c, src)| {
+            let dest = dir.join(src.file_name()?);
+            (dest.is_file() || std::fs::copy(src, &dest).is_ok()).then(|| (c.clone(), dest))
+        })
+        .collect();
+    save(dir, lang, &copied);
 }
 
 /// El elegido primero; el otro completa (2026-11-15: "en español o inglés").
@@ -354,4 +456,34 @@ async fn video_hash(url: &str, size: u64) -> Option<u64> {
         .await
         .ok()?;
     Some(super::movie_hash(size, &head, &tail))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lo_guardado_se_reusa_solo_con_el_mismo_idioma_y_sus_archivos() {
+        let dir = std::env::temp_dir().join(format!("tstream-test-saved-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("wyzie_1.srt");
+        std::fs::write(&file, b"1\n00:00:01,000 --> 00:00:02,000\nHola\n").unwrap();
+        let mut cand = remembered_candidate("wyzie:1", "Peli.2024.1080p", SubtitleLanguage::Es);
+        cand.downloads = 42;
+        save(&dir, SubtitleLanguage::Es, &[(cand, file.clone())]);
+
+        let got = load_saved(&dir, SubtitleLanguage::Es).expect("guardado");
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].0.key(), "wyzie:1");
+        assert_eq!(got[0].0.release_name, "Peli.2024.1080p");
+        assert_eq!(got[0].0.downloads, 42);
+        assert_eq!(got[0].1, file);
+        // Otro idioma elegido: se busca de nuevo.
+        assert!(load_saved(&dir, SubtitleLanguage::En).is_none());
+        // Falta un archivo: se busca de nuevo.
+        std::fs::remove_file(&file).unwrap();
+        assert!(load_saved(&dir, SubtitleLanguage::Es).is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

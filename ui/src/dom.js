@@ -1,4 +1,4 @@
-// DOM compartido por Mis magnets y el catálogo: buscar y crear elementos, íconos, barra de estado
+// DOM compartido: buscar y crear elementos, íconos, barra de estado
 // y avisos para lectores de pantalla.
 import { activity } from './activity.js';
 
@@ -32,6 +32,7 @@ const ICONS = {
   copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/>',
   subs: '<rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6M17 10.2a2.2 2.2 0 1 0 0 3.6"/>',
   stop: '<rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" stroke="none"/>',
+  download: '<path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 19.5h14"/>',
   quick: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L20 20"/><path d="M11.5 6.8L9 10.8h3l-2.3 3.6"/>',
 };
 export function icon(name, size = 16) {
@@ -45,7 +46,7 @@ export function setStatus(message) {
 }
 
 /** UiError {message, detail}: mostrar `message`, nunca el detalle técnico (NFR-12).
- *  Mis magnets lo anota también en la burbuja de actividad; el catálogo pasa
+ *  Por defecto se anota también en la burbuja de actividad; el catálogo pasa
  *  `{ activity: false, ignoreCancelled: true }` (solo la barra, y sin los "Cancelado."). */
 export function showError(err, { activity: toActivity = true, ignoreCancelled = false } = {}) {
   if (ignoreCancelled && err?.message === 'Cancelado.') return;
@@ -54,7 +55,3 @@ export function showError(err, { activity: toActivity = true, ignoreCancelled = 
   if (toActivity) activity.push({ area: 'general', level: 'error', text: msg });
 }
 
-// Región viva para lectores de pantalla ("Copiado", etc.).
-const sr = el('div', { class: 'sr', 'aria-live': 'polite' });
-document.body.append(sr);
-export function srSay(msg) { sr.textContent = msg; setTimeout(() => (sr.textContent = ''), 1500); }

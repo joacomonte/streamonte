@@ -1,4 +1,4 @@
-// Estado compartido de Mis magnets: un solo objeto que los módulos leen y escriben (`state.x`).
+// Estado compartido (biblioteca del núcleo, reproducciones, análisis): un solo objeto que los módulos leen y escriben (`state.x`).
 // Solo lo que usa más de un módulo; lo propio de cada uno (caché de filas, marquesina…) vive ahí.
 
 export const state = {
@@ -12,15 +12,11 @@ export const state = {
   logs: new Map(),
   /** Reproducción cuyo log está abierto en el diálogo (o null). */
   logOpenFor: null,
-  /** `key` de la fila seleccionada (▶ Reproducir / Enter). */
-  selected: null,
   /** Último `analyzer-progress` del núcleo. */
   analyzerState: { kind: 'idle' },
   /** Magnets esperando análisis y pausados uno por uno (evento `analyzer-queue`). */
   queued: [],
   held: new Set(),
-  /** Filas (`key`) marcadas con la casilla para "Analizar seleccionados". */
-  checked: new Set(),
   /** info_hash → 'quick' | 'speed': pedidos de análisis recién tocados (antes de que el núcleo los
    *  ponga en cola): la fila muestra "preparando…" al instante y el botón queda deshabilitado (2026-11-14). */
   pending: new Map(),
@@ -30,10 +26,6 @@ export const state = {
 export function entryOfHash(h) {
   for (const e of state.entries.values()) if (e.info_hash === h) return e;
   return null;
-}
-/** Info hashes sin repetir de esas filas (un pack puede tener varias). */
-export function hashesOf(keys) {
-  return [...new Set(keys.map((k) => state.entries.get(k)?.info_hash).filter(Boolean))];
 }
 
 /** Nombre completo para saber qué torrent se copió: el de los metadatos (se busca al pegar),

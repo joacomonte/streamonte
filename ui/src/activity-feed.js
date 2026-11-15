@@ -2,8 +2,9 @@
 // líneas del log, y el resumen de lo que corre de fondo para su píldora.
 import { activity } from './activity.js';
 import { clock, humanBytes, mb, nf } from './format.js';
-import { PHASE_TEXT } from './row-analysis.js';
 import { fullName, state, titleOf } from './state.js';
+
+const PHASE_TEXT = { connecting: 'conectando', metadata: 'buscando metadatos', preload: 'precargando' };
 
 /** Resumen de lo que corre de fondo para la píldora de la burbuja de actividad. */
 export function renderActivity() {
