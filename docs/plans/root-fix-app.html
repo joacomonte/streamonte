@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Root-fix tstream-v2</title>
+<style>
+  :root { --bg:#fafaf9; --fg:#1c1917; --muted:#57534e; --card:#ffffff; --line:#e7e5e4;
+          --new:#16a34a; --mod:#d97706; --same:#a8a29e; --chip:#f5f5f4; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+          --bg:#1c1917; --fg:#f5f5f4; --muted:#a8a29e; --card:#292524; --line:#44403c; --chip:#3a3532; } }
+  :root[data-theme="dark"] { --bg:#1c1917; --fg:#f5f5f4; --muted:#a8a29e; --card:#292524; --line:#44403c; --chip:#3a3532; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, sans-serif; }
+  main { max-width:1100px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:20px; margin:0 0 8px; } h2 { font-size:15px; margin:24px 0 8px; }
+  p { margin:0 0 8px; color:var(--fg); }
+  .legend { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin:12px 0 4px; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:middle; }
+  .repo { border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:12px; }
+  .repo > b { font-size:13px; color:var(--muted); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px; margin-top:8px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .card h3 { margin:0 0 6px; font-size:13px; }
+  .card ul { margin:0; padding-left:0; list-style:none; }
+  .card li { margin:4px 0; font-size:12.5px; border-left:3px solid var(--same); padding-left:7px; }
+  .card li.n { border-color:var(--new); } .card li.m { border-color:var(--mod); }
+  code { font:12px ui-monospace, monospace; }
+  .ext { display:flex; gap:8px; flex-wrap:wrap; }
+  .ext span, .chip { background:var(--chip); border:1px solid var(--line); border-radius:999px; padding:3px 10px; font-size:12.5px; }
+  .ext span.m { border-color:var(--mod); } .ext span.n { border-color:var(--new); }
+  .flow { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:6px 0; }
+  .flow i { color:var(--muted); font-style:normal; }
+  footer ul { margin:4px 0 0; padding-left:18px; } footer li { margin:3px 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>Root-fix de tstream-v2</h1>
+<p>Toda la app identificaba cada cosa solo por el hash del torrent. En un pack de temporada todos los capítulos comparten ese hash: al elegir el cap 2 aparecía "Retomar" y se reproducía el cap 1. Ahora cada fila, reproducción, pausada y subtítulo recordado se identifica por <code>VideoKey</code> (hash + episodio o archivo). Además se corrigieron unos 50 bugs: secretos en los logs, datos borrados al apagar el motor, la config que se pisaba, carreras al reproducir y en la cola de análisis, y la UI que se congelaba. Los archivos gigantes quedaron partidos por responsabilidad y cada regla del dominio vive en un solo lugar.</p>
+
+<div class="legend">
+  <span><span class="dot" style="background:var(--new)"></span>nuevo</span>
+  <span><span class="dot" style="background:var(--mod)"></span>modificado</span>
+  <span><span class="dot" style="background:var(--same)"></span>ya existía, sin cambios de fondo</span>
+</div>
+
+<div class="repo"><b>repo tstream-v2</b>
+<div class="grid">
+  <div class="card"><h3>Núcleo Rust · dominio</h3><ul>
+    <li class="n"><code>video_key</code>: identidad de un video (hash + episodio o archivo)</li>
+    <li class="n"><code>release</code>: único parser de nombres de release y de "qué episodio es"</li>
+    <li class="m"><code>audio</code>: único detector de idioma (latino/castellano) y opciones de audio</li>
+    <li class="m"><code>ranking</code>: veredicto con calibración, que la UI solo muestra</li>
+    <li class="m"><code>library</code>: una fila por episodio; disco separado de la vista</li>
+  </ul></div>
+  <div class="card"><h3>Núcleo Rust · procesos</h3><ul>
+    <li class="m"><code>playback/</code>: start atómico, pausadas por clave, calibración propia</li>
+    <li class="m"><code>analyzer/</code>: cola con un estado por torrent y cancelar de a uno</li>
+    <li class="m"><code>subtitles/</code>: un archivo por proveedor; cuota de OpenSubtitles global</li>
+    <li class="m"><code>catalog/</code>: CAM y orden deterministas; búsquedas que se cancelan bien</li>
+    <li class="m"><code>engine/rqbit/</code>: red, fastresume y HTTP separados; Drop que cierra la sesión</li>
+  </ul></div>
+  <div class="card"><h3>Núcleo Rust · base</h3><ul>
+    <li class="n"><code>http</code>: cliente compartido (límites, 429, errores sin URL)</li>
+    <li class="n"><code>secrets</code>, <code>external</code>: llavero y abrir archivos o URLs</li>
+    <li class="n"><code>intake</code>: entrada de magnets y portapapeles</li>
+    <li class="m"><code>app</code>: <code>update_config</code> como único escritor; cleanup con una regla</li>
+    <li class="m"><code>paths</code>, <code>fsutil</code>, <code>logger</code>: descargas en la caché, JSON durable, logs rotados</li>
+  </ul></div>
+  <div class="card"><h3>Cáscara Tauri</h3><ul>
+    <li class="m">comandos pesados fuera del hilo principal</li>
+    <li class="m">un comando por ajuste; <code>play</code> y <code>remove</code> reciben la clave</li>
+    <li class="m">permiso mínimo: solo escuchar eventos</li>
+  </ul></div>
+  <div class="card"><h3>UI (JS sin bundler)</h3><ul>
+    <li class="m"><code>app.js</code>: de 1500 a 140 líneas (arranque y eventos)</li>
+    <li class="n"><code>state</code>, <code>dom</code>, <code>format</code>, <code>library-rows</code>, <code>dialogs</code>, <code>audio-picker</code>, etc.</li>
+    <li class="m">filas por clave; veredicto y audio que vienen del núcleo</li>
+    <li class="n">atajos F5, Enter y Ctrl+V; diálogos en cola</li>
+  </ul></div>
+  <div class="card"><h3>Sidecar webtorrent (Node)</h3><ul>
+    <li class="m">al apagarse ya no borra datos; maneja errores sin colgarse</li>
+    <li class="m">protocolo 0.3.0 sin campos muertos</li>
+  </ul></div>
+</div></div>
+
+<h2>Sistemas externos</h2>
+<div class="ext">
+  <span class="m">disco: descargas en la caché de la app (migradas desde temp)</span>
+  <span class="m">config.json / calibration.json: un dueño cada uno</span>
+  <span class="m">library.json: misma forma, sin campos calculados</span>
+  <span class="m">llavero: módulo único</span>
+  <span>mpv: igual (se cierra con quit y se limpia su socket)</span>
+  <span class="m">OpenSubtitles / Wyzie / addons: sin keys en los logs</span>
+</div>
+
+<h2>Flujo arreglado: elegir el cap 2 de un pack</h2>
+<div class="flow">
+  <span class="chip">Catálogo: T3 · E2</span><i>→</i>
+  <span class="chip">catalog_add → fila <code>hash:s3e2</code></span><i>→</i>
+  <span class="chip">▶ play(<code>hash:s3e2</code>)</span><i>→</i>
+  <span class="chip">start: pausa E1 y espera su cierre</span><i>→</i>
+  <span class="chip">busca la pausada de E2 (no la de E1)</span><i>→</i>
+  <span class="chip">mpv reproduce E2</span>
+</div>
+
+<footer>
+<h2>Qué va a notar el usuario</h2>
+<ul>
+  <li>Una fila por episodio en Mis magnets; "Retomar" solo aparece si ese mismo episodio estaba pausado.</li>
+  <li>Cambiar de video tarda alrededor de 1 s más (espera que el anterior se cierre). Dos clics en ▶ ya no abren dos mpv.</li>
+  <li>Los textos del semáforo coinciden con el color; el catálogo muestra "1,5×".</li>
+  <li>Películas como "4x4 (2019)" siguen contando como película; los packs de temporada estiman 45 min.</li>
+  <li>Si mpv no puede abrir el video, la fila lo muestra como error en vez de preguntar "¿seguir bajando?".</li>
+</ul>
+<h2>Qué quedó en desuso o se borró</h2>
+<ul>
+  <li>Se borraron <code>storage.rs</code>, <code>config_set</code>, el campo <code>speed_factor</code> de la config, el evento <code>Metadata</code> y las opciones del motor que nadie usaba.</li>
+  <li>Quedó sin tocar <code>AutoSync</code>/<code>SyncReference</code> (interfaz de F7, sin uso).</li>
+</ul>
+</footer>
+</main>
+</body>
+</html>

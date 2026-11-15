@@ -39,10 +39,10 @@ impl EventSink for ConsoleSink {
                 s.analyzer = Some(state);
             }
             CoreEvent::LibraryEntryUpdated { entry } => {
-                if entry.status == EntryStatus::Measured {
+                if entry.entry.status == EntryStatus::Measured {
                     s.measured += 1;
                 }
-                println!("[{t:6.1} s] {} → {:?}", entry.name, entry.status);
+                println!("[{t:6.1} s] {} → {:?}", entry.entry.name, entry.entry.status);
             }
             CoreEvent::Status { message, .. } => println!("[{t:6.1} s] estado: {message}"),
             _ => {}
@@ -85,6 +85,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut library = Library::load(paths.library_file())?;
     library.set_ranking(config.ranking.clone());
+    library.set_speed_factor(tstream_core::playback::Calibration::load(&real).factor().0);
     for (m, raw) in &magnets {
         library.add_or_touch(m, raw);
     }
@@ -122,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let lib = library.lock().await;
             lib.hashes().iter().any(|h| {
                 matches!(
-                    lib.get(h).map(|e| &e.status),
+                    lib.any_of(h).map(|e| &e.status),
                     Some(EntryStatus::New | EntryStatus::Scraping | EntryStatus::Measuring)
                 )
             })
@@ -141,8 +142,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "nombre", "seed", "leech", "peers", "duración", "vel MB/s", "nec MB/s", "margen"
     );
     let lib = library.lock().await;
-    for e in lib.list(Group::PastedNow) {
-        let score = e.score.expect("puntaje");
+    for row in lib.list(Group::PastedNow) {
+        let (score, e) = (row.score, &row.entry);
         let duration = score.duration.map_or("?".into(), |d| {
             let secs = d.secs.round() as u64;
             format!(

@@ -1,6 +1,6 @@
 {
   "name": "tstream-engine-webtorrent",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Sidecar del motor webtorrent para Torrent Stream v2 (JSON-RPC por stdio, ver docs/engine-protocol.md)",
   "type": "module",

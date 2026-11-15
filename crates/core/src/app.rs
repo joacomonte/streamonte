@@ -1,7 +1,7 @@
 //! `app` — [`AppCore`]: cablea los módulos y es la ÚNICA superficie que ve la UI (NFR-01).
 //! Cada método corresponde 1:1 a un comando Tauri (`src-tauri/src/commands.rs`) y a una
 //! función de `ui/src/api.js`. Ningún método bloquea: lo largo corre en tareas y avisa por eventos (NFR-10).
-//! Ningún comando hace `panic`: lo que todavía no existe devuelve [`CoreError::NotImplemented`].
+//! Ningún comando hace `panic`: los errores vuelven como [`CoreError`] con mensaje para el usuario.
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -10,58 +10,48 @@ use std::time::Duration;
 
 use serde::Serialize;
 use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
 
 use crate::analyzer::{AnalyzeScope, AnalyzerHandle};
 use crate::catalog::cinemeta::{BrowseCursor, BrowsePage, BrowseSort, Meta, SearchResults};
 use crate::catalog::{AddonView, MediaKind, VideoId};
 use crate::cleanup::{Cleanup, CleanupReport};
-use crate::clipboard::{ClipboardSource, WatchGuard};
+use crate::clipboard::WatchGuard;
 use crate::config::{Config, ConfigStore};
 use crate::events::{CoreEvent, EventSink, StatusLevel};
-use crate::library::CatalogOrigin;
-use crate::library::{AddOutcome, Group, Library, LibraryEntry};
+use crate::intake::Intake;
+pub use crate::intake::{ClipboardPreview, ClipboardPreviewItem, ClipboardReadReport};
+use crate::library::{Group, Library, LibraryRowView};
 use crate::logger::LoggerGuard;
-use crate::magnet::{InfoHash, Magnet};
+use crate::magnet::InfoHash;
 use crate::paths::AppPaths;
 use crate::playback::{
     OnAppClose, PlaybackAction, PlaybackId, PlaybackManager, PlaybackRow, StartRequest,
 };
+use crate::video_key::VideoKey;
 use crate::{CoreError, Result};
 
 /// Cada cuánto se mira si la biblioteca cambió para guardarla (debounce de `library.json`).
 const LIBRARY_SAVE_DEBOUNCE: Duration = Duration::from_millis(500);
+/// Cuánto esperar a que una medición recién cancelada suelte su carpeta de análisis.
+const ANALYSIS_RELEASE_WAIT: Duration = Duration::from_secs(5);
 
-/// Lista agrupada para la vista principal (FR-03, FR-29).
+/// Lista agrupada para la vista principal (FR-03, FR-29): cada fila con la misma forma que el
+/// evento `LibraryEntryUpdated`.
 #[derive(Debug, Clone, Serialize)]
 pub struct LibraryView {
-    pub pasted_now: Vec<LibraryEntry>,
-    pub previous: Vec<LibraryEntry>,
+    pub pasted_now: Vec<LibraryRowView>,
+    pub previous: Vec<LibraryRowView>,
 }
 
-/// Diálogo "Leer portapapeles": magnets encontrados para elegir (2026-11-14).
+/// Un subtítulo bajado desde el catálogo (para mostrar en la fila).
 #[derive(Debug, Clone, Serialize)]
-pub struct ClipboardPreview {
-    pub items: Vec<ClipboardPreviewItem>,
-    /// `false` → solo se vio el último copiado (Win+V apagado o macOS).
-    pub history_available: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct ClipboardPreviewItem {
-    #[serde(flatten)]
-    pub magnet: crate::clipboard::ClipboardMagnet,
-    /// Ya está en la lista.
-    pub in_list: bool,
-    /// Nombre real si ya lo conocemos (metadatos de una vez anterior).
-    pub known_name: Option<String>,
-}
-
-/// Resultado de "Leer portapapeles" sin diálogo (FR-02, lectura al abrir la app).
-#[derive(Debug, Clone, Serialize)]
-pub struct ClipboardReadReport {
-    pub added: usize,
-    /// `false` → la UI avisa que Win+V está apagado o no existe en el SO.
-    pub history_available: bool,
+pub struct SubtitleFound {
+    pub provider: String,
+    pub language: crate::config::SubtitleLanguage,
+    pub release_name: String,
+    /// Para distinguir dos del mismo release (p. ej. uno para sordos).
+    pub downloads: u32,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -72,8 +62,8 @@ pub struct TempUsage {
 
 /// ¿Hay API key guardada para este proveedor de subtítulos? (Ajustes, F4).
 #[derive(Debug, Clone, Serialize)]
-pub struct SubtitleKeyStatus {
-    pub provider: String,
+pub struct ApiKeyStatus {
+    pub service: String,
     pub configured: bool,
 }
 
@@ -105,11 +95,14 @@ pub struct AppCore {
     playback: PlaybackManager,
     cleanup: Cleanup,
     events: Arc<dyn EventSink>,
-    /// Magnets recién pegados → nombre real + análisis automático.
+    /// Entrada de magnets: pegar, portapapeles, nombre real + análisis automático.
     intake: Intake,
     /// Catálogo y addons (F4b, spec 09).
     catalog: Arc<crate::catalog::Catalog>,
-    clipboard: Arc<dyn ClipboardSource>,
+    /// "Agregar addon" de a uno: dos altas a la vez podrían elegir el mismo id (y su secreto).
+    adding_addon: Mutex<()>,
+    /// Conteos de enjambre en curso (catálogo): cerrar o cambiar de video los corta.
+    swarm_cancel: std::sync::Mutex<CancellationToken>,
     _clipboard_watch: Option<WatchGuard>,
     _logger: LoggerGuard,
 }
@@ -134,6 +127,8 @@ impl AppCore {
         let config = config_store.load()?;
         let logger = crate::logger::init(&paths, &config.logging)?;
         crate::activity::set_sink(events.clone());
+        // Antes de limpiar y de recuperar las pausadas: que estén donde se las busca.
+        paths.migrate_downloads_from_temp();
         let mut library = Library::load(paths.library_file())?;
         // FR-20 / T-05: restos de una ejecución anterior (app cerrada a la fuerza, corte de luz).
         // FR-06d: lo analizado de los magnets que siguen en la lista NO es resto; el de los que
@@ -141,7 +136,8 @@ impl AppCore {
         {
             let cleanup = Cleanup::new(paths.clone());
             let events = events.clone();
-            let keep = analysis_dirs(&paths, &library.hashes());
+            // Todavía no hay reproducciones de esta sesión.
+            let keep = protected_dirs(&paths, HashSet::new(), &library.hashes());
             tokio::task::spawn_blocking(move || match cleanup.clean_orphans(&keep) {
                 Ok(r) if !r.is_empty() => {
                     tracing::info!(?r, "restos de la sesión anterior limpiados");
@@ -159,6 +155,10 @@ impl AppCore {
         }
 
         library.set_ranking(config.ranking.clone());
+        library.set_downloads_dir(paths.downloads_dir());
+        // Antes de cualquier escritura de `config.json`: siembra desde un factor viejo (migración).
+        let calibration = Arc::new(crate::playback::Calibration::load(&paths));
+        library.set_speed_factor(calibration.factor().0);
         let read_history_on_start = config.clipboard.read_history_on_start;
         let config = Arc::new(tokio::sync::RwLock::new(config));
         let library = Arc::new(Mutex::new(library));
@@ -175,21 +175,21 @@ impl AppCore {
             config: config.clone(),
             library: library.clone(),
             events: events.clone(),
+            calibration,
         });
         // FR-12: las descargas pausadas de sesiones anteriores vuelven al panel.
-        playback.load_kept();
+        playback.load_kept().await;
 
-        let intake = spawn_intake(
+        let intake = Intake::spawn(
             paths.clone(),
             config.clone(),
             library.clone(),
             events.clone(),
             analyzer.clone(),
+            Arc::from(crate::clipboard::platform_source()),
         );
-
-        let clipboard: Arc<dyn ClipboardSource> = Arc::from(crate::clipboard::platform_source());
         let clipboard_watch = if opts.capture_clipboard {
-            start_clipboard_watch(clipboard.as_ref(), &library, &events, &intake)
+            intake.watch_clipboard()
         } else {
             None
         };
@@ -202,12 +202,13 @@ impl AppCore {
             paths,
             config,
             config_store,
+            adding_addon: Mutex::new(()),
+            swarm_cancel: std::sync::Mutex::default(),
             library,
             analyzer,
             playback,
             events,
             intake,
-            clipboard,
             _clipboard_watch: clipboard_watch,
             _logger: logger,
         });
@@ -228,53 +229,15 @@ impl AppCore {
     /// Las dos listas de la vista principal, cada una en el orden por defecto (FR-03, FR-07).
     pub async fn library(&self) -> LibraryView {
         let library = self.library.lock().await;
-        let downloads = self.paths.downloads_dir();
-        let group = |g| {
-            library
-                .list(g)
-                .into_iter()
-                .map(|e| {
-                    let mut e = e.clone();
-                    if let Some(live) = &e.live {
-                        let prefix = format!("{}-", e.info_hash.to_hex());
-                        e.downloaded_bytes = Some(crate::fsutil::downloaded_in_dirs(
-                            &downloads,
-                            &prefix,
-                            &live.file_name,
-                        ));
-                    }
-                    e
-                })
-                .collect()
-        };
         LibraryView {
-            pasted_now: group(Group::PastedNow),
-            previous: group(Group::Previous),
+            pasted_now: library.list(Group::PastedNow),
+            previous: library.list(Group::Previous),
         }
     }
 
-    /// "Leer portapapeles" (FR-02): historial Win+V del más nuevo al más viejo hasta el primer
-    /// no-magnet. Sin historial (apagado o macOS): solo el último copiado + aviso.
-    /// Diálogo "Leer portapapeles" (2026-11-14): TODOS los magnets del historial Win+V con la
-    /// hora en que se copiaron, para que el usuario elija cuáles agregar. Marca los que ya están.
+    /// Diálogo "Leer portapapeles" (2026-11-14): todos los magnets del historial para elegir.
     pub async fn clipboard_preview(&self) -> Result<ClipboardPreview> {
-        let (items, unavailable) = crate::clipboard::scan_all(self.clipboard.as_ref()).await;
-        let library = self.library.lock().await;
-        let items = items
-            .into_iter()
-            .map(|m| {
-                let entry = library.get(&m.info_hash);
-                ClipboardPreviewItem {
-                    in_list: entry.is_some(),
-                    known_name: entry.and_then(|e| e.torrent_name.clone()),
-                    magnet: m,
-                }
-            })
-            .collect();
-        Ok(ClipboardPreview {
-            items,
-            history_available: unavailable.is_none(),
-        })
+        Ok(self.intake.clipboard_preview().await)
     }
 
     /// Agrega solo los magnets elegidos en el diálogo (texto original de cada uno).
@@ -282,38 +245,34 @@ impl AppCore {
         self.add_from_text(&raws.join("\n")).await
     }
 
+    /// "Leer portapapeles" (FR-02) sin diálogo: hasta el primer no-magnet del historial.
     pub async fn read_clipboard(&self) -> Result<ClipboardReadReport> {
-        let crate::clipboard::ClipboardImport {
-            magnets,
-            unavailable,
-        } = crate::clipboard::import(self.clipboard.as_ref()).await;
-        if let Some(reason) = unavailable {
-            self.events
-                .emit(CoreEvent::ClipboardHistoryUnavailable { reason });
-        }
-        let added = add_magnets(&self.library, self.events.as_ref(), &self.intake, &magnets).await;
-        Ok(ClipboardReadReport {
-            added,
-            history_available: unavailable.is_none(),
-        })
+        Ok(self.intake.read_clipboard().await)
     }
 
     /// Agrega todos los magnets de un texto (pegar, arrastrar, captura en vivo; FR-01).
     /// Devuelve cuántos quedaron en "Pegados ahora" por este texto (nuevos o traídos de "Anteriores").
     pub async fn add_from_text(&self, text: &str) -> Result<usize> {
-        let magnets = crate::magnet::extract_all_with_raw(text);
-        Ok(add_magnets(&self.library, self.events.as_ref(), &self.intake, &magnets).await)
+        Ok(self.intake.add_from_text(text).await)
     }
 
-    /// Quitar uno (FR-04).
-    /// FR-06d: con el magnet se va lo bajado al analizarlo.
-    pub async fn remove(&self, hash: InfoHash) -> Result<()> {
-        if !self.library.lock().await.remove(&hash) {
-            return Err(CoreError::NotFound(format!("magnet {hash}")));
+    /// Quitar una fila (FR-04).
+    /// FR-06d: con el último video de un torrent se corta su análisis (solo el de ese magnet) y
+    /// se va lo bajado al analizarlo. Si quedan otros episodios del mismo torrent, el análisis
+    /// se conserva.
+    pub async fn remove(&self, key: VideoKey) -> Result<()> {
+        let last_of_torrent = {
+            let mut library = self.library.lock().await;
+            if !library.remove(&key) {
+                return Err(CoreError::NotFound(format!("magnet {key}")));
+            }
+            !library.has_torrent(&key.info_hash)
+        };
+        self.events.emit(CoreEvent::LibraryEntryRemoved { key });
+        if last_of_torrent {
+            let _ = self.analyzer.cancel_one(key.info_hash).await;
+            self.delete_analysis(&[key.info_hash], ANALYSIS_RELEASE_WAIT).await;
         }
-        self.events
-            .emit(CoreEvent::LibraryEntryRemoved { info_hash: hash });
-        self.delete_analysis(&[hash]).await;
         Ok(())
     }
 
@@ -328,30 +287,24 @@ impl AppCore {
             hashes
         };
         self.events.emit(CoreEvent::LibraryCleared);
-        self.delete_analysis(&hashes).await;
+        self.delete_analysis(&hashes, ANALYSIS_RELEASE_WAIT).await;
         Ok(())
     }
 
-    /// Borra los datos de análisis (FR-06d). Si una medición todavía la usa (archivos abiertos),
-    /// queda para la limpieza del próximo inicio: su hash ya no está en la lista.
-    async fn delete_analysis(&self, hashes: &[InfoHash]) {
+    /// Borra los datos de análisis (FR-06d). Nunca una carpeta que una medición todavía usa:
+    /// espera hasta `wait` a que la suelte (tras cancelar el analizador) y si no, la deja para
+    /// la limpieza del próximo inicio.
+    async fn delete_analysis(&self, hashes: &[InfoHash], wait: Duration) {
         for hash in hashes {
             let dir = self.paths.analysis_dir(hash);
-            if let Err(e) = self.cleanup.remove_dir(&dir).await {
-                tracing::warn!("no se pudo borrar {dir:?}: {e} (se reintenta al abrir la app)");
+            match self.cleanup.remove_dir_when_free(&dir, wait).await {
+                Ok(Some(_)) => {}
+                Ok(None) => tracing::info!(?dir, "análisis en uso: no se borra ahora"),
+                Err(e) => {
+                    tracing::warn!("no se pudo borrar {dir:?}: {e} (se reintenta al abrir la app)")
+                }
             }
         }
-    }
-
-    /// Lo que la limpieza automática no toca: reproducciones (activas y pausadas) y el análisis
-    /// de los magnets de la lista (FR-06d).
-    async fn kept_dirs(&self) -> HashSet<PathBuf> {
-        let mut dirs = self.playback.active_dirs();
-        dirs.extend(analysis_dirs(
-            &self.paths,
-            &self.library.lock().await.hashes(),
-        ));
-        dirs
     }
 
     /// Magnet para "Copiar magnet" (FR-04): tal cual se copió.
@@ -359,7 +312,7 @@ impl AppCore {
         self.library
             .lock()
             .await
-            .get(&hash)
+            .any_of(&hash)
             .map(|e| e.magnet.clone())
             .ok_or_else(|| CoreError::NotFound(format!("magnet {hash}")))
     }
@@ -406,10 +359,12 @@ impl AppCore {
     /// FR-16: detiene todas las reproducciones (borrando lo bajado, también lo pausado y lo
     /// bajado al analizar, FR-06d) y limpia restos huérfanos. La lista no se toca.
     pub async fn stop_all_and_clean(&self) -> Result<CleanupReport> {
+        // Sin esto se borraría la carpeta de la medición en curso con el motor escribiendo.
+        let _ = self.analyzer.cancel().await;
         self.playback.stop_all(true).await?;
         let hashes = self.library.lock().await.hashes();
-        self.delete_analysis(&hashes).await;
-        let active = self.playback.active_dirs();
+        self.delete_analysis(&hashes, ANALYSIS_RELEASE_WAIT).await;
+        let active = protected_dirs(&self.paths, self.playback.active_dirs(), &[]);
         let cleanup = Cleanup::new(self.paths.clone());
         tokio::task::spawn_blocking(move || cleanup.clean_orphans(&active))
             .await
@@ -421,13 +376,22 @@ impl AppCore {
     /// Al cerrar la app: corta el análisis, guarda la biblioteca y aplica la elección (FR-17).
     pub async fn on_close(&self, choice: OnAppClose) -> Result<()> {
         let _ = self.analyzer.cancel().await;
-        if let Err(e) = self.library.lock().await.save_if_dirty() {
+        if let Err(e) = save_library(&self.library).await {
             tracing::warn!("guardar library.json al cerrar: {e}");
         }
         self.playback.on_app_close(choice).await?;
         // FR-20 al cerrar: restos sin dueño vivo (lo propio ya se borró al detener).
-        if let Err(e) = self.cleanup.clean_orphans(&self.kept_dirs().await) {
-            tracing::warn!("limpieza al cerrar: {e}");
+        let keep = protected_dirs(
+            &self.paths,
+            self.playback.active_dirs(),
+            &self.library.lock().await.hashes(),
+        );
+        let cleanup = Cleanup::new(self.paths.clone());
+        // Recorre procesos y borra carpetas: fuera de los hilos de tokio.
+        match tokio::task::spawn_blocking(move || cleanup.clean_orphans(&keep)).await {
+            Ok(Ok(_)) => {}
+            Ok(Err(e)) => tracing::warn!("limpieza al cerrar: {e}"),
+            Err(e) => tracing::warn!("limpieza al cerrar: {e}"),
         }
         Ok(())
     }
@@ -436,13 +400,22 @@ impl AppCore {
     /// Cuánto liberaría "Limpiar temporales" (para la confirmación, FR-19).
     pub fn temp_usage(&self) -> Result<TempUsage> {
         Ok(TempUsage {
-            bytes: self.cleanup.temp_size(&self.playback.active_dirs())?,
+            bytes: self.cleanup.temp_size(&protected_dirs(
+                &self.paths,
+                self.playback.active_dirs(),
+                &[],
+            ))?,
             folder: self.paths.downloads_dir().display().to_string(),
         })
     }
-    /// "Limpiar temporales" (FR-19): nunca toca reproducciones activas ni el historial.
+    /// "Limpiar temporales" (FR-19): nunca toca reproducciones activas ni el historial. Lo
+    /// analizado de los magnets de la lista SÍ se borra (decidido), salvo lo que se esté midiendo.
     pub fn clean_temp(&self) -> Result<CleanupReport> {
-        self.cleanup.clean(&self.playback.active_dirs())
+        self.cleanup.clean(&protected_dirs(
+            &self.paths,
+            self.playback.active_dirs(),
+            &[],
+        ))
     }
     pub fn open_downloads_folder(&self) -> Result<()> {
         crate::cleanup::open_in_file_manager(&self.paths.downloads_dir())
@@ -452,29 +425,184 @@ impl AppCore {
     pub async fn config(&self) -> Config {
         self.config.read().await.clone()
     }
-    pub async fn set_config(&self, new: Config) -> Result<()> {
-        self.config_store.save(&new)?;
-        crate::logger::apply(&new.logging)?;
-        self.library.lock().await.set_ranking(new.ranking.clone());
-        *self.config.write().await = new;
-        Ok(())
+    /// ÚNICA escritura de la config: con el lock de escritura tomado aplica `change` a una copia,
+    /// la guarda (atómico) y recién entonces la publica y la propaga (logger, semáforo). Dos
+    /// cambios a la vez se ponen en fila y ninguno pisa al otro; si `change` falla o no se puede
+    /// guardar, no cambia nada. Nada lento adentro: lo que va a la red se hace antes.
+    pub async fn update_config<T>(
+        &self,
+        change: impl FnOnce(&mut Config) -> Result<T>,
+    ) -> Result<T> {
+        let mut current = self.config.write().await;
+        let mut next = current.clone();
+        let out = change(&mut next)?;
+        self.config_store.save(&next)?;
+        *current = next;
+        crate::logger::apply(&current.logging)?;
+        self.library
+            .lock()
+            .await
+            .set_ranking(current.ranking.clone());
+        Ok(out)
+    }
+
+    /// Ajustes → Red (ADR-30): entrantes / UPnP. Aplica desde la próxima reproducción.
+    pub async fn set_network(&self, incoming: bool, upnp: bool) -> Result<()> {
+        self.update_config(|c| {
+            c.engine.incoming = incoming;
+            c.engine.upnp = upnp;
+            Ok(())
+        })
+        .await
     }
 
     // ----- Subtítulos (FR-24, Q-01, Q-04, NFR-16) -----
     /// Guarda la API key de un proveedor ("opensubtitles" o "wyzie") en el almacén seguro del
     /// sistema; vacía = borrarla. Nunca va a `config.json` ni a los logs.
-    pub fn subtitles_set_api_key(&self, provider: &str, key: &str) -> Result<()> {
-        crate::subtitles::secrets::set_api_key(provider, key)
+    /// API keys de servicios (Ajustes): subtítulos (Wyzie, OpenSubtitles) y pósters (TMDB).
+    /// Se guardan en el almacén seguro; nunca se devuelven ni se loguean.
+    pub fn set_api_key(&self, service: &str, key: &str) -> Result<()> {
+        match service {
+            crate::catalog::tmdb::TMDB => crate::catalog::tmdb::set_key(key),
+            provider => crate::subtitles::secrets::set_api_key(provider, key),
+        }
     }
-    /// Qué proveedores tienen key (para Ajustes, F4), sin devolver nunca la key.
-    pub fn subtitles_api_keys(&self) -> Vec<SubtitleKeyStatus> {
-        crate::subtitles::secrets::KEY_PROVIDERS
-            .iter()
-            .map(|p| SubtitleKeyStatus {
-                provider: (*p).to_string(),
-                configured: crate::subtitles::secrets::has_api_key(p),
-            })
+    /// Qué servicios tienen key (Ajustes), sin devolver nunca la key.
+    pub fn api_keys(&self) -> Vec<ApiKeyStatus> {
+        let subtitles = crate::subtitles::secrets::KEY_PROVIDERS.iter().map(|p| ApiKeyStatus {
+            service: (*p).to_string(),
+            configured: crate::subtitles::secrets::has_api_key(p),
+        });
+        subtitles
+            .chain(std::iter::once(ApiKeyStatus {
+                service: crate::catalog::tmdb::TMDB.to_string(),
+                configured: crate::catalog::tmdb::has_key(),
+            }))
             .collect()
+    }
+    /// Abre en el navegador la página para pedir la key de un servicio (solo URLs fijas, NFR-16).
+    pub fn open_key_page(&self, service: &str) -> Result<()> {
+        let url = match service {
+            crate::catalog::tmdb::TMDB => Some(crate::catalog::tmdb::KEY_PAGE),
+            provider => crate::subtitles::secrets::key_page(provider),
+        }
+        .ok_or_else(|| CoreError::NotFound(format!("servicio {service}")))?;
+        crate::external::open_external(url)
+            .map_err(|_| CoreError::Unsupported("abrir el navegador"))
+    }
+
+    /// Póster de TMDB para un título cuyo póster de Cinemeta no existe (2026-11-15).
+    pub async fn catalog_poster(&self, imdb_id: &str) -> Option<String> {
+        let timeout = self.catalog_timeout().await;
+        self.catalog.poster(imdb_id, timeout).await
+    }
+
+    /// Análisis rápido de opciones del catálogo: seeders/leechers según los trackers (segundos).
+    pub async fn catalog_scrape(
+        &self,
+        hashes: &[InfoHash],
+    ) -> std::collections::HashMap<InfoHash, crate::trackers::ScrapeResult> {
+        let (trackers, timeout) = {
+            let cfg = self.config.read().await;
+            (cfg.trackers.clone(), Duration::from_secs(cfg.analyzer.scrape_timeout_secs))
+        };
+        self.catalog.rescrape(hashes, &trackers, timeout).await
+    }
+
+    /// "Contar seeders reales" de opciones del catálogo (2026-11-15): se conecta al enjambre de
+    /// cada una y cuenta los que ve (~50 s por tanda), sin bajar el video ni sumarlo a Mis
+    /// magnets. Varios conteos conviven; cerrar o cambiar de video los corta todos.
+    pub async fn catalog_swarm(
+        &self,
+        hashes: &[InfoHash],
+        deep: bool,
+    ) -> std::collections::HashMap<InfoHash, crate::analyzer::swarm::SwarmCount> {
+        let cancel = self.swarm_cancel.lock().expect("swarm").clone();
+        let magnets = self.catalog.magnets_of(hashes);
+        let cfg = self.config.read().await.clone();
+        crate::analyzer::swarm::count(&self.paths, &cfg, magnets, deep, cancel, {
+            let events = self.events.clone();
+            move |hash, count| events.emit(CoreEvent::CatalogSwarmCounted { hash, count })
+        })
+        .await
+    }
+
+    /// "Bajar subtítulos" de una opción del catálogo (2026-11-15): busca y baja hasta 5 en
+    /// `language` (el otro idioma completa) sin necesitar el video, por IMDb + episodio y nombre
+    /// del release. Quedan en la caché de ESE video: al analizar o reproducir se reusan y se
+    /// copian junto al archivo con nombres que mpv carga solo.
+    pub async fn catalog_subtitles(
+        &self,
+        video_id: &str,
+        hash: &InfoHash,
+        language: crate::config::SubtitleLanguage,
+    ) -> Result<Vec<SubtitleFound>> {
+        let video = VideoId::parse(video_id)?;
+        let c = self.catalog.candidate(&video, hash).ok_or_else(|| CoreError::Catalog {
+            user: "Esa opción ya no está en la lista: actualizá las opciones.".into(),
+            detail: format!("candidato {hash} no encontrado"),
+        })?;
+        let file = c.file_name.clone().unwrap_or_else(|| c.release_name.clone());
+        let mut identity = crate::subtitles::VideoIdentity::for_file(
+            &file,
+            &c.release_name,
+            *hash,
+            c.size_bytes.unwrap_or(0),
+        );
+        identity.imdb_id = Some(video.imdb_id().to_string());
+        if let Some((s, e)) = video.episode() {
+            identity.season = u16::try_from(s).ok();
+            identity.episode = u16::try_from(e).ok();
+        }
+        let id = identity.video_id();
+        // El log de la búsqueda también es el progreso que ve la UI ("bajando N", "bajado …").
+        let progress = Arc::new(std::sync::Mutex::new((false, 0usize, 0usize)));
+        let (events, vid) = (self.events.clone(), video_id.to_string());
+        let emit = {
+            let progress = progress.clone();
+            move || {
+                let (downloading, done, total) = *progress.lock().expect("progreso");
+                events.emit(CoreEvent::CatalogSubtitlesProgress { video_id: vid.clone(), downloading, done, total });
+            }
+        };
+        emit();
+        let log: crate::subtitles::session::LogFn = Arc::new(move |line| {
+            tracing::info!(target: "tstream_core::subtitles", "{line}");
+            let mut changed = false;
+            if let Some(n) = line.strip_prefix("subtítulos: bajando ").and_then(|n| n.trim().parse::<usize>().ok()) {
+                let mut p = progress.lock().expect("progreso");
+                p.0 = true;
+                p.2 += n;
+                changed = true;
+            } else if line.starts_with("subtítulos: bajado ") {
+                progress.lock().expect("progreso").1 += 1;
+                changed = true;
+            }
+            if changed {
+                emit();
+            }
+        });
+        let got = crate::subtitles::session::fetch(crate::subtitles::session::Fetch {
+            video: identity,
+            video_url: None,
+            torrent_files: Vec::new(),
+            language,
+            cache_dir: self.paths.subtitle_cache_dir().join(&id),
+            remembered: None,
+            // Lo pidió el usuario: OpenSubtitles completa si hace falta (respeta su cuota diaria).
+            opensubtitles: true,
+            log,
+        })
+        .await;
+        Ok(got
+            .into_iter()
+            .map(|(cand, _)| SubtitleFound {
+                provider: crate::subtitles::providers::display_name(cand.provider).to_string(),
+                language: cand.language,
+                release_name: cand.release_name,
+                downloads: cand.downloads,
+            })
+            .collect())
     }
 
     // ----- Catálogo y addons (F4b, spec 09) -----
@@ -483,30 +611,13 @@ impl AppCore {
     /// anterior (`Cancelled`, la UI la ignora). FR-40: en segundo plano se piden las fichas para
     /// avisar con `CatalogExcluded` cuáles son anime / japonés.
     pub async fn catalog_search(&self, query: &str) -> Result<SearchResults> {
-        let query = query.trim();
-        if query.chars().count() < 2 {
-            return Ok(SearchResults {
-                movies: Vec::new(),
-                series: Vec::new(),
-            });
-        }
         let timeout = self.catalog_timeout().await;
-        let results = self.catalog.search(query, timeout).await?;
-        let previews = results
-            .movies
-            .iter()
-            .chain(&results.series)
-            .cloned()
-            .collect();
-        let (catalog, events) = (self.catalog.clone(), self.events.clone());
-        tokio::spawn(async move {
-            catalog
-                .find_excluded(previews, timeout, move |id| {
-                    events.emit(CoreEvent::CatalogExcluded { id });
-                })
-                .await;
-        });
-        Ok(results)
+        let events = self.events.clone();
+        self.catalog
+            .search_flagging_excluded(query, timeout, move |id| {
+                events.emit(CoreEvent::CatalogExcluded { id });
+            })
+            .await
     }
 
     /// Explorar (FR-37 simple, 2026-11-14): una página de 50 de Cinemeta.
@@ -515,12 +626,11 @@ impl AppCore {
         kind: MediaKind,
         sort: BrowseSort,
         year: Option<u16>,
+        genre: Option<&str>,
         skip: u32,
     ) -> Result<BrowsePage> {
         let timeout = self.catalog_timeout().await;
-        crate::catalog::cinemeta::browse(&self.catalog.http, kind, sort, year, skip, timeout)
-            .await
-            .map_err(|e| crate::catalog::fetch_error("cargar la lista", &e))
+        self.catalog.browse(kind, sort, year, genre, skip, timeout).await
     }
 
     /// Explorar por fecha de estreno (`AAAA-MM-DD`, bordes incluidos; sin `to` = hasta hoy).
@@ -530,38 +640,13 @@ impl AppCore {
         kind: MediaKind,
         from: &str,
         to: Option<&str>,
+        genre: Option<&str>,
         cursor: Option<BrowseCursor>,
     ) -> Result<BrowsePage> {
-        let date = |s: &str| {
-            chrono::NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d").map_err(|_| {
-                CoreError::Catalog {
-                    user: format!("Fecha inválida: {s}."),
-                    detail: format!("fecha inválida: {s:?}"),
-                }
-            })
-        };
-        let from = date(from)?;
-        let to = match to.filter(|t| !t.trim().is_empty()) {
-            Some(t) => date(t)?,
-            None => chrono::Local::now().date_naive(),
-        };
-        if from > to {
-            return Err(CoreError::Catalog {
-                user: "La fecha «desde» es posterior a «hasta».".into(),
-                detail: format!("rango invertido: {from} > {to}"),
-            });
-        }
         let timeout = self.catalog_timeout().await;
-        crate::catalog::cinemeta::browse_released(
-            &self.catalog.http,
-            kind,
-            from,
-            to,
-            cursor,
-            timeout,
-        )
-        .await
-        .map_err(|e| crate::catalog::fetch_error("cargar la lista", &e))
+        self.catalog
+            .browse_released(kind, from, to, genre, cursor, timeout)
+            .await
     }
 
     /// FR-38/39: ficha de película o serie (con episodios).
@@ -573,62 +658,45 @@ impl AppCore {
     /// FR-42: pide streams a todos los addons habilitados; llegan por `CatalogStreams`.
     /// Cambiar de video cancela la consulta anterior. Los seeders reales llegan solos (scrape).
     pub async fn catalog_streams(&self, kind: MediaKind, video_id: &str) -> Result<()> {
-        let video = VideoId::parse(video_id)?;
+        // Otro video: los conteos de enjambre del anterior ya no sirven.
+        std::mem::take(&mut *self.swarm_cancel.lock().expect("swarm")).cancel();
         let cfg = self.config.read().await.clone();
-        let addons = self.catalog.enabled_addons(&cfg.catalog);
-        if addons.is_empty() {
-            return Err(CoreError::Catalog {
-                user: "No hay fuentes habilitadas: activá alguna en Fuentes.".into(),
-                detail: "sin addons habilitados".into(),
-            });
-        }
-        let ctx = crate::catalog::aggregate::RunCtx {
-            http: self.catalog.http.clone(),
-            addons,
-            video,
-            kind,
-            audio_order: cfg.catalog.audio_order.clone(),
-            exclude_cam: cfg.catalog.exclude_cam,
-            default_timeout: Duration::from_millis(cfg.catalog.timeout_ms),
-            trackers: cfg.trackers.clone(),
-            scrape_timeout: Duration::from_secs(cfg.analyzer.scrape_timeout_secs),
-            latest: self.catalog.latest.clone(),
-        };
         let events = self.events.clone();
-        self.catalog.start_streams(ctx, move |update| {
+        self.catalog.streams(&cfg, kind, video_id, move |update| {
             events.emit(CoreEvent::CatalogStreams { update });
-        });
-        Ok(())
+        })
     }
 
     /// Cerrar la ficha / volver a buscar: corta la consulta en curso.
     pub fn catalog_stop_streams(&self) {
         self.catalog.stop_streams();
+        // Corta los conteos de enjambre de ese video; los próximos usan un token nuevo.
+        std::mem::take(&mut *self.swarm_cancel.lock().expect("swarm")).cancel();
     }
 
-    /// "Analizar seleccionados" (Q-14, 2026-11-14: el usuario elige qué medir). Los agrega a
-    /// *Mis magnets* con su origen y los mide con el archivo correcto (FR-48, FR-50).
+    /// "Analizar" desde el catálogo (Q-14: el usuario elige qué medir): lo agrega a *Mis magnets*
+    /// con su origen y pide metadatos + velocidad con el archivo correcto (FR-48, FR-50).
     pub async fn catalog_analyze(
         &self,
         kind: MediaKind,
         video_id: &str,
         hashes: Vec<InfoHash>,
-    ) -> Result<usize> {
+    ) -> Result<Vec<LibraryRowView>> {
         let added = self.catalog_add(kind, video_id, &hashes).await?;
-        self.analyzer
-            .enqueue(AnalyzeScope::Selected(added.clone()))
-            .await?;
-        Ok(added.len())
+        let hashes = added.iter().map(|row| row.entry.info_hash).collect();
+        self.analyzer.enqueue(AnalyzeScope::Selected(hashes)).await?;
+        Ok(added)
     }
 
-    /// Candidatos → entradas de la biblioteca con `origin` (spec 09 §8.1). No pasa por el
+    /// Candidatos → filas de la biblioteca con `origin` (spec 09 §8.1), sin analizar ("Reproducir"
+    /// desde el catálogo las agrega así y las reproduce con [`Self::play`]). No pasa por el
     /// análisis automático "al pegar": desde el catálogo solo se mide lo que el usuario elige.
-    async fn catalog_add(
+    pub async fn catalog_add(
         &self,
         kind: MediaKind,
         video_id: &str,
         hashes: &[InfoHash],
-    ) -> Result<Vec<InfoHash>> {
+    ) -> Result<Vec<LibraryRowView>> {
         let video = VideoId::parse(video_id)?;
         let timeout = self.catalog_timeout().await;
         let meta = self.catalog.meta(kind, video.imdb_id(), timeout).await.ok();
@@ -636,41 +704,18 @@ impl AppCore {
         let mut library = self.library.lock().await;
         let mut added = Vec::new();
         for hash in hashes {
-            let c = self
-                .catalog
-                .candidate(hash)
-                .ok_or_else(|| CoreError::Catalog {
-                    user: "Ese torrent ya no está en la lista: actualizá los streams.".into(),
-                    detail: format!("candidato {hash} no encontrado"),
-                })?;
-            let magnet = Magnet {
-                info_hash: c.info_hash,
-                display_name: Some(c.release_name.clone()),
-                trackers: c.trackers.clone(),
+            let pick = self.catalog.pick(&video, hash, meta.as_ref(), &trackers)?;
+            // Una fila por episodio: agregar S3E2 no pisa la fila de S3E1 del mismo pack.
+            let key = library.add_from_catalog(
+                &pick.magnet,
+                &pick.magnet.to_uri(),
+                pick.origin,
+                pick.size_bytes,
+            );
+            library.emit_rows(&[key], self.events.as_ref());
+            if let Some(entry) = library.get(&key) {
+                added.push(library.view(entry));
             }
-            .with_trackers(&trackers);
-            library.add_or_touch(&magnet, &magnet.to_uri());
-            let origin = CatalogOrigin {
-                video_id: video.to_string(),
-                imdb_id: video.imdb_id().to_string(),
-                title: meta
-                    .as_ref()
-                    .map_or_else(|| video.imdb_id().to_string(), |m| m.name.clone()),
-                year: meta.as_ref().and_then(|m| m.year.clone()),
-                season: video.episode().map(|e| e.0),
-                episode: video.episode().map(|e| e.1),
-                file_idx: c.file_idx,
-                addons: c.addons.clone(),
-            };
-            if let Some(entry) = library.update(hash, |e| {
-                e.origin = Some(origin);
-                e.video_size = e.video_size.or(c.size_bytes);
-            }) {
-                self.events.emit(CoreEvent::LibraryEntryUpdated {
-                    entry: Box::new(entry.clone()),
-                });
-            }
-            added.push(*hash);
         }
         Ok(added)
     }
@@ -688,180 +733,91 @@ impl AppCore {
     }
 
     /// "Agregar addon": valida el manifest; URL con configuración → almacén seguro (NFR-22).
+    /// El manifest se pide (hasta 10 s) SIN el lock de la config: mientras tanto otros ajustes
+    /// se guardan normalmente y el alta solo agrega su fila a la config de ese momento.
     pub async fn catalog_add_addon(&self, url: &str) -> Result<AddonView> {
-        let mut cfg = self.config().await;
-        let entry = self.catalog.new_addon(url, &cfg.catalog.addons).await?;
+        let _one_at_a_time = self.adding_addon.lock().await;
+        let existing = self.config.read().await.catalog.addons.clone();
+        let entry = self.catalog.new_addon(url, &existing).await?;
         let view = AddonView::from(&entry);
-        cfg.catalog.addons.push(entry);
-        self.set_config(cfg).await?;
+        self.update_config(|c| {
+            c.catalog.addons.push(entry);
+            Ok(())
+        })
+        .await?;
         Ok(view)
     }
 
     pub async fn catalog_remove_addon(&self, id: &str) -> Result<()> {
-        let mut cfg = self.config().await;
-        let Some(pos) = cfg.catalog.addons.iter().position(|a| a.id == id) else {
-            return Err(CoreError::NotFound(format!("addon {id}")));
-        };
-        let entry = cfg.catalog.addons.remove(pos);
+        let entry = self
+            .update_config(|c| {
+                let pos = c.catalog.addons.iter().position(|a| a.id == id);
+                let pos = pos.ok_or_else(|| CoreError::NotFound(format!("addon {id}")))?;
+                Ok(c.catalog.addons.remove(pos))
+            })
+            .await?;
+        // Después de guardar: si no se pudo, la URL secreta sigue en el almacén.
         self.catalog.forget_addon(&entry);
-        self.set_config(cfg).await
+        Ok(())
     }
 
     pub async fn catalog_set_addon_enabled(&self, id: &str, enabled: bool) -> Result<()> {
-        let mut cfg = self.config().await;
-        let entry = cfg
-            .catalog
-            .addons
-            .iter_mut()
-            .find(|a| a.id == id)
-            .ok_or_else(|| CoreError::NotFound(format!("addon {id}")))?;
-        entry.enabled = enabled;
-        self.set_config(cfg).await
+        self.update_config(|c| {
+            let entry = c.catalog.addons.iter_mut().find(|a| a.id == id);
+            entry
+                .ok_or_else(|| CoreError::NotFound(format!("addon {id}")))?
+                .enabled = enabled;
+            Ok(())
+        })
+        .await
     }
 
     /// "Restaurar lista por defecto" (spec 09 §9).
     pub async fn catalog_reset_addons(&self) -> Result<Vec<AddonView>> {
-        let mut cfg = self.config().await;
-        for entry in &cfg.catalog.addons {
+        let old = self
+            .update_config(|c| {
+                Ok(std::mem::replace(
+                    &mut c.catalog.addons,
+                    crate::config::default_addons(),
+                ))
+            })
+            .await?;
+        for entry in &old {
             self.catalog.forget_addon(entry);
         }
-        cfg.catalog.addons = crate::config::default_addons();
-        self.set_config(cfg).await?;
         Ok(self.catalog_addons().await)
+    }
+
+    /// Filtro "Sin anime" de Buscar (FR-40).
+    pub async fn catalog_set_exclude_japanese(&self, exclude: bool) -> Result<()> {
+        self.update_config(|c| {
+            c.catalog.exclude_japanese = exclude;
+            Ok(())
+        })
+        .await
     }
 
     async fn catalog_timeout(&self) -> Duration {
         Duration::from_millis(self.config.read().await.catalog.timeout_ms)
     }
-
-    // ----- Utilidades (no son comandos de la UI) -----
-
-    /// Guarda la biblioteca ya, sin esperar el debounce (herramientas de línea de comandos).
-    pub async fn flush_library(&self) -> Result<()> {
-        self.library.lock().await.save_if_dirty().map(drop)
-    }
 }
 
-/// Agrega magnets a la biblioteca y avisa a la UI. Devuelve cuántos quedaron en "Pegados ahora"
-/// por esta operación (nuevos o movidos desde "Anteriores").
-async fn add_magnets(
-    library: &Mutex<Library>,
-    events: &dyn EventSink,
-    intake: &Intake,
-    magnets: &[(Magnet, String)],
-) -> usize {
-    let mut library = library.lock().await;
-    let mut count = 0;
-    let mut fresh = Vec::new();
-    for (m, raw) in magnets {
-        // `raw` = el magnet tal cual se copió ("Copiar magnet", FR-04).
-        match library.add_or_touch(m, raw) {
-            AddOutcome::AlreadyPresent => {}
-            AddOutcome::Added | AddOutcome::MovedToPastedNow => {
-                count += 1;
-                if let Some(entry) = library.get(&m.info_hash) {
-                    if entry.torrent_name.is_none() || entry.live.is_none() {
-                        fresh.push(m.clone());
-                    }
-                    events.emit(CoreEvent::LibraryEntryUpdated {
-                        entry: Box::new(entry.clone()),
-                    });
-                }
-            }
-        }
-    }
-    if !fresh.is_empty() {
-        let _ = intake.send(fresh);
-    }
-    count
+/// Lo que una limpieza no toca, para TODAS (al abrir, al cerrar, FR-16, FR-19 y su tamaño):
+/// las reproducciones (activas y pausadas) + el análisis (FR-06d) de `list_analysis`. Las
+/// automáticas (abrir/cerrar, FR-20) pasan los magnets de la lista; las que pide el usuario
+/// (FR-16, FR-19) pasan `&[]`: ahí lo analizado se borra (decidido). Lo que se está usando
+/// ahora lo cuida además `cleanup` (registro en uso), aunque no esté acá.
+fn protected_dirs(
+    paths: &AppPaths,
+    playbacks: HashSet<PathBuf>,
+    list_analysis: &[InfoHash],
+) -> HashSet<PathBuf> {
+    let mut dirs = playbacks;
+    dirs.extend(list_analysis.iter().map(|h| paths.analysis_dir(h)));
+    dirs
 }
 
-/// Magnets recién pegados → nombre real + análisis automático (ver [`spawn_intake`]).
-type Intake = tokio::sync::mpsc::UnboundedSender<Vec<Magnet>>;
-
-/// Al pegar: 1) metadatos de todos a la vez para mostrar el nombre real en segundos (el `dn` de
-/// Torrentio es genérico) y 2) si `analyzer.auto_on_paste`, análisis completo de esos magnets.
-/// Agrupa lo que llega en ~400 ms (pegar 5 magnets juntos = una sola tanda).
-fn spawn_intake(
-    paths: AppPaths,
-    config: Arc<tokio::sync::RwLock<Config>>,
-    library: Arc<Mutex<Library>>,
-    events: Arc<dyn EventSink>,
-    analyzer: AnalyzerHandle,
-) -> Intake {
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Vec<Magnet>>();
-    tokio::spawn(async move {
-        while let Some(mut batch) = rx.recv().await {
-            tokio::time::sleep(std::time::Duration::from_millis(400)).await;
-            while let Ok(more) = rx.try_recv() {
-                batch.extend(more);
-            }
-            batch.dedup_by_key(|m| m.info_hash);
-            let cfg = config.read().await.clone();
-            let hashes: Vec<InfoHash> = batch.iter().map(|m| m.info_hash).collect();
-
-            // 1. Nombres (en paralelo, sin bloquear la próxima tanda).
-            let need_name: Vec<Magnet> = {
-                let lib = library.lock().await;
-                batch
-                    .into_iter()
-                    .filter(|m| {
-                        lib.get(&m.info_hash)
-                            .is_some_and(|e| e.torrent_name.is_none())
-                    })
-                    .collect()
-            };
-            if !need_name.is_empty() {
-                events.emit(CoreEvent::Status {
-                    level: StatusLevel::Info,
-                    message: format!("Buscando el nombre de {} magnet(s)…", need_name.len()),
-                });
-                let (paths, cfg2, library, events) =
-                    (paths.clone(), cfg.clone(), library.clone(), events.clone());
-                let handle = tokio::runtime::Handle::current();
-                tokio::spawn(async move {
-                    crate::analyzer::fetch_names(
-                        &paths,
-                        &cfg2,
-                        need_name,
-                        move |hash, name, video_size| {
-                            let (library, events) = (library.clone(), events.clone());
-                            handle.spawn(async move {
-                                let mut lib = library.lock().await;
-                                if let Some(entry) = lib.update(&hash, |e| {
-                                    e.torrent_name = Some(name.clone());
-                                    e.video_size = e.video_size.or(video_size);
-                                }) {
-                                    events.emit(CoreEvent::LibraryEntryUpdated {
-                                        entry: Box::new(entry.clone()),
-                                    });
-                                }
-                            });
-                        },
-                    )
-                    .await;
-                });
-            }
-
-            // 2. Análisis automático (usa el `.torrent` en caché cuando ya llegó).
-            if cfg.analyzer.auto_on_paste {
-                if let Err(e) = analyzer.enqueue(AnalyzeScope::Pasted(hashes)).await {
-                    tracing::warn!("análisis automático al pegar: {e}");
-                }
-            }
-        }
-    });
-    tx
-}
-
-/// Captura en vivo (FR-01): de cada texto copiado se extraen todos los magnets. Si el SO no lo permite,
-/// la app sigue (se puede pegar a mano) y queda anotado en el log (NFR-13).
 /// "1,2 GB", "350 MB" — para mensajes de la barra de estado.
-/// Carpetas de análisis (FR-06d) de estos magnets.
-fn analysis_dirs(paths: &AppPaths, hashes: &[InfoHash]) -> HashSet<PathBuf> {
-    hashes.iter().map(|h| paths.analysis_dir(h)).collect()
-}
-
 pub fn human_bytes(bytes: u64) -> String {
     const GB: f64 = 1024.0 * 1024.0 * 1024.0;
     const MB: f64 = 1024.0 * 1024.0;
@@ -873,33 +829,21 @@ pub fn human_bytes(bytes: u64) -> String {
     }
 }
 
-fn start_clipboard_watch(
-    clipboard: &dyn ClipboardSource,
-    library: &Arc<Mutex<Library>>,
-    events: &Arc<dyn EventSink>,
-    intake: &Intake,
-) -> Option<WatchGuard> {
-    let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(64);
-    let guard = match clipboard.watch(tx) {
-        Ok(g) => g,
-        Err(e) => {
-            tracing::warn!("sin captura en vivo del portapapeles: {e}");
-            return None;
-        }
+/// Guarda `library.json` si cambió. El lock se toma solo para copiar: escribir a disco no frena
+/// a la UI. `SAVING` pone en fila las escrituras: una copia vieja nunca pisa a una más nueva.
+async fn save_library(library: &Mutex<Library>) -> Result<()> {
+    static SAVING: Mutex<()> = Mutex::const_new(());
+    let _turn = SAVING.lock().await;
+    let Some(snapshot) = library.lock().await.take_dirty_snapshot() else {
+        return Ok(());
     };
-    let library = library.clone();
-    let events = events.clone();
-    let intake = intake.clone();
-    tokio::spawn(async move {
-        while let Some(text) = rx.recv().await {
-            let magnets = crate::magnet::extract_all_with_raw(&text);
-            if !magnets.is_empty() {
-                let n = add_magnets(&library, events.as_ref(), &intake, &magnets).await;
-                tracing::debug!(magnets = magnets.len(), nuevos = n, "portapapeles");
-            }
-        }
-    });
-    Some(guard)
+    let written = tokio::task::spawn_blocking(move || snapshot.write())
+        .await
+        .unwrap_or_else(|e| Err(CoreError::Engine(format!("guardar library.json: {e}"))));
+    if written.is_err() {
+        library.lock().await.mark_dirty();
+    }
+    written
 }
 
 /// Guarda `library.json` como mucho una vez cada 500 ms y solo si cambió (spec 04).
@@ -907,14 +851,25 @@ fn spawn_library_saver(library: &Arc<Mutex<Library>>) {
     let library = Arc::downgrade(library);
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(LIBRARY_SAVE_DEBOUNCE);
+        let mut failures = 0u32;
         loop {
             tick.tick().await;
             let Some(library) = library.upgrade() else {
                 return; // la app terminó
             };
-            let mut library = library.lock().await;
-            if let Err(e) = library.save_if_dirty() {
-                tracing::warn!("no se pudo guardar library.json: {e}");
+            match save_library(&library).await {
+                Ok(()) if failures > 0 => {
+                    tracing::info!(failures, "library.json se volvió a guardar");
+                    failures = 0;
+                }
+                Ok(()) => {}
+                Err(e) => {
+                    failures += 1;
+                    // Reintenta cada 500 ms, pero avisa la primera vez y después ~1 por minuto.
+                    if failures % 120 == 1 {
+                        tracing::warn!(failures, "no se pudo guardar library.json: {e}");
+                    }
+                }
             }
         }
     });

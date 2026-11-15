@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filtros del catálogo — variantes</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0d1014; --surface: #161a20; --surface-2: #1c2129; --surface-3: #232a34; --sunk: #11151a;
+  --text: #e7eaee; --muted: #9aa3ae; --dim: #8b949f; --border: #252b34; --border-strong: #353d48;
+  --accent: #2563eb; --accent-hover: #1d4fd8; --accent-text: #fff; --accent-fg: #7ab0ff;
+  --shadow-lg: rgb(0 0 0 / .45); --radius: 8px; --radius-card: 12px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+main { max-width: 1100px; margin: 0 auto; padding: 32px 16px 80px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.intro { color: var(--muted); margin: 0 0 32px; }
+section { margin-bottom: 56px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--sunk); }
+section h2 { font-size: 16px; margin: 0 0 2px; }
+section h2 span { color: var(--accent-fg); margin-right: 6px; }
+section .why { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+.stage { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 20px; }
+.state { margin-top: 10px; font: 12px ui-monospace, monospace; color: var(--dim); }
+
+/* grilla falsa */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; margin-top: 20px; }
+.poster { aspect-ratio: 2/3; border-radius: var(--radius); border: 1px solid var(--border); }
+.pname { margin-top: 6px; height: 10px; width: 70%; border-radius: 4px; background: var(--surface-3); }
+
+/* piezas comunes */
+.dd { position: relative; display: inline-block; }
+.pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; min-width: 220px; padding: 6px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: 0 12px 32px var(--shadow-lg); }
+.pop.right { left: auto; right: 0; }
+.opt { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 8px 10px; border: none; border-radius: 6px; background: none; text-align: left; white-space: nowrap; }
+.opt:hover { background: var(--surface-3); }
+.opt.sel { color: var(--accent-fg); font-weight: 600; }
+.opt.sel::after { content: "✓"; }
+.sep { height: 1px; background: var(--border); margin: 6px 4px; }
+.lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); padding: 6px 10px 4px; }
+.years { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 0 2px; }
+.years .opt { justify-content: center; padding: 6px 0; }
+.years .opt.sel { background: var(--accent); color: #fff; }
+.years .opt.sel::after { content: none; }
+.custom { display: grid; gap: 8px; padding: 8px 10px; }
+.custom label { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+.custom input { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 4px 6px; font: 13px system-ui, sans-serif; }
+.hint { font-size: 12px; color: var(--dim); }
+.caret { font-size: 10px; opacity: .7; margin-left: 4px; }
+
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-weight: 600; font-size: 13px; }
+.chip:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+.chip.on { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+.chip:disabled { opacity: .4; cursor: default; }
+.chip .x { margin-left: 2px; opacity: .6; padding: 0 2px; }
+.chip .x:hover { opacity: 1; }
+
+.utabs { display: flex; gap: 20px; }
+.utab { border: none; background: none; padding: 6px 0; font-size: 16px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; }
+.utab:hover { color: var(--text); }
+.utab.active { color: var(--text); border-color: var(--accent); }
+
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); }
+.seg button { height: 28px; padding: 0 12px; border: none; border-radius: 999px; background: none; color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.seg button:hover:not(.active) { color: var(--text); }
+.seg button.active { background: var(--accent); color: #fff; }
+
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+
+/* V2 frase */
+.sentence { text-align: center; font-size: 20px; color: var(--muted); }
+.word { border: none; background: none; padding: 0 2px; font-size: 20px; font-weight: 600; color: var(--text); border-bottom: 2px dashed var(--border-strong); }
+.word:hover { border-color: var(--accent); color: var(--accent-fg); }
+.sentence .pop { font-size: 14px; text-align: left; }
+
+/* V4 command bar */
+.cmd { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 46px; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); }
+.cmd:focus-within { border-color: var(--accent); }
+.cmd input { flex: 1; min-width: 160px; border: none; background: none; color: var(--text); font: 14px system-ui, sans-serif; outline: none; }
+.tok { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 6px; background: var(--surface-3); font-weight: 600; font-size: 13px; border: none; }
+.tok .k { color: var(--dim); font-weight: 500; }
+.kbd { font: 11px ui-monospace, monospace; color: var(--dim); border: 1px solid var(--border-strong); border-radius: 4px; padding: 1px 5px; }
+
+/* V5 sidebar */
+.side { display: grid; grid-template-columns: 190px 1fr; gap: 24px; }
+.side .grid { margin-top: 0; grid-template-columns: repeat(3, 1fr); }
+.side nav { display: grid; gap: 14px; align-content: start; }
+.side .opt { padding: 6px 8px; }
+
+/* V6 título */
+.title-tabs { display: flex; gap: 18px; align-items: baseline; }
+.ttab { border: none; background: none; padding: 0; font-size: 30px; font-weight: 700; color: var(--border-strong); }
+.ttab:hover { color: var(--muted); }
+.ttab.active { color: var(--text); }
+.link { border: none; background: none; color: var(--muted); font-weight: 600; padding: 4px 2px; }
+.link:hover, .link.on { color: var(--text); }
+.dot { color: var(--border-strong); }
+
+/* V7 panel */
+.fbtn { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-weight: 600; }
+.fbtn:hover { border-color: var(--border-strong); }
+.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; display: inline-grid; place-items: center; }
+.panel { margin-top: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); display: grid; grid-template-columns: auto 1fr; gap: 14px 20px; align-items: center; }
+.panel .k { color: var(--muted); font-size: 13px; font-weight: 600; }
+.panel .custom { padding: 0; display: flex; flex-wrap: wrap; }
+
+/* V8 timeline */
+.strip { display: flex; gap: 4px; overflow-x: auto; padding: 4px 0 6px; margin-top: 14px; scrollbar-width: thin; }
+.yr { flex: none; height: 30px; padding: 0 12px; border: none; border-radius: 6px; background: none; color: var(--muted); font-weight: 600; font-size: 13px; }
+.yr:hover { background: var(--surface-2); color: var(--text); }
+.yr.sel { background: var(--surface-3); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+.vline { width: 1px; background: var(--border); margin: 4px 6px; flex: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Barra del catálogo — 8 variantes</h1>
+  <p class="intro">Hoy: 3 filas (pestañas + año/orden + rango con atajos). Todas son interactivas; la línea gris debajo de cada una muestra el estado resultante (lo que la app mandaría a Cinemeta).</p>
+  <div id="variants"></div>
+</main>
+
+<script>
+const THIS_YEAR = 2026;
+const YEARS = Array.from({ length: 16 }, (_, k) => THIS_YEAR - k); // 2026..2011
+
+const VARIANTS = [
+  { title: 'Una fila de chips con popover', why: 'Pestañas como texto subrayado y tres chips (Año · Orden · Estreno). Un chip con valor se pinta y muestra ×. Tradeoff: sigue habiendo Año y Estreno por separado (Año se apaga con rango).' },
+  { title: 'Frase resumen', why: '“Mostrando series más populares de cualquier fecha”: cada palabra subrayada abre su menú. Cero cajas. Tradeoff: menos descubrible para quien busca “botones de filtro”.' },
+  { title: '“Cuándo” unificado', why: 'Año y rango se funden en un solo chip “Cuándo” (presets, años, fechas a mano). Desaparece la regla “el año se deshabilita”. Una fila, pills chicos estilo app actual.' },
+  { title: 'Barra de comandos', why: 'Todo es un input con tokens: escribí “series”, “imdb”, “2024”, “30d”, “desde 2023”, Enter. Las sugerencias se pueden clickear. Tradeoff: ideal para teclado, rara para mouse puro.' },
+  { title: 'Sidebar de filtros', why: 'Filtros siempre visibles a la izquierda como listas; la barra superior desaparece. Tradeoff: come ancho y deja menos posters por fila.' },
+  { title: 'Título como pestaña', why: '“Películas / Series” es el título grande de la página; orden y cuándo son links discretos a la derecha. Muy editorial (estilo streaming). Tradeoff: los filtros pesan poco visualmente.' },
+  { title: 'Un botón “Filtros”', why: 'En reposo solo hay pestañas y un botón “Filtros (n)”. Los filtros activos aparecen como chips removibles. Lo más limpio; tradeoff: un clic extra para cambiar algo.' },
+  { title: 'Línea de tiempo de años', why: 'Una tira horizontal “Todo · 30 días · Este año · 2026 · 2025 …” reemplaza año + atajos de un vistazo; fechas a mano quedan en “Personalizado…”. Orden como toggle de texto.' },
+];
+
+const S = VARIANTS.map(() => ({ kind: 'movie', sort: 'pop', when: { type: 'any' }, open: null, custom: false }));
+
+// ---------- etiquetas ----------
+const hasRange = s => ['30d', 'thisyear', 'range'].includes(s.when.type);
+const kindLabel = s => s.kind === 'movie' ? 'Películas' : 'Series';
+const sortLabel = s => s.sort === 'imdb' ? 'Mejor puntaje IMDb' : hasRange(s) ? 'Más recientes' : 'Más populares';
+const sortShort = s => s.sort === 'imdb' ? 'Mejor IMDb' : hasRange(s) ? 'Recientes' : 'Populares';
+const fmt = d => d ? d.split('-').reverse().join('/') : '';
+function whenLabel(s) {
+  const w = s.when;
+  if (w.type === 'year') return String(w.year);
+  if (w.type === '30d') return 'Últimos 30 días';
+  if (w.type === 'thisyear') return 'Este año';
+  if (w.type === 'range') {
+    const from = w.from && w.from.endsWith('-01-01') ? w.from.slice(0, 4) : fmt(w.from) || '…';
+    const to = !w.to ? 'hoy' : w.to.endsWith('-12-31') ? w.to.slice(0, 4) : fmt(w.to);
+    return `${from} – ${to}`;
+  }
+  return 'Cualquier fecha';
+}
+function stateLine(s) {
+  return `${kindLabel(s)} · ${sortLabel(s)} · ${whenLabel(s)}`;
+}
+
+// ---------- acciones ----------
+function upd(i, fn) { fn(S[i]); render(i); }
+const setKind = (i, k) => upd(i, s => { s.kind = k; s.open = null; });
+const setSort = (i, v) => upd(i, s => { s.sort = v; s.open = null; });
+const setWhen = (i, t) => upd(i, s => { s.when = { type: t }; s.custom = false; s.open = null; });
+const setYear = (i, y) => upd(i, s => { s.when = { type: 'year', year: y }; s.custom = false; s.open = null; });
+const custom = (i) => upd(i, s => { s.custom = true; if (s.when.type !== 'range') s.when = { type: 'range', from: `${THIS_YEAR}-01-01`, to: '' }; });
+const setFrom = (i, v) => upd(i, s => { s.when = { ...s.when, type: 'range', from: v }; });
+const setTo = (i, v) => upd(i, s => { s.when = { ...s.when, type: 'range', to: v }; });
+const tog = (i, name) => upd(i, s => { s.open = s.open === name ? null : name; });
+const clearAll = (i) => upd(i, s => { s.sort = 'pop'; s.when = { type: 'any' }; s.custom = false; s.open = null; });
+
+// ---------- piezas de menú ----------
+const opt = (id, label, sel, onclick) => `<button id="${id}" class="opt ${sel ? 'sel' : ''}" onclick="${onclick}">${label}</button>`;
+const sortMenu = (i, s) =>
+  opt(`v${i}-sort-pop`, hasRange(s) ? 'Más recientes' : 'Más populares', s.sort === 'pop', `setSort(${i},'pop')`) +
+  opt(`v${i}-sort-imdb`, 'Mejor puntaje IMDb', s.sort === 'imdb', `setSort(${i},'imdb')`);
+const presetMenu = (i, s) =>
+  opt(`v${i}-w-any`, 'Cualquier fecha', s.when.type === 'any', `setWhen(${i},'any')`) +
+  opt(`v${i}-w-30d`, 'Últimos 30 días', s.when.type === '30d', `setWhen(${i},'30d')`) +
+  opt(`v${i}-w-thisyear`, 'Este año', s.when.type === 'thisyear', `setWhen(${i},'thisyear')`);
+const yearsGrid = (i, s) => `<div class="years">${YEARS.map(y =>
+  `<button id="v${i}-y-${y}" class="opt ${s.when.type === 'year' && s.when.year === y ? 'sel' : ''}" onclick="setYear(${i},${y})">${y}</button>`).join('')}</div>`;
+const customBlock = (i, s) => (s.custom || s.when.type === 'range')
+  ? `<div class="custom">
+       <label>Desde <input type="date" id="v${i}-from" value="${s.when.from || ''}" onchange="setFrom(${i},this.value)"></label>
+       <label>Hasta <input type="date" id="v${i}-to" value="${s.when.to || ''}" onchange="setTo(${i},this.value)"></label>
+       <span class="hint">“Hasta” vacío = hoy</span>
+     </div>`
+  : opt(`v${i}-w-custom`, 'Elegir fechas…', false, `custom(${i})`);
+const whenMenu = (i, s, withYears) =>
+  presetMenu(i, s) + (withYears ? `<div class="sep"></div><div class="lbl">Año</div>${yearsGrid(i, s)}` : '') +
+  `<div class="sep"></div>${customBlock(i, s)}`;
+const dd = (i, s, name, trigger, menu, right) =>
+  `<div class="dd">${trigger}${s.open === name ? `<div class="pop ${right ? 'right' : ''}" id="v${i}-pop-${name}">${menu}</div>` : ''}</div>`;
+const utabs = (i, s) => `<div class="utabs" role="tablist">
+  <button id="v${i}-tab-movie" class="utab ${s.kind === 'movie' ? 'active' : ''}" onclick="setKind(${i},'movie')">Películas</button>
+  <button id="v${i}-tab-series" class="utab ${s.kind === 'series' ? 'active' : ''}" onclick="setKind(${i},'series')">Series</button></div>`;
+const segTabs = (i, s) => `<div class="seg">
+  <button id="v${i}-tab-movie" class="${s.kind === 'movie' ? 'active' : ''}" onclick="setKind(${i},'movie')">Películas</button>
+  <button id="v${i}-tab-series" class="${s.kind === 'series' ? 'active' : ''}" onclick="setKind(${i},'series')">Series</button></div>`;
+const xBtn = (id, onclick) => `<span id="${id}" class="x" role="button" title="Quitar" onclick="event.stopPropagation();${onclick}">×</span>`;
+
+// ---------- variantes ----------
+const BARS = [
+  // 1 · chips
+  (i, s) => `<div class="row">${utabs(i, s)}<span class="spacer"></span>
+    ${dd(i, s, 'year', `<button id="v${i}-year" class="chip ${s.when.type === 'year' ? 'on' : ''}" ${hasRange(s) ? 'disabled title="Se desactiva con fecha de estreno"' : ''} onclick="tog(${i},'year')">${s.when.type === 'year' ? s.when.year + xBtn(`v${i}-year-x`, `setWhen(${i},'any')`) : 'Año<span class=caret>▾</span>'}</button>`,
+      `<div class="lbl">Año</div>${yearsGrid(i, s)}`, true)}
+    ${dd(i, s, 'sort', `<button id="v${i}-sort" class="chip ${s.sort === 'imdb' ? 'on' : ''}" onclick="tog(${i},'sort')">${sortShort(s)}<span class=caret>▾</span></button>`, sortMenu(i, s), true)}
+    ${dd(i, s, 'rel', `<button id="v${i}-rel" class="chip ${hasRange(s) ? 'on' : ''}" onclick="tog(${i},'rel')">${hasRange(s) ? 'Estreno: ' + whenLabel(s) + xBtn(`v${i}-rel-x`, `setWhen(${i},'any')`) : 'Estreno<span class=caret>▾</span>'}</button>`,
+      `${opt(`v${i}-w-30d`, 'Últimos 30 días', s.when.type === '30d', `setWhen(${i},'30d')`)}${opt(`v${i}-w-thisyear`, 'Este año', s.when.type === 'thisyear', `setWhen(${i},'thisyear')`)}<div class="sep"></div>${customBlock(i, s)}`, true)}
+  </div>`,
+
+  // 2 · frase
+  (i, s) => `<div class="sentence">Mostrando
+    ${dd(i, s, 'kind', `<button id="v${i}-kind" class="word" onclick="tog(${i},'kind')">${kindLabel(s).toLowerCase()}</button>`,
+      opt(`v${i}-k-movie`, 'películas', s.kind === 'movie', `setKind(${i},'movie')`) + opt(`v${i}-k-series`, 'series', s.kind === 'series', `setKind(${i},'series')`))}
+    ${dd(i, s, 'sort', `<button id="v${i}-sort" class="word" onclick="tog(${i},'sort')">${sortLabel(s).toLowerCase().replace('mejor puntaje imdb', 'con mejor puntaje IMDb')}</button>`, sortMenu(i, s))}
+    ${s.when.type === 'year' ? 'del' : s.when.type === 'any' ? 'de' : ''}
+    ${dd(i, s, 'when', `<button id="v${i}-when" class="word" onclick="tog(${i},'when')">${s.when.type === 'year' ? s.when.year : whenLabel(s).toLowerCase()}</button>`, whenMenu(i, s, true))}
+  </div>`,
+
+  // 3 · cuándo unificado
+  (i, s) => `<div class="row" style="justify-content:center">${segTabs(i, s)}
+    <div class="seg"><button id="v${i}-sort-pop" class="${s.sort === 'pop' ? 'active' : ''}" onclick="setSort(${i},'pop')">${hasRange(s) ? 'Recientes' : 'Populares'}</button><button id="v${i}-sort-imdb" class="${s.sort === 'imdb' ? 'active' : ''}" onclick="setSort(${i},'imdb')">Mejor IMDb</button></div>
+    ${dd(i, s, 'when', `<button id="v${i}-when" class="chip ${s.when.type !== 'any' ? 'on' : ''}" onclick="tog(${i},'when')">Cuándo: ${s.when.type === 'any' ? 'Siempre' : whenLabel(s)}${s.when.type !== 'any' ? xBtn(`v${i}-when-x`, `setWhen(${i},'any')`) : '<span class=caret>▾</span>'}</button>`, whenMenu(i, s, true))}
+  </div>`,
+
+  // 4 · comandos
+  (i, s) => {
+    const toks = [`<span class="tok"><span class="k">tipo</span>${kindLabel(s)}</span>`];
+    if (s.sort === 'imdb') toks.push(`<span class="tok"><span class="k">orden</span>IMDb ${xBtn(`v${i}-tok-sort-x`, `setSort(${i},'pop')`)}</span>`);
+    if (s.when.type !== 'any') toks.push(`<span class="tok"><span class="k">cuándo</span>${whenLabel(s)} ${xBtn(`v${i}-tok-when-x`, `setWhen(${i},'any')`)}</span>`);
+    return `<div class="dd" style="display:block">
+      <div class="cmd" onclick="document.getElementById('v${i}-q').focus()">${toks.join('')}
+        <input id="v${i}-q" placeholder="Filtrar: series, imdb, 2024, 30d, desde 2023…" autocomplete="off"
+          onfocus="openCmd(${i})" oninput="renderSug(${i},this.value)" onkeydown="cmdKey(event,${i},this)">
+        <span class="kbd">/</span></div>
+      ${s.open === 'cmd' ? `<div class="pop" id="v${i}-pop-cmd" style="right:0"></div>` : ''}</div>`;
+  },
+
+  // 5 · sidebar (la barra es toda la sección)
+  (i, s) => `<div class="side"><nav>
+      <div><div class="lbl">Tipo</div>${opt(`v${i}-k-movie`, 'Películas', s.kind === 'movie', `setKind(${i},'movie')`)}${opt(`v${i}-k-series`, 'Series', s.kind === 'series', `setKind(${i},'series')`)}</div>
+      <div><div class="lbl">Orden</div>${sortMenu(i, s)}</div>
+      <div><div class="lbl">Cuándo</div>${presetMenu(i, s)}
+        ${dd(i, s, 'year', opt(`v${i}-year`, s.when.type === 'year' ? `Año ${s.when.year}` : 'Un año…', s.when.type === 'year', `tog(${i},'year')`), yearsGrid(i, s))}
+        ${customBlock(i, s)}</div>
+    </nav><div>${posters(s, 6)}</div></div>`,
+
+  // 6 · título
+  (i, s) => `<div class="row" style="align-items:baseline">
+    <div class="title-tabs"><button id="v${i}-tab-movie" class="ttab ${s.kind === 'movie' ? 'active' : ''}" onclick="setKind(${i},'movie')">Películas</button><button id="v${i}-tab-series" class="ttab ${s.kind === 'series' ? 'active' : ''}" onclick="setKind(${i},'series')">Series</button></div>
+    <span class="spacer"></span>
+    ${dd(i, s, 'sort', `<button id="v${i}-sort" class="link ${s.sort === 'imdb' ? 'on' : ''}" onclick="tog(${i},'sort')">${sortLabel(s)}<span class=caret>▾</span></button>`, sortMenu(i, s), true)}
+    <span class="dot">·</span>
+    ${dd(i, s, 'when', `<button id="v${i}-when" class="link ${s.when.type !== 'any' ? 'on' : ''}" onclick="tog(${i},'when')">${whenLabel(s)}<span class=caret>▾</span></button>`, whenMenu(i, s, true), true)}
+  </div>`,
+
+  // 7 · botón filtros
+  (i, s) => {
+    const n = (s.sort === 'imdb') + (s.when.type !== 'any');
+    const chips = [];
+    if (s.sort === 'imdb') chips.push(`<span class="chip on">Mejor IMDb ${xBtn(`v${i}-c-sort-x`, `setSort(${i},'pop')`)}</span>`);
+    if (s.when.type !== 'any') chips.push(`<span class="chip on">${whenLabel(s)} ${xBtn(`v${i}-c-when-x`, `setWhen(${i},'any')`)}</span>`);
+    return `<div class="row">${utabs(i, s)}<span class="spacer"></span>${chips.join('')}
+      <button id="v${i}-filters" class="fbtn" onclick="tog(${i},'panel')">Filtros ${n ? `<span class="badge">${n}</span>` : ''}<span class=caret>${s.open === 'panel' ? '▴' : '▾'}</span></button></div>
+      ${s.open === 'panel' ? `<div class="panel" id="v${i}-panel">
+        <span class="k">Orden</span><div><div class="seg"><button id="v${i}-sort-pop" class="${s.sort === 'pop' ? 'active' : ''}" onclick="setSortKeep(${i},'pop')">${hasRange(s) ? 'Más recientes' : 'Más populares'}</button><button id="v${i}-sort-imdb" class="${s.sort === 'imdb' ? 'active' : ''}" onclick="setSortKeep(${i},'imdb')">Mejor puntaje IMDb</button></div></div>
+        <span class="k">Cuándo</span><div class="row" style="gap:6px">${[['any', 'Siempre'], ['30d', 'Últimos 30 días'], ['thisyear', 'Este año']].map(([t, l]) =>
+          `<button id="v${i}-p-${t}" class="chip ${s.when.type === t ? 'on' : ''}" onclick="setWhenKeep(${i},'${t}')">${l}</button>`).join('')}
+          <select id="v${i}-p-year" class="chip ${s.when.type === 'year' ? 'on' : ''}" onchange="this.value ? setYearKeep(${i},+this.value) : setWhenKeep(${i},'any')"><option value="">Un año…</option>${YEARS.map(y => `<option ${s.when.type === 'year' && s.when.year === y ? 'selected' : ''}>${y}</option>`).join('')}</select>
+          <button id="v${i}-p-range" class="chip ${s.when.type === 'range' ? 'on' : ''}" onclick="customKeep(${i})">Fechas…</button></div>
+        ${s.when.type === 'range' ? `<span class="k">Fechas</span>${customBlock(i, s)}` : ''}
+        <span></span><div><button id="v${i}-clear" class="link" onclick="clearAll(${i})">Limpiar todo</button></div>
+      </div>` : ''}`;
+  },
+
+  // 8 · timeline
+  (i, s) => `<div class="row">${utabs(i, s)}<span class="spacer"></span>
+      <span style="color:var(--muted);font-size:13px">Ordenar:</span>
+      <button id="v${i}-sort-pop" class="link ${s.sort === 'pop' ? 'on' : ''}" onclick="setSort(${i},'pop')">${hasRange(s) ? 'recientes' : 'populares'}</button><span class="dot">/</span>
+      <button id="v${i}-sort-imdb" class="link ${s.sort === 'imdb' ? 'on' : ''}" onclick="setSort(${i},'imdb')">IMDb</button></div>
+    <div class="strip">
+      <button id="v${i}-w-any" class="yr ${s.when.type === 'any' ? 'sel' : ''}" onclick="setWhen(${i},'any')">Todo</button>
+      <button id="v${i}-w-30d" class="yr ${s.when.type === '30d' ? 'sel' : ''}" onclick="setWhen(${i},'30d')">Últimos 30 días</button>
+      <button id="v${i}-w-thisyear" class="yr ${s.when.type === 'thisyear' ? 'sel' : ''}" onclick="setWhen(${i},'thisyear')">Este año</button>
+      <span class="vline"></span>
+      ${YEARS.map(y => `<button id="v${i}-y-${y}" class="yr ${s.when.type === 'year' && s.when.year === y ? 'sel' : ''}" onclick="setYear(${i},${y})">${y}</button>`).join('')}
+      <span class="vline"></span>
+      ${dd(i, s, 'range', `<button id="v${i}-w-custom" class="yr ${s.when.type === 'range' ? 'sel' : ''}" onclick="tog(${i},'range')">${s.when.type === 'range' ? whenLabel(s) : 'Personalizado…'}</button>`,
+        `<div class="custom"><label>Desde <input type="date" id="v${i}-from" value="${s.when.from || ''}" onchange="setFrom(${i},this.value)"></label><label>Hasta <input type="date" id="v${i}-to" value="${s.when.to || ''}" onchange="setTo(${i},this.value)"></label><span class="hint">“Hasta” vacío = hoy</span></div>`, true)}
+    </div>`,
+];
+
+// variantes de acciones que no cierran el panel (V7)
+const setSortKeep = (i, v) => upd(i, s => { s.sort = v; });
+const setWhenKeep = (i, t) => upd(i, s => { s.when = { type: t }; });
+const setYearKeep = (i, y) => upd(i, s => { s.when = { type: 'year', year: y }; });
+const customKeep = (i) => upd(i, s => { if (s.when.type !== 'range') s.when = { type: 'range', from: `${THIS_YEAR}-01-01`, to: '' }; });
+
+// ---------- V4: comandos ----------
+const CMDS = [
+  ['películas', s => { s.kind = 'movie'; }], ['series', s => { s.kind = 'series'; }],
+  ['populares', s => { s.sort = 'pop'; }], ['imdb', s => { s.sort = 'imdb'; }],
+  ['30d · últimos 30 días', s => { s.when = { type: '30d' }; }], ['este año', s => { s.when = { type: 'thisyear' }; }],
+  ['todo · cualquier fecha', s => { s.when = { type: 'any' }; }],
+  ...YEARS.slice(0, 6).map(y => [String(y), s => { s.when = { type: 'year', year: y }; }]),
+  ...YEARS.slice(0, 4).map(y => [`desde ${y}`, s => { s.when = { type: 'range', from: `${y}-01-01`, to: '' }; }]),
+];
+function matches(q) {
+  q = q.trim().toLowerCase();
+  if (/^desde \d{4}$/.test(q) || /^\d{4}-$/.test(q)) {
+    const y = q.match(/\d{4}/)[0];
+    return [[`desde ${y}`, s => { s.when = { type: 'range', from: `${y}-01-01`, to: '' }; }]];
+  }
+  if (/^\d{4}$/.test(q)) return [[q, s => { s.when = { type: 'year', year: +q }; }]];
+  return CMDS.filter(([l]) => !q || l.includes(q) || (q.startsWith('peli') && l === 'películas'));
+}
+function openCmd(i) {
+  if (S[i].open !== 'cmd') { S[i].open = 'cmd'; render(i); document.getElementById(`v${i}-q`).focus(); }
+  renderSug(i, '');
+}
+function renderSug(i, q) {
+  const pop = document.getElementById(`v${i}-pop-cmd`);
+  if (!pop) return;
+  const list = matches(q);
+  pop.innerHTML = list.length
+    ? list.map(([l], k) => `<button id="v${i}-sug-${k}" class="opt" onmousedown="event.preventDefault()" onclick="runCmd(${i},${k},'${q.replace(/'/g, '')}')">${l}</button>`).join('')
+    : `<div class="hint" style="padding:8px">Sin coincidencias</div>`;
+}
+function runCmd(i, k, q) {
+  const m = matches(q)[k];
+  if (!m) return;
+  m[1](S[i]); S[i].open = 'cmd'; render(i);
+  const inp = document.getElementById(`v${i}-q`); inp.focus(); renderSug(i, '');
+}
+function cmdKey(e, i, inp) {
+  if (e.key === 'Enter') { e.preventDefault(); runCmd(i, 0, inp.value); }
+  if (e.key === 'Escape') { S[i].open = null; render(i); }
+  if (e.key === 'Backspace' && !inp.value) {
+    upd(i, s => { if (s.when.type !== 'any') s.when = { type: 'any' }; else s.sort = 'pop'; });
+    document.getElementById(`v${i}-q`).focus(); renderSug(i, '');
+  }
+}
+
+// ---------- render ----------
+function posters(s, n) {
+  const base = s.kind === 'movie' ? 210 : 290;
+  return `<div class="grid">${Array.from({ length: n }, (_, k) =>
+    `<div><div class="poster" style="background:linear-gradient(160deg,hsl(${base + k * 18} 55% 38%),hsl(${base + k * 18 + 40} 45% 14%))"></div><div class="pname"></div></div>`).join('')}</div>`;
+}
+function render(i) {
+  const s = S[i];
+  const bar = BARS[i](i, s);
+  document.getElementById(`v${i}-stage`).innerHTML = (i === 4 ? bar : bar + posters(s, 6));
+  document.getElementById(`v${i}-state`).textContent = '→ ' + stateLine(s);
+  if (s.open === 'cmd') renderSug(i, '');
+}
+
+document.getElementById('variants').innerHTML = VARIANTS.map((v, i) => `
+  <section id="v${i}">
+    <h2><span>${i + 1}</span>${v.title}</h2>
+    <p class="why">${v.why}</p>
+    <div class="stage bar" id="v${i}-stage"></div>
+    <div class="state" id="v${i}-state"></div>
+  </section>`).join('');
+VARIANTS.forEach((_, i) => render(i));
+
+// clic afuera cierra popovers (ignora clics en nodos que el re-render ya sacó)
+document.addEventListener('click', e => {
+  if (!e.target.isConnected) return;
+  S.forEach((s, i) => {
+    if (s.open && !e.target.closest(`#v${i}-stage`)) { s.open = null; render(i); }
+    else if (s.open && s.open !== 'panel' && s.open !== 'cmd' && !e.target.closest('.dd')) { s.open = null; render(i); }
+  });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') S.forEach((s, i) => { if (s.open) { s.open = null; render(i); } });
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); document.getElementById('v3-q').focus(); }
+});
+</script>
+</body>
+</html>

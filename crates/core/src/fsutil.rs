@@ -1,5 +1,5 @@
 //! Utilidades de archivos compartidas (nivel 0): JSON con escritura atómica.
-//! Atómica = escribir `<archivo>.tmp` y renombrar → un corte de luz o un cierre forzado
+//! Atómica = escribir un temporal único, `sync_all` y renombrar → un corte de luz o un cierre forzado
 //! nunca deja `config.json` / `library.json` a medio escribir.
 
 use std::path::Path;
@@ -42,10 +42,23 @@ pub fn write_json_atomic<T: Serialize>(path: &Path, value: &T) -> Result<()> {
         path: path.to_path_buf(),
         source,
     })?;
-    let tmp = path.with_extension("json.tmp");
-    std::fs::write(&tmp, bytes).map_err(io)?;
-    // En Windows `rename` reemplaza el destino si existe (MoveFileExW con REPLACE_EXISTING).
-    std::fs::rename(&tmp, path).map_err(io)
+    // Nombre único: dos escrituras del mismo archivo a la vez no se pisan el temporal.
+    static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let seq = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = path.with_extension(format!("json.{}-{seq}.tmp", std::process::id()));
+    let written = (|| {
+        use std::io::Write;
+        let mut file = std::fs::File::create(&tmp)?;
+        file.write_all(&bytes)?;
+        // Sin esto, tras un corte de luz el rename puede quedar en disco antes que los datos.
+        file.sync_all()?;
+        // En Windows `rename` reemplaza el destino si existe (MoveFileExW con REPLACE_EXISTING).
+        std::fs::rename(&tmp, path)
+    })();
+    if written.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    written.map_err(io)
 }
 
 /// Si un JSON está corrupto, se aparta como `<archivo>.corrupt-<fecha>` para no perderlo

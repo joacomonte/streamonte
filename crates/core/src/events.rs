@@ -5,20 +5,22 @@
 use serde::Serialize;
 
 use crate::analyzer::AnalyzerState;
-use crate::library::LibraryEntry;
+use crate::library::LibraryRowView;
 use crate::magnet::InfoHash;
 use crate::playback::{PlaybackId, PlaybackRow};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum CoreEvent {
-    /// La biblioteca cambió (alta, baja, medición nueva). Se manda la fila completa
-    /// para que la UI no tenga que volver a pedir la lista (FR-03, FR-07).
+    /// Una fila cambió (alta, medición nueva…). Se manda la vista completa, igual a la de
+    /// `library()` (con bytes en disco y clave de orden): la UI la reemplaza y reordena sin
+    /// volver a pedir la lista (FR-03, FR-07).
     LibraryEntryUpdated {
-        entry: Box<LibraryEntry>,
+        entry: Box<LibraryRowView>,
     },
+    /// Se quitó UNA fila (un video: `VideoKey` como texto).
     LibraryEntryRemoved {
-        info_hash: InfoHash,
+        key: crate::video_key::VideoKey,
     },
     LibraryCleared,
 
@@ -63,6 +65,20 @@ pub enum CoreEvent {
         id: String,
     },
 
+    /// Progreso de "Bajar subtítulos" de un video del catálogo (2026-11-15): buscando, o bajando
+    /// `done` de `total`.
+    /// "Contar seeders" (2026-11-15): un torrent ya contado (los demás siguen).
+    CatalogSwarmCounted {
+        hash: InfoHash,
+        count: crate::analyzer::swarm::SwarmCount,
+    },
+    CatalogSubtitlesProgress {
+        video_id: String,
+        downloading: bool,
+        done: usize,
+        total: usize,
+    },
+
     /// Una línea del log del núcleo para la burbuja de actividad (`activity`): ya sin secretos
     /// y con límite de mensajes por segundo.
     Activity {
@@ -72,6 +88,12 @@ pub enum CoreEvent {
         area: &'static str,
         message: String,
         at: chrono::DateTime<chrono::Utc>,
+    },
+
+    /// Se pidió cerrar la ventana con `active` reproducciones activas: la UI pregunta qué hacer
+    /// y responde con `on_close` (FR-17). Cada clic en la X lo vuelve a emitir.
+    ConfirmClose {
+        active: usize,
     },
 
     /// Mensaje para la barra de estado (NFR-12).

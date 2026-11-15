@@ -13,6 +13,18 @@ where
     Ok(serde_json::from_value(v).ok())
 }
 
+/// `bool` que también acepta `"true"`, `1`, `"1"`… (un `adult: "true"` no debe pasar como `false`).
+fn truthy<'de, D: Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
+    Ok(match serde_json::Value::deserialize(d)? {
+        serde_json::Value::Bool(b) => b,
+        serde_json::Value::Number(n) => n.as_f64().is_some_and(|n| n != 0.0),
+        serde_json::Value::String(s) => {
+            matches!(s.trim().to_lowercase().as_str(), "true" | "1" | "yes")
+        }
+        _ => false,
+    })
+}
+
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
@@ -23,8 +35,8 @@ pub struct Manifest {
     #[serde(default, deserialize_with = "lenient")]
     pub version: Option<String>,
     /// Strings (`"stream"`) u objetos `{name, types, idPrefixes}`.
-    #[serde(default)]
-    pub resources: Vec<serde_json::Value>,
+    #[serde(default, deserialize_with = "lenient")]
+    pub resources: Option<Vec<serde_json::Value>>,
     #[serde(default, deserialize_with = "lenient")]
     pub types: Option<Vec<String>>,
     #[serde(default, deserialize_with = "lenient")]
@@ -36,9 +48,9 @@ pub struct Manifest {
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestHints {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "truthy")]
     pub adult: bool,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "truthy")]
     pub configuration_required: bool,
 }
 
@@ -46,7 +58,7 @@ impl Manifest {
     /// `(types, idPrefixes)` del recurso `stream`, o `None` si el addon no ofrece streams.
     pub fn stream_resource(&self) -> Option<(Vec<String>, Option<Vec<String>>)> {
         let base_types = self.types.clone().unwrap_or_default();
-        self.resources.iter().find_map(|r| match r {
+        self.resources.iter().flatten().find_map(|r| match r {
             serde_json::Value::String(s) if s == "stream" => {
                 Some((base_types.clone(), self.id_prefixes.clone()))
             }
@@ -150,6 +162,15 @@ pub struct RawMeta {
     pub imdb_rating: Option<String>,
     #[serde(default, deserialize_with = "lenient")]
     pub videos: Option<Vec<serde_json::Value>>,
+    #[serde(default, deserialize_with = "lenient")]
+    pub popularities: Option<Popularities>,
+}
+
+/// Puntajes de popularidad que Cinemeta trae en sus catálogos; se usa el de TMDB (`moviedb`).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Popularities {
+    #[serde(default, deserialize_with = "lenient")]
+    pub moviedb: Option<f64>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -211,6 +232,19 @@ mod tests {
         .unwrap();
         assert!(m.stream_resource().is_none());
         assert_eq!(m.name, None);
+    }
+
+    #[test]
+    fn resources_null_no_rompe_y_adult_truthy() {
+        let m: Manifest = serde_json::from_str(r#"{"id":"x","resources":null}"#).unwrap();
+        assert!(m.stream_resource().is_none());
+        for adult in [r#""true""#, "1", "true"] {
+            let m: Manifest = serde_json::from_str(&format!(
+                r#"{{"resources":["stream"],"behaviorHints":{{"adult":{adult},"configurationRequired":"no"}}}}"#
+            ))
+            .unwrap();
+            assert!(m.behavior_hints.unwrap().adult, "adult = {adult}");
+        }
     }
 
     #[test]

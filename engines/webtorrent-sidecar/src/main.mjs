@@ -1,13 +1,13 @@
 // Sidecar webtorrent de Torrent Stream v2 — implementa docs/engine-protocol.md.
 // JSON-RPC 2.0 por stdin/stdout (una línea por mensaje). stderr = log libre (→ diag::engine).
 // Lecciones aplicadas: 1 (pieza por archivo), 3 (arranca sin selección + rangos con streams),
-// 4 (trackers como announce), 5 (maxConns), 6 (stdin cerrado ⇒ limpiar y salir).
+// 4 (trackers como announce), 5 (maxConns), 6 (stdin cerrado ⇒ detener y salir; sin borrar datos, FR-06d).
 import fs from 'node:fs'
 import { createInterface } from 'node:readline'
 import WebTorrent from 'webtorrent'
 import { makePieceStore } from './piecestore.mjs'
 
-const VERSION = '0.2.0'
+const VERSION = '0.3.0'
 const args = process.argv.slice(2)
 const argValue = (name, def) => {
   const i = args.indexOf(name)
@@ -18,13 +18,23 @@ const send = (msg) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...m
 const notify = (method, params) => send({ method, params })
 const log = (...a) => process.stderr.write(a.join(' ') + '\n')
 
-process.on('uncaughtException', (e) => log('uncaughtException:', e?.stack || e))
+// Sale cuando stdout entregó lo ya escrito: en macOS el pipe es asíncrono y process.exit lo perdería.
+function exitFlushed (code) {
+  setTimeout(() => process.exit(code), 2000) // por si stdout está roto y el callback nunca llega
+  process.stdout.write('', () => process.exit(code))
+}
+
+process.on('uncaughtException', (e) => {
+  log('uncaughtException:', e?.stack || e)
+  notify('error', { message: `el motor falló: ${e?.message || e}` })
+  exitFlushed(1)
+})
 process.on('unhandledRejection', (e) => log('unhandledRejection:', e?.stack || e))
 
 const client = new WebTorrent({ maxConns: Number(argValue('--max-conns', 100)) })
 client.on('error', (e) => notify('error', { message: String(e?.message || e) }))
 
-/** @type {Map<number, {torrent: any, dir: string, streams: any[], ranges: any[], fileIndex: number|null, deleteOnExit: boolean}>} */
+/** @type {Map<number, {torrent: any, dir: string, streams: any[], ranges: any[], fileIndex: number|null, error: Error|null}>} */
 const handles = new Map()
 let nextHandle = 1
 
@@ -52,11 +62,13 @@ function getFile (h, fileIndex) {
   return f
 }
 
-function whenReady (torrent) {
-  if (torrent.ready) return Promise.resolve()
+/** Después de un `error` el torrent ya está destruido: no va a emitir más eventos. */
+function whenReady (h) {
+  if (h.error) return Promise.reject(h.error)
+  if (h.torrent.ready) return Promise.resolve()
   return new Promise((resolve, reject) => {
-    torrent.once('ready', resolve)
-    torrent.once('error', reject)
+    h.torrent.once('ready', resolve)
+    h.torrent.once('error', reject)
   })
 }
 
@@ -99,16 +111,20 @@ async function removeHandle (id, deleteData) {
   if (!h) return
   handles.delete(id)
   destroyStreams(h)
-  await new Promise((resolve) => {
-    // destroyStore borra las piezas; después borramos la carpeta entera (FR-12).
-    client.remove(h.torrent, { destroyStore: deleteData }, () => resolve())
-  })
+  // Tras un `error` webtorrent ya lo destruyó y lo quitó: client.remove rechazaría sin llamar al callback.
+  if (!h.torrent.destroyed) {
+    await new Promise((resolve) => {
+      // destroyStore borra las piezas; después borramos la carpeta entera (FR-12).
+      Promise.resolve(client.remove(h.torrent, { destroyStore: deleteData }, () => resolve()))
+        .catch((e) => { log(`[${id}] remove:`, e?.message || e); resolve() })
+    })
+  }
   if (deleteData) await fs.promises.rm(h.dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
 }
 
 // ---------- métodos ----------
 const methods = {
-  async add ({ source, trackers = [], downloadDir, startDeselected = true }) {
+  async add ({ source, trackers = [], downloadDir }) {
     if (!downloadDir) throw rpcError(-32602, 'downloadDir requerido')
     await fs.promises.mkdir(downloadDir, { recursive: true })
     const src = source?.magnet ?? (source?.torrentFile ? await fs.promises.readFile(source.torrentFile) : null)
@@ -118,30 +134,33 @@ const methods = {
     const torrent = client.add(src, {
       path: downloadDir,
       announce: trackers,
-      deselect: startDeselected,
+      deselect: true, // lección 3: nada se baja hasta prioritizeRanges/selectFile
       store: makePieceStore(downloadDir)
     })
-    handles.set(handle, { torrent, dir: downloadDir, streams: [], ranges: [], fileIndex: null })
+    const h = { torrent, dir: downloadDir, streams: [], ranges: [], fileIndex: null, error: null }
+    handles.set(handle, h)
     const t0 = Date.now()
     torrent.on('ready', () => {
       notify('log', { handle, line: `metadatos en ${((Date.now() - t0) / 1000).toFixed(1)} s · ${torrent.files.length} archivos · peers ${torrent.numPeers}` })
-      notify('metadata', { handle, ...metadataOf(torrent) })
     })
-    torrent.on('error', (e) => notify('error', { handle, message: String(e?.message || e) }))
+    torrent.on('error', (e) => {
+      h.error = e instanceof Error ? e : new Error(String(e))
+      notify('error', { handle, message: String(e?.message || e) })
+    })
     torrent.on('warning', (w) => log(`[${handle}] warning:`, w?.message || w))
     return { handle }
   },
 
   async metadata ({ handle }) {
     const h = getHandle(handle)
-    await whenReady(h.torrent)
+    await whenReady(h)
     return metadataOf(h.torrent)
   },
 
-  /** Lección 3: seleccionar SOLO estas piezas, marcarlas críticas y leerlas con streams. */
-  async prioritizeRanges ({ handle, fileIndex, ranges, mode = 'exclusive' }) {
+  /** Lección 3: seleccionar SOLO estas piezas (exclusivas), marcarlas críticas y leerlas con streams. */
+  async prioritizeRanges ({ handle, fileIndex, ranges }) {
     const h = getHandle(handle)
-    await whenReady(h.torrent)
+    await whenReady(h)
     const t = h.torrent
     const file = getFile(h, fileIndex)
     destroyStreams(h)
@@ -149,7 +168,7 @@ const methods = {
     h.fileIndex = fileIndex
     for (const r of ranges) {
       const [a, b] = piecesOf(t, file, r)
-      t.select(a, b, mode === 'exclusive' ? 10 : 5)
+      t.select(a, b, 10)
       t.critical(a, b)
       // Leer el rango es lo que más empuja los pedidos en webtorrent. 'end' ⇒ piezas verificadas.
       const s = file.createReadStream({ start: r.start, end: r.end - 1 })
@@ -163,7 +182,7 @@ const methods = {
 
   async selectFile ({ handle, fileIndex }) {
     const h = getHandle(handle)
-    await whenReady(h.torrent)
+    await whenReady(h)
     h.torrent.files.forEach((f, i) => (i === fileIndex ? f.select() : f.deselect()))
     h.fileIndex = fileIndex
     return null
@@ -171,7 +190,7 @@ const methods = {
 
   async streamUrl ({ handle, fileIndex }) {
     const h = getHandle(handle)
-    await whenReady(h.torrent)
+    await whenReady(h)
     return { url: `http://127.0.0.1:${httpPort}${getFile(h, fileIndex).streamURL}` }
   },
 
@@ -215,21 +234,25 @@ const methods = {
   },
 
   async shutdown () {
-    await shutdown(true)
+    await stopAll()
+    // La respuesta se escribe en esta misma vuelta; exitFlushed espera a que salga.
+    setImmediate(() => exitFlushed(0))
     return null
   }
 }
 
-let shuttingDown = false
-async function shutdown (deleteData) {
-  if (shuttingDown) return
-  shuttingDown = true
-  const safety = setTimeout(() => process.exit(0), 8000)
-  await Promise.allSettled([...handles.keys()].map((id) => removeHandle(id, deleteData)))
-  await new Promise((resolve) => client.destroy(() => resolve()))
-  clearTimeout(safety)
-  setImmediate(() => process.exit(0))
+/** Detiene todo SIN borrar datos (FR-06d, igual que rqbit): borrar es `remove(deleteData)` o `cleanup`. */
+let stopping = null
+function stopAll () {
+  stopping ??= (async () => {
+    const safety = setTimeout(() => process.exit(0), 8000)
+    await Promise.allSettled([...handles.keys()].map((id) => removeHandle(id, false)))
+    await new Promise((resolve) => client.destroy(() => resolve()))
+    clearTimeout(safety)
+  })()
+  return stopping
 }
+const shutdown = () => stopAll().then(() => exitFlushed(0))
 
 // ---------- bucle JSON-RPC ----------
 const rl = createInterface({ input: process.stdin })
@@ -250,11 +273,11 @@ rl.on('line', async (line) => {
   }
 })
 
-// stdin cerrado = la app murió o nos soltó → borrar todo y salir (NFR-11, lección 6).
+// stdin cerrado = la app murió o nos soltó → detener todo y salir (NFR-11, lección 6).
 rl.on('close', () => {
-  log('stdin cerrado: limpiando y saliendo')
-  shutdown(true)
+  log('stdin cerrado: deteniendo y saliendo')
+  shutdown()
 })
-for (const sig of ['SIGINT', 'SIGTERM', 'SIGBREAK']) process.on(sig, () => shutdown(true))
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGBREAK']) process.on(sig, shutdown)
 
 notify('ready', { version: VERSION, httpPort })

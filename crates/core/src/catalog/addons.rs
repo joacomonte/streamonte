@@ -55,24 +55,28 @@ impl Addon {
         self.url.trim_end_matches("/manifest.json")
     }
 
-    async fn manifest(&self, http: &Http) -> Result<ManifestInfo, String> {
+    async fn manifest(&self, http: &Http, timeout: Duration) -> Result<ManifestInfo, String> {
         if let Some(m) = self.manifest.lock().expect("manifest").clone() {
             return Ok(m);
         }
-        let m = fetch_manifest(http, &self.url, Duration::from_secs(30)).await?;
+        let m = fetch_manifest(http, &self.url, timeout).await?;
         *self.manifest.lock().expect("manifest") = Some(m.clone());
         Ok(m)
     }
 
-    /// `stream/{type}/{id}.json` y normalización. El plazo lo pone el llamador (NFR-19).
+    /// `stream/{type}/{id}.json` y normalización. `timeout` = plazo total del addon, manifest
+    /// incluido (NFR-19).
     pub async fn streams(
         &self,
         http: &Http,
         video: &VideoId,
         kind: MediaKind,
         rank: usize,
+        timeout: Duration,
     ) -> AddonOutcome {
-        let manifest = match self.manifest(http).await {
+        let deadline = tokio::time::Instant::now() + timeout;
+        let left = || deadline.saturating_duration_since(tokio::time::Instant::now());
+        let manifest = match self.manifest(http, left()).await {
             Ok(m) => m,
             Err(e) => return AddonOutcome::Failed(e),
         };
@@ -87,7 +91,7 @@ impl Addon {
             return AddonOutcome::Unsupported;
         }
         let url = format!("{}/stream/{}/{id}.json", self.base(), kind.as_str());
-        let resp: StreamsResponse = match http.get_json(&url, Duration::from_secs(30)).await {
+        let resp: StreamsResponse = match http.get_json(&url, left()).await {
             Ok(r) => r,
             Err(e) => {
                 tracing::debug!(url = %redact(&url), "addon: {e:?}");
@@ -174,10 +178,13 @@ pub fn normalize_url(input: &str) -> Result<String, String> {
     if let Some(rest) = url.strip_prefix("stremio://") {
         url = format!("https://{rest}");
     }
-    if !url.ends_with("/manifest.json") {
-        url = format!("{}/manifest.json", url.trim_end_matches('/'));
+    let mut parsed = reqwest::Url::parse(&url).map_err(|_| "Esa URL no es válida.".to_string())?;
+    // El sufijo va en el path, no después de un `?key=…`.
+    if !parsed.path().ends_with("/manifest.json") {
+        let path = format!("{}/manifest.json", parsed.path().trim_end_matches('/'));
+        parsed.set_path(&path);
     }
-    let parsed = reqwest::Url::parse(&url).map_err(|_| "Esa URL no es válida.".to_string())?;
+    let url = parsed.to_string();
     let host = parsed.host_str().unwrap_or("");
     let local = host == "localhost"
         || host.starts_with("127.")
@@ -208,6 +215,10 @@ mod tests {
         assert_eq!(
             normalize_url(" https://addon.peerflix.mov/ ").unwrap(),
             "https://addon.peerflix.mov/manifest.json"
+        );
+        assert_eq!(
+            normalize_url("https://a.example/cfg?key=x").unwrap(),
+            "https://a.example/cfg/manifest.json?key=x"
         );
         assert!(normalize_url("http://example.com/manifest.json").is_err());
         assert!(normalize_url("http://127.0.0.1:7000/manifest.json").is_ok());

@@ -2,9 +2,10 @@
 //!
 //! - `tstream.<fecha>.log` (rotación diaria, últimos 7): nivel configurable, siempre activo.
 //! - Diagnóstico (solo si `LoggingConfig::diagnostics`): se activa/desactiva en caliente.
-//!   - target [`DIAG_PRELOAD`] → `diag-preload.log`: piezas por rango, peers que las tienen, bloqueos (lección 9).
-//!   - target [`DIAG_MPV`]     → `diag-mpv.log`: eventos IPC de mpv (su `--log-file` va a la misma carpeta).
-//!   - target [`DIAG_ENGINE`]  → `diag-engine.log`: stderr del sidecar.
+//!   Misma rotación que el general (`<nombre>.<fecha>.log`, últimos 7).
+//!   - target [`DIAG_PRELOAD`] → `diag-preload`: piezas por rango, peers que las tienen, bloqueos (lección 9).
+//!   - target [`DIAG_MPV`]     → `diag-mpv-ipc`: eventos IPC de mpv (su `--log-file` va a la misma carpeta).
+//!   - target [`DIAG_ENGINE`]  → `diag-engine`: stderr del sidecar.
 //!
 //! Uso desde otros módulos: `tracing::debug!(target: logger::DIAG_PRELOAD, piece = 12, peers = 7, "pedida")`.
 //! Siempre a archivo, nunca a la pantalla (lección 8: `\r` no se ve desde afuera).
@@ -51,13 +52,16 @@ pub fn init(paths: &AppPaths, config: &LoggingConfig) -> Result<LoggerGuard> {
         source,
     })?;
 
-    let general_file = rolling::Builder::new()
-        .rotation(Rotation::DAILY)
-        .filename_prefix("tstream")
-        .filename_suffix("log")
-        .max_log_files(KEEP_DAILY_FILES)
-        .build(&paths.log_dir)
-        .map_err(|e| CoreError::Logger(e.to_string()))?;
+    let daily = |prefix: &str| {
+        rolling::Builder::new()
+            .rotation(Rotation::DAILY)
+            .filename_prefix(prefix)
+            .filename_suffix("log")
+            .max_log_files(KEEP_DAILY_FILES)
+            .build(&paths.log_dir)
+            .map_err(|e| CoreError::Logger(e.to_string()))
+    };
+    let general_file = daily("tstream")?;
 
     let mut guards = Vec::new();
     let mut writer = |appender: rolling::RollingFileAppender| {
@@ -71,18 +75,10 @@ pub fn init(paths: &AppPaths, config: &LoggingConfig) -> Result<LoggerGuard> {
         .with_writer(writer(general_file))
         .with_filter(filter_fn(general_enabled));
 
-    let preload = diag_layer(
-        DIAG_PRELOAD,
-        writer(rolling::never(&paths.log_dir, "diag-preload.log")),
-    );
-    let mpv = diag_layer(
-        DIAG_MPV,
-        writer(rolling::never(&paths.log_dir, "diag-mpv.log")),
-    );
-    let engine = diag_layer(
-        DIAG_ENGINE,
-        writer(rolling::never(&paths.log_dir, "diag-engine.log")),
-    );
+    let preload = diag_layer(DIAG_PRELOAD, writer(daily("diag-preload")?));
+    // No "diag-mpv": la poda borra por prefijo y se llevaría `diag-mpv-player.log` (el de mpv).
+    let mpv = diag_layer(DIAG_MPV, writer(daily("diag-mpv-ipc")?));
+    let engine = diag_layer(DIAG_ENGINE, writer(daily("diag-engine")?));
 
     tracing_subscriber::registry()
         .with(general)
@@ -137,7 +133,7 @@ fn general_enabled(m: &Metadata<'_>) -> bool {
 }
 
 /// librqbit loguea el éxito del mapeo UPnP en debug: se deja pasar para ver si funcionó (ADR-30).
-fn upnp_result(m: &Metadata<'_>) -> bool {
+pub(crate) fn upnp_result(m: &Metadata<'_>) -> bool {
     m.target().starts_with("librqbit_upnp") && *m.level() <= tracing::Level::DEBUG
 }
 

@@ -62,24 +62,22 @@ pub async fn scrape_batch(
         let url = url.clone();
         let hashes = hashes.to_vec();
         tasks.spawn(async move {
-            let result = tokio::time::timeout_at(deadline, scrape_tracker(&url, &hashes)).await;
+            // `found` vive fuera del plazo: las tandas que ya respondieron no se pierden.
+            let mut found = Vec::new();
+            let result =
+                tokio::time::timeout_at(deadline, scrape_tracker(&url, &hashes, &mut found)).await;
             match result {
-                Ok(Ok(found)) => Some(found),
-                Ok(Err(e)) => {
-                    tracing::debug!(tracker = url, "scrape falló: {e}");
-                    None
-                }
-                Err(_) => {
-                    tracing::debug!(tracker = url, "scrape sin respuesta a tiempo");
-                    None
-                }
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => tracing::debug!(tracker = url, "scrape falló: {e}"),
+                Err(_) => tracing::debug!(tracker = url, "scrape sin respuesta a tiempo"),
             }
+            found
         });
     }
 
     let now = Utc::now();
     while let Some(joined) = tasks.join_next().await {
-        let Ok(Some(found)) = joined else { continue };
+        let Ok(found) = joined else { continue };
         for (hash, c) in found {
             let r = out.entry(hash).or_insert(ScrapeResult {
                 seeders: 0,
@@ -107,10 +105,12 @@ fn udp_host_port(url: &str) -> Option<&str> {
     (!host_port.is_empty() && host_port.contains(':')).then_some(host_port)
 }
 
+/// Va sumando a `found` cada tanda que responde (si después falla o vence, lo anterior queda).
 async fn scrape_tracker(
     url: &str,
     hashes: &[InfoHash],
-) -> std::io::Result<Vec<(InfoHash, Counts)>> {
+    found: &mut Vec<(InfoHash, Counts)>,
+) -> std::io::Result<()> {
     let host_port = udp_host_port(url).ok_or_else(|| invalid("URL de tracker inválida"))?;
     let addrs: Vec<SocketAddr> = tokio::net::lookup_host(host_port).await?.collect();
     // IPv4 primero: muchos trackers publican AAAA que no responden.
@@ -138,7 +138,6 @@ async fn scrape_tracker(
     let connection_id: [u8; 8] = resp[8..16].try_into().expect("8 bytes");
 
     // scrape por tandas de 74
-    let mut found = Vec::with_capacity(hashes.len());
     for chunk in hashes.chunks(MAX_HASHES_PER_PACKET) {
         let tid = transaction_id();
         let mut req = Vec::with_capacity(16 + 20 * chunk.len());
@@ -161,7 +160,7 @@ async fn scrape_tracker(
             ));
         }
     }
-    Ok(found)
+    Ok(())
 }
 
 /// Envía `req` y espera la respuesta con el mismo `transaction_id`; reenvía cada 2 s.
@@ -299,6 +298,38 @@ mod tests {
         assert_eq!((first.seeders, first.leechers, first.completed), (10, 3, 9));
         assert_eq!(first.trackers_ok, 2);
         assert_eq!(r[&hashes[99]].seeders, 198);
+    }
+
+    #[tokio::test]
+    async fn tandas_respondidas_quedan_aunque_la_siguiente_venza() {
+        // Responde el connect y SOLO el primer scrape (74 hashes); el segundo nunca.
+        let socket = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("udp://{}/announce", socket.local_addr().unwrap());
+        tokio::spawn(async move {
+            let mut buf = [0u8; 2048];
+            let mut scrapes = 0;
+            while let Ok((n, from)) = socket.recv_from(&mut buf).await {
+                let action = be_u32(&buf[8..12]);
+                let mut resp = action.to_be_bytes().to_vec();
+                resp.extend_from_slice(&buf[12..16]);
+                if action == ACTION_CONNECT {
+                    resp.extend_from_slice(&1u64.to_be_bytes());
+                } else if scrapes == 0 {
+                    scrapes += 1;
+                    for h in buf[16..n].chunks_exact(20) {
+                        resp.extend_from_slice(&u32::from(h[0]).to_be_bytes());
+                        resp.extend_from_slice(&[0; 8]);
+                    }
+                } else {
+                    continue;
+                }
+                let _ = socket.send_to(&resp, from).await;
+            }
+        });
+        let hashes: Vec<InfoHash> = (0..100u8).map(|i| hash(i, 0)).collect();
+        let r = scrape_batch(&hashes, &[url], Duration::from_millis(1500)).await;
+        assert_eq!(r.len(), MAX_HASHES_PER_PACKET);
+        assert_eq!(r[&hashes[73]].seeders, 73);
     }
 
     #[tokio::test]

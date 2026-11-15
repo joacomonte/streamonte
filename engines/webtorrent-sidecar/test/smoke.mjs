@@ -46,7 +46,7 @@ const t0 = Date.now()
 const ready = await waitFor((m) => m.method === 'ready', 10000, 'ready')
 step(`sidecar listo · http 127.0.0.1:${ready.params.httpPort}`)
 
-const { handle } = await call('add', { source: { magnet: SINTEL }, trackers: TRACKERS, downloadDir: dir, startDeselected: true })
+const { handle } = await call('add', { source: { magnet: SINTEL }, trackers: TRACKERS, downloadDir: dir })
 const meta = await call('metadata', { handle })
 step(`metadatos: ${meta.name} · ${meta.files.length} archivos · pieza ${meta.pieceLength / 1024} KiB`)
 const video = meta.files.filter((f) => /\.(mp4|mkv)$/i.test(f.name)).sort((a, b) => b.size - a.size)[0]
@@ -59,7 +59,7 @@ const allReady = waitFor((m) => {
   readyRanges.add(m.params.range.start)
   return readyRanges.size === ranges.length
 }, 120000, 'rangeReady')
-await call('prioritizeRanges', { handle, fileIndex: video.index, ranges, mode: 'exclusive' })
+await call('prioritizeRanges', { handle, fileIndex: video.index, ranges })
 const statsTimer = setInterval(async () => {
   const s = await call('stats', { handle }).catch(() => null)
   if (s) step(`precarga ${s.ranges.map((r) => `${r.piecesDone}/${r.piecesTotal}`).join(' + ')} · ${(s.downloadSpeedBps * 8 / 1e6).toFixed(1)} Mbps · peers ${s.peers}`)

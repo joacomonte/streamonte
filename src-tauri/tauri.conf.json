@@ -14,6 +14,7 @@
         "title": "Torrent Stream",
         "width": 1100,
         "height": 720,
+        "maximized": true,
         "minWidth": 760,
         "minHeight": 480
       }
@@ -32,6 +33,18 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": []
+    "externalBin": [],
+    "createUpdaterArtifacts": true,
+    "macOS": {
+      "signingIdentity": "-"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI1OUMzODVDM0JCMDEzQUUKUldTdUU3QTdYRGljdFNoOHFZVDdQZEtxME4yOWN4MVdQenF2T0Uza1dBb2RpQlhadTB2N1Q3OWMK",
+      "endpoints": [
+        "https://github.com/joacomonte/tstream-v2/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

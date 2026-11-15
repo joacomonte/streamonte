@@ -4,7 +4,8 @@
 //!
 //! Submódulos:
 //! - [`merge`]: lectura de SRT/ASS y fusión de hasta 5 en un único ASS (modo comparación, FR-25).
-//! - [`providers`]: del torrent, Wyzie Subs, Subdivx (experimental) y OpenSubtitles (FR-22, FR-24).
+//! - [`providers`]: del torrent, Wyzie Subs, Subdivx (experimental), Gestdown, Subtitulamos y
+//!   OpenSubtitles (FR-22, FR-24).
 //! - [`secrets`]: API keys en el almacén seguro del sistema (NFR-16), nunca en `config.json`.
 //! - [`session`]: lo que pasa mientras mpv está abierto: buscar, bajar, cargar, teclas, memoria.
 
@@ -15,10 +16,12 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::config::SubtitleLanguage;
-use crate::engine::{FileInfo, Metadata, VIDEO_EXTENSIONS};
+use crate::engine::{FileInfo, Metadata};
 use crate::magnet::InfoHash;
+use crate::video_key::VideoKey;
 use crate::Result;
 
+mod fetch;
 mod merge;
 pub mod providers;
 pub mod secrets;
@@ -74,169 +77,95 @@ impl VideoIdentity {
     }
 }
 
-/// Parsea el nombre del release (título, año, SxxExx, fuente, grupo).
-/// ADR-10 actualizado: parser propio en Rust (antes parse-torrent-title en JS), ver ADR-13.
-/// Campos desconocidos = `None`, nunca error (R-10).
-pub fn parse_release_name(name: &str) -> VideoIdentity {
-    let file = name.rsplit(['/', '\\']).next().unwrap_or(name);
-    let stem = strip_extension(file);
+impl From<crate::release::ReleaseName> for VideoIdentity {
+    fn from(r: crate::release::ReleaseName) -> Self {
+        VideoIdentity {
+            file_name: r.file_name,
+            title: r.title,
+            year: r.year,
+            season: r.season,
+            episode: r.episode,
+            source: r.source,
+            release_group: r.release_group,
+            ..Default::default()
+        }
+    }
+}
 
-    // Grupo: lo que sigue al último '-' ("…x264-GRUPO"), si parece un grupo y no un marcador.
-    let release_group = stem
-        .rsplit_once('-')
-        .map(|(_, g)| g.trim())
-        .filter(|g| {
-            !g.is_empty()
-                && g.len() <= 20
-                && g.chars().all(|c| c.is_ascii_alphanumeric())
-                && !is_marker(g)
-                && !g.chars().all(|c| c.is_ascii_digit())
-        })
-        .map(String::from);
+impl VideoIdentity {
+    /// Identidad del video que se reproduce o mide: título/año del nombre del archivo y, si el
+    /// archivo tiene nombre pobre ("video.mkv"), del nombre del torrent.
+    pub fn for_file(file_name: &str, torrent_name: &str, info_hash: InfoHash, size: u64) -> Self {
+        let mut video = Self::from(crate::release::parse_release_name(file_name));
+        let from_torrent = crate::release::parse_release_name(torrent_name);
+        if video.year.is_none() && from_torrent.year.is_some() {
+            video.title = from_torrent.title;
+            video.year = from_torrent.year;
+        }
+        video.info_hash = Some(info_hash);
+        video.file_size = size;
+        video
+    }
 
-    let tokens: Vec<&str> = stem
-        .split(['.', '_', ' ', '[', ']', '(', ')', '{', '}'])
-        .filter(|t| !t.is_empty())
-        .collect();
+    /// Toma el IMDb id del catálogo (FR-49) de la fila que es ESTE archivo (`file_index` dentro
+    /// del torrent): mismo episodio, o película con el mismo archivo. Otra fila del mismo pack
+    /// (otro episodio) no aplica.
+    pub fn apply_catalog<'a>(
+        &mut self,
+        origins: impl IntoIterator<Item = &'a crate::library::CatalogOrigin>,
+        file_index: usize,
+    ) {
+        let parsed = self
+            .season
+            .zip(self.episode)
+            .map(|(s, e)| (u32::from(s), u32::from(e)));
+        let found = origins.into_iter().find(|o| match o.season.zip(o.episode) {
+            Some(ep) => Some(ep) == parsed,
+            None => parsed.is_none() && o.file_idx.map_or(true, |i| i == file_index),
+        });
+        if let Some(o) = found {
+            self.imdb_id = Some(o.imdb_id.clone());
+        }
+    }
 
-    let mut out = VideoIdentity {
-        file_name: file.to_string(),
-        release_group,
-        ..Default::default()
-    };
-    let mut title_end: Option<usize> = None;
-    for (i, token) in tokens.iter().enumerate() {
-        let lower = token.to_ascii_lowercase();
-        // "2001 A Space Odyssey": un año en la primera posición es parte del título.
-        if i > 0 && out.year.is_none() {
-            if let Some(y) = parse_year(&lower) {
-                out.year = Some(y);
-                title_end.get_or_insert(i);
-                continue;
+    /// Qué película o episodio es, sin importar el torrent: dos torrents del mismo video
+    /// comparten la carpeta de caché de subtítulos y se bajan una sola vez (2026-11-15).
+    /// IMDb id (del catálogo) + SxxEyy; si no, título + año (película) o título + SxxEyy
+    /// (episodio). Una película sin año es ambigua (remakes): por info hash, como antes.
+    /// Va como nombre de carpeta.
+    pub fn video_id(&self) -> String {
+        let episode = self
+            .season
+            .zip(self.episode)
+            .map(|(s, e)| format!("s{s:02}e{e:02}"));
+        let title = self.title.as_deref().map(providers::normalized_title);
+        let parts: Vec<String> = match (&self.imdb_id, title, self.year, episode) {
+            (Some(imdb), _, _, ep) => [Some(imdb.to_lowercase()), ep]
+                .into_iter()
+                .flatten()
+                .collect(),
+            (None, Some(t), year, Some(ep)) if !t.is_empty() => {
+                [Some(t), year.map(|y| y.to_string()), Some(ep)]
+                    .into_iter()
+                    .flatten()
+                    .collect()
             }
-        }
-        if let Some((s, e)) = parse_season_episode(&lower) {
-            if out.season.is_none() {
-                out.season = Some(s);
-                out.episode = e;
-            }
-            title_end.get_or_insert(i);
-            continue;
-        }
-        if let Some(src) = source_of(&lower) {
-            out.source.get_or_insert_with(|| src.to_string());
-        }
-        if i > 0 && is_marker(&lower) {
-            title_end.get_or_insert(i);
-        }
-    }
-    let end = title_end.unwrap_or(tokens.len());
-    let title = tokens[..end]
-        .join(" ")
-        .trim_matches(|c: char| c == '-' || c.is_whitespace())
-        .to_string();
-    if !title.is_empty() {
-        out.title = Some(title);
-    }
-    out
-}
-
-fn strip_extension(file: &str) -> &str {
-    match file.rsplit_once('.') {
-        Some((stem, ext))
-            if ext.len() <= 4
-                && (VIDEO_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str())
-                    || SUBTITLE_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str())) =>
-        {
-            stem
-        }
-        _ => file,
-    }
-}
-
-fn parse_year(token: &str) -> Option<u16> {
-    (token.len() == 4 && token.bytes().all(|b| b.is_ascii_digit()))
-        .then(|| token.parse::<u16>().ok())
-        .flatten()
-        .filter(|y| (1900..=2099).contains(y))
-}
-
-/// `s01e02`, `s01` (pack de temporada), `1x02`.
-fn parse_season_episode(token: &str) -> Option<(u16, Option<u16>)> {
-    let digits = |s: &str| -> Option<u16> {
-        (!s.is_empty() && s.len() <= 3 && s.bytes().all(|b| b.is_ascii_digit()))
-            .then(|| s.parse().ok())
-            .flatten()
-    };
-    if let Some(rest) = token.strip_prefix('s') {
-        let (season, episode) = match rest.split_once('e') {
-            Some((s, e)) => (s, Some(e)),
-            None => (rest, None),
+            (None, Some(t), Some(y), None) if !t.is_empty() => vec![t, y.to_string()],
+            _ => vec![self.info_hash.map_or_else(String::new, |h| h.to_hex())],
         };
-        let season = digits(season).filter(|_| season.len() <= 2)?;
-        return match episode {
-            Some(e) => Some((season, Some(digits(e)?))),
-            None => Some((season, None)),
-        };
+        // Solo letras y números: el IMDb id viene del addon del catálogo y va a una ruta.
+        let id: String = parts
+            .join("-")
+            .chars()
+            .map(|c| if c.is_alphanumeric() { c } else { '-' })
+            .take(100)
+            .collect();
+        if id.is_empty() {
+            "desconocido".into()
+        } else {
+            id
+        }
     }
-    let (s, e) = token.split_once('x')?;
-    Some((digits(s).filter(|_| s.len() <= 2)?, Some(digits(e)?)))
-}
-
-fn source_of(token: &str) -> Option<&'static str> {
-    Some(match token {
-        "web-dl" | "webdl" => "WEB-DL",
-        "webrip" | "web-rip" => "WEBRip",
-        "web" => "WEB",
-        "bluray" | "blu-ray" | "bdrip" | "brrip" | "bdremux" => "BluRay",
-        "hdtv" => "HDTV",
-        "dvdrip" | "dvd" => "DVDRip",
-        "hdrip" => "HDRip",
-        "cam" | "hdcam" | "ts" | "telesync" => "CAM",
-        _ => return None,
-    })
-}
-
-fn is_marker(token: &str) -> bool {
-    let t = token.to_ascii_lowercase();
-    let t = t.split('-').next().unwrap_or(&t);
-    if source_of(t).is_some() {
-        return true;
-    }
-    let resolution =
-        t.len() >= 4 && t.ends_with('p') && t[..t.len() - 1].bytes().all(|b| b.is_ascii_digit());
-    resolution
-        || matches!(
-            t,
-            "4k" | "uhd"
-                | "x264"
-                | "x265"
-                | "h264"
-                | "h265"
-                | "hevc"
-                | "avc"
-                | "xvid"
-                | "10bit"
-                | "hdr"
-                | "hdr10"
-                | "dv"
-                | "remux"
-                | "proper"
-                | "repack"
-                | "extended"
-                | "unrated"
-                | "multi"
-                | "dual"
-                | "latino"
-                | "castellano"
-                | "aac"
-                | "ac3"
-                | "dts"
-                | "ddp5"
-                | "dd5"
-                | "atmos"
-                | "complete"
-        )
 }
 
 /// Hash de OpenSubtitles: `size + Σ u64 LE de los primeros 64 KiB + Σ de los últimos 64 KiB`
@@ -265,12 +194,7 @@ pub fn subtitle_files_for(metadata: &Metadata, video: &FileInfo) -> Vec<FileInfo
     let videos = metadata
         .files
         .iter()
-        .filter(|f| {
-            Path::new(&f.name)
-                .extension()
-                .and_then(|e| e.to_str())
-                .is_some_and(|e| VIDEO_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str()))
-        })
+        .filter(|f| crate::engine::is_video(&f.name))
         .count();
     let video_stem = Path::new(&video.name)
         .file_stem()
@@ -298,15 +222,7 @@ pub enum MatchKind {
     None,
 }
 
-/// Variante del español (Q-03: latino primero, después España, después sin variante).
-/// Para otros idiomas siempre `Unknown`. Agregado en F6 (aditivo).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SpanishVariant {
-    Latino,
-    Spain,
-    Unknown,
-}
+pub use crate::audio::SpanishVariant;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SubtitleCandidate {
@@ -336,23 +252,6 @@ pub struct Quota {
     pub per_day: u32,
 }
 
-#[async_trait]
-pub trait SubtitleProvider: Send + Sync {
-    fn id(&self) -> &'static str;
-    /// `None` = sin límite conocido. Se respeta antes de descargar (ADR-12, Q-01).
-    async fn quota(&self) -> Result<Option<Quota>>;
-    async fn search(
-        &self,
-        video: &VideoIdentity,
-        lang: SubtitleLanguage,
-    ) -> Result<Vec<SubtitleCandidate>>;
-    /// Descarga a la caché de subtítulos y devuelve la ruta (SRT/ASS, UTF-8).
-    async fn download(&self, candidate: &SubtitleCandidate, cache_dir: &Path) -> Result<PathBuf>;
-}
-
-/// Id del proveedor "subtítulos que vienen dentro del torrent" (FR-22).
-pub const TORRENT_PROVIDER: &str = "torrent";
-
 /// Ordena y deja los mejores `n` (5 por FR-24). Orden (F6, anotado en spec 04):
 /// 1. los del torrent primero (FR-22, ADR-12: son del mismo archivo),
 /// 2. variante: latino > España > sin variante (Q-03),
@@ -360,8 +259,8 @@ pub const TORRENT_PROVIDER: &str = "torrent";
 /// 4. popularidad (descargas).
 pub fn top_candidates(mut all: Vec<SubtitleCandidate>, n: usize) -> Vec<SubtitleCandidate> {
     all.sort_by(|a, b| {
-        (a.provider != TORRENT_PROVIDER)
-            .cmp(&(b.provider != TORRENT_PROVIDER))
+        (a.provider != providers::TORRENT_PROVIDER)
+            .cmp(&(b.provider != providers::TORRENT_PROVIDER))
             .then(a.variant.cmp(&b.variant))
             .then(a.match_kind.cmp(&b.match_kind))
             .then(b.downloads.cmp(&a.downloads))
@@ -448,9 +347,15 @@ pub struct SubtitleChoice {
     /// proveedor ya no lo devuelva entre los 5 mejores.
     #[serde(default)]
     pub label: Option<String>,
+    /// Idioma de la sesión en que se eligió: una elección en español no aplica a una sesión en
+    /// inglés. Los datos viejos no lo traen → español (el default, el único que había).
+    #[serde(default)]
+    pub language: SubtitleLanguage,
 }
 
-/// `subtitles-memory.json`: por info hash, el subtítulo elegido y el desfase (FR-28).
+/// `subtitles-memory.json`: por video ([`VideoKey`] como texto: cada episodio de un pack tiene
+/// la suya), el subtítulo elegido y el desfase (FR-28). Los datos viejos están por info hash,
+/// que es la misma clave que un magnet pegado (el torrent entero).
 pub struct SubtitleMemory {
     path: PathBuf,
 }
@@ -473,13 +378,13 @@ impl SubtitleMemory {
         }
     }
 
-    pub fn get(&self, hash: &InfoHash) -> Result<Option<SubtitleChoice>> {
-        Ok(self.load().remove(&hash.to_hex()))
+    pub fn get(&self, key: &VideoKey) -> Result<Option<SubtitleChoice>> {
+        Ok(self.load().remove(&key.to_string()))
     }
 
-    pub fn set(&self, hash: &InfoHash, choice: SubtitleChoice) -> Result<()> {
+    pub fn set(&self, key: &VideoKey, choice: SubtitleChoice) -> Result<()> {
         let mut map = self.load();
-        map.insert(hash.to_hex(), choice);
+        map.insert(key.to_string(), choice);
         crate::fsutil::write_json_atomic(&self.path, &map)
     }
 }
@@ -549,14 +454,14 @@ mod tests {
             .map(|i| cand("wyzie", SpanishVariant::Latino, MatchKind::Hash, i))
             .collect();
         all.push(cand(
-            TORRENT_PROVIDER,
+            providers::TORRENT_PROVIDER,
             SpanishVariant::Unknown,
             MatchKind::Hash,
             0,
         ));
         let top = top_candidates(all, MAX_SUBTITLES);
         assert_eq!(top.len(), 5);
-        assert_eq!(top[0].provider, TORRENT_PROVIDER);
+        assert_eq!(top[0].provider, providers::TORRENT_PROVIDER);
     }
 
     #[test]
@@ -611,35 +516,55 @@ mod tests {
     const MOVIE_HASH_EXPECTED: &str = include_str!("../tests/fixtures/subtitles/movie-hash.txt");
 
     #[test]
-    fn release_pelicula() {
-        let v = parse_release_name("The.Martian.2015.1080p.WEB-DL.x264-NTb.mkv");
-        assert_eq!(v.title.as_deref(), Some("The Martian"));
-        assert_eq!(v.year, Some(2015));
-        assert_eq!(v.source.as_deref(), Some("WEB-DL"));
-        assert_eq!(v.release_group.as_deref(), Some("NTb"));
-        assert_eq!(v.season, None);
+    fn confianza_por_el_nombre() {
+        let id = |name| VideoIdentity::from(crate::release::parse_release_name(name));
+        let v = id("The.Martian.2015.1080p.WEB-DL.x264-NTb.mkv");
         assert_eq!(v.confidence(), Confidence::High);
+        assert_eq!(id("Sintel/Sintel.mp4").confidence(), Confidence::Medium);
+        let v = id("Show.Name.S01E02.720p.HDTV.x264-GRP.mkv");
+        assert_eq!(v.confidence(), Confidence::High);
+        // Archivo con nombre pobre: título y año salen del nombre del torrent.
+        let h = InfoHash::from_bytes([1; 20]);
+        let v = VideoIdentity::for_file("video.mkv", "The.Martian.2015.1080p", h, 9);
+        assert_eq!((v.year, v.file_size, v.info_hash), (Some(2015), 9, Some(h)));
     }
 
     #[test]
-    fn release_serie_y_casos_raros() {
-        let v = parse_release_name("Show.Name.S01E02.720p.HDTV.x264-GRP.mkv");
-        assert_eq!(v.title.as_deref(), Some("Show Name"));
-        assert_eq!((v.season, v.episode), (Some(1), Some(2)));
-        assert_eq!(v.source.as_deref(), Some("HDTV"));
-
-        let v = parse_release_name("Sintel/Sintel.mp4");
-        assert_eq!(v.title.as_deref(), Some("Sintel"));
-        assert_eq!(v.year, None);
-        assert_eq!(v.confidence(), Confidence::Medium);
-
-        let v = parse_release_name("2001 A Space Odyssey (1968) [1080p].mkv");
-        assert_eq!(v.title.as_deref(), Some("2001 A Space Odyssey"));
-        assert_eq!(v.year, Some(1968));
-
-        let v = parse_release_name("Spider-Man.No.Way.Home.2021.2160p.BluRay.mkv");
-        assert_eq!(v.title.as_deref(), Some("Spider-Man No Way Home"));
-        assert_eq!(v.release_group, None);
+    fn mismo_video_en_distintos_torrents_misma_identidad() {
+        let (a, b) = (InfoHash::from_bytes([1; 20]), InfoHash::from_bytes([2; 20]));
+        let ep = |name: &str, h| VideoIdentity::for_file(name, name, h, 1);
+        // Sin catálogo: título + SxxEyy (o + año en películas), sin importar release ni torrent.
+        let x = ep("Game.of.Thrones.S03E02.720p.HDTV.x264-IMMERSE.mkv", a);
+        let y = ep("Game Of Thrones S03E02 1080p BluRay-DEMAND.mkv", b);
+        assert_eq!(x.video_id(), "game-of-thrones-s03e02");
+        assert_eq!(x.video_id(), y.video_id());
+        assert_eq!(
+            ep("Dune.Part.Two.2024.2160p.WEB-DL.mkv", a).video_id(),
+            ep("Dune Part Two (2024) 1080p.mkv", b).video_id()
+        );
+        // Película sin año: ambigua (remakes) → por torrent, como antes.
+        assert_eq!(ep("Dune.1080p.mkv", a).video_id(), a.to_hex());
+        // Con catálogo: IMDb id + episodio, solo si la fila es este archivo.
+        let origin = |s: Option<u32>, e: Option<u32>, file_idx| crate::library::CatalogOrigin {
+            video_id: String::new(),
+            imdb_id: "tt0944947".into(),
+            title: "Game of Thrones".into(),
+            year: None,
+            season: s,
+            episode: e,
+            file_idx,
+            addons: Vec::new(),
+        };
+        let mut x = x;
+        x.apply_catalog(&[origin(Some(3), Some(1), None)], 0);
+        assert_eq!(x.imdb_id, None, "otro episodio del pack: no aplica");
+        x.apply_catalog(&[origin(Some(3), Some(1), None), origin(Some(3), Some(2), None)], 0);
+        assert_eq!(x.video_id(), "tt0944947-s03e02");
+        let mut movie = ep("Dune.Part.Two.2024.mkv", a);
+        movie.apply_catalog(&[origin(None, None, Some(4))], 3);
+        assert_eq!(movie.imdb_id, None, "otro archivo del torrent");
+        movie.apply_catalog(&[origin(None, None, Some(4))], 4);
+        assert_eq!(movie.video_id(), "tt0944947");
     }
 
     #[test]
@@ -672,17 +597,36 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("tstream-test-submem-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let mem = SubtitleMemory::new(dir.join("subtitles-memory.json"));
-        let h = InfoHash::from_bytes([7; 20]);
+        let h = VideoKey::whole(InfoHash::from_bytes([7; 20]));
         assert_eq!(mem.get(&h).unwrap(), None);
         let choice = SubtitleChoice {
             subtitle: "wyzie:123".into(),
             delay_secs: -0.3,
             label: Some("2 · Wyzie/rel".into()),
+            language: SubtitleLanguage::En,
         };
         mem.set(&h, choice.clone()).unwrap();
-        mem.set(&InfoHash::from_bytes([8; 20]), choice.clone())
+        mem.set(&VideoKey::whole(InfoHash::from_bytes([8; 20])), choice.clone())
             .unwrap();
-        assert_eq!(mem.get(&h).unwrap(), Some(choice));
+        assert_eq!(mem.get(&h).unwrap(), Some(choice.clone()));
+        // Otro episodio del mismo pack no hereda la elección.
+        let e2 = VideoKey::new(InfoHash::from_bytes([7; 20]), Some((3, 2)), None);
+        assert_eq!(mem.get(&e2).unwrap(), None);
+        // Dato viejo (por info hash): es la clave del torrent entero.
+        std::fs::write(
+            dir.join("subtitles-memory.json"),
+            format!(
+                r#"{{"{}":{{"subtitle":"wyzie:9","delay_secs":1.0}}}}"#,
+                "09".repeat(20)
+            ),
+        )
+        .unwrap();
+        let old = VideoKey::whole(InfoHash::from_bytes([9; 20]));
+        assert_eq!(mem.get(&old).unwrap().unwrap().subtitle, "wyzie:9");
+        // Datos de antes del campo `language`: se leen como español.
+        let old: SubtitleChoice =
+            serde_json::from_str(r#"{"subtitle":"wyzie:1","delay_secs":0.0}"#).unwrap();
+        assert_eq!(old.language, SubtitleLanguage::Es);
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

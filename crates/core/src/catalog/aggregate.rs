@@ -8,7 +8,6 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
-use tokio::sync::mpsc;
 
 use super::addons::{Addon, AddonOutcome};
 use super::http::Http;
@@ -70,10 +69,8 @@ impl Merged {
     }
 
     /// FR-44: mismo hash (sin importar mayúsculas: ya viene normalizado) = una sola fila.
+    /// El filtro de CAM va en `sorted`: basta que un addon lo marque para que el hash entero caiga.
     pub fn add(&mut self, c: StreamCandidate) {
-        if self.exclude_cam && c.source.as_deref() == Some("CAM") {
-            return;
-        }
         match self.map.get_mut(&c.info_hash) {
             Some(existing) => merge(existing, c),
             None => {
@@ -106,6 +103,7 @@ impl Merged {
         let mut out: Vec<StreamCandidate> = self
             .map
             .values()
+            .filter(|c| !(self.exclude_cam && is_cam(c)))
             .cloned()
             .map(|mut c| {
                 c.lang_group = lang_group(&c.audio, &self.audio_order);
@@ -126,8 +124,18 @@ impl Merged {
     }
 }
 
+fn is_cam(c: &StreamCandidate) -> bool {
+    c.source.as_deref() == Some("CAM")
+}
+
+/// `b` gana si viene del addon de mayor prioridad (menor `addon_rank`); si no, solo completa.
+fn prefer<T>(a: &mut Option<T>, b: Option<T>, b_first: bool) {
+    *a = if b_first { b.or(a.take()) } else { a.take().or(b) };
+}
+
 /// FR-44: unión de addons/trackers/sitios/idiomas, máx. seeders, tamaño exacto preferido,
-/// `fileIdx` conocido preferido, textos del addon de mayor prioridad.
+/// `fileIdx` conocido preferido, textos y campos sueltos del addon de mayor prioridad (sin
+/// depender de cuál respondió primero); CAM si algún addon lo marca.
 fn merge(a: &mut StreamCandidate, b: StreamCandidate) {
     let union = |x: &mut Vec<String>, y: Vec<String>| {
         for v in y {
@@ -136,28 +144,31 @@ fn merge(a: &mut StreamCandidate, b: StreamCandidate) {
             }
         }
     };
-    if b.addon_rank < a.addon_rank {
+    let b_first = b.addon_rank < a.addon_rank;
+    let cam = is_cam(a) || is_cam(&b);
+    if b_first {
         a.release_name = b.release_name.clone();
         a.addon_rank = b.addon_rank;
     }
-    a.file_idx = a.file_idx.or(b.file_idx);
-    a.file_name = a.file_name.take().or(b.file_name);
+    prefer(&mut a.file_idx, b.file_idx, b_first);
+    prefer(&mut a.file_name, b.file_name, b_first);
     if b.size_bytes.is_some() && ((b.size_exact && !a.size_exact) || a.size_bytes.is_none()) {
         a.size_bytes = b.size_bytes;
         a.size_exact = b.size_exact;
     }
     a.seeders_declared = a.seeders_declared.max(b.seeders_declared);
-    a.resolution = a.resolution.take().or(b.resolution);
-    a.codec = a.codec.take().or(b.codec);
-    a.source = a.source.take().or(b.source);
-    a.binge_group = a.binge_group.take().or(b.binge_group);
+    prefer(&mut a.resolution, b.resolution, b_first);
+    prefer(&mut a.codec, b.codec, b_first);
+    prefer(&mut a.source, b.source, b_first);
+    if cam {
+        a.source = Some("CAM".into());
+    }
+    prefer(&mut a.binge_group, b.binge_group, b_first);
     a.is_pack |= b.is_pack;
     union(&mut a.hdr, b.hdr);
     union(&mut a.audio_format, b.audio_format);
     union(&mut a.audio, b.audio);
-    if a.audio.iter().any(|c| c == "lat" || c == "cast") {
-        a.audio.retain(|c| c != "es");
-    }
+    crate::audio::collapse_spanish(&mut a.audio);
     union(&mut a.subs, b.subs);
     union(&mut a.sites, b.sites);
     union(&mut a.addons, b.addons);
@@ -208,7 +219,14 @@ pub struct RunCtx {
     pub trackers: Vec<String>,
     pub scrape_timeout: Duration,
     /// Última lista, para que `AppCore` encuentre un candidato al analizar/reproducir.
-    pub latest: Arc<Mutex<Vec<StreamCandidate>>>,
+    pub latest: Arc<Mutex<Latest>>,
+}
+
+/// Candidatos de la última consulta, con el video al que pertenecen.
+#[derive(Debug, Default)]
+pub struct Latest {
+    pub video: Option<VideoId>,
+    pub candidates: Vec<StreamCandidate>,
 }
 
 enum Msg {
@@ -221,11 +239,12 @@ enum Msg {
 }
 
 /// Fan-out progresivo (FR-42): una tarea por addon con su propio plazo; un único agregador dueño
-/// del mapa (sin locks compartidos). Cancelar = abortar la tarea que corre esto (las de cada
-/// addon se abortan con el `JoinSet`).
+/// del mapa (sin locks compartidos). Addons y scrapes viven en un `JoinSet`: cancelar = abortar
+/// la tarea que corre esto (el `JoinSet` aborta las suyas al soltarse) y una tarea que entra en
+/// pánico cuenta como addon fallido en vez de dejar la consulta colgada.
 pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
-    let (tx, mut rx) = mpsc::unbounded_channel::<Msg>();
     let mut tasks = tokio::task::JoinSet::new();
+    let mut addon_of: HashMap<tokio::task::Id, usize> = HashMap::new();
     let mut statuses: Vec<AddonStatus> = ctx
         .addons
         .iter()
@@ -239,41 +258,36 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
         })
         .collect();
     for (idx, addon) in ctx.addons.iter().enumerate() {
-        let (addon, http, tx, video) = (
-            addon.clone(),
-            ctx.http.clone(),
-            tx.clone(),
-            ctx.video.clone(),
-        );
+        let (addon, http, video) = (addon.clone(), ctx.http.clone(), ctx.video.clone());
         let (kind, timeout) = (ctx.kind, addon.timeout(ctx.default_timeout));
-        tasks.spawn(async move {
+        let handle = tasks.spawn(async move {
             let t0 = Instant::now();
-            let outcome = match tokio::time::timeout(
-                timeout,
-                addon.streams(&http, &video, kind, idx),
-            )
-            .await
-            {
-                Ok(o) => o,
-                Err(_) => AddonOutcome::Failed("sin respuesta (timeout)".into()),
-            };
-            let _ = tx.send(Msg::Addon {
+            let outcome = addon.streams(&http, &video, kind, idx, timeout).await;
+            Msg::Addon {
                 idx,
                 outcome,
                 ms: t0.elapsed().as_millis() as u64,
-            });
+            }
         });
+        addon_of.insert(handle.id(), idx);
     }
 
     let mut merged = Merged::new(ctx.audio_order.clone(), ctx.exclude_cam);
-    let mut pending = ctx.addons.len();
     let mut scraped: HashSet<InfoHash> = HashSet::new();
-    let mut scrapes_running = 0usize;
     let mut dirty = true;
     let mut tick = tokio::time::interval(FLUSH_EVERY);
     let flush = |merged: &Merged, statuses: &[AddonStatus], done: bool| {
         let candidates = merged.sorted();
-        *ctx.latest.lock().expect("latest") = candidates.clone();
+        let mut latest = ctx.latest.lock().expect("latest");
+        // Una corrida vieja que llega tarde no pisa la lista de otro video (`start_streams`).
+        if latest.video.as_ref().is_some_and(|v| v != &ctx.video) {
+            return;
+        }
+        *latest = Latest {
+            video: Some(ctx.video.clone()),
+            candidates: candidates.clone(),
+        };
+        drop(latest);
         emit(StreamsUpdate {
             video_id: ctx.video.to_string(),
             addons: statuses.to_vec(),
@@ -283,11 +297,24 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
     };
     loop {
         tokio::select! {
-            Some(msg) = rx.recv() => {
+            Some(joined) = tasks.join_next_with_id() => {
                 dirty = true;
+                let msg = match joined {
+                    Ok((_, msg)) => msg,
+                    Err(e) => match addon_of.get(&e.id()) {
+                        Some(&idx) => Msg::Addon {
+                            idx,
+                            outcome: AddonOutcome::Failed("falló internamente".into()),
+                            ms: 0,
+                        },
+                        None => {
+                            tracing::warn!("scrape de seeders: {e}");
+                            continue;
+                        }
+                    },
+                };
                 match msg {
                     Msg::Addon { idx, outcome, ms } => {
-                        pending -= 1;
                         let st = &mut statuses[idx];
                         st.ms = Some(ms);
                         match outcome {
@@ -311,7 +338,6 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
                         }
                     }
                     Msg::Scrape(results) => {
-                        scrapes_running -= 1;
                         for (h, s) in &results {
                             merged.set_scrape(h, s);
                         }
@@ -323,26 +349,24 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
                     // Scrape de los hashes nuevos, en tandas a medida que llegan (FR-48: los 40 con seeders).
                     let fresh: Vec<InfoHash> = merged.hashes().into_iter().filter(|h| scraped.insert(*h)).collect();
                     if !fresh.is_empty() {
-                        scrapes_running += 1;
                         let mut trackers = ctx.trackers.clone();
                         trackers.extend(merged.trackers());
+                        trackers.sort();
                         trackers.dedup();
-                        let (tx, timeout) = (tx.clone(), ctx.scrape_timeout);
-                        tokio::spawn(async move {
-                            let r = crate::trackers::scrape_batch(&fresh, &trackers, timeout).await;
-                            let _ = tx.send(Msg::Scrape(r));
+                        let timeout = ctx.scrape_timeout;
+                        tasks.spawn(async move {
+                            Msg::Scrape(crate::trackers::scrape_batch(&fresh, &trackers, timeout).await)
                         });
                     }
                     flush(&merged, &statuses, false);
                     dirty = false;
-                } else if pending == 0 && scrapes_running == 0 {
+                } else if tasks.is_empty() {
                     break;
                 }
             }
         }
     }
     flush(&merged, &statuses, true);
-    tasks.abort_all();
 }
 
 #[cfg(test)]
@@ -443,6 +467,34 @@ mod tests {
             .take(3)
             .collect();
         assert_eq!(first, ["lat", "en", "cast"]);
+    }
+
+    /// CAM por hash: otro addon con la misma copia sin marcar no la cuela; los campos sueltos
+    /// salen del addon de mayor prioridad sin importar el orden de llegada.
+    #[test]
+    fn cam_por_hash_y_campos_por_prioridad() {
+        for first_cam in [true, false] {
+            let mut m = Merged::new(order(), true);
+            let mut cam = cand(1, "x", 1);
+            cam.source = Some("CAM".into());
+            let clean = cand(1, "y", 0);
+            let (p, q) = if first_cam { (cam, clean) } else { (clean, cam) };
+            m.add(p);
+            m.add(q);
+            assert!(m.sorted().is_empty());
+        }
+        let mut lo = cand(2, "lo", 3);
+        lo.resolution = Some("720p".into());
+        lo.file_idx = Some(1);
+        let mut hi = cand(2, "hi", 0);
+        hi.resolution = Some("1080p".into());
+        hi.file_idx = Some(4);
+        let mut m = Merged::new(order(), true);
+        m.add(lo);
+        m.add(hi);
+        let x = &m.sorted()[0];
+        assert_eq!(x.resolution.as_deref(), Some("1080p"));
+        assert_eq!(x.file_idx, Some(4));
     }
 
     #[test]

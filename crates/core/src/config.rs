@@ -175,11 +175,9 @@ pub struct RankingConfig {
     /// Margen ≥ verde → verde; ≥ amarillo → amarillo; si no, rojo.
     pub green_margin: f64,
     pub yellow_margin: f64,
-    /// Calibración automática (2026-11-13): velocidad real al reproducir ÷ velocidad medida por el
-    /// análisis, mediana de las últimas reproducciones. Lo actualiza `playback`; 1,0 = sin datos.
-    pub speed_factor: f64,
-    /// Cuántas reproducciones alimentan `speed_factor` (para mostrar la confianza).
-    pub speed_factor_samples: u32,
+    // El factor de calibración (real ÷ análisis) NO es config del usuario: es dato derivado de
+    // `calibration.json` (`playback::Calibration`). Un `config.json` viejo con `speed_factor` /
+    // `speed_factor_samples` igual carga (serde ignora campos desconocidos) y siembra la calibración.
 }
 
 impl Default for RankingConfig {
@@ -189,8 +187,22 @@ impl Default for RankingConfig {
             episode_minutes: 45,
             green_margin: 1.5,
             yellow_margin: 1.0,
-            speed_factor: 1.0,
-            speed_factor_samples: 0,
+        }
+    }
+}
+
+impl RankingConfig {
+    /// Valores imposibles (editado a mano, versión vieja) → su default, con aviso: un 0 o un
+    /// NaN acá rompería el cálculo del margen de todo el semáforo (FR-07).
+    fn fix_invalid(&mut self) {
+        let d = Self::default();
+        if self.movie_minutes == 0 {
+            tracing::warn!("config: ranking.movie_minutes = 0; se usa {}", d.movie_minutes);
+            self.movie_minutes = d.movie_minutes;
+        }
+        if self.episode_minutes == 0 {
+            tracing::warn!("config: ranking.episode_minutes = 0; se usa {}", d.episode_minutes);
+            self.episode_minutes = d.episode_minutes;
         }
     }
 }
@@ -236,6 +248,35 @@ pub enum SubtitleLanguage {
     Es,
     En,
     None,
+}
+
+impl SubtitleLanguage {
+    /// ISO 639-1 ("es", "en"); `None` si no se quieren subtítulos.
+    pub fn iso1(self) -> Option<&'static str> {
+        match self {
+            SubtitleLanguage::Es => Some("es"),
+            SubtitleLanguage::En => Some("en"),
+            SubtitleLanguage::None => None,
+        }
+    }
+
+    /// ISO 639-2 ("spa", "eng"), el que entiende mpv; `None` si no se quieren subtítulos.
+    pub fn iso2(self) -> Option<&'static str> {
+        match self {
+            SubtitleLanguage::Es => Some("spa"),
+            SubtitleLanguage::En => Some("eng"),
+            SubtitleLanguage::None => None,
+        }
+    }
+
+    /// Nombre en español para los mensajes ("español", "inglés").
+    pub fn name_es(self) -> &'static str {
+        match self {
+            SubtitleLanguage::Es => "español",
+            SubtitleLanguage::En => "inglés",
+            SubtitleLanguage::None => "ninguno",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -305,7 +346,10 @@ impl ConfigStore {
     /// (`config.json.corrupt-<fecha>`), avisa en el log y usa los defaults: la app siempre abre (NFR-12).
     pub fn load(&self) -> Result<Config> {
         match crate::fsutil::read_json::<Config>(&self.path) {
-            Ok(Some(config)) => Ok(config),
+            Ok(Some(mut config)) => {
+                config.ranking.fix_invalid();
+                Ok(config)
+            }
             Ok(None) => Ok(Config::default()),
             Err(crate::CoreError::Json { .. }) => {
                 let moved = crate::fsutil::quarantine(&self.path)?;
@@ -441,6 +485,35 @@ mod tests {
         let c = store.load().unwrap();
         assert_eq!(c.preload.tail_bytes, 1);
         assert_eq!(c.preload.head_bytes, 16 * MIB);
+        assert_eq!(c.trackers, Config::default().trackers);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn ranking_invalido_vuelve_al_default() {
+        let (store, dir) = temp_store("ranking");
+        std::fs::write(
+            dir.join("config.json"),
+            r#"{ "ranking": { "movie_minutes": 0, "episode_minutes": 30, "speed_factor": -2.0 } }"#,
+        )
+        .unwrap();
+        let r = store.load().unwrap().ranking;
+        let d = RankingConfig::default();
+        assert_eq!((r.movie_minutes, r.episode_minutes), (d.movie_minutes, 30));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    /// `config.json` de antes de mover la calibración a `calibration.json`: sigue cargando igual.
+    #[test]
+    fn config_viejo_con_speed_factor_carga() {
+        let (store, dir) = temp_store("legacy-factor");
+        std::fs::write(
+            dir.join("config.json"),
+            r#"{ "ranking": { "green_margin": 2.0, "speed_factor": 1.7, "speed_factor_samples": 4 } }"#,
+        )
+        .unwrap();
+        let c = store.load().unwrap();
+        assert_eq!(c.ranking.green_margin, 2.0);
         assert_eq!(c.trackers, Config::default().trackers);
         std::fs::remove_dir_all(dir).unwrap();
     }

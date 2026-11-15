@@ -15,13 +15,30 @@ use crate::Result;
 /// Resultado de leer el historial del sistema.
 #[derive(Debug, Clone)]
 pub enum ClipboardHistory {
-    /// Textos del más nuevo al más viejo. Un elemento que no es texto (imagen, archivo) llega
-    /// como `""`: no es magnet, así que corta la lectura (FR-02).
-    Items(Vec<String>),
+    /// Elementos del más nuevo al más viejo. Uno que no es texto (imagen, archivo) llega con
+    /// texto `""`: no es magnet, así que corta la lectura (FR-02).
+    Items(Vec<HistoryItem>),
     /// Windows con Win+V apagado → aviso + usar solo `current_text()` (FR-02).
     Disabled,
     /// macOS / otros (NFR-13: degradar con elegancia).
     Unsupported,
+}
+
+/// Un elemento del historial con la hora en que se copió (si el SO la da).
+#[derive(Debug, Clone)]
+pub struct HistoryItem {
+    pub text: String,
+    pub copied_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+/// Un texto sin hora (el último copiado, o un historial que no la da).
+impl From<&str> for HistoryItem {
+    fn from(text: &str) -> Self {
+        Self {
+            text: text.to_string(),
+            copied_at: None,
+        }
+    }
 }
 
 /// Mientras exista, sigue escuchando. Al soltarse deja de escuchar.
@@ -37,37 +54,14 @@ impl WatchGuard {
     }
 }
 
-/// Un elemento del historial con la hora en que se copió (si el SO la da).
-#[derive(Debug, Clone)]
-pub struct HistoryItem {
-    pub text: String,
-    pub copied_at: Option<chrono::DateTime<chrono::Utc>>,
-}
-
 #[async_trait]
 pub trait ClipboardSource: Send + Sync {
     /// Envía por `tx` cada texto copiado mientras la app está abierta (FR-01).
     fn watch(&self, tx: mpsc::Sender<String>) -> Result<WatchGuard>;
     /// Último texto copiado.
     async fn current_text(&self) -> Result<Option<String>>;
-    /// Historial del sistema (FR-02).
+    /// Historial del sistema, con la hora de cada elemento si el SO la da (FR-02).
     async fn history(&self) -> Result<ClipboardHistory>;
-    /// Historial con la hora de cada elemento (diálogo "Leer portapapeles", 2026-11-14).
-    /// `None` = historial apagado o inexistente. Por defecto, sin horas.
-    async fn history_detailed(&self) -> Result<Option<Vec<HistoryItem>>> {
-        Ok(match self.history().await? {
-            ClipboardHistory::Items(items) => Some(
-                items
-                    .into_iter()
-                    .map(|text| HistoryItem {
-                        text,
-                        copied_at: None,
-                    })
-                    .collect(),
-            ),
-            _ => None,
-        })
-    }
 }
 
 /// Un magnet encontrado en el portapapeles, para el diálogo de selección.
@@ -81,36 +75,69 @@ pub struct ClipboardMagnet {
     pub copied_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-/// Todos los magnets del historial (no solo hasta el primer no-magnet: el usuario elige en el
-/// diálogo), sin repetir, del más nuevo al más viejo. Más el último copiado si el historial no está.
+/// Lo que hay para leer: el historial, o si no está (apagado, otro SO o error) solo el último
+/// copiado, con el motivo para avisar.
+async fn read(source: &dyn ClipboardSource) -> (Vec<HistoryItem>, Option<ClipboardUnavailable>) {
+    let history = source.history().await.unwrap_or_else(|e| {
+        tracing::warn!("historial del portapapeles: {e}");
+        ClipboardHistory::Disabled
+    });
+    let reason = match history {
+        ClipboardHistory::Items(items) => return (items, None),
+        ClipboardHistory::Disabled => ClipboardUnavailable::HistoryDisabled,
+        ClipboardHistory::Unsupported => ClipboardUnavailable::NotSupportedOnThisOs,
+    };
+    let current = match source.current_text().await {
+        Ok(text) => text,
+        Err(e) => {
+            tracing::warn!("leer el portapapeles: {e}");
+            None
+        }
+    };
+    let items = current.map(|t| vec![HistoryItem::from(t.as_str())]);
+    (items.unwrap_or_default(), Some(reason))
+}
+
+/// Diálogo "Leer portapapeles" (FR-01c): todos los magnets del historial, con su hora.
 pub async fn scan_all(
     source: &dyn ClipboardSource,
 ) -> (Vec<ClipboardMagnet>, Option<ClipboardUnavailable>) {
-    let (items, unavailable) = match source.history_detailed().await {
-        Ok(Some(items)) => (items, None),
-        Ok(None) | Err(_) => {
-            let current = source
-                .current_text()
-                .await
-                .ok()
-                .flatten()
-                .unwrap_or_default();
-            let reason = match source.history().await {
-                Ok(ClipboardHistory::Unsupported) => ClipboardUnavailable::NotSupportedOnThisOs,
-                _ => ClipboardUnavailable::HistoryDisabled,
-            };
-            (
-                vec![HistoryItem {
-                    text: current,
-                    copied_at: None,
-                }],
-                Some(reason),
-            )
-        }
+    let (items, unavailable) = read(source).await;
+    (all_magnets(&items), unavailable)
+}
+
+/// Resultado de [`import`]: magnets a agregar (con su texto original) y, si corresponde, por qué
+/// no se pudo usar el historial.
+#[derive(Debug, Clone)]
+pub struct ClipboardImport {
+    pub magnets: Vec<(Magnet, String)>,
+    pub unavailable: Option<ClipboardUnavailable>,
+}
+
+/// "Leer portapapeles" sin diálogo (FR-02): historial del más nuevo al más viejo hasta el primer
+/// no-magnet; si el historial está apagado (Windows) o no existe (macOS), los magnets del
+/// último copiado.
+pub async fn import(source: &dyn ClipboardSource) -> ClipboardImport {
+    let (items, unavailable) = read(source).await;
+    let magnets = match unavailable {
+        None => magnets_from_history(&items),
+        Some(_) => items
+            .iter()
+            .flat_map(|i| magnet::extract_all_with_raw(&i.text))
+            .collect(),
     };
+    ClipboardImport {
+        magnets,
+        unavailable,
+    }
+}
+
+/// Regla FR-01c (diálogo): TODOS los magnets, no solo hasta el primer no-magnet (el usuario
+/// elige), sin repetir, del más nuevo al más viejo.
+pub fn all_magnets(items_newest_first: &[HistoryItem]) -> Vec<ClipboardMagnet> {
     let mut seen = std::collections::HashSet::new();
     let mut out = Vec::new();
-    for item in items {
+    for item in items_newest_first {
         for (m, raw) in magnet::extract_all_with_raw(&item.text) {
             if seen.insert(m.info_hash) {
                 out.push(ClipboardMagnet {
@@ -122,7 +149,19 @@ pub async fn scan_all(
             }
         }
     }
-    (out, unavailable)
+    out
+}
+
+/// Regla FR-02: recorrer del más nuevo al más viejo y DETENERSE en el primer elemento
+/// que no sea magnet. `[m3, m2, texto, m1]` → `[m3, m2]`, con el texto original de cada uno (FR-04).
+/// "Elemento magnet" = texto con SOLO magnets (y espacios); un magnet con otras palabras
+/// corta la lectura (Q-09, confirmada por el usuario 2026-11-13).
+pub fn magnets_from_history(items_newest_first: &[HistoryItem]) -> Vec<(Magnet, String)> {
+    items_newest_first
+        .iter()
+        .take_while(|item| magnet::is_only_magnets(&item.text))
+        .flat_map(|item| magnet::extract_all_with_raw(&item.text))
+        .collect()
 }
 
 /// Implementación del SO actual.
@@ -138,66 +177,6 @@ pub fn platform_source() -> Box<dyn ClipboardSource> {
     #[cfg(not(any(windows, target_os = "macos")))]
     {
         Box::new(NoClipboard)
-    }
-}
-
-/// Regla FR-02: recorrer del más nuevo al más viejo y DETENERSE en el primer elemento
-/// que no sea magnet. `[m3, m2, texto, m1]` → `[m3, m2]`.
-/// "Elemento magnet" = texto con SOLO magnets (y espacios); un magnet con otras palabras
-/// corta la lectura (Q-09, confirmada por el usuario 2026-11-13).
-pub fn magnets_from_history(items_newest_first: &[String]) -> Vec<Magnet> {
-    magnets_from_history_with_raw(items_newest_first)
-        .into_iter()
-        .map(|(m, _)| m)
-        .collect()
-}
-
-/// Como [`magnets_from_history`], con el texto original de cada magnet (FR-04). Agregado en F2.
-pub fn magnets_from_history_with_raw(items_newest_first: &[String]) -> Vec<(Magnet, String)> {
-    items_newest_first
-        .iter()
-        .take_while(|text| magnet::is_only_magnets(text))
-        .flat_map(|text| magnet::extract_all_with_raw(text))
-        .collect()
-}
-
-/// Resultado de [`import`]: magnets a agregar (con su texto original) y, si corresponde, por qué
-/// no se pudo usar el historial.
-#[derive(Debug, Clone)]
-pub struct ClipboardImport {
-    pub magnets: Vec<(Magnet, String)>,
-    pub unavailable: Option<ClipboardUnavailable>,
-}
-
-/// "Leer portapapeles" (FR-02): historial del más nuevo al más viejo hasta el primer no-magnet;
-/// si el historial está apagado (Windows) o no existe (macOS), solo el último copiado.
-/// Agregado en F2 (lo usa `AppCore`; separado para probarlo con una fuente falsa).
-pub async fn import(source: &dyn ClipboardSource) -> ClipboardImport {
-    let history = source.history().await.unwrap_or_else(|e| {
-        tracing::warn!("historial del portapapeles: {e}");
-        ClipboardHistory::Disabled
-    });
-    let unavailable = match history {
-        ClipboardHistory::Items(items) => {
-            return ClipboardImport {
-                magnets: magnets_from_history_with_raw(&items),
-                unavailable: None,
-            }
-        }
-        ClipboardHistory::Disabled => ClipboardUnavailable::HistoryDisabled,
-        ClipboardHistory::Unsupported => ClipboardUnavailable::NotSupportedOnThisOs,
-    };
-    let magnets = match source.current_text().await {
-        Ok(Some(text)) => magnet::extract_all_with_raw(&text),
-        Ok(None) => Vec::new(),
-        Err(e) => {
-            tracing::warn!("leer el portapapeles: {e}");
-            Vec::new()
-        }
-    };
-    ClipboardImport {
-        magnets,
-        unavailable: Some(unavailable),
     }
 }
 
@@ -349,17 +328,10 @@ mod windows_impl {
         }
     }
 
+    /// Historial Win+V con la hora de cada elemento.
     fn read_history() -> Result<ClipboardHistory> {
-        Ok(match read_history_detailed()? {
-            Some(items) => ClipboardHistory::Items(items.into_iter().map(|i| i.text).collect()),
-            None => ClipboardHistory::Disabled,
-        })
-    }
-
-    /// Historial Win+V con la hora de cada elemento. `None` si está apagado.
-    fn read_history_detailed() -> Result<Option<Vec<super::HistoryItem>>> {
         if !Clipboard::IsHistoryEnabled().unwrap_or(false) {
-            return Ok(None);
+            return Ok(ClipboardHistory::Disabled);
         }
         let result = Clipboard::GetHistoryItemsAsync()
             .and_then(|op| op.join())
@@ -367,7 +339,7 @@ mod windows_impl {
         if result.Status().map_err(|e| err("historial", e))?
             != ClipboardHistoryItemsResultStatus::Success
         {
-            return Ok(None);
+            return Ok(ClipboardHistory::Disabled);
         }
         let items = result.Items().map_err(|e| err("historial", e))?;
         let text_format = StandardDataFormats::Text().map_err(|e| err("historial", e))?;
@@ -402,7 +374,7 @@ mod windows_impl {
             });
             out.push(super::HistoryItem { text, copied_at });
         }
-        Ok(Some(out))
+        Ok(ClipboardHistory::Items(out))
     }
 
     #[async_trait]
@@ -467,12 +439,6 @@ mod windows_impl {
                 .await
                 .map_err(|e| err("historial", e))?
         }
-
-        async fn history_detailed(&self) -> Result<Option<Vec<super::HistoryItem>>> {
-            tokio::task::spawn_blocking(read_history_detailed)
-                .await
-                .map_err(|e| err("historial", e))?
-        }
     }
 }
 
@@ -490,16 +456,19 @@ mod mac_impl {
 
     pub struct MacClipboard;
 
-    /// `(changeCount, texto)` del portapapeles general.
+    /// `changeCount` del portapapeles general: barato, sin copiar el contenido.
     #[allow(unused_unsafe)] // según la versión de objc2 estas llamadas son o no `unsafe`
-    fn snapshot() -> (isize, Option<String>) {
+    fn change_count() -> isize {
+        objc2::rc::autoreleasepool(|_| unsafe { NSPasteboard::generalPasteboard().changeCount() })
+    }
+
+    /// Texto del portapapeles general.
+    #[allow(unused_unsafe)]
+    fn text() -> Option<String> {
         objc2::rc::autoreleasepool(|_| unsafe {
-            let pasteboard = NSPasteboard::generalPasteboard();
-            let count = pasteboard.changeCount();
-            let text = pasteboard
+            NSPasteboard::generalPasteboard()
                 .stringForType(NSPasteboardTypeString)
-                .map(|s| s.to_string());
-            (count, text)
+                .map(|s| s.to_string())
         })
     }
 
@@ -512,13 +481,13 @@ mod mac_impl {
                 .name("tstream-clipboard".into())
                 .spawn(move || {
                     // No hay notificación en macOS: se sondea `changeCount` (barato).
-                    let (mut last, _) = snapshot();
+                    let mut last = change_count();
                     while !stop.is_cancelled() {
                         std::thread::sleep(Duration::from_millis(500));
-                        let (count, text) = snapshot();
+                        let count = change_count();
                         if count != last {
                             last = count;
-                            if let Some(text) = text {
+                            if let Some(text) = text() {
                                 if tx.blocking_send(text).is_err() {
                                     return;
                                 }
@@ -531,7 +500,7 @@ mod mac_impl {
         }
 
         async fn current_text(&self) -> Result<Option<String>> {
-            Ok(snapshot().1)
+            Ok(text())
         }
 
         async fn history(&self) -> Result<ClipboardHistory> {
@@ -552,24 +521,33 @@ mod tests {
 
     #[test]
     fn historial_se_detiene_en_el_primer_no_magnet() {
-        let items = [M3, M2, "hola", M1].map(String::from);
+        let items = [M3, M2, "hola", M1].map(HistoryItem::from);
         let got: Vec<_> = magnets_from_history(&items)
             .into_iter()
-            .map(|m| m.display_name.unwrap())
+            .map(|(m, _)| m.display_name.unwrap())
             .collect();
         assert_eq!(got, ["Tears of Steel", "Big Buck Bunny"]);
     }
 
     #[test]
     fn q09_magnet_con_otras_palabras_corta_y_varios_magnets_siguen() {
-        let items = [
-            format!("{M3}\n{M2}"),
-            format!("mirá esto {M1}"),
-            M1.to_string(),
-        ];
+        let both = format!("{M3}\n{M2}");
+        let mixed = format!("mirá esto {M1}");
+        let items = [both.as_str(), mixed.as_str(), M1].map(HistoryItem::from);
         assert_eq!(magnets_from_history(&items).len(), 2);
         // Un elemento que no es texto llega como "" y también corta.
-        assert!(magnets_from_history(&[String::new(), M1.to_string()]).is_empty());
+        assert!(magnets_from_history(&["", M1].map(HistoryItem::from)).is_empty());
+    }
+
+    /// FR-01c: el diálogo muestra todos, sin repetir, aunque haya texto en el medio.
+    #[test]
+    fn dialogo_muestra_todos_los_magnets_sin_repetir() {
+        let items = [M3, "hola", M1, M3].map(HistoryItem::from);
+        let got: Vec<_> = all_magnets(&items)
+            .into_iter()
+            .map(|m| m.name.unwrap())
+            .collect();
+        assert_eq!(got, ["Tears of Steel", "Sintel"]);
     }
 
     /// Prueba manual en la sesión real (lección 7): adaptador del SO de verdad.

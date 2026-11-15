@@ -76,10 +76,10 @@ mod f2 {
     #[test]
     fn fr_02_historial_se_detiene_en_el_primer_no_magnet() {
         // [m3, m2, texto, m1] → m3 y m2.
-        let items = [TOS, BBB, "texto cualquiera", SINTEL].map(String::from);
+        let items = [TOS, BBB, "texto cualquiera", SINTEL].map(clipboard::HistoryItem::from);
         let got: Vec<String> = clipboard::magnets_from_history(&items)
             .into_iter()
-            .map(|m| m.display_name.unwrap())
+            .map(|(m, _)| m.display_name.unwrap())
             .collect();
         assert_eq!(got, ["Tears of Steel", "Big Buck Bunny"]);
     }
@@ -160,10 +160,10 @@ mod f2 {
         lib.save().unwrap();
         let mut lib = Library::load(dir.join("library.json")).unwrap();
         copy(&mut lib, SINTEL);
-        let now: Vec<&str> = lib
+        let now: Vec<String> = lib
             .list(Group::PastedNow)
-            .iter()
-            .map(|e| e.name.as_str())
+            .into_iter()
+            .map(|r| r.entry.name)
             .collect();
         assert_eq!(now, ["Sintel"]);
         assert_eq!(lib.list(Group::Previous).len(), 1);
@@ -274,7 +274,7 @@ mod f2 {
                 ..Default::default()
             },
         ];
-        let order: Vec<&str> = ranking::default_order(&inputs, &cfg)
+        let order: Vec<&str> = ranking::default_order(&inputs, &cfg, 1.0)
             .into_iter()
             .map(|i| inputs[i].name.as_str())
             .collect();
@@ -290,12 +290,12 @@ mod f2 {
                 "sin datos"
             ]
         );
-        let light = |i: &RankInput| ranking::score(i, &cfg).light;
+        let light = |i: &RankInput| ranking::score(i, &cfg, 1.0).light;
         assert_eq!(light(&measured("v", 1.5)), Light::Green);
         assert_eq!(light(&measured("a", 1.0)), Light::Yellow);
         assert_eq!(light(&measured("r", 0.99)), Light::Red);
         assert_eq!(light(&unmeasured("x", 3, 3)), Light::Unknown);
-        let margin = ranking::score(&measured("v", 2.0), &cfg).margin.unwrap();
+        let margin = ranking::score(&measured("v", 2.0), &cfg, 1.0).margin.unwrap();
         assert!((margin - 2.0).abs() < 1e-9, "margen = velocidad ÷ necesita");
     }
 
@@ -316,6 +316,7 @@ mod f2 {
                 ..Default::default()
             },
             &cfg,
+            1.0,
         );
         assert_eq!(s.needed_bps, Some(750_000.0));
         assert!(s.duration.unwrap().estimated);
@@ -529,7 +530,9 @@ mod fr06d {
             "los de la lista quedan"
         );
 
-        core.remove(sintel.info_hash).await.unwrap();
+        core.remove(tstream_core::video_key::VideoKey::whole(sintel.info_hash))
+            .await
+            .unwrap();
         assert!(!d_sintel.exists(), "quitar el magnet borra su análisis");
         assert!(d_bbb.exists());
 

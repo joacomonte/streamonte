@@ -4,11 +4,12 @@
 //! Transporte: JSON-RPC 2.0 por stdin/stdout, una línea JSON por mensaje.
 //! Contrato completo: `docs/engine-protocol.md`. stderr del sidecar → log `diag::engine`.
 //! El proceso es hijo directo (sin shell, lección 6/8) con `kill_on_drop(true)`; si la app
-//! muere, el sidecar ve stdin cerrado, borra sus carpetas y sale (NFR-11).
+//! muere, el sidecar ve stdin cerrado, detiene sus torrents SIN borrar datos y sale (NFR-11,
+//! FR-06d, igual que rqbit). Borrar es `remove(delete_data)` o `cleanup`.
 
 use std::collections::HashMap;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -19,11 +20,13 @@ use tokio::process::{Child, ChildStdin, Command};
 use tokio::sync::{broadcast, oneshot, Mutex};
 
 use super::*;
-use crate::config::{EngineConfig, EngineKind};
+use crate::config::EngineConfig;
 use crate::logger::DIAG_ENGINE;
 use crate::CoreError;
 
 const READY_TIMEOUT: Duration = Duration::from_secs(15);
+/// Versión de `docs/engine-protocol.md` que habla este núcleo (distinta = solo aviso en el log).
+const PROTOCOL_VERSION: &str = "0.3.0";
 
 type Pending = Arc<std::sync::Mutex<HashMap<u64, oneshot::Sender<Result<Value>>>>>;
 
@@ -31,6 +34,8 @@ pub struct WebtorrentSidecar {
     events: broadcast::Sender<EngineEvent>,
     stdin: Mutex<ChildStdin>,
     pending: Pending,
+    /// stdout del sidecar terminó: nadie va a responder, `call` falla enseguida.
+    closed: Arc<AtomicBool>,
     next_id: AtomicU64,
     child: Mutex<Child>,
     pid: Option<u32>,
@@ -69,6 +74,7 @@ impl WebtorrentSidecar {
 
         let (events, _) = broadcast::channel(256);
         let pending: Pending = Arc::default();
+        let closed = Arc::new(AtomicBool::new(false));
         let (ready_tx, ready_rx) = oneshot::channel::<u16>();
 
         // stderr → log de diagnóstico del motor.
@@ -83,18 +89,25 @@ impl WebtorrentSidecar {
         {
             let events = events.clone();
             let pending = pending.clone();
+            let closed = closed.clone();
             let mut ready_tx = Some(ready_tx);
             tokio::spawn(async move {
-                let mut lines = BufReader::new(stdout).lines();
-                while let Ok(Some(line)) = lines.next_line().await {
-                    match serde_json::from_str::<Incoming>(&line) {
+                let mut reader = BufReader::new(stdout);
+                let mut buf = Vec::new();
+                // Lectura con pérdida: un byte UTF-8 inválido no debe cortar el canal.
+                while matches!(reader.read_until(b'\n', &mut buf).await, Ok(n) if n > 0) {
+                    let line = String::from_utf8_lossy(&buf);
+                    let line = line.trim_end();
+                    match serde_json::from_str::<Incoming>(line) {
                         Ok(msg) => dispatch(msg, &pending, &events, &mut ready_tx),
                         Err(e) => {
                             tracing::warn!(target: DIAG_ENGINE, "línea inválida del sidecar ({e}): {line}")
                         }
                     }
+                    buf.clear();
                 }
-                // EOF: el proceso terminó. Fallar lo pendiente y avisar.
+                // EOF o error: el proceso terminó. Fallar lo pendiente y avisar.
+                closed.store(true, Ordering::SeqCst);
                 for (_, tx) in pending.lock().expect("pending").drain() {
                     let _ = tx.send(Err(CoreError::Engine("el motor se cerró".into())));
                 }
@@ -115,6 +128,7 @@ impl WebtorrentSidecar {
             events,
             stdin: Mutex::new(stdin),
             pending,
+            closed,
             next_id: AtomicU64::new(1),
             child: Mutex::new(child),
             pid,
@@ -123,17 +137,22 @@ impl WebtorrentSidecar {
 
     async fn call(&self, method: &str, params: Value) -> Result<Value> {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
-        let (tx, rx) = oneshot::channel();
-        self.pending.lock().expect("pending").insert(id, tx);
         let mut line = serde_json::to_vec(
             &json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params }),
         )
-        .expect("json");
+        .map_err(|e| CoreError::Engine(format!("{method}: no se pudo serializar: {e}")))?;
         line.push(b'\n');
+        let (tx, rx) = oneshot::channel();
+        self.pending.lock().expect("pending").insert(id, tx);
+        // Si el llamador abandona (timeout) o falla, la entrada no queda colgada.
+        let _guard = PendingGuard(&self.pending, id);
+        // Después de insertar: si el lector ya cerró, su drain no vio esta entrada.
+        if self.closed.load(Ordering::SeqCst) {
+            return Err(CoreError::Engine("el motor se cerró".into()));
+        }
         {
             let mut stdin = self.stdin.lock().await;
             if let Err(e) = stdin.write_all(&line).await {
-                self.pending.lock().expect("pending").remove(&id);
                 return Err(CoreError::Engine(format!(
                     "no se pudo escribir al motor: {e}"
                 )));
@@ -155,6 +174,16 @@ impl WebtorrentSidecar {
     }
 }
 
+struct PendingGuard<'a>(&'a Pending, u64);
+
+impl Drop for PendingGuard<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut pending) = self.0.lock() {
+            pending.remove(&self.1);
+        }
+    }
+}
+
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
@@ -172,6 +201,13 @@ struct Incoming {
 #[derive(Deserialize)]
 struct RpcError {
     message: String,
+    data: Option<RpcErrorData>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RpcErrorData {
+    user_message: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -261,7 +297,9 @@ fn dispatch(
     if let Some(id) = msg.id {
         if let Some(tx) = pending.lock().expect("pending").remove(&id) {
             let result = match msg.error {
-                Some(e) => Err(CoreError::Engine(e.message)),
+                Some(e) => Err(CoreError::Engine(
+                    e.data.and_then(|d| d.user_message).unwrap_or(e.message),
+                )),
                 None => Ok(msg.result.unwrap_or(Value::Null)),
             };
             let _ = tx.send(result);
@@ -274,21 +312,15 @@ fn dispatch(
     let event = match method.as_str() {
         "ready" => {
             let port = p.get("httpPort").and_then(Value::as_u64).unwrap_or(0) as u16;
+            let version = p.get("version").and_then(Value::as_str).unwrap_or("?");
+            if version != PROTOCOL_VERSION {
+                tracing::warn!(target: DIAG_ENGINE, "sidecar con protocolo {version}, el núcleo espera {PROTOCOL_VERSION}");
+            }
             if let Some(tx) = ready_tx.take() {
                 let _ = tx.send(port);
             }
             return;
         }
-        "metadata" => match (
-            handle,
-            serde_json::from_value::<WireMetadata>(p.clone()).map(WireMetadata::into_metadata),
-        ) {
-            (Some(handle), Ok(Ok(metadata))) => EngineEvent::Metadata {
-                handle,
-                metadata: Arc::new(metadata),
-            },
-            _ => return,
-        },
         "rangeReady" => {
             let (Some(handle), Some(file_index), Some(range)) = (
                 handle,
@@ -330,10 +362,6 @@ fn dispatch(
 
 #[async_trait]
 impl TorrentEngine for WebtorrentSidecar {
-    fn kind(&self) -> EngineKind {
-        EngineKind::Webtorrent
-    }
-
     fn pid(&self) -> Option<u32> {
         self.pid
     }
@@ -350,8 +378,6 @@ impl TorrentEngine for WebtorrentSidecar {
                     "source": source,
                     "trackers": opts.trackers,
                     "downloadDir": opts.download_dir,
-                    "onlyFile": opts.only_file,
-                    "startDeselected": opts.start_deselected,
                 }),
             )
             .await?;
@@ -370,15 +396,10 @@ impl TorrentEngine for WebtorrentSidecar {
         handle: TorrentHandle,
         file_index: usize,
         ranges: &[ByteRange],
-        mode: PriorityMode,
     ) -> Result<()> {
-        let mode = match mode {
-            PriorityMode::Exclusive => "exclusive",
-            PriorityMode::High => "high",
-        };
         self.call(
             "prioritizeRanges",
-            json!({ "handle": handle.0, "fileIndex": file_index, "ranges": ranges, "mode": mode }),
+            json!({ "handle": handle.0, "fileIndex": file_index, "ranges": ranges }),
         )
         .await
         .map(drop)

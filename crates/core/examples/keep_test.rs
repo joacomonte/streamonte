@@ -69,7 +69,7 @@ async fn main() {
     let b = Magnet::parse(BBB).unwrap();
     let (ha, hb) = (a.info_hash.to_hex(), b.info_hash.to_hex());
     let req = |m: &Magnet| StartRequest {
-        info_hash: m.info_hash,
+        key: tstream_core::video_key::VideoKey::whole(m.info_hash),
         magnet: Some(m.clone()),
         player: None,
         file_index: None,

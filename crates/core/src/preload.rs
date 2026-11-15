@@ -15,7 +15,9 @@ use serde::Serialize;
 use tokio_util::sync::CancellationToken;
 
 use crate::config::PreloadConfig;
-use crate::engine::{ByteRange, EngineEvent, FileInfo, PriorityMode, TorrentEngine, TorrentHandle};
+use crate::engine::{
+    ByteRange, EngineEvent, FileInfo, RangeProgress, TorrentEngine, TorrentHandle,
+};
 use crate::logger::DIAG_PRELOAD;
 use crate::{CoreError, Result};
 
@@ -55,17 +57,33 @@ pub enum PreloadOutcome {
     },
 }
 
+/// Extensión → (contenedor, MIME). Única tabla: la leen [`container_of`] y el servidor HTTP
+/// local de rqbit (`Content-Type`, vía [`mime_of_extension`]).
+const CONTAINERS: &[(&str, Container, &str)] = &[
+    ("mp4", Container::Mp4Like, "video/mp4"),
+    ("m4v", Container::Mp4Like, "video/mp4"),
+    ("mov", Container::Mp4Like, "video/quicktime"),
+    ("mkv", Container::Matroska, "video/x-matroska"),
+    ("webm", Container::Matroska, "video/webm"),
+];
+
+fn container_entry(ext: &str) -> Option<&'static (&'static str, Container, &'static str)> {
+    let ext = ext.to_ascii_lowercase();
+    CONTAINERS.iter().find(|(e, _, _)| *e == ext)
+}
+
 pub fn container_of(file_name: &str) -> Container {
-    let ext = std::path::Path::new(file_name)
+    std::path::Path::new(file_name)
         .extension()
         .and_then(|e| e.to_str())
-        .map(str::to_ascii_lowercase)
-        .unwrap_or_default();
-    match ext.as_str() {
-        "mp4" | "m4v" | "mov" => Container::Mp4Like,
-        "mkv" | "webm" => Container::Matroska,
-        _ => Container::Other,
-    }
+        .and_then(container_entry)
+        .map_or(Container::Other, |(_, c, _)| *c)
+}
+
+/// MIME de una extensión (sin el punto, cualquier mayúscula); `application/octet-stream` si no
+/// es un contenedor conocido.
+pub(crate) fn mime_of_extension(ext: &str) -> &'static str {
+    container_entry(ext).map_or("application/octet-stream", |(_, _, mime)| mime)
 }
 
 /// Rangos a precargar. Si el archivo es más chico que inicio+final, un único rango.
@@ -118,12 +136,7 @@ pub async fn run(
     // Suscribirse ANTES de pedir los rangos para no perder un `RangeReady` rápido.
     let mut events = engine.subscribe();
     engine
-        .prioritize_ranges(
-            handle,
-            plan.file_index,
-            &plan.ranges,
-            PriorityMode::Exclusive,
-        )
+        .prioritize_ranges(handle, plan.file_index, &plan.ranges)
         .await?;
 
     let started = Instant::now();
@@ -171,6 +184,8 @@ pub async fn run(
                     if total > 0 {
                         fraction = done as f32 / total as f32;
                     }
+                    // Si el broadcast se atrasó (Lagged) se pierde el `RangeReady`: las stats lo cubren.
+                    drop_completed(&mut pending, &stats.ranges);
                     // Lección 9: este log fue el que encontró las causas 1–3 en v1.
                     if ticks % 2 == 0 {
                         for r in &stats.ranges {
@@ -202,6 +217,15 @@ pub async fn run(
     tracing::info!(?outcome, "precarga terminada");
     engine.select_file(handle, plan.file_index).await?;
     Ok(outcome)
+}
+
+/// Saca de `pending` los rangos que las stats ya dan completos.
+fn drop_completed(pending: &mut Vec<ByteRange>, stats: &[RangeProgress]) {
+    pending.retain(|p| {
+        !stats
+            .iter()
+            .any(|r| r.range == *p && r.pieces_total > 0 && r.pieces_done >= r.pieces_total)
+    });
 }
 
 #[cfg(test)]
@@ -238,6 +262,42 @@ mod tests {
                 }
             ]
         );
+    }
+
+    #[test]
+    fn stats_completan_rangos_sin_range_ready() {
+        let a = ByteRange { start: 0, end: 10 };
+        let b = ByteRange { start: 90, end: 100 };
+        let progress = |range, pieces_done, pieces_total| RangeProgress {
+            range,
+            pieces_done,
+            pieces_total,
+            peers_with_missing: 0,
+        };
+        let mut pending = vec![a, b];
+        drop_completed(&mut pending, &[progress(a, 3, 3), progress(b, 2, 3)]);
+        assert_eq!(pending, vec![b]);
+        // Sin piezas conocidas no se da por completo.
+        drop_completed(&mut pending, &[progress(b, 0, 0)]);
+        assert_eq!(pending, vec![b]);
+    }
+
+    /// Salidas fijadas de la tabla única (antes había dos listas: acá y en `engine/rqbit/http.rs`).
+    #[test]
+    fn contenedor_y_mime_por_extension() {
+        assert_eq!(container_of("a/Peli.MP4"), Container::Mp4Like);
+        assert_eq!(container_of("x.m4v"), Container::Mp4Like);
+        assert_eq!(container_of("x.mov"), Container::Mp4Like);
+        assert_eq!(container_of("x.mkv"), Container::Matroska);
+        assert_eq!(container_of("x.webm"), Container::Matroska);
+        assert_eq!(container_of("x.avi"), Container::Other);
+        assert_eq!(container_of("mkv"), Container::Other, "sin extensión");
+        assert_eq!(mime_of_extension("MP4"), "video/mp4");
+        assert_eq!(mime_of_extension("m4v"), "video/mp4");
+        assert_eq!(mime_of_extension("mov"), "video/quicktime");
+        assert_eq!(mime_of_extension("mkv"), "video/x-matroska");
+        assert_eq!(mime_of_extension("webm"), "video/webm");
+        assert_eq!(mime_of_extension("avi"), "application/octet-stream");
     }
 
     #[test]

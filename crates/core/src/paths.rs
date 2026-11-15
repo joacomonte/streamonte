@@ -8,11 +8,14 @@ use crate::Result;
 /// Carpetas de la app según el SO.
 /// - Windows: `%APPDATA%\tstream\v2\{data,config}`, `%LOCALAPPDATA%\tstream\v2\cache`, `%TEMP%\tstream-v2`
 /// - macOS:   `~/Library/Application Support/app.tstream.v2`, `~/Library/Caches/app.tstream.v2`, `$TMPDIR/tstream-v2`
+///
+/// Las descargas (pausadas FR-12b, análisis FR-06d) van en la caché, no en temporales: el SO
+/// purga `$TMPDIR` / `%TEMP%` por su cuenta y se perdería lo que el usuario conserva.
 #[derive(Debug, Clone)]
 pub struct AppPaths {
     pub data_dir: PathBuf,
     pub cache_dir: PathBuf,
-    /// Descargas en curso. Siempre limpiable (spec 04, "Temporales").
+    /// Solo lo efímero (estado interno del motor). El SO puede purgarla en cualquier momento.
     pub temp_dir: PathBuf,
     pub log_dir: PathBuf,
 }
@@ -67,6 +70,10 @@ impl AppPaths {
     pub fn config_file(&self) -> PathBuf {
         self.data_dir.join("config.json")
     }
+    /// Calibración del semáforo (reproducciones reales vs. análisis): la escribe solo `playback`.
+    pub fn calibration_file(&self) -> PathBuf {
+        self.data_dir.join("calibration.json")
+    }
     pub fn subtitles_memory_file(&self) -> PathBuf {
         self.data_dir.join("subtitles-memory.json")
     }
@@ -78,16 +85,47 @@ impl AppPaths {
     pub fn torrent_cache_dir(&self) -> PathBuf {
         self.cache_dir.join("torrents")
     }
+    /// `.torrent` en caché de `hash` (FR-13).
+    pub fn torrent_cache_file(&self, hash: &crate::magnet::InfoHash) -> PathBuf {
+        self.torrent_cache_dir()
+            .join(format!("{}.torrent", hash.to_hex()))
+    }
     pub fn subtitle_cache_dir(&self) -> PathBuf {
         self.cache_dir.join("subtitles")
     }
-    /// Perfil de mpv propio de la app (`--config-dir`), no pisa la config personal (FR-34).
-    pub fn mpv_profile_dir(&self) -> PathBuf {
-        self.data_dir.join("mpv")
-    }
     /// Una subcarpeta por reproducción/medición: `downloads/<hash>-<id>` (FR-12, FR-19).
     pub fn downloads_dir(&self) -> PathBuf {
-        self.temp_dir.join("downloads")
+        self.cache_dir.join("downloads")
+    }
+    /// Carpeta efímera del motor rqbit (carpeta por defecto de la sesión y su estado).
+    pub fn rqbit_temp_dir(&self) -> PathBuf {
+        self.temp_dir.join("rqbit")
+    }
+
+    /// Hasta 2026-11 las descargas vivían en `temp_dir/downloads`. Al abrir se mueven a
+    /// [`downloads_dir`](Self::downloads_dir) renombrando (idempotente: sin nada que mover no
+    /// hace nada). Si no se puede (otro disco) quedan donde están y se anota en el log: no se
+    /// copian GB al abrir la app.
+    pub fn migrate_downloads_from_temp(&self) {
+        let old = self.temp_dir.join("downloads");
+        let Ok(entries) = std::fs::read_dir(&old) else {
+            return;
+        };
+        let new = self.downloads_dir();
+        for entry in entries.flatten() {
+            let (from, to) = (entry.path(), new.join(entry.file_name()));
+            if to.exists() {
+                tracing::warn!(?from, ?to, "descarga vieja no movida: el destino ya existe");
+                continue;
+            }
+            match std::fs::rename(&from, &to) {
+                Ok(()) => tracing::info!(?from, ?to, "descarga movida de temporales a la caché"),
+                Err(e) => {
+                    tracing::warn!(?from, "descarga vieja no movida (queda en temporales): {e}")
+                }
+            }
+        }
+        let _ = std::fs::remove_dir(&old); // solo si quedó vacía
     }
     /// FR-06d: lo bajado al analizar un magnet (precarga + muestra de velocidad). Vive mientras
     /// el magnet esté en la lista; al dar play la reproducción adopta esta carpeta.
@@ -220,7 +258,25 @@ mod tests {
             assert!(dir.starts_with(&root));
         }
         assert!(p.library_file().starts_with(&p.data_dir));
-        assert!(p.downloads_dir().starts_with(&p.temp_dir));
+        assert!(p.downloads_dir().starts_with(&p.cache_dir));
+    }
+
+    #[test]
+    fn migra_descargas_de_temporales_a_la_cache() {
+        let root =
+            std::env::temp_dir().join(format!("tstream-test-migrate-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let p = AppPaths::under(&root);
+        p.ensure_dirs().unwrap();
+        let old = p.temp_dir.join("downloads").join("abc-analisis");
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(old.join("pieza"), b"x").unwrap();
+
+        p.migrate_downloads_from_temp();
+        assert!(p.downloads_dir().join("abc-analisis").join("pieza").is_file());
+        assert!(!p.temp_dir.join("downloads").exists());
+        p.migrate_downloads_from_temp(); // sin nada que mover: no falla
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]

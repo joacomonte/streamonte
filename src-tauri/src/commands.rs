@@ -7,14 +7,18 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 use tstream_core::analyzer::AnalyzeScope;
 use tstream_core::app::{
-    AppCore, ClipboardPreview, ClipboardReadReport, LibraryView, SubtitleKeyStatus, TempUsage,
+    AppCore, ApiKeyStatus, ClipboardPreview, ClipboardReadReport, LibraryView, SubtitleFound, TempUsage,
 };
 use tstream_core::catalog::cinemeta::{BrowseCursor, BrowsePage, BrowseSort, Meta, SearchResults};
 use tstream_core::catalog::{AddonView, MediaKind};
 use tstream_core::cleanup::CleanupReport;
-use tstream_core::config::{Config, PlayerKind};
+use tstream_core::config::{Config, PlayerKind, SubtitleLanguage};
+use tstream_core::library::LibraryRowView;
 use tstream_core::magnet::InfoHash;
+use tstream_core::analyzer::swarm::SwarmCount;
+use tstream_core::trackers::ScrapeResult;
 use tstream_core::playback::{OnAppClose, PlaybackAction, PlaybackId, PlaybackRow, StartRequest};
+use tstream_core::video_key::VideoKey;
 use tstream_core::CoreError;
 
 type Core<'a> = State<'a, Arc<AppCore>>;
@@ -48,9 +52,10 @@ pub async fn library_read_clipboard(core: Core<'_>) -> CmdResult<ClipboardReadRe
 pub async fn library_add_text(core: Core<'_>, text: String) -> CmdResult<usize> {
     Ok(core.add_from_text(&text).await?)
 }
+/// `key`: la fila (un video; ver `VideoKey`), no el torrent.
 #[tauri::command]
-pub async fn library_remove(core: Core<'_>, hash: InfoHash) -> CmdResult<()> {
-    Ok(core.remove(hash).await?)
+pub async fn library_remove(core: Core<'_>, key: VideoKey) -> CmdResult<()> {
+    Ok(core.remove(key).await?)
 }
 #[tauri::command]
 pub async fn library_clear(core: Core<'_>) -> CmdResult<()> {
@@ -128,14 +133,14 @@ pub async fn analyzer_finish(core: Core<'_>) -> CmdResult<()> {
 #[tauri::command]
 pub async fn play(
     core: Core<'_>,
-    hash: InfoHash,
+    key: VideoKey,
     player: Option<PlayerKind>,
     file_index: Option<usize>,
     audio: Option<tstream_core::audio::AudioPick>,
 ) -> CmdResult<PlaybackId> {
     Ok(core
         .play(StartRequest {
-            info_hash: hash,
+            key,
             magnet: None,
             player,
             file_index,
@@ -180,17 +185,33 @@ pub async fn on_close(app: tauri::AppHandle, core: Core<'_>, choice: OnAppClose)
 }
 
 // ----- Limpieza -----
+// Los comandos `fn` (sin async) corren en el hilo principal de Tauri y congelan la ventana:
+// lo que toca disco, el almacén seguro o lanza procesos va a un hilo bloqueante.
+async fn blocking<T: Send + 'static>(
+    f: impl FnOnce() -> CmdResult<T> + Send + 'static,
+) -> CmdResult<T> {
+    tauri::async_runtime::spawn_blocking(f)
+        .await
+        .map_err(|e| UiError {
+            message: "Error interno.".into(),
+            detail: e.to_string(),
+        })?
+}
+
 #[tauri::command]
-pub fn temp_usage(core: Core<'_>) -> CmdResult<TempUsage> {
-    Ok(core.temp_usage()?)
+pub async fn temp_usage(core: Core<'_>) -> CmdResult<TempUsage> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.temp_usage()?)).await
 }
 #[tauri::command]
-pub fn clean_temp(core: Core<'_>) -> CmdResult<CleanupReport> {
-    Ok(core.clean_temp()?)
+pub async fn clean_temp(core: Core<'_>) -> CmdResult<CleanupReport> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.clean_temp()?)).await
 }
 #[tauri::command]
-pub fn open_downloads_folder(core: Core<'_>) -> CmdResult<()> {
-    Ok(core.open_downloads_folder()?)
+pub async fn open_downloads_folder(core: Core<'_>) -> CmdResult<()> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.open_downloads_folder()?)).await
 }
 
 // ----- Configuración -----
@@ -198,42 +219,64 @@ pub fn open_downloads_folder(core: Core<'_>) -> CmdResult<()> {
 pub async fn config_get(core: Core<'_>) -> CmdResult<Config> {
     Ok(core.config().await)
 }
+/// Ajustes → Red. Un comando por ajuste: la UI nunca reescribe la config entera (no pisa lo
+/// que cambió otro mientras tanto).
 #[tauri::command]
-pub async fn config_set(core: Core<'_>, config: Config) -> CmdResult<()> {
-    Ok(core.set_config(config).await?)
+pub async fn config_set_network(core: Core<'_>, incoming: bool, upnp: bool) -> CmdResult<()> {
+    Ok(core.set_network(incoming, upnp).await?)
 }
 
 // ----- Subtítulos -----
 /// `provider`: "opensubtitles" | "wyzie". `key` vacía = borrarla. Va al almacén seguro (NFR-16).
+/// API keys de servicios (subtítulos y pósters de TMDB): al almacén seguro, nunca de vuelta.
 #[tauri::command]
-pub fn subtitles_set_api_key(core: Core<'_>, provider: String, key: String) -> CmdResult<()> {
-    Ok(core.subtitles_set_api_key(&provider, &key)?)
+pub async fn api_key_set(core: Core<'_>, service: String, key: String) -> CmdResult<()> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.set_api_key(&service, &key)?)).await
 }
 #[tauri::command]
-pub fn subtitles_api_keys(core: Core<'_>) -> Vec<SubtitleKeyStatus> {
-    core.subtitles_api_keys()
+pub async fn api_keys(core: Core<'_>) -> CmdResult<Vec<ApiKeyStatus>> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.api_keys())).await
 }
 
 /// Abre en el navegador del sistema la página para pedir la key de un proveedor.
-/// Solo estas URLs fijas: la UI no puede abrir direcciones arbitrarias (NFR-16).
 #[tauri::command]
-pub fn open_key_page(provider: String) -> CmdResult<()> {
-    let url = match provider.as_str() {
-        "wyzie" => "https://sub.wyzie.io/redeem",
-        "opensubtitles" => "https://www.opensubtitles.com/consumers",
-        _ => return Err(CoreError::NotFound(format!("proveedor {provider}")).into()),
-    };
-    #[cfg(windows)]
-    let program = "explorer";
-    #[cfg(target_os = "macos")]
-    let program = "open";
-    #[cfg(all(not(windows), not(target_os = "macos")))]
-    let program = "xdg-open";
-    std::process::Command::new(program)
-        .arg(url)
-        .spawn()
-        .map(drop)
-        .map_err(|_| UiError::from(CoreError::Unsupported("abrir el navegador")))
+pub async fn open_key_page(core: Core<'_>, service: String) -> CmdResult<()> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.open_key_page(&service)?)).await
+}
+/// Análisis rápido de opciones del catálogo (trackers, segundos).
+#[tauri::command]
+pub async fn catalog_scrape(
+    core: Core<'_>,
+    hashes: Vec<InfoHash>,
+) -> CmdResult<std::collections::HashMap<InfoHash, ScrapeResult>> {
+    Ok(core.catalog_scrape(&hashes).await)
+}
+/// "Contar seeders reales" de opciones del catálogo (se conecta al enjambre; ~50 s por tanda).
+#[tauri::command]
+pub async fn catalog_swarm(
+    core: Core<'_>,
+    hashes: Vec<InfoHash>,
+    deep: bool,
+) -> CmdResult<std::collections::HashMap<InfoHash, SwarmCount>> {
+    Ok(core.catalog_swarm(&hashes, deep).await)
+}
+/// "Bajar subtítulos" de una opción del catálogo (hasta 5; el idioma elegido primero).
+#[tauri::command]
+pub async fn catalog_subtitles(
+    core: Core<'_>,
+    video_id: String,
+    hash: InfoHash,
+    language: SubtitleLanguage,
+) -> CmdResult<Vec<SubtitleFound>> {
+    Ok(core.catalog_subtitles(&video_id, &hash, language).await?)
+}
+/// Póster de TMDB para un título sin imagen en Cinemeta (`null` sin key o si no lo tiene).
+#[tauri::command]
+pub async fn catalog_poster(core: Core<'_>, imdb_id: String) -> CmdResult<Option<String>> {
+    Ok(core.catalog_poster(&imdb_id).await)
 }
 
 // ----- Catálogo y addons (F4b, spec 09) -----
@@ -259,8 +302,17 @@ pub async fn catalog_analyze(
     kind: MediaKind,
     video_id: String,
     hashes: Vec<InfoHash>,
-) -> CmdResult<usize> {
+) -> CmdResult<Vec<LibraryRowView>> {
     Ok(core.catalog_analyze(kind, &video_id, hashes).await?)
+}
+#[tauri::command]
+pub async fn catalog_add(
+    core: Core<'_>,
+    kind: MediaKind,
+    video_id: String,
+    hashes: Vec<InfoHash>,
+) -> CmdResult<Vec<LibraryRowView>> {
+    Ok(core.catalog_add(kind, &video_id, &hashes).await?)
 }
 #[tauri::command]
 pub async fn catalog_addons(core: Core<'_>) -> CmdResult<Vec<AddonView>> {
@@ -283,14 +335,21 @@ pub async fn catalog_reset_addons(core: Core<'_>) -> CmdResult<Vec<AddonView>> {
     Ok(core.catalog_reset_addons().await?)
 }
 #[tauri::command]
+pub async fn catalog_set_exclude_japanese(core: Core<'_>, exclude: bool) -> CmdResult<()> {
+    Ok(core.catalog_set_exclude_japanese(exclude).await?)
+}
+#[tauri::command]
 pub async fn catalog_browse(
     core: Core<'_>,
     kind: MediaKind,
     sort: BrowseSort,
     year: Option<u16>,
+    genre: Option<String>,
     skip: u32,
 ) -> CmdResult<BrowsePage> {
-    Ok(core.catalog_browse(kind, sort, year, skip).await?)
+    Ok(core
+        .catalog_browse(kind, sort, year, genre.as_deref(), skip)
+        .await?)
 }
 #[tauri::command]
 pub async fn catalog_browse_released(
@@ -298,9 +357,10 @@ pub async fn catalog_browse_released(
     kind: MediaKind,
     from: String,
     to: Option<String>,
+    genre: Option<String>,
     cursor: Option<BrowseCursor>,
 ) -> CmdResult<BrowsePage> {
     Ok(core
-        .catalog_browse_released(kind, &from, to.as_deref(), cursor)
+        .catalog_browse_released(kind, &from, to.as_deref(), genre.as_deref(), cursor)
         .await?)
 }

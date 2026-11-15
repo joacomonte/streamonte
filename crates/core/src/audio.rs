@@ -4,10 +4,12 @@
 //! - **Pistas reales**: la fase rápida del análisis ya abre el video con mpv sin ventana para leer
 //!   la duración; de paso lee `track-list` (idioma + título de cada pista de audio).
 //! - **Nombre del torrent** ("Dual Latino", "ENG", "Castellano"…): sirve antes de analizar, pero
-//!   es una pista sin confirmar.
+//!   es una pista sin confirmar. [`from_release`] es la única regla: la usan la biblioteca y el
+//!   catálogo (que además le pasa las banderas emoji de los addons).
 //!
 //! Español se separa en Latino / Castellano cuando la etiqueta o el título lo dicen
-//! (`es-419`, "Latino", "Castellano"…); si no, queda "Español" a secas.
+//! (`es-419`, "Latino", "Castellano"…); si no, queda "Español" a secas. La variante por texto
+//! libre ([`spanish_variant`]) la comparten las pistas de audio y los subtítulos.
 
 use serde::{Deserialize, Serialize};
 
@@ -69,6 +71,60 @@ impl AudioPick {
             other => other,
         };
         vec![format!("--alang={alang}")]
+    }
+}
+
+/// Variante del español (Q-03: latino primero, después España, después sin variante).
+/// Para otros idiomas siempre `Unknown`. Agregado en F6 (aditivo).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SpanishVariant {
+    Latino,
+    Spain,
+    Unknown,
+}
+
+/// Variante del español por texto libre: título de una pista de audio, descripción o nombre de
+/// un subtítulo, nombre del idioma ("Español (Latinoamérica)", `es-419`, "Castellano"…).
+pub fn spanish_variant(text: &str) -> SpanishVariant {
+    let lower = text.to_lowercase();
+    let words: Vec<&str> = lower
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .collect();
+    let has_word = |ws: &[&str]| words.iter().any(|w| ws.contains(w));
+    let latino = has_word(&["lat", "latam", "419"])
+        || contains_any(
+            &lower,
+            &[
+                "latino",
+                "latin america",
+                "latinoam",
+                "méxico",
+                "mexic",
+                "argentin",
+                "es-mx",
+            ],
+        );
+    let spain = contains_any(
+        &lower,
+        &[
+            "castellano",
+            "españa",
+            "espana",
+            "spain",
+            "castilian",
+            "european",
+            "es-es",
+            "(eu)",
+        ],
+    );
+    if latino {
+        SpanishVariant::Latino
+    } else if spain {
+        SpanishVariant::Spain
+    } else {
+        SpanishVariant::Unknown
     }
 }
 
@@ -149,45 +205,18 @@ fn classify_track(t: &AudioTrack) -> (Kind, String) {
         .to_lowercase()
         .replace('_', "-");
     let title = t.title.as_deref().unwrap_or("").to_lowercase();
-    let latino_title = contains_any(
-        &title,
-        &[
-            "latino",
-            "latam",
-            "latin america",
-            "latinoam",
-            "méxico",
-            "mexico",
-            "es-419",
-            "(lat)",
-            "[lat]",
-            " lat ",
-        ],
-    ) || title == "lat"
-        || title.starts_with("lat ")
-        || title.ends_with(" lat");
-    let cast_title = contains_any(
-        &title,
-        &[
-            "castellano",
-            "españa",
-            "espana",
-            "spain",
-            "castilian",
-            "european",
-        ],
-    );
+    let variant = spanish_variant(&title);
     let spanish_lang = lang == "spa" || lang == "es" || lang == "esp" || lang.starts_with("es-");
-    let spanish_title =
-        latino_title || cast_title || contains_any(&title, &["español", "espanol", "spanish"]);
+    let spanish_title = variant != SpanishVariant::Unknown
+        || contains_any(&title, &["español", "espanol", "spanish"]);
 
     if spanish_lang || spanish_title {
         let region = lang.strip_prefix("es-").unwrap_or("");
         let latino_region = !region.is_empty() && region != "es";
-        if latino_title || latino_region {
+        if variant == SpanishVariant::Latino || latino_region {
             return (Kind::Latino, String::new());
         }
-        if cast_title || region == "es" {
+        if variant == SpanishVariant::Spain || region == "es" {
             return (Kind::Castellano, String::new());
         }
         return (Kind::Spanish, String::new());
@@ -266,9 +295,12 @@ pub fn from_tracks(tracks: &[AudioTrack]) -> Vec<AudioLang> {
         .collect()
 }
 
-/// Idiomas adivinados por el nombre del torrent / archivo (sin confirmar).
-pub fn from_name(name: &str) -> Vec<AudioLang> {
-    let lower = name.to_lowercase();
+/// Idiomas de audio y de subtítulos que declara el nombre de un release (spec 10 §C.2), con los
+/// códigos de [`AudioLang::code`] (`lat`, `en`, `cast`, `es`, `multi`, u otros como `it`).
+/// Precedencia: palabra explícita > bandera emoji. `spain_flag_generic`: Torrentio/TorrentsDB
+/// usan 🇪🇸 para "spanish" genérico; Peerflix/Comet para castellano (10 §C.2).
+pub fn from_release(text: &str, spain_flag_generic: bool) -> (Vec<String>, Vec<String>) {
+    let lower = text.to_lowercase();
     let tokens: Vec<&str> = lower
         .split(|c: char| !c.is_alphanumeric())
         .filter(|t| !t.is_empty())
@@ -279,9 +311,8 @@ pub fn from_name(name: &str) -> Vec<AudioLang> {
     if has(&["latino", "lat", "latam"]) || lower.contains("es-la") || lower.contains("es-419") {
         kinds.push(Kind::Latino);
     }
-    if has(&["eng", "english", "ingles", "inglés"])
-        && !has(&["subs", "sub", "subtitulado", "vose", "vos"])
-    {
+    // Con "subs" también: "ENG SubS Spa" = audio en inglés con subtítulos en español.
+    if has(&["eng", "english", "ingles", "inglés"]) {
         kinds.push(Kind::English);
     }
     if has(&["castellano", "spain"]) {
@@ -294,23 +325,162 @@ pub fn from_name(name: &str) -> Vec<AudioLang> {
     {
         kinds.push(Kind::Spanish);
     }
-    if has(&["multi", "multiaudio"]) {
+    if has(&["multi", "multiaudio", "dual", "dubbed"]) {
         kinds.push(Kind::Multi);
     }
     kinds.sort();
     kinds.dedup();
-    kinds
+    let mut audio: Vec<String> = kinds
         .into_iter()
-        .map(|k| make(k, "", false, String::new()))
-        .collect()
+        .map(|k| make(k, "", false, String::new()).code)
+        .collect();
+    for cc in flags(text) {
+        let code = match cc.as_str() {
+            "mx" | "ar" | "co" | "cl" | "pe" | "ve" | "uy" => "lat",
+            "es" if spain_flag_generic => "es",
+            "es" => "cast",
+            "gb" | "us" => "en",
+            "jp" => "ja",
+            other => other,
+        };
+        if !audio.iter().any(|c| c == code) {
+            audio.push(code.to_string());
+        }
+    }
+    collapse_spanish(&mut audio);
+    // "Audio Español (+Eng +Subs)": el español es del audio aunque diga "subs".
+    let explicit_spanish_audio = [
+        "audio español",
+        "audio espanol",
+        "audio spanish",
+        "audio latino",
+        "audio castellano",
+    ]
+    .iter()
+    .any(|p| lower.contains(p));
+    let mut subs = Vec::new();
+    let subtitled = has(&[
+        "sub",
+        "subs",
+        "subt",
+        "subtitulado",
+        "subtitulos",
+        "subtítulos",
+        "vose",
+        "vos",
+        "subbed",
+    ]);
+    // "SubS Spa" / "Español+English subt.": el español genérico es de subtítulos, no de audio.
+    if subtitled
+        && !explicit_spanish_audio
+        && (audio.iter().any(|c| c == "es")
+            || has(&["spa", "esp", "español", "espanol", "spanish"]))
+    {
+        audio.retain(|c| c != "es");
+        subs.push("es".to_string());
+    }
+    (audio, subs)
 }
 
-/// Lo que se muestra: las pistas reales si ya se leyeron; si no, lo que dice el nombre.
+/// "Español" genérico sobra si ya se sabe la variante (latino o castellano).
+pub fn collapse_spanish(audio: &mut Vec<String>) {
+    if audio.iter().any(|c| c == "lat" || c == "cast") {
+        audio.retain(|c| c != "es");
+    }
+}
+
+/// Códigos de país de las banderas emoji (pares de indicadores regionales), en minúsculas.
+fn flags(text: &str) -> Vec<String> {
+    let ri = |c: char| (0x1F1E6..=0x1F1FF).contains(&(c as u32));
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i + 1 < chars.len() {
+        if ri(chars[i]) && ri(chars[i + 1]) {
+            let letter = |c: char| char::from(b'a' + (c as u32 - 0x1F1E6) as u8);
+            out.push(format!("{}{}", letter(chars[i]), letter(chars[i + 1])));
+            i += 2;
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
+/// Lo que se muestra: las pistas reales si ya se leyeron; si no, lo que dice el nombre
+/// (sin confirmar; las banderas 🇪🇸 se toman como español genérico). En orden de preferencia
+/// (Latino, Inglés, Castellano, Español, Varios, otros): la UI lo muestra tal cual.
 pub fn languages(tracks: Option<&[AudioTrack]>, name: &str) -> Vec<AudioLang> {
     match tracks {
         Some(t) if !t.is_empty() => from_tracks(t),
-        _ => from_name(name),
+        _ => {
+            let mut langs: Vec<(Kind, AudioLang)> = from_release(name, true)
+                .0
+                .iter()
+                .map(|code| {
+                    let kind = match code.as_str() {
+                        "lat" => Kind::Latino,
+                        "en" => Kind::English,
+                        "cast" => Kind::Castellano,
+                        "es" => Kind::Spanish,
+                        "multi" => Kind::Multi,
+                        _ => Kind::Other,
+                    };
+                    (kind, make(kind, code, false, String::new()))
+                })
+                .collect();
+            // Las banderas se agregan al final: "🇲🇽 ENG" tiene que dar Latino antes que Inglés.
+            langs.sort_by_key(|(kind, _)| *kind);
+            langs.into_iter().map(|(_, l)| l).collect()
+        }
     }
+}
+
+/// Una opción del selector de audio al reproducir (FR-09b), lista para mostrar.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AudioOption {
+    /// Va en [`AudioPick::code`].
+    pub code: String,
+    /// Nombre corto: "Latino", "Inglés", "Español"…
+    pub label: String,
+    /// Pista exacta (`--aid`) si se leyeron las pistas.
+    pub aid: Option<u32>,
+    pub confirmed: bool,
+}
+
+/// Qué ofrecer al reproducir, en orden (Latino e Inglés primero). "Varios audios" sin detalle →
+/// se ofrecen Latino e Inglés igual (mpv elige por idioma). Pistas sin idioma no se ofrecen.
+pub fn play_options(langs: &[AudioLang]) -> Vec<AudioOption> {
+    let mut opts: Vec<AudioOption> = langs
+        .iter()
+        .filter(|l| l.code != "?" && l.code != "multi")
+        .map(|l| AudioOption {
+            code: l.code.clone(),
+            label: if l.code == "es" { "Español".into() } else { l.label.clone() },
+            aid: l.aids.first().copied(),
+            confirmed: l.confirmed,
+        })
+        .collect();
+    if langs.iter().any(|l| l.code == "multi") {
+        for kind in [Kind::Latino, Kind::English] {
+            let l = make(kind, "", false, String::new());
+            if !opts.iter().any(|o| o.code == l.code) {
+                opts.push(AudioOption {
+                    code: l.code,
+                    label: l.label,
+                    aid: None,
+                    confirmed: false,
+                });
+            }
+        }
+    }
+    let rank = |code: &str| match code {
+        "lat" => 0,
+        "en" => 1,
+        _ => 2,
+    };
+    opts.sort_by_key(|o| rank(&o.code));
+    opts
 }
 
 #[cfg(test)]
@@ -356,17 +526,86 @@ mod tests {
 
     #[test]
     fn nombre_da_una_pista_sin_confirmar() {
-        let l = from_name("Dune.Part.Two.2024.1080p.WEB-DL.Dual.Latino-Ingles.mkv");
-        assert_eq!(codes(&l), ["lat", "en"]);
+        let l = languages(None, "Dune.Part.Two.2024.1080p.WEB-DL.Dual.Latino-Ingles.mkv");
+        // "Dual" = varios audios (antes solo el catálogo lo decía; ahora también la biblioteca).
+        assert_eq!(codes(&l), ["lat", "en", "multi"]);
         assert!(l.iter().all(|x| !x.confirmed));
         assert_eq!(
-            codes(&from_name("Oppenheimer 2023 [MULTI] 2160p")),
+            codes(&languages(None, "Oppenheimer 2023 [MULTI] 2160p")),
             ["multi"]
         );
-        assert!(from_name("The.Bear.S03E01.1080p.WEB.h264-ETHEL").is_empty());
-        assert!(from_name("Película.Castellano.ENG.subs")
-            .iter()
-            .all(|l| l.code != "en"));
+        assert!(languages(None, "The.Bear.S03E01.1080p.WEB.h264-ETHEL").is_empty());
+        // Antes la biblioteca descartaba el inglés por "subs" y el catálogo lo volvía a poner:
+        // gana el catálogo (audio en inglés con subtítulos).
+        assert_eq!(
+            codes(&languages(None, "Película.Castellano.ENG.subs")),
+            ["en", "cast"]
+        );
+    }
+
+    /// T-22 (antes en `catalog::normalize`): misma regla para el catálogo y la biblioteca.
+    #[test]
+    fn idiomas_del_release_t22() {
+        let l = |t: &str, generic| from_release(t, generic);
+        assert_eq!(l("Peli 🇲🇽", true).0, vec!["lat"]);
+        assert_eq!(l("Peli Castellano", true).0, vec!["cast"]);
+        assert_eq!(l("Peli 🇪🇸", true).0, vec!["es"]);
+        assert_eq!(l("Peli 🇪🇸", false).0, vec!["cast"]);
+        assert_eq!(l("Peli Latino Español 🇪🇸", true).0, vec!["lat"]);
+        assert_eq!(l("Peli Dual Audio", true).0, vec!["multi"]);
+        let (audio, subs) = l("Peli.1080p.ENG SubS Spa", true);
+        assert_eq!(audio, vec!["en"]);
+        assert_eq!(subs, vec!["es"]);
+        let (audio, subs) = l("Juego de Tronos S08E01 Audio Español (+Eng +Subs)", true);
+        assert!(audio.contains(&"es".to_string()) && audio.contains(&"en".to_string()));
+        assert!(subs.is_empty());
+        // Sin idioma: vacío, no se descarta.
+        assert!(l("Peli.2014.1080p.WEB", true).0.is_empty());
+    }
+
+    #[test]
+    fn colapsa_espanol_generico() {
+        let mut a = vec!["es".to_string(), "lat".to_string(), "en".to_string()];
+        collapse_spanish(&mut a);
+        assert_eq!(a, ["lat", "en"]);
+        let mut a = vec!["es".to_string(), "en".to_string()];
+        collapse_spanish(&mut a);
+        assert_eq!(a, ["es", "en"]);
+    }
+
+    /// Unión de las palabras que usaban las pistas de audio y los subtítulos (Q-03).
+    #[test]
+    fn variante_del_espanol() {
+        use SpanishVariant::*;
+        for t in [
+            "Español Latino",
+            "LAT",
+            "[lat]",
+            "es-419",
+            "Spanish (Latin America)",
+            "Español (Latinoamérica)",
+            "México",
+            "argentina",
+            "es-MX",
+            "latam",
+        ] {
+            assert_eq!(spanish_variant(t), Latino, "{t}");
+        }
+        for t in [
+            "Castellano",
+            "España",
+            "espana",
+            "Spanish (Spain)",
+            "Castilian",
+            "European Spanish",
+            "es-ES",
+            "Español (EU)",
+        ] {
+            assert_eq!(spanish_variant(t), Spain, "{t}");
+        }
+        for t in ["Español", "Spanish", "Platinum", "English"] {
+            assert_eq!(spanish_variant(t), Unknown, "{t}");
+        }
     }
 
     #[test]
@@ -389,7 +628,45 @@ mod tests {
     fn pistas_reales_mandan_sobre_el_nombre() {
         let tracks = [track(Some("eng"), None)];
         assert_eq!(codes(&languages(Some(&tracks), "Peli Dual Latino")), ["en"]);
-        assert_eq!(codes(&languages(None, "Peli Dual Latino")), ["lat"]);
+        assert_eq!(codes(&languages(None, "Peli Dual Latino")), ["lat", "multi"]);
         assert_eq!(codes(&languages(Some(&[]), "Peli Latino")), ["lat"]);
+    }
+
+    fn option_codes(langs: &[AudioLang]) -> Vec<(String, String)> {
+        play_options(langs)
+            .into_iter()
+            .map(|o| (o.code, o.label))
+            .collect()
+    }
+
+    #[test]
+    fn opciones_de_audio_al_reproducir() {
+        let pair = |c: &str, l: &str| (c.to_string(), l.to_string());
+        // MULTI sin detalle: Latino e Inglés igual, en ese orden.
+        assert_eq!(
+            option_codes(&languages(None, "Peli.2024.MULTI.1080p")),
+            [pair("lat", "Latino"), pair("en", "Inglés")]
+        );
+        // MULTI + castellano: Latino e Inglés primero, después lo que dice el nombre.
+        assert_eq!(
+            option_codes(&languages(None, "Peli.2024.Castellano.MULTI.1080p")),
+            [pair("lat", "Latino"), pair("en", "Inglés"), pair("cast", "Castellano")]
+        );
+        // Bandera mexicana al final del nombre: Latino igual va primero.
+        assert_eq!(
+            option_codes(&languages(None, "Peli.2024.ENG.1080p 🇲🇽")),
+            [pair("lat", "Latino"), pair("en", "Inglés")]
+        );
+        // Español sin región: etiqueta corta.
+        assert_eq!(
+            option_codes(&languages(None, "Peli.2024.Spanish.1080p")),
+            [pair("es", "Español")]
+        );
+        // Pistas reales: la pista exacta viaja en `aid`.
+        let langs = from_tracks(&[track(Some("eng"), None), track(Some("es-419"), None)]);
+        let opts = play_options(&langs);
+        assert_eq!((opts[0].code.as_str(), opts[0].aid), ("lat", Some(2)));
+        assert_eq!((opts[1].code.as_str(), opts[1].aid), ("en", Some(1)));
+        assert!(opts.iter().all(|o| o.confirmed));
     }
 }

@@ -44,7 +44,7 @@ pub fn merge_ass(subs: &[LabeledSubtitle]) -> Result<String> {
         })?;
         parsed.push((
             sub.label.as_str(),
-            parse_any(&super::providers::to_utf8(&bytes)),
+            parse_any(&super::providers::cache::to_utf8(&bytes)),
         ));
     }
     Ok(merge_cues(&parsed))
@@ -98,45 +98,77 @@ pub(crate) fn merge_cues(subs: &[(&str, Vec<Cue>)]) -> String {
     out
 }
 
-/// Detecta el formato por el contenido (no por la extensión: hay `.srt` que son ASS).
-pub(crate) fn parse_any(text: &str) -> Vec<Cue> {
+/// Extensiones con las que se guarda en caché lo bajado: las que puede devolver [`format_ext`].
+pub(crate) const CACHE_EXTENSIONS: [&str; 2] = ["srt", "ass"];
+
+/// Única decisión de formato, por el contenido (no por la extensión: hay `.srt` que son ASS).
+/// Devuelve la extensión con la que se guarda: `"ass"` o `"srt"` (SRT y WebVTT).
+pub(crate) fn format_ext(text: &str) -> &'static str {
     if text.contains("[Events]") || text.contains("\nDialogue:") {
-        parse_ass(text)
+        "ass"
     } else {
-        parse_srt(text)
+        "srt"
     }
 }
 
-/// SRT (y WebVTT, que es casi igual): bloques separados por línea en blanco con `a --> b`.
+pub(crate) fn parse_any(text: &str) -> Vec<Cue> {
+    match format_ext(text) {
+        "ass" => parse_ass(text),
+        _ => parse_srt(text),
+    }
+}
+
+/// SRT (y WebVTT, que es casi igual): línea por línea; cada línea con `a --> b` abre un cue
+/// nuevo y una línea en blanco (o solo espacios) lo cierra. Así un separador con espacios o
+/// la falta de línea en blanco entre cues no los mezcla.
 pub(crate) fn parse_srt(text: &str) -> Vec<Cue> {
-    let text = text.replace("\r\n", "\n").replace('\r', "\n");
+    let text = text
+        .trim_start_matches('\u{feff}')
+        .replace("\r\n", "\n")
+        .replace('\r', "\n");
+    let lines: Vec<&str> = text.lines().map(str::trim_end).collect();
     let mut cues = Vec::new();
-    for block in text.split("\n\n") {
-        let mut lines = block.lines().skip_while(|l| !l.contains("-->"));
-        let Some(times) = lines.next() else { continue };
-        let Some((a, b)) = times.split_once("-->") else {
-            continue;
+    let mut current: Option<(u64, u64, Vec<String>)> = None;
+    let mut flush = |cur: Option<(u64, u64, Vec<String>)>| {
+        let Some((start_ms, end_ms, body)) = cur else {
+            return;
         };
-        // VTT: "00:01.000 --> 00:02.000 align:start" → descartar ajustes después del tiempo.
-        let b = b.split_whitespace().next().unwrap_or_default();
-        let (Some(start_ms), Some(end_ms)) = (parse_time(a), parse_time(b)) else {
-            continue;
-        };
-        let body: Vec<String> = lines
-            .map(str::trim_end)
-            .filter(|l| !l.is_empty())
-            .map(srt_line_to_ass)
-            .filter(|l| !l.trim().is_empty())
-            .collect();
-        if body.is_empty() || end_ms <= start_ms {
+        if !body.is_empty() && end_ms > start_ms {
+            cues.push(Cue {
+                start_ms,
+                end_ms,
+                text: body.join("\\N"),
+            });
+        }
+    };
+    for (i, line) in lines.iter().enumerate() {
+        if let Some((a, b)) = line.split_once("-->") {
+            flush(current.take());
+            // VTT: "00:01.000 --> 00:02.000 align:start" → descartar ajustes después del tiempo.
+            let b = b.split_whitespace().next().unwrap_or_default();
+            current = parse_time(a)
+                .zip(parse_time(b))
+                .map(|(start, end)| (start, end, Vec::new()));
             continue;
         }
-        cues.push(Cue {
-            start_ms,
-            end_ms,
-            text: body.join("\\N"),
-        });
+        if line.trim().is_empty() {
+            flush(current.take());
+            continue;
+        }
+        let Some((_, _, body)) = current.as_mut() else {
+            continue; // índice, encabezado WEBVTT, NOTE…
+        };
+        // Sin línea en blanco, el índice del cue siguiente queda pegado al texto de este.
+        let next_is_timing = lines.get(i + 1).is_some_and(|n| n.contains("-->"));
+        if next_is_timing && line.trim().bytes().all(|b| b.is_ascii_digit()) {
+            continue;
+        }
+        let ass = srt_line_to_ass(line);
+        if !ass.trim().is_empty() {
+            body.push(ass);
+        }
     }
+    flush(current);
     cues
 }
 
@@ -323,6 +355,26 @@ mod tests {
         assert_eq!(cues[0].start_ms, 1500);
         assert_eq!(ass_time(3_723_450), "1:02:03.45");
         assert_eq!(parse_time("0:00:05.5"), Some(5500));
+    }
+
+    #[test]
+    fn srt_separadores_raros() {
+        let texts =
+            |srt: &str| -> Vec<String> { parse_srt(srt).into_iter().map(|c| c.text).collect() };
+        let want = vec!["uno".to_string(), "dos".to_string(), "tres".to_string()];
+        // Separador con espacios.
+        let s = "1\n00:00:01,000 --> 00:00:02,000\nuno\n  \t\n2\n00:00:03,000 --> 00:00:04,000\ndos\n \n3\n00:00:05,000 --> 00:00:06,000\ntres\n";
+        assert_eq!(texts(s), want);
+        // Sin línea en blanco entre cues (con y sin índice).
+        let s = "1\n00:00:01,000 --> 00:00:02,000\nuno\n2\n00:00:03,000 --> 00:00:04,000\ndos\n00:00:05,000 --> 00:00:06,000\ntres";
+        assert_eq!(texts(s), want);
+        // CRLF + BOM y sin índice en el primero.
+        let s = "\u{feff}00:00:01,000 --> 00:00:02,000\r\nuno\r\n\r\n2\r\n00:00:03,000 --> 00:00:04,000\r\ndos\r\n\r\n3\r\n00:00:05,000 --> 00:00:06,000\r\ntres\r\n";
+        assert_eq!(texts(s), want);
+        assert_eq!(parse_srt(s)[0].start_ms, 1000);
+        // VTT con identificador de cue y NOTE.
+        let s = "WEBVTT\n\nNOTE algo\n\nid-1\n00:01.000 --> 00:02.000\nuno\n";
+        assert_eq!(texts(s), vec!["uno".to_string()]);
     }
 
     /// 5 entradas → 5 estilos distintos (color y posición) y los eventos de todos, etiquetados.

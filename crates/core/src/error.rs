@@ -54,13 +54,6 @@ pub enum CoreError {
     #[error("portapapeles: {0}")]
     Clipboard(String),
 
-    /// Comando de la UI cuya fase todavía no se implementó: error claro en vez de `panic`.
-    #[error("todavía no implementado: {what} (fase {phase})")]
-    NotImplemented {
-        what: &'static str,
-        phase: &'static str,
-    },
-
     #[error("no se pudo iniciar el registro (logs): {0}")]
     Logger(String),
 
@@ -90,9 +83,6 @@ impl CoreError {
             Self::Cancelled => "Cancelado.".into(),
             Self::NotFound(what) => format!("No encontrado: {what}."),
             Self::Clipboard(_) => "No se pudo leer el portapapeles.".into(),
-            Self::NotImplemented { what, .. } => {
-                format!("{what}: todavía no está disponible en esta versión.")
-            }
             Self::Logger(_) => "No se pudieron iniciar los registros de diagnóstico.".into(),
             Self::Catalog { user, .. } => user.clone(),
         }

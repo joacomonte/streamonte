@@ -1,9 +1,8 @@
-// Actividad de fondo (2026-11-14, rev. 2 del usuario: "una bubble minimal abajo con el último
-// comando o proceso que se está haciendo").
-// - Burbuja flotante abajo a la derecha, sobre la barra de estado: mientras algo corre (o hasta
-//   8 s después de lo último que pasó) muestra spinner + qué se está haciendo; después se achica a
-//   un circulito con el contador de novedades. No tapa la barra ni se abre sola.
-// - Al tocarla se abre hacia arriba el log completo; Escape, tocar afuera o "Achicar" lo cierran
+// Actividad de fondo (2026-11-14, rev. 2 del usuario: "una bubble minimal con el último comando
+// o proceso que se está haciendo"; 2026-11-15: va en la barra superior, al lado de Descargas).
+// - Píldora en la barra: mientras algo corre (o hasta 8 s después de lo último que pasó) muestra
+//   spinner + qué se está haciendo; después se achica a un circulito con el contador de novedades.
+// - Al tocarla se despliega abajo el log completo; Escape, tocar afuera o "Cerrar" lo cierran
 //   (salvo fijado). Las líneas del mismo trabajo (`key`) o repetidas se actualizan en su lugar.
 
 const KEEP = 300;
@@ -40,36 +39,30 @@ function h(tag, attrs = {}, html = '') {
 const hhmmss = (d) => d.toLocaleTimeString('es-AR', { hour12: false });
 
 const root = h('div', { id: 'act', class: 'act', 'data-state': 'hidden' });
-const line = h('button', { type: 'button', class: 'act-line', 'aria-expanded': 'false', 'aria-controls': 'act-panel' });
+const line = h('button', { type: 'button', id: 'btn-activity', class: 'act-line', 'aria-expanded': 'false', 'aria-controls': 'act-panel' });
 const lineDot = h('i', { class: 'act-dot', 'aria-hidden': 'true' });
 const lineIc = h('span', { class: 'act-ic' });
 const lineSum = h('span', { class: 'act-sum' });
 const lineN = h('b', { class: 'act-n' });
-const lineChev = h('span', { class: 'act-chev', 'aria-hidden': 'true' }, svg('<path d="M6 15l6-6 6 6"/>', 12));
+const lineChev = h('span', { class: 'act-chev', 'aria-hidden': 'true' }, svg('<path d="M6 9l6 6 6-6"/>', 12));
 line.append(lineDot, lineIc, lineSum, lineN, lineChev);
 const panel = h('div', { class: 'act-panel', id: 'act-panel', role: 'region', 'aria-labelledby': 'act-title' });
 const head = h('div', { class: 'act-h' });
 const title = h('span', { class: 'act-title', id: 'act-title' }, 'Actividad');
 const headSum = h('span', { class: 'act-sum' });
 const btn = (label, icon, extra = {}) => h('button', { type: 'button', class: 'act-b', 'aria-label': label, 'data-tip': label, ...extra }, svg(ICON[icon]));
-const pinBtn = btn('Fijar: que no se cierre al tocar afuera', 'pin', { 'aria-pressed': 'false' });
-const clearBtn = btn('Vaciar la lista', 'clear');
-const minBtn = btn('Cerrar', 'min');
+const pinBtn = btn('Fijar: que no se cierre al tocar afuera', 'pin', { id: 'act-pin', 'aria-pressed': 'false' });
+const clearBtn = btn('Vaciar la lista', 'clear', { id: 'act-clear' });
+const minBtn = btn('Cerrar', 'min', { id: 'act-close' });
 head.append(title, headSum, pinBtn, clearBtn, minBtn);
 const list = h('ol', { class: 'act-list', tabindex: '0', 'aria-label': 'Lo que está pasando, lo más nuevo abajo', 'aria-live': 'off' });
-const newChip = h('button', { type: 'button', class: 'act-new' }, '↓ nuevas');
+const newChip = h('button', { type: 'button', id: 'act-new', class: 'act-new' }, '↓ nuevas');
 newChip.hidden = true;
 const live = h('div', { class: 'sr', 'aria-live': 'polite' });
 panel.append(head, list, newChip);
-root.append(panel, line, live);
-document.body.append(root);
-// Justo encima de la barra de estado.
-function place() {
-  const bar = document.querySelector('.statusbar');
-  root.style.bottom = `${Math.round((bar?.getBoundingClientRect().height ?? 28) + 10)}px`;
-}
-place();
-window.addEventListener('resize', place);
+root.append(line, panel, live);
+// En la barra superior, a la derecha de Descargas.
+document.querySelector('#btn-downloads').after(root);
 
 let state = 'hidden';
 let pinned = false;

@@ -1,0 +1,355 @@
+//! Buscar, rankear y bajar subtítulos, sin mpv (FR-22, FR-24, FR-28). Lo usa la sesión al
+//! reproducir ([`super::session`]) y el analizador al analizar (vía `subtitles::session::fetch`).
+//!
+//! En segundo plano: hash del video, IMDb id, búsqueda en torrent → Wyzie → Subdivx → Gestdown →
+//! Subtitulamos (en paralelo, en el idioma elegido y en el otro), ranking, descarga de hasta 5;
+//! si faltan, OpenSubtitles (cuota de 20/día, va último).
+//!
+//! Idiomas (2026-11-15): primero el elegido (español: latino, después España/sin variante) y,
+//! si no llegan a 5, se completa con el otro (inglés). Una sola tanda, un solo trabajo.
+
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
+
+use super::providers::{
+    self, GestdownProvider, OpenSubtitlesOrgProvider, OpenSubtitlesProvider, SubdivxProvider, SubtitleProvider,
+    SubtitulamosProvider, TorrentProvider, TorrentSubtitleFile, WyzieProvider,
+};
+use super::{
+    top_candidates, SubtitleCandidate, SubtitleChoice, VideoIdentity, CHOICE_ALL, MAX_SUBTITLES,
+};
+use crate::config::SubtitleLanguage;
+
+const SEARCH_TIMEOUT: Duration = Duration::from_secs(20);
+const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(40);
+const HASH_TIMEOUT: Duration = Duration::from_secs(10);
+
+pub type LogFn = Arc<dyn Fn(String) + Send + Sync>;
+
+/// Qué buscar y dónde dejarlo, sin mpv: lo usa la sesión al reproducir y el analizador al
+/// analizar (2026-11-14: "buscar y descargar 5 subtítulos en español al analizar").
+pub struct Fetch {
+    pub video: VideoIdentity,
+    /// URL del video en el motor para el hash; `None` si ya viene en `video.movie_hash`.
+    pub video_url: Option<String>,
+    pub torrent_files: Vec<TorrentSubtitleFile>,
+    /// El idioma elegido: va primero; el otro completa hasta 5.
+    pub language: SubtitleLanguage,
+    /// Carpeta de ESTE video ([`VideoIdentity::video_id`]): la comparten todos sus torrents.
+    pub cache_dir: PathBuf,
+    pub remembered: Option<SubtitleChoice>,
+    /// Completar con OpenSubtitles (cuota de 20/día): sí al reproducir, no al analizar.
+    pub opensubtitles: bool,
+    pub log: LogFn,
+}
+
+/// Busca en todas las fuentes y baja hasta [`MAX_SUBTITLES`] (a `cache_dir`, que funciona de
+/// caché: lo ya bajado no se vuelve a pedir). Nunca falla: lo que no anda va al log.
+pub async fn fetch(req: Fetch) -> Vec<(SubtitleCandidate, PathBuf)> {
+    let log = req.log.clone();
+    let lang = req.language;
+    let remembered = req.remembered.clone();
+    if lang == SubtitleLanguage::None {
+        return Vec::new();
+    }
+    let languages = languages(lang);
+    // 1. Identidad: hash del video (inicio/fin) e IMDb id (si el catálogo no lo dio), en paralelo.
+    let mut video = req.video.clone();
+    let (hash, imdb) = tokio::join!(
+        tokio::time::timeout(HASH_TIMEOUT, async {
+            match &req.video_url {
+                Some(url) => video_hash(url, video.file_size).await,
+                None => None,
+            }
+        }),
+        async {
+            match &video.imdb_id {
+                Some(id) => Some(id.clone()),
+                None => providers::resolve_imdb(&video).await,
+            }
+        },
+    );
+    // Sin URL (al analizar) puede venir ya calculado desde el archivo en disco.
+    video.movie_hash = hash.ok().flatten().or(video.movie_hash);
+    video.imdb_id = imdb;
+    log(format!(
+        "subtítulos: buscando en {} (y {}) · {} · hash {} · IMDb {}",
+        languages[0].name_es(),
+        languages[1].name_es(),
+        video.title.as_deref().unwrap_or("(sin título)"),
+        video
+            .movie_hash
+            .map_or("—".to_string(), |h| format!("{h:016x}")),
+        video.imdb_id.as_deref().unwrap_or("—"),
+    ));
+
+    // 2. Fuentes gratis en paralelo: torrent, Wyzie, Subdivx, Gestdown, Subtitulamos y
+    //    OpenSubtitles.org anónimo (sin key, como la app Subs; Q-01..Q-04).
+    let free: Vec<Arc<dyn SubtitleProvider>> = vec![
+        Arc::new(TorrentProvider {
+            files: req.torrent_files.clone(),
+        }),
+        Arc::new(WyzieProvider::from_store()),
+        Arc::new(SubdivxProvider),
+        Arc::new(GestdownProvider),
+        Arc::new(SubtitulamosProvider),
+        Arc::new(OpenSubtitlesOrgProvider::default()),
+    ];
+    let mut all = Vec::new();
+    for (provider, result) in search_all(&free, &video, &languages).await {
+        match result {
+            Ok(found) => {
+                log(format!(
+                    "subtítulos: {} → {} candidato(s)",
+                    providers::display_name(provider),
+                    found.len()
+                ));
+                all.extend(found);
+            }
+            Err(e) => log(format!(
+                "subtítulos: {} omitido: {e}",
+                providers::display_name(provider)
+            )),
+        }
+    }
+    let mut ranked = top_candidates(all, usize::MAX);
+    // El idioma elegido entero antes que el otro (estable: conserva el ranking adentro).
+    ranked.sort_by_key(|c| c.language != lang);
+    if let Some(choice) = &remembered {
+        // FR-28: el elegido la otra vez va primero (si sigue apareciendo).
+        if let Some(i) = ranked.iter().position(|c| c.key() == choice.subtitle) {
+            let c = ranked.remove(i);
+            ranked.insert(0, c);
+        }
+    }
+    let mut loaded = download_best(ranked, MAX_SUBTITLES, &free, &req.cache_dir, &log).await;
+
+    // 3. OpenSubtitles solo si faltan para llegar a 5 en el idioma elegido (cuota 20/día, Q-01):
+    //    su español va antes que el inglés gratis; su inglés, solo si aun así faltan.
+    let primary = |loaded: &[(SubtitleCandidate, PathBuf)]| {
+        loaded.iter().filter(|(c, _)| c.language == lang).count()
+    };
+    if primary(&loaded) < MAX_SUBTITLES && req.opensubtitles {
+        let os = OpenSubtitlesProvider::from_store();
+        // Agotada: ni se busca (la cuota es de toda la app, ver `QuotaGate`).
+        let exhausted = matches!(os.quota().await, Ok(Some(q)) if q.remaining == 0);
+        if os.has_key() && exhausted {
+            log("subtítulos: OpenSubs omitido: cuota diaria agotada".into());
+        } else if os.has_key() {
+            let os: Arc<dyn SubtitleProvider> = Arc::new(os);
+            for language in languages {
+                // Lugar ya ocupado por este idioma y los que van antes; lo nuevo entra ahí.
+                let taken = if language == lang {
+                    primary(&loaded)
+                } else {
+                    loaded.len()
+                };
+                if taken >= MAX_SUBTITLES {
+                    continue;
+                }
+                let search = os.search(&video, language);
+                let found = match tokio::time::timeout(SEARCH_TIMEOUT, search).await {
+                    Ok(Ok(found)) => found,
+                    Ok(Err(e)) => {
+                        log(format!("subtítulos: OpenSubs omitido: {e}"));
+                        break;
+                    }
+                    Err(_) => {
+                        log("subtítulos: OpenSubs omitido: tardó demasiado".into());
+                        break;
+                    }
+                };
+                log(format!(
+                    "subtítulos: OpenSubs ({}) → {} candidato(s)",
+                    language.name_es(),
+                    found.len()
+                ));
+                let found = top_candidates(found, usize::MAX);
+                let more = download_best(
+                    found,
+                    MAX_SUBTITLES - taken,
+                    std::slice::from_ref(&os),
+                    &req.cache_dir,
+                    &log,
+                )
+                .await;
+                loaded.splice(taken..taken, more);
+                loaded.truncate(MAX_SUBTITLES);
+            }
+            if let Ok(Some(q)) = os.quota().await {
+                log(format!(
+                    "subtítulos: cuota OpenSubtitles: quedan {} de {} hoy",
+                    q.remaining, q.per_day
+                ));
+            }
+        } else {
+            log("subtítulos: OpenSubs omitido: sin API key configurada".into());
+        }
+    }
+
+    // 4. El recordado, aunque hoy no haya salido entre los 5: desde la caché (FR-28).
+    if let Some(choice) = &remembered {
+        let present = loaded.iter().any(|(c, _)| c.key() == choice.subtitle);
+        if choice.subtitle != CHOICE_ALL && !present {
+            if let Some(path) = providers::cached_by_key(&req.cache_dir, &choice.subtitle) {
+                let label = choice
+                    .label
+                    .clone()
+                    .unwrap_or_else(|| choice.subtitle.clone());
+                loaded.insert(
+                    0,
+                    (
+                        remembered_candidate(&choice.subtitle, &label, choice.language),
+                        path,
+                    ),
+                );
+                loaded.truncate(MAX_SUBTITLES);
+            }
+        }
+    }
+    dedup_by_content(&mut loaded, &log);
+    loaded
+}
+
+/// El elegido primero; el otro completa (2026-11-15: "en español o inglés").
+fn languages(chosen: SubtitleLanguage) -> [SubtitleLanguage; 2] {
+    match chosen {
+        SubtitleLanguage::En => [SubtitleLanguage::En, SubtitleLanguage::Es],
+        _ => [SubtitleLanguage::Es, SubtitleLanguage::En],
+    }
+}
+
+/// Cada proveedor en cada idioma, todo en paralelo.
+async fn search_all(
+    providers: &[Arc<dyn SubtitleProvider>],
+    video: &VideoIdentity,
+    languages: &[SubtitleLanguage],
+) -> Vec<(&'static str, crate::Result<Vec<SubtitleCandidate>>)> {
+    let mut set = tokio::task::JoinSet::new();
+    let pairs = providers.iter().flat_map(|p| languages.iter().map(move |l| (p, *l)));
+    for (i, (p, lang)) in pairs.enumerate() {
+        let p = p.clone();
+        let video = video.clone();
+        set.spawn(async move {
+            let r = match tokio::time::timeout(SEARCH_TIMEOUT, p.search(&video, lang)).await {
+                Ok(r) => r,
+                Err(_) => Err(crate::CoreError::Timeout {
+                    what: "búsqueda de subtítulos",
+                    secs: SEARCH_TIMEOUT.as_secs(),
+                }),
+            };
+            (i, p.id(), r)
+        });
+    }
+    let mut out = Vec::new();
+    // Una tarea con panic (Err) no corta las demás.
+    while let Some(joined) = set.join_next().await {
+        out.extend(joined.ok());
+    }
+    out.sort_by_key(|(i, _, _)| *i);
+    out.into_iter().map(|(_, id, r)| (id, r)).collect()
+}
+
+/// Baja en orden de ranking hasta tener `needed` (en paralelo por tandas; si uno falla,
+/// entra el siguiente de la lista).
+async fn download_best(
+    candidates: Vec<SubtitleCandidate>,
+    needed: usize,
+    providers: &[Arc<dyn SubtitleProvider>],
+    cache_dir: &std::path::Path,
+    log: &LogFn,
+) -> Vec<(SubtitleCandidate, PathBuf)> {
+    let mut out = Vec::new();
+    let mut rest = candidates.into_iter();
+    while out.len() < needed {
+        let batch: Vec<SubtitleCandidate> = rest.by_ref().take(needed - out.len()).collect();
+        if batch.is_empty() {
+            break;
+        }
+        log(format!("subtítulos: bajando {}", batch.len()));
+        let mut set = tokio::task::JoinSet::new();
+        for (i, cand) in batch.into_iter().enumerate() {
+            let Some(p) = providers.iter().find(|p| p.id() == cand.provider).cloned() else {
+                continue;
+            };
+            let dir = cache_dir.to_path_buf();
+            set.spawn(async move {
+                let r = tokio::time::timeout(DOWNLOAD_TIMEOUT, p.download(&cand, &dir)).await;
+                (i, cand, r)
+            });
+        }
+        let mut results = Vec::new();
+        while let Some(joined) = set.join_next().await {
+            results.extend(joined.ok());
+        }
+        results.sort_by_key(|(i, _, _)| *i);
+        for (_, cand, r) in results {
+            match r {
+                Ok(Ok(path)) => {
+                    log(format!("subtítulos: bajado {}", cand.key()));
+                    out.push((cand, path));
+                }
+                Ok(Err(e)) => log(format!("subtítulos: no se pudo bajar {}: {e}", cand.key())),
+                Err(_) => log(format!("subtítulos: {} tardó demasiado", cand.key())),
+            }
+        }
+    }
+    out
+}
+
+/// El mismo archivo puede venir de dos proveedores: se deja el primero (mejor rankeado).
+fn dedup_by_content(loaded: &mut Vec<(SubtitleCandidate, PathBuf)>, log: &LogFn) {
+    use std::hash::{Hash, Hasher};
+    let mut seen = std::collections::HashSet::new();
+    loaded.retain(|(cand, path)| {
+        let Ok(bytes) = std::fs::read(path) else {
+            return false;
+        };
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        bytes.hash(&mut h);
+        let fresh = seen.insert(h.finish());
+        if !fresh {
+            log(format!("subtítulos: {} repetido, se omite", cand.key()));
+        }
+        fresh
+    });
+}
+
+pub(super) fn remembered_candidate(
+    key: &str,
+    label: &str,
+    language: SubtitleLanguage,
+) -> SubtitleCandidate {
+    let (provider, id) = key.split_once(':').unwrap_or(("?", key));
+    let provider = providers::ALL
+        .into_iter()
+        .find(|p| *p == provider)
+        .unwrap_or("?");
+    // La etiqueta guardada ya trae "N · fuente/release": se usa el release.
+    let release = label.split_once('/').map_or(label, |(_, r)| r).to_string();
+    SubtitleCandidate {
+        provider,
+        provider_id: id.to_string(),
+        release_name: release,
+        language,
+        match_kind: super::MatchKind::None,
+        downloads: 0,
+        variant: super::SpanishVariant::Unknown,
+        url: String::new(),
+    }
+}
+
+/// Hash OpenSubtitles leyendo 64 KiB del principio y del final por el motor (el principio ya
+/// está precargado; el final lo pide el stream).
+async fn video_hash(url: &str, size: u64) -> Option<u64> {
+    if url.is_empty() || size == 0 {
+        return None;
+    }
+    let chunk = 65_536u64.min(size);
+    let head = providers::http::fetch_range(url, 0, chunk).await.ok()?;
+    let tail = providers::http::fetch_range(url, size - chunk, chunk)
+        .await
+        .ok()?;
+    Some(super::movie_hash(size, &head, &tail))
+}

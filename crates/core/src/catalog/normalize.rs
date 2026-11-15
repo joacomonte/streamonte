@@ -2,7 +2,8 @@
 //! Un solo parser tolerante que entiende los formatos conocidos (spec 10 §C.1: Torrentio/TorrentsDB
 //! `👤 💾 ⚙️`, Peerflix `| 🌐`, Comet `📄 💾 🔎` + `videoSize`) y cae a lo genérico (nombre del
 //! release) con cualquier otro addon: un addon nuevo funciona sin código nuevo (NFR-25).
-//! Reutiliza el parser de releases (ADR-10) y la detección de idiomas de `audio`.
+//! Reutiliza el parser de releases ([`crate::release`]) y los idiomas de
+//! [`crate::audio::from_release`].
 
 use serde::Serialize;
 
@@ -123,7 +124,7 @@ pub fn parse(raw: &Stream, ctx: &ParseCtx) -> Parsed {
     let file_name = hints.filename.as_deref().map(clean).or_else(|| {
         lines
             .get(1)
-            .filter(|l| !l.contains('👤') && looks_like_file(l))
+            .filter(|l| !l.contains('👤') && crate::engine::is_video(l))
             .map(|l| clean(l))
     });
 
@@ -154,66 +155,25 @@ pub fn parse(raw: &Stream, ctx: &ParseCtx) -> Parsed {
         "{name}\n{body}\n{}",
         hints.filename.as_deref().unwrap_or("")
     );
-    let tokens = tokens(&text);
-    let has = |words: &[&str]| tokens.iter().any(|t| words.contains(&t.as_str()));
-
-    let resolution = if has(&["2160p", "4k", "uhd"]) {
-        Some("2160p")
-    } else if has(&["1440p"]) {
-        Some("1440p")
-    } else if has(&["1080p", "1080i"]) {
-        Some("1080p")
-    } else if has(&["720p"]) {
-        Some("720p")
-    } else if has(&["576p", "480p", "360p", "sd"]) {
-        Some("480p")
-    } else {
-        None
-    }
-    .map(String::from);
-
-    let lower = text.to_lowercase();
-    let mut hdr = Vec::new();
-    if has(&["hdr", "hdr10", "hdr10plus"]) || lower.contains("hdr10+") {
-        hdr.push("HDR".to_string());
-    }
-    if has(&["dv", "dovi"]) || lower.contains("dolby vision") || lower.contains("dolbyvision") {
-        hdr.push("DV".to_string());
-    }
-    let codec = if has(&["x265", "h265", "hevc"]) {
-        Some("HEVC")
-    } else if has(&["x264", "h264", "avc"]) {
-        Some("H.264")
-    } else if has(&["av1"]) {
-        Some("AV1")
-    } else {
-        None
-    }
-    .map(String::from);
-    let audio_format = audio_format(&tokens, &lower);
-    let parsed_release = crate::subtitles::parse_release_name(&release_name);
-    let source = if has(&[
-        "cam", "camrip", "hdcam", "ts", "hdts", "telesync", "tc", "telecine", "scr", "screener",
-        "dvdscr",
-    ]) {
-        Some("CAM".to_string())
-    } else if has(&["remux"]) {
-        Some("REMUX".to_string())
-    } else {
-        parsed_release.source.clone()
-    };
-
-    let (audio, subs) = languages(&text, &tokens, ctx.spain_flag_is_generic);
+    let release = crate::release::parse_release_name(&release_name);
+    let Tags {
+        resolution,
+        hdr,
+        codec,
+        audio_format,
+        source,
+    } = release_tags(&text, &release);
+    let (audio, subs) = crate::audio::from_release(&text, ctx.spain_flag_is_generic);
     // FR-40: audio solo en japonés → fuera.
     if audio == ["ja"] {
         return Parsed::Skip;
     }
-
     let is_pack = ctx.is_series
-        && ((parsed_release.season.is_some() && parsed_release.episode.is_none())
-            || (parsed_release.episode.is_none()
-                && has(&["complete", "completa", "temporada", "season"])));
-
+        && release.episode.is_none()
+        && (release.season.is_some()
+            || tokens(&text)
+                .iter()
+                .any(|t| ["complete", "completa", "temporada", "season"].contains(&t.as_str())));
     let trackers = raw
         .sources
         .as_deref()
@@ -252,70 +212,74 @@ pub fn parse(raw: &Stream, ctx: &ParseCtx) -> Parsed {
     }))
 }
 
-/// Idiomas de audio y de subtítulos (spec 10 §C.2). Precedencia: token explícito > bandera.
-fn languages(text: &str, tokens: &[String], spain_generic: bool) -> (Vec<String>, Vec<String>) {
+/// Etiquetas de calidad de un release (pedido del usuario 2026-11-14: "si tiene HDR, Dolby…").
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Tags {
+    /// `2160p`, `1440p`, `1080p`, `720p`, `480p`.
+    pub resolution: Option<String>,
+    /// `HDR`, `DV`.
+    pub hdr: Vec<String>,
+    /// `HEVC`, `H.264`, `AV1`.
+    pub codec: Option<String>,
+    /// Ver [`StreamCandidate::audio_format`].
+    pub audio_format: Vec<String>,
+    /// `CAM`, `REMUX`, o la fuente del nombre del release (`BluRay`, `WEB-DL`…).
+    pub source: Option<String>,
+}
+
+/// Calidad por el texto libre del stream (nombre, título, archivo: `text`) y el nombre del
+/// release ya parseado (de ahí sale la fuente si no es CAM ni REMUX). Lo usan [`parse`] y la
+/// biblioteca (insignias de las filas).
+pub fn release_tags(text: &str, release: &crate::release::ReleaseName) -> Tags {
+    let tokens = tokens(text);
     let has = |words: &[&str]| tokens.iter().any(|t| words.contains(&t.as_str()));
-    let mut audio: Vec<String> = crate::audio::from_name(text)
-        .into_iter()
-        .map(|l| l.code)
-        .collect();
-    if has(&["dual", "dubbed"]) && !audio.iter().any(|c| c == "multi") {
-        audio.push("multi".into());
+    let resolution = if has(&["2160p", "4k", "uhd"]) {
+        Some("2160p")
+    } else if has(&["1440p"]) {
+        Some("1440p")
+    } else if has(&["1080p", "1080i"]) {
+        Some("1080p")
+    } else if has(&["720p"]) {
+        Some("720p")
+    } else if has(&["576p", "480p", "360p", "sd"]) {
+        Some("480p")
+    } else {
+        None
     }
-    for cc in flags(text) {
-        let code = match cc.as_str() {
-            "mx" | "ar" | "co" | "cl" | "pe" | "ve" | "uy" => "lat",
-            "es" if spain_generic => "es",
-            "es" => "cast",
-            "gb" | "us" => "en",
-            "jp" => "ja",
-            other => other,
-        };
-        if !audio.iter().any(|c| c == code) {
-            audio.push(code.to_string());
-        }
-    }
-    // "Español" genérico sobra si ya se sabe la variante.
-    if audio.iter().any(|c| c == "lat" || c == "cast") {
-        audio.retain(|c| c != "es");
-    }
-    // "Audio Español (+Eng +Subs)": el español es del audio aunque diga "subs".
+    .map(String::from);
+
     let lower = text.to_lowercase();
-    let explicit_spanish_audio = [
-        "audio español",
-        "audio espanol",
-        "audio spanish",
-        "audio latino",
-        "audio castellano",
-    ]
-    .iter()
-    .any(|p| lower.contains(p));
-    let mut subs = Vec::new();
-    if has(&[
-        "sub",
-        "subs",
-        "subt",
-        "subtitulado",
-        "subtitulos",
-        "subtítulos",
-        "vose",
-        "vos",
-        "subbed",
-    ]) {
-        // "SubS Spa" / "Español+English subt.": el español genérico es de subtítulos, no de audio.
-        if !explicit_spanish_audio
-            && (audio.iter().any(|c| c == "es")
-                || has(&["spa", "esp", "español", "espanol", "spanish"]))
-        {
-            audio.retain(|c| c != "es");
-            subs.push("es".to_string());
-        }
-        // "ENG SubS Spa" = audio en inglés con subtítulos en español (`audio` lo descarta por "subs").
-        if has(&["eng", "english"]) && !audio.iter().any(|c| c == "en") {
-            audio.push("en".to_string());
-        }
+    let mut hdr = Vec::new();
+    if has(&["hdr", "hdr10", "hdr10plus"]) || lower.contains("hdr10+") {
+        hdr.push("HDR".to_string());
     }
-    (audio, subs)
+    if has(&["dv", "dovi"]) || lower.contains("dolby vision") || lower.contains("dolbyvision") {
+        hdr.push("DV".to_string());
+    }
+    let codec = if has(&["x265", "h265", "hevc"]) {
+        Some("HEVC")
+    } else if has(&["x264", "h264", "avc"]) {
+        Some("H.264")
+    } else if has(&["av1"]) {
+        Some("AV1")
+    } else {
+        None
+    }
+    .map(String::from);
+    let source = if is_cam(text) {
+        Some("CAM".to_string())
+    } else if has(&["remux"]) {
+        Some("REMUX".to_string())
+    } else {
+        release.source.clone()
+    };
+    Tags {
+        resolution,
+        hdr,
+        codec,
+        audio_format: audio_format(&tokens, &lower),
+        source,
+    }
 }
 
 /// Formato de audio del release (pedido del usuario 2026-11-14: "si tiene HDR, Dolby…").
@@ -349,22 +313,26 @@ fn audio_format(tokens: &[String], lower: &str) -> Vec<String> {
     out
 }
 
-/// Códigos de país de las banderas emoji (pares de indicadores regionales), en minúsculas.
-fn flags(text: &str) -> Vec<String> {
-    let ri = |c: char| (0x1F1E6..=0x1F1FF).contains(&(c as u32));
-    let chars: Vec<char> = text.chars().collect();
-    let mut out = Vec::new();
-    let mut i = 0;
-    while i + 1 < chars.len() {
-        if ri(chars[i]) && ri(chars[i + 1]) {
-            let letter = |c: char| char::from(b'a' + (c as u32 - 0x1F1E6) as u8);
-            out.push(format!("{}{}", letter(chars[i]), letter(chars[i + 1])));
-            i += 2;
-        } else {
-            i += 1;
-        }
-    }
-    out
+/// CAM/TS/screener. Por tramo (línea o `|`): sin la extensión del archivo (`movie.ts`) y, si hay
+/// año, solo lo que viene después (el título puede ser "Cam (2018)").
+fn is_cam(text: &str) -> bool {
+    const CAM: &[&str] = &[
+        "cam", "camrip", "hdcam", "ts", "hdts", "telesync", "tc", "telecine", "scr", "screener",
+        "dvdscr",
+    ];
+    text.split(['\n', '|']).any(|part| {
+        let part = part.trim();
+        let part = match part.rsplit_once('.') {
+            Some((stem, _)) if crate::engine::is_video(part) => stem,
+            _ => part,
+        };
+        let t = tokens(part);
+        let is_year = |t: &String| {
+            t.len() == 4 && t.parse::<u16>().is_ok_and(|y| (1900..=2099).contains(&y))
+        };
+        let from = t.iter().position(is_year).map_or(0, |i| i + 1);
+        t[from..].iter().any(|t| CAM.contains(&t.as_str()))
+    })
 }
 
 fn tokens(text: &str) -> Vec<String> {
@@ -404,12 +372,6 @@ pub fn parse_size(text: &str) -> Option<u64> {
         _ => return None,
     };
     (number.is_finite() && number >= 0.0).then_some((number * mult) as u64)
-}
-
-fn looks_like_file(line: &str) -> bool {
-    line.rsplit_once('.').is_some_and(|(_, ext)| {
-        crate::engine::VIDEO_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str())
-    })
 }
 
 /// NFR-24: sin caracteres de control, recortado. La UI igual lo pone como texto (nunca HTML).
@@ -519,23 +481,6 @@ mod tests {
         assert_eq!(c.info_hash.to_hex(), HASH);
     }
 
-    #[test]
-    fn idiomas_t22() {
-        let l = |t: &str, generic| languages(t, &tokens(t), generic);
-        assert_eq!(l("Peli 🇲🇽", true).0, vec!["lat"]);
-        assert_eq!(l("Peli Castellano", true).0, vec!["cast"]);
-        assert_eq!(l("Peli 🇪🇸", true).0, vec!["es"]);
-        assert_eq!(l("Peli 🇪🇸", false).0, vec!["cast"]);
-        let (audio, subs) = l("Peli.1080p.ENG SubS Spa", true);
-        assert_eq!(audio, vec!["en"]);
-        assert_eq!(subs, vec!["es"]);
-        let (audio, subs) = l("Juego de Tronos S08E01 Audio Español (+Eng +Subs)", true);
-        assert!(audio.contains(&"es".to_string()) && audio.contains(&"en".to_string()));
-        assert!(subs.is_empty());
-        // Sin idioma: vacío, no se descarta.
-        assert!(l("Peli.2014.1080p.WEB", true).0.is_empty());
-    }
-
     /// T-26: filtro P2P y aviso de configuración.
     #[test]
     fn no_p2p_y_requiere_configuracion() {
@@ -580,6 +525,16 @@ mod tests {
         ));
         assert!(c.is_pack);
         assert_eq!(c.file_name.as_deref(), Some("Breaking_Bad_1x01_Pilot.mkv"));
+    }
+
+    #[test]
+    fn cam_solo_despues_del_ano_y_sin_extension() {
+        assert!(!is_cam("Cam.2018.1080p.WEB"));
+        assert!(!is_cam("movie.ts"));
+        assert!(!is_cam("Movie.2023.1080p | Movie.2023.ts | 👤 3"));
+        assert!(is_cam("Movie.2023.HDCAM"));
+        assert!(is_cam("Movie 2023 TS"));
+        assert!(is_cam("Torrentio\nCAM"));
     }
 
     #[test]

@@ -47,13 +47,16 @@ pub struct OwnerRecord {
     pub started_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(tag = "kind", rename_all = "kebab-case")]
-pub enum Leftover {
-    /// Carpeta de descarga sin dueño vivo.
-    DownloadDir { path: PathBuf, size_bytes: u64 },
-    /// Proceso del motor nuestro que quedó vivo sin app (se mata).
-    Process { pid: u32, name: String },
+impl OwnerRecord {
+    /// Dueño de una carpeta desde ahora: esta app, su motor y (si ya corre) el reproductor.
+    pub fn now(engine_pid: Option<u32>, player_pid: Option<u32>) -> Self {
+        Self {
+            app_pid: std::process::id(),
+            engine_pid,
+            player_pid,
+            started_at: chrono::Utc::now(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -100,24 +103,6 @@ impl Cleanup {
         in_use().lock().expect("in_use").remove(download_dir);
     }
 
-    /// Restos sin proceso (FR-20, T-05). `active` = carpetas en uso que conoce el llamador.
-    pub fn scan(&self, active: &HashSet<PathBuf>) -> Result<Vec<Leftover>> {
-        let procs = ProcessTable::load();
-        let mut out = Vec::new();
-        for dir in self.candidate_dirs(active)? {
-            if self.is_orphan(&dir, &procs) {
-                out.push(Leftover::DownloadDir {
-                    size_bytes: dir_size(&dir),
-                    path: dir,
-                });
-            }
-        }
-        for (pid, name) in procs.orphan_sidecars() {
-            out.push(Leftover::Process { pid, name });
-        }
-        Ok(out)
-    }
-
     /// Tamaño total de temporales que borraría "Limpiar temporales" (confirmación de FR-19).
     pub fn temp_size(&self, active: &HashSet<PathBuf>) -> Result<u64> {
         Ok(self
@@ -132,7 +117,7 @@ impl Cleanup {
     pub fn clean(&self, active: &HashSet<PathBuf>) -> Result<CleanupReport> {
         let mut report = CleanupReport::default();
         for dir in self.candidate_dirs(active)? {
-            remove_dir_sync(&dir, &mut report);
+            self.remove_if_free(&dir, &mut report);
         }
         kill_orphan_sidecars(&ProcessTable::load(), &mut report);
         Ok(report)
@@ -144,7 +129,7 @@ impl Cleanup {
         let mut report = CleanupReport::default();
         for dir in self.candidate_dirs(active)? {
             if self.is_orphan(&dir, &procs) {
-                remove_dir_sync(&dir, &mut report);
+                self.remove_if_free(&dir, &mut report);
             }
         }
         kill_orphan_sidecars(&procs, &mut report);
@@ -153,32 +138,39 @@ impl Cleanup {
 
     /// Borra una carpeta concreta (Detener y borrar, FR-15). Reintenta ~5 s si hay archivos en uso.
     /// Devuelve los bytes liberados. Nunca borra fuera de la carpeta de descargas de la app.
+    /// La carpeta sigue reservada hasta terminar de borrarla: nadie la toma a medio borrar.
     pub async fn remove_dir(&self, dir: &Path) -> Result<u64> {
         self.check_inside_downloads(dir)?;
+        let result = remove_dir_retrying(dir).await;
         self.release(dir);
-        if !dir.exists() {
-            return Ok(0);
-        }
-        let size = dir_size(dir);
-        // Windows: un archivo puede seguir abierto unos instantes tras cerrar el motor.
-        let mut last_err = None;
-        for _ in 0..20 {
-            match tokio::fs::remove_dir_all(dir).await {
-                Ok(()) => return Ok(size),
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(size),
-                Err(e) => {
-                    last_err = Some(e);
-                    tokio::time::sleep(Duration::from_millis(250)).await;
-                }
+        result
+    }
+
+    /// Reserva `dir` y la borra (FR-06d). Si sigue en uso (una medición recién cancelada todavía
+    /// no la soltó), espera hasta `wait`; si no se libera, no la toca y devuelve `Ok(None)`.
+    pub async fn remove_dir_when_free(&self, dir: &Path, wait: Duration) -> Result<Option<u64>> {
+        self.check_inside_downloads(dir)?;
+        let deadline = tokio::time::Instant::now() + wait;
+        while !self.try_reserve(dir) {
+            if tokio::time::Instant::now() >= deadline {
+                return Ok(None);
             }
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
-        Err(CoreError::Io {
-            path: dir.to_path_buf(),
-            source: last_err.expect("al menos un intento"),
-        })
+        self.remove_dir(dir).await.map(Some)
     }
 
     // ---------- internos ----------
+
+    /// Borra `dir` solo si nadie la usa, reservándola mientras tanto: la lista de candidatas es
+    /// una foto vieja y una medición o reproducción pudo tomarla después.
+    fn remove_if_free(&self, dir: &Path, report: &mut CleanupReport) {
+        if !self.try_reserve(dir) {
+            return;
+        }
+        remove_dir_sync(dir, report);
+        self.release(dir);
+    }
 
     fn check_inside_downloads(&self, dir: &Path) -> Result<()> {
         let downloads = self.paths.downloads_dir();
@@ -321,16 +313,41 @@ fn modified_ago(path: &Path) -> Option<Duration> {
     SystemTime::now().duration_since(modified).ok()
 }
 
-/// Tamaño total de una carpeta (best effort).
+/// Ver [`Cleanup::remove_dir`]. Windows: un archivo puede seguir abierto unos instantes tras
+/// cerrar el motor.
+async fn remove_dir_retrying(dir: &Path) -> Result<u64> {
+    if !dir.exists() {
+        return Ok(0);
+    }
+    let size = dir_size(dir);
+    let mut last_err = None;
+    for _ in 0..20 {
+        match tokio::fs::remove_dir_all(dir).await {
+            Ok(()) => return Ok(size),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(size),
+            Err(e) => {
+                last_err = Some(e);
+                tokio::time::sleep(Duration::from_millis(250)).await;
+            }
+        }
+    }
+    Err(CoreError::Io {
+        path: dir.to_path_buf(),
+        source: last_err.expect("al menos un intento"),
+    })
+}
+
+/// Espacio que ocupa una carpeta en disco (best effort). Lo asignado, no la longitud: los
+/// motores crean el video como archivo disperso del tamaño completo.
 fn dir_size(dir: &Path) -> u64 {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return 0;
     };
     entries
         .filter_map(|e| e.ok())
-        .map(|e| match e.metadata() {
-            Ok(m) if m.is_dir() => dir_size(&e.path()),
-            Ok(m) => m.len(),
+        .map(|e| match e.file_type() {
+            Ok(t) if t.is_dir() => dir_size(&e.path()),
+            Ok(_) => crate::fsutil::allocated_bytes(&e.path()).unwrap_or(0),
             Err(_) => 0,
         })
         .sum()
@@ -338,24 +355,14 @@ fn dir_size(dir: &Path) -> u64 {
 
 /// Abre una carpeta en el Explorador / Finder (FR-18).
 pub fn open_in_file_manager(path: &Path) -> Result<()> {
-    #[cfg(windows)]
-    let program = "explorer";
-    #[cfg(target_os = "macos")]
-    let program = "open";
-    #[cfg(all(not(windows), not(target_os = "macos")))]
-    let program = "xdg-open";
     std::fs::create_dir_all(path).map_err(|source| CoreError::Io {
         path: path.to_path_buf(),
         source,
     })?;
-    std::process::Command::new(program)
-        .arg(path)
-        .spawn()
-        .map(drop)
-        .map_err(|source| CoreError::Io {
-            path: path.to_path_buf(),
-            source,
-        })
+    crate::external::open_external(path).map_err(|source| CoreError::Io {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 #[cfg(test)]
@@ -423,15 +430,6 @@ mod tests {
             Some(owner(std::process::id(), chrono::Utc::now())),
             10,
         );
-        let found = f.cleanup.scan(&HashSet::new()).unwrap();
-        let dirs: Vec<&PathBuf> = found
-            .iter()
-            .filter_map(|l| match l {
-                Leftover::DownloadDir { path, .. } => Some(path),
-                _ => None,
-            })
-            .collect();
-        assert_eq!(dirs, vec![&muerta]);
         let report = f.cleanup.clean_orphans(&HashSet::new()).unwrap();
         assert_eq!(report.dirs_removed, 1);
         assert!(!muerta.exists());
@@ -454,12 +452,7 @@ mod tests {
     fn sin_registro_reciente_se_respeta() {
         let f = Fixture::new("unclaimed");
         let d = f.dir_with("recien-creada", None, 10);
-        assert!(f
-            .cleanup
-            .scan(&HashSet::new())
-            .unwrap()
-            .iter()
-            .all(|l| !matches!(l, Leftover::DownloadDir { .. })));
+        f.cleanup.clean_orphans(&HashSet::new()).unwrap();
         assert!(d.exists());
     }
 
@@ -501,6 +494,25 @@ mod tests {
             1,
             "liberada → se limpia"
         );
+    }
+
+    #[test]
+    fn remove_dir_when_free_no_pisa_una_carpeta_en_uso() {
+        let f = Fixture::new("when-free");
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let d = f.dir_with("analisis", None, 10);
+        assert!(f.cleanup.try_reserve(&d));
+        let wait = Duration::from_millis(200);
+        assert_eq!(rt.block_on(f.cleanup.remove_dir_when_free(&d, wait)).unwrap(), None);
+        assert!(d.exists(), "en uso: no se toca");
+        f.cleanup.release(&d);
+        assert!(rt.block_on(f.cleanup.remove_dir_when_free(&d, wait)).unwrap().is_some());
+        assert!(!d.exists());
+        assert!(f.cleanup.try_reserve(&d), "queda libre después de borrar");
+        f.cleanup.release(&d);
     }
 
     #[test]

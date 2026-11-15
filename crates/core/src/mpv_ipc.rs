@@ -19,6 +19,9 @@ use crate::{CoreError, Result};
 type Pending = Arc<std::sync::Mutex<HashMap<u64, oneshot::Sender<Result<Value>>>>>;
 type Writer = Box<dyn AsyncWrite + Send + Unpin>;
 
+/// Tope de espera por respuesta: un mpv trabado no debe colgar a quien pregunta.
+const COMMAND_TIMEOUT: Duration = Duration::from_secs(5);
+
 /// Ruta del canal IPC para un nombre único.
 pub fn ipc_path(name: &str) -> String {
     #[cfg(windows)]
@@ -176,8 +179,16 @@ impl MpvControl for MpvIpc {
             }
             let _ = w.flush().await;
         }
-        rx.await
-            .map_err(|_| CoreError::Player("mpv se cerró".into()))?
+        match tokio::time::timeout(COMMAND_TIMEOUT, rx).await {
+            Ok(reply) => reply.map_err(|_| CoreError::Player("mpv se cerró".into()))?,
+            Err(_) => {
+                self.pending.lock().expect("pending").remove(&id);
+                Err(CoreError::Timeout {
+                    what: "respuesta de mpv",
+                    secs: COMMAND_TIMEOUT.as_secs(),
+                })
+            }
+        }
     }
 
     async fn get_property(&self, name: &str) -> Result<Value> {

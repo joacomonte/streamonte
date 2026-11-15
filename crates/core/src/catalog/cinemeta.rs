@@ -27,6 +27,9 @@ pub struct MetaPreview {
     pub poster: Option<String>,
     /// Fecha de estreno (película) o de primera emisión (serie), `AAAA-MM-DD`, si Cinemeta la trae.
     pub released: Option<String>,
+    /// Popularidad de TMDB según Cinemeta: con año o rango la UI ordena lo cargado por esto
+    /// (los catálogos `year` vienen por fecha, no por popularidad).
+    pub popularity: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -117,11 +120,14 @@ pub struct BrowseCursor {
 
 /// Una página de Cinemeta (50 por página, `skip`). Con año se usa el catálogo `year`
 /// (Cinemeta no permite año + puntaje juntos: el orden por puntaje dentro del año lo hace la UI).
+/// `genre` (p. ej. `Documentary`, pedido 2026-11-15): en `top`/`imdbRating` lo filtra Cinemeta;
+/// el catálogo `year` ya usa `genre` para el año, así que ahí se filtra la página traída.
 pub async fn browse(
     http: &Http,
     kind: MediaKind,
     sort: BrowseSort,
     year: Option<u16>,
+    genre: Option<&str>,
     skip: u32,
     timeout: Duration,
 ) -> Result<BrowsePage, super::http::FetchError> {
@@ -134,6 +140,9 @@ pub async fn browse(
         (None, BrowseSort::Popular) => "top",
         (None, BrowseSort::Rating) => "imdbRating",
     };
+    if let (None, Some(g)) = (year, genre) {
+        extras.push(format!("genre={}", encode_extra(g)));
+    }
     if skip > 0 {
         extras.push(format!("skip={skip}"));
     }
@@ -146,10 +155,18 @@ pub async fn browse(
     let resp: CatalogResponse = http.get_json(&url, timeout).await?;
     let raw = resp.metas.unwrap_or_default();
     let has_more = resp.has_more.unwrap_or(!raw.is_empty());
+    let in_genre = |m: &RawMeta| match (year, genre) {
+        (Some(_), Some(g)) => m
+            .genres
+            .as_ref()
+            .is_some_and(|gs| gs.iter().any(|x| x.eq_ignore_ascii_case(g))),
+        _ => true,
+    };
     Ok(BrowsePage {
         items: raw
             .into_iter()
             .filter_map(|v| serde_json::from_value::<RawMeta>(v).ok())
+            .filter(in_genre)
             .filter_map(|m| preview(m, kind))
             .collect(),
         has_more,
@@ -170,6 +187,7 @@ pub async fn browse_released(
     kind: MediaKind,
     from: NaiveDate,
     to: NaiveDate,
+    genre: Option<&str>,
     cursor: Option<BrowseCursor>,
     timeout: Duration,
 ) -> Result<BrowsePage, super::http::FetchError> {
@@ -187,6 +205,7 @@ pub async fn browse_released(
             kind,
             BrowseSort::Popular,
             Some(at.year),
+            genre,
             at.skip,
             timeout,
         )
@@ -244,6 +263,7 @@ fn preview(m: RawMeta, kind: MediaKind) -> Option<MetaPreview> {
         imdb_rating: m.imdb_rating.as_deref().map(clean),
         poster: https_only(m.poster),
         released: m.released.as_deref().and_then(|r| r.get(..10)).map(clean),
+        popularity: m.popularities.and_then(|p| p.moviedb),
     })
 }
 
@@ -414,6 +434,7 @@ mod tests {
             excluded: false,
             poster: None,
             released: released.map(Into::into),
+            popularity: None,
         };
         let d = |s: &str| NaiveDate::parse_from_str(s, "%Y-%m-%d").unwrap();
         let (from, to) = (d("2026-09-01"), d("2026-11-14"));

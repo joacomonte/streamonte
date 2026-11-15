@@ -27,6 +27,8 @@ impl EventSink for TauriSink {
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let sink = Arc::new(TauriSink(app.handle().clone()));
             let core = tauri::async_runtime::block_on(AppCore::start(sink))?;
@@ -46,8 +48,9 @@ pub fn run() {
             api.prevent_close();
             let app = window.app_handle().clone();
             let core = app.state::<Arc<AppCore>>().inner().clone();
-            if core.active_playbacks() > 0 {
-                let _ = app.emit("core://confirm-close", core.active_playbacks());
+            let active = core.active_playbacks();
+            if active > 0 {
+                TauriSink(app.clone()).emit(CoreEvent::ConfirmClose { active });
                 return;
             }
             tauri::async_runtime::spawn(async move {
@@ -85,9 +88,13 @@ pub fn run() {
             commands::clean_temp,
             commands::open_downloads_folder,
             commands::config_get,
-            commands::config_set,
-            commands::subtitles_set_api_key,
-            commands::subtitles_api_keys,
+            commands::config_set_network,
+            commands::api_key_set,
+            commands::api_keys,
+            commands::catalog_poster,
+            commands::catalog_swarm,
+            commands::catalog_scrape,
+            commands::catalog_subtitles,
             commands::open_key_page,
             commands::catalog_search,
             commands::catalog_meta,
@@ -96,11 +103,13 @@ pub fn run() {
             commands::catalog_streams,
             commands::catalog_stop_streams,
             commands::catalog_analyze,
+            commands::catalog_add,
             commands::catalog_addons,
             commands::catalog_add_addon,
             commands::catalog_remove_addon,
             commands::catalog_set_addon_enabled,
             commands::catalog_reset_addons,
+            commands::catalog_set_exclude_japanese,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar Torrent Stream");

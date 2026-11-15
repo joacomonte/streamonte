@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "La UI solo puede invocar los comandos propios de la app y escuchar eventos. Sin acceso directo a fs/shell (NFR-01, NFR-16).",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten", "process:allow-restart", "updater:default"]
 }

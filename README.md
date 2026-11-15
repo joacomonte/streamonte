@@ -8,6 +8,19 @@ La v1 (`C:\Users\Monti\bin`) queda congelada como referencia.
 
 F0 validado por el usuario (2026-11-13).
 
+### Root-fix (2026-11-15; falta validar en la app) — detalle en `docs/plans/root-fix-app.md`
+
+- **Una fila por episodio:** fila, reproducción, pausada, "Retomar" y subtítulo recordado se
+  identifican por `VideoKey` (`<hash>` · `<hash>:s3e2` · `<hash>:f12`), no solo por hash. El
+  análisis de velocidad sigue por torrent y vale para todas sus filas.
+- **Descargas pausadas y análisis** viven en la caché de la app (`<cache>/downloads`), no en la
+  carpeta temporal del sistema (que el SO purga). Al abrir se mueven una vez desde la ubicación vieja.
+- **Config con un solo escritor** (`AppCore::update_config`); la UI cambia de a un ajuste. El
+  factor de calibración vive solo en `calibration.json`.
+- **Protocolo del sidecar 0.3.0:** `shutdown`/cierre de stdin ya no borran datos; sin
+  `onlyFile`/`startDeselected`/`mode` ni notificación `metadata`.
+- Logs de diagnóstico rotan por día (`diag-*.<fecha>.log`, 7 archivos); el de mpv IPC pasó a `diag-mpv-ipc`.
+
 ### Conexiones entrantes y DHT persistente (ADR-30, 2026-11-14; falta medirlo en la red del usuario)
 
 - El motor de cada **reproducción** (rqbit) escucha conexiones entrantes en TCP: prueba los puertos
@@ -92,7 +105,7 @@ Pestaña **Buscar** (Ctrl+F): buscar en Cinemeta → ficha (serie: temporada →
 - FR-29b (rev. 2026-11-14): filas del diseño aprobado `design/cards-v3.html` — título limpio + año/episodio (`LibraryEntry.release`, reusa `parse_release_name` y `catalog::normalize::parse`), nombre crudo con marquesina y copiar, "78 Mbps" + sello "3,9×" (revela "/ 20 Mbps"), botones **Análisis rápido** (`analyze {kind:'quick'}` → `AnalyzeScope::QuickOnly`) y **Medir velocidad**, detalle desplegable con % bajado (bytes reales en disco del análisis o de la reproducción pausada, el máximo; en vivo mientras se mide), calidad y el enjambre siempre visible; sin panel "Reproducciones": estado + Detener/Cancelar en la fila, carpeta/borrar/log en el menú contextual, actividad de fondo abajo a la derecha (`ui/src/activity.js`: una burbuja flotante sobre la barra de estado, con lo último que se está haciendo, que al tocarla abre hacia arriba el log en vivo de todo lo de fondo, fijar/vaciar; alimentada por los eventos y por el log del núcleo vía `crates/core/src/activity.rs` → `CoreEvent::Activity`, ≤ 8/s y sin secretos); al analizar, "preparando…" inmediato con la fase real (`SpeedProgress.phase`: conectando → metadatos → precargando → midiendo → duración), botones deshabilitados mientras tanto y rollback si falla; el analizador ignora pedidos repetidos; "Reiniciar análisis" (detalle y menú contextual, `analyzer_restart`) lo vuelve a pedir desde cero aunque esté trabado; al retomar una pausada se reusa lo bajado al medir si es más (`merge_analysis`); tooltips propios en toda la app (burbuja animada con flecha, título en negrita y teclas; nunca el nativo); tema claro/oscuro del sistema. Prueba: `analisis_rapido_no_mide_velocidad`, `titulo_limpio_y_calidad_de_los_nombres_del_diseno`.
 - FR-09b: ▶ pregunta Latino / Inglés si hay varios audios en un selector anclado al botón Ver (`AudioPick` → `--aid` o `--alang`; subtítulos ocultos con audio en español; se recuerda en `.tstream-kept.json`).
 - FR-12c: al cerrar mpv sin terminar de bajar, la app pregunta "¿Seguir bajando de fondo o pausar?" (`ask-after-close`); "Seguir bajando" (`keep-downloading`) deja el motor bajando sin reproductor (`background`) hasta completar o pausar; sin respuesta en 2 min, pausa como antes.
-- FR-22b: al analizar se bajan de fondo hasta 5 subtítulos en el idioma configurado (Wyzie + Subdivx, sin gastar la cuota de OpenSubtitles) a la caché del video y se copian junto al video como `<video>.es.srt`, `<video>.es-2.srt`… (`subtitles::session::fetch`, compartida con la reproducción).
+- FR-22b: al analizar se bajan de fondo hasta 5 subtítulos por video: primero el idioma configurado (español: latino, después España/sin variante) y, si no llegan a 5, se completa con el otro (inglés). Fuentes: Wyzie + Subdivx + Gestdown + Subtitulamos (estas dos, solo series), sin gastar la cuota de OpenSubtitles. Una sola búsqueda por película/episodio (`VideoIdentity::video_id`: IMDb id del catálogo + SxxEyy, si no título + año/SxxEyy): otro torrent del mismo video reusa esa caché y solo copia los archivos junto a su video como `<video>.es.default.srt`, `<video>.es-b.srt`, `<video>.es-c.srt`, `<video>.en.srt`, `<video>.en-b.srt` (mpv los carga todos solo y elige el `.default`; `es-2`/`es-419` no los carga). Lógica compartida con la reproducción (`subtitles::session::fetch`).
 
 ### Ajustes pedidos tras validar F3 (2026-11-13)
 
@@ -110,7 +123,7 @@ Q-10 resuelta por el usuario: "dejarla" al cerrar = mpv sigue con lo que tiene e
 
 | Requisito | Cómo se demuestra | Resultado |
 |---|---|---|
-| FR-14 panel integrado (nombre · estado · progreso · velocidad · peers) | `ui/src/app.js` (`renderPlaybacks`) con eventos `playback-updated` | implementado · **validar en la app** |
+| FR-14 panel integrado (nombre · estado · progreso · velocidad · peers) | `ui/src/library-rows.js` con eventos `playback-updated` | implementado · **validar en la app** |
 | FR-15 pausar/reanudar · detener · detener y borrar · carpeta · detalle (log en vivo) | botones por fila → `playback_action` / `playback_log` | implementado · **validar en la app** |
 | FR-16 detener todo y limpiar (incluye huérfanos) | `AppCore::stop_all_and_clean` → `stop_all` + `clean_orphans` | ✔ |
 | FR-17 al cerrar con reproducciones: preguntar | `on_window_event(CloseRequested)` → diálogo (Detener todo / Dejar el reproductor abierto / Cancelar) | implementado · **validar en la app** |
@@ -216,15 +229,20 @@ tstream-v2/
 │  ├─ src/
 │  │  ├─ lib.rs               mapa de módulos y reglas de dependencia
 │  │  ├─ error.rs events.rs   errores con mensaje claro (NFR-12) · eventos núcleo→UI
-│  │  ├─ paths.rs config.rs logger.rs                 (nivel 0)
-│  │  ├─ magnet.rs ranking.rs storage.rs              (nivel 1, puros)
-│  │  ├─ clipboard.rs library.rs trackers.rs player.rs cleanup.rs
-│  │  ├─ engine/{mod,webtorrent,rqbit}.rs             (nivel 2, E/S)
-│  │  ├─ preload.rs analyzer.rs playback.rs subtitles.rs (nivel 3)
-│  │  └─ app.rs               AppCore: única puerta para la UI
+│  │  ├─ paths.rs config.rs logger.rs activity.rs fsutil.rs     (nivel 0)
+│  │  ├─ magnet.rs video_key.rs release.rs audio.rs ranking.rs  (nivel 1, puros)
+│  │  ├─ http.rs secrets.rs external.rs clipboard.rs library.rs trackers.rs player.rs cleanup.rs
+│  │  ├─ engine/{mod,webtorrent,rqbit}.rs + engine/rqbit/{net,fastresume,http}.rs (nivel 2)
+│  │  ├─ preload.rs · analyzer.rs + analyzer/{queue,live,pipeline,speed,subs,names}.rs
+│  │  ├─ playback.rs + playback/{flow,kept,calibration}.rs
+│  │  ├─ subtitles.rs + subtitles/{fetch,session,merge,secrets,providers/…}.rs
+│  │  ├─ catalog/{http,cinemeta,addons,normalize,aggregate,protocol}.rs  (nivel 3)
+│  │  └─ app.rs intake.rs     AppCore: única puerta para la UI · entrada de magnets
 │  └─ tests/acceptance.rs     trazabilidad de CA
 ├─ src-tauri/                 cáscara: ventana, comandos 1:1 con AppCore, eventos
 ├─ ui/                        HTML/CSS/JS sin bundler; ui/src/api.js = espejo de los comandos
+│                             app.js arranque + eventos · state/dom/format · library-rows ·
+│                             dialogs · audio-picker · catalog · activity-feed · tooltip · marquee
 ├─ engines/webtorrent-sidecar/  sidecar Node (JSON-RPC por stdio) — esqueleto
 ├─ docs/engine-protocol.md    contrato núcleo ↔ sidecar (PROPUESTO)
 └─ .github/workflows/ci.yml
@@ -243,3 +261,14 @@ npx @tauri-apps/cli@2 icon src-tauri/icons/app-icon.png   # regenerar íconos
 ```
 
 Instalación automática en Windows (winget): `powershell -ExecutionPolicy Bypass -File .\scripts\install-toolchain.ps1`
+
+## Release
+1. Subir `version` en `src-tauri/tauri.conf.json` (y `[workspace.package] version` en `Cargo.toml`), p. ej. `0.2.0`.
+2. Commit, después `git tag v0.2.0 && git push origin main v0.2.0`.
+3. El workflow `release` crea un release borrador, compila Mac (dmg universal) y Windows (`-setup.exe`) en paralelo, escribe `latest.json` (lo consultan las apps instaladas al arrancar) y lo publica.
+
+La clave de firma del updater vive fuera del repo (`/Users/monti/.tauri/tstream-v2.key`, sin contraseña) y en el secreto
+`TAURI_SIGNING_PRIVATE_KEY`. Si se pierde, las apps instaladas no pueden actualizarse: hay que reinstalar a mano.
+
+Requisito del usuario final: mpv instalado (la app lo busca en PATH y rutas típicas; si no, se elige en Ajustes).
+El motor por defecto (rqbit) va embebido; el sidecar webtorrent (Node) no se incluye en el instalador.

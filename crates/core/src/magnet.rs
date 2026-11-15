@@ -94,6 +94,11 @@ impl Magnet {
                 "xt" if info_hash.is_none() => {
                     let value = percent_decode(value, false);
                     if let Some(hash) = strip_prefix_ci(&value, "urn:btih:") {
+                        // Basura pegada al hash (`HASH)`, `HASH,`): hex y base32 son alfanuméricos.
+                        let hash = hash
+                            .split(|c: char| !c.is_ascii_alphanumeric())
+                            .next()
+                            .unwrap_or_default();
                         info_hash = Some(InfoHash::parse(hash)?);
                     }
                 }
@@ -188,7 +193,8 @@ pub fn is_only_magnets(text: &str) -> bool {
 const MAGNET_PREFIX: &str = "magnet:?";
 
 /// Trozos de texto que empiezan con `magnet:?` (sin distinguir mayúsculas) y terminan en
-/// espacio, comillas o `<>` (magnets pegados desde HTML o JSON).
+/// espacio, comillas o `<>` (magnets pegados desde HTML o JSON), sin la puntuación final
+/// del texto que lo rodea (`[x](magnet:…)`, `magnet:…,`).
 fn magnet_spans(text: &str) -> Vec<&str> {
     let lower = text.to_ascii_lowercase();
     let mut spans = Vec::new();
@@ -198,10 +204,27 @@ fn magnet_spans(text: &str) -> Vec<&str> {
         let end = text[start..]
             .find(|c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '<' | '>'))
             .map_or(text.len(), |e| start + e);
-        spans.push(&text[start..end]);
+        spans.push(trim_trailing_punct(&text[start..end]));
         from = end;
     }
     spans
+}
+
+/// Quita `,.;` finales y `)]}` que no cierran nada abierto dentro del magnet
+/// (`dn=Sintel+(2010)` conserva su paréntesis).
+fn trim_trailing_punct(mut span: &str) -> &str {
+    loop {
+        let unbalanced = |open: char, close: char| {
+            span.matches(close).count() > span.matches(open).count()
+        };
+        span = match span.chars().last() {
+            Some(',' | '.' | ';') => &span[..span.len() - 1],
+            Some(')') if unbalanced('(', ')') => &span[..span.len() - 1],
+            Some(']') if unbalanced('[', ']') => &span[..span.len() - 1],
+            Some('}') if unbalanced('{', '}') => &span[..span.len() - 1],
+            _ => return span,
+        };
+    }
 }
 
 fn strip_prefix_ci<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
@@ -318,6 +341,25 @@ mod tests {
         assert_eq!(all.len(), 2);
         assert_eq!(all[0].info_hash.to_hex(), HEX);
         assert_eq!(all[1].info_hash.to_hex(), other);
+    }
+
+    #[test]
+    fn puntuacion_alrededor_del_magnet() {
+        let other = "c9e15763f722f23e98a29decdfae341b98d53056";
+        let text = format!(
+            "[x](magnet:?xt=urn:btih:{HEX}&tr=udp%3A%2F%2Fa%3A1), magnet:?xt=urn:btih:{other}&dn=Sintel+(2010)."
+        );
+        let all = extract_all_with_raw(&text);
+        assert_eq!(all.len(), 2);
+        assert_eq!(all[0].0.trackers, vec!["udp://a:1".to_string()]);
+        assert_eq!(
+            all[0].1,
+            format!("magnet:?xt=urn:btih:{HEX}&tr=udp%3A%2F%2Fa%3A1")
+        );
+        assert_eq!(all[1].0.display_name.as_deref(), Some("Sintel (2010)"));
+        // El hash se corta en lo primero que no es alfanumérico.
+        let m = Magnet::parse(&format!("magnet:?xt=urn:btih:{HEX})")).unwrap();
+        assert_eq!(m.info_hash.to_hex(), HEX);
     }
 
     #[test]

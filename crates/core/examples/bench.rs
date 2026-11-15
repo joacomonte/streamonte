@@ -27,7 +27,6 @@ use tstream_core::player::{LaunchRequest, MpvEvent, PlayerLauncher};
 use tstream_core::preload;
 
 const SEEKS: [f64; 3] = [25.0, 50.0, 90.0];
-const VIDEO_EXT: &[&str] = &["mkv", "mp4", "m4v", "mov", "avi", "webm", "ts"];
 
 #[derive(Default, Clone)]
 struct RunResult {
@@ -171,7 +170,7 @@ async fn run_once(
         );
     }
     let hash = magnet.info_hash.to_hex();
-    let _ = std::fs::remove_file(paths.torrent_cache_dir().join(format!("{hash}.torrent")));
+    let _ = std::fs::remove_file(paths.torrent_cache_file(&magnet.info_hash));
     let dir = paths
         .downloads_dir()
         .join(format!("bench-{hash}-{kind:?}-{run}"));
@@ -180,7 +179,7 @@ async fn run_once(
 
     let t0 = Instant::now();
     let secs = |t: Instant| t.elapsed().as_secs_f32();
-    let engine = match engine::create(&cfg.engine).await {
+    let engine = match engine::create(&cfg.engine, paths).await {
         Ok(e) => e,
         Err(e) => {
             r.error = Some(e.to_string());
@@ -195,7 +194,7 @@ async fn run_once(
                     Some(path) => TorrentSource::TorrentFile(path.clone()),
                     None => TorrentSource::Magnet(magnet.with_trackers(&cfg.trackers)),
                 },
-                AddOptions { trackers: cfg.trackers.clone(), download_dir: dir.clone(), only_file: None, start_deselected: true },
+                AddOptions { trackers: cfg.trackers.clone(), download_dir: dir.clone() },
             )
             .await
             .map_err(|e| e.to_string())?;
@@ -327,15 +326,9 @@ async fn run_once(
 }
 
 fn largest_video(files: &[FileInfo]) -> Option<FileInfo> {
-    let is_video = |f: &&FileInfo| {
-        std::path::Path::new(&f.name)
-            .extension()
-            .and_then(|e| e.to_str())
-            .is_some_and(|e| VIDEO_EXT.contains(&e.to_ascii_lowercase().as_str()))
-    };
     files
         .iter()
-        .filter(is_video)
+        .filter(|f| engine::is_video(&f.name))
         .max_by_key(|f| f.size)
         .or_else(|| files.iter().max_by_key(|f| f.size))
         .cloned()

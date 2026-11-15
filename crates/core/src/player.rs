@@ -3,17 +3,17 @@
 //!
 //! - Lanzamiento DIRECTO (sin shell) como hijo de la app → detectamos su salida (lección 6).
 //! - mpv: `--input-ipc-server` = named pipe `\\.\pipe\tstream-<id>` (Windows) / socket unix en temp (macOS).
-//! - Perfil propio: `--config-dir=<data>/mpv` → no pisa la config personal (FR-34).
+//! - Perfil propio (`--config-dir`, FR-34) todavía no: por ahora se respeta la config personal del usuario.
 //! - VLC: sin IPC; solo lanzamiento y salida (subtítulos/sync son solo mpv).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{ExitStatus, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use serde_json::Value;
+use serde_json::{json, Value};
 use tokio::sync::broadcast;
 
 use crate::config::{PlayerConfig, PlayerKind};
@@ -21,6 +21,8 @@ use crate::paths::{find_executable, AppPaths, Executable};
 use crate::{CoreError, Result};
 
 const IPC_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+/// Cuánto se espera a que mpv cierre solo con `quit` antes de matarlo.
+const QUIT_TIMEOUT: Duration = Duration::from_secs(2);
 static NEXT_IPC: AtomicU64 = AtomicU64::new(1);
 
 /// En Windows, `mpv.com` (el que suele quedar en PATH) es un envoltorio de consola que abre una
@@ -34,6 +36,43 @@ fn prefer_gui_binary(path: PathBuf) -> PathBuf {
         exe
     } else {
         path
+    }
+}
+
+/// Ruta de un IPC de mpv nuevo y único en el proceso: `<prefix>-<pid>-<n>`.
+fn new_ipc_path(prefix: &str) -> String {
+    let name = format!(
+        "{prefix}-{}-{}",
+        std::process::id(),
+        NEXT_IPC.fetch_add(1, Ordering::Relaxed)
+    );
+    crate::mpv_ipc::ipc_path(&name)
+}
+
+/// Lanza el reproductor directo, sin shell y sin stdio (lecciones 6 y 8): sabemos cuándo se
+/// cierra y el URL no se corta. `background` (medición): muere si se suelta el `Child` y, en
+/// Windows, sin ventana de consola (mpv.com) ni parpadeos.
+fn spawn_player(exe: &Path, args: &[String], background: bool) -> Result<tokio::process::Child> {
+    let mut cmd = tokio::process::Command::new(exe);
+    cmd.args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .kill_on_drop(background);
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        if background {
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+    }
+    cmd.spawn().map_err(|e| CoreError::Player(format!("{}: {e}", exe.display())))
+}
+
+/// Muerto de golpe, mpv no borra su socket unix (en Windows el named pipe se va solo).
+fn remove_ipc_socket(ipc_path: &str) {
+    if cfg!(not(windows)) {
+        let _ = std::fs::remove_file(ipc_path);
     }
 }
 
@@ -86,22 +125,47 @@ pub struct PlayerSession {
     /// Solo mpv.
     pub mpv: Option<std::sync::Arc<dyn MpvControl>>,
     child: tokio::process::Child,
+    /// IPC de mpv: en macOS/Linux su socket queda en la carpeta temporal si mpv muere de golpe.
+    ipc_path: Option<String>,
 }
 
 impl PlayerSession {
     /// Espera a que el usuario cierre el reproductor (FR-12).
     pub async fn wait_exit(&mut self) -> Result<ExitStatus> {
-        self.child
+        let status = self
+            .child
             .wait()
             .await
-            .map_err(|e| crate::CoreError::Player(e.to_string()))
+            .map_err(|e| crate::CoreError::Player(e.to_string()));
+        self.remove_socket_file();
+        status
     }
 
+    /// Pide `quit` por IPC (mpv cierra limpio); si no cierra en [`QUIT_TIMEOUT`], lo mata.
     pub async fn kill(&mut self) -> Result<()> {
-        self.child
-            .kill()
-            .await
-            .map_err(|e| crate::CoreError::Player(e.to_string()))
+        let mut exited = false;
+        if let Some(mpv) = &self.mpv {
+            let _ = tokio::time::timeout(QUIT_TIMEOUT, mpv.command(&[json!("quit")])).await;
+            exited = tokio::time::timeout(QUIT_TIMEOUT, self.child.wait())
+                .await
+                .is_ok();
+        }
+        let result = if exited {
+            Ok(())
+        } else {
+            self.child
+                .kill()
+                .await
+                .map_err(|e| crate::CoreError::Player(e.to_string()))
+        };
+        self.remove_socket_file();
+        result
+    }
+
+    fn remove_socket_file(&self) {
+        if let Some(path) = &self.ipc_path {
+            remove_ipc_socket(path);
+        }
     }
 }
 
@@ -122,12 +186,7 @@ impl PlayerLauncher {
                     find_executable(Executable::Mpv, self.config.mpv_path.as_deref())
                         .ok_or(CoreError::ExecutableNotFound { name: "mpv" })?,
                 );
-                let name = format!(
-                    "tstream-mpv-{}-{}",
-                    std::process::id(),
-                    NEXT_IPC.fetch_add(1, Ordering::Relaxed)
-                );
-                let ipc = crate::mpv_ipc::ipc_path(&name);
+                let ipc = new_ipc_path("tstream-mpv");
                 (exe, self.mpv_args(&req, &ipc), Some(ipc))
             }
             PlayerKind::Vlc => {
@@ -145,19 +204,11 @@ impl PlayerLauncher {
         };
 
         tracing::info!(?exe, player = ?req.kind, "lanzando reproductor");
-        // Directo, sin shell (lecciones 6 y 8): sabemos cuándo se cierra y el URL no se corta.
-        let child = tokio::process::Command::new(&exe)
-            .args(&args)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .kill_on_drop(false)
-            .spawn()
-            .map_err(|e| CoreError::Player(format!("{}: {e}", exe.display())))?;
+        let child = spawn_player(&exe, &args, false)?;
         let pid = child.id().unwrap_or_default();
 
-        let mpv: Option<Arc<dyn MpvControl>> = match ipc {
-            Some(path) => match crate::mpv_ipc::MpvIpc::connect(&path, IPC_CONNECT_TIMEOUT).await {
+        let mpv: Option<Arc<dyn MpvControl>> = match &ipc {
+            Some(path) => match crate::mpv_ipc::MpvIpc::connect(path, IPC_CONNECT_TIMEOUT).await {
                 Ok(ipc) => Some(ipc),
                 Err(e) => {
                     // Sin IPC igual se puede ver; se pierden subtítulos/sync/métrica de primera imagen.
@@ -172,6 +223,7 @@ impl PlayerLauncher {
             pid,
             mpv,
             child,
+            ipc_path: ipc,
         })
     }
 
@@ -204,22 +256,6 @@ impl PlayerLauncher {
         args.push(req.url.clone());
         args
     }
-
-    /// Escribe `<data>/mpv/{mpv.conf,input.conf,scripts/}` si falta o cambió la versión (FR-34/35).
-    pub fn ensure_app_profile(&self) -> Result<()> {
-        todo!("F5")
-    }
-}
-
-/// Duración REAL leyendo solo lo necesario, sin ventana (FR-06, lección 9):
-/// `mpv --no-config --vo=null --ao=null --idle=no` + IPC `get_property duration`.
-///
-/// `--pause` evita que reproduzca (lee solo cabecera/índice, que el analizador ya precargó).
-/// mpv se mata siempre al terminar, haya o no respuesta.
-pub async fn probe_duration(mpv: &std::path::Path, url: &str, timeout: Duration) -> Result<f64> {
-    probe_media(mpv, url, timeout)
-        .await
-        .map(|p| p.duration_secs)
 }
 
 /// Lo que se lee del video sin ventana: duración y pistas de audio (idioma, 2026-11-14).
@@ -250,21 +286,19 @@ fn audio_tracks(list: &serde_json::Value) -> Vec<crate::audio::AudioTrack> {
         .collect()
 }
 
-/// Como [`probe_duration`], y además las pistas de audio (vienen en la misma cabecera).
+/// Duración REAL y pistas de audio leyendo solo lo necesario, sin ventana (FR-06, lección 9):
+/// `mpv --no-config --vo=null --ao=null --idle=no` + IPC `get_property duration`/`track-list`.
+///
+/// `--pause` evita que reproduzca (lee solo cabecera/índice, que el analizador ya precargó).
+/// mpv se mata siempre al terminar, haya o no respuesta.
 pub async fn probe_media(
     mpv: &std::path::Path,
     url: &str,
     timeout: Duration,
 ) -> Result<MediaProbe> {
     let exe = prefer_gui_binary(mpv.to_path_buf());
-    let name = format!(
-        "tstream-probe-{}-{}",
-        std::process::id(),
-        NEXT_IPC.fetch_add(1, Ordering::Relaxed)
-    );
-    let ipc_path = crate::mpv_ipc::ipc_path(&name);
-    let mut cmd = tokio::process::Command::new(&exe);
-    cmd.args([
+    let ipc_path = new_ipc_path("tstream-probe");
+    let args: Vec<String> = [
         "--no-config",
         "--vo=null",
         "--ao=null",
@@ -274,20 +308,11 @@ pub async fn probe_media(
         "--network-timeout=60",
         &format!("--input-ipc-server={ipc_path}"),
         url,
-    ])
-    .stdin(Stdio::null())
-    .stdout(Stdio::null())
-    .stderr(Stdio::null())
-    .kill_on_drop(true);
-    #[cfg(windows)]
-    {
-        // Sin ventana de consola (mpv.com) ni parpadeos: es una medición de fondo.
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| CoreError::Player(format!("{}: {e}", exe.display())))?;
+    ]
+    .map(String::from)
+    .into();
+    // Medición de fondo: sin ventana y muere si se suelta.
+    let mut child = spawn_player(&exe, &args, true)?;
 
     let result = tokio::time::timeout(timeout, async {
         let ipc = crate::mpv_ipc::MpvIpc::connect(&ipc_path, timeout).await?;
@@ -320,5 +345,6 @@ pub async fn probe_media(
         secs: timeout.as_secs(),
     }));
     let _ = child.kill().await;
+    remove_ipc_socket(&ipc_path);
     result
 }

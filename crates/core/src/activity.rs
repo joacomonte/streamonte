@@ -4,7 +4,7 @@
 //! resultado de UPnP) como [`CoreEvent::Activity`] por el `EventSink` de la app.
 //! - Límite: como mucho [`MAX_PER_SEC`] por segundo; lo que sobra se cuenta y se avisa una vez.
 //! - Nunca manda secretos: URLs con configuración en el path o en la query se enmascaran
-//!   (`catalog::http::redact`) y `key=…`, `token=…`, `password=…`, `Bearer …` quedan en `****`.
+//!   (`http::redact`) y `key=…`, `token=…`, `password=…`, `Bearer …` quedan en `****`.
 
 use std::cell::Cell;
 use std::fmt::Write as _;
@@ -101,7 +101,7 @@ fn wanted(m: &Metadata<'_>) -> bool {
     let lvl = *m.level();
     (t.starts_with("tstream") && lvl <= Level::INFO)
         || lvl <= Level::WARN
-        || (t.starts_with("librqbit_upnp") && lvl <= Level::DEBUG)
+        || crate::logger::upnp_result(m)
 }
 
 /// Ventana de 1 s con [`MAX_PER_SEC`] lugares. `allow` devuelve cuántos se descartaron desde
@@ -205,7 +205,7 @@ pub fn redact(text: &str) -> String {
             out.push(format!(
                 "{}{}{}",
                 &word[..i],
-                crate::catalog::http::redact(&word[i..end]),
+                crate::http::redact(&word[i..end]),
                 &word[end..]
             ));
             continue;

@@ -3,9 +3,8 @@
 //! 1. Registra las teclas de la app en mpv con `define-section` + `enable-section` (IPC):
 //!    son una capa encima de la config del usuario, que no se toca (FR-34). Se eligió esto y no
 //!    `--input-conf` porque `--input-conf` REEMPLAZA el `input.conf` personal del usuario.
-//! 2. En segundo plano (NFR-10: la película ya está andando): hash del video, IMDb id, búsqueda
-//!    en torrent → Wyzie → Subdivx (en paralelo), ranking, descarga de hasta 5; si faltan,
-//!    OpenSubtitles (cuota de 20/día, va último).
+//! 2. En segundo plano (NFR-10: la película ya está andando): busca y baja hasta 5
+//!    ([`super::fetch`]).
 //! 3. Carga en mpv cada uno como pista propia + el ASS fusionado "comparar" (FR-25, ADR-11).
 //! 4. Teclas: 1–5 elige uno · 0 todos · S on/off · Z/X ±0,1 s · Shift+Z/X ±1 s · R reset.
 //!    Cada elección y cada ajuste se recuerdan por info hash (FR-28).
@@ -17,18 +16,17 @@ use std::time::Duration;
 use serde_json::{json, Value};
 use tokio::sync::broadcast::error::RecvError;
 
-use super::providers::{
-    self, OpenSubtitlesProvider, SubdivxProvider, TorrentProvider, TorrentSubtitleFile,
-    WyzieProvider,
-};
+use super::providers::{self, TorrentSubtitleFile};
 use super::{
-    apply_sync_key, merge_ass, sync_message, top_candidates, LabeledSubtitle, SubtitleCandidate,
-    SubtitleChoice, SubtitleMemory, SubtitleProvider, SyncKey, VideoIdentity, CHOICE_ALL,
-    MAX_SUBTITLES,
+    apply_sync_key, merge_ass, sync_message, LabeledSubtitle, SubtitleCandidate, SubtitleChoice,
+    SubtitleMemory, SyncKey, VideoIdentity, CHOICE_ALL,
 };
 use crate::config::SubtitleLanguage;
-use crate::magnet::InfoHash;
 use crate::player::{MpvControl, MpvEvent};
+use crate::video_key::VideoKey;
+
+// La búsqueda vive en `fetch`; se re-exporta acá porque el analizador la llama por este camino.
+pub use super::fetch::{fetch, Fetch, LogFn};
 
 /// Teclas de la app (FR-25, FR-26). `Z`/`X` en mayúscula = Shift.
 const KEY_SECTION: &str = "tstream-subtitulos";
@@ -49,17 +47,13 @@ r script-message tstream sync-reset
 R script-message tstream sync-reset
 ";
 
-const SEARCH_TIMEOUT: Duration = Duration::from_secs(20);
-const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(40);
-const HASH_TIMEOUT: Duration = Duration::from_secs(10);
 const OSD: Duration = Duration::from_secs(4);
 const SYNC_HELP: &str = "Z: la voz llega antes · X: la voz llega después · Shift = 1 s · R: reset";
 
-pub type LogFn = Arc<dyn Fn(String) + Send + Sync>;
-
 pub struct SessionRequest {
     pub mpv: Arc<dyn MpvControl>,
-    pub info_hash: InfoHash,
+    /// El video que se ve: la elección recordada (FR-28) es de ESTE episodio, no del pack.
+    pub key: VideoKey,
     /// Ya parseado del nombre (sin hash ni IMDb: los calcula la sesión).
     pub video: VideoIdentity,
     /// URL del video en el motor (para leer los 64 KiB del principio y del final → hash).
@@ -68,7 +62,8 @@ pub struct SessionRequest {
     pub language: SubtitleLanguage,
     /// Audio ya en español (eligió Latino): se cargan igual pero arrancan ocultos (S los muestra).
     pub start_hidden: bool,
-    /// Carpeta de caché de ESTE video (`subtitle_cache_dir()/<hash>`).
+    /// Carpeta de caché de ESTE video (`subtitle_cache_dir()/<video_id>`, compartida con los otros
+    /// torrents del mismo video y con el análisis).
     pub cache_dir: PathBuf,
     pub memory_file: PathBuf,
     pub log: LogFn,
@@ -88,6 +83,8 @@ struct State {
     merged_sid: Option<i64>,
     /// Clave elegida ahora (para la memoria): `proveedor:id` o [`CHOICE_ALL`].
     current: Option<String>,
+    /// El usuario ya tocó Z/X/R: el desfase recordado no debe pisar su ajuste.
+    delay_adjusted: bool,
 }
 
 /// Corre hasta que mpv se cierra. Nunca falla: lo que no anda se anota en el log y se sigue.
@@ -105,12 +102,18 @@ pub async fn run(req: SessionRequest) {
         ));
     }
     let memory = Arc::new(SubtitleMemory::new(req.memory_file.clone()));
-    let remembered = memory.get(&req.info_hash).ok().flatten();
+    let language = req.language;
+    // FR-28: una elección recordada de otro idioma no aplica a esta sesión.
+    let remembered = memory
+        .get(&req.key)
+        .ok()
+        .flatten()
+        .filter(|c| c.language == language);
     let state = Arc::new(Mutex::new(State::default()));
-    let info_hash = req.info_hash;
+    let key = req.key;
 
     let search = tokio::spawn(find_and_load(req, state.clone(), remembered));
-    key_loop(events, mpv, state, memory, info_hash, log).await;
+    key_loop(events, mpv, state, memory, key, language, log).await;
     search.abort();
 }
 
@@ -127,149 +130,7 @@ async fn bind_keys(mpv: &dyn MpvControl) -> crate::Result<()> {
         .map(drop)
 }
 
-// ---------- búsqueda, descarga y carga ----------
-
-/// Qué buscar y dónde dejarlo, sin mpv: lo usa la sesión al reproducir y el analizador al
-/// analizar (2026-11-14: "buscar y descargar 5 subtítulos en español al analizar").
-pub struct Fetch {
-    pub video: VideoIdentity,
-    /// URL del video en el motor para el hash; `None` si ya viene en `video.movie_hash`.
-    pub video_url: Option<String>,
-    pub torrent_files: Vec<TorrentSubtitleFile>,
-    pub language: SubtitleLanguage,
-    pub cache_dir: PathBuf,
-    pub remembered: Option<SubtitleChoice>,
-    /// Completar con OpenSubtitles (cuota de 20/día): sí al reproducir, no al analizar.
-    pub opensubtitles: bool,
-    pub log: LogFn,
-}
-
-/// Busca en todas las fuentes y baja hasta [`MAX_SUBTITLES`] (a `cache_dir`, que funciona de
-/// caché: lo ya bajado no se vuelve a pedir). Nunca falla: lo que no anda va al log.
-pub async fn fetch(req: Fetch) -> Vec<(SubtitleCandidate, PathBuf)> {
-    let log = req.log.clone();
-    let lang = req.language;
-    let remembered = req.remembered.clone();
-    if lang == SubtitleLanguage::None {
-        return Vec::new();
-    }
-    // 1. Identidad: hash del video (inicio/fin) e IMDb id, en paralelo.
-    let mut video = req.video.clone();
-    let (hash, imdb) = tokio::join!(
-        tokio::time::timeout(HASH_TIMEOUT, async {
-            match &req.video_url {
-                Some(url) => video_hash(url, video.file_size).await,
-                None => None,
-            }
-        }),
-        providers::resolve_imdb(&video),
-    );
-    // Sin URL (al analizar) puede venir ya calculado desde el archivo en disco.
-    video.movie_hash = hash.ok().flatten().or(video.movie_hash);
-    video.imdb_id = imdb;
-    log(format!(
-        "subtítulos: buscando en {} · {} · hash {} · IMDb {}",
-        if lang == SubtitleLanguage::Es {
-            "español"
-        } else {
-            "inglés"
-        },
-        video.title.as_deref().unwrap_or("(sin título)"),
-        video
-            .movie_hash
-            .map_or("—".to_string(), |h| format!("{h:016x}")),
-        video.imdb_id.as_deref().unwrap_or("—"),
-    ));
-
-    // 2. Fuentes gratis en paralelo: torrent, Wyzie, Subdivx (Q-01..Q-04).
-    let free: Vec<Arc<dyn SubtitleProvider>> = vec![
-        Arc::new(TorrentProvider {
-            files: req.torrent_files.clone(),
-        }),
-        Arc::new(WyzieProvider::from_store()),
-        Arc::new(SubdivxProvider),
-    ];
-    let mut all = Vec::new();
-    for (provider, result) in search_all(&free, &video, lang).await {
-        match result {
-            Ok(found) => {
-                log(format!(
-                    "subtítulos: {} → {} candidato(s)",
-                    providers::display_name(provider),
-                    found.len()
-                ));
-                all.extend(found);
-            }
-            Err(e) => log(format!(
-                "subtítulos: {} omitido: {e}",
-                providers::display_name(provider)
-            )),
-        }
-    }
-    let mut ranked = top_candidates(all, usize::MAX);
-    if let Some(choice) = &remembered {
-        // FR-28: el elegido la otra vez va primero (si sigue apareciendo).
-        if let Some(i) = ranked.iter().position(|c| c.key() == choice.subtitle) {
-            let c = ranked.remove(i);
-            ranked.insert(0, c);
-        }
-    }
-    let mut loaded = download_best(ranked, MAX_SUBTITLES, &free, &req.cache_dir, &log).await;
-
-    // 3. OpenSubtitles solo si faltan para llegar a 5 (cuota 20/día, Q-01).
-    if loaded.len() < MAX_SUBTITLES && req.opensubtitles {
-        let os = OpenSubtitlesProvider::from_store();
-        if os.has_key() {
-            let os: Arc<dyn SubtitleProvider> = Arc::new(os);
-            match tokio::time::timeout(SEARCH_TIMEOUT, os.search(&video, lang)).await {
-                Ok(Ok(found)) => {
-                    log(format!(
-                        "subtítulos: OpenSubs → {} candidato(s)",
-                        found.len()
-                    ));
-                    let missing = MAX_SUBTITLES - loaded.len();
-                    let found = top_candidates(found, usize::MAX);
-                    let more = download_best(
-                        found,
-                        missing,
-                        std::slice::from_ref(&os),
-                        &req.cache_dir,
-                        &log,
-                    )
-                    .await;
-                    loaded.extend(more);
-                    if let Ok(Some(q)) = os.quota().await {
-                        log(format!(
-                            "subtítulos: cuota OpenSubtitles: quedan {} de {} hoy",
-                            q.remaining, q.per_day
-                        ));
-                    }
-                }
-                Ok(Err(e)) => log(format!("subtítulos: OpenSubs omitido: {e}")),
-                Err(_) => log("subtítulos: OpenSubs omitido: tardó demasiado".into()),
-            }
-        } else {
-            log("subtítulos: OpenSubs omitido: sin API key configurada".into());
-        }
-    }
-
-    // 4. El recordado, aunque hoy no haya salido entre los 5: desde la caché (FR-28).
-    if let Some(choice) = &remembered {
-        let present = loaded.iter().any(|(c, _)| c.key() == choice.subtitle);
-        if choice.subtitle != CHOICE_ALL && !present {
-            if let Some(path) = providers::cached_by_key(&req.cache_dir, &choice.subtitle) {
-                let label = choice
-                    .label
-                    .clone()
-                    .unwrap_or_else(|| choice.subtitle.clone());
-                loaded.insert(0, (remembered_candidate(&choice.subtitle, &label), path));
-                loaded.truncate(MAX_SUBTITLES);
-            }
-        }
-    }
-    dedup_by_content(&mut loaded, &log);
-    loaded
-}
+// ---------- carga en mpv ----------
 
 async fn find_and_load(
     req: SessionRequest,
@@ -298,14 +159,7 @@ async fn find_and_load(
         log("subtítulos: no encontré ninguno".into());
         let _ = mpv
             .show_text(
-                &format!(
-                    "No encontré subtítulos en {}",
-                    if lang == SubtitleLanguage::Es {
-                        "español"
-                    } else {
-                        "inglés"
-                    }
-                ),
+                &format!("No encontré subtítulos en {}", lang.name_es()),
                 OSD,
             )
             .await;
@@ -316,11 +170,6 @@ async fn find_and_load(
     // 5. Cargar en mpv: una pista por subtítulo + la fusionada (modo comparación).
     let mut tracks = Vec::new();
     let mut labeled = Vec::new();
-    let lang_code = if lang == SubtitleLanguage::Es {
-        "spa"
-    } else {
-        "eng"
-    };
     for (i, (cand, path)) in loaded.iter().enumerate() {
         let label = label_for(i + 1, cand);
         let title = format!("{label} [tstream]");
@@ -330,7 +179,7 @@ async fn find_and_load(
                 json!(path.to_string_lossy()),
                 json!("auto"),
                 json!(title),
-                json!(lang_code),
+                json!(cand.language.iso2().unwrap_or_default()),
             ])
             .await;
         if let Err(e) = added {
@@ -368,8 +217,13 @@ async fn find_and_load(
             .map(Some)
             .or_else(|| (c.subtitle == CHOICE_ALL && merged_sid.is_some()).then_some(None))
     });
-    let delay = remembered.as_ref().map_or(0.0, |c| c.delay_secs);
-    if delay != 0.0 {
+    let adjusted = state.lock().expect("state").delay_adjusted;
+    let delay = if adjusted {
+        current_delay(mpv.as_ref()).await
+    } else {
+        remembered.as_ref().map_or(0.0, |c| c.delay_secs)
+    };
+    if delay != 0.0 && !adjusted {
         let _ = mpv.set_property("sub-delay", json!(delay)).await;
     }
     let n = tracks.len();
@@ -410,120 +264,6 @@ async fn find_and_load(
     let _ = mpv.show_text(&text, Duration::from_secs(7)).await;
 }
 
-async fn search_all(
-    providers: &[Arc<dyn SubtitleProvider>],
-    video: &VideoIdentity,
-    lang: SubtitleLanguage,
-) -> Vec<(&'static str, crate::Result<Vec<SubtitleCandidate>>)> {
-    let mut set = tokio::task::JoinSet::new();
-    for (i, p) in providers.iter().enumerate() {
-        let p = p.clone();
-        let video = video.clone();
-        set.spawn(async move {
-            let r = match tokio::time::timeout(SEARCH_TIMEOUT, p.search(&video, lang)).await {
-                Ok(r) => r,
-                Err(_) => Err(crate::CoreError::Timeout {
-                    what: "búsqueda de subtítulos",
-                    secs: SEARCH_TIMEOUT.as_secs(),
-                }),
-            };
-            (i, p.id(), r)
-        });
-    }
-    let mut out = Vec::new();
-    while let Some(Ok(r)) = set.join_next().await {
-        out.push(r);
-    }
-    out.sort_by_key(|(i, _, _)| *i);
-    out.into_iter().map(|(_, id, r)| (id, r)).collect()
-}
-
-/// Baja en orden de ranking hasta tener `needed` (en paralelo por tandas; si uno falla,
-/// entra el siguiente de la lista).
-async fn download_best(
-    candidates: Vec<SubtitleCandidate>,
-    needed: usize,
-    providers: &[Arc<dyn SubtitleProvider>],
-    cache_dir: &std::path::Path,
-    log: &LogFn,
-) -> Vec<(SubtitleCandidate, PathBuf)> {
-    let mut out = Vec::new();
-    let mut rest = candidates.into_iter();
-    while out.len() < needed {
-        let batch: Vec<SubtitleCandidate> = rest.by_ref().take(needed - out.len()).collect();
-        if batch.is_empty() {
-            break;
-        }
-        let mut set = tokio::task::JoinSet::new();
-        for (i, cand) in batch.into_iter().enumerate() {
-            let Some(p) = providers.iter().find(|p| p.id() == cand.provider).cloned() else {
-                continue;
-            };
-            let dir = cache_dir.to_path_buf();
-            set.spawn(async move {
-                let r = tokio::time::timeout(DOWNLOAD_TIMEOUT, p.download(&cand, &dir)).await;
-                (i, cand, r)
-            });
-        }
-        let mut results = Vec::new();
-        while let Some(Ok(r)) = set.join_next().await {
-            results.push(r);
-        }
-        results.sort_by_key(|(i, _, _)| *i);
-        for (_, cand, r) in results {
-            match r {
-                Ok(Ok(path)) => out.push((cand, path)),
-                Ok(Err(e)) => log(format!("subtítulos: no se pudo bajar {}: {e}", cand.key())),
-                Err(_) => log(format!("subtítulos: {} tardó demasiado", cand.key())),
-            }
-        }
-    }
-    out
-}
-
-/// El mismo archivo puede venir de dos proveedores: se deja el primero (mejor rankeado).
-fn dedup_by_content(loaded: &mut Vec<(SubtitleCandidate, PathBuf)>, log: &LogFn) {
-    use std::hash::{Hash, Hasher};
-    let mut seen = std::collections::HashSet::new();
-    loaded.retain(|(cand, path)| {
-        let Ok(bytes) = std::fs::read(path) else {
-            return false;
-        };
-        let mut h = std::collections::hash_map::DefaultHasher::new();
-        bytes.hash(&mut h);
-        let fresh = seen.insert(h.finish());
-        if !fresh {
-            log(format!("subtítulos: {} repetido, se omite", cand.key()));
-        }
-        fresh
-    });
-}
-
-fn remembered_candidate(key: &str, label: &str) -> SubtitleCandidate {
-    let (provider, id) = key.split_once(':').unwrap_or(("?", key));
-    let provider = [
-        super::TORRENT_PROVIDER,
-        providers::WYZIE,
-        providers::SUBDIVX,
-        providers::OPENSUBTITLES,
-    ]
-    .into_iter()
-    .find(|p| *p == provider)
-    .unwrap_or("?");
-    // La etiqueta guardada ya trae "N · fuente/release": se usa el release.
-    let release = label.split_once('/').map_or(label, |(_, r)| r).to_string();
-    SubtitleCandidate {
-        provider,
-        provider_id: id.to_string(),
-        release_name: release,
-        language: SubtitleLanguage::Es,
-        match_kind: super::MatchKind::None,
-        downloads: 0,
-        variant: super::SpanishVariant::Unknown,
-        url: String::new(),
-    }
-}
-
 /// "1 · torrent/Sintel.es", "2 · Wyzie/Sintel.2010.1080p.WEB…".
 fn label_for(n: usize, cand: &SubtitleCandidate) -> String {
     let release = cand
@@ -561,7 +301,7 @@ async fn load_merged(
         }
     };
     let path = cache_dir.join(format!("comparar-{}.ass", subs.len()));
-    if let Err(e) = std::fs::write(&path, ass) {
+    if let Err(e) = providers::cache::write_atomic(&path, ass.as_bytes()) {
         log(format!(
             "subtítulos: no se pudo escribir {}: {e}",
             path.display()
@@ -629,7 +369,8 @@ async fn key_loop(
     mpv: Arc<dyn MpvControl>,
     state: Arc<Mutex<State>>,
     memory: Arc<SubtitleMemory>,
-    info_hash: InfoHash,
+    video_key: VideoKey,
+    language: SubtitleLanguage,
     log: LogFn,
 ) {
     loop {
@@ -643,7 +384,7 @@ async fn key_loop(
             a if a.starts_with("sub-") && !ready => "Buscando subtítulos… (un momento)".to_string(),
             "sub-all" => {
                 let t = select(mpv.as_ref(), &state, None).await;
-                remember(&mpv, &state, &memory, &info_hash).await;
+                remember(&mpv, &state, &memory, &video_key, language).await;
                 t
             }
             "sub-toggle" => {
@@ -663,7 +404,7 @@ async fn key_loop(
             a if a.starts_with("sub-") => {
                 let n: usize = a.trim_start_matches("sub-").parse().unwrap_or(0);
                 let t = select(mpv.as_ref(), &state, n.checked_sub(1)).await;
-                remember(&mpv, &state, &memory, &info_hash).await;
+                remember(&mpv, &state, &memory, &video_key, language).await;
                 t
             }
             a if a.starts_with("sync-") => {
@@ -674,10 +415,11 @@ async fn key_loop(
                     "sync-later-big" => SyncKey::VoiceLater { big: true },
                     _ => SyncKey::Reset,
                 };
+                state.lock().expect("state").delay_adjusted = true;
                 let current = current_delay(mpv.as_ref()).await;
                 let next = apply_sync_key(current, key);
                 let _ = mpv.set_property("sub-delay", json!(next)).await;
-                remember(&mpv, &state, &memory, &info_hash).await;
+                remember(&mpv, &state, &memory, &video_key, language).await;
                 format!("{}\n{SYNC_HELP}", sync_message(next))
             }
             other => {
@@ -706,7 +448,8 @@ async fn remember(
     mpv: &Arc<dyn MpvControl>,
     state: &Mutex<State>,
     memory: &SubtitleMemory,
-    info_hash: &InfoHash,
+    video_key: &VideoKey,
+    language: SubtitleLanguage,
 ) {
     let (key, label) = {
         let st = state.lock().expect("state");
@@ -725,35 +468,23 @@ async fn remember(
         subtitle: key,
         delay_secs: delay,
         label,
+        language,
     };
-    if let Err(e) = memory.set(info_hash, choice) {
+    if let Err(e) = memory.set(video_key, choice) {
         tracing::warn!("no se pudo guardar subtitles-memory.json: {e}");
     }
-}
-
-/// Hash OpenSubtitles leyendo 64 KiB del principio y del final por el motor (el principio ya
-/// está precargado; el final lo pide el stream).
-async fn video_hash(url: &str, size: u64) -> Option<u64> {
-    if url.is_empty() || size == 0 {
-        return None;
-    }
-    let chunk = 65_536u64.min(size);
-    let head = providers::fetch_range(url, 0, chunk).await.ok()?;
-    let tail = providers::fetch_range(url, size - chunk, chunk)
-        .await
-        .ok()?;
-    Some(super::movie_hash(size, &head, &tail))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::subtitles::fetch::remembered_candidate;
     use crate::subtitles::{MatchKind, SpanishVariant};
 
     #[test]
     fn etiquetas_cortas() {
         let c = SubtitleCandidate {
-            provider: crate::subtitles::TORRENT_PROVIDER,
+            provider: crate::subtitles::providers::TORRENT_PROVIDER,
             provider_id: "Sintel/Sintel.es.srt".into(),
             release_name: "Sintel.es.srt".into(),
             language: SubtitleLanguage::Es,
@@ -771,7 +502,12 @@ mod tests {
 
     #[test]
     fn candidato_recordado_desde_la_memoria() {
-        let c = remembered_candidate("opensubtitles:7001", "3 · OpenSubs/Sintel.2010.Web");
+        let c = remembered_candidate(
+            "opensubtitles:7001",
+            "3 · OpenSubs/Sintel.2010.Web",
+            SubtitleLanguage::En,
+        );
+        assert_eq!(c.language, SubtitleLanguage::En);
         assert_eq!(c.provider, providers::OPENSUBTITLES);
         assert_eq!(c.provider_id, "7001");
         assert_eq!(c.key(), "opensubtitles:7001");

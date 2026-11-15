@@ -6,8 +6,8 @@
 //!
 //! ## Requisitos que TODA implementación debe cumplir (spec 06, lecciones 1–6)
 //! 1. Sin relleno de ceros (NFR-09): pieza-por-archivo o sparse. Probado con > 10 GB escribiendo el final primero.
-//! 2. Rangos arbitrarios con prioridad EXCLUSIVA (`PriorityMode::Exclusive`): mientras haya rangos
-//!    exclusivos pendientes, no se pide ninguna otra pieza (lección 3). `add` arranca sin nada seleccionado.
+//! 2. `add` arranca SIEMPRE sin nada seleccionado, y `prioritize_ranges` es EXCLUSIVO: mientras
+//!    haya rangos pendientes, no se pide ninguna otra pieza (lección 3).
 //! 3. Evento `RangeReady` cuando un rango está completo y verificado (lección 2).
 //! 4. Acepta trackers extra (lección 4) y `max_connections` (lección 5).
 //! 5. Servidor HTTP con Range solo en 127.0.0.1 (NFR-16).
@@ -28,6 +28,7 @@ use tokio::sync::broadcast;
 
 use crate::config::{EngineConfig, EngineKind};
 use crate::magnet::{InfoHash, Magnet};
+use crate::paths::AppPaths;
 use crate::{CoreError, Result};
 
 /// Identificador opaco de un torrent dentro de un motor.
@@ -48,10 +49,6 @@ pub struct AddOptions {
     pub trackers: Vec<String>,
     /// Carpeta exclusiva de este torrent: `paths.downloads_dir()/<hash>-<id>`.
     pub download_dir: PathBuf,
-    /// Si se conoce, solo ese archivo podrá seleccionarse.
-    pub only_file: Option<usize>,
-    /// Lección 3: SIEMPRE `true` para reproducción; nada se baja hasta `prioritize_ranges`/`select_file`.
-    pub start_deselected: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -90,16 +87,10 @@ impl Metadata {
             return self.choose_file(pick.index);
         }
         if let Some((s, e)) = pick.episode {
-            let video = |f: &&FileInfo| {
-                std::path::Path::new(&f.name)
-                    .extension()
-                    .and_then(|x| x.to_str())
-                    .is_some_and(|x| VIDEO_EXTENSIONS.contains(&x.to_ascii_lowercase().as_str()))
-            };
             if let Some(f) = self
                 .files
                 .iter()
-                .filter(video)
+                .filter(|f| is_video(&f.name))
                 .filter(|f| names_episode(&f.name, s, e))
                 .max_by_key(|f| f.size)
             {
@@ -116,29 +107,24 @@ impl Metadata {
 }
 
 /// ¿El nombre trae este episodio? `S01E03`, `s1e03`, `1x03` (sin confundir `S01E030` ni `11x03`).
+/// La regla de "qué episodio es" vive en [`crate::release::season_episodes`].
 pub fn names_episode(name: &str, season: u32, episode: u32) -> bool {
-    let n = name.to_ascii_lowercase();
-    let bytes = n.as_bytes();
-    let patterns = [
-        format!("s{season:02}e{episode:02}"),
-        format!("s{season}e{episode:02}"),
-        format!("s{season}e{episode}"),
-        format!("{season}x{episode:02}"),
-    ];
-    patterns.iter().any(|p| {
-        n.match_indices(p.as_str()).any(|(i, _)| {
-            let before_ok = i == 0 || !bytes[i - 1].is_ascii_alphanumeric();
-            let end = i + p.len();
-            let after_ok = end >= bytes.len() || !bytes[end].is_ascii_digit();
-            before_ok && after_ok
-        })
-    })
+    crate::release::season_episodes(name)
+        .any(|(s, e)| u32::from(s) == season && e.map(u32::from) == Some(episode))
 }
 
 /// Extensiones que se consideran video al elegir qué archivo reproducir/medir.
 pub const VIDEO_EXTENSIONS: &[&str] = &[
     "mkv", "mp4", "m4v", "mov", "avi", "webm", "ts", "m2ts", "wmv",
 ];
+
+/// ¿La extensión del nombre es de video ([`VIDEO_EXTENSIONS`])?
+pub fn is_video(name: &str) -> bool {
+    std::path::Path::new(name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| VIDEO_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str()))
+}
 
 impl Metadata {
     /// El archivo pedido, o el video más grande, o el archivo más grande.
@@ -151,15 +137,9 @@ impl Metadata {
                 .cloned()
                 .ok_or_else(|| crate::CoreError::NotFound(format!("archivo {i} del torrent")));
         }
-        let is_video = |f: &&FileInfo| {
-            std::path::Path::new(&f.name)
-                .extension()
-                .and_then(|e| e.to_str())
-                .is_some_and(|e| VIDEO_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str()))
-        };
         self.files
             .iter()
-            .filter(is_video)
+            .filter(|f| is_video(&f.name))
             .max_by_key(|f| f.size)
             .or_else(|| self.files.iter().max_by_key(|f| f.size))
             .cloned()
@@ -174,7 +154,17 @@ impl Metadata {
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        if let Err(e) = std::fs::write(path, bytes) {
+        // Atómico (temporal + rename): un `.torrent` a medio escribir rompería el próximo `add`.
+        static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let mut tmp = path.as_os_str().to_owned();
+        tmp.push(format!(
+            ".{}-{}.tmp",
+            std::process::id(),
+            SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        let tmp = PathBuf::from(tmp);
+        if let Err(e) = std::fs::write(&tmp, bytes).and_then(|()| std::fs::rename(&tmp, path)) {
+            let _ = std::fs::remove_file(&tmp);
             tracing::warn!("no se pudo guardar el .torrent en caché: {e}");
         }
     }
@@ -185,14 +175,6 @@ impl Metadata {
 pub struct ByteRange {
     pub start: u64,
     pub end: u64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PriorityMode {
-    /// Solo estos rangos; ninguna otra pieza se pide hasta que estén (lección 3).
-    Exclusive,
-    /// Prioridad alta, el resto sigue (lectura durante la reproducción).
-    High,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -232,10 +214,6 @@ pub struct RemoveOptions {
 
 #[derive(Debug, Clone)]
 pub enum EngineEvent {
-    Metadata {
-        handle: TorrentHandle,
-        metadata: Arc<Metadata>,
-    },
     RangeReady {
         handle: TorrentHandle,
         file_index: usize,
@@ -256,15 +234,14 @@ pub enum EngineEvent {
 
 #[async_trait]
 pub trait TorrentEngine: Send + Sync {
-    fn kind(&self) -> EngineKind;
-
     /// PID del proceso del motor si corre aparte (registro de dueño de `cleanup`, T-05).
     /// `None` para motores embebidos.
     fn pid(&self) -> Option<u32> {
         None
     }
 
-    /// Agrega el torrent. No espera metadatos.
+    /// Agrega el torrent sin nada seleccionado: nada se baja hasta `prioritize_ranges` o
+    /// `select_file` (lección 3). No espera metadatos.
     async fn add(&self, source: TorrentSource, opts: AddOptions) -> Result<TorrentHandle>;
 
     /// Espera los metadatos (el llamador pone el timeout, NFR-08). Mejor `wait_metadata`.
@@ -275,14 +252,21 @@ pub trait TorrentEngine: Send + Sync {
         None
     }
 
-    /// Reemplaza la lista de rangos prioritarios del archivo.
+    /// Reemplaza la lista de rangos prioritarios del archivo. Exclusivos: ninguna otra pieza se
+    /// pide hasta que estén (lección 3).
     async fn prioritize_ranges(
         &self,
         handle: TorrentHandle,
         file_index: usize,
         ranges: &[ByteRange],
-        mode: PriorityMode,
     ) -> Result<()>;
+
+    /// Conteo del enjambre: sin nada pedido, rqbit da el torrent por terminado y corta a cada
+    /// seeder apenas manda su bitfield. Esto lo mantiene "pendiente" (a lo sumo baja la última
+    /// pieza del archivo) para que los seeders sigan conectados. Hasta `remove`.
+    async fn hold_peers(&self, _handle: TorrentHandle, _file_index: usize) -> Result<()> {
+        Ok(())
+    }
 
     /// Selecciona el archivo completo (después de la precarga) y deselecciona el resto.
     async fn select_file(&self, handle: TorrentHandle, file_index: usize) -> Result<()>;
@@ -347,25 +331,55 @@ pub async fn wait_metadata(
     Err(CoreError::Timeout { what, secs })
 }
 
+/// Agrega desde el `.torrent` en caché si existe (sin esperar metadatos, FR-13); si no, con el
+/// magnet (`magnet` ya con los trackers, FR-10). Si el motor rechaza el `.torrent` (archivo
+/// roto), se borra de la caché y se reintenta UNA vez con el magnet: si no, fallaría siempre.
+pub async fn add_cached_or_magnet(
+    engine: &dyn TorrentEngine,
+    cached: &std::path::Path,
+    magnet: Magnet,
+    opts: AddOptions,
+) -> Result<TorrentHandle> {
+    if !cached.is_file() {
+        return engine.add(TorrentSource::Magnet(magnet), opts).await;
+    }
+    match engine
+        .add(TorrentSource::TorrentFile(cached.to_path_buf()), opts.clone())
+        .await
+    {
+        Err(e) if !matches!(e, CoreError::Cancelled) => {
+            tracing::warn!(
+                ?cached,
+                "`.torrent` en caché rechazado ({e}): lo borro y uso el magnet"
+            );
+            let _ = std::fs::remove_file(cached);
+            engine.add(TorrentSource::Magnet(magnet), opts).await
+        }
+        r => r,
+    }
+}
+
 /// Fábrica: la ÚNICA función que conoce las implementaciones concretas.
 /// Cada llamada crea un motor independiente (proceso sidecar propio).
 /// Sin conexiones entrantes ni DHT persistente: para el analizador y herramientas (ADR-30).
-pub async fn create(config: &EngineConfig) -> Result<Arc<dyn TorrentEngine>> {
-    create_with(config, None).await
+pub async fn create(config: &EngineConfig, paths: &AppPaths) -> Result<Arc<dyn TorrentEngine>> {
+    create_with(config, paths, None).await
 }
 
 /// Motor de una reproducción: además escucha conexiones entrantes (si `incoming`) y guarda la
-/// tabla del DHT en `dht_file` (ADR-30). webtorrent lo ignora.
+/// tabla del DHT en [`AppPaths::dht_file`] (ADR-30). webtorrent lo ignora.
 pub async fn create_for_playback(
     config: &EngineConfig,
-    dht_file: PathBuf,
+    paths: &AppPaths,
 ) -> Result<Arc<dyn TorrentEngine>> {
-    create_with(config, Some(dht_file)).await
+    create_with(config, paths, Some(paths.dht_file())).await
 }
 
+#[cfg_attr(not(feature = "rqbit"), allow(unused_variables))]
 async fn create_with(
     config: &EngineConfig,
-    #[cfg_attr(not(feature = "rqbit"), allow(unused_variables))] dht_file: Option<PathBuf>,
+    paths: &AppPaths,
+    dht_file: Option<PathBuf>,
 ) -> Result<Arc<dyn TorrentEngine>> {
     match config.kind {
         EngineKind::Webtorrent => Ok(Arc::new(
@@ -373,7 +387,7 @@ async fn create_with(
         )),
         #[cfg(feature = "rqbit")]
         EngineKind::Rqbit => Ok(Arc::new(
-            rqbit::RqbitEmbedded::spawn(config, dht_file).await?,
+            rqbit::RqbitEmbedded::spawn(config, paths.rqbit_temp_dir(), dht_file).await?,
         )),
         #[cfg(not(feature = "rqbit"))]
         EngineKind::Rqbit => Err(crate::CoreError::Unsupported(

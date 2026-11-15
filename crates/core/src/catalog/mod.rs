@@ -1,6 +1,7 @@
 //! `catalog` — buscar películas y series (Cinemeta) y juntar torrents de addons de Stremio
 //! (spec 09, F4b). No indexa ni scrapea contenido propio (ADR-16/17); solo P2P (ADR-21).
-//! No conoce `engine`, `analyzer` ni `playback`: la orquestación vive en `AppCore` (spec 09 §6.1).
+//! No conoce `engine`, `analyzer` ni `playback`: la orquestación vive en `AppCore` (spec 09 §6.1);
+//! acá queda lo propio del catálogo (fechas, contexto de una consulta, origen de una fila).
 //! Usa `trackers` (scrape de seeders), `audio` y el parser de releases de `subtitles`.
 
 pub mod addons;
@@ -9,6 +10,7 @@ pub mod cinemeta;
 pub mod http;
 pub mod normalize;
 pub mod protocol;
+pub mod tmdb;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -18,11 +20,12 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
 
-use crate::config::{AddonEntry, CatalogConfig};
-use crate::magnet::InfoHash;
+use crate::config::{AddonEntry, CatalogConfig, Config};
+use crate::library::CatalogOrigin;
+use crate::magnet::{InfoHash, Magnet};
 use crate::{CoreError, Result};
 use addons::Addon;
-use cinemeta::{Meta, MetaPreview, SearchResults};
+use cinemeta::{BrowseCursor, BrowsePage, BrowseSort, Meta, MetaPreview, SearchResults};
 use http::{FetchError, Http};
 use normalize::StreamCandidate;
 
@@ -131,15 +134,19 @@ fn secret_account(id: &str) -> String {
 }
 
 pub fn fetch_error(what: &str, e: &FetchError) -> CoreError {
-    let why = match e {
-        FetchError::Network(_) => "sin conexión".to_string(),
-        FetchError::Timeout => "Cinemeta no respondió".to_string(),
-        e => e.user_text(),
-    };
     CoreError::Catalog {
-        user: format!("No se pudo {what} ({why})."),
+        user: format!("No se pudo {what}: {}.", e.user_text()),
         detail: format!("{what}: {e:?}"),
     }
+}
+
+/// Un candidato listo para *Mis magnets* (spec 09 §8.1): magnet con los trackers de la config
+/// y de dónde salió.
+#[derive(Debug, Clone)]
+pub struct CatalogPick {
+    pub magnet: Magnet,
+    pub origin: CatalogOrigin,
+    pub size_bytes: Option<u64>,
 }
 
 /// Estado del catálogo que vive mientras la app está abierta (lo usa `AppCore`).
@@ -150,9 +157,11 @@ pub struct Catalog {
     search: Mutex<CancellationToken>,
     streams_task: Mutex<Option<tokio::task::AbortHandle>>,
     /// Última lista de candidatos (para analizar / reproducir uno por hash).
-    pub latest: Arc<Mutex<Vec<StreamCandidate>>>,
+    pub latest: Arc<Mutex<aggregate::Latest>>,
     /// Manifests ya leídos (por id + URL).
     addons: Mutex<HashMap<String, Arc<Addon>>>,
+    /// Pósters de TMDB para los títulos sin imagen en Cinemeta.
+    posters: tmdb::Posters,
 }
 
 impl Catalog {
@@ -164,12 +173,26 @@ impl Catalog {
             streams_task: Mutex::default(),
             latest: Arc::default(),
             addons: Mutex::default(),
+            posters: tmdb::Posters::default(),
         }
     }
 
+    /// Póster de TMDB para un título sin imagen en Cinemeta; `None` sin key o si TMDB no lo tiene.
+    pub async fn poster(&self, imdb_id: &str, timeout: Duration) -> Option<String> {
+        if !is_imdb_id(imdb_id) {
+            return None;
+        }
+        self.posters.poster(&self.http, imdb_id, timeout).await
+    }
+
     /// FR-36: películas y series en paralelo. Una búsqueda nueva cancela la anterior
-    /// (como mucho 1 pedido en vuelo por tipo).
-    pub async fn search(&self, query: &str, timeout: Duration) -> Result<SearchResults> {
+    /// (como mucho 1 pedido en vuelo por tipo). Devuelve también el token de ESTA búsqueda, para
+    /// cortar con ella el filtro de fondo ([`Self::find_excluded`]).
+    pub async fn search(
+        &self,
+        query: &str,
+        timeout: Duration,
+    ) -> Result<(SearchResults, CancellationToken)> {
         let token = {
             let mut cur = self.search.lock().expect("search");
             cur.cancel();
@@ -188,11 +211,95 @@ impl Catalog {
         };
         match (movies, series) {
             (Err(e), Err(_)) => Err(fetch_error("buscar", &e)),
-            (m, s) => Ok(SearchResults {
-                movies: m.unwrap_or_default(),
-                series: s.unwrap_or_default(),
-            }),
+            (m, s) => Ok((
+                SearchResults {
+                    movies: m.unwrap_or_default(),
+                    series: s.unwrap_or_default(),
+                },
+                token,
+            )),
         }
+    }
+
+    /// FR-36 + FR-40: [`Self::search`] (menos de 2 letras = sin resultados) y, en segundo plano,
+    /// [`Self::find_excluded`] para avisar con `on_excluded` cuáles son anime / japonés.
+    pub async fn search_flagging_excluded(
+        self: &Arc<Self>,
+        query: &str,
+        timeout: Duration,
+        on_excluded: impl Fn(String) + Send + 'static,
+    ) -> Result<SearchResults> {
+        let query = query.trim();
+        if query.chars().count() < 2 {
+            return Ok(SearchResults {
+                movies: Vec::new(),
+                series: Vec::new(),
+            });
+        }
+        let (results, token) = self.search(query, timeout).await?;
+        let previews = results
+            .movies
+            .iter()
+            .chain(&results.series)
+            .cloned()
+            .collect();
+        let catalog = self.clone();
+        tokio::spawn(async move {
+            catalog
+                .find_excluded(previews, timeout, token, on_excluded)
+                .await;
+        });
+        Ok(results)
+    }
+
+    /// Explorar (FR-37 simple, 2026-11-14): una página de 50 de Cinemeta.
+    pub async fn browse(
+        &self,
+        kind: MediaKind,
+        sort: BrowseSort,
+        year: Option<u16>,
+        genre: Option<&str>,
+        skip: u32,
+        timeout: Duration,
+    ) -> Result<BrowsePage> {
+        cinemeta::browse(&self.http, kind, sort, year, genre, skip, timeout)
+            .await
+            .map_err(|e| fetch_error("cargar la lista", &e))
+    }
+
+    /// Explorar por fecha de estreno (`AAAA-MM-DD`, bordes incluidos; sin `to` = hasta hoy).
+    /// `cursor` es el `next` de la página anterior (None = primera).
+    pub async fn browse_released(
+        &self,
+        kind: MediaKind,
+        from: &str,
+        to: Option<&str>,
+        genre: Option<&str>,
+        cursor: Option<BrowseCursor>,
+        timeout: Duration,
+    ) -> Result<BrowsePage> {
+        let date = |s: &str| {
+            chrono::NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d").map_err(|_| {
+                CoreError::Catalog {
+                    user: format!("Fecha inválida: {s}."),
+                    detail: format!("fecha inválida: {s:?}"),
+                }
+            })
+        };
+        let from = date(from)?;
+        let to = match to.filter(|t| !t.trim().is_empty()) {
+            Some(t) => date(t)?,
+            None => chrono::Local::now().date_naive(),
+        };
+        if from > to {
+            return Err(CoreError::Catalog {
+                user: "La fecha «desde» es posterior a «hasta».".into(),
+                detail: format!("rango invertido: {from} > {to}"),
+            });
+        }
+        cinemeta::browse_released(&self.http, kind, from, to, genre, cursor, timeout)
+            .await
+            .map_err(|e| fetch_error("cargar la lista", &e))
     }
 
     /// FR-38/39 (cacheada en memoria: la usan la ficha, el filtro y los streams).
@@ -216,27 +323,25 @@ impl Catalog {
 
     /// FR-40 en búsquedas: los previews no traen país ni géneros (10 §B.3), así que se pide la
     /// ficha de cada resultado (fail-open: si falla, se muestra). Avisa cada excluido.
+    /// De a una (deja libre el otro lugar del host para la ficha o la próxima búsqueda) y se corta
+    /// con la búsqueda siguiente (`token`: el de la búsqueda que dio estos resultados); las fichas
+    /// ya cacheadas no van a la red (`meta`).
     pub async fn find_excluded(
-        self: &Arc<Self>,
+        &self,
         previews: Vec<MetaPreview>,
         timeout: Duration,
-        on_excluded: impl Fn(String) + Send + Sync + 'static,
+        token: CancellationToken,
+        on_excluded: impl Fn(String),
     ) {
-        let on_excluded = Arc::new(on_excluded);
-        let mut tasks = tokio::task::JoinSet::new();
         for p in previews {
-            let (me, cb) = (self.clone(), on_excluded.clone());
-            tasks.spawn(async move {
-                if me
-                    .meta(p.kind, &p.id, timeout)
-                    .await
-                    .is_ok_and(|m| m.excluded)
-                {
-                    cb(p.id);
-                }
-            });
+            let meta = tokio::select! {
+                m = self.meta(p.kind, &p.id, timeout) => m,
+                _ = token.cancelled() => return,
+            };
+            if meta.is_ok_and(|m| m.excluded) {
+                on_excluded(p.id);
+            }
         }
-        while tasks.join_next().await.is_some() {}
     }
 
     /// Addons habilitados, con su URL real (del almacén seguro si es secreta). Reusa los
@@ -248,7 +353,7 @@ impl Catalog {
             .filter(|e| e.enabled)
             .filter_map(|e| {
                 let url = if e.secret {
-                    crate::subtitles::secrets::secret(&secret_account(&e.id))
+                    crate::secrets::secret(&secret_account(&e.id))
                 } else {
                     e.url.clone()
                 };
@@ -267,17 +372,57 @@ impl Catalog {
             .collect()
     }
 
+    /// FR-42: pide streams a todos los addons habilitados de `cfg`; cada novedad llega por
+    /// `emit`. Cambiar de video cancela la consulta anterior. Los seeders reales llegan solos
+    /// (scrape).
+    pub fn streams(
+        &self,
+        cfg: &Config,
+        kind: MediaKind,
+        video_id: &str,
+        emit: impl Fn(aggregate::StreamsUpdate) + Send + Sync + 'static,
+    ) -> Result<()> {
+        let video = VideoId::parse(video_id)?;
+        let addons = self.enabled_addons(&cfg.catalog);
+        if addons.is_empty() {
+            return Err(CoreError::Catalog {
+                user: "No hay fuentes habilitadas: activá alguna en Fuentes.".into(),
+                detail: "sin addons habilitados".into(),
+            });
+        }
+        let ctx = aggregate::RunCtx {
+            http: self.http.clone(),
+            addons,
+            video,
+            kind,
+            audio_order: cfg.catalog.audio_order.clone(),
+            exclude_cam: cfg.catalog.exclude_cam,
+            default_timeout: Duration::from_millis(cfg.catalog.timeout_ms),
+            trackers: cfg.trackers.clone(),
+            scrape_timeout: Duration::from_secs(cfg.analyzer.scrape_timeout_secs),
+            latest: self.latest.clone(),
+        };
+        self.start_streams(ctx, emit);
+        Ok(())
+    }
+
     /// FR-42: arranca la consulta (cancela la anterior: cambiar de episodio aborta todo).
     pub fn start_streams(
         &self,
         ctx: aggregate::RunCtx,
         emit: impl Fn(aggregate::StreamsUpdate) + Send + Sync + 'static,
     ) {
-        self.latest.lock().expect("latest").clear();
-        let handle = tokio::spawn(aggregate::run(ctx, emit)).abort_handle();
-        if let Some(old) = self.streams_task.lock().expect("streams").replace(handle) {
+        let mut task = self.streams_task.lock().expect("streams");
+        if let Some(old) = task.take() {
             old.abort();
         }
+        // Marcar el video nuevo antes de arrancar: la corrida vieja (si sigue un instante) ya
+        // no puede escribir (`aggregate::run` compara el video).
+        *self.latest.lock().expect("latest") = aggregate::Latest {
+            video: Some(ctx.video.clone()),
+            candidates: Vec::new(),
+        };
+        *task = Some(tokio::spawn(aggregate::run(ctx, emit)).abort_handle());
     }
 
     pub fn stop_streams(&self) {
@@ -286,13 +431,103 @@ impl Catalog {
         }
     }
 
-    pub fn candidate(&self, hash: &InfoHash) -> Option<StreamCandidate> {
+    /// Candidato de la consulta vigente (la del último `start_streams`), solo si es de `video`:
+    /// con la ficha de otro episodio abierta, su `fileIdx` sería el de otro video.
+    /// Análisis rápido (2026-11-15): pregunta ya a los trackers por esas opciones (los de cada
+    /// una + los de la config), un pedido por tracker para todas. Actualiza la lista vigente.
+    pub async fn rescrape(
+        &self,
+        hashes: &[InfoHash],
+        cfg_trackers: &[String],
+        timeout: Duration,
+    ) -> HashMap<InfoHash, crate::trackers::ScrapeResult> {
+        let mut trackers: Vec<String> = {
+            let latest = self.latest.lock().expect("latest");
+            latest
+                .candidates
+                .iter()
+                .filter(|c| hashes.contains(&c.info_hash))
+                .flat_map(|c| c.trackers.iter().cloned())
+                .collect()
+        };
+        trackers.extend(cfg_trackers.iter().cloned());
+        trackers.sort();
+        trackers.dedup();
+        let found = crate::trackers::scrape_batch(hashes, &trackers, timeout).await;
+        let mut latest = self.latest.lock().expect("latest");
+        for c in latest.candidates.iter_mut() {
+            if let Some(s) = found.get(&c.info_hash) {
+                c.seeders = Some(s.seeders);
+                c.leechers = Some(s.leechers);
+            }
+        }
+        found
+    }
+
+    /// Magnets (con sus trackers) de opciones de la lista vigente, para contar su enjambre.
+    pub fn magnets_of(&self, hashes: &[InfoHash]) -> Vec<Magnet> {
         self.latest
             .lock()
             .expect("latest")
+            .candidates
+            .iter()
+            .filter(|c| hashes.contains(&c.info_hash))
+            .map(|c| Magnet {
+                info_hash: c.info_hash,
+                display_name: Some(c.release_name.clone()),
+                trackers: c.trackers.clone(),
+            })
+            .collect()
+    }
+
+    pub fn candidate(&self, video: &VideoId, hash: &InfoHash) -> Option<StreamCandidate> {
+        let latest = self.latest.lock().expect("latest");
+        if latest.video.as_ref() != Some(video) {
+            return None;
+        }
+        latest
+            .candidates
             .iter()
             .find(|c| &c.info_hash == hash)
             .cloned()
+    }
+
+    /// El candidato `hash` de la consulta vigente de `video`, listo para *Mis magnets*: magnet con
+    /// `trackers` (FR-10) y su origen (título de `meta` si se pudo leer la ficha; si no, el `tt…`).
+    pub fn pick(
+        &self,
+        video: &VideoId,
+        hash: &InfoHash,
+        meta: Option<&Meta>,
+        trackers: &[String],
+    ) -> Result<CatalogPick> {
+        let c = self
+            .candidate(video, hash)
+            .ok_or_else(|| CoreError::Catalog {
+                user: "Ese torrent ya no está en la lista: actualizá los streams.".into(),
+                detail: format!("candidato {hash} no encontrado"),
+            })?;
+        let magnet = Magnet {
+            info_hash: c.info_hash,
+            display_name: Some(c.release_name.clone()),
+            trackers: c.trackers.clone(),
+        }
+        .with_trackers(trackers);
+        let origin = CatalogOrigin {
+            video_id: video.to_string(),
+            imdb_id: video.imdb_id().to_string(),
+            title: meta.map_or_else(|| video.imdb_id().to_string(), |m| m.name.clone()),
+            year: meta.and_then(|m| m.year.clone()),
+            season: video.episode().map(|e| e.0),
+            episode: video.episode().map(|e| e.1),
+            file_idx: c.file_idx,
+            addons: c.addons.clone(),
+        };
+        Ok(CatalogPick {
+            magnet,
+            origin,
+            size_bytes: c.size_bytes,
+        })
     }
 
     /// "Agregar addon" (FR-41): valida el manifest y arma la entrada. Si la URL lleva
@@ -307,10 +542,15 @@ impl Catalog {
             .await
             .map_err(user)?;
         let secret = addons::has_config(&url);
-        if existing
-            .iter()
-            .any(|e| e.url.as_deref() == Some(url.as_str()))
-        {
+        // Los secretos no tienen `url` en la config: se comparan contra el almacén seguro.
+        if existing.iter().any(|e| {
+            let stored = if e.secret {
+                crate::secrets::secret(&secret_account(&e.id))
+            } else {
+                e.url.clone()
+            };
+            stored.as_deref() == Some(url.as_str())
+        }) {
             return Err(user("Ese addon ya está en la lista.".into()));
         }
         let mut id = manifest.id.clone();
@@ -320,7 +560,7 @@ impl Catalog {
             n += 1;
         }
         if secret {
-            crate::subtitles::secrets::set_secret(&secret_account(&id), &url)?;
+            crate::secrets::set_secret(&secret_account(&id), &url)?;
         }
         Ok(AddonEntry {
             name: format!("{} {}", manifest.name, manifest.version)
@@ -338,7 +578,7 @@ impl Catalog {
     /// Al quitar un addon secreto, se borra también del almacén seguro.
     pub fn forget_addon(&self, entry: &AddonEntry) {
         if entry.secret {
-            if let Err(e) = crate::subtitles::secrets::set_secret(&secret_account(&entry.id), "") {
+            if let Err(e) = crate::secrets::set_secret(&secret_account(&entry.id), "") {
                 tracing::warn!("no se pudo borrar la URL del addon del almacén seguro: {e}");
             }
         }

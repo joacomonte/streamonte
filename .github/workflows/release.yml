@@ -1,0 +1,82 @@
+# Push a tag like v0.2.0 (same version as src-tauri/tauri.conf.json): a draft release is created,
+# Mac and Windows build in parallel and upload to it, then the last job writes latest.json
+# (which installed apps check at launch) and publishes the release. Same mechanism as monti-git.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.create.outputs.id }}
+    steps:
+      - id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTES: |
+            Mac: the universal .dmg (Apple Silicon and Intel). The first time, right click → Open (the app isn't notarized).
+            Windows: the -setup.exe. If SmartScreen warns, "More info" → "Run anyway".
+            Requires mpv installed (https://mpv.io/installation/); if it isn't found, set its path in Settings.
+        # The id comes from the create response: a draft isn't findable by its tag until it's published.
+        run: |
+          id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" -f tag_name="$GITHUB_REF_NAME" -f name="Torrent Stream $GITHUB_REF_NAME" \
+            -F draft=true -f body="$NOTES" --jq .id)
+          test -n "$id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: --target universal-apple-darwin # one .dmg for Apple Silicon and Intel
+          - platform: windows-latest
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+      # No frontend build (ui/ is embedded as-is); node is only for the Tauri CLI that tauri-action installs.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target" # cargo workspace at the repo root
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        with:
+          releaseId: ${{ needs.create-release.outputs.id }}
+          uploadUpdaterJson: false # written once by the publish job, so parallel builds don't race
+          args: ${{ matrix.args }}
+
+  publish:
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Everything by release id (the release is still a draft): fetch the signatures, upload latest.json, then publish.
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ID: ${{ needs.create-release.outputs.id }}
+        run: |
+          mkdir sigs
+          gh api "repos/$GITHUB_REPOSITORY/releases/$ID" --jq '.assets[] | select(.name | endswith(".sig")) | "\(.id) \(.name)"' |
+            while read -r asset name; do gh api -H "Accept: application/octet-stream" "repos/$GITHUB_REPOSITORY/releases/assets/$asset" > "sigs/$name"; done
+          node .github/scripts/latest-json.mjs > latest.json
+          curl -sSf -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/json" --data-binary @latest.json \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$ID/assets?name=latest.json" > /dev/null
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$ID" -F draft=false -f make_latest=true > /dev/null

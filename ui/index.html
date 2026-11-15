@@ -14,19 +14,18 @@
   <header class="topbar">
     <h1 class="brand">Torrent Stream</h1>
     <!-- F4b: pestañas Mis magnets / Buscar (spec 09 §11.1) -->
-    <nav class="tabs"><button class="tab active" data-tab="library">Mis magnets</button><button class="tab" data-tab="catalog" title="Buscar película o serie (Ctrl+F)">Buscar</button></nav>
+    <nav class="tabs"><button class="tab" data-tab="library">Mis magnets</button><button class="tab active" data-tab="catalog" title="Buscar película o serie (Ctrl+F)">Buscar</button></nav>
     <div class="actions">
-      <button id="btn-play" class="primary" disabled title="Reproducir el seleccionado (Enter)">▶ Reproducir</button>
-      <button id="btn-clipboard" title="Leer portapapeles (Ctrl+V)">Leer portapapeles</button>
-      <button id="btn-folder" title="Abrir carpeta de descargas">Carpeta</button>
-      <button id="btn-clean" title="Limpiar temporales">Limpiar</button>
-      <button id="btn-settings" title="Ajustes">⚙</button>
+      <!-- 2026-11-15: menús desplegables (ui/src/top-menus.js) -->
+      <button id="btn-clipboard" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Magnets en tu portapapeles (Ctrl+V)">Portapapeles</button>
+      <button id="btn-downloads" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Lo descargado, lo que se reproduce o baja de fondo, y limpieza">Descargas<span id="downloads-size" class="top-size" hidden></span><span id="downloads-badge" class="top-badge" hidden></span></button>
+      <button id="btn-settings" class="top-btn icon" title="Ajustes" aria-label="Ajustes">⚙</button>
     </div>
   </header>
 
   <main class="layout">
     <!-- FR-03: lista agrupada -->
-    <section class="library" aria-label="Magnets">
+    <section class="library" aria-label="Magnets" hidden>
       <div id="empty" class="empty">
         <h2>Copiá un magnet</h2>
         <p>Con la app abierta, todo magnet que copies aparece acá solo. Después tocá <b>Analizar</b> para ver cuál va a reproducirse mejor.</p>
@@ -37,16 +36,13 @@
         <button id="btn-analyze-selected" class="small" disabled title="Analizar solo los marcados">Analizar seleccionados</button>
         <button id="btn-analyze" class="small primary" title="Analizar todos los magnets (F5)">Analizar todo</button>
         <button id="btn-pause-all" class="small" hidden title="Pausar / reanudar todo el análisis">Pausar todo</button>
-        <button id="btn-stop-all" class="small danger" title="Detener todo y borrar todo lo descargado, también lo pausado">Borrar descargas</button>
-        <!-- Derecha libre: ahí flota la burbuja de actividad (ui/src/activity.js) -->
-        <span class="spacer"></span>
       </div>
       <div id="group-now" class="group" hidden><h3>Pegados ahora</h3><ul></ul></div>
       <div id="group-prev" class="group" hidden><h3>Anteriores</h3><ul></ul></div>
     </section>
 
     <!-- F4b: catálogo (ui/src/catalog.js) -->
-    <section id="catalog" class="catalog" aria-label="Buscar" hidden></section>
+    <section id="catalog" class="catalog" aria-label="Buscar"></section>
 
     <!-- FR-14: el panel de reproducciones se quitó (2026-11-14): el estado y Detener van en la
          fila; carpeta, borrar y log en su menú contextual. -->
@@ -56,7 +52,7 @@
   <dialog id="dlg-settings" class="dialog wide">
     <h3>Ajustes</h3>
     <h4>Subtítulos en español (hasta 5 a la vez)</h4>
-    <p class="hint">Primero se usan los que trae el torrent. Para buscar más hacen falta estas keys gratuitas; se guardan en el almacén seguro de Windows y nunca se muestran.</p>
+    <p class="hint">Primero se usan los que trae el torrent. Para buscar más hacen falta estas keys gratuitas; se guardan en el almacén seguro del sistema y nunca se muestran.</p>
     <div class="key-row">
       <label for="key-wyzie">Wyzie Subs <span id="key-wyzie-state" class="key-state"></span></label>
       <input id="key-wyzie" type="password" placeholder="Pegá la key" autocomplete="off">
@@ -69,6 +65,17 @@
       <button data-save-key="opensubtitles">Guardar</button>
       <button class="link" data-key-page="opensubtitles">Crear key (cuenta gratis, 20 descargas/día)</button>
     </div>
+    <h4>Pósters</h4>
+    <p class="hint">Cinemeta no tiene imagen para muchos títulos nuevos. Con una key gratuita de TMDB se traen de ahí; sin key se dibuja uno con el título.</p>
+    <div class="key-row">
+      <label for="key-tmdb">TMDB <span id="key-tmdb-state" class="key-state"></span></label>
+      <input id="key-tmdb" type="password" placeholder="Pegá la API key (v3)" autocomplete="off">
+      <button data-save-key="tmdb">Guardar</button>
+      <button class="link" data-key-page="tmdb">Pedir key (cuenta gratis → Ajustes → API)</button>
+    </div>
+    <h4>Fuentes de torrents</h4>
+    <p class="hint">Los addons que se consultan al abrir una película o episodio.</p>
+    <button id="btn-sources">Ver y activar fuentes</button>
     <h4>Red</h4>
     <label class="setting-check"><input id="set-incoming" type="checkbox"> Aceptar conexiones entrantes de peers (más fuentes, suele bajar más rápido)</label>
     <label class="setting-check"><input id="set-upnp" type="checkbox"> Abrir el puerto en el router automáticamente (UPnP)</label>
@@ -82,21 +89,6 @@
       <tr><th>R</th><td>Volver la sincronización a cero</td></tr>
     </table>
     <div class="dialog-actions"><button data-close>Cerrar</button></div>
-  </dialog>
-
-  <!-- Leer portapapeles: elegir qué magnets del historial agregar -->
-  <dialog id="dlg-clipboard" class="dialog wide">
-    <h3>Magnets en tu portapapeles</h3>
-    <p id="clip-note" class="hint"></p>
-    <div class="clip-head">
-      <label class="check-all"><input id="clip-all" type="checkbox" checked> Seleccionar todos</label>
-      <span id="clip-count" class="hint"></span>
-    </div>
-    <ul id="clip-list" class="clip-list"></ul>
-    <div class="dialog-actions">
-      <button data-close>Cancelar</button>
-      <button id="clip-add" class="primary">Agregar</button>
-    </div>
   </dialog>
 
   <!-- FR-30: menú contextual de un magnet -->

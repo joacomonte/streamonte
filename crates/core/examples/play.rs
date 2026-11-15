@@ -69,16 +69,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let summary = Arc::new(Mutex::new(Summary::default()));
     let core = AppCore::start(Arc::new(ConsoleSink(summary.clone()))).await?;
 
-    let mut config = core.config().await;
-    config.logging.diagnostics = args.iter().any(|a| a == "--diag");
-    if let Some(i) = args.iter().position(|a| a == "--engine") {
-        config.engine.kind = match args.get(i + 1).map(String::as_str) {
-            Some("rqbit") => EngineKind::Rqbit,
-            _ => EngineKind::Webtorrent,
-        };
-    }
-    let engine = config.engine.kind;
-    core.set_config(config).await?;
+    let engine = core
+        .update_config(|config| {
+            config.logging.diagnostics = args.iter().any(|a| a == "--diag");
+            if let Some(i) = args.iter().position(|a| a == "--engine") {
+                config.engine.kind = match args.get(i + 1).map(String::as_str) {
+                    Some("rqbit") => EngineKind::Rqbit,
+                    _ => EngineKind::Webtorrent,
+                };
+            }
+            Ok(config.engine.kind)
+        })
+        .await?;
 
     println!(
         "motor: {engine:?} · reproductor: {player:?} · {}",
@@ -86,7 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let t0 = Instant::now();
     core.play(StartRequest {
-        info_hash: magnet.info_hash,
+        key: tstream_core::video_key::VideoKey::whole(magnet.info_hash),
         magnet: Some(magnet),
         player: Some(player),
         file_index: None,
