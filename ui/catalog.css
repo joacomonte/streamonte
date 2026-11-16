@@ -197,27 +197,20 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-size-cell .cat-speed.bg-yellow { color: var(--yellow); }
 .cat-size-cell .cat-speed.bg-red { color: var(--red); }
 .cat-icon-btn.on { color: var(--accent); border-color: var(--accent); }
-.cat-seeds-btn { display: inline-flex; height: auto; min-height: 44px; padding: 4px 10px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; border-radius: 12px; border: 1px solid transparent; background: none; font-size: 16px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; justify-self: start; }
-.cat-seeds-btn:hover { border-color: var(--border); color: var(--text); }
-.cat-seeds-btn.analyzed { color: var(--text); }
-.cat-seeds-hint { display: inline-flex; opacity: 0; transition: opacity .15s var(--ease); }
-.cat-seeds-btn:hover .cat-seeds-hint, .cat-seeds-btn:focus-visible .cat-seeds-hint { opacity: .8; }
-.cat-seeds-btn.busy .cat-seeds-hint { opacity: 1; animation: spin 1s linear infinite; }
+.cat-seeds-btn { display: inline-flex; height: auto; min-height: 44px; padding: 4px 10px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; border-radius: 12px; border: 1px solid transparent; background: none; cursor: default; font-size: 16px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; justify-self: start; }
 .cat-icon-btn.busy { opacity: .6; }
 .cat-icon-btn.primary.busy { opacity: 1; }
 .cat-seeds-spin { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
-.cat-seeds-btn.busy { color: var(--muted); cursor: progress; }
-.cat-seeds-btn:disabled { opacity: 1; }
+.cat-seeds-btn.busy { color: var(--muted); }
 .cat-stat { display: inline-flex; align-items: baseline; gap: 5px; line-height: 1.1; }
 .cat-stat > [aria-hidden] { align-self: center; }
 .cat-seeds-n { font-size: 18px; font-weight: 700; }
 .cat-stat-label { font-size: 12px; font-weight: 500; color: var(--muted); }
-.cat-stat-sub { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; line-height: 1.2; color: var(--muted); }
+.cat-stat-sub { display: flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 11px; font-weight: 500; line-height: 1.2; color: var(--muted); }
 .cat-stat-sub:empty { display: none; }
 .cat-stat-sub > span + span::before { content: "·"; margin-right: 6px; color: var(--muted); }
 /* Un solo verde: analizado (a cualquier profundidad, dice cuál el chip). Sin analizar: gris. */
 .cat-seeds-btn .cat-seeds-n { color: var(--muted); }
-.cat-seeds-btn.analyzed .cat-seeds-n { color: var(--green); }
 .cat-seeds-btn.dead { color: var(--muted); opacity: .7; }
 .cat-seeds-dead { font-size: 12px; color: var(--red); opacity: .8; }
 /* Subtítulos desde el catálogo (2026-11-15). */
@@ -283,11 +276,13 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-health-fair rect.on { fill: var(--yellow, #d29922); }
 .cat-health-risky rect.on { fill: var(--red); }
 /* Análisis profundo: ícono chico al lado de los seeds. */
-.cat-deep-ic { display: inline-flex; align-self: center; color: var(--green); cursor: help; }
 /* Estado de la reproducción en grande (2026-11-16): manda sobre seeds y salud, que pasan a una
    línea chica debajo del peso. */
-.cat-check-health { display: inline-flex; align-items: center; gap: 6px; height: 30px; margin-left: 10px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--muted); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.cat-check-health { display: inline-flex; align-items: center; gap: 6px; height: 30px; margin-right: 10px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--muted); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .cat-check-health:hover { color: var(--accent-fg, var(--accent)); border-color: var(--accent); }
+.cat-check-health svg rect { fill: currentColor; opacity: .35; }
+button.cat-health-ic { width: 26px; height: 26px; padding: 0; border: none; border-radius: 8px; background: none; cursor: pointer; }
+button.cat-health-ic:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
 .cat-mini-stats { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .cat-mini-stats .cat-health-ic svg { width: 13px; height: 12px; }
 .cat-status { display: grid; gap: 6px; min-width: 170px; justify-self: start; }
@@ -362,6 +357,9 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-deep-bar i { display: block; height: 100%; transition: width .5s var(--ease);
   background: linear-gradient(90deg, var(--accent), var(--green), var(--accent)); background-size: 200% 100%; animation: cat-deep-shine 1.6s linear infinite; }
 @keyframes cat-deep-shine { to { background-position: -200% 0; } }
+.cat-deep-bar i, .cat-deep-creep { position: absolute; top: 0; bottom: 0; left: 0; }
+.cat-deep-creep { width: 0; background: color-mix(in srgb, var(--accent) 55%, transparent); animation: cat-deep-creep 90s cubic-bezier(.1, .7, .3, 1) forwards; }
+@keyframes cat-deep-creep { to { width: var(--slice); } }
 
 /* Mientras llegan los torrents (2026-11-16): esqueleto con forma de fila y las nuevas entran deslizándose. */
 .opt-skeleton { display: grid; gap: 10px; }
@@ -371,7 +369,7 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .opt-skel .skel.tall { height: 22px; }
 .opt-skel .skel.pill { height: 32px; border-radius: 999px; }
 @keyframes opt-skel-in { from { opacity: 0; transform: translateY(6px); } }
-@media (prefers-reduced-motion: reduce) { .cat-deep-bar i, .opt-skel { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cat-deep-bar i, .opt-skel, .cat-deep-creep { animation: none; } }
 
 /* Fila de opción (2026-11-16): etiquetas chicas junto al peso, "Analizar" recomendado y ▶ con menú. */
 .cat-size-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }

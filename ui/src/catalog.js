@@ -561,7 +561,7 @@ function deepPanel() {
     return panel('running', spin(), el('b', {}, `Analizando ${what} · ${done} de ${n}`),
       'Conectándose a cada torrent y contando los seeders reales',
       el('button', { id: 'cat-deep-stop', class: 'cat-deep-go', onclick: (ev) => { ev.currentTarget.disabled = true; stopDeep(); } }, 'Detener'),
-      el('span', { class: 'cat-deep-bar' }, el('i', { style: `width:${Math.max(4, Math.round(frac * 100))}%` })));
+      deepBar(d, frac, n));
   }
   if (!res) return panel('idle', icon('radar', 16), el('b', {}, 'Análisis completo'), 'Abrí una resolución para analizarla a fondo');
   const doneHere = d.status === 'done' && d.res === res;
@@ -611,7 +611,19 @@ function stopDeep() {
 function deepStatus(d) {
   const n = d.hashes.length;
   const done = d.hashes.filter((h) => deepDone.has(h)).length;
+  // Desde cuándo no termina ninguno: la barra avanza sola dentro del tramo siguiente (ver `deepBar`).
+  if (d.lastDone !== done || !d.lastAt) Object.assign(d, { lastDone: done, lastAt: Date.now() });
   return { done, n, frac: n ? done / n : 0 };
+}
+
+/** Barra del análisis (2026-11-16): lo terminado, y delante un tramo que avanza solo y despacio
+ *  hacia el próximo torrent (hasta el 90 % de su parte), para que no parezca congelada. El avance
+ *  sale del reloj (`animation-delay` negativo): redibujar no lo reinicia; al terminar uno arranca de
+ *  nuevo desde ahí, sin retroceder. */
+function deepBar(d, frac, n) {
+  return el('span', { class: 'cat-deep-bar' },
+    el('i', { style: `width:${frac * 100}%` }),
+    frac < 1 ? el('b', { class: 'cat-deep-creep', style: `left:${frac * 100}%;--slice:${(100 / Math.max(1, n)) * 0.9}%;animation-delay:-${Date.now() - d.lastAt}ms` }) : null);
 }
 
 /** Contados al analizar en esta sesión (conectándose al enjambre): hash → SwarmCount. */
@@ -664,7 +676,7 @@ function neededBps(c) {
 }
 /** Mbps típicos por resolución (2026-11-16) cuando no se sabe cuánto pide (pack sin analizar): un
  *  4K web anda en 15–25, un 1080p en 5–10. Mejor una estimación que solo contar seeders. */
-const TYPICAL_MBPS = { '2160p': 25, '1080p': 8, '720p': 4 };
+const TYPICAL_MBPS = { '2160p': 25, '1440p': 14, '1080p': 8, '720p': 4 };
 const toMbps = (bps) => (bps * 8) / 1e6;
 /** "Pesado" (2026-11-15): solo una precaución. */
 const HEAVY_MBPS = 35; // un remux 4K anda en 60–80; un 4K web en 15–25; un 1080p en 5–10
@@ -716,10 +728,13 @@ function healthBadge(c) {
   const tipText = measured
     ? `${text}: ${verdict}\nMedido: bajó a ~${Math.round(supply)} Mbps y ${asks} (${nf1(ratio)}×).`
     : `${text}: ${verdict}\nLe llegarían ~${Math.round(supply)} Mbps y ${asks} (${nf1(ratio)}×).\n${seeds} seeders y ${leech} leechers × ${nf1(cal.seedMbps)} Mbps por seeder${internet}.\nEs una estimación: cargar en background (⤓) lo mide de verdad.`;
-  const ic = el('span', { class: `cat-health-ic ${cls}`, title: tipText, role: 'img', 'aria-label': `Salud estimada: ${text}` });
-  ic.innerHTML = `<svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}"/>`).join('')}</svg>`;
+  // Clickeable (2026-11-16): vuelve a verificar la salud (cuenta los seeders de nuevo).
+  const ic = el('button', { id: `cat-health-${c.info_hash}`, class: `cat-health-ic ${cls}`, title: `${tipText}\nTocá para verificarla de nuevo.`, 'aria-label': `${text}: verificar de nuevo`, onclick: () => reanalyze([c.info_hash]) });
+  ic.innerHTML = signalSvg(bars);
   return ic;
 }
+/** Ícono de señal: `bars` llenas de 3 (0 = sin verificar). */
+const signalSvg = (bars) => `<svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}"/>`).join('')}</svg>`;
 
 /** "Cargar en background" (2026-11-15): info_hash → {key, row}; `row` = última fila. La velocidad
  *  la mide `health-calib.js` (la misma medición calibra la salud estimada). */
@@ -811,15 +826,15 @@ function optionRow(c, best = false) {
   const seedsNow = partial?.reached ? partial.seeds : knownSeeds(c);
   const dead = scraped?.reached === false;
   const seedsTip = skipped.has(c.info_hash) && !scraped ? (skipped.get(c.info_hash) === 'dead'
-    ? 'No se analizó: los trackers y la fuente dan 0 seeders y 0 leechers (casi seguro muerto). Tocá para analizarlo igual.'
-    : `No se analizó a fondo: quedó fuera de los ${TOP} mejores según los trackers. Tocá para analizarlo.`)
+    ? 'No se analizó: los trackers y la fuente dan 0 seeders y 0 leechers (casi seguro muerto).'
+    : `No se analizó a fondo: quedó fuera de los ${TOP} mejores según los trackers.`)
     : dead
-    ? (scraped.peers ? `Sin respuesta: la red tiene ${scraped.peers} direcciones de peers para este torrent, pero no se pudo conectar con ninguna (direcciones viejas, peers llenos o, lo más común, los dos detrás de un router con el puerto cerrado). No quiere decir que esté muerto. Tocá para reintentar.` : 'Nadie lo está compartiendo ahora (0 peers). Casi seguro muerto. Tocá para analizarlo.')
-    : scraped ? `Conectado al enjambre: ${scraped.seeds} seeders (archivo completo) de ${scraped.peers} peers${c.seeders != null ? ` (los trackers anuncian ${c.seeders}, sin verificar)` : ''}. Es lo que respondió de verdad; al reproducir suelen aparecer algunos más. Tocá para analizarlo.`
-    : live && live.seeds === 0 ? 'Al analizarlo no se vio ningún seeder conectado (puede ser el momento). Tocá para analizarlo.'
-    : live ? `Seeders vistos al analizarlo: ${live.seeds} (${live.peers} peers conectados). Tocá para analizarlo.`
-      : checked === 'trackers' ? `${TRACKERS_TIP} ${c.seeders} seeders, ${c.leechers ?? 0} leechers. Tocá para el análisis profundo (se conecta y cuenta los reales).`
-        : 'Según la fuente (los trackers no lo conocen o no respondieron). Tocá para el análisis profundo.';
+    ? (scraped.peers ? `Sin respuesta: la red tiene ${scraped.peers} direcciones de peers para este torrent, pero no se pudo conectar con ninguna (direcciones viejas, peers llenos o, lo más común, los dos detrás de un router con el puerto cerrado). No quiere decir que esté muerto.` : 'Nadie lo está compartiendo ahora (0 peers). Casi seguro muerto.')
+    : scraped ? `Conectado al enjambre: ${scraped.seeds} seeders (archivo completo) de ${scraped.peers} peers${c.seeders != null ? ` (los trackers anuncian ${c.seeders}, sin verificar)` : ''}. Es lo que respondió de verdad; al reproducir suelen aparecer algunos más.`
+    : live && live.seeds === 0 ? 'Al analizarlo no se vio ningún seeder conectado (puede ser el momento).'
+    : live ? `Seeders vistos al analizarlo: ${live.seeds} (${live.peers} peers conectados).`
+      : checked === 'trackers' ? `${TRACKERS_TIP} ${c.seeders} seeders, ${c.leechers ?? 0} leechers.`
+        : 'Según la fuente (los trackers no lo conocen o no respondieron).';
   // "Mejor opción" solo con el análisis profundo terminado (mientras corre, el orden cambia) y salud
   // buena: si no alcanza, no se recomienda (2026-11-16).
   const confirmed = best && counted.has(c.info_hash) && state.side.deep?.status === 'done' && health(c)?.level === 0;
@@ -833,32 +848,39 @@ function optionRow(c, best = false) {
         hdrTip ? badge('HDR', 'cat-hdr', hdrTip) : null, latBadge(c, badge), heavyBadge(c, badge)),
       // Reproduciéndose o bajando (2026-11-16): el estado va en grande al centro; seeds y salud,
       // en chico debajo del peso.
-      pbStatus ? el('span', { class: 'cat-mini-stats' }, `${seedsNow ?? '—'} seeds · ${leechersOf(c) ?? 0} leechers`, healthBadge(c))
+      pbStatus ? el('span', { class: 'cat-mini-stats' }, healthBadge(c), `${seedsNow ?? '—'} seeds · ${leechersOf(c) ?? 0} leechers`)
         : bg ? el('span', { class: `cat-speed bg-${bg.cls}`, title: bg.tip ?? '', role: 'status' }, bg.text)
         : light.text ? el('span', { class: 'cat-speed', title: 'Velocidad medida · margen' }, light.text) : null),
     pbStatus ? statusPill(pb, pbStatus) :
-    // Seeds/leechers y, a su derecha, la salud estimada que sale de ellos (2026-11-15).
-    el('span', { class: 'cat-stats-cell' }, el('button', {
-      id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${checked === 'deep' ? 'analyzed' : ''} ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTip,
-      'aria-label': `${seedsNow ?? 'Sin dato de'} seeders: análisis profundo`, 'aria-busy': busy ? 'true' : null, disabled: busy,
-      onclick: () => reanalyze([c.info_hash]),
+    // La salud primero (2026-11-16: manda sobre los números) y a su derecha seeds/leechers.
+    el('span', { class: 'cat-stats-cell' },
+    // Sin analizar: en lugar del ícono, el botón que la averigua.
+    healthBadge(c) ?? (busy ? null : verifyButton(c)),
+    // Solo información (2026-11-16): analizar/verificar es el botón de salud de al lado.
+    el('span', {
+      id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTip,
     }, // Seeds primero y grande; leechers y profundidad como una línea chica debajo.
     el('span', { class: 'cat-stat seeds' }, el('span', { class: 'cat-seeds-n' }, seedsNow ?? '—'), el('span', { class: 'cat-stat-label' }, 'seeds'),
       busy ? null // ya lo dice "analizando · N peers" debajo
         : dead && !scraped.peers ? el('span', { class: 'cat-seeds-dead', 'aria-hidden': 'true' }, '✕')
-        : checked === 'deep' ? el('span', { class: 'cat-deep-ic', title: 'Análisis profundo: se conectó al enjambre y contó los seeders reales.', role: 'img', 'aria-label': 'Análisis profundo' }, icon('radar', 14))
-          : el('span', { class: 'cat-seeds-hint', 'aria-hidden': 'true' }, icon('refresh', 13))),
+        : null), // analizada o no ya lo dice el ícono de salud (2026-11-16)
     // Corto y en una línea (2026-11-16): el punto que late ya dice "analizando"; el detalle, en el tooltip.
     busy ? el('span', { class: 'cat-stat-sub cat-live', title: !partial ? 'Analizando: buscando peers' : partial.reached ? `Analizando: ${partial.peers} peers conectados` : `Analizando: la red tiene ${partial.peers} direcciones de peers; probando conectarse (no todas responden)` },
       el('span', { class: 'cat-live-dot', 'aria-hidden': 'true' }),
       !partial ? 'buscando peers…' : partial.reached ? `${partial.peers} conectados` : `probando ${partial.peers} peers…`)
-    : dead && scraped.peers ? el('span', { class: 'cat-stat-sub cat-noanswer' }, 'sin respuesta · ', el('u', {}, 'reintentar'))
+    : dead && scraped.peers ? el('span', { class: 'cat-stat-sub cat-noanswer' }, 'sin respuesta')
     : el('span', { class: 'cat-stat-sub' },
-      leechersOf(c) != null ? el('span', { title: 'Leechers: bajando ahora; comparten los pedazos que ya tienen' }, `${leechersOf(c)} leechers`) : null)),
-    // Sin analizar (2026-11-16): en lugar del ícono de salud, el botón que la averigua.
-    healthBadge(c) ?? (busy || scraped ? null : el('button', { id: `cat-check-${c.info_hash}`, class: 'cat-check-health', title: 'Se conecta al torrent y cuenta los seeders reales (1 a 2 min). No baja el video.', onclick: () => reanalyze([c.info_hash]) }, icon('radar', 14), 'Verificar salud'))),
+      leechersOf(c) != null ? el('span', { title: 'Leechers: bajando ahora; comparten los pedazos que ya tienen' }, `${leechersOf(c)} leechers`) : null))),
     el('span', { class: 'cat-opt-actions' },
       playSplit(c)));
+}
+
+/** "Verificar salud" (2026-11-16): el mismo ícono de señal, vacío, como botón que lanza el análisis. */
+function verifyButton(c) {
+  const b = el('button', { id: `cat-check-${c.info_hash}`, class: 'cat-check-health', title: 'Se conecta al torrent y cuenta los seeders reales (1 a 2 min). No baja el video, pero deja guardados sus metadatos y los peers que respondieron: si después lo elegís, arranca más rápido.', onclick: () => reanalyze([c.info_hash]) });
+  b.innerHTML = signalSvg(0);
+  b.append(el('span', {}, 'Verificar salud'));
+  return b;
 }
 
 /** Estado de la reproducción de una opción, en grande (2026-11-16): ícono (o barras que se mueven
@@ -1171,10 +1193,10 @@ async function runDeep(video, res) {
   if (state.side?.videoId === video) quickAnalyze(finalists(all));
 }
 
-/** Grupos de resolución (2026-11-15): 4K, 1080p, 720p y "Otras" (1440p, SD y sin dato). */
-const RES_ORDER = ['2160p', '1080p', '720p', 'other'];
-const resKey = (c) => (['2160p', '1080p', '720p'].includes(c.resolution) ? c.resolution : 'other');
-const resLabel = (r) => ({ '2160p': '4K', other: 'Otras' }[r] ?? r);
+/** Grupos de resolución (2026-11-15): 4K, 1440p (2026-11-16), 1080p, 720p y "Otras" (SD y sin dato). */
+const RES_ORDER = ['2160p', '1440p', '1080p', '720p', 'other'];
+const resKey = (c) => (RES_ORDER.includes(c.resolution) ? c.resolution : 'other');
+const resLabel = (r) => ({ '2160p': '4K', '1440p': '2K', other: 'Otras' }[r] ?? r);
 /** Grupo de resolución abierto (uno a la vez). Cada video arranca con la mejor que tenga (2026-11-16). */
 let openRes = null;
 
