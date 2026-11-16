@@ -365,7 +365,7 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .conn-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg); }
 .conn-card + .conn-card { margin-top: 10px; }
 .conn-title { font-size: 15px; font-weight: 700; }
-.conn-incoming.open .conn-title { color: var(--green); }
+.conn-card.ok .conn-title, .conn-incoming.open .conn-title { color: var(--green); }
 .conn-incoming.closed .conn-title { color: #d29922; }
 .conn-gauge { display: grid; place-items: center; flex: none; }
 .conn-gauge .speed-gauge path { stroke-width: 2; }

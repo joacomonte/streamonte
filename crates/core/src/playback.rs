@@ -90,6 +90,8 @@ pub struct PlaybackRow {
     pub progress: f32,
     pub speed_bps: f64,
     pub peers: u32,
+    /// De esos, los que tienen el archivo completo (`Stats::seeds`): la salud aprendida los muestra.
+    pub seeds: u32,
     /// De esos, los que se conectaron ellos (entrantes): ver `Stats::incoming_peers`.
     pub incoming_peers: u32,
     pub started_at: DateTime<Utc>,
@@ -322,6 +324,7 @@ impl PlaybackManager {
                 progress: 0.0,
                 speed_bps: 0.0,
                 peers: 0,
+                seeds: 0,
                 incoming_peers: 0,
                 started_at: Utc::now(),
                 metadata_secs: None,

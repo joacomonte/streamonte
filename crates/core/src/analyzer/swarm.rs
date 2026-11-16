@@ -36,6 +36,11 @@ const DEAD_SECS: u64 = 15;
 /// caseros se saturan; muchas fallaban por eso). El motor tiene 40 permisos de E/S y cada uno
 /// retiene uno mientras cuenta (ver `hold_peers`).
 pub const CONCURRENCY: usize = 10;
+/// Tope de descarga de cada torrent al contar (2026-11-16): `hold_peers` selecciona el archivo
+/// para anunciarse como que le falta (los trackers y los seeders le dan seeders, no solo
+/// leechers) y esto evita bajarlo: ~1 MB por minuto por torrent. librqbit pide de a 16 KB y con un
+/// tope menor da error y corta al peer: no bajar de 16384.
+const COUNT_DOWNLOAD_BPS: u32 = 16 * 1024;
 /// Conexiones por torrent al contar: "30+ seeders" ya alcanza para decidir y no satura el router.
 const MAX_PEERS: u32 = 30;
 /// Ventana de conteo una vez que hay metadatos (máximo visto): `(mínimo, máximo, estable)` en
@@ -53,6 +58,10 @@ pub struct SwarmCount {
     pub peers: u32,
     /// ¿Algún peer dio los metadatos? Si no, nadie respondió: casi seguro muerto o muy flojo.
     pub reached: bool,
+    /// Direcciones únicas conocidas (DHT + trackers + PEX), conectadas o no.
+    pub known: u32,
+    /// Conectados que se conectaron ellos (entrantes; solo con `announce_early`).
+    pub incoming: u32,
 }
 
 /// Cuenta el enjambre de cada magnet. Falta en el resultado = no se pudo (sin metadatos a tiempo,
@@ -72,7 +81,13 @@ pub async fn count(
     let cleanup = Cleanup::new(paths.clone());
     let mut engine_cfg = cfg.engine.clone();
     engine_cfg.max_connections = MAX_PEERS;
-    let engine = match crate::engine::create(&engine_cfg, paths).await {
+    // Idea 1: escuchando, los peers que ven el anuncio se conectan solos (entrantes).
+    let created = if cfg.engine.announce_early {
+        crate::engine::create_for_playback(&engine_cfg, paths).await
+    } else {
+        crate::engine::create(&engine_cfg, paths).await
+    };
+    let engine = match created {
         Ok(e) => e,
         Err(e) => {
             tracing::warn!("contar seeders: no arrancó el motor: {e}");
@@ -145,7 +160,7 @@ async fn count_one(
     (min_secs, max_secs, stable_secs): (u64, u64, u64),
     progress: &(dyn Fn(SwarmCount) + Sync),
 ) -> Option<(InfoHash, SwarmCount)> {
-    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg)
+    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg, Some(COUNT_DOWNLOAD_BPS))
         .await
         .ok()?;
     let result = async {
@@ -166,7 +181,7 @@ async fn count_one(
                         if n as u32 != dht_peers {
                             dht_peers = n as u32;
                             last_news = secs;
-                            progress(SwarmCount { seeds: 0, peers: dht_peers, reached: false });
+                            progress(SwarmCount { seeds: 0, peers: dht_peers, reached: false, known: dht_peers, incoming: 0 });
                         }
                     }
                     let stalled = secs >= METADATA_MIN_SECS && secs - last_news >= METADATA_STALL_SECS;
@@ -186,7 +201,7 @@ async fn count_one(
                 Some(crate::engine::Waiting::Metadata { peers: Some(n) }) => n as u32,
                 _ => 0,
             };
-            return Some((magnet.info_hash, SwarmCount { seeds: 0, peers: found, reached: false }));
+            return Some((magnet.info_hash, SwarmCount { seeds: 0, peers: found, reached: false, known: found, incoming: 0 }));
         };
         // Sin esto los seeders se cortan al mandar su bitfield y casi nunca se ven (ver `hold_peers`).
         // El archivo más grande: el último pedazo no lo completa, así sigue "pendiente".
@@ -200,7 +215,8 @@ async fn count_one(
                 tracing::debug!("contar seeders: no se pudo retener peers de {}", magnet.info_hash.to_hex());
             }
         }
-        let mut best = SwarmCount { seeds: 0, peers: 0, reached: true };
+        let mut best = SwarmCount { seeds: 0, peers: 0, reached: true, known: 0, incoming: 0 };
+        let mut known_meta = None;
         progress(best); // ya hay metadatos: empieza a contar
         let mut last_rise = 0;
         for sec in 1..=max_secs {
@@ -208,10 +224,15 @@ async fn count_one(
             if let Ok(Ok(s)) =
                 tokio::time::timeout(Duration::from_secs(2), engine.stats(handle)).await
             {
-                if s.peers > best.peers || s.seeds > best.seeds {
+                known_meta = known_meta.or(s.known_peers);
+                // Una dirección nueva también es novedad: extiende la ventana como un peer nuevo.
+                let more_known = s.known_peers.is_some_and(|k| k > best.known);
+                if s.peers > best.peers || s.seeds > best.seeds || s.incoming_peers > best.incoming || more_known {
                     last_rise = sec;
                     best.peers = best.peers.max(s.peers);
                     best.seeds = best.seeds.max(s.seeds);
+                    best.incoming = best.incoming.max(s.incoming_peers);
+                    best.known = best.known.max(s.known_peers.unwrap_or(0));
                     progress(best);
                 }
             }
@@ -219,6 +240,14 @@ async fn count_one(
                 break;
             }
         }
+        tracing::info!(
+            "swarm {}: peers={} seeds={} known_meta={} known_fin={}",
+            magnet.info_hash.to_hex(),
+            best.peers,
+            best.seeds,
+            known_meta.unwrap_or(0),
+            best.known
+        );
         // Deja listo el play (2026-11-15): metadatos sin esperarlos y los peers que respondieron,
         // para conectarse de entrada.
         metadata.save_torrent_cache(&paths.torrent_cache_file(&magnet.info_hash));
@@ -234,4 +263,30 @@ async fn count_one(
         .remove(handle, RemoveOptions { delete_data: false })
         .await;
     result
+}
+
+/// Plazo del censo DHT: arranque en frío (~3–6 s) + 1–2 rondas de búsqueda.
+pub const CENSUS_SECS: u64 = 12;
+
+/// Censo sin conectarse (2026-11-16): direcciones únicas que da la DHT para cada hash, con un
+/// motor propio sin escucha ni persistencia y cero TCP. Falta en el mapa = 0. Cortable con `cancel`.
+pub async fn census(
+    paths: &AppPaths,
+    cfg: &Config,
+    hashes: Vec<InfoHash>,
+    cancel: CancellationToken,
+) -> HashMap<InfoHash, u32> {
+    let engine = match crate::engine::create(&cfg.engine, paths).await {
+        Ok(e) => e,
+        Err(e) => {
+            tracing::warn!("censo DHT: no arrancó el motor: {e}");
+            return HashMap::new();
+        }
+    };
+    let out = tokio::select! {
+        r = engine.dht_census(&hashes, CENSUS_SECS) => r.unwrap_or_default(),
+        _ = cancel.cancelled() => HashMap::new(),
+    };
+    let _ = engine.shutdown().await;
+    out
 }

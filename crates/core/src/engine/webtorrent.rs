@@ -441,6 +441,7 @@ impl TorrentEngine for WebtorrentSidecar {
             peers: w.peers,
             seeds: w.seeds,
             incoming_peers: 0, // el sidecar no lo informa
+            known_peers: None,
             progress: w.progress,
             paused: w.paused,
             ranges: w

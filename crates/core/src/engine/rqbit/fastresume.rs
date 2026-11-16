@@ -87,6 +87,7 @@ mod tests {
             trackers: vec![],
             download_dir: dir.clone(),
             initial_peers: Vec::new(),
+            download_bps: None,
         };
         let bitv = dir.join(BITV_FILE);
 

@@ -24,6 +24,17 @@ const MAX_LEN: usize = 300;
 
 static SINK: RwLock<Option<Arc<dyn EventSink>>> = RwLock::new(None);
 static LIMITER: Mutex<Option<Limiter>> = Mutex::new(None);
+/// Último resultado de UPnP que logueó librqbit: cuándo y si el router aceptó el reenvío.
+static UPNP: Mutex<Option<(Instant, bool)>> = Mutex::new(None);
+
+/// Resultado de UPnP llegado después de `since` (o el último, sin `since`), para "Verificar
+/// puerto"; `None` = todavía nada.
+pub fn upnp_since(since: Option<Instant>) -> Option<bool> {
+    UPNP.lock()
+        .expect("activity upnp")
+        .filter(|(at, _)| since.map_or(true, |s| *at >= s))
+        .map(|(_, ok)| ok)
+}
 
 thread_local! {
     /// Emitir puede loguear (la cáscara): sin esto, un evento podría generar otro sin fin.
@@ -64,6 +75,13 @@ impl<S: Subscriber> Layer<S> for ActivityLayer {
             _ => StatusLevel::Info,
         };
         let message = friendly(area, &v.text());
+        if area == "red" {
+            let lower = message.to_ascii_lowercase();
+            let ok = lower.contains("successfully port forwarded");
+            if ok || lower.contains("fail") {
+                *UPNP.lock().expect("activity upnp") = Some((Instant::now(), ok));
+            }
+        }
 
         let now = Instant::now();
         let dropped = {

@@ -98,7 +98,8 @@ pub struct EngineConfig {
     /// `main.mjs` del sidecar. `None` = junto al ejecutable (o el del repo en builds de desarrollo).
     pub webtorrent_sidecar: Option<PathBuf>,
     /// Conexiones entrantes de peers (rqbit). Solo el motor de una reproducción escucha; los
-    /// del analizador no (ADR-30). Apagarlo sirve para comparar antes/después.
+    /// del analizador no, salvo el conteo profundo con `announce_early` (ADR-30). Apagarlo sirve
+    /// para comparar antes/después.
     pub incoming: bool,
     /// Puertos TCP a probar en orden `[primero, último]`; si están todos ocupados, uno al azar.
     pub listen_ports: [u16; 2],
@@ -108,6 +109,10 @@ pub struct EngineConfig {
     /// acceso al router, suma peers salientes (muchos clientes lo prefieren). librqbit todavía lo
     /// marca inestable: si da problemas, se apaga acá.
     pub utp: bool,
+    /// Salud fiel, idea 1 (2026-11-16): al abrir un título, contar a fondo los 10 mejores enseguida
+    /// con el motor ESCUCHANDO: se anuncia con el puerto real a trackers y DHT y los peers se
+    /// conectan solos (entrantes). Deja la IP listada ~30 min en esos enjambres.
+    pub announce_early: bool,
 }
 
 impl Default for EngineConfig {
@@ -123,6 +128,7 @@ impl Default for EngineConfig {
             listen_ports: [41850, 41859],
             upnp: true,
             utp: true,
+            announce_early: true,
         }
     }
 }
@@ -374,9 +380,14 @@ impl ConfigStore {
         match crate::fsutil::read_json::<Config>(&self.path) {
             Ok(Some(mut config)) => {
                 config.ranking.fix_invalid();
+                self.own_port(&mut config);
                 Ok(config)
             }
-            Ok(None) => Ok(Config::default()),
+            Ok(None) => {
+                let mut config = Config::default();
+                self.own_port(&mut config);
+                Ok(config)
+            }
             Err(crate::CoreError::Json { .. }) => {
                 let moved = crate::fsutil::quarantine(&self.path)?;
                 tracing::warn!(?moved, "config.json inválido; se usan valores por defecto");
@@ -388,6 +399,24 @@ impl ConfigStore {
 
     pub fn save(&self, config: &Config) -> Result<()> {
         crate::fsutil::write_json_atomic(&self.path, config)
+    }
+
+    /// Cada instalación con sus puertos (2026-11-16): con el rango por defecto, dos PCs de la misma
+    /// red piden al router el mismo puerto por UPnP y solo una lo consigue. Se elige uno al azar
+    /// en 41000–48999 (debajo del rango efímero de Windows) y se guarda.
+    fn own_port(&self, config: &mut Config) {
+        use std::hash::{BuildHasher, Hasher};
+        if config.engine.listen_ports != EngineConfig::default().listen_ports {
+            return;
+        }
+        let pick = std::collections::hash_map::RandomState::new()
+            .build_hasher()
+            .finish();
+        let first = 41_000 + (pick % 800) as u16 * 10;
+        config.engine.listen_ports = [first, first + 9];
+        if let Err(e) = self.save(config) {
+            tracing::warn!("no se pudo guardar el puerto propio: {e}");
+        }
     }
 }
 
@@ -490,7 +519,13 @@ mod tests {
     #[test]
     fn sin_archivo_devuelve_defaults() {
         let (store, dir) = temp_store("missing");
-        assert_eq!(store.load().unwrap(), Config::default());
+        let mut loaded = store.load().unwrap();
+        // Puertos propios de la instalación: al azar, guardados y estables al recargar.
+        let [a, b] = loaded.engine.listen_ports;
+        assert!((41_000..49_000).contains(&a) && b == a + 9, "{a}-{b}");
+        assert_eq!(store.load().unwrap(), loaded);
+        loaded.engine.listen_ports = EngineConfig::default().listen_ports;
+        assert_eq!(loaded, Config::default());
         std::fs::remove_dir_all(dir).unwrap();
     }
 
@@ -501,6 +536,7 @@ mod tests {
         c.logging.diagnostics = true;
         c.player.default_player = PlayerKind::Vlc;
         c.trackers.push("udp://ejemplo:1/announce".into());
+        c.engine.listen_ports = [43_210, 43_219];
         store.save(&c).unwrap();
         assert_eq!(store.load().unwrap(), c);
         std::fs::remove_dir_all(dir).unwrap();

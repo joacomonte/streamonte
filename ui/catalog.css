@@ -283,6 +283,15 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-check-health svg rect { fill: currentColor; opacity: .35; }
 button.cat-health-ic { width: 26px; height: 26px; padding: 0; border: none; border-radius: 8px; background: none; cursor: pointer; }
 button.cat-health-ic:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+/* Salud como rango (spec 08): ícono + "lo–hi Mbps" + de dónde sale. */
+.cat-health { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 2px 8px 2px 4px; border: none; border-radius: 10px; background: none; cursor: pointer; text-align: left; }
+.cat-health:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.cat-health .cat-health-ic { cursor: inherit; }
+.cat-health-txt { display: flex; flex-direction: column; gap: 1px; line-height: 1.2; white-space: nowrap; }
+.cat-health-range { font-size: 12.5px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.cat-health-src { font-size: 11px; font-weight: 500; color: var(--muted); }
+/* Probable: la barra más alta, a medias. */
+.cat-health-ic rect.on.maybe { fill-opacity: .4; }
 .cat-mini-stats { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .cat-mini-stats .cat-health-ic svg { width: 13px; height: 12px; }
 .cat-status { display: grid; gap: 6px; min-width: 170px; justify-self: start; }

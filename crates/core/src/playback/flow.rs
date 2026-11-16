@@ -81,6 +81,7 @@ pub(super) async fn run(
             trackers: cfg.all_trackers(),
             download_dir: slot.dir.clone(),
             initial_peers: Vec::new(),
+            download_bps: None,
         },
     )
     .await?;
@@ -116,9 +117,10 @@ pub(super) async fn run(
     shared.log(
         slot,
         format!(
-            "metadatos en {metadata_secs:.1} s · archivo {} ({} MB)",
+            "metadatos en {metadata_secs:.1} s · archivo {} ({} MB) · pieza {} KiB",
             file.name,
-            file.size / 1_048_576
+            file.size / 1_048_576,
+            metadata.piece_length / 1024
         ),
     );
     {
@@ -300,6 +302,7 @@ pub(super) async fn run(
                         row.progress = stats.progress;
                         row.speed_bps = stats.download_speed_bps;
                         row.peers = stats.peers;
+                        row.seeds = stats.seeds;
                         row.incoming_peers = stats.incoming_peers;
                         row.state == PlaybackState::DownloadPaused
                     };
@@ -392,6 +395,7 @@ async fn background_download(
                     row.progress = stats.progress;
                     row.speed_bps = stats.download_speed_bps;
                     row.peers = stats.peers;
+                    row.seeds = stats.seeds;
                     row.incoming_peers = stats.incoming_peers;
                 }
                 shared.emit_row(slot);

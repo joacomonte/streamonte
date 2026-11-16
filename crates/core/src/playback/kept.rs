@@ -230,6 +230,7 @@ pub(super) fn kept_row(id: PlaybackId, k: &Kept) -> PlaybackRow {
         progress: r.progress,
         speed_bps: 0.0,
         peers: 0,
+        seeds: 0,
         incoming_peers: 0,
         started_at: r.saved_at,
         metadata_secs: None,

@@ -53,6 +53,8 @@ export const api = {
   catalogPoster: (imdbId) => invoke('catalog_poster', { imdbId }),
   /** "Contar seeders reales": se conecta a cada enjambre (~50 s por tanda). {hash: {seeds, peers}}; falta = no se pudo. */
   catalogSwarm: (hashes, deep = false) => invoke('catalog_swarm', { hashes, deep }),
+  /** Censo DHT sin conectarse (~12 s): {hash: direcciones}; falta = 0. */
+  catalogCensus: (hashes) => invoke('catalog_census', { hashes }),
   /** Corta los conteos en curso ("Detener" el análisis); lo ya contado queda. */
   catalogStopSwarm: () => invoke('catalog_stop_swarm'),
   /** "Bajar subtítulos" de una opción: hasta 5, `language` ('es'|'en') primero. Devuelve [{provider, language, release_name}]. */
@@ -108,7 +110,7 @@ export const api = {
   config: () => invoke('config_get'),
   // Un comando por ajuste: nunca se reescribe la config entera desde la UI.
   /** Ajustes → Red (ADR-30): entrantes / UPnP. */
-  setNetwork: (incoming, upnp) => invoke('config_set_network', { incoming, upnp }),
+  setNetwork: (incoming, upnp, announceEarly) => invoke('config_set_network', { incoming, upnp, announceEarly }),
 };
 
 /**

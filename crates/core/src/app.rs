@@ -518,14 +518,15 @@ impl AppCore {
     /// Ajustes → Red (ADR-30): entrantes / UPnP. Aplica desde la próxima reproducción.
     /// "Verificar" en Ajustes › Red: ¿el puerto de las reproducciones llega desde internet?
     pub async fn check_incoming(&self) -> crate::incoming::IncomingCheck {
-        let port = self.config.read().await.engine.listen_ports[0];
-        crate::incoming::check(port).await
+        let engine = self.config.read().await.engine.clone();
+        crate::incoming::check(&engine, &self.paths).await
     }
 
-    pub async fn set_network(&self, incoming: bool, upnp: bool) -> Result<()> {
+    pub async fn set_network(&self, incoming: bool, upnp: bool, announce_early: bool) -> Result<()> {
         self.update_config(|c| {
             c.engine.incoming = incoming;
             c.engine.upnp = upnp;
+            c.engine.announce_early = announce_early;
             Ok(())
         })
         .await
@@ -605,6 +606,17 @@ impl AppCore {
             }
         })
         .await
+    }
+
+    /// Censo DHT de opciones del catálogo (2026-11-16): direcciones únicas por hash, sin conectarse
+    /// (~12 s). Comparte el corte con `catalog_swarm`.
+    pub async fn catalog_census(
+        &self,
+        hashes: &[InfoHash],
+    ) -> std::collections::HashMap<InfoHash, u32> {
+        let cancel = self.swarm_cancel.lock().expect("swarm").clone();
+        let cfg = self.config.read().await.clone();
+        crate::analyzer::swarm::census(&self.paths, &cfg, hashes.to_vec(), cancel).await
     }
 
     /// "Bajar subtítulos" de una opción del catálogo (2026-11-15): busca y baja hasta 5 en

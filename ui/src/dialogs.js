@@ -125,6 +125,8 @@ export async function openSettings() {
     $('#set-incoming').checked = engine.incoming;
     $('#set-upnp').checked = engine.upnp;
     $('#set-upnp').disabled = !engine.incoming;
+    $('#set-announce').checked = engine.announce_early;
+    $('#set-announce').disabled = !engine.incoming;
   } catch (e) {
     showError(e);
   }
@@ -134,8 +136,9 @@ export async function openSettings() {
 // ADR-30: entrantes / UPnP. El motor se crea por reproducción, así que aplica en la próxima.
 export async function saveNetwork() {
   $('#set-upnp').disabled = !$('#set-incoming').checked;
+  $('#set-announce').disabled = !$('#set-incoming').checked;
   try {
-    await api.setNetwork($('#set-incoming').checked, $('#set-upnp').checked);
+    await api.setNetwork($('#set-incoming').checked, $('#set-upnp').checked, $('#set-announce').checked);
     setStatus('Red guardada: aplica desde la próxima reproducción.');
   } catch (e) {
     showError(e);
@@ -184,13 +187,18 @@ export async function onNetCheck() {
   const out = $('#net-check-result');
   btn.disabled = true;
   out.className = 'net-check-result';
-  out.textContent = 'Probando desde internet…';
+  out.textContent = 'Abriendo el puerto en el router y probando desde internet (hasta 30 s)…';
   try {
     const r = await api.checkIncoming();
     const ip = r.local_ip ? ` · IP de esta PC: ${r.local_ip}` : '';
+    // Por qué está cerrado, según lo que respondió el router a UPnP (2026-11-16).
+    const why = !r.upnp_on ? 'UPnP está apagado: abrilo a mano en el router (pasos de arriba)'
+      : r.upnp === false ? 'el router rechazó abrirlo por UPnP. Suele ser porque otra PC de la casa ya tiene ese puerto, o el router lo bloquea'
+        : r.upnp === true ? 'el router aceptó abrirlo, pero igual no llega: puede ser el firewall de esta PC o que tu proveedor comparta la IP pública (CGNAT)'
+          : 'el router no respondió a UPnP (puede tenerlo apagado): activalo en el router o abrí el puerto a mano';
     out.className = `net-check-result ${r.reachable === true ? 'ok' : r.reachable === false ? 'bad' : ''}`;
-    out.textContent = r.reachable === true ? `Abierto: el puerto ${r.port} llega desde internet${ip}`
-      : r.reachable === false ? `Cerrado: el puerto ${r.port} no llega desde internet. Seguí los pasos de arriba${ip}`
+    out.textContent = r.reachable === true ? `Abierto: el puerto ${r.port} llega desde internet${r.upnp ? ' (lo abrió UPnP)' : ''}${ip}`
+      : r.reachable === false ? `Cerrado: el puerto ${r.port} no llega desde internet; ${why}${ip}`
         : `${r.problem ?? 'No se pudo probar.'}${ip}`;
   } catch (e) {
     showError(e);

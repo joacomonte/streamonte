@@ -7,7 +7,7 @@
 import { api } from './api.js';
 import { $, el, setStatus } from './dom.js';
 import { ago, mbps, nf1 } from './format.js';
-import { DEFAULT_SEED_MBPS, MIN_SAMPLES, MIN_SECS, healthCalibration, incomingStatus, measuringNow, recalibrate, resetCalibration, setLinkMbps, setSeedMbps } from './health-calib.js';
+import { DEFAULT_SEED_MBPS, basisOf, fidelity, healthCalibration, incomingStatus, measuringNow, rawPrediction, recalibrate, resetCalibration, setLinkMbps, setSeedMbps } from './health-calib.js';
 import { state } from './state.js';
 import { popFor, togglePop } from './top-menus.js';
 
@@ -74,15 +74,19 @@ function renderPop() {
     el('button', { id: 'speed-retest', class: 'pop-btn', disabled: measuring, onclick: () => measure(true) }, measuring ? 'Midiendo…' : 'Medir de nuevo'));
 
   const perSeedNote = cal.source === 'manual' ? 'Fijado a mano'
-    : cal.source === 'measured' ? `Medido en ${cal.n} reproducciones tuyas`
-      : `Juntando mediciones: ${cal.n} de ${MIN_SAMPLES} (mientras tanto, ${DEFAULT_SEED_MBPS} Mbps)`;
+    : cal.n ? `Aprendido de ${cal.n} reproducciones en esta red (×${nf1(cal.bias.counted.factor)} sobre ${DEFAULT_SEED_MBPS})`
+      : `Sin reproducciones en esta red: ${DEFAULT_SEED_MBPS} Mbps (se aprende solo)`;
   const now = measuringNow();
   const seeder = el('div', { class: 'conn-card' },
     el('span', { class: 'conn-main' },
       el('span', { class: 'conn-big' }, `${nf1(cal.seedMbps)} Mbps `, el('small', {}, 'por seeder')),
       el('span', { class: 'conn-sub' }, perSeedNote),
+      // 2026-11-16: el aporte que sale de los seeders de trackers (no cuentan más que los contados).
+      el('span', { class: 'conn-sub' }, `Con seeders de trackers: ${nf1(cal.trackerSeedMbps)} Mbps por seeder (${cal.trackerN} reproducciones)`),
+      el('span', { class: 'conn-sub' }, `Rango por seeder: ${nf1(cal.seedBand.lo)}–${nf1(cal.seedBand.hi)} Mbps (confianza ${cal.seedBand.conf})`),
+      el('span', { class: 'conn-sub' }, `Medición del análisis: ×${nf1(cal.measuredFactor)} (${cal.bias.measured.n} reproducciones)`),
       now.length ? el('span', { class: 'conn-live' }, el('i', { 'aria-hidden': 'true' }),
-        `Midiendo: ${now[0].name} · ${mbps(now[0].avg_speed_bps)}${now[0].seeds ? '' : ' (sin seeders contados: no cuenta)'}`) : null),
+        `Midiendo: ${now[0].name} · ${mbps(now[0].avg_speed_bps)}${now[0].ev ? '' : ' (sin datos del análisis: no cuenta)'}`) : null),
     editing
       ? el('span', { class: 'conn-edit' },
         el('input', { id: 'speed-seed-input', type: 'number', min: '0.1', step: '0.5', inputmode: 'decimal', value: String(Math.round(cal.seedMbps * 10) / 10), 'aria-label': 'Mbps por seeder' }),
@@ -99,6 +103,17 @@ function renderPop() {
         : inc.open ? `Otros peers se conectan a vos: más fuentes para cada torrent. Visto ${ago(inc.at)}.`
           : 'Tu router no deja entrar conexiones: anda igual, pero con menos peers. Preferí opciones con buena salud; si podés, activá UPnP en el router.')));
 
+  // Fidelidad (spec 04): cada muestra predicha solo con lo aprendido de las anteriores.
+  const f = fidelity(cal.learnable, cal.capFrom === 'test' ? cal.capMbps : null);
+  const ok = f && f.n >= 8 && Math.abs(f.biasAfter) <= Math.log(1.5) && f.hits / f.n >= 0.7 && f.typAfter <= 0.8 * f.typBefore;
+  const dir = (x) => (x < 0 ? `pesimista ×${nf1(Math.exp(-x))}` : `optimista ×${nf1(Math.exp(x))}`);
+  const fid = el('div', { id: 'conn-fidelity', class: `conn-card ${ok ? 'ok' : ''}` },
+    el('span', { class: 'conn-main' },
+      el('span', { class: 'conn-title' }, f ? `Fidelidad: acertó ${f.hits} de ${f.n} niveles` : 'Fidelidad: sin datos'),
+      el('span', { class: 'conn-sub' }, f
+        ? `Sin aprender: ${dir(f.biasBefore)} (error típico ×${nf1(Math.exp(f.typBefore))}). Con lo aprendido: ${dir(f.biasAfter)} (×${nf1(Math.exp(f.typAfter))}). ${f.pessimistic} veces dijo menos de lo que anduvo.`
+        : 'Se calcula al reproducir 3 min algo cuya salud se estimó.')));
+
   // Cómo se calcula, con los números de esta PC.
   const how = el('div', { class: 'conn-how' },
     el('p', { class: 'conn-formula' },
@@ -107,21 +122,28 @@ function renderPop() {
       ' ÷ ', el('span', {}, 'lo que pide el video')),
     el('p', { class: 'conn-legend' },
       el('b', { class: 'good' }, 'Buena'), ' sobra el doble · ', el('b', { class: 'fair' }, 'Puede cortarse'), ' alcanza apenas · ', el('b', { class: 'risky' }, 'Mala'), ' no alcanza'),
-    el('p', { class: 'hint' }, `"Lo que pide" = tamaño del episodio o película ÷ duración. Si ese torrent ya se midió (reproduciendo, cargando en background o al analizarlo), manda lo medido. Cada reproducción de más de ${MIN_SECS} s de una opción analizada calibra el aporte por seeder, aparte para cada red (casa, trabajo…).`));
+    el('p', { class: 'hint' }, `"Lo que pide" = tamaño del episodio o película ÷ duración. Si ese torrent ya se midió (reproduciendo, cargando en background o al analizarlo), manda lo medido. Cada reproducción (minutos 2 a 5) compara lo que predijo el análisis con lo que bajó de verdad y corrige la estimación, aparte para cada red (casa, trabajo…).`));
 
   const samples = el('details', { class: 'conn-samples' },
-    el('summary', {}, `Mediciones (${cal.n})`),
+    el('summary', {}, `Mediciones (${cal.samples.length})`),
     cal.samples.length
       ? el('ul', { class: 'calib-list' }, cal.samples.map((l) => el('li', {},
         el('b', {}, nameOf(l)),
-        el('span', {}, `${l.seeds} seeders · ${mbps(l.avg_speed_bps)} · ${nf1((l.avg_speed_bps * 8) / 1e6 / l.seeds)} por seeder · ${ago(l.measured_at)}`))))
+        el('span', {}, sampleText(l)))))
       : el('p', { class: 'hint' }, 'Todavía ninguna. Se mide sola al ver una opción ya analizada.'),
-    cal.n ? el('button', { id: 'speed-reset', class: 'link', onclick: () => { editing = false; resetCalibration(); setStatus('Mediciones olvidadas: se vuelve a calibrar con las próximas reproducciones.'); } }, 'Olvidar mediciones y volver a calibrar') : null);
+    cal.samples.length ? el('button', { id: 'speed-reset', class: 'link', onclick: () => { editing = false; resetCalibration(); setStatus('Mediciones olvidadas: se vuelve a calibrar con las próximas reproducciones.'); } }, 'Olvidar mediciones y volver a calibrar') : null);
 
   pop.replaceChildren(
     el('div', { class: 'pop-head' }, el('div', {}, el('h3', {}, 'Tu conexión'),
       el('p', { class: 'pop-sub' }, 'Con esto se estima si cada torrent va a andar bien: el ícono de señal y el orden de las opciones.'))),
-    internet, seeder, incoming, how, samples);
+    internet, seeder, incoming, fid, how, samples);
+}
+
+function sampleText(l) {
+  if (!l.ev) return `${l.seeds} seeders · ${mbps(l.avg_speed_bps)} · ${nf1((l.avg_speed_bps * 8) / 1e6 / l.seeds)} por seeder · ${ago(l.measured_at)}`;
+  const p = rawPrediction(l.ev, basisOf(l.ev));
+  if (p == null) return `real ${nf1(l.real_mbps)} Mbps · sin predicción`;
+  return `predijo ${nf1(p)} → real ${nf1(l.real_mbps)} Mbps (×${nf1(l.real_mbps / p)}) · reales ${l.real_seeds} seeders / ${l.real_peers} peers (${l.real_incoming} entrantes)${l.short ? ' · corta' : ''} · ${ago(l.measured_at)}`;
 }
 
 function fixSeed() {

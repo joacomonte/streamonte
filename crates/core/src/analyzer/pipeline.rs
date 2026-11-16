@@ -56,6 +56,7 @@ pub(super) async fn add_deselected(
     dir: &Path,
     magnet: &Magnet,
     cfg: &Config,
+    download_bps: Option<u32>,
 ) -> Result<TorrentHandle> {
     // Dueño: esta app y su motor (T-05, sin reproductor).
     cleanup.claim(dir, &OwnerRecord::now(engine.pid(), None))?;
@@ -67,6 +68,7 @@ pub(super) async fn add_deselected(
             trackers: cfg.all_trackers(),
             download_dir: dir.to_path_buf(),
             initial_peers: Vec::new(),
+            download_bps,
         },
     )
     .await
@@ -151,7 +153,7 @@ pub(super) async fn quick_one(
     pick: FilePick,
     cfg: &Config,
 ) -> Result<QuickInfo> {
-    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg).await?;
+    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg, None).await?;
     let result = async {
         let (metadata, file) = metadata_and_file(
             engine,
@@ -224,7 +226,7 @@ pub(super) async fn measure_with(
     partial: &PartialRef,
 ) -> Result<LiveMeasurement> {
     // 1. Torrent sin bajar nada.
-    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg).await?;
+    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg, None).await?;
 
     // 2. Metadatos y archivo a medir.
     (ctl.progress)(SpeedProgress::phase(MeasurePhase::Metadata));

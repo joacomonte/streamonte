@@ -1,4 +1,4 @@
-//! Red del motor rqbit (ADR-30): puerto de escucha, UPnP, dueño único del DHT persistente,
+//! Red del motor rqbit (ADR-30; escucha también el conteo profundo con `announce_early`): puerto de escucha, UPnP, dueño único del DHT persistente,
 //! opciones de la sesión y las líneas de estado de red/peers para el log de Detalle.
 
 use std::net::Ipv6Addr;

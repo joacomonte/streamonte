@@ -203,8 +203,13 @@ pub async fn config_get(core: Core<'_>) -> CmdResult<Config> {
 /// Ajustes → Red. Un comando por ajuste: la UI nunca reescribe la config entera (no pisa lo
 /// que cambió otro mientras tanto).
 #[tauri::command]
-pub async fn config_set_network(core: Core<'_>, incoming: bool, upnp: bool) -> CmdResult<()> {
-    Ok(core.set_network(incoming, upnp).await?)
+pub async fn config_set_network(
+    core: Core<'_>,
+    incoming: bool,
+    upnp: bool,
+    announce_early: bool,
+) -> CmdResult<()> {
+    Ok(core.set_network(incoming, upnp, announce_early).await?)
 }
 
 // ----- Subtítulos -----
@@ -241,6 +246,14 @@ pub async fn catalog_swarm(
     deep: bool,
 ) -> CmdResult<std::collections::HashMap<InfoHash, SwarmCount>> {
     Ok(core.catalog_swarm(&hashes, deep).await)
+}
+/// Censo DHT sin conectarse (~12 s): direcciones únicas por hash; falta = 0.
+#[tauri::command]
+pub async fn catalog_census(
+    core: Core<'_>,
+    hashes: Vec<InfoHash>,
+) -> CmdResult<std::collections::HashMap<InfoHash, u32>> {
+    Ok(core.catalog_census(&hashes).await)
 }
 /// "Bajar subtítulos" de una opción del catálogo (hasta 5; el idioma elegido primero).
 #[tauri::command]

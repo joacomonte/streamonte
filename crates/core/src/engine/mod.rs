@@ -52,6 +52,9 @@ pub struct AddOptions {
     /// Peers conocidos de antes (los vio el análisis profundo): se conecta a ellos de entrada, sin
     /// esperar a los trackers ni al DHT. Lo completa [`add_cached_or_magnet`].
     pub initial_peers: Vec<std::net::SocketAddr>,
+    /// Tope de descarga de este torrent en bytes/s (`None` = sin tope). El conteo de seeders lo
+    /// usa casi en cero: se anuncia como que le falta el archivo sin bajarlo (2026-11-16).
+    pub download_bps: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -85,16 +88,21 @@ pub struct FilePick {
 }
 
 impl Metadata {
-    /// El índice pedido solo si es un video: el `fileIdx` de una fuente a veces apunta a otro
-    /// archivo del pack (un `.txt`, 2026-11-16) y mpv no lo abre. Si no, el del episodio o el video
-    /// más grande.
+    /// El índice pedido solo si es un video y, si se sabe el episodio, si es ese episodio (o ningún
+    /// archivo lo nombra): el `fileIdx` de una fuente a veces apunta a otro archivo del pack (un
+    /// `.txt`, o en un pack de la serie entera un video de entrevistas, 2026-11-16). Si no, el del
+    /// episodio o el video más grande.
     pub fn pick_file(&self, pick: FilePick) -> Result<FileInfo> {
+        let names_it = |f: &FileInfo| pick.episode.map_or(true, |(s, e)| names_episode(&f.name, s, e));
+        let any_names_it = self.files.iter().any(|f| is_video(&f.name) && names_it(f));
         match pick.index.map(|i| (i, self.files.get(i))) {
-            Some((_, Some(f))) if is_video(&f.name) => return Ok(f.clone()),
+            Some((_, Some(f))) if is_video(&f.name) && (names_it(f) || !any_names_it) => {
+                return Ok(f.clone())
+            }
             Some((i, f)) => tracing::warn!(
                 index = i,
                 file = f.map(|f| f.name.as_str()),
-                "el archivo pedido no es un video: busco el del episodio"
+                "el archivo pedido no es el video del episodio: busco el del episodio"
             ),
             None => {}
         }
@@ -217,6 +225,10 @@ pub struct Stats {
     /// afuera, por IPv4 o IPv6 (2026-11-16: sin acceso al router no hay otra forma de saberlo).
     #[serde(default)]
     pub incoming_peers: u32,
+    /// Direcciones únicas conocidas del enjambre (DHT + trackers + PEX + caché), conectadas o no.
+    /// `None` si el motor no lo informa (webtorrent).
+    #[serde(default)]
+    pub known_peers: Option<u32>,
     /// 0.0–1.0 del archivo seleccionado.
     pub progress: f32,
     pub paused: bool,
@@ -287,6 +299,16 @@ pub trait TorrentEngine: Send + Sync {
     /// Direcciones de los peers conectados ahora (para guardarlas y reusarlas al reproducir).
     async fn connected_peers(&self, _handle: TorrentHandle) -> Vec<std::net::SocketAddr> {
         Vec::new()
+    }
+
+    /// Censo sin conectarse: direcciones únicas que da la DHT (`get_peers` sin anunciarse) para cada
+    /// hash durante `secs`. `None` si el motor no tiene DHT propia (webtorrent).
+    async fn dht_census(
+        &self,
+        _hashes: &[InfoHash],
+        _secs: u64,
+    ) -> Option<std::collections::HashMap<InfoHash, u32>> {
+        None
     }
 
     /// Selecciona el archivo completo (después de la precarga) y deselecciona el resto.
@@ -416,18 +438,50 @@ fn load_peers(file: &std::path::Path) -> Vec<std::net::SocketAddr> {
 
 /// Fábrica: la ÚNICA función que conoce las implementaciones concretas.
 /// Cada llamada crea un motor independiente (proceso sidecar propio).
-/// Sin conexiones entrantes ni DHT persistente: para el analizador y herramientas (ADR-30).
+/// Sin conexiones entrantes ni DHT persistente: para el análisis rápido y herramientas (ADR-30;
+/// el conteo profundo con `announce_early` usa [`create_for_playback`]).
 pub async fn create(config: &EngineConfig, paths: &AppPaths) -> Result<Arc<dyn TorrentEngine>> {
     create_with(config, paths, None).await
 }
 
-/// Motor de una reproducción: además escucha conexiones entrantes (si `incoming`) y guarda la
+/// Motor de una reproducción (y del conteo profundo con `announce_early`): además escucha conexiones entrantes (si `incoming`) y guarda la
 /// tabla del DHT en [`AppPaths::dht_file`] (ADR-30). webtorrent lo ignora.
 pub async fn create_for_playback(
     config: &EngineConfig,
     paths: &AppPaths,
 ) -> Result<Arc<dyn TorrentEngine>> {
     create_with(config, paths, Some(paths.dht_file())).await
+}
+
+/// "Verificar puerto": abre `port` como una reproducción (escucha + UPnP si está prendido) hasta
+/// que se suelta lo devuelto. `None` = el motor no es rqbit o no pudo escuchar.
+#[cfg_attr(not(feature = "rqbit"), allow(unused_variables))]
+pub async fn hold_port(config: &EngineConfig, paths: &AppPaths, port: u16) -> Option<PortHold> {
+    #[cfg(feature = "rqbit")]
+    if config.kind == EngineKind::Rqbit {
+        match rqbit::hold_port(config, paths.rqbit_temp_dir(), port).await {
+            Ok(session) => {
+                return Some(PortHold {
+                    stop: session.cancellation_token().clone(),
+                    _session: Box::new(session),
+                })
+            }
+            Err(e) => tracing::warn!("verificar puerto: {e}"),
+        }
+    }
+    None
+}
+
+/// Mientras vive, el puerto queda abierto; al soltarlo se cierra la sesión.
+pub struct PortHold {
+    stop: tokio_util::sync::CancellationToken,
+    _session: Box<dyn std::any::Any + Send + Sync>,
+}
+
+impl Drop for PortHold {
+    fn drop(&mut self) {
+        self.stop.cancel();
+    }
 }
 
 #[cfg_attr(not(feature = "rqbit"), allow(unused_variables))]
@@ -486,13 +540,22 @@ mod tests {
         ]);
         let pick = |index, episode| m.pick_file(FilePick { index, episode }).unwrap().index;
         assert_eq!(pick(None, Some((1, 3))), 1);
-        assert_eq!(pick(Some(0), Some((1, 3))), 0);
+        assert_eq!(pick(Some(0), Some((1, 3))), 1, "fileIdx a otro episodio: el pedido");
+        assert_eq!(pick(Some(0), None), 0, "sin episodio: se confía en el fileIdx");
         assert_eq!(pick(None, Some((2, 1))), 2); // sin coincidencia: el más grande
         assert_eq!(
             pick(Some(3), Some((1, 3))),
             1,
             "fileIdx a un .txt: el del episodio"
         );
+        // Pack de la serie entera: el fileIdx de la fuente cae en un video de extras.
+        let pack = meta(&[
+            "GoT/Extras/Cast Interviews.mkv",
+            "GoT/Season 3/Game of Thrones - S03E03 - Walk of Punishment.mkv",
+        ]);
+        let pick_pack = |index, episode| pack.pick_file(FilePick { index, episode }).unwrap().index;
+        assert_eq!(pick_pack(Some(0), Some((3, 3))), 1, "fileIdx a entrevistas: el del episodio");
+        assert_eq!(pick_pack(Some(0), Some((9, 1))), 0, "ningún archivo nombra el episodio: el fileIdx");
         assert!(names_episode("Breaking_Bad_1x01_Pilot.mkv", 1, 1));
         assert!(!names_episode("Show.S01E010.mkv", 1, 1));
         assert!(!names_episode("Show.11x01.mkv", 1, 1));

@@ -26,6 +26,9 @@ pub struct StreamCandidate {
     /// Del scrape de trackers (FR-05): esto es lo que se muestra cuando llega.
     pub seeders: Option<u32>,
     pub leechers: Option<u32>,
+    /// Del scrape: descargas completas históricas (solo para registrar en el log del experimento).
+    #[serde(default)]
+    pub completed: Option<u32>,
     /// `2160p`, `1080p`, `720p`, `480p`.
     pub resolution: Option<String>,
     /// `HDR`, `DV`.
@@ -195,6 +198,7 @@ pub fn parse(raw: &Stream, ctx: &ParseCtx) -> Parsed {
         seeders_declared,
         seeders: None,
         leechers: None,
+        completed: None,
         resolution,
         hdr,
         audio_format,

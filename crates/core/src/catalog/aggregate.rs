@@ -83,6 +83,7 @@ impl Merged {
         if let Some(c) = self.map.get_mut(hash) {
             c.seeders = Some(s.seeders);
             c.leechers = Some(s.leechers);
+            c.completed = Some(s.completed);
         }
     }
 
@@ -388,6 +389,7 @@ mod tests {
             seeders_declared: None,
             seeders: None,
             leechers: None,
+            completed: None,
             resolution: None,
             hdr: vec![],
             audio_format: vec![],

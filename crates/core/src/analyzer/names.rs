@@ -70,6 +70,7 @@ pub async fn fetch_names(
                         trackers,
                         download_dir: dir,
                         initial_peers: Vec::new(),
+                        download_bps: None,
                     },
                 )
                 .await

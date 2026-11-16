@@ -98,11 +98,30 @@ impl Drop for RqbitEmbedded {
     }
 }
 
+/// "Verificar puerto" (2026-11-16): una sesión sin torrents que escucha en `port` y pide el
+/// reenvío por UPnP igual que el motor de una reproducción. Cancelar el token la cierra.
+pub(super) async fn hold_port(
+    config: &EngineConfig,
+    default_dir: PathBuf,
+    port: u16,
+) -> Result<Arc<Session>> {
+    let state_dir = default_dir
+        .with_file_name("rqbit-state")
+        .join(format!("{}-puerto", std::process::id()));
+    let _ = std::fs::remove_dir_all(&state_dir);
+    Session::new_with_opts(
+        default_dir,
+        net::session_opts(config, Some(port), None, &state_dir),
+    )
+    .await
+    .map_err(|e| CoreError::Engine(format!("no se pudo escuchar en el puerto {port}: {e:#}")))
+}
+
 impl RqbitEmbedded {
     /// `default_dir` = carpeta efímera de la sesión ([`AppPaths::rqbit_temp_dir`]); su estado va
     /// al lado, en `rqbit-state`. `dht_file` = motor de una reproducción: escucha entrantes (si
-    /// `incoming`) y guarda el DHT ahí. `None` = analizador/herramientas: ni escucha ni
-    /// persistencia (ADR-30).
+    /// `incoming`) y guarda el DHT ahí (también el conteo profundo con `announce_early`).
+    /// `None` = análisis rápido/herramientas: ni escucha ni persistencia (ADR-30).
     pub async fn spawn(
         config: &EngineConfig,
         default_dir: PathBuf,
@@ -123,12 +142,11 @@ impl RqbitEmbedded {
         let _ = std::fs::remove_dir_all(&state_dir);
         let mut fallback = None;
         let mut opts = net::session_opts(config, listen_port, persist, &state_dir);
-        if !playback {
-            // Cada stream de librqbit retiene uno de estos permisos de E/S (8 por defecto) y
-            // `hold_peers` deja uno abierto por torrent mientras cuenta: con 8 la tanda se traba.
-            // shortcut: alcanza para tandas de hasta ~30 torrents (la UI manda 20); más, subirlo.
-            opts.runtime_worker_threads = Some(40);
-        }
+        // Cada stream de librqbit retiene uno de estos permisos de E/S (8 por defecto) y
+        // `hold_peers` deja uno abierto por torrent mientras cuenta (también escuchando): con 8
+        // la tanda se traba. En la reproducción solo sube un tope que no se alcanza.
+        // shortcut: alcanza para tandas de hasta ~30 torrents (la UI manda 20); más, subirlo.
+        opts.runtime_worker_threads = Some(40);
         let session = match Session::new_with_opts(default_dir.clone(), opts).await {
             Ok(s) => s,
             // Puerto tomado entre la prueba y el bind, IPv6 apagado, puerto del DHT ocupado…:
@@ -304,6 +322,10 @@ impl TorrentEngine for RqbitEmbedded {
             output_folder: Some(opts.download_dir.to_string_lossy().into_owned()),
             trackers: Some(opts.trackers.clone()),
             initial_peers: (!opts.initial_peers.is_empty()).then(|| opts.initial_peers.clone()),
+            ratelimits: librqbit::limits::LimitsConfig {
+                download_bps: opts.download_bps.and_then(std::num::NonZeroU32::new),
+                upload_bps: None,
+            },
             ..Default::default()
         };
 
@@ -474,6 +496,14 @@ impl TorrentEngine for RqbitEmbedded {
 
     async fn hold_peers(&self, handle: TorrentHandle, file_index: usize) -> Result<()> {
         let torrent = self.inner.torrent(handle).await?;
+        // Seleccionado = los trackers lo ven con `left > 0` (como alguien que lo está bajando) y le
+        // pasan seeders; sin nada seleccionado se anuncia completo y le dan casi solo leechers.
+        // Lo que baje lo limita el `download_bps` con que se agregó (el conteo lo pone casi en 0).
+        self.inner
+            .session
+            .update_only_files(&torrent, &HashSet::from([file_index]))
+            .await
+            .map_err(|e| CoreError::Engine(format!("{e:#}")))?;
         // Un stream abierto sobre un archivo incompleto = torrent no terminado (librqbit
         // `is_finished_and_no_active_streams`); al crearlo además reconecta a los ya cortados.
         // Parado al final del archivo, su ventana de lectura es solo la última pieza.
@@ -495,6 +525,27 @@ impl TorrentEngine for RqbitEmbedded {
             std::future::pending::<()>().await;
         }));
         Ok(())
+    }
+
+    async fn dht_census(&self, hashes: &[InfoHash], secs: u64) -> Option<HashMap<InfoHash, u32>> {
+        use futures_util::StreamExt;
+        let dht = self.inner.session.get_dht()?.clone();
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(secs);
+        let tasks = hashes.iter().map(|h| {
+            let mut peers = dht.get_peers(Id20::new(*h.as_bytes()), None); // sin announce_peer
+            let h = *h;
+            async move {
+                let mut seen = HashSet::new();
+                while let Ok(Some(a)) = tokio::time::timeout_at(deadline, peers.next()).await {
+                    seen.insert(a);
+                }
+                (h, seen.len() as u32) // al soltar `peers` se cancela la búsqueda
+            }
+        });
+        let out = futures_util::future::join_all(tasks).await.into_iter().collect();
+        let st = dht.stats();
+        tracing::info!(n = hashes.len(), rt = st.routing_table_size, "censo DHT listo");
+        Some(out)
     }
 
     async fn connected_peers(&self, handle: TorrentHandle) -> Vec<std::net::SocketAddr> {
@@ -590,6 +641,7 @@ impl TorrentEngine for RqbitEmbedded {
                 .as_ref()
                 .map(|l| l.snapshot.peer_stats.live_seeders)
                 .unwrap_or_default(),
+            known_peers: s.live.as_ref().map(|l| l.snapshot.peer_stats.seen),
             incoming_peers: torrent
                 .live()
                 .map(|l| {

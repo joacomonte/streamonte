@@ -7,8 +7,8 @@ import { api, onCoreEvent } from './api.js';
 import { play } from './audio-picker.js';
 import { $, el, icon, setStatus, showError as reportError } from './dom.js';
 import { openSettings } from './dialogs.js';
-import { humanBytes, mbps, nf1, playbackText } from './format.js';
-import { MIN_SECS, healthCalibration, speedOf, trackPlayback } from './health-calib.js';
+import { humanBytes, mbps, nf, nf1, playbackText } from './format.js';
+import { MIN_SECS, currentNetwork, healthCalibration, levelOf, notePrediction, speedOf, supplyRange, trackPlayback } from './health-calib.js';
 import { state as lib } from './state.js';
 
 /** Errores del catálogo: solo en la barra de estado (no en la burbuja) y sin los "Cancelado." de
@@ -420,6 +420,9 @@ async function loadStreams(videoId) {
   // análisis profundo se pide con "Chequear <resolución>". `status`: null | 'run' | 'done'.
   state.side.deep = { status: null, hashes: [] };
   state.side.subsStarted = false;
+  state.side.censusStarted = false;
+  state.side.earlyStarted = false;
+  census.clear();
   openRes = null;
   state.update = null;
   renderSide();
@@ -434,6 +437,14 @@ function onStreams(update) {
   state.update = update;
   // Subtítulos de fondo apenas hay una opción (2026-11-16): su release afina la coincidencia.
   if (update.candidates.length && !state.side.subsStarted) { state.side.subsStarted = true; fetchSubs(); }
+  // Censo DHT apenas están las fuentes y los trackers (2026-11-16): una vez por video, en paralelo.
+  if (update.done && update.candidates.length && !state.side.censusStarted) { state.side.censusStarted = true; runCensus(update.video_id, update.candidates); }
+  // Idea 1 (2026-11-16): con `engine.announce_early`, cuenta a fondo solas las mejores, escuchando.
+  if (update.done && update.candidates.length && !state.side.earlyStarted) {
+    state.side.earlyStarted = true;
+    const video = update.video_id;
+    api.config().then((cfg) => { if (cfg.engine.announce_early && cfg.engine.incoming && state.side?.videoId === video) startEarly(); }).catch(() => {});
+  }
   const ok = update.addons.filter((a) => a.state !== 'pending').length;
   setStatus(update.done
     ? `${update.candidates.length} opción(es) de ${ok} fuente(s). Analizá o reproducí una.`
@@ -476,7 +487,7 @@ function seedsOf(c) {
 const bySeeds = (a, b) => tierOf(b) - tierOf(a) || (knownSeeds(b) ?? -1) - (knownSeeds(a) ?? -1) || (leechersOf(b) ?? -1) - (leechersOf(a) ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0);
 
 /** Orden de las opciones (2026-11-16), recalculado en cada redibujo (también con los conteos
- *  parciales mientras analiza): arriba las que se están analizando; después las analizadas a fondo, por salud y, entre las de salud buena,
+ *  parciales mientras analiza): arriba las que se están analizando; después las analizadas a fondo, por salud mostrada (las seguras antes que las probables) y, entre las de salud buena,
  *  la más pesada (mejor calidad: la salud ya dice que alcanza para su bitrate; los packs van después
  *  porque su peso es de varios episodios); entre las demás, la de más margen. Debajo, las sin analizar
  *  por seeders y leechers (`bySeeds`): con números de trackers la salud no es confiable. Devuelve
@@ -488,10 +499,10 @@ function sortOptions(cands) {
     const tier = counting.has(c.info_hash) ? 3 : tierOf(c);
     if (tier !== 2) return [-tier];
     const h = health(c);
-    const lvl = h?.level ?? 3;
+    const lvl = h?.shown ?? 3;
     const good = lvl === 0;
-    const bySize = good && h.exact && !c.is_pack; // el peso de un pack es de varios episodios
-    return [-tierOf(c), lvl, good && !bySize ? 1 : 0, bySize ? -(c.size_bytes ?? 0) : -(h?.ratio ?? -1)];
+    const bySize = good && !h.probable && h.exact && !c.is_pack; // el peso de un pack es de varios episodios
+    return [-tierOf(c), lvl, h?.probable ? 1 : 0, good && !bySize ? 1 : 0, bySize ? -(c.size_bytes ?? 0) : -(h?.ratio ?? -1)];
   };
   const byKey = (ka, kb) => ka.map((x, i) => x - (kb[i] ?? 0)).find((d) => d !== 0) ?? 0;
   const list = cands.map((c) => [key(c), c]).sort(([ka, a], [kb, b]) => byKey(ka, kb) || bySeeds(a, b)).map(([, c]) => c);
@@ -509,9 +520,13 @@ function tierOf(c) {
 /** Seeders que se saben de una opción, de lo más confiable a lo menos: contados al analizar
  *  (aunque sea 0), medidos al reproducir o cargar, según los trackers y, por último, la fuente. */
 function knownSeeds(c) {
+  return seedsCounted(c) ?? seedsOf(c);
+}
+/** Seeders contados o medidos de una opción (sin los de trackers); null si no hay ninguno. */
+function seedsCounted(c) {
   const partial = liveCount.get(c.info_hash);
   return counted.get(c.info_hash)?.seeds ?? (partial?.reached ? partial.seeds : null)
-    ?? rowsOf(c.info_hash).find((e) => e.live)?.live.seeds ?? seedsOf(c);
+    ?? rowsOf(c.info_hash).find((e) => e.live)?.live.seeds ?? null;
 }
 /** Leechers (desempate): conectados sin el archivo completo al contar, o los del scrape automático. */
 function leechersOf(c) {
@@ -628,6 +643,25 @@ function deepBar(d, frac, n) {
 
 /** Contados al analizar en esta sesión (conectándose al enjambre): hash → SwarmCount. */
 const counted = new Map();
+/** Censo DHT sin conectarse (spec 07): hash → direcciones únicas que dio la DHT. Solo informa
+ *  (tooltips) y rescata a los 0/0 de "muerto"; no entra en la salud. */
+const census = new Map();
+const CENSUS_MAX = 40;
+async function runCensus(video, cands) {
+  const hashes = [...cands].sort((a, b) => (seedsOf(b) ?? -1) - (seedsOf(a) ?? -1)).slice(0, CENSUS_MAX).map((c) => c.info_hash);
+  try {
+    const res = await api.catalogCensus(hashes);
+    // Mapa vacío = cortado o sin DHT: no se sabe nada (no es "0 en todos").
+    if (state.side?.videoId !== video || !Object.keys(res).length) return;
+    hashes.forEach((h) => census.set(h, res[h] ?? 0));
+    renderStreamsOnly();
+  } catch (e) { showError(e); }
+}
+/** Línea de tooltip: direcciones que conoce la red (`known` del conteo manda sobre el censo). */
+function knownLine(hash) {
+  const n = counted.get(hash)?.known || census.get(hash);
+  return n > 0 ? `La red conoce ~${n} direcciones (DHT/trackers/PEX); no todas aceptan conexión.` : null;
+}
 /** Subtítulos bajados desde el catálogo en esta sesión, por VIDEO (película o episodio, no por
  *  torrent): videoId → [{provider, language, release_name}]. */
 const subsFound = new Map();
@@ -691,14 +725,14 @@ function heavyBadge(c, badge) {
  *  pide (tamaño ÷ duración), con techo en la velocidad de internet (2026-11-16: el test de velocidad;
  *  sin él, lo más rápido que bajó esta PC). El aporte por seeder sale de lo medido en esta PC
  *  (`health-calib.js`); un leecher aporta una fracción fija. Ordena la lista (`sortOptions`) y da el
- *  ícono de señal. `level`: 0 bueno (≥ 2×), 1 justo (≥ 1×), 2 malo; null sin seeders conocidos o si
+ *  ícono de señal. Devuelve el rango (spec 08: el p50 manda el nivel; `probable` si el p75 alcanza el nivel
+ *  de arriba) y de qué evidencia sale. `level`: 0 bueno (≥ 2×), 1 justo (≥ 1×), 2 malo; null sin seeders conocidos o si
  *  nadie respondió. Sin saber cuánto pide (pack sin analizar, sin duración) se usa lo típico de su
  *  resolución (`exact = false`). Tres niveles: la estimación es gruesa; más serían ruido. */
 const LEECH_SHARE = 1 / 6;
 function health(c) {
   const seeds = knownSeeds(c);
   if (seeds == null || counted.get(c.info_hash)?.reached === false) return null;
-  const leech = leechersOf(c) ?? 0;
   const bps = neededBps(c);
   const need = bps ? toMbps(bps) : TYPICAL_MBPS[c.resolution] ?? 3;
   const cal = renderCal ?? healthCalibration(state.library.values());
@@ -707,44 +741,101 @@ function health(c) {
   const pb = playbackOf(c.info_hash);
   const now = pb && speedOf(pb.key);
   const measuredBps = now?.n >= MIN_SECS ? now.avg : rowsOf(c.info_hash).find((e) => e.live?.avg_speed_bps > 0)?.live.avg_speed_bps;
-  const raw = (seeds + leech * LEECH_SHARE) * cal.seedMbps;
-  const supply = measuredBps ? toMbps(measuredBps) : cal.capMbps ? Math.min(raw, cal.capMbps) : raw;
-  const ratio = supply / need;
-  const level = ratio >= 2 ? 0 : ratio >= 1 ? 1 : 2;
-  return { level, ratio, supply, need, exact: !!bps, measured: !!measuredBps, seeds, leech, cal };
+  // Lo medido por el análisis se corrige con lo aprendido (spec 04); lo de ahora (reproducción) no.
+  const fromAnalysis = !(now?.n >= MIN_SECS) && !!measuredBps;
+  const corr = fromAnalysis ? cal.measuredFactor : 1;
+  // Cada evidencia da un rango; gana la de p50 más alto (spec 08: todas subestiman). Con 0 seeders
+  // contados al TERMINAR de contar los trackers no entran (pueden estar viejos); un 0 parcial (recién
+  // llegan los metadatos) no los descarta: si no, se ve rojo hasta que conecta el primer seeder.
+  const sc = seedsCounted(c);
+  const ev = [];
+  if (sc != null) ev.push({ basis: 'counted', seeds: sc, leech: leechersOf(c) ?? 0, band: cal.seedBand });
+  if (counted.get(c.info_hash)?.seeds !== 0 && seedsOf(c) != null) ev.push({ basis: 'tracker', seeds: seedsOf(c), leech: c.leechers ?? 0, band: cal.trackerBand });
+  const m = measuredBps && toMbps(measuredBps) * corr;
+  const best = m
+    ? { basis: 'measured', seeds, leech: leechersOf(c) ?? 0, band: null, range: { lo: m, p50: m, p75: m, hi: m, conf: 'alta' } }
+    : ev.map((e) => ({ ...e, range: supplyRange(e.seeds + e.leech * LEECH_SHARE, e.band, cal.capMbps) }))
+      .reduce((a, b) => (b.range.p50 > a.range.p50 ? b : a));
+  // Solo trackers, sin conteo: se muestra recién con la corrección aprendida en esta red (spec 04
+  // D-A3, decisión del usuario: nEff ≥ 5); antes queda "Verificar salud".
+  if (best.basis === 'tracker' && sc == null && !(cal.bias?.tracker?.nEff >= 5)) return null;
+  const r = best.range;
+  const level = levelOf(r.p50 / need);
+  // Probable: el p75 alcanza el nivel de arriba (un nivel como máximo); no se recomienda como mejor.
+  const probable = !m && level > 0 && levelOf(r.p75 / need) < level;
+  return { level, shown: probable ? level - 1 : level, probable, range: r, conf: r.conf, ratio: r.p50 / need, supply: r.p50, need, exact: !!bps,
+    measured: !!m, corr, seeds: best.seeds, leech: best.leech, cal, basis: best.basis, band: best.band, perSeed: best.band?.p50 };
 }
 
-/** Ícono de señal de la salud: solo con los seeders reales contados (análisis profundo). Una
- *  palabra, no "N×": no es una velocidad medida (eso lo da la carga en background). */
-function healthBadge(c) {
-  if (!counted.get(c.info_hash)?.reached) return null; // sin contar o nadie respondió (ya se ve con ✕)
-  const { level, ratio, supply, need, exact, measured, seeds, leech, cal } = health(c);
-  const [text, cls, bars] = [['Buena salud', 'cat-health-good', 3], ['Puede cortarse', 'cat-health-fair', 2], ['Mala salud', 'cat-health-risky', 1]][level];
-  // Ícono de señal (2026-11-15): tantas barras llenas como el nivel; el cálculo, corto, en el tooltip
-  // (el detalle y la calibración, en el botón de velocidad de arriba).
-  const verdict = ['sobra el doble de lo que pide', 'alcanza apenas; si la velocidad baja, se corta', 'no alcanza, se va a cortar'][level];
-  const internet = cal.capMbps ? ` (tope: tu internet, ${Math.round(cal.capMbps)} Mbps)` : '';
-  const asks = exact ? `pide ~${Math.round(need)}` : `un ${resLabel(resKey(c))} suele pedir ~${Math.round(need)} (el tamaño real del episodio se sabe al analizarlo)`;
-  const tipText = measured
-    ? `${text}: ${verdict}\nMedido: bajó a ~${Math.round(supply)} Mbps y ${asks} (${nf1(ratio)}×).`
-    : `${text}: ${verdict}\nLe llegarían ~${Math.round(supply)} Mbps y ${asks} (${nf1(ratio)}×).\n${seeds} seeders y ${leech} leechers × ${nf1(cal.seedMbps)} Mbps por seeder${internet}.\nEs una estimación: cargar en background (⤓) lo mide de verdad.`;
+const HEALTH_TEXT = [['Buena salud', 'Buena probable'], ['Puede cortarse', 'Puede alcanzar'], ['Mala salud']];
+const HEALTH_SRC = { measured: 'medido', counted: 'seeders contados', tracker: 'trackers' };
+const mbpsN = (v) => nf(v >= 10 ? Math.round(v) : v);
+/** Salud como rango con confianza (spec 08): ícono + "lo–hi Mbps" + de dónde sale; siempre que se
+ *  conozca algún seeder. `compact` (reproduciendo) o medido: solo el ícono (la velocidad ya se ve). */
+function healthBadge(c, compact = false) {
+  const h = health(c);
+  if (!h) return null;
+  const { shown, probable, range: r, conf, basis, band, need, exact, seeds, leech, cal, corr } = h;
+  const text = HEALTH_TEXT[shown][probable ? 1 : 0];
+  const cls = ['cat-health-good', 'cat-health-fair', 'cat-health-risky'][shown];
+  const span = r.hi / Math.max(r.lo, 0.1) < 1.25 ? `~${mbpsN(r.p50)} Mbps` : `${mbpsN(r.lo)}–${mbpsN(r.hi)} Mbps`;
+  const src = `${HEALTH_SRC[basis]}${conf === 'baja' ? ' · sin calibrar' : ''}`;
+  const asks = exact ? `pide ~${Math.round(need)}` : `un ${resLabel(resKey(c))} suele pedir ~${Math.round(need)} (el real se sabe al analizarlo)`;
+  const internet = cal.capMbps && r.hi >= cal.capMbps ? ` (tope: tu internet, ${Math.round(cal.capMbps)} Mbps)` : '';
+  const what = basis === 'measured' ? `bajó a ~${mbpsN(r.p50)} Mbps${corr !== 1 ? ` (lo del análisis × ${nf1(corr)}, aprendido de tus reproducciones)` : ''}` : `entre ${mbpsN(r.lo)} y ${mbpsN(r.hi)} Mbps, lo más probable ~${mbpsN(r.p50)}`;
+  const why = basis === 'measured' ? 'Medido bajando este torrent.'
+    : `${seeds} ${basis === 'tracker' ? 'seeders de trackers' : 'seeders contados'} y ${leech} leechers × ${mbpsN(band.lo)}–${mbpsN(band.hi)} Mbps por seeder${conf === 'baja' ? ' (pocas mediciones propias en esta red: rango amplio)' : ''}${internet}.`;
+  const tip = `${text}: ${what}; ${asks} (${nf1(h.ratio)}×).\n${why}\nConfianza: ${conf}.${conf === 'alta' ? '' : ' Cargar en background (⤓) la mide de verdad.'}\nTocá para verificarla de nuevo (cuenta los seeders reales).${knownLine(c.info_hash) ? `\n${knownLine(c.info_hash)}` : ''}`;
   // Clickeable (2026-11-16): vuelve a verificar la salud (cuenta los seeders de nuevo).
-  const ic = el('button', { id: `cat-health-${c.info_hash}`, class: `cat-health-ic ${cls}`, title: `${tipText}\nTocá para verificarla de nuevo.`, 'aria-label': `${text}: verificar de nuevo`, onclick: () => reanalyze([c.info_hash]) });
-  ic.innerHTML = signalSvg(bars);
-  return ic;
+  const attrs = { id: `cat-health-${c.info_hash}`, title: tip, 'aria-label': `${text}, ${span}, ${src}, confianza ${conf}: verificar de nuevo`, onclick: () => reanalyze([c.info_hash]) };
+  const svg = signalSvg(3 - shown, probable);
+  if (compact || basis === 'measured') {
+    const b = el('button', { ...attrs, class: `cat-health-ic ${cls}` });
+    b.innerHTML = svg;
+    return b;
+  }
+  const ic = el('span', { class: 'cat-health-ic', 'aria-hidden': 'true' });
+  ic.innerHTML = svg;
+  return el('button', { ...attrs, class: `cat-health ${cls}` }, ic,
+    el('span', { class: 'cat-health-txt' }, el('span', { class: 'cat-health-range' }, span), el('span', { class: 'cat-health-src' }, src)));
 }
-/** Ícono de señal: `bars` llenas de 3 (0 = sin verificar). */
-const signalSvg = (bars) => `<svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}"/>`).join('')}</svg>`;
+/** Ícono de señal: `bars` llenas de 3 (0 = sin verificar); `maybe`: la más alta, a medias (probable). */
+const signalSvg = (bars, maybe = false) => `<svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}${maybe && b === bars ? ' maybe' : ''}"/>`).join('')}</svg>`;
 
 /** "Cargar en background" (2026-11-15): info_hash → {key, row}; `row` = última fila. La velocidad
  *  la mide `health-calib.js` (la misma medición calibra la salud estimada). */
 const bgLoads = new Map();
 const BG_GREEN = 1.5; // mismos márgenes que el ranking (`green_margin` / `yellow_margin`)
 const BG_YELLOW = 1;
-/** Fila de una reproducción: la mide (calibra la salud si se conocen sus seeders) y, si es de una
+/** Fila de una reproducción: la mide (calibra la salud si se conoce lo que predijo el análisis) y, si es de una
  *  carga en background, la guarda para su texto. */
+/** Lo que el análisis sabía de una opción (spec 04): del panel abierto si está; si no, de la fila de
+ *  la biblioteca (análisis `live` y trackers `scrape`). */
+function evidenceOf(hash) {
+  const c = state.update?.candidates.find((x) => x.info_hash === hash);
+  const live = rowsOf(hash).find((x) => x.live && !x.live.partial)?.live ?? null;
+  const scrape = rowsOf(hash).find((x) => x.scrape)?.scrape ?? null;
+  const n = counted.get(hash);
+  const bps = c && neededBps(c);
+  const tracker = c ? seedsOf(c) : scrape?.seeders ?? null;
+  const countedSeeds = n?.reached ? n.seeds : live?.seeds > 0 ? live.seeds : null;
+  // Sin nada predicho no hay contra qué comparar: esa reproducción no calibra (null).
+  if (tracker == null && countedSeeds == null && !(live?.avg_speed_bps > 0)) return null;
+  return {
+    tracker_seeds: tracker,
+    tracker_leechers: c ? c.leechers ?? null : scrape?.leechers ?? null,
+    counted_seeds: countedSeeds,
+    counted_leech: n?.reached ? Math.max(0, n.peers - n.seeds) : live?.seeds > 0 ? Math.max(0, live.peers - live.seeds) : null,
+    analysis_mbps: live?.avg_speed_bps > 0 ? toMbps(live.avg_speed_bps) : null,
+    need_mbps: bps ? toMbps(bps) : c ? TYPICAL_MBPS[c.resolution] ?? null : live?.duration_secs ? toMbps(live.file_size / live.duration_secs) : null,
+    res: c?.resolution ?? null,
+    known: n?.known > 0 ? n.known : null,
+    dht: census.get(hash) ?? null,
+  };
+}
 function measurePlayback(row) {
-  trackPlayback(row, counted.get(row.key.split(':')[0])?.seeds);
+  const hash = row.key.split(':')[0];
+  trackPlayback(row, evidenceOf(hash));
   const b = [...bgLoads.values()].find((x) => x.key === row.key);
   if (b) b.row = row;
 }
@@ -776,6 +867,7 @@ async function toggleBg(hash, btn) {
       if (b.row && ['fetching-metadata', 'preparing', 'background'].includes(b.row.state.kind)) await api.playbackAction(b.row.id, 'stop');
       setStatus('Carga en background cancelada: lo bajado queda guardado.');
     } else {
+      notePrediction(hash, evidenceOf(hash));
       const [row] = await api.catalogAdd(state.side.kind, state.side.videoId, [hash]);
       if (!row) return;
       bgLoads.set(hash, { key: row.key, row: null });
@@ -830,11 +922,12 @@ function optionRow(c, best = false) {
     : `No se analizó a fondo: quedó fuera de los ${TOP} mejores según los trackers.`)
     : dead
     ? (scraped.peers ? `Sin respuesta: la red tiene ${scraped.peers} direcciones de peers para este torrent, pero no se pudo conectar con ninguna (direcciones viejas, peers llenos o, lo más común, los dos detrás de un router con el puerto cerrado). No quiere decir que esté muerto.` : 'Nadie lo está compartiendo ahora (0 peers). Casi seguro muerto.')
-    : scraped ? `Conectado al enjambre: ${scraped.seeds} seeders (archivo completo) de ${scraped.peers} peers${c.seeders != null ? ` (los trackers anuncian ${c.seeders}, sin verificar)` : ''}. Es lo que respondió de verdad; al reproducir suelen aparecer algunos más.`
+    : scraped ? `Conectado al enjambre: ${scraped.seeds} seeders (archivo completo) de ${scraped.peers} peers${c.seeders != null ? ` (los trackers anuncian ${c.seeders}, sin verificar)` : ''}. Es lo que respondió de verdad; al reproducir suelen aparecer algunos más.${scraped.incoming > 0 ? ` ${scraped.incoming} se conectaron solos (entrantes).` : ''}`
     : live && live.seeds === 0 ? 'Al analizarlo no se vio ningún seeder conectado (puede ser el momento).'
     : live ? `Seeders vistos al analizarlo: ${live.seeds} (${live.peers} peers conectados).`
       : checked === 'trackers' ? `${TRACKERS_TIP} ${c.seeders} seeders, ${c.leechers ?? 0} leechers.`
         : 'Según la fuente (los trackers no lo conocen o no respondieron).';
+  const seedsTipFull = [seedsTip, knownLine(c.info_hash)].filter(Boolean).join('\n');
   // "Mejor opción" solo con el análisis profundo terminado (mientras corre, el orden cambia) y salud
   // buena: si no alcanza, no se recomienda (2026-11-16).
   const confirmed = best && counted.has(c.info_hash) && state.side.deep?.status === 'done' && health(c)?.level === 0;
@@ -848,7 +941,7 @@ function optionRow(c, best = false) {
         hdrTip ? badge('HDR', 'cat-hdr', hdrTip) : null, latBadge(c, badge), heavyBadge(c, badge)),
       // Reproduciéndose o bajando (2026-11-16): el estado va en grande al centro; seeds y salud,
       // en chico debajo del peso.
-      pbStatus ? el('span', { class: 'cat-mini-stats' }, healthBadge(c), `${seedsNow ?? '—'} seeds · ${leechersOf(c) ?? 0} leechers`)
+      pbStatus ? el('span', { class: 'cat-mini-stats' }, healthBadge(c, true), `${seedsNow ?? '—'} seeds · ${leechersOf(c) ?? 0} leechers`)
         : bg ? el('span', { class: `cat-speed bg-${bg.cls}`, title: bg.tip ?? '', role: 'status' }, bg.text)
         : light.text ? el('span', { class: 'cat-speed', title: 'Velocidad medida · margen' }, light.text) : null),
     pbStatus ? statusPill(pb, pbStatus) :
@@ -858,7 +951,7 @@ function optionRow(c, best = false) {
     healthBadge(c) ?? (busy ? null : verifyButton(c)),
     // Solo información (2026-11-16): analizar/verificar es el botón de salud de al lado.
     el('span', {
-      id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTip,
+      id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTipFull,
     }, // Seeds primero y grande; leechers y profundidad como una línea chica debajo.
     el('span', { class: 'cat-stat seeds' }, el('span', { class: 'cat-seeds-n' }, seedsNow ?? '—'), el('span', { class: 'cat-stat-label' }, 'seeds'),
       busy ? null // ya lo dice "analizando · N peers" debajo
@@ -1013,6 +1106,7 @@ async function countSeeds(hashes) {
       deepDone.add(h);
       stopped.delete(h);
     }
+    logCensus(todo);
     if (todo.length === 1 && !found[todo[0]]) setStatus('No se pudo contar ese torrent: nadie respondió a tiempo.');
   } catch (e) { showError(e); } finally {
     todo.forEach((h) => { counting.delete(h); liveCount.delete(h); });
@@ -1020,6 +1114,21 @@ async function countSeeds(hashes) {
     if (d?.single && !counting.size) Object.assign(d, { status: d.after, single: false, hashes: [] });
     renderStreamsOnly();
   }
+}
+
+/** Log local para el experimento del spec 07 (`streamonte.census-log`, máx. 300 filas, la más nueva primero). */
+function logCensus(hashes) {
+  try {
+    const rows = hashes.map((hash) => {
+      const c = state.update?.candidates.find((x) => x.info_hash === hash);
+      const n = counted.get(hash);
+      return { at: new Date().toISOString(), network: currentNetwork(), hash, res: c?.resolution ?? null, trackerSeeds: c ? seedsOf(c) : null,
+        trackerLeechers: c?.leechers ?? null, completed: c?.completed ?? null, census: census.get(hash) ?? null,
+        seeds: n?.seeds ?? null, peers: n?.peers ?? null, known: n?.known ?? null, level: c ? health(c)?.level ?? null : null };
+    });
+    const old = JSON.parse(safeGet('streamonte.census-log') ?? '[]');
+    safeSet('streamonte.census-log', JSON.stringify([...rows, ...old].slice(0, 300)));
+  } catch { /* el log es opcional */ }
 }
 
 /** Qué se sabe de los seeders de una opción (leyenda de la fila): 'deep' = contados al conectarse
@@ -1031,6 +1140,16 @@ const checkedBy = (c) => (counted.has(c.info_hash) ? 'deep' : trackersWin(c) ? '
 /** Etapa 2 del embudo: cuántos se cuentan a fondo (los mejores según los trackers), todos a la vez
  *  (el núcleo cuenta hasta 25 en paralelo, `swarm::CONCURRENCY`). 15 y no 25 (pedido 2026-11-15): cada uno abre hasta 30
  *  conexiones y con 25 la red se cargaba de más. */
+/** Idea 1 (2026-11-16): al llegar las opciones se cuentan a fondo solas las EARLY_TOP mejores por
+ *  trackers (una tanda de swarm::CONCURRENCY), con el motor escuchando. */
+const EARLY_TOP = 10;
+function startEarly() {
+  const ranked = (state.update?.candidates ?? []).filter((c) => inScope(c, null) && !unlikely(c) && !counted.has(c.info_hash))
+    .sort((a, b) => (seedsOf(b) ?? -1) - (seedsOf(a) ?? -1));
+  const hashes = ranked.slice(0, EARLY_TOP).map((c) => c.info_hash);
+  if (hashes.length) countSeeds(hashes);
+}
+
 const TOP = 15;
 /** Tiempo del análisis profundo (todos a la vez, ver `swarm.rs`): trackers unos segundos +
  *  metadatos hasta 35 s + conteo de 45 a 85 s. Los muertos se liberan a los 15 s. */
@@ -1047,7 +1166,8 @@ const deepDone = new Set();
 /** Salteados por el análisis (2026-11-15), hash → por qué: 'dead' = trackers con 0 seeders y 0
  *  leechers y la fuente sin seeders; 'rest' = fuera de los `TOP`. Se analizan igual desde su fila. */
 const skipped = new Map();
-const unlikely = (c) => c.seeders === 0 && c.leechers === 0 && !(c.seeders_declared > 0);
+// Con censo > 0 la DHT ve peers que los trackers no (spec 07): no se da por muerto.
+const unlikely = (c) => c.seeders === 0 && c.leechers === 0 && !(c.seeders_declared > 0) && !(census.get(c.info_hash) > 0);
 /** Análisis profundo desde cero de esas opciones (borra lo contado antes). Una sola: se cuenta ya;
  *  varias: el embudo de `runDeep`. */
 function reanalyze(hashes, res = null) {
@@ -1217,6 +1337,7 @@ async function playOption(hash, btn) {
   starting.set(hash, null);
   let started = false;
   try {
+    notePrediction(hash, evidenceOf(hash));
     const [row] = await api.catalogAdd(state.side.kind, state.side.videoId, [hash]);
     if (row && starting.has(hash)) {
       starting.set(hash, row.key);

@@ -1,9 +1,13 @@
 //! "Verificar puerto entrante" (Ajustes, 2026-11-15): ¿pueden los peers de afuera conectarse a
-//! esta PC? Solo se puede saber desde afuera: abre el puerto un momento (si no lo tiene ya una
-//! reproducción) y le pide a un servicio público de chequeo de puertos que intente conectarse.
+//! esta PC? Solo se puede saber desde afuera: abre el puerto un momento como una reproducción
+//! (escucha + UPnP, 2026-11-16; si no lo tiene ya una reproducción), espera la respuesta del
+//! router y le pide a un servicio público de chequeo de puertos que intente conectarse.
 //! Lo eligió el usuario sabiendo que manda la IP pública y el puerto a esos dos servicios.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+use crate::config::EngineConfig;
+use crate::paths::AppPaths;
 
 use serde::Serialize;
 
@@ -12,22 +16,41 @@ const PUBLIC_IP_URL: &str = "https://api.ipify.org";
 /// Intenta conectarse a `host:port` desde internet y dice si respondió.
 const PORT_CHECK_URL: &str = "https://portchecker.io/api/v1/query";
 const TIMEOUT: Duration = Duration::from_secs(15);
+/// Cuánto esperar la respuesta del router a UPnP (descubrirlo + pedir el reenvío).
+const UPNP_WAIT: Duration = Duration::from_secs(20);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct IncomingCheck {
     pub port: u16,
     /// `Some(true)` abierto desde internet, `Some(false)` cerrado, `None` no se pudo probar.
     pub reachable: Option<bool>,
+    /// UPnP prendido en Ajustes.
+    pub upnp_on: bool,
+    /// Respuesta del router: `Some(true)` aceptó el reenvío, `Some(false)` lo rechazó, `None` no
+    /// respondió (sin UPnP en el router) o UPnP apagado.
+    pub upnp: Option<bool>,
     /// IP de esta PC en la red de la casa: a dónde tiene que apuntar el reenvío del router.
     pub local_ip: Option<String>,
     /// Por qué no se pudo probar (en español), si pasó.
     pub problem: Option<String>,
 }
 
-pub async fn check(port: u16) -> IncomingCheck {
-    // Escuchar mientras dura la prueba. Si el puerto ya está en uso, casi seguro es el motor
-    // de una reproducción: ese ya escucha y la prueba vale igual.
-    let listener = tokio::net::TcpListener::bind(("0.0.0.0", port)).await.ok();
+pub async fn check(config: &EngineConfig, paths: &AppPaths) -> IncomingCheck {
+    let port = config.listen_ports[0];
+    let start = Instant::now();
+    // Ocupado = casi seguro el motor de una reproducción: ya escucha y pidió UPnP.
+    let busy = std::net::TcpListener::bind(("0.0.0.0", port)).is_err();
+    let hold = if busy {
+        None
+    } else {
+        crate::engine::hold_port(config, paths, port).await
+    };
+    // Sin rqbit (o si no pudo): escuchar a secas, sin UPnP.
+    let listener = if busy || hold.is_some() {
+        None
+    } else {
+        tokio::net::TcpListener::bind(("0.0.0.0", port)).await.ok()
+    };
     let accepting = listener.map(|l| {
         tokio::spawn(async move {
             while let Ok((socket, _)) = l.accept().await {
@@ -35,10 +58,23 @@ pub async fn check(port: u16) -> IncomingCheck {
             }
         })
     });
+    let upnp = if config.upnp && (busy || hold.is_some()) {
+        let since = (!busy).then_some(start);
+        loop {
+            let got = crate::activity::upnp_since(since);
+            if got.is_some() || start.elapsed() >= UPNP_WAIT {
+                break got;
+            }
+            tokio::time::sleep(Duration::from_millis(300)).await;
+        }
+    } else {
+        None
+    };
     let result = probe(port).await;
     if let Some(task) = accepting {
         task.abort();
     }
+    drop(hold);
     let (reachable, problem) = match result {
         Ok(open) => (Some(open), None),
         Err(e) => (None, Some(e)),
@@ -46,6 +82,8 @@ pub async fn check(port: u16) -> IncomingCheck {
     IncomingCheck {
         port,
         reachable,
+        upnp_on: config.upnp,
+        upnp,
         local_ip: local_ip(),
         problem,
     }

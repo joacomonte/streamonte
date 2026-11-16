@@ -64,7 +64,7 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
     }
     let (a, b) = (core.clone(), core.clone());
     tasks.push(tokio::spawn(async move {
-        a.set_network(false, true).await.unwrap()
+        a.set_network(false, true, true).await.unwrap()
     }));
     tasks.push(tokio::spawn(async move {
         b.catalog_set_exclude_japanese(false).await.unwrap()
@@ -90,7 +90,7 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
     let add = tokio::spawn(async move { adder.catalog_add_addon(&url).await });
     tokio::time::sleep(Duration::from_millis(100)).await;
     core.catalog_set_exclude_japanese(true).await.unwrap();
-    core.set_network(true, false).await.unwrap();
+    core.set_network(true, false, true).await.unwrap();
     let view = add.await.unwrap().unwrap();
     let disk = ConfigStore::new(&paths).load().unwrap();
     assert!(disk.catalog.exclude_japanese, "el toggle no se revierte");

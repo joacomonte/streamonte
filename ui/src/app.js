@@ -103,6 +103,7 @@ async function init() {
   refreshCopied();
   setInterval(() => { if (document.hasFocus()) refreshCopied(); }, 3000);
   $('#set-incoming').addEventListener('change', saveNetwork);
+  $('#set-announce').addEventListener('change', saveNetwork);
   $('#set-upnp').addEventListener('change', saveNetwork);
   $('#btn-net-check').addEventListener('click', onNetCheck);
   document.querySelectorAll('[data-save-key]').forEach((b) => b.addEventListener('click', () => saveKey(b.dataset.saveKey)));

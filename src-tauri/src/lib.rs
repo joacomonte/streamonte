@@ -87,6 +87,7 @@ pub fn run() {
             commands::api_keys,
             commands::catalog_poster,
             commands::catalog_swarm,
+            commands::catalog_census,
             commands::catalog_subtitles,
             commands::open_key_page,
             commands::catalog_search,
