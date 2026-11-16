@@ -284,7 +284,25 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-health-risky rect.on { fill: var(--red); }
 /* Análisis profundo: ícono chico al lado de los seeds. */
 .cat-deep-ic { display: inline-flex; align-self: center; color: var(--green); cursor: help; }
-.cat-size-cell .cat-pb { color: var(--accent-fg, var(--accent)); }
+/* Estado de la reproducción en grande (2026-11-16): manda sobre seeds y salud, que pasan a una
+   línea chica debajo del peso. */
+.cat-mini-stats { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.cat-mini-stats .cat-health-ic svg { width: 13px; height: 12px; }
+.cat-status { display: grid; gap: 6px; min-width: 170px; justify-self: start; }
+.cat-status-line { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--accent-fg, var(--accent)); white-space: nowrap; }
+.cat-status-line b { font-weight: 700; }
+.cat-status.st-playing .cat-status-line { color: var(--green); }
+.cat-status.st-paused .cat-status-line, .cat-status.st-download-paused .cat-status-line { color: var(--muted); }
+.cat-status.st-failed .cat-status-line { color: #e5534b; }
+.cat-status-bar { height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; }
+.cat-status-bar i { display: block; height: 100%; border-radius: inherit; background: currentColor; color: var(--accent); transition: width .5s var(--ease); }
+.cat-status.st-playing .cat-status-bar i { color: var(--green); }
+.cat-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 13px; }
+.cat-eq i { width: 3px; border-radius: 2px; background: currentColor; animation: cat-eq 1s ease-in-out infinite; }
+.cat-eq i:nth-child(2) { animation-delay: -.33s; } .cat-eq i:nth-child(3) { animation-delay: -.66s; }
+@keyframes cat-eq { 0%, 100% { height: 4px; } 50% { height: 13px; } }
+.cat-deep-spin.small { width: 13px; height: 13px; border-width: 2px; }
+@media (prefers-reduced-motion: reduce) { .cat-eq i { animation: none; height: 9px; } }
 
 /* Ruedita en los filtros (2026-11-15): al girar aparece la lista de opciones como un tambor
    centrado en la píldora (la elegida al medio, las vecinas se desvanecen). Clic en una opción la

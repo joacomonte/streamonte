@@ -831,9 +831,12 @@ function optionRow(c, best = false) {
       // Etiquetas chicas al lado del peso (2026-11-16): antes eran una columna propia.
       el('span', { class: 'cat-size-line' }, el('span', { class: 'cat-size' }, humanBytes(c.size_bytes)),
         hdrTip ? badge('HDR', 'cat-hdr', hdrTip) : null, latBadge(c, badge), heavyBadge(c, badge)),
-      pbStatus ? el('span', { class: `cat-speed cat-pb ${pb?.state.kind === 'failed' ? 'bg-red' : ''}`, role: 'status' }, pbStatus)
+      // Reproduciéndose o bajando (2026-11-16): el estado va en grande al centro; seeds y salud,
+      // en chico debajo del peso.
+      pbStatus ? el('span', { class: 'cat-mini-stats' }, `${seedsNow ?? '—'} seeds · ${leechersOf(c) ?? 0} leechers`, healthBadge(c))
         : bg ? el('span', { class: `cat-speed bg-${bg.cls}`, title: bg.tip ?? '', role: 'status' }, bg.text)
         : light.text ? el('span', { class: 'cat-speed', title: 'Velocidad medida · margen' }, light.text) : null),
+    pbStatus ? statusPill(pb, pbStatus) :
     // Seeds/leechers y, a su derecha, la salud estimada que sale de ellos (2026-11-15).
     el('span', { class: 'cat-stats-cell' }, el('button', {
       id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${checked === 'deep' ? 'analyzed' : ''} ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTip,
@@ -855,6 +858,19 @@ function optionRow(c, best = false) {
     healthBadge(c)),
     el('span', { class: 'cat-opt-actions' },
       playSplit(c)));
+}
+
+/** Estado de la reproducción de una opción, en grande (2026-11-16): ícono (o barras que se mueven
+ *  si se está viendo), el texto y, si va bajando, la barra de lo bajado. */
+function statusPill(pb, text) {
+  const k = pb?.state.kind ?? 'preparing';
+  const ic = { paused: 'pause', 'download-paused': 'pause', background: 'download', failed: 'ban', 'ask-after-close': 'pause' }[k];
+  const lead = k === 'playing' ? el('span', { class: 'cat-eq', 'aria-hidden': 'true' }, el('i'), el('i'), el('i'))
+    : ic ? icon(ic, 15) : el('span', { class: 'cat-deep-spin small', 'aria-hidden': 'true' });
+  const progress = pb && ['playing', 'background', 'paused', 'download-paused'].includes(k) ? pb.progress ?? 0 : null;
+  return el('span', { class: `cat-status st-${k}`, role: 'status' },
+    el('span', { class: 'cat-status-line' }, lead, el('b', {}, text.charAt(0).toUpperCase() + text.slice(1))),
+    progress != null ? el('span', { class: 'cat-status-bar', title: `${Math.floor(progress * 100)} % bajado` }, el('i', { style: `width:${Math.max(2, Math.round(progress * 100))}%` })) : null);
 }
 
 /** ▶ Reproducir con un ▾ al lado: el menú tiene "Cargar en background" (o cancelarla). */
