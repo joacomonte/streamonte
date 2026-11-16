@@ -694,6 +694,21 @@ impl AppCore {
             .await
     }
 
+    /// Mejor puntuadas con los filtros de IMDb (votos, idiomas); solo películas.
+    pub async fn catalog_browse_top(
+        &self,
+        from: &str,
+        to: Option<&str>,
+        min_votes: u32,
+        languages: Vec<String>,
+        genre: Option<&str>,
+    ) -> Result<BrowsePage> {
+        let timeout = self.catalog_timeout().await;
+        self.catalog
+            .browse_top(from, to, min_votes, languages, genre, timeout)
+            .await
+    }
+
     /// FR-38/39: ficha de película o serie (con episodios).
     pub async fn catalog_meta(&self, kind: MediaKind, id: &str) -> Result<Meta> {
         let timeout = self.catalog_timeout().await;

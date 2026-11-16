@@ -30,6 +30,9 @@ pub struct MetaPreview {
     /// Popularidad de TMDB según Cinemeta: con año o rango la UI ordena lo cargado por esto
     /// (los catálogos `year` vienen por fecha, no por popularidad).
     pub popularity: Option<f64>,
+    /// Géneros en español (solo la lista con filtros de IMDb; la UI filtra por ellos sin pedir de nuevo).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -264,6 +267,7 @@ fn preview(m: RawMeta, kind: MediaKind) -> Option<MetaPreview> {
         poster: https_only(m.poster),
         released: m.released.as_deref().and_then(|r| r.get(..10)).map(clean),
         popularity: m.popularities.and_then(|p| p.moviedb),
+        genres: Vec::new(),
     })
 }
 
@@ -435,6 +439,7 @@ mod tests {
             poster: None,
             released: released.map(Into::into),
             popularity: None,
+            genres: Vec::new(),
         };
         let d = |s: &str| NaiveDate::parse_from_str(s, "%Y-%m-%d").unwrap();
         let (from, to) = (d("2026-09-01"), d("2026-11-14"));

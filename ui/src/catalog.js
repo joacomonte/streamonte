@@ -109,7 +109,7 @@ function posterCard(p) {
     ? el('img', { src: p.poster, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer', onerror: fallback })
     : noPoster();
   return el('button', {
-    class: `cat-card ${state.side?.id === p.id ? 'active' : ''}`, title: p.name, 'data-id': p.id,
+    class: `cat-card ${state.side?.id === p.id ? 'active' : ''}`, 'data-id': p.id,
     onclick: () => openSide(p.kind, p.id, p.name),
   },
   img, el('span', { class: 'cat-card-name' }, p.name), el('span', { class: 'cat-card-year' }, [browse.from && p.released ? p.released.split('-').reverse().join('/') : p.year, p.imdb_rating && `★ ${p.imdb_rating}`].filter(Boolean).join(' · ')));
@@ -202,8 +202,8 @@ function crumbs(s) {
     up ? el('button', { id: 'cat-crumb-up', class: 'crumb-up', title: 'Volver', 'aria-label': 'Volver', onclick: up }, '←') : null,
     el('ol', { class: 'crumb-path' }, steps.map((st, i) => el('li', {},
       st.back
-        ? el('button', { id: `cat-crumb-${i}`, class: `crumb ${st.cls ?? ''}`, title: st.label, onclick: st.back }, st.label)
-        : el('span', { class: `crumb current ${st.cls ?? ''}`, 'aria-current': 'page', title: st.label }, st.label)))));
+        ? el('button', { id: `cat-crumb-${i}`, class: `crumb ${st.cls ?? ''}`, onclick: st.back }, st.label)
+        : el('span', { class: `crumb current ${st.cls ?? ''}`, 'aria-current': 'page' }, st.label)))));
 }
 
 function renderSide() {
@@ -1021,30 +1021,42 @@ async function openSources() {
 // ---------- Explorar (FR-37 simple, pedido 2026-11-14) ----------
 // Tipo → orden → cuándo (frase de filtros, 2026-11-15) → de a 20, "Cargar más".
 const PAGE = 20;
+// Cada vez que se abre la app arranca igual (pedido 2026-11-15): "películas con mejor puntaje IMDb
+// de hace 1 año a hoy con 50.000+ votos en inglés o español de todos los géneros". Lo que se cambie
+// vale mientras la app esté abierta.
 const browse = {
-  kind: safeGet('streamonte.browse.kind') ?? 'movie',
-  sort: safeGet('streamonte.browse.sort') ?? 'popular',
-  year: Number(safeGet('streamonte.browse.year')) || null,
-  // Rango de estreno (AAAA-MM-DD; `to` vacío = hasta hoy). Con `from`, manda sobre el año.
-  from: safeGet('streamonte.browse.from') || '',
-  to: safeGet('streamonte.browse.to') || '',
-  // Género de Cinemeta (solo `Documentary`, para "documentales"; pedido 2026-11-15).
-  genre: safeGet('streamonte.browse.genre') || null,
+  kind: 'movie',
+  sort: 'rating',
+  year: null,
+  // Rango de estreno (AAAA-MM-DD; `to` vacío = hasta hoy), sin filtros de IMDb. Con `from`, manda sobre el año.
+  from: '',
+  to: '',
+  // Género de Cinemeta (solo `Documentary`, para "documentales").
+  genre: null,
+  // Filtros de IMDb (solo con "mejor puntaje" en películas): piso de votos e idioma original.
+  minVotes: 50000,
+  langs: ['en', 'es'],
+  // Rango móvil en meses hacia atrás (0 = hoy), con la ruedita.
+  backFrom: 12,
+  backTo: 0,
+  // Géneros elegidos (badges): filtran lo ya cargado, sin pedir de nuevo. Vacío = todos.
+  genres: [],
   items: [], stale: [], shown: 0, skip: 0, cursor: null, hasMore: true, loading: false, error: null, gen: 0,
 };
 
-function setBrowse(changes) {
+/** Espera tras el último cambio de filtro antes de pedir la lista (pedido 2026-11-15): elegir
+ *  varios filtros seguidos hace un solo pedido. Mientras tanto se ve lo anterior atenuado. */
+const SETTLE_MS = 700;
+let browseTimer = null;
+
+function setBrowse(changes, wait = SETTLE_MS) {
   // Lo que se veía queda atenuado hasta que llega lo nuevo (sin vaciar la pantalla).
   const stale = browseItems().slice(0, browse.shown);
   // `gen` invalida lo que esté cargando con el filtro anterior.
   Object.assign(browse, changes, { stale, items: [], shown: 0, skip: 0, cursor: null, hasMore: true, error: null, loading: false, gen: browse.gen + 1 });
-  safeSet('streamonte.browse.kind', browse.kind);
-  safeSet('streamonte.browse.sort', browse.sort);
-  safeSet('streamonte.browse.year', browse.year ?? '');
-  safeSet('streamonte.browse.from', browse.from);
-  safeSet('streamonte.browse.to', browse.to);
-  safeSet('streamonte.browse.genre', browse.genre ?? '');
-  loadMore();
+  clearTimeout(browseTimer);
+  browseTimer = setTimeout(() => { browseTimer = null; loadMore(); }, wait);
+  render();
 }
 
 async function loadMore() {
@@ -1056,7 +1068,9 @@ async function loadMore() {
     browse.loading = true;
     render();
     try {
-      const page = byDate()
+      const page = topMode()
+        ? await api.catalogBrowseTop(isoDay(monthsAgo(browse.backFrom)), browse.backTo ? isoDay(monthsAgo(browse.backTo)) : null, browse.minVotes, browse.langs, browse.genre)
+        : byDate()
         ? await api.catalogBrowseReleased(browse.kind, browse.from || `${MIN_YEAR}-01-01`, browse.to || null, browse.genre, browse.cursor)
         : await api.catalogBrowse(browse.kind, browse.sort === 'rating' ? 'rating' : 'popular', browse.year, browse.genre, browse.skip);
       if (gen !== browse.gen) return; // cambió el filtro: otra carga ya está en curso
@@ -1080,7 +1094,9 @@ async function loadMore() {
 }
 
 function browseItems() {
-  const list = browse.items.filter((p) => !(state.hideJapanese && p.excluded));
+  let list = browse.items.filter((p) => !(state.hideJapanese && p.excluded));
+  // Alcanza con que tenga uno de los géneros elegidos.
+  if (topMode() && browse.genres.length) list = list.filter((p) => p.genres?.some((g) => browse.genres.includes(g)));
   // Con año o rango Cinemeta trae por fecha: puntaje y popularidad se ordenan sobre lo cargado.
   if (browse.year || browse.from) {
     if (browse.sort === 'rating') list.sort((a, b) => (Number(b.imdb_rating) || 0) - (Number(a.imdb_rating) || 0));
@@ -1097,8 +1113,19 @@ const MIN_YEAR = 1950;
 const thisYear = () => new Date().getFullYear();
 const isoDay = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const lastMonth = () => isoDay(new Date(Date.now() - 30 * 86400000));
-/** Se pide por fecha (núcleo recorriendo años): con rango, o "más recientes" sin año. */
-const byDate = () => !!browse.from || (browse.sort === 'recent' && !browse.year);
+/** Filtros de IMDb (TMDB + dataset de IMDb): "mejor puntaje" en películas con piso de votos o idioma.
+ *  Rango móvil "de hace N a hace M" en meses, cambiado con la ruedita (pedido 2026-11-15). */
+const topEligible = () => browse.sort === 'rating' && browse.kind === 'movie';
+const topMode = () => topEligible() && (browse.minVotes > 0 || browse.langs.length > 0);
+/** Pasos de la ruedita en meses hacia atrás: hoy, 1…11 meses, después de a 1 año hasta 1950. */
+const BACK_STEPS = [...Array.from({ length: 12 }, (_, i) => i), ...Array.from({ length: thisYear() - MIN_YEAR }, (_, i) => (i + 1) * 12)];
+const backLabel = (m) => (m === 0 ? 'hoy' : m < 12 ? `hace ${m} ${m === 1 ? 'mes' : 'meses'}` : `hace ${m / 12} ${m === 12 ? 'año' : 'años'}`);
+const monthsAgo = (m) => { const d = new Date(); d.setMonth(d.getMonth() - m); return d; };
+const VOTE_STEPS = [0, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
+const LANGS = [['en,es', 'inglés o español'], ['', 'cualquier idioma']];
+const votesLabel = (v) => (v ? `${v.toLocaleString('es-AR')}+ votos` : 'cualquier cantidad de votos');
+/** Se pide por fecha (núcleo recorriendo años) cuando hay rango.  */
+const byDate = () => !!browse.from;
 
 // Miniseries: Cinemeta no las distingue (ni tipo ni género); queda visible y deshabilitada.
 const KINDS = [
@@ -1110,7 +1137,6 @@ const KINDS = [
 const BROWSE_SORTS = [
   ['popular', 'más populares en IMDb', 'lo más visto'],
   ['rating', 'con mejor puntaje IMDb', 'nota promedio'],
-  ['recent', 'más recientes', 'por fecha de estreno'],
 ];
 const YEAR_PRESETS = [['Cualquier año', null], ['Este año', 0], ['Últimos 5 años', 4], ['Últimos 10 años', 9]];
 const DECADES = [['2020s', 2020, null], ['2010s', 2010, 2019], ['2000s', 2000, 2009], ['90s', 1990, 1999], ['80s', 1980, 1989], ['Antes', MIN_YEAR, 1979]];
@@ -1178,6 +1204,139 @@ function sortMenu() {
     menuOpt(`cat-sort-${value}`, label, browse.sort === value, pick(browse.sort !== value, () => setBrowse({ sort: value })), { sub }));
 }
 
+/** Ruedita sobre una píldora (pedido 2026-11-15). Al girar (o con ↑ ↓) aparece la lista de opciones
+ *  como un tambor centrado en la píldora: la elegida queda en el medio y las vecinas se desvanecen
+ *  arriba y abajo. Arriba = índice siguiente. Se aplica sola tras SPIN_APPLY_MS sin girar (una barra
+ *  muestra cuánto falta), con Enter, o con un clic en cualquier opción de la lista.
+ *  `clickOpens`: el clic en la píldora abre la lista (para las que no tienen menú propio). */
+// Clic afuera cierra la lista abierta (un giro pendiente se aplica igual al vencer la espera).
+document.addEventListener('click', (ev) => {
+  for (const n of document.querySelectorAll('.spinnable.spinning')) if (!n.contains(ev.target)) n.classList.remove('spinning');
+});
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SPIN_APPLY_MS = 2500;
+const SPIN_ROW = 40; // alto de cada opción en la lista (px)
+function spin(node, labels, index, apply, lo = 0, hi = labels.length - 1, { clickOpens = false } = {}) {
+  let i = Math.min(hi, Math.max(lo, index)), acc = 0, settle = null, progress = null;
+  const label = el('span', { class: 'spin-label' }, labels[i]);
+  const bar = el('span', { class: 'spin-bar' });
+  // Mayor índice arriba: girar hacia arriba trae la opción de arriba al centro.
+  const rows = [];
+  for (let k = hi; k >= lo; k--) {
+    rows.push(el('span', {
+      class: 'spin-item', 'data-k': k,
+      onclick: (ev) => { ev.stopPropagation(); choose(k); },
+    }, labels[k]));
+  }
+  const list = el('span', { class: 'spin-list' }, rows);
+  const win = el('span', { class: 'spin-window', 'aria-hidden': 'true' }, list, bar);
+  node.replaceChildren(label, win);
+  node.classList.add('spinnable');
+  const place = () => {
+    list.style.transform = `translateY(${(2 - (hi - i)) * SPIN_ROW}px)`;
+    for (const r of rows) r.dataset.d = String(Math.min(4, Math.abs(Number(r.dataset.k) - i)));
+  };
+  const open = () => { place(); node.classList.add('spinning'); };
+  const close = () => { node.classList.remove('spinning'); clearTimeout(settle); progress?.cancel(); };
+  const commit = () => { close(); apply(i); };
+  const show = (n, d) => {
+    i = n;
+    label.textContent = labels[i];
+    place();
+    if (node.getAttribute('role') === 'spinbutton') node.setAttribute('aria-valuetext', labels[i]);
+    if (!reduceMotion() && d) label.animate([{ transform: `translateY(${d > 0 ? -70 : 70}%)`, opacity: 0, filter: 'blur(3px)' }, { transform: 'none', opacity: 1, filter: 'none' }], { duration: 240, easing: 'cubic-bezier(.16, 1, .3, 1)' });
+  };
+  function choose(k) { show(k, 0); commit(); }
+  const step = (d) => {
+    open();
+    const n = Math.min(hi, Math.max(lo, i + d));
+    if (n === i) { // tope: un rebote corto en vez de no hacer nada
+      if (!reduceMotion()) list.animate([{ marginTop: '0px' }, { marginTop: `${d > 0 ? 6 : -6}px` }, { marginTop: '0px' }], { duration: 200, easing: 'ease-out' });
+    } else show(n, d);
+    // Cada paso reinicia la espera: hay tiempo de volver a la opción que se quería.
+    clearTimeout(settle);
+    settle = setTimeout(commit, SPIN_APPLY_MS);
+    progress?.cancel();
+    progress = bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: SPIN_APPLY_MS, easing: 'linear' });
+  };
+  // Se acumula el desplazamiento: un "click" de rueda es ~100; los touchpads mandan muchos pasos chicos.
+  node.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    acc += ev.deltaY;
+    if (Math.abs(acc) < 50) return;
+    step(acc < 0 ? 1 : -1);
+    acc = 0;
+  }, { passive: false });
+  node.addEventListener('keydown', (ev) => {
+    if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') { ev.preventDefault(); step(ev.key === 'ArrowUp' ? 1 : -1); }
+    else if (ev.key === 'Enter' && node.classList.contains('spinning')) { ev.preventDefault(); ev.stopPropagation(); commit(); }
+    else if (ev.key === 'Escape' && node.classList.contains('spinning')) { show(Math.min(hi, Math.max(lo, index)), 0); close(); }
+  });
+  place();
+  if (clickOpens) node.addEventListener('click', () => (node.classList.contains('spinning') ? close() : open()));
+  return node;
+}
+
+/** Inicio o fin del rango móvil (arriba = más atrás); si se cruzan, el otro extremo se corre. */
+function backWheel(which) {
+  const key = which === 'from' ? 'backFrom' : 'backTo';
+  const lo = which === 'from' ? 1 : 0, hi = BACK_STEPS.length - (which === 'from' ? 1 : 2);
+  const node = el('span', {
+    id: `cat-wheel-${which}`, class: 'cat-word cat-wheel', role: 'spinbutton', tabindex: 0,
+    'aria-label': which === 'from' ? 'Estrenadas desde' : 'Estrenadas hasta', 'aria-valuetext': backLabel(browse[key]),
+  });
+  return spin(node, BACK_STEPS.map(backLabel), BACK_STEPS.indexOf(browse[key]), (i) => {
+    const v = BACK_STEPS[i];
+    if (v === browse[key]) return;
+    const next = (x) => BACK_STEPS.find((y) => y > x), prev = (x) => BACK_STEPS.findLast((y) => y < x);
+    if (which === 'from') setBrowse({ backFrom: v, backTo: Math.min(browse.backTo, prev(v)) }, 0);
+    else setBrowse({ backTo: v, backFrom: Math.max(browse.backFrom, next(v)) }, 0);
+  }, lo, hi, { clickOpens: true });
+}
+
+/** Géneros como badges (multi-selección); el número es cuántas de la lista cargada lo tienen. */
+const GENRE_NAMES = ['Acción', 'Aventura', 'Animación', 'Comedia', 'Crimen', 'Documental', 'Drama', 'Familia', 'Fantasía', 'Historia', 'Terror', 'Música', 'Misterio', 'Romance', 'Ciencia ficción', 'Suspenso', 'Bélica', 'Western', 'Película de TV'];
+function genresLabel() {
+  const g = browse.genres;
+  if (!g.length) return 'todos los géneros';
+  return g.length <= 2 ? g.join(' o ') : `${g.length} géneros`;
+}
+function setGenres(genres) {
+  browse.genres = genres;
+  render(); // filtra lo cargado: no hace falta pedir de nuevo
+}
+function genreMenu() {
+  const counts = new Map();
+  for (const p of browse.items) if (!(state.hideJapanese && p.excluded)) for (const g of p.genres ?? []) counts.set(g, (counts.get(g) ?? 0) + 1);
+  const chips = GENRE_NAMES.map((g) => {
+    const on = browse.genres.includes(g), n = counts.get(g) ?? 0;
+    return el('button', {
+      id: `cat-genre-${g}`, class: `cat-chip genre ${on ? 'on' : ''} ${n ? '' : 'empty'}`, 'aria-pressed': String(on),
+      onclick: () => setGenres(on ? browse.genres.filter((x) => x !== g) : [...browse.genres, g]),
+    }, g, el('span', { class: 'n' }, ` · ${n}`));
+  });
+  return [el('div', { class: 'cat-genres' }, chips),
+    browse.genres.length ? el('button', { id: 'cat-genres-clear', class: 'cat-more-link', onclick: () => setGenres([]) }, 'Quitar géneros') : null];
+}
+
+/** Piso de votos de IMDb con un deslizador (se aplica al soltarlo). */
+function votesMenu() {
+  const idx = Math.max(0, VOTE_STEPS.findIndex((v) => v >= browse.minVotes));
+  const out = el('output', { for: 'cat-votes', class: 'cat-votes-val' }, votesLabel(VOTE_STEPS[idx]));
+  const slider = el('input', {
+    type: 'range', id: 'cat-votes', min: 0, max: VOTE_STEPS.length - 1, step: 1, value: idx, 'aria-label': 'Mínimo de votos en IMDb',
+    oninput: (ev) => { out.textContent = votesLabel(VOTE_STEPS[ev.target.value]); },
+    onchange: (ev) => { const v = VOTE_STEPS[ev.target.value]; if (v !== browse.minVotes) setBrowse({ minVotes: v }); },
+  });
+  return [el('div', { class: 'cat-votes' }, out, slider, el('span', { class: 'hint' }, 'Mínimo de votos en IMDb'))];
+}
+
+function langMenu() {
+  const cur = browse.langs.join(',');
+  return LANGS.map(([value, label]) => menuOpt(`cat-lang-${value || 'any'}`, label, cur === value,
+    pick(cur !== value, () => setBrowse({ langs: value.split(',').filter(Boolean) })), { sub: value ? 'idioma original' : undefined }));
+}
+
 function whenMenu() {
   const now = thisYear(), span = yearSpan();
   const presets = YEAR_PRESETS.map(([label, back], i) => {
@@ -1228,23 +1387,37 @@ function exactBlock() {
 }
 
 function sentence(searching) {
-  const word = (name, label, build) => el('span', { class: 'cat-dd' },
-    el('button', {
+  const word = (name, label, build, wheel) => el('span', { class: 'cat-dd' },
+    ((b) => (wheel ? spin(b, ...wheel) : b))(el('button', {
       id: `cat-word-${name}`, class: `cat-word ${menu === name ? 'open' : ''}`, 'aria-haspopup': 'menu', 'aria-expanded': String(menu === name),
       onclick: () => {
         menu = menu === name ? null : name;
         if (name === 'when') exactDates = !yearSpan() && !!browse.from;
         renderFilters();
       },
-    }, label),
-    menu === name ? el('div', { id: `cat-pop-${name}`, class: `cat-pop ${name === 'when' ? 'wide' : ''}`, role: 'menu' }, build()) : null);
+    }, label)),
+    menu === name ? el('div', { id: `cat-pop-${name}`, class: `cat-pop ${name === 'when' ? 'wide' : ''} ${name === 'genres' ? 'genres' : ''}`, role: 'menu' }, build()) : null);
   const kind = KINDS.find((k) => k.kind === browse.kind && k.genre === browse.genre) ?? KINDS[0];
   if (searching) return el('div', { class: 'cat-sentence' }, 'Películas y series');
   const [prep, when] = whenWords();
-  return el('div', { class: 'cat-sentence' }, 'Mostrando ',
-    word('kind', kind.label, () => kindMenu()), ' ',
-    word('sort', BROWSE_SORTS.find(([v]) => v === browse.sort)?.[1] ?? BROWSE_SORTS[0][1], sortMenu), ` ${prep} `,
-    word('when', when, whenMenu));
+  const lang = LANGS.find(([v]) => v === browse.langs.join(','))?.[1] ?? LANGS[0][1];
+  // Cada conector va pegado a su píldora: al partirse la línea no queda un "con" suelto al final.
+  const pair = (text, node) => el('span', { class: 'cat-pair' }, text, node);
+  // Ruedita en cada filtro de lista (pedido 2026-11-15): [etiquetas, actual, aplicar].
+  const kinds = KINDS.filter((k) => !k.disabled);
+  const sortIdx = Math.max(0, BROWSE_SORTS.findIndex(([v]) => v === browse.sort));
+  const votesIdx = Math.max(0, VOTE_STEPS.findIndex((v) => v >= browse.minVotes));
+  const langIdx = Math.max(0, LANGS.findIndex(([v]) => v === browse.langs.join(',')));
+  const kindWheel = [kinds.map((k) => k.label), kinds.indexOf(kind), (i) => kinds[i] !== kind && setBrowse({ kind: kinds[i].kind, genre: kinds[i].genre }, 0)];
+  const sortWheel = [BROWSE_SORTS.map(([, l]) => l), sortIdx, (i) => i !== sortIdx && setBrowse({ sort: BROWSE_SORTS[i][0] }, 0)];
+  const votesWheel = [VOTE_STEPS.map(votesLabel), votesIdx, (i) => i !== votesIdx && setBrowse({ minVotes: VOTE_STEPS[i] }, 0)];
+  const langWheel = [LANGS.map(([, l]) => l), langIdx, (i) => i !== langIdx && setBrowse({ langs: LANGS[i][0].split(',').filter(Boolean) }, 0)];
+  return el('div', { class: 'cat-sentence' },
+    pair('Mostrando', word('kind', kind.label, () => kindMenu(), kindWheel)),
+    word('sort', BROWSE_SORTS[sortIdx][1], sortMenu, sortWheel),
+    topMode() ? [pair('de', backWheel('from')), pair('a', backWheel('to'))] : pair(prep, word('when', when, whenMenu)),
+    topEligible() ? [pair('con', word('votes', votesLabel(browse.minVotes), votesMenu, votesWheel)), pair('en', word('lang', lang, langMenu, langWheel))] : null,
+    topMode() ? pair('de', word('genres', genresLabel(), genreMenu)) : null);
 }
 
 // Clic afuera o Escape cierra el menú (ignora clics en nodos que un re-render ya sacó).
@@ -1288,13 +1461,15 @@ function renderBrowse(root) {
   const pasted = pastedSection();
   if (pasted) root.append(pasted);
   const items = browseItems().slice(0, browse.shown);
-  const stale = !items.length && browse.loading;
+  const waiting = browse.loading || !!browseTimer;
+  const stale = !items.length && waiting;
   if (items.length) root.append(el('div', { class: 'cat-grid' }, items.map(cardFor)));
   else if (stale) root.append(browse.stale.length ? el('div', { class: 'cat-grid stale', 'aria-busy': 'true' }, browse.stale.map(cardFor)) : skeletonGrid());
   if (browse.error) root.append(el('p', { class: 'hint' }, browse.error));
-  else if (!items.length && !browse.loading) root.append(el('p', { class: 'hint' }, 'No hay títulos con ese filtro.'));
-  if (browse.loading && !stale) root.append(el('p', { class: 'hint' }, 'Cargando…'));
-  else if (browse.hasMore || browseItems().length > browse.shown) {
+  else if (!items.length && !waiting) root.append(el('p', { class: 'hint' }, 'No hay títulos con ese filtro.'));
+  if (browse.loading && topMode()) root.append(el('p', { class: 'hint' }, 'Cargando… la primera vez baja los puntajes de IMDb y las fichas de TMDB (puede tardar medio minuto).'));
+  else if (browse.loading && !stale) root.append(el('p', { class: 'hint' }, 'Cargando…'));
+  else if (!browseTimer && (browse.hasMore || browseItems().length > browse.shown)) {
     root.append(el('div', { class: 'cat-more' }, el('button', { onclick: loadMore }, 'Cargar más')));
   }
 }
@@ -1312,7 +1487,7 @@ function render() {
   if (state.searching) root.append(skeletonGrid());
   else if (state.results) renderResults(root);
   else {
-    if (!browse.items.length && browse.hasMore && !browse.loading) loadMore();
+    if (!browse.items.length && browse.hasMore && !browse.loading && !browseTimer) loadMore();
     renderBrowse(root);
   }
 }
@@ -1320,12 +1495,15 @@ function render() {
 async function init() {
   $('#catalog').append(
     el('div', { class: 'cat-main' },
-      el('div', { class: 'cat-bar' },
+      // Buscador y filtros en la barra fija (siempre visibles al bajar, 2026-11-15).
+      el('div', { id: 'cat-bar', class: 'cat-bar' },
         el('div', { class: 'cat-search' },
-          el('input', { id: 'cat-q', type: 'search', placeholder: 'Buscar película o serie…', autocomplete: 'off', oninput: onQueryInput }))),
-      el('div', { id: 'cat-filters' }),
+          el('input', { id: 'cat-q', type: 'search', placeholder: 'Buscar película o serie…', autocomplete: 'off', oninput: onQueryInput })),
+        el('div', { id: 'cat-filters' })),
       el('div', { id: 'cat-body' })),
     el('aside', { id: 'cat-side', class: 'cat-side', 'aria-label': 'Opciones' }));
+  const main = $('#catalog .cat-main');
+  main.addEventListener('scroll', () => $('#cat-bar').classList.toggle('scrolled', main.scrollTop > 4), { passive: true });
   $('#btn-sources').addEventListener('click', openSources); // en Ajustes (2026-11-15)
   document.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey && ev.key.toLowerCase() === 'f') { ev.preventDefault(); $('#cat-q').focus(); }

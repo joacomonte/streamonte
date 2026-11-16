@@ -11,6 +11,7 @@ pub mod http;
 pub mod normalize;
 pub mod protocol;
 pub mod tmdb;
+pub mod top;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -133,6 +134,28 @@ fn secret_account(id: &str) -> String {
     format!("addon-url-{id}")
 }
 
+/// `AAAA-MM-DD`, bordes incluidos; sin `to` = hasta hoy.
+fn date_range(from: &str, to: Option<&str>) -> Result<(chrono::NaiveDate, chrono::NaiveDate)> {
+    let date = |s: &str| {
+        chrono::NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d").map_err(|_| CoreError::Catalog {
+            user: format!("Fecha inválida: {s}."),
+            detail: format!("fecha inválida: {s:?}"),
+        })
+    };
+    let from = date(from)?;
+    let to = match to.filter(|t| !t.trim().is_empty()) {
+        Some(t) => date(t)?,
+        None => chrono::Local::now().date_naive(),
+    };
+    if from > to {
+        return Err(CoreError::Catalog {
+            user: "La fecha «desde» es posterior a «hasta».".into(),
+            detail: format!("rango invertido: {from} > {to}"),
+        });
+    }
+    Ok((from, to))
+}
+
 pub fn fetch_error(what: &str, e: &FetchError) -> CoreError {
     CoreError::Catalog {
         user: format!("No se pudo {what}: {}.", e.user_text()),
@@ -162,6 +185,8 @@ pub struct Catalog {
     addons: Mutex<HashMap<String, Arc<Addon>>>,
     /// Pósters de TMDB para los títulos sin imagen en Cinemeta.
     posters: tmdb::Posters,
+    /// "Mejor puntuadas" con filtros de IMDb (TMDB + dataset de IMDb).
+    top: top::TopRated,
 }
 
 impl Catalog {
@@ -174,6 +199,7 @@ impl Catalog {
             latest: Arc::default(),
             addons: Mutex::default(),
             posters: tmdb::Posters::default(),
+            top: top::TopRated::default(),
         }
     }
 
@@ -278,28 +304,36 @@ impl Catalog {
         cursor: Option<BrowseCursor>,
         timeout: Duration,
     ) -> Result<BrowsePage> {
-        let date = |s: &str| {
-            chrono::NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d").map_err(|_| {
-                CoreError::Catalog {
-                    user: format!("Fecha inválida: {s}."),
-                    detail: format!("fecha inválida: {s:?}"),
-                }
-            })
-        };
-        let from = date(from)?;
-        let to = match to.filter(|t| !t.trim().is_empty()) {
-            Some(t) => date(t)?,
-            None => chrono::Local::now().date_naive(),
-        };
-        if from > to {
-            return Err(CoreError::Catalog {
-                user: "La fecha «desde» es posterior a «hasta».".into(),
-                detail: format!("rango invertido: {from} > {to}"),
-            });
-        }
+        let (from, to) = date_range(from, to)?;
         cinemeta::browse_released(&self.http, kind, from, to, genre, cursor, timeout)
             .await
             .map_err(|e| fetch_error("cargar la lista", &e))
+    }
+
+    /// Mejor puntuadas con filtros de IMDb (piso de votos, idioma original); solo películas.
+    /// Toda la lista de una vez (ya ordenada por puntaje).
+    pub async fn browse_top(
+        &self,
+        from: &str,
+        to: Option<&str>,
+        min_votes: u32,
+        languages: Vec<String>,
+        genre: Option<&str>,
+        timeout: Duration,
+    ) -> Result<BrowsePage> {
+        let (from, to) = date_range(from, to)?;
+        let q = top::TopQuery {
+            from,
+            to,
+            min_votes,
+            languages,
+            documentary: genre.is_some_and(|g| g.eq_ignore_ascii_case("Documentary")),
+        };
+        Ok(BrowsePage {
+            items: self.top.list(&self.http, &q, timeout).await?,
+            has_more: false,
+            next: None,
+        })
     }
 
     /// FR-38/39 (cacheada en memoria: la usan la ficha, el filtro y los streams).

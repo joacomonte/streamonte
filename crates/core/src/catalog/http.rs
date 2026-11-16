@@ -104,12 +104,32 @@ impl Http {
     }
 
     async fn get_bytes(&self, url: &str) -> Result<Vec<u8>, FetchError> {
+        self.get_capped(url, LIMITS).await
+    }
+
+    /// GET binario más grande que [`MAX_BODY`] (los datasets de IMDb, ~8 MB comprimidos).
+    pub async fn get_large(
+        &self,
+        url: &str,
+        max_body: usize,
+        timeout: Duration,
+    ) -> Result<Vec<u8>, FetchError> {
+        let limits = Limits {
+            max_body,
+            retry_transient: true,
+        };
+        tokio::time::timeout(timeout, self.get_capped(url, limits))
+            .await
+            .map_err(|_| FetchError::Timeout)?
+    }
+
+    async fn get_capped(&self, url: &str, limits: Limits) -> Result<Vec<u8>, FetchError> {
         let slot = self.host_slot(url);
         let _permit = slot
             .acquire_owned()
             .await
             .map_err(|_| FetchError::Timeout)?;
         let req = self.client.get(url).header("Accept", "application/json");
-        Ok(crate::http::get_bytes(req, LIMITS).await?)
+        Ok(crate::http::get_bytes(req, limits).await?)
     }
 }

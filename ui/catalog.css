@@ -7,8 +7,12 @@
 /* Contenido centrado con aire a los costados; buscador tipo píldora al centro (2026-11-15). */
 .cat-main { overflow: auto; padding: 20px clamp(20px, 4vw, 64px); min-height: 0; }
 .cat-main > * { max-width: 1680px; margin-inline: auto; }
-.cat-bar { display: grid; grid-template-columns: 1fr minmax(0, 620px) 1fr; gap: 16px; align-items: center; position: sticky; top: -20px; padding: 12px 0 14px; background: var(--bg); z-index: 2; }
-.cat-search { grid-column: 2; position: relative; }
+/* Buscador + frase de filtros: siempre a la vista (sticky, 2026-11-15). De borde a borde; al
+   bajar se marca con una línea y una sombra suave para separarse de las cards. */
+.cat-main > .cat-bar { max-width: none; margin: -20px calc(-1 * clamp(20px, 4vw, 64px)) 20px; padding: 30px clamp(20px, 4vw, 64px) 16px; }
+.cat-bar { display: grid; justify-items: center; gap: 12px; position: sticky; top: -20px; z-index: 3; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(18px) saturate(1.3); border-bottom: 1px solid transparent; transition: border-color .2s, box-shadow .2s; }
+.cat-bar.scrolled { border-bottom-color: var(--border); box-shadow: 0 10px 24px -18px var(--shadow-lg); }
+.cat-search { width: min(620px, 100%); position: relative; }
 .cat-search::before { content: ''; position: absolute; left: 18px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); background: var(--muted); pointer-events: none;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat; }
 .cat-search:focus-within::before { background: var(--accent); }
@@ -62,13 +66,17 @@
 
 .cat-more { display: flex; justify-content: center; margin: 16px 0; }
 /* Frase de filtros (2026-11-15): "Mostrando [películas] [más populares en IMDb] de [cualquier año]". */
-.cat-sentence { margin: 8px auto 22px; text-align: center; font-size: 20px; line-height: 1.9; color: var(--muted); }
-.cat-dd { position: relative; display: inline-block; }
-.cat-word { display: inline-flex; align-items: center; gap: 6px; border: none; border-bottom: 2px dashed var(--border-strong); border-radius: 0; background: none; padding: 0 2px; font-size: 20px; font-weight: 600; color: var(--text); transition: color .15s, border-color .15s; }
-.cat-word::after { content: ''; width: 6px; height: 6px; margin-top: -4px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); opacity: .45; transition: transform .2s, opacity .15s, margin .2s; }
+/* Las palabras elegibles son píldoras; los conectores ("de", "con", "en") quedan en gris entre ellas. */
+.cat-sentence { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 7px; font-size: 14px; line-height: 1.2; color: var(--muted); }
+.cat-dd { position: relative; display: inline-flex; }
+.cat-pair { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.cat-word { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; box-shadow: 0 1px 2px var(--shadow); transition: color .15s, border-color .15s, background .15s; }
+.cat-word::after { content: ''; width: 5px; height: 5px; margin-top: -3px; border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(45deg); opacity: .5; transition: transform .2s, opacity .15s, margin .2s; }
+.cat-word:hover { border-color: var(--border-strong); background: var(--surface-2); }
 .cat-word:hover::after { opacity: .9; }
-.cat-word.open::after { transform: rotate(-135deg); margin-top: 4px; opacity: .9; }
-.cat-word:hover, .cat-word.open { border-color: var(--accent); color: var(--accent-fg); }
+.cat-word.open { border-color: var(--accent); color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.cat-word.open::after { transform: rotate(-135deg); margin-top: 3px; opacity: .9; }
+.cat-word:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cat-pop { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 5; min-width: 260px; padding: 6px; display: grid; gap: 2px; text-align: left; font-size: 14px; line-height: 1.4; background: color-mix(in srgb, var(--surface-2) 92%, transparent); backdrop-filter: blur(14px); border: 1px solid var(--border-strong); border-radius: 14px; box-shadow: 0 18px 48px var(--shadow-lg); animation: cat-pop-in .16s ease-out; transform-origin: top center; }
 @keyframes cat-pop-in { from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(.97); } }
 .cat-pop.wide { width: 300px; }
@@ -89,6 +97,14 @@
 .cat-more-link:hover { color: var(--muted); }
 .cat-exact { display: grid; gap: 8px; margin: 4px 6px 6px; padding: 10px 4px 0; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); }
 .cat-exact .cat-chip { justify-self: start; }
+/* Filtros de IMDb (2026-11-15): año inicial que se atrasa y deslizador de votos */
+/* Rango con la ruedita: flechas arriba/abajo dibujadas en vez del chevron de menú. */
+.cat-wheel { cursor: ns-resize; user-select: none; font-variant-numeric: tabular-nums; }
+.cat-wheel::after, .cat-wheel.open::after { width: 9px; height: 12px; margin: 0; border: none; transform: none; background: currentColor; opacity: .55;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6l3-3 3 3M3 10l3 3 3-3'/%3E%3C/svg%3E") center / contain no-repeat; }
+.cat-votes { display: grid; gap: 8px; padding: 10px 12px; }
+.cat-votes-val { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.cat-votes input[type="range"] { width: 100%; accent-color: var(--accent); }
 .cat-exact label { display: flex; justify-content: space-between; align-items: center; }
 .cat-exact input { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 4px 6px; font: 13px system-ui, sans-serif; color-scheme: dark light; }
 
@@ -340,3 +356,35 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 /* Análisis profundo: ícono chico al lado de los seeds. */
 .cat-deep-ic { display: inline-flex; align-self: center; color: var(--green); cursor: help; }
 .cat-size-cell .cat-pb { color: var(--accent-fg, var(--accent)); }
+
+/* Ruedita en los filtros (2026-11-15): al girar aparece la lista de opciones como un tambor
+   centrado en la píldora (la elegida al medio, las vecinas se desvanecen). Clic en una opción la
+   elige; la barra de abajo muestra cuánto falta para que se aplique sola. */
+.spinnable { position: relative; }
+.spin-label { display: inline-block; will-change: transform; }
+.spin-window { --row: 40px; position: absolute; left: 50%; top: 50%; z-index: 6; width: max-content; min-width: calc(100% + 40px); height: calc(var(--row) * 5); overflow: hidden;
+  border-radius: 20px; border: 1px solid var(--border-strong); background: var(--surface-2); box-shadow: 0 22px 56px var(--shadow-lg), 0 2px 6px var(--shadow);
+  -webkit-mask: linear-gradient(transparent, #000 16%, #000 84%, transparent); mask: linear-gradient(transparent, #000 16%, #000 84%, transparent);
+  opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scaleY(.6); transition: opacity .18s ease-out, transform .28s cubic-bezier(.16, 1, .3, 1); }
+.spinning > .spin-window { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scaleY(1); }
+/* Franja del medio: la opción elegida, con la forma de la píldora. */
+.spin-window::before { content: ''; position: absolute; left: 8px; right: 8px; top: calc(var(--row) * 2); height: var(--row); border-radius: 999px; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+.spin-list { position: relative; display: flex; flex-direction: column; transition: transform .28s cubic-bezier(.16, 1, .3, 1); }
+.spin-item { display: flex; align-items: center; justify-content: center; height: var(--row); padding: 0 26px; white-space: nowrap; font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; transition: color .15s, opacity .2s; }
+.spin-item:hover { color: var(--text); }
+.spin-item[data-d="0"] { color: var(--accent-fg); font-weight: 700; }
+.spin-item[data-d="1"] { opacity: .9; }
+.spin-item[data-d="2"] { opacity: .6; }
+.spin-item[data-d="3"] { opacity: .5; }
+.spin-item[data-d="4"] { opacity: .3; }
+.spin-bar { position: absolute; left: 28px; right: 28px; top: calc(var(--row) * 3 - 6px); height: 3px; border-radius: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; }
+@media (prefers-reduced-motion: reduce) { .spin-window, .spin-list { transition: opacity .15s; } }
+
+/* Géneros como badges (multi-selección) */
+.cat-pop.genres { width: min(460px, 90vw); left: auto; right: 0; transform: none; transform-origin: top right; animation-name: cat-pop-in-r; }
+@keyframes cat-pop-in-r { from { opacity: 0; transform: translateY(-6px) scale(.97); } }
+.cat-genres { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 6px; }
+.cat-chip.genre { color: var(--text); font-weight: 600; transition: background .15s, border-color .15s, color .15s; }
+.cat-chip.genre .n { color: var(--dim); font-weight: 500; font-variant-numeric: tabular-nums; }
+.cat-chip.genre.empty:not(.on) { color: var(--dim); background: var(--surface-2); border-color: transparent; }
+.cat-chip.genre.on .n { color: var(--accent-fg); }

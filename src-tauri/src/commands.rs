@@ -330,3 +330,16 @@ pub async fn catalog_browse_released(
         .catalog_browse_released(kind, &from, to.as_deref(), genre.as_deref(), cursor)
         .await?)
 }
+#[tauri::command]
+pub async fn catalog_browse_top(
+    core: Core<'_>,
+    from: String,
+    to: Option<String>,
+    min_votes: u32,
+    languages: Vec<String>,
+    genre: Option<String>,
+) -> CmdResult<BrowsePage> {
+    Ok(core
+        .catalog_browse_top(&from, to.as_deref(), min_votes, languages, genre.as_deref())
+        .await?)
+}

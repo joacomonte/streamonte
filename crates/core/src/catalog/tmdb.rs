@@ -14,7 +14,7 @@ use crate::Result;
 
 /// Id del servicio en Ajustes (keys de servicios).
 pub const TMDB: &str = "tmdb";
-const ACCOUNT: &str = "tmdb-api-key";
+pub(crate) const ACCOUNT: &str = "tmdb-api-key";
 /// Página donde se pide la key (cuenta gratis → Configuración → API).
 pub const KEY_PAGE: &str = "https://www.themoviedb.org/settings/api";
 const IMAGE_BASE: &str = "https://image.tmdb.org/t/p/w500";

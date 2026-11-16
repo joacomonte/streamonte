@@ -63,6 +63,9 @@ export const api = {
   catalogBrowse: (kind, sort, year, genre, skip) => invoke('catalog_browse', { kind, sort, year, genre, skip }),
   /** Por fecha de estreno: from/to 'AAAA-MM-DD' (to null = hoy); cursor = `next` de la página anterior (null = primera). {items, has_more, next?}. */
   catalogBrowseReleased: (kind, from, to, genre, cursor) => invoke('catalog_browse_released', { kind, from, to, genre, cursor }),
+  /** Mejor puntuadas con filtros de IMDb (solo películas, necesita key de TMDB): {items, has_more:false}.
+   *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera. */
+  catalogBrowseTop: (from, to, minVotes, languages, genre) => invoke('catalog_browse_top', { from, to, minVotes, languages, genre }),
   /** FR-38/39: ficha con episodios. */
   catalogMeta: (kind, id) => invoke('catalog_meta', { kind, id }),
   /** FR-42: los streams llegan por el evento catalog-streams. */

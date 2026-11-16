@@ -93,6 +93,7 @@ pub fn run() {
             commands::catalog_meta,
             commands::catalog_browse,
             commands::catalog_browse_released,
+            commands::catalog_browse_top,
             commands::catalog_streams,
             commands::catalog_stop_streams,
             commands::catalog_add,
