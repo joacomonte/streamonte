@@ -73,7 +73,7 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
         t.await.unwrap();
     }
     let disk = ConfigStore::new(&paths).load().unwrap();
-    assert_eq!(disk, core.config().await, "disco = memoria");
+    assert_eq!(disk, saved_part(&core).await, "disco = memoria");
     for i in 0..20 {
         assert!(
             disk.trackers.contains(&format!("udp://t{i}:1/announce")),
@@ -112,11 +112,19 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
         .catalog_set_addon_enabled(&view.id, true)
         .await
         .is_err());
-    // shared_trackers es de runtime (se baja en segundo plano y no se guarda).
-    let mut live = core.config().await;
-    live.shared_trackers.clear();
-    assert_eq!(ConfigStore::new(&paths).load().unwrap(), live);
+    assert_eq!(
+        ConfigStore::new(&paths).load().unwrap(),
+        saved_part(&core).await
+    );
 
     drop(core);
     let _ = std::fs::remove_dir_all(root);
+}
+
+/// La config en memoria sin lo que nunca se guarda: `shared_trackers` se baja de fondo al abrir y
+/// puede llegar en cualquier momento del test (en CI suele llegar).
+async fn saved_part(core: &AppCore) -> streamonte_core::config::Config {
+    let mut c = core.config().await;
+    c.shared_trackers.clear();
+    c
 }
