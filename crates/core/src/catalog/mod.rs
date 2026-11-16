@@ -10,6 +10,7 @@ pub mod cinemeta;
 pub mod http;
 pub mod normalize;
 pub mod protocol;
+pub mod seasons;
 pub mod tmdb;
 pub mod top;
 
@@ -26,7 +27,7 @@ use crate::library::CatalogOrigin;
 use crate::magnet::{InfoHash, Magnet};
 use crate::{CoreError, Result};
 use addons::Addon;
-use cinemeta::{BrowseCursor, BrowsePage, BrowseSort, Meta, MetaPreview, SearchResults};
+use cinemeta::{BrowsePage, BrowseSort, Meta, MetaPreview, SearchResults};
 use http::{FetchError, Http};
 use normalize::StreamCandidate;
 
@@ -156,6 +157,15 @@ fn date_range(from: &str, to: Option<&str>) -> Result<(chrono::NaiveDate, chrono
     Ok((from, to))
 }
 
+/// El último pedido gana (búsqueda, lista de Explorar): corta el anterior del mismo tipo y
+/// devuelve el token del nuevo.
+fn supersede(slot: &Mutex<CancellationToken>) -> CancellationToken {
+    let mut cur = slot.lock().expect("supersede");
+    cur.cancel();
+    *cur = CancellationToken::new();
+    cur.clone()
+}
+
 pub fn fetch_error(what: &str, e: &FetchError) -> CoreError {
     CoreError::Catalog {
         user: format!("No se pudo {what}: {}.", e.user_text()),
@@ -175,9 +185,12 @@ pub struct CatalogPick {
 /// Estado del catálogo que vive mientras la app está abierta (lo usa `AppCore`).
 pub struct Catalog {
     pub http: Http,
-    /// shortcut: caché en memoria sin límite ni TTL; en disco con TTL en la Entrega 2 (FR-52).
+    /// Fichas ya pedidas en esta sesión; además quedan en la caché de datos (ver `meta`).
     metas: Mutex<HashMap<String, Meta>>,
+    data: Arc<crate::datacache::DataCache>,
+    /// Búsqueda y lista de Explorar en curso: una nueva corta la anterior (`supersede`).
     search: Mutex<CancellationToken>,
+    browse: Mutex<CancellationToken>,
     streams_task: Mutex<Option<tokio::task::AbortHandle>>,
     /// Última lista de candidatos (para analizar / reproducir uno por hash).
     pub latest: Arc<Mutex<aggregate::Latest>>,
@@ -187,19 +200,24 @@ pub struct Catalog {
     posters: tmdb::Posters,
     /// "Mejor puntuadas" con filtros de IMDb (TMDB + dataset de IMDb).
     top: top::TopRated,
+    /// Puntaje por temporada de una serie (TMDB o IMDb).
+    seasons: seasons::Seasons,
 }
 
 impl Catalog {
-    pub fn new(cfg: &CatalogConfig) -> Self {
+    pub fn new(cfg: &CatalogConfig, data: Arc<crate::datacache::DataCache>) -> Self {
         Self {
             http: Http::new(Duration::from_millis(cfg.connect_timeout_ms)),
             metas: Mutex::default(),
             search: Mutex::default(),
+            browse: Mutex::default(),
             streams_task: Mutex::default(),
             latest: Arc::default(),
             addons: Mutex::default(),
-            posters: tmdb::Posters::default(),
-            top: top::TopRated::default(),
+            posters: tmdb::Posters::new(data.clone()),
+            top: top::TopRated::new(data.clone()),
+            seasons: seasons::Seasons::new(data.clone()),
+            data,
         }
     }
 
@@ -219,12 +237,7 @@ impl Catalog {
         query: &str,
         timeout: Duration,
     ) -> Result<(SearchResults, CancellationToken)> {
-        let token = {
-            let mut cur = self.search.lock().expect("search");
-            cur.cancel();
-            *cur = CancellationToken::new();
-            cur.clone()
-        };
+        let token = supersede(&self.search);
         let both = async {
             tokio::join!(
                 cinemeta::search(&self.http, MediaKind::Movie, query, timeout),
@@ -278,42 +291,84 @@ impl Catalog {
         Ok(results)
     }
 
-    /// Explorar (FR-37 simple, 2026-11-14): una página de 50 de Cinemeta.
-    pub async fn browse(
+    /// Puntaje promedio por temporada de una serie (para ver si decayó). `quick`: sin TMDB no se
+    /// calcula con IMDb (tarda), solo se da el estado; lo usan las tarjetas al pasar el mouse.
+    pub async fn season_ratings(
+        &self,
+        imdb_id: &str,
+        quick: bool,
+        timeout: Duration,
+    ) -> Result<seasons::SeasonRatings> {
+        // La ficha (en caché casi siempre) da el estado si no hay TMDB.
+        let meta = self.meta(MediaKind::Series, imdb_id, timeout).await.ok();
+        self.seasons
+            .list(
+                &self.http,
+                &self.top,
+                imdb_id,
+                meta.as_ref(),
+                quick,
+                timeout,
+            )
+            .await
+    }
+
+    /// Explorar sin key de TMDB: en tendencia ahora (Cinemeta `top`, 50 por página).
+    pub async fn trending(
         &self,
         kind: MediaKind,
-        sort: BrowseSort,
-        year: Option<u16>,
         genre: Option<&str>,
         skip: u32,
         timeout: Duration,
     ) -> Result<BrowsePage> {
-        cinemeta::browse(&self.http, kind, sort, year, genre, skip, timeout)
-            .await
-            .map_err(|e| fetch_error("cargar la lista", &e))
+        let key = format!(
+            "lista-tendencia-{}-{}-{skip}.json",
+            kind.as_str(),
+            genre.unwrap_or("todos")
+        );
+        self.browse_page(key, Duration::from_secs(3600), async {
+            cinemeta::trending(&self.http, kind, genre, skip, timeout)
+                .await
+                .map_err(|e| fetch_error("cargar la lista", &e))
+        })
+        .await
     }
 
-    /// Explorar por fecha de estreno (`AAAA-MM-DD`, bordes incluidos; sin `to` = hasta hoy).
-    /// `cursor` es el `next` de la página anterior (None = primera).
-    pub async fn browse_released(
+    /// Una página de Explorar (2026-11-16): la guardada si tiene menos de `ttl` (volver a un filtro
+    /// es instantáneo); si no, la nueva, que corta a la anterior en curso (`supersede`). Si la
+    /// red falla, sirve la guardada aunque esté vencida.
+    async fn browse_page(
         &self,
-        kind: MediaKind,
-        from: &str,
-        to: Option<&str>,
-        genre: Option<&str>,
-        cursor: Option<BrowseCursor>,
-        timeout: Duration,
+        key: String,
+        ttl: Duration,
+        fetch: impl std::future::Future<Output = Result<BrowsePage>>,
     ) -> Result<BrowsePage> {
-        let (from, to) = date_range(from, to)?;
-        cinemeta::browse_released(&self.http, kind, from, to, genre, cursor, timeout)
-            .await
-            .map_err(|e| fetch_error("cargar la lista", &e))
+        let token = supersede(&self.browse);
+        let saved = self.data.get::<BrowsePage>(&key);
+        if let Some((page, _)) = saved.as_ref().filter(|(_, age)| *age < ttl) {
+            return Ok(page.clone());
+        }
+        let fresh = tokio::select! {
+            r = fetch => r,
+            _ = token.cancelled() => return Err(CoreError::Cancelled),
+        };
+        match (fresh, saved) {
+            (Ok(page), _) => {
+                self.data.put(&key, &page);
+                Ok(page)
+            }
+            (Err(_), Some((page, _))) => Ok(page),
+            (Err(e), None) => Err(e),
+        }
     }
 
-    /// Mejor puntuadas con filtros de IMDb (piso de votos, idioma original); solo películas.
-    /// Toda la lista de una vez (ya ordenada por puntaje).
+    /// Explorar con filtros de IMDb (piso de votos, idioma original), por puntaje o popularidad.
+    /// Toda la lista de una vez (ya ordenada). Necesita la key de TMDB.
+    #[allow(clippy::too_many_arguments)]
     pub async fn browse_top(
         &self,
+        kind: MediaKind,
+        sort: BrowseSort,
         from: &str,
         to: Option<&str>,
         min_votes: u32,
@@ -323,17 +378,31 @@ impl Catalog {
     ) -> Result<BrowsePage> {
         let (from, to) = date_range(from, to)?;
         let q = top::TopQuery {
+            kind,
+            sort,
             from,
             to,
             min_votes,
             languages,
             documentary: genre.is_some_and(|g| g.eq_ignore_ascii_case("Documentary")),
         };
-        Ok(BrowsePage {
-            items: self.top.list(&self.http, &q, timeout).await?,
-            has_more: false,
-            next: None,
+        let key = format!(
+            "lista-top-{}-{:?}-{}-{}-{}-{}-{}.json",
+            q.kind.as_str(),
+            q.sort,
+            q.from,
+            q.to,
+            q.min_votes,
+            q.languages.join("+"),
+            q.documentary
+        );
+        self.browse_page(key, Duration::from_secs(6 * 3600), async {
+            Ok(BrowsePage {
+                items: self.top.list(&self.http, &q, timeout).await?,
+                has_more: false,
+            })
         })
+        .await
     }
 
     /// FR-38/39 (cacheada en memoria: la usan la ficha, el filtro y los streams).
@@ -348,9 +417,30 @@ impl Catalog {
         if let Some(m) = self.metas.lock().expect("metas").get(&key) {
             return Ok(m.clone());
         }
-        let m = cinemeta::meta(&self.http, kind, id, timeout)
-            .await
-            .map_err(|e| fetch_error("abrir la ficha", &e))?;
+        // Guardada: una película o una serie terminada sirve un mes; una en emisión, 12 h (salen
+        // episodios). Si Cinemeta no responde, sirve aunque esté vencida.
+        let file = format!("ficha-{}-{id}.json", kind.as_str());
+        let saved = self.data.get::<Meta>(&file);
+        let fresh = |m: &Meta, age: Duration| {
+            let ttl = if kind == MediaKind::Movie || m.status.as_deref() == Some("Ended") {
+                30 * 24 * 3600
+            } else {
+                12 * 3600
+            };
+            age < Duration::from_secs(ttl)
+        };
+        let m = match saved {
+            Some((m, age)) if fresh(&m, age) => m,
+            saved => match cinemeta::meta(&self.http, kind, id, timeout).await {
+                Ok(m) => {
+                    self.data.put(&file, &m);
+                    m
+                }
+                Err(e) => saved
+                    .map(|(m, _)| m)
+                    .ok_or_else(|| fetch_error("abrir la ficha", &e))?,
+            },
+        };
         self.metas.lock().expect("metas").insert(key, m.clone());
         Ok(m)
     }

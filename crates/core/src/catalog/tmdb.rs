@@ -4,13 +4,18 @@
 //! se loguea enmascarado (`?****`) y los errores de red no llevan la URL.
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde::Deserialize;
 
 use super::http::{FetchError, Http};
+use crate::datacache::DataCache;
 use crate::Result;
+
+const POSTERS_KEY: &str = "tmdb-posters.json";
+/// Lo recordado (también "no hay") se vuelve a preguntar pasado un mes.
+const POSTERS_TTL: Duration = Duration::from_secs(30 * 24 * 3600);
 
 /// Id del servicio en Ajustes (keys de servicios).
 pub const TMDB: &str = "tmdb";
@@ -41,14 +46,26 @@ struct Found {
     poster_path: Option<String>,
 }
 
-/// Póster por IMDb id, recordado por id (también "no hay"; un error de red no se recuerda).
-#[derive(Default)]
+/// Póster por IMDb id, recordado por id (también "no hay"; un error de red no se recuerda) y
+/// guardado en la caché de datos.
 pub struct Posters {
-    /// shortcut: en memoria y sin límite; alcanza para una sesión de búsquedas.
+    data: Arc<DataCache>,
     cache: Mutex<HashMap<String, Option<String>>>,
 }
 
 impl Posters {
+    pub fn new(data: Arc<DataCache>) -> Self {
+        let cache = data
+            .get(POSTERS_KEY)
+            .filter(|(_, age)| *age < POSTERS_TTL)
+            .map(|(map, _)| map)
+            .unwrap_or_default();
+        Self {
+            data,
+            cache: Mutex::new(cache),
+        }
+    }
+
     pub async fn poster(&self, http: &Http, imdb_id: &str, timeout: Duration) -> Option<String> {
         if let Some(hit) = self.cache.lock().expect("posters").get(imdb_id) {
             return hit.clone();
@@ -68,10 +85,9 @@ impl Posters {
                 return None;
             }
         };
-        self.cache
-            .lock()
-            .expect("posters")
-            .insert(imdb_id.to_string(), found.clone());
+        let mut cache = self.cache.lock().expect("posters");
+        cache.insert(imdb_id.to_string(), found.clone());
+        self.data.put(POSTERS_KEY, &*cache);
         found
     }
 }

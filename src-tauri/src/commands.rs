@@ -9,9 +9,7 @@ use streamonte_core::analyzer::AnalyzeScope;
 use streamonte_core::app::{
     ApiKeyStatus, AppCore, ClipboardPreview, LibraryView, SubtitleFound, TempUsage,
 };
-use streamonte_core::catalog::cinemeta::{
-    BrowseCursor, BrowsePage, BrowseSort, Meta, SearchResults,
-};
+use streamonte_core::catalog::cinemeta::{BrowsePage, BrowseSort, Meta, SearchResults};
 use streamonte_core::catalog::{AddonView, MediaKind};
 use streamonte_core::cleanup::CleanupReport;
 use streamonte_core::config::{Config, PlayerKind, SubtitleLanguage};
@@ -311,34 +309,36 @@ pub async fn catalog_set_exclude_japanese(core: Core<'_>, exclude: bool) -> CmdR
     Ok(core.catalog_set_exclude_japanese(exclude).await?)
 }
 #[tauri::command]
-pub async fn catalog_browse(
+pub fn data_cache_size(core: Core<'_>) -> u64 {
+    core.data_cache_size()
+}
+#[tauri::command]
+pub fn clear_data_cache(core: Core<'_>) -> CmdResult<u64> {
+    Ok(core.clear_data_cache()?)
+}
+#[tauri::command]
+pub async fn catalog_season_ratings(
+    core: Core<'_>,
+    imdb_id: String,
+    quick: bool,
+) -> CmdResult<streamonte_core::catalog::seasons::SeasonRatings> {
+    Ok(core.catalog_season_ratings(&imdb_id, quick).await?)
+}
+#[tauri::command]
+pub async fn catalog_trending(
     core: Core<'_>,
     kind: MediaKind,
-    sort: BrowseSort,
-    year: Option<u16>,
     genre: Option<String>,
     skip: u32,
 ) -> CmdResult<BrowsePage> {
-    Ok(core
-        .catalog_browse(kind, sort, year, genre.as_deref(), skip)
-        .await?)
+    Ok(core.catalog_trending(kind, genre.as_deref(), skip).await?)
 }
 #[tauri::command]
-pub async fn catalog_browse_released(
-    core: Core<'_>,
-    kind: MediaKind,
-    from: String,
-    to: Option<String>,
-    genre: Option<String>,
-    cursor: Option<BrowseCursor>,
-) -> CmdResult<BrowsePage> {
-    Ok(core
-        .catalog_browse_released(kind, &from, to.as_deref(), genre.as_deref(), cursor)
-        .await?)
-}
-#[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn catalog_browse_top(
     core: Core<'_>,
+    kind: MediaKind,
+    sort: BrowseSort,
     from: String,
     to: Option<String>,
     min_votes: u32,
@@ -346,6 +346,14 @@ pub async fn catalog_browse_top(
     genre: Option<String>,
 ) -> CmdResult<BrowsePage> {
     Ok(core
-        .catalog_browse_top(&from, to.as_deref(), min_votes, languages, genre.as_deref())
+        .catalog_browse_top(
+            kind,
+            sort,
+            &from,
+            to.as_deref(),
+            min_votes,
+            languages,
+            genre.as_deref(),
+        )
         .await?)
 }

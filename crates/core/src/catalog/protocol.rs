@@ -164,6 +164,9 @@ pub struct RawMeta {
     pub videos: Option<Vec<serde_json::Value>>,
     #[serde(default, deserialize_with = "lenient")]
     pub popularities: Option<Popularities>,
+    /// Series: `Continuing` o `Ended`.
+    #[serde(default, deserialize_with = "lenient")]
+    pub status: Option<String>,
 }
 
 /// Puntajes de popularidad que Cinemeta trae en sus catálogos; se usa el de TMDB (`moviedb`).

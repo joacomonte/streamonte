@@ -16,7 +16,7 @@ Hecha con un núcleo en **Rust**: nativa, liviana y rápida.
 - **Busca en varias fuentes a la vez** y junta todas las opciones de cada película o episodio,
   agrupadas por resolución (4K, 1080p, 720p).
 - **Seeders chequeados de verdad**: al cargar las opciones consulta los trackers solos, y con
-  **"Analizar a fondo"** se conecta a los mejores candidatos y cuenta los seeders reales, todos
+  **"Chequear 4K"** (o la resolución que tengas abierta) se conecta a los mejores candidatos y cuenta los seeders reales, todos
   a la vez. La que mejor pinta queda marcada como **Mejor opción**.
 - **Salud estimada del stream**: un indicador (bueno / justo / malo) de si esa opción alcanza
   para verla sin cortes en *tu* conexión. Se calibra solo con lo que vas viendo.

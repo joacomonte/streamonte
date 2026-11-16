@@ -112,10 +112,10 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
         .catalog_set_addon_enabled(&view.id, true)
         .await
         .is_err());
-    assert_eq!(
-        ConfigStore::new(&paths).load().unwrap(),
-        core.config().await
-    );
+    // shared_trackers es de runtime (se baja en segundo plano y no se guarda).
+    let mut live = core.config().await;
+    live.shared_trackers.clear();
+    assert_eq!(ConfigStore::new(&paths).load().unwrap(), live);
 
     drop(core);
     let _ = std::fs::remove_dir_all(root);

@@ -59,13 +59,14 @@ export const api = {
   // Catálogo y addons (F4b, spec 09). kind: 'movie' | 'series'; videoId: 'tt…' o 'tt…:T:E'.
   /** FR-36: {movies, series}. Una búsqueda nueva cancela la anterior (error "Cancelado."). */
   catalogSearch: (query) => invoke('catalog_search', { query }),
-  /** Explorar: {items, has_more}, 50 por página. sort: 'popular' | 'rating'; year: número o null. */
-  catalogBrowse: (kind, sort, year, genre, skip) => invoke('catalog_browse', { kind, sort, year, genre, skip }),
-  /** Por fecha de estreno: from/to 'AAAA-MM-DD' (to null = hoy); cursor = `next` de la página anterior (null = primera). {items, has_more, next?}. */
-  catalogBrowseReleased: (kind, from, to, genre, cursor) => invoke('catalog_browse_released', { kind, from, to, genre, cursor }),
-  /** Mejor puntuadas con filtros de IMDb (solo películas, necesita key de TMDB): {items, has_more:false}.
+  /** En tendencia ahora (sin key de TMDB): {items, has_more}, 50 por página desde `skip`. */
+  catalogTrending: (kind, genre, skip) => invoke('catalog_trending', { kind, genre, skip }),
+  /** Puntaje promedio por temporada: {source: 'IMDb'|'TMDB', seasons: [{season, rating, episodes}], status}.
+   *  quick: sin key de TMDB no calcula con IMDb (tarda segundos), solo trae el estado. */
+  catalogSeasonRatings: (imdbId, quick = false) => invoke('catalog_season_ratings', { imdbId, quick }),
+  /** Explorar con filtros de IMDb (necesita key de TMDB): {items, has_more:false}. sort: 'popular' | 'rating'.
    *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera. */
-  catalogBrowseTop: (from, to, minVotes, languages, genre) => invoke('catalog_browse_top', { from, to, minVotes, languages, genre }),
+  catalogBrowseTop: (kind, sort, from, to, minVotes, languages, genre) => invoke('catalog_browse_top', { kind, sort, from, to, minVotes, languages, genre }),
   /** Abre la ficha de IMDb del título en el navegador. */
   catalogOpenImdb: (imdbId) => invoke('catalog_open_imdb', { imdbId }),
   /** FR-38/39: ficha con episodios. */
@@ -87,6 +88,9 @@ export const api = {
   // Limpieza (FR-18–20)
   tempUsage: () => invoke('temp_usage'),
   cleanTemp: () => invoke('clean_temp'),
+  /** Caché de datos (fichas, puntajes, datasets de IMDb): bytes que ocupa / borrarla toda (devuelve los liberados). */
+  dataCacheSize: () => invoke('data_cache_size'),
+  clearDataCache: () => invoke('clear_data_cache'),
   /** ¿El puerto entrante llega desde internet? {port, reachable: bool|null, local_ip, problem}. */
   checkIncoming: () => invoke('check_incoming'),
   /** Últimas líneas del log detallado del núcleo (con nivel: INFO/WARN/ERROR/DEBUG). */

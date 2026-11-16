@@ -17,13 +17,13 @@ export function confirmDialog(title, text, buttons) {
 function showConfirm(title, text, buttons) {
   const dlg = $('#dlg-confirm');
   $('#dlg-confirm-title').textContent = title;
-  $('#dlg-confirm-text').textContent = text;
+  $('#dlg-confirm-text').replaceChildren(text); // texto o un nodo armado (barra de progreso)
   const actions = $('#dlg-confirm-actions');
   actions.replaceChildren();
   return new Promise((resolve) => {
     for (const b of buttons) {
       actions.append(
-        el('button', { class: b.primary ? 'primary' : '', onclick: () => { dlg.close(); resolve(b.value); } }, b.label),
+        el('button', { id: b.id, class: `${b.primary ? 'primary' : ''} ${b.danger ? 'danger' : ''}`, autofocus: b.primary || null, onclick: () => { dlg.close(); resolve(b.value); } }, b.label),
       );
     }
     dlg.onclose = () => resolve(null);
@@ -34,19 +34,19 @@ function showConfirm(title, text, buttons) {
 // ---------- "Ver análisis" (FR-30) ----------
 // Veredicto: velocidad real contra lo que consume el video (bitrate = tamaño ÷ duración).
 // ---------- reproducción: después de cerrar mpv y log en vivo ----------
-/** Se cerró mpv sin terminar de bajar: ¿seguir bajando de fondo o pausar? (2026-11-14) */
+/** Se cerró mpv sin terminar de bajar (2026-11-16): detener y borrar (por defecto), pausar
+ *  guardando lo bajado, o seguir bajando de fondo. */
 export async function askAfterClose(row) {
-  const t = titleOf(row.key);
   const pct = Math.floor((row.progress ?? 0) * 100);
-  const choice = await confirmDialog(
-    'Cerraste el reproductor',
-    `${t} va ${pct} % bajado.\n\n¿Lo sigo bajando de fondo, para que después lo veas sin esperar, o lo pauso? Lo bajado queda guardado en los dos casos.`,
-    [
-      { label: 'Pausar', value: 'stop' },
-      { label: 'Seguir bajando', value: 'keep-downloading', primary: true },
-    ],
-  );
-  // Cerrar el diálogo sin elegir = pausar (lo de siempre). Si ya se resolvió solo, no importa.
+  const body = el('span', { class: 'close-dl' },
+    el('span', { class: 'close-dl-head' }, el('b', {}, titleOf(row.key)), el('span', {}, `${pct} % bajado`)),
+    el('span', { class: 'close-dl-bar', role: 'progressbar', 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100 }, el('i', { style: `width:${pct}%` })));
+  const choice = await confirmDialog('Cerraste el reproductor', body, [
+    { id: 'close-keep', label: 'Seguir bajando', value: 'keep-downloading' },
+    { id: 'close-pause', label: 'Pausar', value: 'stop' },
+    { id: 'close-delete', label: 'Detener y borrar', value: 'stop-and-delete', primary: true },
+  ]);
+  // Cerrar el diálogo sin elegir (Esc) = pausar: nunca se borra sin un clic. Si ya se resolvió solo, no importa.
   api.playbackAction(row.id, choice ?? 'stop').catch(() => {});
 }
 
@@ -75,6 +75,23 @@ export async function cleanTemp() {
     if (!ok) return;
     const r = await api.cleanTemp();
     setStatus(`Caché borrada: ${r.dirs_removed} carpeta(s), ${humanBytes(r.bytes_freed)} liberados${r.failures.length ? ` · ${r.failures.length} no se pudieron borrar (se reintenta al abrir)` : ''}.`);
+  } catch (e) {
+    showError(e);
+  }
+}
+
+/** "Borrar datos guardados" (2026-11-16): la caché de datos es útil, así que se explica antes. */
+export async function clearDataCache() {
+  try {
+    const bytes = await api.dataCacheSize();
+    if (!bytes) { setStatus('No hay datos guardados.'); return; }
+    const ok = await confirmDialog(
+      'Borrar datos guardados',
+      `Son ${humanBytes(bytes)} de fichas, portadas, puntajes por temporada y los datos de IMDb. Sirven para que el catálogo y las series abran al instante y no haya que volver a bajarlos (los de IMDb tardan unos segundos). No son videos.\n\nSi los borrás no se pierde nada: se vuelven a bajar cuando hagan falta.`,
+      [{ id: 'data-clear-cancel', label: 'Cancelar', value: false }, { id: 'data-clear-ok', label: `Borrar ${humanBytes(bytes)}`, value: true, primary: true }],
+    );
+    if (!ok) return;
+    setStatus(`Datos guardados borrados: ${humanBytes(await api.clearDataCache())} liberados.`);
   } catch (e) {
     showError(e);
   }

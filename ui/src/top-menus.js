@@ -3,7 +3,7 @@
 // y el espacio en disco, con todo lo que se puede detener, borrar o limpiar).
 import { api } from './api.js';
 import { play } from './audio-picker.js';
-import { cleanTemp, openLog, stopAllAndClean } from './dialogs.js';
+import { cleanTemp, clearDataCache, openLog, stopAllAndClean } from './dialogs.js';
 import { $, el, setStatus, showError } from './dom.js';
 import { ago, humanBytes, mbps, playbackText } from './format.js';
 import { state, titleOf } from './state.js';
@@ -100,6 +100,7 @@ export async function toggleClipboard() {
 
 // ---------- Descargas ----------
 let usage = null; // TempUsage al abrir el menú (y después de limpiar)
+let dataBytes = null; // tamaño de la caché de datos, igual que `usage`
 const ACTIVE = (r) => !['paused', 'failed'].includes(r.state.kind);
 const act = (r, action) => () => api.playbackAction(r.id, action).catch(showError);
 
@@ -143,7 +144,12 @@ function renderDownloads() {
   const rows = [...state.playbacks.values()];
   const running = rows.filter(ACTIVE);
   const kept = rows.filter((r) => !ACTIVE(r));
-  const afterClean = async (fn) => { await fn(); usage = await api.tempUsage().catch(() => usage); refreshCache(); if (open?.btn.id === 'btn-downloads') renderDownloads(); };
+  const afterClean = async (fn) => {
+    await fn();
+    [usage, dataBytes] = await Promise.all([api.tempUsage().catch(() => usage), api.dataCacheSize().catch(() => dataBytes)]);
+    refreshCache();
+    if (open?.btn.id === 'btn-downloads') renderDownloads();
+  };
   pop.replaceChildren(
     el('div', { class: 'pop-head' }, el('div', {}, el('h3', {}, 'Descargas'), el('p', { class: 'pop-sub' }, 'Lo que se reproduce o baja, lo guardado y la limpieza.'))),
     section(`En curso${running.length ? ` · ${running.length}` : ''}`,
@@ -158,13 +164,19 @@ function renderDownloads() {
       el('div', { class: 'pop-actions wrap' },
         el('button', { id: 'dl-open-folder', class: 'pop-btn', onclick: () => api.openDownloadsFolder().catch(showError) }, 'Abrir carpeta'),
         el('button', { id: 'dl-clean', class: 'pop-btn', title: 'Borra lo analizado y los restos que no están en uso (no toca lo activo ni lo guardado)', onclick: () => afterClean(cleanTemp) }, 'Borrar caché'),
-        el('button', { id: 'dl-stop-all', class: 'pop-btn danger', title: 'Detiene todo y borra todo lo descargado, también lo pausado', onclick: () => afterClean(stopAllAndClean) }, 'Detener y borrar todo'))));
+        el('button', { id: 'dl-stop-all', class: 'pop-btn danger', title: 'Detiene todo y borra todo lo descargado, también lo pausado', onclick: () => afterClean(stopAllAndClean) }, 'Detener y borrar todo')),
+      // Datos guardados (2026-11-16): aparte de los videos; "Borrar caché" no los toca.
+      el('div', { class: 'pop-disk pop-disk-data' },
+        el('span', { class: 'pop-disk-size' }, dataBytes == null ? '…' : humanBytes(dataBytes)),
+        el('span', { class: 'pop-item-sub' }, 'de datos guardados (fichas, portadas, puntajes) para abrir todo más rápido')),
+      el('div', { class: 'pop-actions wrap' },
+        el('button', { id: 'dl-clear-data', class: 'pop-btn', title: 'Borra fichas, portadas y puntajes guardados (se vuelven a bajar cuando hagan falta)', onclick: () => afterClean(clearDataCache) }, 'Borrar datos guardados'))));
 }
 
 export async function toggleDownloads() {
   await togglePop($('#btn-downloads'), async () => {
     renderDownloads();
-    usage = await api.tempUsage().catch(() => null);
+    [usage, dataBytes] = await Promise.all([api.tempUsage().catch(() => null), api.dataCacheSize().catch(() => null)]);
     if (open?.btn.id === 'btn-downloads') renderDownloads();
   });
 }

@@ -1,10 +1,10 @@
 //! Lectura de SRT/ASS/VTT y fusión de hasta 5 subtítulos en un único ASS (FR-25, ADR-11).
 //!
 //! mpv solo muestra 2 subtítulos a la vez (`sid` + `secondary-sid`); para ver 5 juntos se
-//! fusionan en un ASS con un estilo por fuente. Prototipo de legibilidad (R-05): 3 franjas
-//! abajo (1 = la posición normal de un subtítulo, 2 y 3 encima) y 2 arriba (4 y 5), cada una
-//! con su color y una etiqueta chica "N · fuente/release" delante del texto. libass empuja una
-//! línea si choca con la de la franja vecina (subtítulos de 3 renglones), así no se pisan.
+//! fusionan en un ASS con un estilo por fuente: todos abajo, apilados en orden (1 abajo, 2
+//! encima, …) sin huecos (2026-11-16), cada uno con su color y una etiqueta chica
+//! "N · fuente/release" delante del texto. El apilado lo hace libass: eventos de la misma capa
+//! que chocan se corren hacia arriba, en el orden en que aparecen en el archivo.
 
 use super::LabeledSubtitle;
 use crate::{CoreError, Result};
@@ -17,8 +17,8 @@ pub(crate) struct Cue {
     pub text: String,
 }
 
-/// (alineación ASS numpad, margen vertical) por franja, a PlayResY = 1080.
-const SLOTS: [(u8, u32); 5] = [(2, 40), (2, 160), (2, 280), (8, 40), (8, 160)];
+/// Fuentes que se comparan a la vez.
+const SLOTS: usize = 5;
 /// Colores `&HAABBGGRR`: blanco, amarillo, celeste, verde claro, naranja.
 const COLORS: [&str; 5] = [
     "&H00FFFFFF",
@@ -37,7 +37,7 @@ pub fn merge_ass(subs: &[LabeledSubtitle]) -> Result<String> {
         return Err(CoreError::NotFound("subtítulos para fusionar".into()));
     }
     let mut parsed = Vec::with_capacity(subs.len());
-    for sub in subs.iter().take(SLOTS.len()) {
+    for sub in subs.iter().take(SLOTS) {
         let bytes = std::fs::read(&sub.path).map_err(|source| CoreError::Io {
             path: sub.path.clone(),
             source,
@@ -66,10 +66,10 @@ pub(crate) fn merge_cues(subs: &[(&str, Vec<Cue>)]) -> String {
          Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, \
          Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n",
     );
-    for (i, ((align, margin_v), color)) in SLOTS.iter().zip(COLORS).enumerate() {
+    for (i, color) in COLORS.iter().enumerate() {
         out.push_str(&format!(
             "Style: S{n},Arial,{FONT_SIZE},{color},&H000000FF,&H00000000,&H80000000,\
-             -1,0,0,0,100,100,0,0,1,3,1,{align},60,60,{margin_v},1\n",
+             -1,0,0,0,100,100,0,0,1,3,1,2,60,60,40,1\n",
             n = i + 1
         ));
     }
@@ -77,23 +77,19 @@ pub(crate) fn merge_cues(subs: &[(&str, Vec<Cue>)]) -> String {
         "\n[Events]\n\
          Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
     );
-    let mut events: Vec<(u64, usize, &Cue)> = subs
-        .iter()
-        .enumerate()
-        .take(SLOTS.len())
-        .flat_map(|(i, (_, cues))| cues.iter().map(move |c| (c.start_ms, i, c)))
-        .collect();
-    events.sort_by_key(|(start, i, _)| (*start, *i));
-    for (_, i, cue) in events {
-        let label = escape_text(subs[i].0);
-        out.push_str(&format!(
-            "Dialogue: {layer},{start},{end},S{n},,0,0,0,,{{\\fs{LABEL_SIZE}\\b0\\alpha&H30&}}{label}  {{\\r}}{text}\n",
-            layer = i,
+    // Agrupados por fuente (todos los de la 1, después los de la 2…) y en la misma capa: libass
+    // ubica primero los que lee primero, así la 1 queda abajo y cada una encima de la anterior.
+    for (i, (label, cues)) in subs.iter().enumerate().take(SLOTS) {
+        let label = escape_text(label);
+        for cue in cues {
+            out.push_str(&format!(
+            "Dialogue: 0,{start},{end},S{n},,0,0,0,,{{\\fs{LABEL_SIZE}\\b0\\alpha&H30&}}{label}  {{\\r}}{text}\n",
             start = ass_time(cue.start_ms),
             end = ass_time(cue.end_ms),
             n = i + 1,
             text = cue.text,
         ));
+        }
     }
     out
 }
@@ -276,8 +272,9 @@ fn ass_time(ms: u64) -> String {
 }
 
 /// Una línea SRT → ASS: `<i>`/`<b>`/`<u>` a tags ASS, el resto de `<…>` (p. ej. `<font>`) fuera.
+/// Los tags ASS que traen algunos SRT (`{\an8}`) se quitan: la fusión pone su propia posición.
 fn srt_line_to_ass(line: &str) -> String {
-    let line = escape_text(line);
+    let line = escape_text(&strip_override_blocks(line));
     let mut out = String::with_capacity(line.len());
     let mut rest = line.as_str();
     while let Some(open) = rest.find('<') {
@@ -297,6 +294,21 @@ fn srt_line_to_ass(line: &str) -> String {
             "/u" => "{\\u0}",
             _ => "",
         });
+        rest = &rest[open + close + 1..];
+    }
+    out.push_str(rest);
+    out
+}
+
+/// Saca los bloques `{\…}` (tags ASS); las llaves con texto común quedan para `escape_text`.
+fn strip_override_blocks(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(open) = rest.find("{\\") {
+        let Some(close) = rest[open..].find('}') else {
+            break;
+        };
+        out.push_str(&rest[..open]);
         rest = &rest[open + close + 1..];
     }
     out.push_str(rest);
@@ -326,7 +338,7 @@ fn strip_ass_tags(s: &str) -> String {
 mod tests {
     use super::*;
 
-    const SRT: &str = "1\r\n00:00:01,000 --> 00:00:02,500\r\n<i>Hola</i> {mundo}\r\nsegunda línea\r\n\r\n2\r\n00:00:03,000 --> 00:00:04,000\r\n<font color=\"red\">Chau</font>\r\n";
+    const SRT: &str = "1\r\n00:00:01,000 --> 00:00:02,500\r\n{\\an8}<i>Hola</i> {mundo}\r\nsegunda línea\r\n\r\n2\r\n00:00:03,000 --> 00:00:04,000\r\n<font color=\"red\">Chau</font>\r\n";
     const ASS: &str = "[Script Info]\nTitle: x\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:05.00,0:00:06.50,Default,,0,0,0,,{\\pos(10,10)}Texto, con coma\\Nabajo\nComment: 0,0:00:07.00,0:00:08.00,Default,,0,0,0,,no\nDialogue: 0,0:00:09.00,0:00:10.00,Default,,0,0,0,,{\\p1}m 0 0 l 10 10{\\p0}\n";
 
     #[test]
@@ -377,7 +389,7 @@ mod tests {
         assert_eq!(texts(s), vec!["uno".to_string()]);
     }
 
-    /// 5 entradas → 5 estilos distintos (color y posición) y los eventos de todos, etiquetados.
+    /// 5 entradas → 5 estilos (un color cada uno, todos abajo) y los eventos de todos, etiquetados.
     #[test]
     fn fusion_de_cinco() {
         let cues: Vec<Cue> = parse_any(SRT);
@@ -398,14 +410,10 @@ mod tests {
             .map(|s| s.split(',').nth(3).unwrap())
             .collect();
         assert_eq!(colors.len(), 5, "un color por fuente");
-        let positions: std::collections::HashSet<(String, String)> = styles
-            .iter()
-            .map(|s| {
-                let f: Vec<&str> = s.split(',').collect();
-                (f[18].to_string(), f[21].to_string())
-            })
-            .collect();
-        assert_eq!(positions.len(), 5, "una posición por fuente");
+        assert!(
+            styles.iter().all(|s| s.split(',').nth(18) == Some("2")),
+            "todos abajo: libass los apila"
+        );
 
         let dialogues: Vec<&str> = ass.lines().filter(|l| l.starts_with("Dialogue:")).collect();
         assert_eq!(dialogues.len(), 10, "2 eventos × 5 fuentes");
@@ -419,8 +427,9 @@ mod tests {
                 2
             );
         }
-        // Ordenados por tiempo.
-        assert!(dialogues[0].contains("0:00:01.00") && dialogues[9].contains("0:00:03.00"));
+        // Agrupados por fuente, en orden (la 1 se ubica primero = abajo) y todos en la capa 0.
+        assert!(dialogues[0].contains(",S1,") && dialogues[9].contains(",S5,"));
+        assert!(dialogues.iter().all(|d| d.starts_with("Dialogue: 0,")));
     }
 
     #[test]

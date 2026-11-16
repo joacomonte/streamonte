@@ -2,7 +2,17 @@
 //! Windows, Llavero en macOS. Nunca en `config.json` ni en logs. Lo usan las API keys de
 //! subtítulos y las URLs de addons con configuración (spec 09 NFR-22).
 
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
+
 use crate::{CoreError, Result};
+
+/// Lo ya leído del llavero (también "no hay"), por cuenta. Sin esto macOS pide permiso en cada
+/// lectura (pósters, listas, temporadas) hasta que el usuario elige "Permitir siempre".
+fn cache() -> &'static Mutex<HashMap<String, Option<String>>> {
+    static CACHE: OnceLock<Mutex<HashMap<String, Option<String>>>> = OnceLock::new();
+    CACHE.get_or_init(Mutex::default)
+}
 
 const SERVICE: &str = "streamonte";
 /// Nombre viejo (antes de 2026-11-15): lo guardado ahí se pasa a `SERVICE` la primera vez que se lee.
@@ -19,25 +29,43 @@ fn store_error(e: keyring::Error) -> CoreError {
 /// Nunca se loguea el valor.
 pub(crate) fn set_secret(account: &str, value: &str) -> Result<()> {
     let entry = keyring::Entry::new(SERVICE, account).map_err(store_error)?;
-    if value.trim().is_empty() {
-        return match entry.delete_credential() {
-            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-            Err(e) => Err(store_error(e)),
-        };
+    let value = value.trim();
+    if value.is_empty() {
+        match entry.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => {}
+            Err(e) => return Err(store_error(e)),
+        }
+    } else {
+        entry.set_password(value).map_err(store_error)?;
     }
-    entry.set_password(value.trim()).map_err(store_error)
+    let stored = (!value.is_empty()).then(|| value.to_string());
+    cache()
+        .lock()
+        .expect("secrets")
+        .insert(account.to_string(), stored);
+    Ok(())
 }
 
 /// El secreto guardado, o `None` si no hay (o no se pudo leer: se avisa en el log).
+/// Se lee del llavero una sola vez por cuenta y sesión (si se niega el permiso, tampoco se
+/// vuelve a preguntar hasta reabrir la app).
 pub(crate) fn secret(account: &str) -> Option<String> {
-    match keyring::Entry::new(SERVICE, account).ok()?.get_password() {
+    if let Some(hit) = cache().lock().expect("secrets").get(account) {
+        return hit.clone();
+    }
+    let value = match keyring::Entry::new(SERVICE, account).ok()?.get_password() {
         Ok(v) if !v.trim().is_empty() => Some(v),
         Ok(_) | Err(keyring::Error::NoEntry) => migrate_old(account),
         Err(e) => {
             tracing::warn!(account, "no se pudo leer del almacén seguro: {e}");
             None
         }
-    }
+    };
+    cache()
+        .lock()
+        .expect("secrets")
+        .insert(account.to_string(), value.clone());
+    value
 }
 
 /// Lo guardado con el nombre viejo: lo pasa al nuevo y lo borra del viejo.

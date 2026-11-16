@@ -1,6 +1,6 @@
-//! "Mejor puntuadas" con los filtros de la búsqueda avanzada de IMDb (pedido 2026-11-15):
-//! solo películas, rango de estreno, piso de votos, idioma original y orden por puntaje IMDb.
-//! Ninguna fuente gratis tiene todo: TMDB discover da las películas del rango (y su ficha, el
+//! Explorar con los filtros de la búsqueda avanzada de IMDb (pedido 2026-11-15; desde el
+//! 2026-11-16 para películas y series, por puntaje o popularidad): rango de estreno, piso de
+//! votos e idioma original. Ninguna fuente gratis tiene todo: TMDB discover da los títulos del rango (y su ficha, el
 //! IMDb id y el idioma original) y el dataset oficial de IMDb `title.ratings` (gratis para uso
 //! personal, se actualiza a diario) da el puntaje y los votos reales. Se cruzan por IMDb id.
 //! Requiere la key de TMDB del usuario; nunca va a un log (los errores de red no llevan la URL).
@@ -11,19 +11,25 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use chrono::NaiveDate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use super::cinemeta::{is_excluded, MetaPreview};
+use super::cinemeta::{is_excluded, BrowseSort, MetaPreview};
 use super::http::{FetchError, Http};
 use super::MediaKind;
+use crate::datacache::DataCache;
 use crate::{CoreError, Result};
 
 const RATINGS_URL: &str = "https://datasets.imdbws.com/title.ratings.tsv.gz";
 /// El .gz pesa ~8 MB; margen por si crece.
 const RATINGS_MAX: usize = 40 * 1024 * 1024;
-const RATINGS_TTL: Duration = Duration::from_secs(24 * 3600);
-/// Menos votos que esto no se guarda (el piso más bajo de la UI es 10.000): ~100k títulos en vez de 1,6 M.
-const KEEP_MIN_VOTES: u32 = 1_000;
+/// Los datasets de IMDb se actualizan a diario: lo guardado sirve un día.
+const DATASET_TTL: Duration = Duration::from_secs(24 * 3600);
+/// Las fichas de TMDB (IMDb id, idioma) casi no cambian.
+const DETAILS_TTL: Duration = Duration::from_secs(90 * 24 * 3600);
+const DETAILS_KEY: &str = "tmdb-fichas.json";
+/// Menos votos que esto no se guarda. Bajo (2026-11-16) porque también lo usan los episodios
+/// (`seasons`), que suelen tener pocos votos; el piso de la UI filtra después.
+const KEEP_MIN_VOTES: u32 = 10;
 const API: &str = "https://api.themoviedb.org/3";
 const IMAGE_BASE: &str = "https://image.tmdb.org/t/p/w500";
 /// TMDB tiene ~100 veces menos votos que IMDb en películas recientes: se piden candidatas con
@@ -39,6 +45,9 @@ const TMDB_DOCUMENTARY: u32 = 99;
 /// Filtros de la lista (los de la URL de IMDb).
 #[derive(Debug, Clone)]
 pub struct TopQuery {
+    pub kind: MediaKind,
+    /// Puntaje de IMDb (a igual puntaje, más votos) o popularidad de TMDB.
+    pub sort: BrowseSort,
     pub from: NaiveDate,
     pub to: NaiveDate,
     pub min_votes: u32,
@@ -48,9 +57,9 @@ pub struct TopQuery {
 }
 
 /// Puntaje (una decimal, como lo muestra IMDb) y votos, por número de `tt`.
-type Ratings = HashMap<u32, (f32, u32)>;
+pub(super) type Ratings = HashMap<u32, (f32, u32)>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Detail {
     imdb: Option<u32>,
     languages: Vec<String>,
@@ -65,11 +74,13 @@ struct DiscoverPage {
     results: Vec<Candidate>,
 }
 
+/// Película o serie de discover (las series traen `name` y `first_air_date`).
 #[derive(Debug, Clone, Deserialize)]
 struct Candidate {
     id: u64,
-    #[serde(default)]
+    #[serde(default, alias = "name")]
     title: String,
+    #[serde(alias = "first_air_date")]
     release_date: Option<String>,
     poster_path: Option<String>,
     popularity: Option<f64>,
@@ -77,7 +88,9 @@ struct Candidate {
     genre_ids: Vec<u32>,
 }
 
-/// Géneros de película de TMDB (ids fijos de su API) con el nombre que se muestra.
+/// Géneros de TMDB (ids fijos de su API) con el nombre que se muestra. Los de series que juntan
+/// dos (Acción y aventura, Ciencia ficción y fantasía) cuentan para los dos; los que no tienen
+/// equivalente en la lista de la UI (infantil, reality, noticias…) no se muestran.
 const GENRES: &[(u32, &str)] = &[
     (28, "Acción"),
     (12, "Aventura"),
@@ -98,22 +111,25 @@ const GENRES: &[(u32, &str)] = &[
     (53, "Suspenso"),
     (10752, "Bélica"),
     (37, "Western"),
+    (10759, "Acción"),
+    (10759, "Aventura"),
+    (10765, "Ciencia ficción"),
+    (10765, "Fantasía"),
+    (10768, "Bélica"),
 ];
 
 fn genre_names(ids: &[u32]) -> Vec<String> {
     ids.iter()
-        .filter_map(|id| {
-            GENRES
-                .iter()
-                .find(|(g, _)| g == id)
-                .map(|(_, n)| (*n).to_string())
-        })
+        .flat_map(|id| GENRES.iter().filter(move |(g, _)| g == id))
+        .map(|(_, n)| (*n).to_string())
         .collect()
 }
 
 #[derive(Deserialize)]
 struct RawDetail {
+    /// Películas; las series lo traen en `external_ids`.
     imdb_id: Option<String>,
+    external_ids: Option<ExternalIds>,
     original_language: Option<String>,
     #[serde(default)]
     origin_country: Vec<String>,
@@ -122,19 +138,38 @@ struct RawDetail {
 }
 
 #[derive(Deserialize)]
+struct ExternalIds {
+    imdb_id: Option<String>,
+}
+
+#[derive(Deserialize)]
 struct Genre {
     name: String,
 }
 
-#[derive(Default)]
 pub struct TopRated {
+    data: Arc<DataCache>,
+    /// Puntajes ya leídos del dataset (leerlo cuesta segundos).
     ratings: tokio::sync::Mutex<Option<(Instant, Arc<Ratings>)>>,
-    /// Ficha por id de TMDB (no cambia). shortcut: en memoria; la primera lista tarda (~1 pedido
-    /// por candidata), las siguientes reusan. Si molesta, guardarla en disco.
-    details: Mutex<HashMap<u64, Detail>>,
+    /// Ficha por tipo e id de TMDB (películas y series tienen ids independientes). La primera
+    /// lista tarda (~1 pedido por candidata); quedan guardadas en la caché de datos.
+    details: Mutex<HashMap<(MediaKind, u64), Detail>>,
 }
 
 impl TopRated {
+    pub fn new(data: Arc<DataCache>) -> Self {
+        let details = data
+            .get::<Vec<(MediaKind, u64, Detail)>>(DETAILS_KEY)
+            .filter(|(_, age)| *age < DETAILS_TTL)
+            .map(|(list, _)| list.into_iter().map(|(k, id, d)| ((k, id), d)).collect())
+            .unwrap_or_default();
+        Self {
+            data,
+            ratings: tokio::sync::Mutex::default(),
+            details: Mutex::new(details),
+        }
+    }
+
     pub async fn list(
         &self,
         http: &Http,
@@ -147,52 +182,42 @@ impl TopRated {
         })?;
         let ratings = self.ratings(http).await?;
         let candidates = discover(http, &key, q, timeout).await?;
-        self.fill_details(http, &key, &candidates, timeout).await?;
+        self.fill_details(http, &key, q.kind, &candidates, timeout)
+            .await?;
         let details = self.details.lock().expect("details").clone();
         Ok(rank(candidates, &details, &ratings, q))
     }
 
-    /// Dataset de IMDb en memoria; se baja de nuevo pasado un día (si falla, sirve el viejo).
-    async fn ratings(&self, http: &Http) -> Result<Arc<Ratings>> {
+    /// Puntajes de IMDb, leídos del dataset una vez por día (si no se puede actualizar, sirven
+    /// los anteriores).
+    pub(super) async fn ratings(&self, http: &Http) -> Result<Arc<Ratings>> {
         let mut slot = self.ratings.lock().await;
         if let Some((at, r)) = slot.as_ref() {
-            if at.elapsed() < RATINGS_TTL {
+            if at.elapsed() < DATASET_TTL {
                 return Ok(r.clone());
             }
         }
-        let fresh = async {
-            let gz = http
-                .get_large(RATINGS_URL, RATINGS_MAX, Duration::from_secs(120))
-                .await?;
-            tokio::task::spawn_blocking(move || {
-                parse_ratings(flate2::read::GzDecoder::new(&gz[..]))
-            })
-            .await
-            .map_err(|_| FetchError::NotJson)
-        }
-        .await;
-        match (fresh, slot.as_ref()) {
-            (Ok(r), _) => {
-                tracing::info!(titulos = r.len(), "puntajes de IMDb actualizados");
-                let r = Arc::new(r);
-                *slot = Some((Instant::now(), r.clone()));
-                Ok(r)
-            }
-            (Err(e), Some((_, old))) => {
-                tracing::warn!(
-                    "no se pudo actualizar el dataset de IMDb ({}); uso el anterior",
-                    e.user_text()
-                );
-                Ok(old.clone())
-            }
-            (Err(e), None) => Err(super::fetch_error("bajar los puntajes de IMDb", &e)),
-        }
+        let gz =
+            match imdb_dataset(http, &self.data, RATINGS_URL, RATINGS_MAX, "los puntajes").await {
+                Ok(gz) => gz,
+                Err(e) => return slot.as_ref().map(|(_, r)| r.clone()).ok_or(e),
+            };
+        let r = tokio::task::spawn_blocking(move || {
+            parse_ratings(flate2::read::GzDecoder::new(&gz[..]))
+        })
+        .await
+        .unwrap_or_default();
+        tracing::info!(titulos = r.len(), "puntajes de IMDb listos");
+        let r = Arc::new(r);
+        *slot = Some((Instant::now(), r.clone()));
+        Ok(r)
     }
 
     async fn fill_details(
         &self,
         http: &Http,
         key: &str,
+        kind: MediaKind,
         candidates: &[Candidate],
         timeout: Duration,
     ) -> Result<()> {
@@ -201,13 +226,22 @@ impl TopRated {
             candidates
                 .iter()
                 .map(|c| c.id)
-                .filter(|id| !known.contains_key(id))
+                .filter(|id| !known.contains_key(&(kind, *id)))
                 .collect()
         };
+        if missing.is_empty() {
+            return Ok(());
+        }
         // El cliente limita a 2 pedidos a la vez por host (NFR-23): se lanzan todos y esperan turno.
         let mut tasks = tokio::task::JoinSet::new();
         for id in missing {
-            let (http, url) = (http.clone(), format!("{API}/movie/{id}?api_key={key}"));
+            let url = match kind {
+                MediaKind::Movie => format!("{API}/movie/{id}?api_key={key}"),
+                MediaKind::Series => {
+                    format!("{API}/tv/{id}?api_key={key}&append_to_response=external_ids")
+                }
+            };
+            let http = http.clone();
             tasks.spawn(async move { (id, http.get_json::<RawDetail>(&url, timeout).await) });
         }
         while let Some(done) = tasks.join_next().await {
@@ -217,14 +251,54 @@ impl TopRated {
                     self.details
                         .lock()
                         .expect("details")
-                        .insert(id, detail(raw));
+                        .insert((kind, id), detail(raw));
                 }
                 Err(FetchError::Status(401)) => return Err(bad_key()),
                 // Una ficha que falla queda afuera esta vez (no se recuerda: se reintenta la próxima).
                 Err(e) => tracing::debug!(id, "TMDB sin ficha: {}", e.user_text()),
             }
         }
+        let all: Vec<(MediaKind, u64, Detail)> = self
+            .details
+            .lock()
+            .expect("details")
+            .iter()
+            .map(|((k, id), d)| (*k, *id, d.clone()))
+            .collect();
+        self.data.put(DETAILS_KEY, &all);
         Ok(())
+    }
+}
+
+/// Un dataset de IMDb (.gz), guardado en la caché de datos: si tiene menos de un día se usa ese;
+/// si no, se baja de nuevo y, si falla, sirve el viejo. `what`: para el mensaje de error.
+pub(super) async fn imdb_dataset(
+    http: &Http,
+    data: &DataCache,
+    url: &str,
+    max: usize,
+    what: &str,
+) -> Result<Vec<u8>> {
+    let key = url.rsplit('/').next().unwrap_or(url);
+    let saved = data.read(key);
+    if saved.as_ref().is_some_and(|(_, age)| *age < DATASET_TTL) {
+        return Ok(saved.map(|(gz, _)| gz).unwrap_or_default());
+    }
+    match http.get_large(url, max, Duration::from_secs(180)).await {
+        Ok(gz) => {
+            data.write(key, &gz);
+            Ok(gz)
+        }
+        Err(e) => match saved {
+            Some((old, _)) => {
+                tracing::warn!(
+                    "no se pudo actualizar {key} ({}); uso el guardado",
+                    e.user_text()
+                );
+                Ok(old)
+            }
+            None => Err(super::fetch_error(&format!("bajar {what} de IMDb"), &e)),
+        },
     }
 }
 
@@ -235,7 +309,7 @@ fn bad_key() -> CoreError {
     }
 }
 
-/// Películas del rango, de más a menos votadas en TMDB, hasta que bajan del piso proporcional.
+/// Títulos del rango, de más a menos votados en TMDB, hasta que bajan del piso proporcional.
 async fn discover(
     http: &Http,
     key: &str,
@@ -248,12 +322,16 @@ async fn discover(
     } else {
         String::new()
     };
+    let (path, date) = match q.kind {
+        MediaKind::Movie => ("movie", "primary_release_date"),
+        MediaKind::Series => ("tv", "first_air_date"),
+    };
     let mut out = Vec::new();
     let mut page = 1;
     loop {
         let url = format!(
-            "{API}/discover/movie?api_key={key}&sort_by=vote_count.desc&include_adult=false&include_video=false\
-             &primary_release_date.gte={}&primary_release_date.lte={}&vote_count.gte={floor}{genre}&page={page}",
+            "{API}/discover/{path}?api_key={key}&sort_by=vote_count.desc&include_adult=false&include_video=false\
+             &{date}.gte={}&{date}.lte={}&vote_count.gte={floor}{genre}&page={page}",
             q.from, q.to
         );
         let p: DiscoverPage = match http.get_json(&url, timeout).await {
@@ -281,13 +359,17 @@ fn detail(raw: RawDetail) -> Detail {
         .join(", ");
     let genres: Vec<String> = raw.genres.into_iter().map(|g| g.name).collect();
     Detail {
-        imdb: raw.imdb_id.as_deref().and_then(tt_number),
+        imdb: raw
+            .imdb_id
+            .or(raw.external_ids.and_then(|e| e.imdb_id))
+            .as_deref()
+            .and_then(tt_number),
         languages,
         excluded: is_excluded(Some(&countries), &genres),
     }
 }
 
-fn tt_number(id: &str) -> Option<u32> {
+pub(super) fn tt_number(id: &str) -> Option<u32> {
     id.strip_prefix("tt")?.parse().ok()
 }
 
@@ -306,10 +388,10 @@ fn parse_ratings(r: impl Read) -> Ratings {
         .collect()
 }
 
-/// Cruce y orden: como IMDb, por puntaje y, a igual puntaje, por votos.
+/// Cruce y orden: como IMDb, por puntaje y, a igual puntaje, por votos (o por popularidad de TMDB).
 fn rank(
     candidates: Vec<Candidate>,
-    details: &HashMap<u64, Detail>,
+    details: &HashMap<(MediaKind, u64), Detail>,
     ratings: &Ratings,
     q: &TopQuery,
 ) -> Vec<MetaPreview> {
@@ -317,7 +399,7 @@ fn rank(
     let mut hits: Vec<(f32, u32, MetaPreview)> = candidates
         .into_iter()
         .filter_map(|c| {
-            let d = details.get(&c.id)?;
+            let d = details.get(&(q.kind, c.id))?;
             let tt = d.imdb?;
             let &(rating, votes) = ratings.get(&tt)?;
             let lang_ok =
@@ -331,7 +413,7 @@ fn rank(
                 votes,
                 MetaPreview {
                     id: format!("tt{tt:07}"),
-                    kind: MediaKind::Movie,
+                    kind: q.kind,
                     name: c.title,
                     year: released.as_ref().map(|d| d[..4.min(d.len())].to_string()),
                     imdb_rating: Some(format!("{rating:.1}")),
@@ -344,7 +426,13 @@ fn rank(
             ))
         })
         .collect();
-    hits.sort_by(|a, b| b.0.total_cmp(&a.0).then(b.1.cmp(&a.1)));
+    match q.sort {
+        BrowseSort::Rating => hits.sort_by(|a, b| b.0.total_cmp(&a.0).then(b.1.cmp(&a.1))),
+        BrowseSort::Popular => hits.sort_by(|a, b| {
+            let pop = |h: &(f32, u32, MetaPreview)| h.2.popularity.unwrap_or(0.0);
+            pop(b).total_cmp(&pop(a))
+        }),
+    }
     hits.into_iter().map(|(_, _, p)| p).collect()
 }
 
@@ -354,6 +442,8 @@ mod tests {
 
     fn q(min_votes: u32, languages: &[&str]) -> TopQuery {
         TopQuery {
+            kind: MediaKind::Movie,
+            sort: BrowseSort::Rating,
             from: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
             to: NaiveDate::from_ymd_opt(2026, 11, 30).unwrap(),
             min_votes,
@@ -380,8 +470,7 @@ mod tests {
 
     #[test]
     fn lee_el_dataset_y_descarta_los_de_pocos_votos() {
-        let tsv =
-            "tconst\taverageRating\tnumVotes\ntt0000001\t5.7\t2100\ntt0000002\t5.6\t300\nmal\n";
+        let tsv = "tconst\taverageRating\tnumVotes\ntt0000001\t5.7\t2100\ntt0000002\t5.6\t5\nmal\n";
         let r = parse_ratings(tsv.as_bytes());
         assert_eq!(r.get(&1), Some(&(5.7, 2100)));
         assert_eq!(r.len(), 1);
@@ -402,12 +491,13 @@ mod tests {
             languages: langs.iter().map(|s| s.to_string()).collect(),
             excluded: false,
         };
-        let details: HashMap<u64, Detail> = [
-            (1, d(10, &["en"])),
-            (2, d(20, &["es"])),
-            (3, d(30, &["en"])),
-            (4, d(40, &["en", "fr"])),
-            (5, d(50, &["fr"])),
+        let m = MediaKind::Movie;
+        let details: HashMap<(MediaKind, u64), Detail> = [
+            ((m, 1), d(10, &["en"])),
+            ((m, 2), d(20, &["es"])),
+            ((m, 3), d(30, &["en"])),
+            ((m, 4), d(40, &["en", "fr"])),
+            ((m, 5), d(50, &["fr"])),
         ]
         .into();
         let cands = vec![
@@ -438,11 +528,30 @@ mod tests {
         assert_eq!(d.languages, ["ja"]);
     }
 
+    #[test]
+    fn serie_de_tmdb_nombre_fecha_imdb_y_generos_dobles() {
+        let c: Candidate = serde_json::from_str(
+            r#"{"id":1396,"name":"Breaking Bad","first_air_date":"2008-01-20","genre_ids":[18,10759,10764]}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            (c.title.as_str(), c.release_date.as_deref()),
+            ("Breaking Bad", Some("2008-01-20"))
+        );
+        assert_eq!(genre_names(&c.genre_ids), ["Drama", "Acción", "Aventura"]);
+        let raw: RawDetail = serde_json::from_str(
+            r#"{"original_language":"en","external_ids":{"imdb_id":"tt0903747"}}"#,
+        )
+        .unwrap();
+        assert_eq!(detail(raw).imdb, Some(903747));
+    }
+
     // Red real: `cargo test -p streamonte-core --lib top::tests::dataset_real -- --ignored`.
     #[tokio::test]
     #[ignore]
     async fn dataset_real() {
-        let r = TopRated::default()
+        let data = DataCache::new(std::env::temp_dir().join("streamonte-test-top-real"));
+        let r = TopRated::new(Arc::new(data))
             .ratings(&Http::new(Duration::from_secs(10)))
             .await
             .unwrap();

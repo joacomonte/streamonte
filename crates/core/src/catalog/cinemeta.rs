@@ -3,7 +3,6 @@
 
 use std::time::Duration;
 
-use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Serialize};
 
 use super::http::Http;
@@ -15,7 +14,7 @@ pub const CINEMETA: &str = "https://v3-cinemeta.strem.io";
 /// FR-36: como mucho 20 por tipo.
 const MAX_RESULTS: usize = 20;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetaPreview {
     pub id: String,
     pub kind: MediaKind,
@@ -41,7 +40,7 @@ pub struct SearchResults {
     pub series: Vec<MetaPreview>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Meta {
     pub id: String,
     pub kind: MediaKind,
@@ -58,9 +57,11 @@ pub struct Meta {
     pub episodes: Vec<Episode>,
     /// FR-40 (regla Q-12).
     pub excluded: bool,
+    /// Series: `Continuing` o `Ended` (lo que dice Cinemeta).
+    pub status: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Episode {
     /// `tt…:T:E`
     pub id: String,
@@ -96,8 +97,8 @@ pub async fn search(
         .collect())
 }
 
-/// Explorar (FR-37, versión simple pedida el 2026-11-14): populares o mejor puntuadas, o las de un año.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+/// Orden de Explorar: populares o mejor puntuadas (con TMDB lo aplica `top`; acá elige el catálogo).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum BrowseSort {
     /// Cinemeta `top`.
@@ -106,44 +107,23 @@ pub enum BrowseSort {
     Rating,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BrowsePage {
     pub items: Vec<MetaPreview>,
     pub has_more: bool,
-    /// Solo con rango de fechas: desde dónde sigue la próxima página.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub next: Option<BrowseCursor>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BrowseCursor {
-    pub year: u16,
-    pub skip: u32,
-}
-
-/// Una página de Cinemeta (50 por página, `skip`). Con año se usa el catálogo `year`
-/// (Cinemeta no permite año + puntaje juntos: el orden por puntaje dentro del año lo hace la UI).
-/// `genre` (p. ej. `Documentary`, pedido 2026-11-15): en `top`/`imdbRating` lo filtra Cinemeta;
-/// el catálogo `year` ya usa `genre` para el año, así que ahí se filtra la página traída.
-pub async fn browse(
+/// En tendencia ahora (2026-11-16, Explorar sin key de TMDB): una página de 50 del catálogo
+/// `top` de Cinemeta (lo más visto del momento). `genre` (p. ej. `Documentary`) lo filtra Cinemeta.
+pub async fn trending(
     http: &Http,
     kind: MediaKind,
-    sort: BrowseSort,
-    year: Option<u16>,
     genre: Option<&str>,
     skip: u32,
     timeout: Duration,
 ) -> Result<BrowsePage, super::http::FetchError> {
     let mut extras = Vec::new();
-    let list = match (year, sort) {
-        (Some(y), _) => {
-            extras.push(format!("genre={y}"));
-            "year"
-        }
-        (None, BrowseSort::Popular) => "top",
-        (None, BrowseSort::Rating) => "imdbRating",
-    };
-    if let (None, Some(g)) = (year, genre) {
+    if let Some(g) = genre {
         extras.push(format!("genre={}", encode_extra(g)));
     }
     if skip > 0 {
@@ -154,105 +134,18 @@ pub async fn browse(
     } else {
         format!("/{}", extras.join("&"))
     };
-    let url = format!("{CINEMETA}/catalog/{}/{list}{extra}.json", kind.as_str());
+    let url = format!("{CINEMETA}/catalog/{}/top{extra}.json", kind.as_str());
     let resp: CatalogResponse = http.get_json(&url, timeout).await?;
     let raw = resp.metas.unwrap_or_default();
     let has_more = resp.has_more.unwrap_or(!raw.is_empty());
-    let in_genre = |m: &RawMeta| match (year, genre) {
-        (Some(_), Some(g)) => m
-            .genres
-            .as_ref()
-            .is_some_and(|gs| gs.iter().any(|x| x.eq_ignore_ascii_case(g))),
-        _ => true,
-    };
     Ok(BrowsePage {
         items: raw
             .into_iter()
             .filter_map(|v| serde_json::from_value::<RawMeta>(v).ok())
-            .filter(in_genre)
             .filter_map(|m| preview(m, kind))
             .collect(),
         has_more,
-        next: None,
     })
-}
-
-/// Páginas de Cinemeta por llamada con rango de fechas (cada una trae 50; la UI vuelve a pedir).
-const RANGE_PAGES: usize = 4;
-
-/// Rango de fechas de estreno (pedido 2026-11-14, como `release_date=desde,hasta` de IMDb).
-/// Cinemeta no filtra por fecha: se recorren sus catálogos `year` (≈400 títulos por año,
-/// del estreno más nuevo al más viejo) desde el año de `to` hacia atrás, filtrando por `released`.
-/// shortcut: solo ve los títulos de esos catálogos y descarta los que no traen fecha;
-/// si hiciera falta todo IMDb, usar otra fuente (p. ej. TMDB discover).
-pub async fn browse_released(
-    http: &Http,
-    kind: MediaKind,
-    from: NaiveDate,
-    to: NaiveDate,
-    genre: Option<&str>,
-    cursor: Option<BrowseCursor>,
-    timeout: Duration,
-) -> Result<BrowsePage, super::http::FetchError> {
-    let mut at = cursor.unwrap_or(BrowseCursor {
-        year: u16::try_from(to.year()).unwrap_or(0),
-        skip: 0,
-    });
-    let mut items = Vec::new();
-    for _ in 0..RANGE_PAGES {
-        if i32::from(at.year) < from.year() {
-            break;
-        }
-        let page = browse(
-            http,
-            kind,
-            BrowseSort::Popular,
-            Some(at.year),
-            genre,
-            at.skip,
-            timeout,
-        )
-        .await?;
-        let (hits, past) = in_range(page.items, from, to);
-        items.extend(hits);
-        at = if page.has_more && !past {
-            BrowseCursor {
-                year: at.year,
-                skip: at.skip + 50,
-            }
-        } else {
-            BrowseCursor {
-                year: at.year.saturating_sub(1),
-                skip: 0,
-            }
-        };
-        if items.len() >= MAX_RESULTS {
-            break;
-        }
-    }
-    let more = i32::from(at.year) >= from.year() && at.year > 0;
-    Ok(BrowsePage {
-        items,
-        has_more: more,
-        next: more.then_some(at),
-    })
-}
-
-/// Se queda con los estrenados en `[from, to]`. `past` = la página ya es toda anterior a `from`
-/// (el catálogo viene de más nuevo a más viejo: no hace falta seguir con ese año).
-fn in_range(items: Vec<MetaPreview>, from: NaiveDate, to: NaiveDate) -> (Vec<MetaPreview>, bool) {
-    let date = |p: &MetaPreview| {
-        p.released
-            .as_deref()
-            .and_then(|r| NaiveDate::parse_from_str(r, "%Y-%m-%d").ok())
-    };
-    let dated: Vec<NaiveDate> = items.iter().filter_map(date).collect();
-    let past = !dated.is_empty() && dated.iter().all(|d| *d < from);
-    let hits = items
-        .into_iter()
-        .filter(|p| date(p).is_some_and(|d| (from..=to).contains(&d)))
-        .collect();
-    (hits, past)
 }
 
 fn preview(m: RawMeta, kind: MediaKind) -> Option<MetaPreview> {
@@ -342,6 +235,7 @@ fn to_meta(m: RawMeta, kind: MediaKind, id: &str, now: chrono::DateTime<chrono::
         poster: https_only(m.poster),
         background: https_only(m.background),
         episodes,
+        status: m.status.as_deref().map(clean),
     }
 }
 
@@ -424,40 +318,5 @@ mod tests {
         assert_eq!(m.poster, None);
         assert_eq!(m.year.as_deref(), Some("2008–2013"));
         assert!(!m.excluded);
-    }
-    /// Filtro por fecha de estreno: se queda con el rango (bordes incluidos), descarta sin fecha
-    /// y avisa cuando la página entera ya es anterior al rango.
-    #[test]
-    fn filtro_por_fecha_de_estreno() {
-        let p = |id: &str, released: Option<&str>| MetaPreview {
-            id: id.into(),
-            kind: MediaKind::Movie,
-            name: id.into(),
-            year: None,
-            imdb_rating: None,
-            excluded: false,
-            poster: None,
-            released: released.map(Into::into),
-            popularity: None,
-            genres: Vec::new(),
-        };
-        let d = |s: &str| NaiveDate::parse_from_str(s, "%Y-%m-%d").unwrap();
-        let (from, to) = (d("2026-09-01"), d("2026-11-14"));
-        let page = vec![
-            p("futuro", Some("2026-11-20")),
-            p("hasta", Some("2026-11-14")),
-            p("medio", Some("2026-10-16")),
-            p("desde", Some("2026-09-01")),
-            p("antes", Some("2026-08-31")),
-            p("sin-fecha", None),
-        ];
-        let (hits, past) = in_range(page, from, to);
-        let ids: Vec<&str> = hits.iter().map(|m| m.id.as_str()).collect();
-        assert_eq!(ids, ["hasta", "medio", "desde"]);
-        assert!(!past);
-        let (hits, past) = in_range(vec![p("viejo", Some("2026-03-01")), p("x", None)], from, to);
-        assert!(hits.is_empty() && past);
-        // Página sin fechas: no se puede saber, se sigue.
-        assert!(!in_range(vec![p("x", None)], from, to).1);
     }
 }

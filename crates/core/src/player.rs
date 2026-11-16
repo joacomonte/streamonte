@@ -245,6 +245,10 @@ impl PlayerLauncher {
             // El motor puede tardar en conseguir una pieza: no abortar la lectura HTTP.
             "--network-timeout=120".into(),
             "--keep-open=no".into(),
+            // Ecualización "cine" suave (pedido 2026-11-16): +2 dB de graves (80 Hz), +1,5 dB de
+            // presencia de voces (3 kHz) y +1 dB de aire (10 kHz), con -2 dB antes para no saturar.
+            // `af-append` suma al final: no pisa los filtros del mpv.conf del usuario.
+            "--af-append=lavfi=[volume=-2dB,equalizer=f=80:t=q:w=0.8:g=2,equalizer=f=3000:t=q:w=1:g=1.5,equalizer=f=10000:t=q:w=1:g=1]".into(),
         ];
         for sub in &req.subtitle_files {
             args.push(format!("--sub-file={}", sub.display()));

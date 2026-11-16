@@ -23,6 +23,7 @@ pub mod events;
 
 pub mod activity;
 pub mod config;
+pub mod datacache;
 pub mod fsutil;
 pub mod logger;
 pub mod paths;

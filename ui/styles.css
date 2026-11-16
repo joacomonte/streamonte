@@ -225,12 +225,26 @@ button.danger { color: var(--red); }
 
 /* Ajustes */
 .dialog h4 { margin: 14px 0 6px; font-size: 13px; }
-.key-row { display: grid; grid-template-columns: 190px 1fr auto auto; gap: 8px; align-items: center; margin: 6px 0; }
-.key-row input { padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); }
+/* Ajustes en tarjetas (2026-11-16): una por tema, con aire entre campos. */
+.settings { width: min(720px, 92vw); }
+.set-card { display: grid; gap: 10px; margin: 0 0 14px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); }
+.dialog .set-card h4 { margin: 0 0 2px; font-size: 15px; }
+.set-card .hint { margin: 0; line-height: 1.45; }
+.set-card > .link { justify-self: start; }
+.set-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.set-line .hint { flex: 1 1 260px; }
+.key-row { display: grid; gap: 6px; padding-top: 4px; }
+.key-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.key-head label { font-weight: 600; font-size: 13px; }
+.key-head .link { margin-left: auto; font-size: 12px; }
+.key-line { display: flex; gap: 8px; }
+.key-line input { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+.net-guide summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+.net-guide[open] summary { margin-bottom: 4px; color: var(--text); }
 .key-state { font-size: 11px; color: var(--muted); margin-left: 4px; }
 .key-state.ok { color: var(--green); }
 /* Ajustes › Red: guía del router y verificación del puerto (2026-11-15). */
-.net-guide { margin: 6px 0 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.net-guide { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
 .net-steps { margin: 6px 0 10px; padding-left: 18px; display: grid; gap: 6px; font-size: 12.5px; color: var(--text); }
 .net-steps code { font-family: var(--mono); font-size: 12px; }
 .net-check { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -238,7 +252,7 @@ button.danger { color: var(--red); }
 .net-check-result.ok { color: var(--green); }
 .net-check-result.bad { color: var(--red); }
 /* Panel de calibración en Ajustes (2026-11-15). */
-.calib-panel { display: grid; gap: 6px; margin: 6px 0 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.calib-panel { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
 .calib-panel h5 { margin: 6px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .calib-status { margin: 0; font-weight: 600; }
 .calib-bar { height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; }
@@ -385,3 +399,12 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .pop-empty { margin: 0; padding: 12px 14px; border-radius: 12px; border: 1px dashed var(--border); color: var(--muted); font-size: 13px; }
 .pop-disk { display: flex; align-items: baseline; gap: 10px; }
 .pop-disk-size { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Al cerrar el reproductor (2026-11-16): título, porcentaje y barra de lo bajado. */
+.close-dl { display: grid; gap: 10px; min-width: min(380px, 70vw); }
+.close-dl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.close-dl-head b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.close-dl-head span { flex: none; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.close-dl-bar { display: block; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.close-dl-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--green)); }
+.pop-disk-data { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }

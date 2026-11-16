@@ -12,7 +12,7 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use crate::analyzer::{AnalyzeScope, AnalyzerHandle};
-use crate::catalog::cinemeta::{BrowseCursor, BrowsePage, BrowseSort, Meta, SearchResults};
+use crate::catalog::cinemeta::{BrowsePage, BrowseSort, Meta, SearchResults};
 use crate::catalog::{AddonView, MediaKind, VideoId};
 use crate::cleanup::{Cleanup, CleanupReport};
 use crate::clipboard::WatchGuard;
@@ -98,6 +98,8 @@ pub struct AppCore {
     intake: Intake,
     /// Catálogo y addons (F4b, spec 09).
     catalog: Arc<crate::catalog::Catalog>,
+    /// Caché de datos (fichas, puntajes, datasets de IMDb): aparte de la de videos.
+    data_cache: Arc<crate::datacache::DataCache>,
     /// "Agregar addon" de a uno: dos altas a la vez podrían elegir el mismo id (y su secreto).
     adding_addon: Mutex<()>,
     /// Conteos de enjambre en curso (catálogo): cerrar o cambiar de video los corta.
@@ -199,7 +201,15 @@ impl AppCore {
             None
         };
 
-        let catalog = Arc::new(crate::catalog::Catalog::new(&config.read().await.catalog));
+        let data_cache = Arc::new(crate::datacache::DataCache::new(paths.data_cache_dir()));
+        {
+            let data = data_cache.clone();
+            tokio::task::spawn_blocking(move || data.prune(crate::datacache::MAX_BYTES));
+        }
+        let catalog = Arc::new(crate::catalog::Catalog::new(
+            &config.read().await.catalog,
+            data_cache.clone(),
+        ));
         // Lista compartida de trackers, de fondo: la primera reproducción no la espera.
         {
             let (config, file) = (config.clone(), paths.shared_trackers_file());
@@ -212,6 +222,7 @@ impl AppCore {
         tracing::info!("núcleo iniciado");
         let core = Arc::new(Self {
             catalog,
+            data_cache,
             cleanup: Cleanup::new(paths.clone()),
             paths,
             config,
@@ -405,6 +416,15 @@ impl AppCore {
     /// analizado de los magnets de la lista SÍ se borra (decidido), salvo lo que se esté midiendo.
     pub fn clean_temp(&self) -> Result<CleanupReport> {
         self.cleanup.clean(&self.playback.active_dirs())
+    }
+    /// Lo que ocupa la caché de datos (fichas, puntajes, datasets de IMDb).
+    pub fn data_cache_size(&self) -> u64 {
+        self.data_cache.size()
+    }
+    /// "Borrar datos guardados": todo lo de la caché de datos. Devuelve los bytes liberados.
+    /// Lo ya cargado en esta sesión sigue en memoria hasta cerrar la app.
+    pub fn clear_data_cache(&self) -> Result<u64> {
+        self.data_cache.clear()
     }
     pub fn open_downloads_folder(&self) -> Result<()> {
         crate::cleanup::open_in_file_manager(&self.paths.downloads_dir())
@@ -681,40 +701,33 @@ impl AppCore {
             .await
     }
 
-    /// Explorar (FR-37 simple, 2026-11-14): una página de 50 de Cinemeta.
-    pub async fn catalog_browse(
+    /// Puntaje promedio por temporada de una serie (TMDB con key; si no, IMDb).
+    pub async fn catalog_season_ratings(
+        &self,
+        imdb_id: &str,
+        quick: bool,
+    ) -> Result<crate::catalog::seasons::SeasonRatings> {
+        let timeout = self.catalog_timeout().await;
+        self.catalog.season_ratings(imdb_id, quick, timeout).await
+    }
+
+    /// Explorar sin key de TMDB: en tendencia ahora.
+    pub async fn catalog_trending(
         &self,
         kind: MediaKind,
-        sort: BrowseSort,
-        year: Option<u16>,
         genre: Option<&str>,
         skip: u32,
     ) -> Result<BrowsePage> {
         let timeout = self.catalog_timeout().await;
-        self.catalog
-            .browse(kind, sort, year, genre, skip, timeout)
-            .await
+        self.catalog.trending(kind, genre, skip, timeout).await
     }
 
-    /// Explorar por fecha de estreno (`AAAA-MM-DD`, bordes incluidos; sin `to` = hasta hoy).
-    /// `cursor` es el `next` de la página anterior (None = primera).
-    pub async fn catalog_browse_released(
-        &self,
-        kind: MediaKind,
-        from: &str,
-        to: Option<&str>,
-        genre: Option<&str>,
-        cursor: Option<BrowseCursor>,
-    ) -> Result<BrowsePage> {
-        let timeout = self.catalog_timeout().await;
-        self.catalog
-            .browse_released(kind, from, to, genre, cursor, timeout)
-            .await
-    }
-
-    /// Mejor puntuadas con los filtros de IMDb (votos, idiomas); solo películas.
+    /// Explorar con los filtros de IMDb (votos, idiomas); necesita la key de TMDB.
+    #[allow(clippy::too_many_arguments)]
     pub async fn catalog_browse_top(
         &self,
+        kind: MediaKind,
+        sort: BrowseSort,
         from: &str,
         to: Option<&str>,
         min_votes: u32,
@@ -723,7 +736,7 @@ impl AppCore {
     ) -> Result<BrowsePage> {
         let timeout = self.catalog_timeout().await;
         self.catalog
-            .browse_top(from, to, min_votes, languages, genre, timeout)
+            .browse_top(kind, sort, from, to, min_votes, languages, genre, timeout)
             .await
     }
 

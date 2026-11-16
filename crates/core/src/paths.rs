@@ -96,6 +96,10 @@ impl AppPaths {
         self.torrent_cache_dir()
             .join(format!("{}.peers", hash.to_hex()))
     }
+    /// Caché de datos (`datacache`): fichas, puntajes, datasets de IMDb. Aparte de los videos.
+    pub fn data_cache_dir(&self) -> PathBuf {
+        self.cache_dir.join("datos")
+    }
     /// Copia de la lista compartida de trackers (`trackers::shared_list`).
     pub fn shared_trackers_file(&self) -> PathBuf {
         self.cache_dir.join("trackers-best.txt")

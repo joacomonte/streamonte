@@ -31,70 +31,100 @@
   </main>
 
   <!-- Ajustes (mínimo, F4 completa): API keys de subtítulos y teclas en mpv -->
-  <dialog id="dlg-settings" class="dialog wide">
+  <dialog id="dlg-settings" class="dialog wide settings">
     <h3>Ajustes</h3>
-    <h4>Subtítulos en español (hasta 5 a la vez)</h4>
-    <p class="hint">Primero se usan los que trae el torrent. Para buscar más hacen falta estas keys gratuitas; se guardan en el almacén seguro del sistema y nunca se muestran.</p>
-    <div class="key-row">
-      <label for="key-wyzie">Wyzie Subs <span id="key-wyzie-state" class="key-state"></span></label>
-      <input id="key-wyzie" type="password" placeholder="Pegá la key" autocomplete="off">
-      <button data-save-key="wyzie">Guardar</button>
-      <button class="link" data-key-page="wyzie">Pedir key (solo email, 1000/día)</button>
-    </div>
-    <div class="key-row">
-      <label for="key-opensubtitles">OpenSubtitles <span id="key-opensubtitles-state" class="key-state"></span></label>
-      <input id="key-opensubtitles" type="password" placeholder="Pegá la key" autocomplete="off">
-      <button data-save-key="opensubtitles">Guardar</button>
-      <button class="link" data-key-page="opensubtitles">Crear key (cuenta gratis, 20 descargas/día)</button>
-    </div>
-    <h4>Pósters</h4>
-    <p class="hint">Cinemeta no tiene imagen para muchos títulos nuevos. Con una key gratuita de TMDB se traen de ahí; sin key se dibuja uno con el título.</p>
-    <div class="key-row">
-      <label for="key-tmdb">TMDB <span id="key-tmdb-state" class="key-state"></span></label>
-      <input id="key-tmdb" type="password" placeholder="Pegá la API key (v3)" autocomplete="off">
-      <button data-save-key="tmdb">Guardar</button>
-      <button class="link" data-key-page="tmdb">Pedir key (cuenta gratis → Ajustes → API)</button>
-    </div>
-    <h4>Fuentes de torrents</h4>
-    <p class="hint">Los addons que se consultan al abrir una película o episodio.</p>
-    <button id="btn-sources">Ver y activar fuentes</button>
-    <h4>Red</h4>
-    <label class="setting-check"><input id="set-incoming" type="checkbox"> Aceptar conexiones entrantes de peers (más fuentes, suele bajar más rápido)</label>
-    <label class="setting-check"><input id="set-upnp" type="checkbox"> Abrir el puerto en el router automáticamente (UPnP)</label>
-    <p class="hint">Aplica desde la próxima reproducción. Si el firewall o el router lo bloquean, todo sigue funcionando solo con conexiones salientes.</p>
-    <div class="net-guide">
-      <p class="hint"><b>Para recibir conexiones entrantes</b> (más peers; suele bajar más rápido):</p>
-      <ol class="net-steps">
-        <li><b>Probá con UPnP:</b> dejá activadas las dos opciones de arriba y verificá. Si el router lo soporta, abre el puerto solo. Algunos lo rechazan (por ejemplo, los Sagemcom de los cable-módems).</li>
-        <li><b>Si da cerrado, abrí el puerto a mano:</b> entrá al router (suele ser <code>192.168.0.1</code> o <code>192.168.1.1</code>), buscá "Reenvío de puertos", "Port forwarding" o "NAT" y creá una regla: protocolo <b>TCP</b>, puerto externo e interno <b>41850</b>, hacia la IP de esta PC (la muestra "Verificar"). Conviene reservar esa IP en el DHCP del router para que no cambie.</li>
-        <li><b>Firewall:</b> en macOS, Ajustes del Sistema › Red › Firewall › Opciones: permití las conexiones entrantes de Streamonte. En Windows, aceptá el aviso del firewall la primera vez.</li>
-        <li><b>Si aun así da cerrado:</b> tu proveedor puede usar CGNAT (sin IP pública propia). Pedile una IP pública; sin eso no se pueden recibir entrantes.</li>
-      </ol>
+
+    <section class="set-card" aria-labelledby="set-h-catalog">
+      <h4 id="set-h-catalog">Catálogo</h4>
+      <div class="key-row">
+        <div class="key-head">
+          <label for="key-tmdb">TMDB</label><span id="key-tmdb-state" class="key-state"></span>
+          <button class="link" data-key-page="tmdb">Pedir key gratis (cuenta → Ajustes → API)</button>
+        </div>
+        <p class="hint">Filtra por votos, idioma y géneros, y trae pósters que faltan en Cinemeta. Sin key, el catálogo filtra solo por fecha.</p>
+        <div class="key-line">
+          <input id="key-tmdb" type="password" placeholder="Pegá la API key (v3)" autocomplete="off">
+          <button data-save-key="tmdb">Guardar</button>
+        </div>
+      </div>
+      <div class="set-line">
+        <p class="hint">Fuentes de torrents: los addons que se consultan al abrir una película o episodio.</p>
+        <button id="btn-sources">Ver y activar fuentes</button>
+      </div>
+    </section>
+
+    <section class="set-card" aria-labelledby="set-h-subs">
+      <h4 id="set-h-subs">Subtítulos</h4>
+      <p class="hint">Se bajan hasta 5 en español, primero los que trae el torrent. Para buscar más hacen falta estas keys gratuitas; se guardan en el almacén seguro del sistema y nunca se muestran.</p>
+      <div class="key-row">
+        <div class="key-head">
+          <label for="key-wyzie">Wyzie Subs</label><span id="key-wyzie-state" class="key-state"></span>
+          <button class="link" data-key-page="wyzie">Pedir key (solo email, 1000/día)</button>
+        </div>
+        <div class="key-line">
+          <input id="key-wyzie" type="password" placeholder="Pegá la key" autocomplete="off">
+          <button data-save-key="wyzie">Guardar</button>
+        </div>
+      </div>
+      <div class="key-row">
+        <div class="key-head">
+          <label for="key-opensubtitles">OpenSubtitles</label><span id="key-opensubtitles-state" class="key-state"></span>
+          <button class="link" data-key-page="opensubtitles">Crear key (cuenta gratis, 20 descargas/día)</button>
+        </div>
+        <div class="key-line">
+          <input id="key-opensubtitles" type="password" placeholder="Pegá la key" autocomplete="off">
+          <button data-save-key="opensubtitles">Guardar</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="set-card" aria-labelledby="set-h-net">
+      <h4 id="set-h-net">Red</h4>
+      <label class="setting-check"><input id="set-incoming" type="checkbox"> Aceptar conexiones entrantes de peers (más fuentes, suele bajar más rápido)</label>
+      <label class="setting-check"><input id="set-upnp" type="checkbox"> Abrir el puerto en el router automáticamente (UPnP)</label>
+      <p class="hint">Aplica desde la próxima reproducción. Si el firewall o el router lo bloquean, todo sigue funcionando solo con conexiones salientes.</p>
       <div class="net-check">
         <button id="btn-net-check">Verificar puerto</button>
         <span id="net-check-result" class="net-check-result" role="status"></span>
       </div>
-      <p class="hint">"Verificar" abre el puerto un momento y le pide a portchecker.io que intente conectarse a tu IP pública (que averigua con api.ipify.org).</p>
-    </div>
-    <h4>Calibración de la salud estimada</h4>
-    <p class="hint">Automática: cuando ves o cargás en background una opción ya analizada, se mide cuánto aporta cada seeder en tu conexión. Con eso se calcula el badge Bueno / Justo / Malo del catálogo.</p>
-    <div id="health-calib-panel" class="calib-panel" aria-live="polite"></div>
-    <div class="key-row">
-      <label for="set-seed-mbps">Mbps por seeder <span id="health-calib-state" class="key-state"></span></label>
-      <input id="set-seed-mbps" type="number" min="0.1" step="0.5" inputmode="decimal">
-      <button id="btn-health-fix">Fijar</button>
-      <button id="btn-health-recalibrate">Usar lo medido</button>
-    </div>
-    <p class="hint"><button id="btn-health-reset" class="link">Restablecer (olvidar mediciones)</button></p>
-    <h4>Teclas en el reproductor</h4>
-    <table class="kv keys">
-      <tr><th>1 – 5</th><td>Dejar solo ese subtítulo</td></tr>
-      <tr><th>0</th><td>Ver todos a la vez para comparar</td></tr>
-      <tr><th>S</th><td>Ocultar / mostrar subtítulos</td></tr>
-      <tr><th>Z / X</th><td>La voz llega antes / después (±0,1 s; con Shift ±1 s)</td></tr>
-      <tr><th>R</th><td>Volver la sincronización a cero</td></tr>
-    </table>
-    <div class="dialog-actions"><button data-close>Cerrar</button></div>
+      <details id="set-net-guide" class="net-guide">
+        <summary>¿No abre el puerto?</summary>
+        <ol class="net-steps">
+          <li><b>Probá con UPnP:</b> dejá activadas las dos opciones de arriba y verificá. Si el router lo soporta, abre el puerto solo. Algunos lo rechazan (por ejemplo, los Sagemcom de los cable-módems).</li>
+          <li><b>Si da cerrado, abrí el puerto a mano:</b> entrá al router (suele ser <code>192.168.0.1</code> o <code>192.168.1.1</code>), buscá "Reenvío de puertos", "Port forwarding" o "NAT" y creá una regla: protocolo <b>TCP</b>, puerto externo e interno <b>41850</b>, hacia la IP de esta PC (la muestra "Verificar"). Conviene reservar esa IP en el DHCP del router para que no cambie.</li>
+          <li><b>Firewall:</b> en macOS, Ajustes del Sistema › Red › Firewall › Opciones: permití las conexiones entrantes de Streamonte. En Windows, aceptá el aviso del firewall la primera vez.</li>
+          <li><b>Si aun así da cerrado:</b> tu proveedor puede usar CGNAT (sin IP pública propia). Pedile una IP pública; sin eso no se pueden recibir entrantes.</li>
+        </ol>
+        <p class="hint">"Verificar" abre el puerto un momento y le pide a portchecker.io que intente conectarse a tu IP pública (que averigua con api.ipify.org).</p>
+      </details>
+    </section>
+
+    <section class="set-card" aria-labelledby="set-h-calib">
+      <h4 id="set-h-calib">Calidad del stream</h4>
+      <p class="hint">Automática: cuando ves o cargás en background una opción ya analizada, se mide cuánto aporta cada seeder en tu conexión. Con eso se calcula el badge Bueno / Justo / Malo del catálogo.</p>
+      <div id="health-calib-panel" class="calib-panel" aria-live="polite"></div>
+      <div class="key-row">
+        <div class="key-head"><label for="set-seed-mbps">Mbps por seeder</label><span id="health-calib-state" class="key-state"></span></div>
+        <div class="key-line">
+          <input id="set-seed-mbps" type="number" min="0.1" step="0.5" inputmode="decimal">
+          <button id="btn-health-fix">Fijar</button>
+          <button id="btn-health-recalibrate">Usar lo medido</button>
+        </div>
+      </div>
+      <button id="btn-health-reset" class="link">Restablecer (olvidar mediciones)</button>
+    </section>
+
+    <section class="set-card" aria-labelledby="set-h-keys">
+      <h4 id="set-h-keys">Teclas en el reproductor</h4>
+      <table class="kv keys">
+        <tr><th>1 – 5</th><td>Dejar solo ese subtítulo</td></tr>
+        <tr><th>0</th><td>Ver todos a la vez para comparar</td></tr>
+        <tr><th>S</th><td>Ocultar / mostrar subtítulos</td></tr>
+        <tr><th>Z / X</th><td>La voz llega antes / después (±0,1 s; con Shift ±1 s)</td></tr>
+        <tr><th>R</th><td>Volver la sincronización a cero</td></tr>
+      </table>
+    </section>
+    <div class="dialog-actions"><button id="btn-settings-close" data-close>Cerrar</button></div>
   </dialog>
 
   <!-- FR-15: detalle (log en vivo) de una reproducción -->

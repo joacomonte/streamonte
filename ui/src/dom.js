@@ -37,6 +37,9 @@ const ICONS = {
   refresh: '<path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5"/><path d="M20 4v4.5h-4.5"/>',
   // Filas (diseño cards-v3)
   chev: '<path d="M6 9l6 6 6-6"/>',
+  arrow: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="2.4"/>',
   // Análisis profundo: un radar (se conectó y "escuchó" al enjambre).
   radar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l5.5-5.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
@@ -48,6 +51,12 @@ const ICONS = {
   download: '<path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 19.5h14"/>',
   quick: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L20 20"/><path d="M11.5 6.8L9 10.8h3l-2.3 3.6"/>',
   external: '<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v4.5A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>',
+  // Tendencia del gráfico de temporadas y estado de la serie (2026-11-16).
+  'trend-up': '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+  'trend-down': '<path d="M3 7l6 6 4-4 8 8"/><path d="M14 17h7v-7"/>',
+  'trend-flat': '<path d="M3 12h17"/><path d="M15 7l5 5-5 5"/>',
+  flag: '<path d="M5 21V4"/><path d="M5 4h12l-2.5 4.5L17 13H5"/>',
+  ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
 };
 export function icon(name, size = 16) {
   const s = el('span', { class: 'ico', 'aria-hidden': 'true' });
