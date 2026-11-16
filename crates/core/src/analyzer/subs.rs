@@ -79,7 +79,7 @@ impl SubsCtx {
                 video.movie_hash = measured_file(&dir, &torrent_name, &file_name)
                     .and_then(|p| movie_hash_from_disk(&p, size));
                 let log: crate::subtitles::session::LogFn =
-                    Arc::new(|line| tracing::info!(target: "tstream_core::subtitles", "{line}"));
+                    Arc::new(|line| tracing::info!(target: "streamonte_core::subtitles", "{line}"));
                 crate::subtitles::session::fetch(crate::subtitles::session::Fetch {
                     video,
                     video_url: None,
@@ -100,7 +100,7 @@ impl SubsCtx {
             .map_or(0, |video_path| copy_next_to_video(&video_path, got));
         if copied > 0 {
             tracing::info!(
-                target: "tstream_core::subtitles",
+                target: "streamonte_core::subtitles",
                 "{} subtítulo(s) de {id} ({} en {}) junto al video de {torrent_name}",
                 copied,
                 got.iter().filter(|(c, _)| c.language == lang).count(),
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn subtitulos_junto_al_video_con_su_nombre() {
-        let dir = std::env::temp_dir().join(format!("tstream-test-subs-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("streamonte-test-subs-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("cache")).unwrap();
         let video = dir.join("Dune.Part.Two.2024.mkv");

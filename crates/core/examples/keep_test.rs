@@ -8,15 +8,15 @@
 //! 5. Retoma A → tiene que abrir mpv y reproducir.
 //! 6. "Borrar todo" → no queda ninguna carpeta.
 //!
-//! `cargo run -p tstream-core --example keep_test`
+//! `cargo run -p streamonte-core --example keep_test`
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use tstream_core::app::{AppCore, StartOptions};
-use tstream_core::events::{CoreEvent, EventSink};
-use tstream_core::magnet::Magnet;
-use tstream_core::playback::{OnAppClose, PlaybackAction, PlaybackState, StartRequest};
+use streamonte_core::app::{AppCore, StartOptions};
+use streamonte_core::events::{CoreEvent, EventSink};
+use streamonte_core::magnet::Magnet;
+use streamonte_core::playback::{OnAppClose, PlaybackAction, PlaybackState, StartRequest};
 
 const SINTEL: &str = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel";
 const BBB: &str = "magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+Buck+Bunny";
@@ -69,7 +69,7 @@ async fn main() {
     let b = Magnet::parse(BBB).unwrap();
     let (ha, hb) = (a.info_hash.to_hex(), b.info_hash.to_hex());
     let req = |m: &Magnet| StartRequest {
-        key: tstream_core::video_key::VideoKey::whole(m.info_hash),
+        key: streamonte_core::video_key::VideoKey::whole(m.info_hash),
         magnet: Some(m.clone()),
         player: None,
         file_index: None,
@@ -163,7 +163,7 @@ async fn main() {
                 .filter(|e| {
                     let n = e.file_name().to_string_lossy().into_owned();
                     (n.starts_with(&ha) || n.starts_with(&hb))
-                        && e.path().join(".tstream-kept.json").exists()
+                        && e.path().join(".streamonte-kept.json").exists()
                 })
                 .count()
         })

@@ -4,21 +4,25 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use tauri::State;
-use tstream_core::analyzer::swarm::SwarmCount;
-use tstream_core::analyzer::AnalyzeScope;
-use tstream_core::app::{
+use streamonte_core::analyzer::swarm::SwarmCount;
+use streamonte_core::analyzer::AnalyzeScope;
+use streamonte_core::app::{
     ApiKeyStatus, AppCore, ClipboardPreview, LibraryView, SubtitleFound, TempUsage,
 };
-use tstream_core::catalog::cinemeta::{BrowseCursor, BrowsePage, BrowseSort, Meta, SearchResults};
-use tstream_core::catalog::{AddonView, MediaKind};
-use tstream_core::cleanup::CleanupReport;
-use tstream_core::config::{Config, PlayerKind, SubtitleLanguage};
-use tstream_core::library::LibraryRowView;
-use tstream_core::magnet::InfoHash;
-use tstream_core::playback::{OnAppClose, PlaybackAction, PlaybackId, PlaybackRow, StartRequest};
-use tstream_core::video_key::VideoKey;
-use tstream_core::CoreError;
+use streamonte_core::catalog::cinemeta::{
+    BrowseCursor, BrowsePage, BrowseSort, Meta, SearchResults,
+};
+use streamonte_core::catalog::{AddonView, MediaKind};
+use streamonte_core::cleanup::CleanupReport;
+use streamonte_core::config::{Config, PlayerKind, SubtitleLanguage};
+use streamonte_core::library::LibraryRowView;
+use streamonte_core::magnet::InfoHash;
+use streamonte_core::playback::{
+    OnAppClose, PlaybackAction, PlaybackId, PlaybackRow, StartRequest,
+};
+use streamonte_core::video_key::VideoKey;
+use streamonte_core::CoreError;
+use tauri::State;
 
 type Core<'a> = State<'a, Arc<AppCore>>;
 type CmdResult<T> = Result<T, UiError>;
@@ -103,7 +107,7 @@ pub async fn play(
     key: VideoKey,
     player: Option<PlayerKind>,
     file_index: Option<usize>,
-    audio: Option<tstream_core::audio::AudioPick>,
+    audio: Option<streamonte_core::audio::AudioPick>,
     background: Option<bool>,
 ) -> CmdResult<PlaybackId> {
     Ok(core
@@ -174,7 +178,7 @@ pub async fn clean_temp(core: Core<'_>) -> CmdResult<CleanupReport> {
     blocking(move || Ok(core.clean_temp()?)).await
 }
 #[tauri::command]
-pub async fn check_incoming(core: Core<'_>) -> CmdResult<tstream_core::incoming::IncomingCheck> {
+pub async fn check_incoming(core: Core<'_>) -> CmdResult<streamonte_core::incoming::IncomingCheck> {
     Ok(core.check_incoming().await)
 }
 #[tauri::command]

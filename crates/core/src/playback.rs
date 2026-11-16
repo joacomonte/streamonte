@@ -6,7 +6,7 @@
 //! → `player.launch(stream_url)` → stats cada 1 s al panel → al terminar: motor detenido.
 //!
 //! Ciclo de vida (FR-12 cambiado por el usuario, 2026-11-13): al cerrar mpv, al dar play a otro
-//! video (FR-12b) o al cerrar la app, la descarga queda **pausada y guardada** (`.tstream-kept.json`
+//! video (FR-12b) o al cerrar la app, la descarga queda **pausada y guardada** (`.streamonte-kept.json`
 //! en su carpeta, con el minuto donde se dejó de ver). Se borra solo con "Borrar" o "Borrar todo".
 //! Las pausadas sobreviven a cerrar la app (`load_kept`) y se retoman desde lo ya bajado.
 //!

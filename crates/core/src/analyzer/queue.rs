@@ -909,7 +909,7 @@ mod tests {
         retries: u32,
     ) -> Setup {
         let root =
-            std::env::temp_dir().join(format!("tstream-test-an-{name}-{}", std::process::id()));
+            std::env::temp_dir().join(format!("streamonte-test-an-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let paths = AppPaths::under(&root);
         paths.ensure_dirs().unwrap();

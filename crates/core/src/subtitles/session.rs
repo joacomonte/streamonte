@@ -30,22 +30,22 @@ use crate::video_key::VideoKey;
 pub use super::fetch::{fetch, save_copy, Fetch, LogFn};
 
 /// Teclas de la app (FR-25, FR-26). `Z`/`X` en mayúscula = Shift.
-const KEY_SECTION: &str = "tstream-subtitulos";
+const KEY_SECTION: &str = "streamonte-subtitulos";
 const KEY_BINDINGS: &str = "\
-1 script-message tstream sub-1
-2 script-message tstream sub-2
-3 script-message tstream sub-3
-4 script-message tstream sub-4
-5 script-message tstream sub-5
-0 script-message tstream sub-all
-s script-message tstream sub-toggle
-S script-message tstream sub-toggle
-z script-message tstream sync-earlier
-Z script-message tstream sync-earlier-big
-x script-message tstream sync-later
-X script-message tstream sync-later-big
-r script-message tstream sync-reset
-R script-message tstream sync-reset
+1 script-message streamonte sub-1
+2 script-message streamonte sub-2
+3 script-message streamonte sub-3
+4 script-message streamonte sub-4
+5 script-message streamonte sub-5
+0 script-message streamonte sub-all
+s script-message streamonte sub-toggle
+S script-message streamonte sub-toggle
+z script-message streamonte sync-earlier
+Z script-message streamonte sync-earlier-big
+x script-message streamonte sync-later
+X script-message streamonte sync-later-big
+r script-message streamonte sync-reset
+R script-message streamonte sync-reset
 ";
 
 const OSD: Duration = Duration::from_secs(4);
@@ -195,7 +195,7 @@ async fn find_and_load(
     let mut labeled = Vec::new();
     for (i, (cand, path)) in loaded.iter().enumerate() {
         let label = label_for(i + 1, cand);
-        let title = format!("{label} [tstream]");
+        let title = format!("{label} [Streamonte]");
         let added = mpv
             .command(&[
                 json!("sub-add"),
@@ -331,7 +331,7 @@ async fn load_merged(
         ));
         return None;
     }
-    let title = format!("Comparar: los {} a la vez [tstream]", subs.len());
+    let title = format!("Comparar: los {} a la vez [Streamonte]", subs.len());
     mpv.command(&[
         json!("sub-add"),
         json!(path.to_string_lossy()),
@@ -549,6 +549,6 @@ mod tests {
         }
         assert!(KEY_BINDINGS
             .lines()
-            .all(|l| l.contains("script-message tstream ")));
+            .all(|l| l.contains("script-message streamonte ")));
     }
 }

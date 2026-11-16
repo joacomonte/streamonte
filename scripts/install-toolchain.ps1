@@ -1,4 +1,4 @@
-# Instala las herramientas para compilar Torrent Stream v2 en Windows (winget, fuentes oficiales).
+# Instala las herramientas para compilar Streamonte en Windows (winget, fuentes oficiales).
 # Rust (rustup, toolchain MSVC) + Build Tools de C++ de Visual Studio + Git.
 # Idempotente: si algo ya esta instalado, winget lo informa y sigue.
 # Archivo en ASCII a proposito: PowerShell 5.1 lee mal UTF-8 sin BOM (leccion 8).

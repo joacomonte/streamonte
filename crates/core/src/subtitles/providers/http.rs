@@ -10,7 +10,7 @@ use crate::http::Limits;
 pub(super) use crate::http::{read_capped, send, HttpError};
 use crate::Result;
 
-const USER_AGENT: &str = concat!("tstream v", env!("CARGO_PKG_VERSION"));
+const USER_AGENT: &str = concat!("Streamonte v", env!("CARGO_PKG_VERSION"));
 const HTTP_TIMEOUT: Duration = Duration::from_secs(15);
 /// Tope de una respuesta de proveedor: un subtítulo o su .zip/.rar pesa KB, no decenas de MB.
 pub(super) const MAX_BODY_BYTES: usize = 20 * 1024 * 1024;

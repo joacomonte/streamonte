@@ -13,5 +13,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with: { components: "clippy, rustfmt" }
       - run: cargo fmt --all --check
-      - run: cargo clippy -p tstream-core --all-targets -- -D warnings
-      - run: cargo test -p tstream-core
+      - run: cargo clippy -p streamonte-core --all-targets -- -D warnings
+      - run: cargo test -p streamonte-core

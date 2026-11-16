@@ -2,7 +2,7 @@
 //! vivo con velocidad y duración real (FR-06) → semáforo y orden por defecto (FR-07).
 //!
 //! ```text
-//! cargo run -p tstream-core --example analyze -- "<magnet>" ["<magnet>" ...] [--engine webtorrent|rqbit] [--pause-at 1]
+//! cargo run -p streamonte-core --example analyze -- "<magnet>" ["<magnet>" ...] [--engine webtorrent|rqbit] [--pause-at 1]
 //! ```
 //! Usa una biblioteca TEMPORAL (no toca tu `library.json`) y la config real (ruta de mpv, trackers).
 //! `--pause-at N`: pausa después del N-ésimo medido, espera 5 s y reanuda (demostración de FR-08).
@@ -11,12 +11,12 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use tstream_core::analyzer::{AnalyzeScope, AnalyzerDeps, AnalyzerHandle, AnalyzerState};
-use tstream_core::config::{ConfigStore, EngineKind};
-use tstream_core::events::{CoreEvent, EventSink};
-use tstream_core::library::{EntryStatus, Group, Library};
-use tstream_core::magnet;
-use tstream_core::paths::AppPaths;
+use streamonte_core::analyzer::{AnalyzeScope, AnalyzerDeps, AnalyzerHandle, AnalyzerState};
+use streamonte_core::config::{ConfigStore, EngineKind};
+use streamonte_core::events::{CoreEvent, EventSink};
+use streamonte_core::library::{EntryStatus, Group, Library};
+use streamonte_core::magnet;
+use streamonte_core::paths::AppPaths;
 
 #[derive(Default)]
 struct State {
@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("webtorrent") => config.engine.kind = EngineKind::Webtorrent,
         _ => {}
     }
-    let root = std::env::temp_dir().join(format!("tstream-analyze-{}", std::process::id()));
+    let root = std::env::temp_dir().join(format!("streamonte-analyze-{}", std::process::id()));
     let paths = AppPaths::under(&root);
     paths.ensure_dirs()?;
     println!(
@@ -88,7 +88,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut library = Library::load(paths.library_file())?;
     library.set_ranking(config.ranking.clone());
-    library.set_speed_factor(tstream_core::playback::Calibration::load(&real).factor().0);
+    library.set_speed_factor(
+        streamonte_core::playback::Calibration::load(&real)
+            .factor()
+            .0,
+    );
     for (m, raw) in &magnets {
         library.add_or_touch(m, raw);
     }

@@ -117,7 +117,7 @@ impl MpvIpc {
                                 value: msg.get("data").cloned().unwrap_or(Value::Null),
                             }
                         }),
-                        // `script-message tstream <acción>` desde input.conf (FR-25–27).
+                        // `script-message streamonte <acción>` desde input.conf (FR-25–27).
                         "client-message" => {
                             let args: Vec<&str> = msg
                                 .get("args")
@@ -125,7 +125,7 @@ impl MpvIpc {
                                 .map(|a| a.iter().filter_map(Value::as_str).collect())
                                 .unwrap_or_default();
                             match args.as_slice() {
-                                ["tstream", action, ..] => {
+                                ["streamonte", action, ..] => {
                                     Some(MpvEvent::KeyAction((*action).to_string()))
                                 }
                                 _ => None,

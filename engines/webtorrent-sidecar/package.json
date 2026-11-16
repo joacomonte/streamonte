@@ -1,8 +1,8 @@
 {
-  "name": "tstream-engine-webtorrent",
+  "name": "streamonte-engine-webtorrent",
   "version": "0.3.0",
   "private": true,
-  "description": "Sidecar del motor webtorrent para Torrent Stream v2 (JSON-RPC por stdio, ver docs/engine-protocol.md)",
+  "description": "Sidecar del motor webtorrent para Streamonte (JSON-RPC por stdio, ver docs/engine-protocol.md)",
   "type": "module",
   "main": "src/main.mjs",
   "engines": {

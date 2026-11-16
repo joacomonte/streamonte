@@ -131,7 +131,7 @@ impl AppCore {
         let mut library = Library::load(paths.library_file())?;
         // FR-20 / T-05: restos de una ejecución anterior (app cerrada a la fuerza, corte de luz).
         // Lo analizado también es resto (2026-11-15: "no quiero que vaya dejando basura"): solo
-        // quedan las descargas guardadas (`.tstream-kept.json`). En segundo plano: borrar varios GB
+        // quedan las descargas guardadas (`.streamonte-kept.json`). En segundo plano: borrar varios GB
         // no debe demorar la ventana (NFR-10).
         {
             let cleanup = Cleanup::new(paths.clone());
@@ -607,7 +607,7 @@ impl AppCore {
         };
         emit();
         let log: crate::subtitles::session::LogFn = Arc::new(move |line| {
-            tracing::info!(target: "tstream_core::subtitles", "{line}");
+            tracing::info!(target: "streamonte_core::subtitles", "{line}");
             let mut changed = false;
             if let Some(n) = line
                 .strip_prefix("subtítulos: bajando ")
@@ -891,12 +891,12 @@ fn spawn_library_saver(library: &Arc<Mutex<Library>>) {
     });
 }
 
-/// El log general más nuevo (`tstream.<fecha>.log`, rota por día).
+/// El log general más nuevo (`streamonte.<fecha>.log`, rota por día).
 fn newest_log(dir: &std::path::Path) -> Option<std::path::PathBuf> {
     std::fs::read_dir(dir)
         .ok()?
         .flatten()
-        .filter(|e| e.file_name().to_string_lossy().starts_with("tstream."))
+        .filter(|e| e.file_name().to_string_lossy().starts_with("streamonte."))
         .max_by_key(|e| e.metadata().and_then(|m| m.modified()).ok())
         .map(|e| e.path())
 }

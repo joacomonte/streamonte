@@ -337,8 +337,8 @@ function leechersOf(c) {
   return n ? Math.max(0, n.peers - n.seeds) : c.leechers ?? null;
 }
 
-let onlyHdr = safeGet('tstream.catalog.onlyHdr') === '1';
-function setOnlyHdr(v) { onlyHdr = v; safeSet('tstream.catalog.onlyHdr', v ? '1' : '0'); }
+let onlyHdr = safeGet('streamonte.catalog.onlyHdr') === '1';
+function setOnlyHdr(v) { onlyHdr = v; safeSet('streamonte.catalog.onlyHdr', v ? '1' : '0'); }
 /** Lo que entra en un análisis: esa resolución (o todas, sin `res`) y, si se pidió, solo HDR. */
 const inScope = (c, res) => (!res || resKey(c) === res) && (!onlyHdr || c.hdr.length);
 
@@ -395,7 +395,7 @@ document.addEventListener('click', (ev) => {
   if (subsMenuOpen && !ev.target.closest?.('.cat-subs-box')) { subsMenuOpen = false; renderStreamsOnly(); }
 });
 /** Idioma de "Bajar subtítulos" (2026-11-15): español por defecto; el otro completa hasta 5. */
-let subsLang = safeGet('tstream.catalog.subsLang') === 'en' ? 'en' : 'es';
+let subsLang = safeGet('streamonte.catalog.subsLang') === 'en' ? 'en' : 'es';
 /** Hashes con un recuento en curso: el spinner sobrevive a los redibujos (varios a la vez). */
 const counting = new Set();
 /** Conteo parcial de los que están contando (evento `catalog-swarm-progress`), hash → SwarmCount. */
@@ -597,7 +597,7 @@ function subsButton() {
   const tip = busy ? 'Buscando y bajando subtítulos…'
     : found?.length ? `${found.length} subtítulo(s) listos para este video:\n${found.map((f) => `· ${f.language.toUpperCase()} · ${f.provider} · ${f.release_name}${f.downloads ? ` · ${f.downloads} descargas` : ''}`).join('\n')}`
       : 'Bajar hasta 5 subtítulos para este video';
-  const pick = (lang) => () => { subsMenuOpen = false; subsLang = lang; safeSet('tstream.catalog.subsLang', lang); fetchSubs(); };
+  const pick = (lang) => () => { subsMenuOpen = false; subsLang = lang; safeSet('streamonte.catalog.subsLang', lang); fetchSubs(); };
   return el('div', { class: 'cat-subs-box' },
     el('button', {
       id: 'cat-subs-get', class: `cat-subs-get ${found?.length ? 'done' : ''}`, title: tip,
@@ -762,7 +762,7 @@ function renderStreamsBody(box) {
   if (openRes === null || (openRes && !present.includes(openRes))) openRes = present[0] ?? null;
   const toggle = (r) => {
     openRes = openRes === r ? '' : r;
-    safeSet('tstream.catalog.openRes', openRes);
+    safeSet('streamonte.catalog.openRes', openRes);
     renderStreamsOnly();
     if (openRes) document.getElementById(`cat-group-${r}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
@@ -945,7 +945,7 @@ const RES_DESC = {
 };
 const resLabel = (r) => ({ '2160p': '4K', other: 'Otras' }[r] ?? r);
 /** Grupo de resolución abierto (uno a la vez). */
-let openRes = safeGet('tstream.catalog.openRes');
+let openRes = safeGet('streamonte.catalog.openRes');
 
 /** Análisis rápido sin salir del catálogo (2026-11-15): se agrega a la biblioteca y el resultado
  *  aparece en la fila (duración, idiomas). Sin botón propio: va solo con cada "Analizar". */
@@ -1022,14 +1022,14 @@ async function openSources() {
 // Tipo → orden → cuándo (frase de filtros, 2026-11-15) → de a 20, "Cargar más".
 const PAGE = 20;
 const browse = {
-  kind: safeGet('tstream.browse.kind') ?? 'movie',
-  sort: safeGet('tstream.browse.sort') ?? 'popular',
-  year: Number(safeGet('tstream.browse.year')) || null,
+  kind: safeGet('streamonte.browse.kind') ?? 'movie',
+  sort: safeGet('streamonte.browse.sort') ?? 'popular',
+  year: Number(safeGet('streamonte.browse.year')) || null,
   // Rango de estreno (AAAA-MM-DD; `to` vacío = hasta hoy). Con `from`, manda sobre el año.
-  from: safeGet('tstream.browse.from') || '',
-  to: safeGet('tstream.browse.to') || '',
+  from: safeGet('streamonte.browse.from') || '',
+  to: safeGet('streamonte.browse.to') || '',
   // Género de Cinemeta (solo `Documentary`, para "documentales"; pedido 2026-11-15).
-  genre: safeGet('tstream.browse.genre') || null,
+  genre: safeGet('streamonte.browse.genre') || null,
   items: [], stale: [], shown: 0, skip: 0, cursor: null, hasMore: true, loading: false, error: null, gen: 0,
 };
 
@@ -1038,12 +1038,12 @@ function setBrowse(changes) {
   const stale = browseItems().slice(0, browse.shown);
   // `gen` invalida lo que esté cargando con el filtro anterior.
   Object.assign(browse, changes, { stale, items: [], shown: 0, skip: 0, cursor: null, hasMore: true, error: null, loading: false, gen: browse.gen + 1 });
-  safeSet('tstream.browse.kind', browse.kind);
-  safeSet('tstream.browse.sort', browse.sort);
-  safeSet('tstream.browse.year', browse.year ?? '');
-  safeSet('tstream.browse.from', browse.from);
-  safeSet('tstream.browse.to', browse.to);
-  safeSet('tstream.browse.genre', browse.genre ?? '');
+  safeSet('streamonte.browse.kind', browse.kind);
+  safeSet('streamonte.browse.sort', browse.sort);
+  safeSet('streamonte.browse.year', browse.year ?? '');
+  safeSet('streamonte.browse.from', browse.from);
+  safeSet('streamonte.browse.to', browse.to);
+  safeSet('streamonte.browse.genre', browse.genre ?? '');
   loadMore();
 }
 

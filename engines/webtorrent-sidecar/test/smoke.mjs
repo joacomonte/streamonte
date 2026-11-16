@@ -17,7 +17,7 @@ const TRACKERS = [
   'wss://tracker.webtorrent.dev', 'wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz'
 ]
 const MB = 1024 * 1024
-const dir = path.join(os.tmpdir(), 'tstream-v2', 'downloads', `smoke-${process.pid}`)
+const dir = path.join(os.tmpdir(), 'streamonte', 'downloads', `smoke-${process.pid}`)
 
 const child = spawn(process.execPath, [path.join(here, '..', 'src', 'main.mjs'), '--max-conns', '100'], { stdio: ['pipe', 'pipe', 'inherit'] })
 const pending = new Map()

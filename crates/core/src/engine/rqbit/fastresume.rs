@@ -9,7 +9,7 @@ use librqbit::dht::Id20;
 use crate::logger::DIAG_ENGINE;
 
 /// Bitfield de piezas verificadas, junto a los datos: viaja con la carpeta (FR-06d).
-pub(super) const BITV_FILE: &str = ".tstream-piezas.bitv";
+pub(super) const BITV_FILE: &str = ".streamonte-piezas.bitv";
 
 /// El bitfield de un torrent: donde lo busca librqbit y donde lo guardamos nosotros.
 pub(super) struct Bitfield {
@@ -63,7 +63,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn bitfield_guardado_evita_reverificar_lo_bajado() {
         let root =
-            std::env::temp_dir().join(format!("tstream-test-fastresume-{}", std::process::id()));
+            std::env::temp_dir().join(format!("streamonte-test-fastresume-{}", std::process::id()));
         let dir = root.join("datos");
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&dir).unwrap();

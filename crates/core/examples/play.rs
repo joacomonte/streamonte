@@ -1,7 +1,7 @@
 //! Reproducir un magnet desde la línea de comandos (F1, sin UI). Base del benchmark (06-D).
 //!
 //! ```text
-//! cargo run -p tstream-core --example play -- "<magnet>" [--vlc] [--diag] [--engine webtorrent|rqbit]
+//! cargo run -p streamonte-core --example play -- "<magnet>" [--vlc] [--diag] [--engine webtorrent|rqbit]
 //! ```
 //! Imprime el log en vivo y, al cerrar el reproductor, un resumen con las métricas:
 //! metadatos (NFR-08), precarga (FR-11), primera imagen (O1/NFR-07) y cierre+borrado (FR-12/T-04).
@@ -10,11 +10,11 @@
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use tstream_core::app::AppCore;
-use tstream_core::config::{EngineKind, PlayerKind};
-use tstream_core::events::{CoreEvent, EventSink};
-use tstream_core::magnet::Magnet;
-use tstream_core::playback::{PlaybackRow, PlaybackState, StartRequest};
+use streamonte_core::app::AppCore;
+use streamonte_core::config::{EngineKind, PlayerKind};
+use streamonte_core::events::{CoreEvent, EventSink};
+use streamonte_core::magnet::Magnet;
+use streamonte_core::playback::{PlaybackRow, PlaybackState, StartRequest};
 
 #[derive(Default)]
 struct Summary {
@@ -88,7 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let t0 = Instant::now();
     core.play(StartRequest {
-        key: tstream_core::video_key::VideoKey::whole(magnet.info_hash),
+        key: streamonte_core::video_key::VideoKey::whole(magnet.info_hash),
         magnet: Some(magnet),
         player: Some(player),
         file_index: None,

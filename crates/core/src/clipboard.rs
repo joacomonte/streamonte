@@ -311,7 +311,7 @@ mod windows_impl {
             let hwnd = CreateWindowExW(
                 WINDOW_EX_STYLE(0),
                 w!("TstreamClipboardListener"),
-                w!("tstream-clipboard"),
+                w!("streamonte-clipboard"),
                 WINDOW_STYLE(0),
                 0,
                 0,
@@ -383,7 +383,7 @@ mod windows_impl {
             let (ready_tx, ready_rx) =
                 std::sync::mpsc::channel::<std::result::Result<isize, String>>();
             std::thread::Builder::new()
-                .name("tstream-clipboard".into())
+                .name("streamonte-clipboard".into())
                 .spawn(move || {
                     SENDER.with(|s| *s.borrow_mut() = Some(tx));
                     let hwnd = match create_listener_window() {
@@ -478,7 +478,7 @@ mod mac_impl {
             let token = CancellationToken::new();
             let stop = token.clone();
             std::thread::Builder::new()
-                .name("tstream-clipboard".into())
+                .name("streamonte-clipboard".into())
                 .spawn(move || {
                     // No hay notificación en macOS: se sondea `changeCount` (barato).
                     let mut last = change_count();
@@ -553,7 +553,7 @@ mod tests {
     /// Prueba manual en la sesión real (lección 7): adaptador del SO de verdad.
     /// Copia un magnet de Sintel con `Set-Clipboard` (y al final restaura el texto anterior),
     /// verifica la captura en vivo (FR-01) y lee el historial (FR-02).
-    /// `cargo test -p tstream-core --lib -- --ignored portapapeles_real --nocapture`
+    /// `cargo test -p streamonte-core --lib -- --ignored portapapeles_real --nocapture`
     #[cfg(windows)]
     #[tokio::test(flavor = "multi_thread")]
     #[ignore = "manual: usa el portapapeles real"]

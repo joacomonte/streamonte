@@ -1,7 +1,7 @@
 //! `cleanup` — detección de huérfanos, limpieza segura, tamaños, abrir carpeta (FR-16, FR-18–20, NFR-11).
 //!
 //! Cómo se reconoce un huérfano (T-05: matar la app a la fuerza → limpiar al reabrir):
-//! cada carpeta `downloads/<hash>-<pid>-<id>/` tiene `.tstream-owner.json` con `{ app_pid, engine_pid,
+//! cada carpeta `downloads/<hash>-<pid>-<id>/` tiene `.streamonte-owner.json` con `{ app_pid, engine_pid,
 //! player_pid, started_at }`. Es huérfana si ni la app ni el motor que la crearon siguen vivos
 //! (un mpv que sigue abierto no la retiene: sin motor esos datos no sirven). Un PID cuenta como
 //! "vivo" solo si el proceso empezó ANTES de `started_at`: así un PID reciclado no engaña.
@@ -21,10 +21,10 @@ use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 use crate::paths::AppPaths;
 use crate::{CoreError, Result};
 
-pub const OWNER_FILE: &str = ".tstream-owner.json";
+pub const OWNER_FILE: &str = ".streamonte-owner.json";
 /// Descarga pausada que el usuario conserva (FR-12 cambiado, 2026-11-13): nunca es huérfana;
 /// se borra solo a pedido ("Borrar" / "Borrar todo"). La escribe `playback`.
-pub const KEPT_FILE: &str = ".tstream-kept.json";
+pub const KEPT_FILE: &str = ".streamonte-kept.json";
 /// Una carpeta sin registro de dueño más nueva que esto puede estar recién creándose.
 const UNCLAIMED_GRACE: Duration = Duration::from_secs(120);
 /// Tolerancia entre la hora de inicio que informa el SO y `started_at`.
@@ -378,7 +378,7 @@ mod tests {
     impl Fixture {
         fn new(name: &str) -> Self {
             let root = std::env::temp_dir().join(format!(
-                "tstream-test-cleanup-{name}-{}",
+                "streamonte-test-cleanup-{name}-{}",
                 std::process::id()
             ));
             let _ = std::fs::remove_dir_all(&root);

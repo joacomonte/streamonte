@@ -1,20 +1,20 @@
 [package]
-name = "tstream"
-description = "Torrent Stream v2 — cáscara Tauri (ventana, comandos, eventos)"
+name = "streamonte"
+description = "Streamonte — cáscara Tauri (ventana, comandos, eventos)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
 [lib]
-name = "tstream_app"
+name = "streamonte_app"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tstream-core = { path = "../crates/core" }
+streamonte-core = { path = "../crates/core" }
 tauri = { version = "2", features = [] }
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"

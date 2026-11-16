@@ -1,4 +1,4 @@
-//! # tstream-core — núcleo de Torrent Stream v2
+//! # streamonte-core — núcleo de Streamonte
 //!
 //! Un módulo por responsabilidad (spec 04, NFR-01). Reglas de dependencia (sin ciclos):
 //!
@@ -26,6 +26,7 @@ pub mod config;
 pub mod fsutil;
 pub mod logger;
 pub mod paths;
+mod rebrand;
 
 pub mod magnet;
 pub mod ranking;

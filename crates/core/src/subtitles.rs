@@ -600,7 +600,8 @@ mod tests {
 
     #[test]
     fn memoria_por_pelicula_ida_y_vuelta() {
-        let dir = std::env::temp_dir().join(format!("tstream-test-submem-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("streamonte-test-submem-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let mem = SubtitleMemory::new(dir.join("subtitles-memory.json"));
         let h = VideoKey::whole(InfoHash::from_bytes([7; 20]));

@@ -11,13 +11,13 @@ mod f2 {
     use std::time::Duration;
 
     use async_trait::async_trait;
+    use streamonte_core::clipboard::{self, ClipboardHistory, ClipboardSource, WatchGuard};
+    use streamonte_core::config::RankingConfig;
+    use streamonte_core::events::ClipboardUnavailable;
+    use streamonte_core::library::{AddOutcome, Group, Library};
+    use streamonte_core::magnet::{self, InfoHash, Magnet};
+    use streamonte_core::ranking::{self, Light, RankInput};
     use tokio::sync::mpsc;
-    use tstream_core::clipboard::{self, ClipboardHistory, ClipboardSource, WatchGuard};
-    use tstream_core::config::RankingConfig;
-    use tstream_core::events::ClipboardUnavailable;
-    use tstream_core::library::{AddOutcome, Group, Library};
-    use tstream_core::magnet::{self, InfoHash, Magnet};
-    use tstream_core::ranking::{self, Light, RankInput};
 
     const SINTEL: &str = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel";
     const SINTEL_B32: &str = "magnet:?xt=urn:btih:BCW2LJ5GDA5K4HQJ3AY56Z2I2VTASWQQ&dn=Sintel";
@@ -27,7 +27,8 @@ mod f2 {
         "magnet:?xt=urn:btih:209c8226b299b308beaf2b9cd3fb49212dbd13ec&dn=Tears+of+Steel";
 
     fn temp_library(name: &str) -> (Library, PathBuf) {
-        let dir = std::env::temp_dir().join(format!("tstream-acc-{name}-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("streamonte-acc-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let lib = Library::load(dir.join("library.json")).unwrap();
@@ -92,13 +93,13 @@ mod f2 {
 
     #[async_trait]
     impl ClipboardSource for FakeClipboard {
-        fn watch(&self, _tx: mpsc::Sender<String>) -> tstream_core::Result<WatchGuard> {
-            Err(tstream_core::CoreError::Unsupported("prueba"))
+        fn watch(&self, _tx: mpsc::Sender<String>) -> streamonte_core::Result<WatchGuard> {
+            Err(streamonte_core::CoreError::Unsupported("prueba"))
         }
-        async fn current_text(&self) -> tstream_core::Result<Option<String>> {
+        async fn current_text(&self) -> streamonte_core::Result<Option<String>> {
             Ok(self.current.clone())
         }
-        async fn history(&self) -> tstream_core::Result<ClipboardHistory> {
+        async fn history(&self) -> streamonte_core::Result<ClipboardHistory> {
             Ok(self.history.clone())
         }
     }
@@ -232,8 +233,8 @@ mod f2 {
             })
             .collect();
         let started = std::time::Instant::now();
-        let r =
-            tstream_core::trackers::scrape_batch(&hashes, &trackers, Duration::from_secs(3)).await;
+        let r = streamonte_core::trackers::scrape_batch(&hashes, &trackers, Duration::from_secs(3))
+            .await;
         assert!(started.elapsed() < Duration::from_secs(10), "FR-05: < 10 s");
         assert_eq!(r.len(), 3);
         let s = &r[&hashes[2]];
@@ -342,18 +343,18 @@ mod f2 {
     }
 
     /// FR-06 CA con red real (sesión del usuario, lección 7): Sintel → velocidad > 0 y duración 14:48.
-    /// `cargo test -p tstream-core --test acceptance -- --ignored fr_06 --nocapture`
+    /// `cargo test -p streamonte-core --test acceptance -- --ignored fr_06 --nocapture`
     #[tokio::test(flavor = "multi_thread")]
     #[ignore = "F2 network"]
     async fn fr_06_sintel_velocidad_y_duracion_real() {
-        use tstream_core::analyzer::{LiveMeasurer, Measurer};
-        let root = std::env::temp_dir().join(format!("tstream-acc-fr06-{}", std::process::id()));
-        let paths = tstream_core::paths::AppPaths::under(&root);
+        use streamonte_core::analyzer::{LiveMeasurer, Measurer};
+        let root = std::env::temp_dir().join(format!("streamonte-acc-fr06-{}", std::process::id()));
+        let paths = streamonte_core::paths::AppPaths::under(&root);
         paths.ensure_dirs().unwrap();
-        let cfg = tstream_core::config::Config::default();
+        let cfg = streamonte_core::config::Config::default();
         let measurer = LiveMeasurer::new(paths.clone());
         let m = Magnet::parse(SINTEL).unwrap();
-        let ctl = tstream_core::analyzer::MeasureCtl {
+        let ctl = streamonte_core::analyzer::MeasureCtl {
             cancel: tokio_util::sync::CancellationToken::new(),
             finish: tokio_util::sync::CancellationToken::new(),
             progress: std::sync::Arc::new(|p| println!("avance: {p:?}")),
@@ -397,12 +398,12 @@ mod f3 {
     use std::collections::HashSet;
     use std::path::PathBuf;
 
-    use tstream_core::cleanup::{Cleanup, OwnerRecord, OWNER_FILE};
-    use tstream_core::paths::AppPaths;
+    use streamonte_core::cleanup::{Cleanup, OwnerRecord, OWNER_FILE};
+    use streamonte_core::paths::AppPaths;
 
     fn setup(name: &str) -> (PathBuf, AppPaths) {
         let root =
-            std::env::temp_dir().join(format!("tstream-acc-f3-{name}-{}", std::process::id()));
+            std::env::temp_dir().join(format!("streamonte-acc-f3-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let paths = AppPaths::under(&root);
         paths.ensure_dirs().unwrap();
@@ -462,12 +463,12 @@ mod fr06d {
     use std::sync::Arc;
     use std::time::{Duration, Instant};
 
-    use tstream_core::app::{AppCore, StartOptions};
-    use tstream_core::cleanup::{OwnerRecord, OWNER_FILE};
-    use tstream_core::events::NullSink;
-    use tstream_core::library::Library;
-    use tstream_core::magnet::Magnet;
-    use tstream_core::paths::AppPaths;
+    use streamonte_core::app::{AppCore, StartOptions};
+    use streamonte_core::cleanup::{OwnerRecord, OWNER_FILE};
+    use streamonte_core::events::NullSink;
+    use streamonte_core::library::Library;
+    use streamonte_core::magnet::Magnet;
+    use streamonte_core::paths::AppPaths;
 
     const SINTEL: &str = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel";
     const BBB: &str =
@@ -500,10 +501,11 @@ mod fr06d {
 
     /// Reabrir la app borra todo lo analizado, también lo de los magnets que siguen en la lista
     /// (2026-11-15: "no quiero que vaya dejando basura por la PC"). Lo guardado a propósito
-    /// (`.tstream-kept.json`) no es análisis y no entra acá.
+    /// (`.streamonte-kept.json`) no es análisis y no entra acá.
     #[tokio::test]
     async fn fr_06d_lo_analizado_se_borra_al_abrir() {
-        let root = std::env::temp_dir().join(format!("tstream-acc-fr06d-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("streamonte-acc-fr06d-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let paths = AppPaths::under(&root);
         paths.ensure_dirs().unwrap();

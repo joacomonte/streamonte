@@ -12,7 +12,7 @@ export const DEFAULT_SEED_MBPS = 3;
 export const MIN_SAMPLES = 3;
 /** Segundos de descarga para que una medición cuente: menos es más arranque que velocidad sostenida. */
 export const MIN_SECS = 10;
-const KEY = 'tstream.health';
+const KEY = 'streamonte.health';
 const MAX_SAMPLES = 30; // mediciones guardadas (las más nuevas)
 
 function load() {

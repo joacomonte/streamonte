@@ -6,7 +6,7 @@
 //! recordado (FR-28) se identifican con esta clave; el análisis de velocidad sigue por hash (mismo
 //! enjambre). Se compara con `==`: es la única regla de identidad.
 //!
-//! Como texto (UI, `.tstream-kept.json`, `subtitles-memory.json`): `<hex>` (el torrent entero →
+//! Como texto (UI, `.streamonte-kept.json`, `subtitles-memory.json`): `<hex>` (el torrent entero →
 //! el video más grande), `<hex>:s3e2` (episodio) o `<hex>:f12` (archivo del addon).
 
 use std::fmt;

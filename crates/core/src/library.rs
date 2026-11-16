@@ -680,7 +680,7 @@ mod tests {
 
     fn temp_path(name: &str) -> PathBuf {
         let dir =
-            std::env::temp_dir().join(format!("tstream-test-lib-{name}-{}", std::process::id()));
+            std::env::temp_dir().join(format!("streamonte-test-lib-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir.join("library.json")

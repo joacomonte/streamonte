@@ -1,7 +1,7 @@
 //! Benchmark de motores (spec 06-D): webtorrent (sidecar) vs rqbit (embebido).
 //!
 //! ```text
-//! cargo run -p tstream-core --release --example bench -- \
+//! cargo run -p streamonte-core --release --example bench -- \
 //!     --case "Sintel=magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10" \
 //!     [--case "Nombre=<magnet>" ...] [--runs 3] [--watch-secs 300] [--engines webtorrent,rqbit]
 //! ```
@@ -17,14 +17,14 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use serde_json::json;
+use streamonte_core::cleanup::Cleanup;
+use streamonte_core::config::{ConfigStore, EngineKind, PlayerKind};
+use streamonte_core::engine::{self, AddOptions, FileInfo, RemoveOptions, TorrentSource};
+use streamonte_core::magnet::Magnet;
+use streamonte_core::paths::AppPaths;
+use streamonte_core::player::{LaunchRequest, MpvEvent, PlayerLauncher};
+use streamonte_core::preload;
 use tokio_util::sync::CancellationToken;
-use tstream_core::cleanup::Cleanup;
-use tstream_core::config::{ConfigStore, EngineKind, PlayerKind};
-use tstream_core::engine::{self, AddOptions, FileInfo, RemoveOptions, TorrentSource};
-use tstream_core::magnet::Magnet;
-use tstream_core::paths::AppPaths;
-use tstream_core::player::{LaunchRequest, MpvEvent, PlayerLauncher};
-use tstream_core::preload;
 
 const SEEKS: [f64; 3] = [25.0, 50.0, 90.0];
 
@@ -145,7 +145,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[allow(clippy::too_many_arguments)]
 async fn run_once(
     paths: &AppPaths,
-    base: &tstream_core::config::Config,
+    base: &streamonte_core::config::Config,
     case: &str,
     magnet: &Magnet,
     torrent_file: Option<&PathBuf>,

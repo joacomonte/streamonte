@@ -1,4 +1,4 @@
-// Sidecar webtorrent de Torrent Stream v2 — implementa docs/engine-protocol.md.
+// Sidecar webtorrent de Streamonte — implementa docs/engine-protocol.md.
 // JSON-RPC 2.0 por stdin/stdout (una línea por mensaje). stderr = log libre (→ diag::engine).
 // Lecciones aplicadas: 1 (pieza por archivo), 3 (arranca sin selección + rangos con streams),
 // 4 (trackers como announce), 5 (maxConns), 6 (stdin cerrado ⇒ detener y salir; sin borrar datos, FR-06d).

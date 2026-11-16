@@ -4,11 +4,11 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use streamonte_core::app::{AppCore, StartOptions};
+use streamonte_core::config::ConfigStore;
+use streamonte_core::events::NullSink;
+use streamonte_core::paths::AppPaths;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tstream_core::app::{AppCore, StartOptions};
-use tstream_core::config::ConfigStore;
-use tstream_core::events::NullSink;
-use tstream_core::paths::AppPaths;
 
 /// Manifest que tarda 500 ms: el alta del addon queda "en vuelo" mientras se cambian ajustes.
 async fn slow_manifest_server() -> String {
@@ -35,7 +35,7 @@ async fn slow_manifest_server() -> String {
 // Un solo AppCore por proceso (el logger es global).
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn cambios_de_config_a_la_vez_no_se_pisan() {
-    let root = std::env::temp_dir().join(format!("tstream-acc-config-{}", std::process::id()));
+    let root = std::env::temp_dir().join(format!("streamonte-acc-config-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     let paths = AppPaths::under(&root);
     paths.ensure_dirs().unwrap();

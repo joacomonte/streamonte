@@ -28,7 +28,7 @@ F0 validado por el usuario (2026-11-13).
   reenvío al router por **UPnP** (`engine.upnp`, sin NAT-PMP/PCP). A los trackers se les anuncia el
   puerto real (antes, sin escucha, librqbit anunciaba un 4240 falso). uTP: `engine.utp`, apagado
   (librqbit lo marca inestable). Los motores del **analizador** no escuchan ni guardan DHT.
-- La tabla del DHT se guarda en `%LOCALAPPDATA%\tstream\v2\cache\dht.json` (la escribe un solo
+- La tabla del DHT se guarda en `%LOCALAPPDATA%\streamonte\cache\dht.json` (la escribe un solo
   motor a la vez) para no arrancar el DHT en frío.
 - Si algo falla (puerto tomado, IPv6 apagado, `dht.json` inválido), el motor arranca como antes,
   sin entrantes ni persistencia, y lo dice en el log.
@@ -47,14 +47,14 @@ F0 validado por el usuario (2026-11-13).
   todas las interfaces.
 - **Lo que pregunta cada sistema la primera vez que escucha:**
   - *Windows (cualquier PC):* el Firewall de Windows Defender muestra "Windows Defender Firewall
-    bloqueó algunas características" para `tstream.exe` (Torrent Stream; en desarrollo
-    `target\debug\tstream.exe`). Recomendado: marcar solo **Redes privadas** (casa) y Permitir
+    bloqueó algunas características" para `streamonte.exe` (Streamonte; en desarrollo
+    `target\debug\streamonte.exe`). Recomendado: marcar solo **Redes privadas** (casa) y Permitir
     acceso; en redes públicas (café, aeropuerto) mejor no. "Permitir" pide aprobación de
     administrador; si se cancela o se bloquea, la app funciona igual, solo con salientes.
     Cambiarlo después: *Seguridad de Windows → Firewall y protección de red → Permitir una
     aplicación a través del firewall*.
   - *macOS:* si el Firewall de aplicaciones está activado (Ajustes del Sistema → Red → Firewall),
-    aparece "¿Quieres que la aplicación "Torrent Stream" acepte conexiones de red entrantes?":
+    aparece "¿Quieres que la aplicación "Streamonte" acepte conexiones de red entrantes?":
     *Permitir* habilita las entrantes; *Denegar* deja la app funcionando solo con salientes. Con
     el firewall apagado (por defecto) no pregunta nada. Como la app no está firmada ni notarizada,
     Gatekeeper avisa al abrirla la primera vez (clic derecho → Abrir, o Ajustes → Privacidad y
@@ -63,12 +63,12 @@ F0 validado por el usuario (2026-11-13).
   y un puerto, que el swarm ya ve con las conexiones salientes). No se envía nada nuevo a ningún
   lado: el UPnP solo habla con el router de tu red local.
 - **Medir antes/después** (mismo magnet legal: Sintel, Big Buck Bunny o Tears of Steel):
-  1. En `%APPDATA%\tstream\v2\data\config.json`, `"engine": { "incoming": false }` (= antes).
+  1. En `%APPDATA%\streamonte\data\config.json`, `"engine": { "incoming": false }` (= antes).
      Reproducir 2–3 min y mirar el log de **Detalle**: cada 10 s aparece
      `peers: N conectados (E entrantes, S salientes) · X MiB/s`.
   2. Cerrar la app, poner `"incoming": true` (= después) y repetir con el mismo magnet.
   3. Al arrancar cada reproducción el Detalle dice el puerto, si se pidió UPnP y si el DHT es
-     persistente. El resultado del UPnP queda en el log general (`%LOCALAPPDATA%\tstream\v2\data\logs\tstream.*.log`):
+     persistente. El resultado del UPnP queda en el log general (`%LOCALAPPDATA%\streamonte\data\logs\streamonte.*.log`):
      buscar `successfully port forwarded` o `failed to forward port`.
   "Entrantes" = peers que alguna vez se conectaron ellos (librqbit no expone el sentido de la
   conexión actual). Sin UPnP ni reenvío manual, detrás de NAT las entrantes suelen ser 0.
@@ -81,7 +81,7 @@ Pestaña **Buscar** (Ctrl+F): buscar en Cinemeta → ficha (serie: temporada →
 - `AppCore`: `catalog_search/meta/streams/stop_streams/analyze`, `catalog_addons/add_addon/remove_addon/set_addon_enabled/reset_addons`; eventos `catalog-streams`, `catalog-excluded`. Lo analizado o reproducido entra a *Mis magnets* con `origin` (video, IMDb, temporada/episodio, `fileIdx`); el analizador y la reproducción usan ese archivo (`FilePick`: `fileIdx` → `SxxExx`/`1x02` → el más grande).
 - UI: `ui/src/catalog.js` + `ui/catalog.css` (no toca las tarjetas). CSP: `img-src https:` para pósters.
 - Pruebas: T-20–T-23, T-25, T-26, T-30, T-40, FR-49 (`elige_el_archivo_del_episodio`) unitarias; T-31 `tests/catalog_mock.rs` (addon rápido, lento y caído con servidor local).
-- Cómo probar (red real, en tu terminal): `cargo run -p tstream` → Buscar → "sintel" o "night of the living dead" → ficha → "＋ Mis magnets" en 2 → en Mis magnets esperar el semáforo → ▶.
+- Cómo probar (red real, en tu terminal): `cargo run -p streamonte` → Buscar → "sintel" o "night of the living dead" → ficha → "＋ Mis magnets" en 2 → en Mis magnets esperar el semáforo → ▶.
 - Filtro por fecha de estreno (FR-37b, 2026-11-14): en Explorar, fila "Estreno" con *desde* / *hasta*, atajos "Últimos 30 días", "Este año", "Desde… hasta hoy" y "Limpiar". Cinemeta no filtra por fecha: `cinemeta::browse_released` recorre sus catálogos por año y filtra por `released` (comando `catalog_browse_released`, cursor `next`). Límite: solo títulos de esos catálogos (≈400 por año) y con fecha. Prueba `filtro_por_fecha_de_estreno`.
 - Pendiente (Entrega 2): Explorar completo (FR-37, género), "dudoso" (FR-46), salud + circuit breaker (FR-51), caché en disco (FR-52), "visto"/último episodio (FR-50 completo), reordenar addons, "+N nuevos" sin saltos (FR-42), grupo propio en *Mis magnets* (Q-20). Después: i18n (FR-60), debrid (F8).
 
@@ -91,7 +91,7 @@ Pestaña **Buscar** (Ctrl+F): buscar en Cinemeta → ficha (serie: temporada →
 - ▶ sin descarga pausada **adopta** esa carpeta (renombrar, sin copiar): `.torrent` de la caché + piezas ya bajadas; el Detalle dice "reuso lo bajado al analizar (FR-06d)" y la precarga queda lista casi enseguida. No adopta mientras ese magnet se está midiendo.
 - Retención: vive mientras el magnet está en la lista. Quitar / Limpiar lista / "Borrar todo" la borran; la limpieza al abrir/cerrar borra solo las de magnets que ya no están; "Limpiar temporales" también la cuenta como temporal.
 - rqbit `shutdown` ya no borra datos (igual que el sidecar): borrar es `remove(delete_data)` o `cleanup.remove_dir`.
-- **Fastresume (2026-11-14):** cada motor nuevo re-hasheaba el archivo entero de la carpeta conservada antes de dar "metadatos" (60 GB > 60 s → "tiempo agotado esperando metadatos" en la velocidad y al ▶, aunque el `.torrent` ya estaba en caché). Ahora librqbit corre con `fastresume` + persistencia en una carpeta propia de cada instancia (`%TEMP%\tstream-v2\rqbit-state\<pid>-<n>`, se borra al apagar) y el bitfield de piezas verificadas vive junto a los datos (`.tstream-piezas.bitv`, enlace duro: sigue al día y viaja con la carpeta al adoptarla). Si los datos no coinciden, librqbit lo detecta con una muestra y hace el chequeo completo. Carpetas analizadas antes de este cambio pagan un último chequeo completo.
+- **Fastresume (2026-11-14):** cada motor nuevo re-hasheaba el archivo entero de la carpeta conservada antes de dar "metadatos" (60 GB > 60 s → "tiempo agotado esperando metadatos" en la velocidad y al ▶, aunque el `.torrent` ya estaba en caché). Ahora librqbit corre con `fastresume` + persistencia en una carpeta propia de cada instancia (`%TEMP%\streamonte\rqbit-state\<pid>-<n>`, se borra al apagar) y el bitfield de piezas verificadas vive junto a los datos (`.streamonte-piezas.bitv`, enlace duro: sigue al día y viaja con la carpeta al adoptarla). Si los datos no coinciden, librqbit lo detecta con una muestra y hace el chequeo completo. Carpetas analizadas antes de este cambio pagan un último chequeo completo.
 - Timeout de metadatos (`engine::wait_metadata`): el log dice qué faltaba — "verificando datos en disco X de Y GB (los metadatos ya estaban)", "0 peers encontrados por DHT" o "N peers por DHT, ninguno los dio".
 - Motores del analizador vs. entrantes (NFR-33): no chocan; solo el de reproducción escucha, abre UPnP y guarda el DHT.
 - Pruebas: `fr_06d_analisis_vive_mientras_el_magnet_esta_en_la_lista` (aceptación), `play_adopta_la_carpeta_del_analisis` y `bitfield_guardado_evita_reverificar_lo_bajado` (unitarias).
@@ -103,7 +103,7 @@ Pestaña **Buscar** (Ctrl+F): buscar en Cinemeta → ficha (serie: temporada →
 
 - FR-06c: idiomas de audio (`crates/core/src/audio.rs`): `player::probe_media` lee `track-list` junto con la duración; insignias LAT / EN / CAST… en la fila (punteadas = adivinado por el nombre).
 - FR-29b (rev. 2026-11-14): filas del diseño aprobado `design/cards-v3.html` — título limpio + año/episodio (`LibraryEntry.release`, reusa `parse_release_name` y `catalog::normalize::parse`), nombre crudo con marquesina y copiar, "78 Mbps" + sello "3,9×" (revela "/ 20 Mbps"), botones **Análisis rápido** (`analyze {kind:'quick'}` → `AnalyzeScope::QuickOnly`) y **Medir velocidad**, detalle desplegable con % bajado (bytes reales en disco del análisis o de la reproducción pausada, el máximo; en vivo mientras se mide), calidad y el enjambre siempre visible; sin panel "Reproducciones": estado + Detener/Cancelar en la fila, carpeta/borrar/log en el menú contextual, actividad de fondo abajo a la derecha (`ui/src/activity.js`: una burbuja flotante sobre la barra de estado, con lo último que se está haciendo, que al tocarla abre hacia arriba el log en vivo de todo lo de fondo, fijar/vaciar; alimentada por los eventos y por el log del núcleo vía `crates/core/src/activity.rs` → `CoreEvent::Activity`, ≤ 8/s y sin secretos); al analizar, "preparando…" inmediato con la fase real (`SpeedProgress.phase`: conectando → metadatos → precargando → midiendo → duración), botones deshabilitados mientras tanto y rollback si falla; el analizador ignora pedidos repetidos; "Reiniciar análisis" (detalle y menú contextual, `analyzer_restart`) lo vuelve a pedir desde cero aunque esté trabado; al retomar una pausada se reusa lo bajado al medir si es más (`merge_analysis`); tooltips propios en toda la app (burbuja animada con flecha, título en negrita y teclas; nunca el nativo); tema claro/oscuro del sistema. Prueba: `analisis_rapido_no_mide_velocidad`, `titulo_limpio_y_calidad_de_los_nombres_del_diseno`.
-- FR-09b: ▶ pregunta Latino / Inglés si hay varios audios en un selector anclado al botón Ver (`AudioPick` → `--aid` o `--alang`; subtítulos ocultos con audio en español; se recuerda en `.tstream-kept.json`).
+- FR-09b: ▶ pregunta Latino / Inglés si hay varios audios en un selector anclado al botón Ver (`AudioPick` → `--aid` o `--alang`; subtítulos ocultos con audio en español; se recuerda en `.streamonte-kept.json`).
 - FR-12c: al cerrar mpv sin terminar de bajar, la app pregunta "¿Seguir bajando de fondo o pausar?" (`ask-after-close`); "Seguir bajando" (`keep-downloading`) deja el motor bajando sin reproductor (`background`) hasta completar o pausar; sin respuesta en 2 min, pausa como antes.
 - FR-22b: al analizar se bajan de fondo hasta 5 subtítulos por video: primero el idioma configurado (español: latino, después España/sin variante) y, si no llegan a 5, se completa con el otro (inglés). Fuentes: Wyzie + Subdivx + Gestdown + Subtitulamos (estas dos, solo series), sin gastar la cuota de OpenSubtitles. Una sola búsqueda por película/episodio (`VideoIdentity::video_id`: IMDb id del catálogo + SxxEyy, si no título + año/SxxEyy): otro torrent del mismo video reusa esa caché y solo copia los archivos junto a su video como `<video>.es.default.srt`, `<video>.es-b.srt`, `<video>.es-c.srt`, `<video>.en.srt`, `<video>.en-b.srt` (mpv los carga todos solo y elige el `.default`; `es-2`/`es-419` no los carga). Lógica compartida con la reproducción (`subtitles::session::fetch`).
 
@@ -114,7 +114,7 @@ Pestaña **Buscar** (Ctrl+F): buscar en Cinemeta → ficha (serie: temporada →
 | Nombre real al pegar (el `dn` de Torrentio es genérico) + análisis automático | FR-01b: metadatos en paralelo al pegar, `torrent_name`/`video_size` en la entrada; análisis `Pasted` automático (`analyzer.auto_on_paste`) | real: nombre a los 5 s, medido a los 40 s |
 | Tarjeta en una fila: tamaño · ▲ seeders · ▼ leechers · velocidad · progreso · ▶ | FR-29b; detalle en clic derecho → "Ver análisis" (FR-30) | navegador con datos de prueba |
 | "Dice que se va a cortar y no se corta" | Calibración: bytes recibidos, sin arranque, mediana de la meseta; duración estimada ≠ rojo; factor automático con reproducciones reales | BBB 14,5 → 27,2 MB/s; factor automático **sin verificar en vivo** (necesita ≥ 80 s mirando algo analizado) |
-| Pausar sin borrar; un video a la vez; retomar tras reabrir | FR-12 cambiado + FR-12b: `.tstream-kept.json`, `load_kept`, `--start` en mpv; "Borrar"/"Borrar todo" | `examples/keep_test.rs`: pausada en 19,9 s; reabrir → vuelven; retomar → 1ª imagen 0,5 s desde 0:36 |
+| Pausar sin borrar; un video a la vez; retomar tras reabrir | FR-12 cambiado + FR-12b: `.streamonte-kept.json`, `load_kept`, `--start` en mpv; "Borrar"/"Borrar todo" | `examples/keep_test.rs`: pausada en 19,9 s; reabrir → vuelven; retomar → 1ª imagen 0,5 s desde 0:36 |
 | 5 subtítulos en español a la vez | FR-21–28 (agente): torrent → Wyzie → Subdivx → OpenSubtitles, ASS fusionado, teclas 1–5/0/S/Z/X/R, memoria | Sintel (subtítulo del torrent); externos necesitan API keys (⚙ Ajustes) · Subdivx bloqueado por Cloudflare |
 
 ### F3 — panel de reproducciones y limpieza (implementado 2026-11-13; falta la validación del usuario en la app)
@@ -154,7 +154,7 @@ magnets. Cambios de interfaz (aditivos) y comportamiento del analizador anotados
 **Corrida real** (sesión del usuario, 2026-11-13, contenido legal; `--pause-at 1` pausa 5 s tras el primero):
 
 ```
-cargo run -p tstream-core --example analyze -- "<magnet>" ["<magnet>" ...] [--engine webtorrent|rqbit] [--pause-at N]
+cargo run -p streamonte-core --example analyze -- "<magnet>" ["<magnet>" ...] [--engine webtorrent|rqbit] [--pause-at N]
 ```
 
 | Motor | Torrent | Seed/Leech | Peers | Duración | Velocidad | Necesita | Margen | Semáforo |
@@ -198,13 +198,13 @@ consigue metadatos (sin peers; archive.org sirve por web seeds, que librqbit no 
 con un swarm público real > 10 GB para verificar la lección 1 con rqbit.
 
 ```
-cargo run -p tstream-core --example play -- "<magnet>" [--vlc] [--diag] [--engine rqbit]
-cargo run -p tstream-core --release --example bench -- --case "Sintel=<magnet>" [--case "T01=<magnet>"] [--runs 3] [--watch-secs 300]
+cargo run -p streamonte-core --example play -- "<magnet>" [--vlc] [--diag] [--engine rqbit]
+cargo run -p streamonte-core --release --example bench -- --case "Sintel=<magnet>" [--case "T01=<magnet>"] [--runs 3] [--watch-secs 300]
 ```
 
 ### F0 — fundaciones
-`cargo fmt --check` ✔ · `cargo clippy --workspace -D warnings` ✔ · `cargo run -p tstream` abre la ventana "Torrent Stream"
-(logs en `%LOCALAPPDATA%\tstream\v2\data\logs`).
+`cargo fmt --check` ✔ · `cargo clippy --workspace -D warnings` ✔ · `cargo run -p streamonte` abre la ventana "Streamonte"
+(logs en `%LOCALAPPDATA%\streamonte\data\logs`).
 
 > Windows: Smart App Control bloquea los binarios recién compilados (os error 4551). Para desarrollar hay que tenerlo desactivado.
 
@@ -223,7 +223,7 @@ Todas las funciones tienen firma y tipos definitivos; los cuerpos son `todo!("Fn
 
 ## Estructura
 ```
-tstream-v2/
+streamonte/
 ├─ Cargo.toml                 workspace (perfil release liviano, NFR-14)
 ├─ crates/core/               NÚCLEO en Rust, sin Tauri (ADR-13)
 │  ├─ src/
@@ -255,8 +255,8 @@ tstream-v2/
 4. CLI de Tauri precompilada vía npm (más rápida que `cargo install tauri-cli`): `npx @tauri-apps/cli@2 <comando>`
 
 ```
-cargo test -p tstream-core      # pruebas del núcleo
-cargo run -p tstream            # app en desarrollo (UI estática en ui/, sin bundler)
+cargo test -p streamonte-core      # pruebas del núcleo
+cargo run -p streamonte            # app en desarrollo (UI estática en ui/, sin bundler)
 npx @tauri-apps/cli@2 icon src-tauri/icons/app-icon.png   # regenerar íconos
 ```
 

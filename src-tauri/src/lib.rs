@@ -6,10 +6,10 @@ mod commands;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+use streamonte_core::app::AppCore;
+use streamonte_core::events::{CoreEvent, EventSink};
+use streamonte_core::playback::OnAppClose;
 use tauri::{Emitter, Manager, WindowEvent};
-use tstream_core::app::AppCore;
-use tstream_core::events::{CoreEvent, EventSink};
-use tstream_core::playback::OnAppClose;
 
 /// `true` cuando ya se hizo la limpieza de cierre y la ventana puede cerrarse de verdad.
 pub(crate) static CLOSING: AtomicBool = AtomicBool::new(false);

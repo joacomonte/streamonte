@@ -99,7 +99,7 @@ fn wanted(m: &Metadata<'_>) -> bool {
         return false;
     }
     let lvl = *m.level();
-    (t.starts_with("tstream") && lvl <= Level::INFO)
+    (t.starts_with("streamonte") && lvl <= Level::INFO)
         || lvl <= Level::WARN
         || crate::logger::upnp_result(m)
 }
@@ -310,10 +310,13 @@ mod tests {
 
     #[test]
     fn areas_por_modulo() {
-        assert_eq!(area("tstream_core::analyzer"), "analisis");
+        assert_eq!(area("streamonte_core::analyzer"), "analisis");
         assert_eq!(area("librqbit_upnp"), "red");
         assert_eq!(area("librqbit::session"), "motor");
-        assert_eq!(area("tstream_core::playback"), "reproduccion");
-        assert_eq!(area("tstream_core::subtitles::opensubtitles"), "subtitulos");
+        assert_eq!(area("streamonte_core::playback"), "reproduccion");
+        assert_eq!(
+            area("streamonte_core::subtitles::opensubtitles"),
+            "subtitulos"
+        );
     }
 }

@@ -225,8 +225,10 @@ mod tests {
     }
 
     fn paths_under(name: &str) -> AppPaths {
-        let root =
-            std::env::temp_dir().join(format!("tstream-test-calib-{name}-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!(
+            "streamonte-test-calib-{name}-{}",
+            std::process::id()
+        ));
         let _ = std::fs::remove_dir_all(&root);
         let paths = AppPaths::under(&root);
         paths.ensure_dirs().unwrap();

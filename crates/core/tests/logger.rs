@@ -1,9 +1,9 @@
 //! NFR-15 / Q-06: logs generales siempre; diagnóstico solo cuando se activa, en caliente.
 //! Binario de prueba propio porque `logger::init` instala el suscriptor global una sola vez.
 
-use tstream_core::config::{LogLevel, LoggingConfig};
-use tstream_core::logger::{self, DIAG_MPV, DIAG_PRELOAD};
-use tstream_core::paths::AppPaths;
+use streamonte_core::config::{LogLevel, LoggingConfig};
+use streamonte_core::logger::{self, DIAG_MPV, DIAG_PRELOAD};
+use streamonte_core::paths::AppPaths;
 
 fn read_dir_text(dir: &std::path::Path, prefix: &str) -> String {
     std::fs::read_dir(dir)
@@ -16,7 +16,7 @@ fn read_dir_text(dir: &std::path::Path, prefix: &str) -> String {
 
 #[test]
 fn nfr_15_general_siempre_y_diagnostico_opcional_en_caliente() {
-    let root = std::env::temp_dir().join(format!("tstream-test-logger-{}", std::process::id()));
+    let root = std::env::temp_dir().join(format!("streamonte-test-logger-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     let paths = AppPaths::under(&root);
     let mut cfg = LoggingConfig {
@@ -42,7 +42,7 @@ fn nfr_15_general_siempre_y_diagnostico_opcional_en_caliente() {
 
     drop(guard); // vacía buffers
 
-    let general = read_dir_text(&paths.log_dir, "tstream");
+    let general = read_dir_text(&paths.log_dir, "streamonte");
     assert!(general.contains("evento-general-1"));
     assert!(
         !general.contains("evento-debug-oculto"),

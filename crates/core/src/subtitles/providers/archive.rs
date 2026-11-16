@@ -106,7 +106,7 @@ mod tests {
     #[tokio::test]
     async fn descomprime_o_pasa_tal_cual() {
         let dir =
-            std::env::temp_dir().join(format!("tstream-test-subarchive-{}", std::process::id()));
+            std::env::temp_dir().join(format!("streamonte-test-subarchive-{}", std::process::id()));
         // Un archivo que no es comprimido pasa tal cual.
         let raw = extract_if_archive("x", b"texto".to_vec(), &dir.join("w"))
             .await

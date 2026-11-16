@@ -55,7 +55,7 @@ pub(crate) fn merge_cues(subs: &[(&str, Vec<Cue>)]) -> String {
     let mut out = String::with_capacity(64 * 1024);
     out.push_str(
         "[Script Info]\n\
-         ; Generado por Torrent Stream v2: modo comparación (FR-25)\n\
+         ; Generado por Streamonte: modo comparación (FR-25)\n\
          ScriptType: v4.00+\n\
          PlayResX: 1920\n\
          PlayResY: 1080\n\
@@ -426,7 +426,8 @@ mod tests {
     #[test]
     fn fusion_desde_archivos_y_vacia() {
         assert!(merge_ass(&[]).is_err());
-        let dir = std::env::temp_dir().join(format!("tstream-test-merge-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("streamonte-test-merge-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let a = dir.join("a.srt");
         let b = dir.join("b.ass");

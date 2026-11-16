@@ -29,7 +29,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            // Lista probada en v1 (tstream-core.ps1).
+            // Lista probada en v1 (streamonte-core.ps1).
             trackers: [
                 "udp://tracker.opentrackr.org:1337/announce",
                 "udp://open.stealth.si:80/announce",
@@ -459,8 +459,10 @@ mod tests {
     use super::*;
 
     fn temp_store(name: &str) -> (ConfigStore, PathBuf) {
-        let dir =
-            std::env::temp_dir().join(format!("tstream-test-config-{name}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!(
+            "streamonte-test-config-{name}-{}",
+            std::process::id()
+        ));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         (ConfigStore::at(dir.join("config.json")), dir)

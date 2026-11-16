@@ -144,7 +144,7 @@ pub fn downloaded_in_dirs(downloads: &Path, prefix: &str, file_name: &str) -> u6
         .unwrap_or(0)
 }
 
-/// El archivo con más bytes escritos dentro de `dir` (el video; se saltean `.tstream-*`).
+/// El archivo con más bytes escritos dentro de `dir` (el video; se saltean `.streamonte-*`).
 pub fn biggest_file(dir: &Path) -> Option<(std::path::PathBuf, u64)> {
     fn walk(dir: &Path, depth: u8, best: &mut Option<(std::path::PathBuf, u64)>) {
         let Ok(rd) = std::fs::read_dir(dir) else {
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn bajado_es_el_maximo_entre_analisis_y_reproduccion_del_mismo_hash() {
-        let root = std::env::temp_dir().join(format!("tstream-test-dl-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("streamonte-test-dl-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let write = |dir: &str, name: &str, n: usize| {
             let d = root.join(dir);

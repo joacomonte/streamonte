@@ -1,4 +1,4 @@
-//! Descargas pausadas y guardadas (FR-12/FR-12b): `<carpeta>/.tstream-kept.json` con el minuto
+//! Descargas pausadas y guardadas (FR-12/FR-12b): `<carpeta>/.streamonte-kept.json` con el minuto
 //! donde se dejó de ver; sobreviven a cerrar la app (`load_kept`) y se retoman desde lo ya bajado.
 //! También FR-06d: lo bajado al analizar se adopta (play) o reemplaza al de la pausada (retomar).
 
@@ -17,7 +17,7 @@ use crate::Result;
 
 use super::{PlaybackId, PlaybackRow, PlaybackState, Shared, Slot};
 
-/// Lo que se guarda en `<carpeta>/.tstream-kept.json` para retomar (también tras reabrir la app).
+/// Lo que se guarda en `<carpeta>/.streamonte-kept.json` para retomar (también tras reabrir la app).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) struct KeptRecord {
     /// Qué video es. Los registros de antes no la traen: ver [`migrated_key`].
@@ -294,7 +294,7 @@ mod tests {
         assert_eq!(clock(3725.0), "1:02:05");
     }
 
-    /// `.tstream-kept.json` de antes de la clave por video: se lee y se asigna a la fila cuyo
+    /// `.streamonte-kept.json` de antes de la clave por video: se lee y se asigna a la fila cuyo
     /// video coincide; si ninguna coincide, al torrent entero (nunca a otro episodio).
     #[test]
     fn registro_viejo_sin_clave_se_migra_a_su_video() {
@@ -354,7 +354,7 @@ mod tests {
     #[tokio::test]
     async fn la_pausada_de_otro_episodio_no_se_retoma() {
         let root =
-            std::env::temp_dir().join(format!("tstream-test-keptkey-{}", std::process::id()));
+            std::env::temp_dir().join(format!("streamonte-test-keptkey-{}", std::process::id()));
         let manager = manager_under(&root);
         let shared = &manager.shared;
         let hash = InfoHash::from_bytes([3; 20]);
@@ -390,7 +390,8 @@ mod tests {
     /// FR-06d: dar play adopta lo bajado al analizar (sin copiar), pero no mientras se mide.
     #[test]
     fn play_adopta_la_carpeta_del_analisis() {
-        let root = std::env::temp_dir().join(format!("tstream-test-adopt-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("streamonte-test-adopt-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let paths = AppPaths::under(&root);
         paths.ensure_dirs().unwrap();
@@ -429,7 +430,7 @@ mod tests {
         let kept = paths.downloads_dir().join("play-2");
         std::fs::create_dir_all(kept.join("Sintel")).unwrap();
         std::fs::write(kept.join("Sintel").join("sintel.mp4"), vec![1u8; 10_000]).unwrap();
-        std::fs::write(kept.join(".tstream-kept.json"), b"{}").unwrap();
+        std::fs::write(kept.join(".streamonte-kept.json"), b"{}").unwrap();
         std::fs::create_dir_all(analysis.join("Sintel")).unwrap();
         std::fs::write(
             analysis.join("Sintel").join("sintel.mp4"),
@@ -443,7 +444,7 @@ mod tests {
             2
         );
         assert!(
-            kept.join(".tstream-kept.json").exists(),
+            kept.join(".streamonte-kept.json").exists(),
             "el registro de la pausada queda"
         );
         // Con MENOS bytes que la pausada, no se toca nada.

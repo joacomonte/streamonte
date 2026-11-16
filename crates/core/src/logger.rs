@@ -1,6 +1,6 @@
 //! `logger` — logs por nivel + logs de diagnóstico opcionales (NFR-15, Q-06).
 //!
-//! - `tstream.<fecha>.log` (rotación diaria, últimos 7): nivel configurable, siempre activo.
+//! - `streamonte.<fecha>.log` (rotación diaria, últimos 7): nivel configurable, siempre activo.
 //! - Diagnóstico (solo si `LoggingConfig::diagnostics`): se activa/desactiva en caliente.
 //!   Misma rotación que el general (`<nombre>.<fecha>.log`, últimos 7).
 //!   - target [`DIAG_PRELOAD`] → `diag-preload`: piezas por rango, peers que las tienen, bloqueos (lección 9).
@@ -61,7 +61,7 @@ pub fn init(paths: &AppPaths, config: &LoggingConfig) -> Result<LoggerGuard> {
             .build(&paths.log_dir)
             .map_err(|e| CoreError::Logger(e.to_string()))
     };
-    let general_file = daily("tstream")?;
+    let general_file = daily("streamonte")?;
 
     let mut guards = Vec::new();
     let mut writer = |appender: rolling::RollingFileAppender| {

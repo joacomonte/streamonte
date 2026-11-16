@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use crate::Result;
 
 /// Carpetas de la app según el SO.
-/// - Windows: `%APPDATA%\tstream\v2\{data,config}`, `%LOCALAPPDATA%\tstream\v2\cache`, `%TEMP%\tstream-v2`
-/// - macOS:   `~/Library/Application Support/app.tstream.v2`, `~/Library/Caches/app.tstream.v2`, `$TMPDIR/tstream-v2`
+/// - Windows: `%APPDATA%\streamonte\{data,config}`, `%LOCALAPPDATA%\streamonte\cache`, `%TEMP%\streamonte`
+/// - macOS:   `~/Library/Application Support/app.streamonte`, `~/Library/Caches/app.streamonte`, `$TMPDIR/streamonte`
 ///
 /// Las descargas (pausadas FR-12b, análisis FR-06d) van en la caché, no en temporales: el SO
 /// purga `$TMPDIR` / `%TEMP%` por su cuenta y se perdería lo que el usuario conserva.
@@ -23,12 +23,14 @@ pub struct AppPaths {
 impl AppPaths {
     /// Resuelve y crea las carpetas si faltan.
     pub fn resolve() -> Result<Self> {
-        let dirs = directories::ProjectDirs::from("app", "tstream", "v2")
+        let dirs = directories::ProjectDirs::from("app", "", "streamonte")
             .ok_or(crate::CoreError::Unsupported("carpeta de usuario"))?;
+        // Antes de crear las carpetas nuevas: si existen, la migración no toca nada.
+        crate::rebrand::migrate(&dirs);
         let paths = Self {
             data_dir: dirs.data_dir().to_path_buf(),
             cache_dir: dirs.cache_dir().to_path_buf(),
-            temp_dir: std::env::temp_dir().join("tstream-v2"),
+            temp_dir: std::env::temp_dir().join("streamonte"),
             log_dir: dirs.data_local_dir().join("logs"),
         };
         paths.ensure_dirs()?;
@@ -262,7 +264,7 @@ mod tests {
 
     #[test]
     fn under_pone_todo_bajo_la_raiz() {
-        let root = std::env::temp_dir().join("tstream-test-paths");
+        let root = std::env::temp_dir().join("streamonte-test-paths");
         let p = AppPaths::under(&root);
         for dir in [&p.data_dir, &p.cache_dir, &p.temp_dir, &p.log_dir] {
             assert!(dir.starts_with(&root));
@@ -274,7 +276,7 @@ mod tests {
     #[test]
     fn migra_descargas_de_temporales_a_la_cache() {
         let root =
-            std::env::temp_dir().join(format!("tstream-test-migrate-{}", std::process::id()));
+            std::env::temp_dir().join(format!("streamonte-test-migrate-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let p = AppPaths::under(&root);
         p.ensure_dirs().unwrap();
@@ -295,7 +297,8 @@ mod tests {
 
     #[test]
     fn ensure_dirs_crea_las_carpetas() {
-        let root = std::env::temp_dir().join(format!("tstream-test-ensure-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("streamonte-test-ensure-{}", std::process::id()));
         let p = AppPaths::under(&root);
         p.ensure_dirs().unwrap();
         assert!(p.downloads_dir().is_dir());

@@ -4,6 +4,17 @@ import { activity } from './activity.js';
 
 export const $ = (sel) => document.querySelector(sel);
 
+// Nombre viejo → nuevo (2026-11-15): las preferencias guardadas como `tstream.*` pasan a
+// `streamonte.*` una sola vez. dom.js se evalúa antes que los módulos que las leen al cargar.
+try {
+  for (const k of Object.keys(localStorage)) {
+    if (!k.startsWith('tstream.')) continue;
+    const to = `streamonte.${k.slice('tstream.'.length)}`;
+    if (localStorage.getItem(to) === null) localStorage.setItem(to, localStorage.getItem(k));
+    localStorage.removeItem(k);
+  }
+} catch { /* sin almacenamiento */ }
+
 /** Crea un elemento. `attrs`: atributos (null/false no se ponen; true = atributo vacío) y `on*`
  *  como listeners. Hijos: nodos o texto; null/false se saltean y los arrays se aplanan. */
 export function el(tag, attrs = {}, ...children) {

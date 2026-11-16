@@ -3,13 +3,13 @@
 //! no quede en el historial de la terminal ni en ningún log.
 //!
 //! ```text
-//! cargo run -p tstream-core --example subtitle_key -- opensubtitles   (pega la key y Enter)
-//! cargo run -p tstream-core --example subtitle_key -- wyzie
-//! cargo run -p tstream-core --example subtitle_key -- estado
+//! cargo run -p streamonte-core --example subtitle_key -- opensubtitles   (pega la key y Enter)
+//! cargo run -p streamonte-core --example subtitle_key -- wyzie
+//! cargo run -p streamonte-core --example subtitle_key -- estado
 //! ```
 //! Una key vacía la borra.
 
-use tstream_core::subtitles::secrets;
+use streamonte_core::subtitles::secrets;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = std::env::args().nth(1).unwrap_or_default();

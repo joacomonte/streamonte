@@ -4,12 +4,12 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use streamonte_core::catalog::addons::Addon;
+use streamonte_core::catalog::aggregate::{run, AddonState, RunCtx, StreamsUpdate};
+use streamonte_core::catalog::http::Http;
+use streamonte_core::catalog::{MediaKind, VideoId};
+use streamonte_core::config::AddonEntry;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tstream_core::catalog::addons::Addon;
-use tstream_core::catalog::aggregate::{run, AddonState, RunCtx, StreamsUpdate};
-use tstream_core::catalog::http::Http;
-use tstream_core::catalog::{MediaKind, VideoId};
-use tstream_core::config::AddonEntry;
 
 const MANIFEST: &str = r#"{"id":"mock","name":"Mock","version":"1","resources":["stream"],"types":["movie","series"],"idPrefixes":["tt"]}"#;
 const SINTEL_HASH: &str = "08ada5a7a6183aae1e09d831df6748d566095a10";
@@ -88,7 +88,7 @@ async fn t31_rapido_lento_y_caido() {
         ],
         video: VideoId::parse("tt1727587").unwrap(),
         kind: MediaKind::Movie,
-        audio_order: tstream_core::config::CatalogConfig::default().audio_order,
+        audio_order: streamonte_core::config::CatalogConfig::default().audio_order,
         exclude_cam: true,
         default_timeout: Duration::from_secs(10),
         trackers: vec![], // sin trackers: el scrape vuelve vacío al instante, sin red

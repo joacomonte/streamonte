@@ -1,6 +1,6 @@
 [package]
-name = "tstream-core"
-description = "Núcleo de Torrent Stream v2: biblioteca, análisis, reproducción, limpieza, subtítulos. Sin Tauri."
+name = "streamonte-core"
+description = "Núcleo de Streamonte: biblioteca, análisis, reproducción, limpieza, subtítulos. Sin Tauri."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

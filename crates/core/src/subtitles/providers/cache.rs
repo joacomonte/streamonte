@@ -111,7 +111,7 @@ mod tests {
     #[test]
     fn guarda_en_cache_y_rechaza_basura() {
         let dir =
-            std::env::temp_dir().join(format!("tstream-test-subcache-{}", std::process::id()));
+            std::env::temp_dir().join(format!("streamonte-test-subcache-{}", std::process::id()));
         let cand = SubtitleCandidate {
             provider: WYZIE,
             provider_id: "a/b".into(),

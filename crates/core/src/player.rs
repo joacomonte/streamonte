@@ -2,7 +2,7 @@
 //! (FR-09, FR-34, FR-35, ADR-05).
 //!
 //! - Lanzamiento DIRECTO (sin shell) como hijo de la app → detectamos su salida (lección 6).
-//! - mpv: `--input-ipc-server` = named pipe `\\.\pipe\tstream-<id>` (Windows) / socket unix en temp (macOS).
+//! - mpv: `--input-ipc-server` = named pipe `\\.\pipe\streamonte-<id>` (Windows) / socket unix en temp (macOS).
 //! - Perfil propio (`--config-dir`, FR-34) todavía no: por ahora se respeta la config personal del usuario.
 //! - VLC: sin IPC; solo lanzamiento y salida (subtítulos/sync son solo mpv).
 
@@ -104,7 +104,7 @@ pub enum MpvEvent {
         name: String,
         value: Value,
     },
-    /// Tecla vinculada por la app (`script-message tstream <acción>`): 1–5, 0, S, Z, X, R, A (FR-25–27).
+    /// Tecla vinculada por la app (`script-message streamonte <acción>`): 1–5, 0, S, Z, X, R, A (FR-25–27).
     KeyAction(String),
     Shutdown,
 }
@@ -187,7 +187,7 @@ impl PlayerLauncher {
                     find_executable(Executable::Mpv, self.config.mpv_path.as_deref())
                         .ok_or(CoreError::ExecutableNotFound { name: "mpv" })?,
                 );
-                let ipc = new_ipc_path("tstream-mpv");
+                let ipc = new_ipc_path("streamonte-mpv");
                 (exe, self.mpv_args(&req, &ipc), Some(ipc))
             }
             PlayerKind::Vlc => {
@@ -298,7 +298,7 @@ pub async fn probe_media(
     timeout: Duration,
 ) -> Result<MediaProbe> {
     let exe = prefer_gui_binary(mpv.to_path_buf());
-    let ipc_path = new_ipc_path("tstream-probe");
+    let ipc_path = new_ipc_path("streamonte-probe");
     let args: Vec<String> = [
         "--no-config",
         "--vo=null",

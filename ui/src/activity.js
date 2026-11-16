@@ -205,7 +205,7 @@ function setBusy(text) {
 // ---------- vistas: Resumen (amigable) y Detallado (log del núcleo) ----------
 let view = 'friendly';
 const LEVELS = [['all', 'Todos los niveles'], ['warn', 'Avisos y errores'], ['info', 'Info'], ['debug', 'Debug / verbose']];
-/** Nivel de una línea del log de tracing ("2026-…Z  INFO tstream_core::…: mensaje"). */
+/** Nivel de una línea del log de tracing ("2026-…Z  INFO streamonte_core::…: mensaje"). */
 const levelOf = (l) => (/\b(ERROR|WARN)\b/.test(l) ? 'warn' : /\b(DEBUG|TRACE)\b/.test(l) ? 'debug' : 'info');
 
 function setView(v) {
