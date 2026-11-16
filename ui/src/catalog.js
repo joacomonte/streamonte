@@ -855,7 +855,8 @@ function optionRow(c, best = false) {
     : dead && scraped.peers ? el('span', { class: 'cat-stat-sub cat-noanswer' }, 'sin respuesta · ', el('u', {}, 'reintentar'))
     : el('span', { class: 'cat-stat-sub' },
       leechersOf(c) != null ? el('span', { title: 'Leechers: bajando ahora; comparten los pedazos que ya tienen' }, `${leechersOf(c)} leechers`) : null)),
-    healthBadge(c)),
+    // Sin analizar (2026-11-16): en lugar del ícono de salud, el botón que la averigua.
+    healthBadge(c) ?? (busy || scraped ? null : el('button', { id: `cat-check-${c.info_hash}`, class: 'cat-check-health', title: 'Se conecta al torrent y cuenta los seeders reales (1 a 2 min). No baja el video.', onclick: () => reanalyze([c.info_hash]) }, icon('radar', 14), 'Verificar salud'))),
     el('span', { class: 'cat-opt-actions' },
       playSplit(c)));
 }
