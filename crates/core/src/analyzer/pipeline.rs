@@ -62,10 +62,11 @@ pub(super) async fn add_deselected(
     crate::engine::add_cached_or_magnet(
         engine,
         &paths.torrent_cache_file(&magnet.info_hash),
-        magnet.with_trackers(&cfg.trackers),
+        magnet.with_trackers(&cfg.all_trackers()),
         AddOptions {
-            trackers: cfg.trackers.clone(),
+            trackers: cfg.all_trackers(),
             download_dir: dir.to_path_buf(),
+            initial_peers: Vec::new(),
         },
     )
     .await
@@ -99,7 +100,7 @@ async fn preload_file(
     cancel: CancellationToken,
     select_after: bool,
 ) -> Result<crate::preload::PreloadOutcome> {
-    let plan = crate::preload::plan(file, &cfg.preload);
+    let plan = crate::preload::plan(file, &cfg.preload, None);
     let mut preload_cfg = cfg.preload.clone();
     preload_cfg.fallback_open_secs = fallback_open_secs;
     crate::preload::run(

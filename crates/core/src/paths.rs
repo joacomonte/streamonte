@@ -91,6 +91,15 @@ impl AppPaths {
         self.torrent_cache_dir()
             .join(format!("{}.torrent", hash.to_hex()))
     }
+    /// Peers vistos al analizar a fondo `hash`: arrancan la reproducción ya sabiendo a quién pedir.
+    pub fn peers_cache_file(&self, hash: &crate::magnet::InfoHash) -> PathBuf {
+        self.torrent_cache_dir()
+            .join(format!("{}.peers", hash.to_hex()))
+    }
+    /// Copia de la lista compartida de trackers (`trackers::shared_list`).
+    pub fn shared_trackers_file(&self) -> PathBuf {
+        self.cache_dir.join("trackers-best.txt")
+    }
     /// Subtítulos de un video, adentro de la carpeta de su descarga (`<dir>/subs/<video_id>`):
     /// al borrar el video se van con él (2026-11-15: "todo en un mismo lugar").
     pub fn video_subtitles_dir(dir: &Path, video_id: &str) -> PathBuf {

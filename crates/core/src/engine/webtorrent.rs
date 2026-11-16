@@ -7,6 +7,12 @@
 //! muere, el sidecar ve stdin cerrado, detiene sus torrents SIN borrar datos y sale (NFR-11,
 //! FR-06d, igual que rqbit). Borrar es `remove(delete_data)` o `cleanup`.
 
+/// Trackers WebRTC: solo los usa este motor (peers de navegador).
+const WEBRTC_TRACKERS: [&str; 2] = [
+    "wss://tracker.webtorrent.dev",
+    "wss://tracker.openwebtorrent.com",
+];
+
 use std::collections::HashMap;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -376,7 +382,8 @@ impl TorrentEngine for WebtorrentSidecar {
                 "add",
                 json!({
                     "source": source,
-                    "trackers": opts.trackers,
+                    // Los WebRTC solo los entiende webtorrent: la lista común no los trae.
+                    "trackers": opts.trackers.iter().map(String::as_str).chain(WEBRTC_TRACKERS).collect::<Vec<_>>(),
                     "downloadDir": opts.download_dir,
                 }),
             )

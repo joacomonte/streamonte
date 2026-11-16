@@ -194,7 +194,7 @@ async fn run_once(
                     Some(path) => TorrentSource::TorrentFile(path.clone()),
                     None => TorrentSource::Magnet(magnet.with_trackers(&cfg.trackers)),
                 },
-                AddOptions { trackers: cfg.trackers.clone(), download_dir: dir.clone() },
+                AddOptions { trackers: cfg.all_trackers(), download_dir: dir.clone(), initial_peers: Vec::new() },
             )
             .await
             .map_err(|e| e.to_string())?;
@@ -206,7 +206,7 @@ async fn run_once(
         println!("  metadatos {:.1} s", secs(t0));
 
         let file = largest_video(&meta.files).ok_or("sin archivos")?;
-        let plan = preload::plan(&file, &cfg.preload);
+        let plan = preload::plan(&file, &cfg.preload, None);
         preload::run(engine.as_ref(), handle, &plan, &cfg.preload, CancellationToken::new(), true, &|_| {})
             .await
             .map_err(|e| e.to_string())?;

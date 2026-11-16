@@ -210,6 +210,13 @@ async fn count_one(
                 break;
             }
         }
+        // Deja listo el play (2026-11-15): metadatos sin esperarlos y los peers que respondieron,
+        // para conectarse de entrada.
+        metadata.save_torrent_cache(&paths.torrent_cache_file(&magnet.info_hash));
+        crate::engine::save_peers(
+            &paths.peers_cache_file(&magnet.info_hash),
+            &engine.connected_peers(handle).await,
+        );
         Some((magnet.info_hash, best))
     }
     .await;

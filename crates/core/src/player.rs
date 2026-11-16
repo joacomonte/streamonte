@@ -238,6 +238,10 @@ impl PlayerLauncher {
             "--cache=yes".into(),
             "--demuxer-max-bytes=1GiB".into(),
             "--demuxer-readahead-secs=120".into(),
+            // Si se vacía la caché, esperar 5 s de margen antes de seguir (default 1 s: con la
+            // velocidad justa cortaba, seguía y volvía a cortar). También al arrancar.
+            "--cache-pause-wait=5".into(),
+            "--cache-pause-initial=yes".into(),
             // El motor puede tardar en conseguir una pieza: no abortar la lectura HTTP.
             "--network-timeout=120".into(),
             "--keep-open=no".into(),

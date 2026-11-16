@@ -303,6 +303,7 @@ impl TorrentEngine for RqbitEmbedded {
             overwrite: true,
             output_folder: Some(opts.download_dir.to_string_lossy().into_owned()),
             trackers: Some(opts.trackers.clone()),
+            initial_peers: (!opts.initial_peers.is_empty()).then(|| opts.initial_peers.clone()),
             ..Default::default()
         };
 
@@ -494,6 +495,21 @@ impl TorrentEngine for RqbitEmbedded {
             std::future::pending::<()>().await;
         }));
         Ok(())
+    }
+
+    async fn connected_peers(&self, handle: TorrentHandle) -> Vec<std::net::SocketAddr> {
+        let Ok(torrent) = self.inner.torrent(handle).await else {
+            return Vec::new();
+        };
+        let Some(live) = torrent.live() else {
+            return Vec::new();
+        };
+        // Filtro por defecto: solo los conectados ahora.
+        live.per_peer_stats_snapshot(Default::default())
+            .peers
+            .keys()
+            .filter_map(|addr| addr.parse().ok())
+            .collect()
     }
 
     async fn select_file(&self, handle: TorrentHandle, file_index: usize) -> Result<()> {

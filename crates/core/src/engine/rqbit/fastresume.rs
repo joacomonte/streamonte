@@ -86,6 +86,7 @@ mod tests {
         let opts = || AddOptions {
             trackers: vec![],
             download_dir: dir.clone(),
+            initial_peers: Vec::new(),
         };
         let bitv = dir.join(BITV_FILE);
 

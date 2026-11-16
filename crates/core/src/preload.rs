@@ -2,7 +2,7 @@
 //! EXCLUSIVA antes de abrir el reproductor (FR-11, ADR-06, lecciones 2 y 3).
 //!
 //! Secuencia:
-//! 1. `plan()` → rangos (inicio siempre; final solo MP4/MOV).
+//! 1. `plan()` → rangos (inicio siempre; final solo MP4/MOV; y, al retomar, donde arranca mpv).
 //! 2. `engine.prioritize_ranges(.., Exclusive)`.
 //! 3. Esperar `RangeReady` de todos, o `fallback_open_secs` (plan B), o cancelación.
 //! 4. Si `select_after`: `engine.select_file()` → el resto del archivo sigue bajando (reproducir).
@@ -90,7 +90,9 @@ pub(crate) fn mime_of_extension(ext: &str) -> &'static str {
 
 /// Rangos a precargar. Si el archivo es más chico que inicio+final, un único rango.
 /// Como v1, ningún rango supera 1/4 del archivo (en archivos chicos no tiene sentido bajar medio video).
-pub fn plan(file: &FileInfo, cfg: &PreloadConfig) -> PreloadPlan {
+/// `resume_at`: byte aproximado donde va a arrancar mpv al retomar (posición ÷ duración ×
+/// tamaño). Se precarga ahí también: si no, el salto de `--start` cae en una zona sin bajar.
+pub fn plan(file: &FileInfo, cfg: &PreloadConfig, resume_at: Option<u64>) -> PreloadPlan {
     let container = container_of(&file.name);
     let quarter = (file.size / 4).max(1);
     let head = cfg.head_bytes.min(quarter).min(file.size);
@@ -116,6 +118,13 @@ pub fn plan(file: &FileInfo, cfg: &PreloadConfig) -> PreloadPlan {
                 start: tail_start,
                 end: file.size,
             });
+        }
+    }
+    if let Some(at) = resume_at.filter(|&at| at > head && at < file.size) {
+        let end = (at + cfg.head_bytes).min(file.size);
+        // Dentro del final ya pedido (MP4): no hace falta otro rango.
+        if !ranges.iter().any(|r| r.start <= at && end <= r.end) {
+            ranges.push(ByteRange { start: at, end });
         }
     }
     PreloadPlan {
@@ -267,7 +276,7 @@ mod tests {
     fn mp4_grande_pide_inicio_y_final() {
         let cfg = PreloadConfig::default();
         let size = 20 * 1024 * MIB;
-        let p = plan(&file("Pelicula.2160p.MP4", size), &cfg);
+        let p = plan(&file("Pelicula.2160p.MP4", size), &cfg, None);
         assert_eq!(p.container, Container::Mp4Like);
         assert_eq!(p.file_index, 3);
         assert_eq!(
@@ -341,10 +350,33 @@ mod tests {
     }
 
     #[test]
+    fn al_retomar_precarga_donde_arranca() {
+        let cfg = PreloadConfig::default();
+        let size = 4 * 1024 * MIB;
+        let at = 2 * 1024 * MIB;
+        let p = plan(&file("serie.s01e01.mkv", size), &cfg, Some(at));
+        assert_eq!(
+            p.ranges[1],
+            ByteRange {
+                start: at,
+                end: at + cfg.head_bytes
+            }
+        );
+        // Dentro del principio ya pedido: no suma nada.
+        assert_eq!(
+            plan(&file("serie.s01e01.mkv", size), &cfg, Some(1))
+                .ranges
+                .len(),
+            1
+        );
+    }
+
+    #[test]
     fn mkv_solo_inicio() {
         let p = plan(
             &file("serie.s01e01.mkv", 4 * 1024 * MIB),
             &PreloadConfig::default(),
+            None,
         );
         assert_eq!(p.container, Container::Matroska);
         assert_eq!(
@@ -359,7 +391,7 @@ mod tests {
     #[test]
     fn archivo_chico_no_baja_mas_de_un_cuarto_por_rango() {
         let size = 40 * MIB;
-        let p = plan(&file("corto.mp4", size), &PreloadConfig::default());
+        let p = plan(&file("corto.mp4", size), &PreloadConfig::default(), None);
         assert_eq!(
             p.ranges,
             vec![

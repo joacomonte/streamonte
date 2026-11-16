@@ -200,6 +200,15 @@ impl AppCore {
         };
 
         let catalog = Arc::new(crate::catalog::Catalog::new(&config.read().await.catalog));
+        // Lista compartida de trackers, de fondo: la primera reproducción no la espera.
+        {
+            let (config, file) = (config.clone(), paths.shared_trackers_file());
+            tokio::spawn(async move {
+                let list = crate::trackers::shared_list(&file).await;
+                tracing::info!(n = list.len(), "trackers de la lista compartida");
+                config.write().await.shared_trackers = list;
+            });
+        }
         tracing::info!("núcleo iniciado");
         let core = Arc::new(Self {
             catalog,
@@ -755,7 +764,7 @@ impl AppCore {
         let video = VideoId::parse(video_id)?;
         let timeout = self.catalog_timeout().await;
         let meta = self.catalog.meta(kind, video.imdb_id(), timeout).await.ok();
-        let trackers = self.config.read().await.trackers.clone();
+        let trackers = self.config.read().await.all_trackers();
         let mut library = self.library.lock().await;
         let mut added = Vec::new();
         for hash in hashes {

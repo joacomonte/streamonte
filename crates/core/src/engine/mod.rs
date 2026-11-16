@@ -49,6 +49,9 @@ pub struct AddOptions {
     pub trackers: Vec<String>,
     /// Carpeta exclusiva de este torrent: `paths.downloads_dir()/<hash>-<id>`.
     pub download_dir: PathBuf,
+    /// Peers conocidos de antes (los vio el análisis profundo): se conecta a ellos de entrada, sin
+    /// esperar a los trackers ni al DHT. Lo completa [`add_cached_or_magnet`].
+    pub initial_peers: Vec<std::net::SocketAddr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -268,6 +271,11 @@ pub trait TorrentEngine: Send + Sync {
         Ok(())
     }
 
+    /// Direcciones de los peers conectados ahora (para guardarlas y reusarlas al reproducir).
+    async fn connected_peers(&self, _handle: TorrentHandle) -> Vec<std::net::SocketAddr> {
+        Vec::new()
+    }
+
     /// Selecciona el archivo completo (después de la precarga) y deselecciona el resto.
     async fn select_file(&self, handle: TorrentHandle, file_index: usize) -> Result<()>;
 
@@ -338,8 +346,10 @@ pub async fn add_cached_or_magnet(
     engine: &dyn TorrentEngine,
     cached: &std::path::Path,
     magnet: Magnet,
-    opts: AddOptions,
+    mut opts: AddOptions,
 ) -> Result<TorrentHandle> {
+    // Junto al `.torrent` en caché, los peers que vio el análisis profundo (si son recientes).
+    opts.initial_peers = load_peers(&cached.with_extension("peers"));
     if !cached.is_file() {
         return engine.add(TorrentSource::Magnet(magnet), opts).await;
     }
@@ -360,6 +370,35 @@ pub async fn add_cached_or_magnet(
         }
         r => r,
     }
+}
+
+/// Hasta cuándo sirven los peers guardados: los de un enjambre cambian rápido.
+const PEERS_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(30 * 60);
+
+/// Guarda los peers de un torrent (una dirección por línea) junto a su `.torrent` en caché.
+pub fn save_peers(file: &std::path::Path, peers: &[std::net::SocketAddr]) {
+    if peers.is_empty() {
+        return;
+    }
+    let text: String = peers.iter().map(|p| format!("{p}\n")).collect();
+    if let Err(e) = std::fs::write(file, text) {
+        tracing::debug!(?file, "no se pudieron guardar los peers: {e}");
+    }
+}
+
+/// Los peers guardados, si tienen menos de [`PEERS_MAX_AGE`]; si no, ninguno.
+fn load_peers(file: &std::path::Path) -> Vec<std::net::SocketAddr> {
+    let fresh = std::fs::metadata(file)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.elapsed().ok())
+        .is_some_and(|age| age < PEERS_MAX_AGE);
+    if !fresh {
+        return Vec::new();
+    }
+    std::fs::read_to_string(file)
+        .map(|text| text.lines().filter_map(|l| l.trim().parse().ok()).collect())
+        .unwrap_or_default()
 }
 
 /// Fábrica: la ÚNICA función que conoce las implementaciones concretas.

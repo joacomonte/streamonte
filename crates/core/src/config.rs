@@ -12,8 +12,12 @@ use crate::Result;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct Config {
-    /// Se agregan a TODO magnet y como announce (FR-10, ADR-08, lección 4).
+    /// Se agregan a TODO magnet y como announce (FR-10, ADR-08, lección 4). Usar
+    /// [`Config::all_trackers`], que suma la lista compartida.
     pub trackers: Vec<String>,
+    /// Lista mantenida públicamente (`trackers::shared_list`), al día una vez por día. No se guarda.
+    #[serde(skip)]
+    pub shared_trackers: Vec<String>,
     pub engine: EngineConfig,
     pub preload: PreloadConfig,
     pub analyzer: AnalyzerConfig,
@@ -24,6 +28,20 @@ pub struct Config {
     pub logging: LoggingConfig,
     /// Catálogo y addons de Stremio (F4b, spec 09 §9).
     pub catalog: CatalogConfig,
+}
+
+impl Config {
+    /// Todos los trackers para un torrent: los de la config más la lista compartida, sin repetir.
+    /// Sin los WebRTC (`wss://`): solo los entiende el motor webtorrent, que suma los suyos.
+    pub fn all_trackers(&self) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        for t in self.trackers.iter().chain(&self.shared_trackers) {
+            if !t.starts_with("wss://") && !out.contains(t) {
+                out.push(t.clone());
+            }
+        }
+        out
+    }
 }
 
 impl Default for Config {
@@ -38,11 +56,10 @@ impl Default for Config {
                 "udp://open.demonii.com:1337/announce",
                 "udp://tracker.dler.org:6969/announce",
                 "udp://explodie.org:6969/announce",
-                "wss://tracker.webtorrent.dev",
-                "wss://tracker.openwebtorrent.com",
             ]
             .map(String::from)
             .to_vec(),
+            shared_trackers: Vec::new(),
             engine: EngineConfig::default(),
             preload: PreloadConfig::default(),
             analyzer: AnalyzerConfig::default(),
@@ -549,9 +566,20 @@ mod tests {
     }
 
     #[test]
+    fn all_trackers_suma_la_lista_compartida_sin_repetir_ni_webrtc() {
+        let c = Config {
+            trackers: vec!["udp://a/announce".into(), "wss://w".into()],
+            shared_trackers: vec!["udp://a/announce".into(), "http://b/announce".into()],
+            ..Default::default()
+        };
+        assert_eq!(c.all_trackers(), ["udp://a/announce", "http://b/announce"]);
+    }
+
+    #[test]
     fn defaults_documentados() {
         let c = Config::default();
-        assert_eq!(c.trackers.len(), 9);
+        assert_eq!(c.trackers.len(), 7);
+        assert!(c.trackers.iter().all(|t| !t.starts_with("wss://")));
         assert_eq!(c.player.default_player, PlayerKind::Mpv);
         assert!(c.player.use_app_profile);
         assert!(

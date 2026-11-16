@@ -61,7 +61,7 @@ pub(super) async fn run(
             Magnet::parse(&entry.magnet)?
         }
     };
-    let full_magnet = magnet.with_trackers(&cfg.trackers);
+    let full_magnet = magnet.with_trackers(&cfg.all_trackers());
     *slot.magnet_uri.lock().expect("magnet") = Some(full_magnet.to_uri());
     let cached = deps.paths.torrent_cache_file(&req.key.info_hash);
     if cached.is_file() {
@@ -78,8 +78,9 @@ pub(super) async fn run(
         &cached,
         full_magnet,
         AddOptions {
-            trackers: cfg.trackers.clone(),
+            trackers: cfg.all_trackers(),
             download_dir: slot.dir.clone(),
+            initial_peers: Vec::new(),
         },
     )
     .await?;
@@ -151,8 +152,23 @@ pub(super) async fn run(
         None
     };
 
-    // 4. Precarga exclusiva inicio (+ final en MP4) (FR-11). Al retomar, lo ya bajado se reusa.
-    let plan = preload::plan(&file, &cfg.preload);
+    // 4. Precarga exclusiva inicio (+ final en MP4) (FR-11). Al retomar, lo ya bajado se reusa y
+    // se precarga también donde va a arrancar mpv (posición ÷ duración × tamaño).
+    let start_secs = slot
+        .resume_from
+        .filter(|p| *p > RESUME_REWIND_SECS * 2.0)
+        .map(|p| p - RESUME_REWIND_SECS);
+    let duration = {
+        let key = slot.row.lock().expect("row").key;
+        let library = shared.deps.library.lock().await;
+        library
+            .get(&key)
+            .and_then(|e| e.live.as_ref()?.duration_secs)
+    };
+    let resume_at = start_secs
+        .zip(duration.filter(|d| *d > 0.0))
+        .map(|(s, d)| (s / d * file.size as f64) as u64);
+    let plan = preload::plan(&file, &cfg.preload, resume_at);
     shared.log(
         slot,
         format!(
@@ -202,8 +218,8 @@ pub(super) async fn run(
     // 5. Reproductor (FR-09). Al retomar, mpv arranca unos segundos antes de donde se dejó.
     let url = engine.stream_url(handle, file.index).await?;
     let mut extra_args = Vec::new();
-    if let Some(pos) = slot.resume_from.filter(|p| *p > RESUME_REWIND_SECS * 2.0) {
-        extra_args.push(format!("--start={:.1}", pos - RESUME_REWIND_SECS));
+    if let Some(start) = start_secs {
+        extra_args.push(format!("--start={start:.1}"));
     }
     // Subtítulos que vienen DENTRO del video (MKV "MULTi"): que mpv elija solo la pista del
     // idioma pedido, latino primero (Q-03). Si después llegan los de la app, los reemplazan.

@@ -44,7 +44,7 @@ impl Measurer for LiveMeasurer {
         let t0 = Instant::now();
         let r = crate::trackers::scrape_batch(
             hashes,
-            &cfg.trackers,
+            &cfg.all_trackers(),
             Duration::from_secs(cfg.analyzer.scrape_timeout_secs),
         )
         .await;

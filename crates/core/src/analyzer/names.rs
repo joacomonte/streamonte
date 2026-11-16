@@ -60,7 +60,7 @@ pub async fn fetch_names(
         let engine = engine.clone();
         let on_found = on_found.clone();
         let cache = paths.torrent_cache_file(&magnet.info_hash);
-        let trackers = cfg.trackers.clone();
+        let trackers = cfg.all_trackers();
         tasks.spawn(async move {
             let hash = magnet.info_hash;
             let handle = engine
@@ -69,6 +69,7 @@ pub async fn fetch_names(
                     AddOptions {
                         trackers,
                         download_dir: dir,
+                        initial_peers: Vec::new(),
                     },
                 )
                 .await

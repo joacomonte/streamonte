@@ -343,3 +343,74 @@ mod tests {
         assert!(started.elapsed() < Duration::from_millis(2500));
     }
 }
+
+// ---------- lista compartida (2026-11-15) ----------
+/// Lista pública y mantenida de los trackers que mejor andan (ngosang/trackerslist, "best").
+const SHARED_LIST_URL: &str =
+    "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt";
+/// Se vuelve a bajar una vez por día; si no hay red, sirve la copia vieja.
+const SHARED_LIST_MAX_AGE: Duration = Duration::from_secs(24 * 3600);
+
+/// Trackers de la lista compartida: desde la caché en disco (`file`) si tiene menos de un día,
+/// si no la baja y la guarda. Sin red ni copia: vacía (alcanzan los de la config).
+pub async fn shared_list(file: &std::path::Path) -> Vec<String> {
+    let fresh = std::fs::metadata(file)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.elapsed().ok())
+        .is_some_and(|age| age < SHARED_LIST_MAX_AGE);
+    if !fresh {
+        match fetch_shared_list().await {
+            Ok(text) => {
+                if let Err(e) = std::fs::write(file, &text) {
+                    tracing::warn!("no se pudo guardar la lista de trackers: {e}");
+                }
+            }
+            Err(e) => tracing::info!("lista de trackers sin actualizar ({e}): uso la guardada"),
+        }
+    }
+    std::fs::read_to_string(file)
+        .map(|text| parse_shared_list(&text))
+        .unwrap_or_default()
+}
+
+async fn fetch_shared_list() -> Result<String, reqwest::Error> {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()?
+        .get(SHARED_LIST_URL)
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await
+}
+
+/// Una URL por línea (con líneas vacías entre medio); solo UDP y HTTP(S).
+fn parse_shared_list(text: &str) -> Vec<String> {
+    text.lines()
+        .map(str::trim)
+        .filter(|l| {
+            l.starts_with("udp://") || l.starts_with("http://") || l.starts_with("https://")
+        })
+        .map(String::from)
+        .collect()
+}
+
+#[cfg(test)]
+mod shared_list_tests {
+    use super::parse_shared_list;
+
+    #[test]
+    fn lee_la_lista_compartida() {
+        let text = "udp://a.org:1337/announce\n\nhttp://b.org/announce\nwss://c.org\n  udp://d.org:80/announce  \n";
+        assert_eq!(
+            parse_shared_list(text),
+            [
+                "udp://a.org:1337/announce",
+                "http://b.org/announce",
+                "udp://d.org:80/announce"
+            ]
+        );
+    }
+}
