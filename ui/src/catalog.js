@@ -1044,18 +1044,28 @@ const browse = {
   items: [], stale: [], shown: 0, skip: 0, cursor: null, hasMore: true, loading: false, error: null, gen: 0,
 };
 
-/** Espera tras el último cambio de filtro antes de pedir la lista (pedido 2026-11-15): elegir
- *  varios filtros seguidos hace un solo pedido. Mientras tanto se ve lo anterior atenuado. */
-const SETTLE_MS = 700;
+/** Un solo temporizador para todos los filtros (pedido 2026-11-15): cualquier cambio (menú, clic en
+ *  la lista o ruedita) lo reinicia, y la lista se pide una vez, SPIN_APPLY_MS después del último.
+ *  Al vencer se aplican también los cambios de ruedita pendientes. Mientras, lo anterior se atenúa. */
 let browseTimer = null;
+function scheduleLoad(wait) {
+  clearTimeout(browseTimer);
+  browseTimer = setTimeout(() => {
+    browseTimer = null;
+    flushSpins();
+    if (!browse.items.length) loadMore(); // sin cambios reales (volvió al valor que tenía) no se pide de nuevo
+  }, wait);
+}
 
-function setBrowse(changes, wait = SETTLE_MS) {
+/** `wait`: cuánto esperar antes de pedir; `null` = no programa nada (lo hace quien llama). */
+function setBrowse(changes, wait = SPIN_APPLY_MS) {
+  // Cambios de ruedita pendientes en otras píldoras: se asientan antes de que el redibujo las borre.
+  if (wait !== null && pendingSpins.size) flushSpins();
   // Lo que se veía queda atenuado hasta que llega lo nuevo (sin vaciar la pantalla).
   const stale = browseItems().slice(0, browse.shown);
   // `gen` invalida lo que esté cargando con el filtro anterior.
   Object.assign(browse, changes, { stale, items: [], shown: 0, skip: 0, cursor: null, hasMore: true, error: null, loading: false, gen: browse.gen + 1 });
-  clearTimeout(browseTimer);
-  browseTimer = setTimeout(() => { browseTimer = null; loadMore(); }, wait);
+  if (wait !== null) scheduleLoad(wait);
   render();
 }
 
@@ -1207,7 +1217,8 @@ function sortMenu() {
 /** Ruedita sobre una píldora (pedido 2026-11-15). Al girar (o con ↑ ↓) aparece la lista de opciones
  *  como un tambor centrado en la píldora: la elegida queda en el medio y las vecinas se desvanecen
  *  arriba y abajo. Arriba = índice siguiente. Se aplica sola tras SPIN_APPLY_MS sin girar (una barra
- *  muestra cuánto falta), con Enter, o con un clic en cualquier opción de la lista.
+ *  muestra cuánto falta; la espera es compartida con los demás filtros), con Enter, o con un clic en
+ *  cualquier opción de la lista.
  *  `clickOpens`: el clic en la píldora abre la lista (para las que no tienen menú propio). */
 // Clic afuera cierra la lista abierta (un giro pendiente se aplica igual al vencer la espera).
 document.addEventListener('click', (ev) => {
@@ -1216,8 +1227,17 @@ document.addEventListener('click', (ev) => {
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SPIN_APPLY_MS = 2500;
 const SPIN_ROW = 40; // alto de cada opción en la lista (px)
+/** Tocar otro filtro oculta la lista del anterior y deja su cambio pendiente; todos se aplican
+ *  juntos al vencer el temporizador compartido (`scheduleLoad`). */
+const pendingSpins = new Map(); // píldora → asentar su cambio (sin pedir)
+function flushSpins() {
+  const commits = [...pendingSpins.values()];
+  pendingSpins.clear();
+  for (const commit of commits) commit();
+}
+const hideOtherSpins = (node) => { for (const n of document.querySelectorAll('.spinnable.spinning')) if (n !== node) n.classList.remove('spinning'); };
 function spin(node, labels, index, apply, lo = 0, hi = labels.length - 1, { clickOpens = false } = {}) {
-  let i = Math.min(hi, Math.max(lo, index)), acc = 0, settle = null, progress = null;
+  let i = Math.min(hi, Math.max(lo, index)), acc = 0, progress = null;
   const label = el('span', { class: 'spin-label' }, labels[i]);
   const bar = el('span', { class: 'spin-bar' });
   // Mayor índice arriba: girar hacia arriba trae la opción de arriba al centro.
@@ -1236,9 +1256,9 @@ function spin(node, labels, index, apply, lo = 0, hi = labels.length - 1, { clic
     list.style.transform = `translateY(${(2 - (hi - i)) * SPIN_ROW}px)`;
     for (const r of rows) r.dataset.d = String(Math.min(4, Math.abs(Number(r.dataset.k) - i)));
   };
-  const open = () => { place(); node.classList.add('spinning'); };
-  const close = () => { node.classList.remove('spinning'); clearTimeout(settle); progress?.cancel(); };
-  const commit = () => { close(); apply(i); };
+  const open = () => { hideOtherSpins(node); place(); node.classList.add('spinning'); };
+  const close = () => { node.classList.remove('spinning'); progress?.cancel(); };
+  const commit = () => { close(); node.classList.remove('pending'); apply(i); };
   const show = (n, d) => {
     i = n;
     label.textContent = labels[i];
@@ -1246,18 +1266,22 @@ function spin(node, labels, index, apply, lo = 0, hi = labels.length - 1, { clic
     if (node.getAttribute('role') === 'spinbutton') node.setAttribute('aria-valuetext', labels[i]);
     if (!reduceMotion() && d) label.animate([{ transform: `translateY(${d > 0 ? -70 : 70}%)`, opacity: 0, filter: 'blur(3px)' }, { transform: 'none', opacity: 1, filter: 'none' }], { duration: 240, easing: 'cubic-bezier(.16, 1, .3, 1)' });
   };
-  function choose(k) { show(k, 0); commit(); }
+  // Clic, ruedita o flechas: el cambio queda pendiente y reinicia la espera de todos los filtros.
+  const pend = () => {
+    pendingSpins.set(node, commit);
+    node.classList.add('pending');
+    scheduleLoad(SPIN_APPLY_MS);
+    progress?.cancel();
+    progress = bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: SPIN_APPLY_MS, easing: 'linear' });
+  };
+  function choose(k) { open(); show(k, k > i ? 1 : -1); pend(); }
   const step = (d) => {
     open();
     const n = Math.min(hi, Math.max(lo, i + d));
     if (n === i) { // tope: un rebote corto en vez de no hacer nada
       if (!reduceMotion()) list.animate([{ marginTop: '0px' }, { marginTop: `${d > 0 ? 6 : -6}px` }, { marginTop: '0px' }], { duration: 200, easing: 'ease-out' });
     } else show(n, d);
-    // Cada paso reinicia la espera: hay tiempo de volver a la opción que se quería.
-    clearTimeout(settle);
-    settle = setTimeout(commit, SPIN_APPLY_MS);
-    progress?.cancel();
-    progress = bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: SPIN_APPLY_MS, easing: 'linear' });
+    pend();
   };
   // Se acumula el desplazamiento: un "click" de rueda es ~100; los touchpads mandan muchos pasos chicos.
   node.addEventListener('wheel', (ev) => {
@@ -1269,8 +1293,13 @@ function spin(node, labels, index, apply, lo = 0, hi = labels.length - 1, { clic
   }, { passive: false });
   node.addEventListener('keydown', (ev) => {
     if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') { ev.preventDefault(); step(ev.key === 'ArrowUp' ? 1 : -1); }
-    else if (ev.key === 'Enter' && node.classList.contains('spinning')) { ev.preventDefault(); ev.stopPropagation(); commit(); }
-    else if (ev.key === 'Escape' && node.classList.contains('spinning')) { show(Math.min(hi, Math.max(lo, index)), 0); close(); }
+    else if (ev.key === 'Enter' && pendingSpins.size) { ev.preventDefault(); ev.stopPropagation(); scheduleLoad(0); }
+    else if (ev.key === 'Escape' && node.classList.contains('spinning')) {
+      show(Math.min(hi, Math.max(lo, index)), 0);
+      pendingSpins.delete(node);
+      node.classList.remove('pending');
+      close();
+    }
   });
   place();
   if (clickOpens) node.addEventListener('click', () => (node.classList.contains('spinning') ? close() : open()));
@@ -1289,8 +1318,8 @@ function backWheel(which) {
     const v = BACK_STEPS[i];
     if (v === browse[key]) return;
     const next = (x) => BACK_STEPS.find((y) => y > x), prev = (x) => BACK_STEPS.findLast((y) => y < x);
-    if (which === 'from') setBrowse({ backFrom: v, backTo: Math.min(browse.backTo, prev(v)) }, 0);
-    else setBrowse({ backTo: v, backFrom: Math.max(browse.backFrom, next(v)) }, 0);
+    if (which === 'from') setBrowse({ backFrom: v, backTo: Math.min(browse.backTo, prev(v)) }, null);
+    else setBrowse({ backTo: v, backFrom: Math.max(browse.backFrom, next(v)) }, null);
   }, lo, hi, { clickOpens: true });
 }
 
@@ -1408,10 +1437,10 @@ function sentence(searching) {
   const sortIdx = Math.max(0, BROWSE_SORTS.findIndex(([v]) => v === browse.sort));
   const votesIdx = Math.max(0, VOTE_STEPS.findIndex((v) => v >= browse.minVotes));
   const langIdx = Math.max(0, LANGS.findIndex(([v]) => v === browse.langs.join(',')));
-  const kindWheel = [kinds.map((k) => k.label), kinds.indexOf(kind), (i) => kinds[i] !== kind && setBrowse({ kind: kinds[i].kind, genre: kinds[i].genre }, 0)];
-  const sortWheel = [BROWSE_SORTS.map(([, l]) => l), sortIdx, (i) => i !== sortIdx && setBrowse({ sort: BROWSE_SORTS[i][0] }, 0)];
-  const votesWheel = [VOTE_STEPS.map(votesLabel), votesIdx, (i) => i !== votesIdx && setBrowse({ minVotes: VOTE_STEPS[i] }, 0)];
-  const langWheel = [LANGS.map(([, l]) => l), langIdx, (i) => i !== langIdx && setBrowse({ langs: LANGS[i][0].split(',').filter(Boolean) }, 0)];
+  const kindWheel = [kinds.map((k) => k.label), kinds.indexOf(kind), (i) => kinds[i] !== kind && setBrowse({ kind: kinds[i].kind, genre: kinds[i].genre }, null)];
+  const sortWheel = [BROWSE_SORTS.map(([, l]) => l), sortIdx, (i) => i !== sortIdx && setBrowse({ sort: BROWSE_SORTS[i][0] }, null)];
+  const votesWheel = [VOTE_STEPS.map(votesLabel), votesIdx, (i) => i !== votesIdx && setBrowse({ minVotes: VOTE_STEPS[i] }, null)];
+  const langWheel = [LANGS.map(([, l]) => l), langIdx, (i) => i !== langIdx && setBrowse({ langs: LANGS[i][0].split(',').filter(Boolean) }, null)];
   return el('div', { class: 'cat-sentence' },
     pair('Mostrando', word('kind', kind.label, () => kindMenu(), kindWheel)),
     word('sort', BROWSE_SORTS[sortIdx][1], sortMenu, sortWheel),

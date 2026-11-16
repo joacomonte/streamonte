@@ -388,3 +388,5 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-chip.genre .n { color: var(--dim); font-weight: 500; font-variant-numeric: tabular-nums; }
 .cat-chip.genre.empty:not(.on) { color: var(--dim); background: var(--surface-2); border-color: transparent; }
 .cat-chip.genre.on .n { color: var(--accent-fg); }
+/* Cambio elegido con la ruedita que todavía no se aplicó (espera compartida). */
+.cat-word.pending:not(.spinning) { border-style: dashed; border-color: var(--accent); color: var(--accent-fg); }
