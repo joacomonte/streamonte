@@ -390,3 +390,14 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-chip.genre.on .n { color: var(--accent-fg); }
 /* Cambio elegido con la ruedita que todavía no se aplicó (espera compartida). */
 .cat-word.pending:not(.spinning) { border-style: dashed; border-color: var(--accent); color: var(--accent-fg); }
+
+/* Panel: géneros, sinopsis y link a IMDb debajo de la cabecera (2026-11-15). */
+.side-about { display: grid; gap: 12px; padding: 4px 20px 18px; border-bottom: 1px solid var(--border); }
+.side-genres { display: flex; flex-wrap: wrap; gap: 6px; }
+.side-genre { height: 26px; display: inline-flex; align-items: center; padding: 0 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 12.5px; font-weight: 600; }
+.side-desc { margin: 0; max-width: 68ch; font-size: 14px; line-height: 1.55; color: var(--muted); cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.side-desc.open { -webkit-line-clamp: unset; display: block; }
+.side-desc:hover { color: var(--text); }
+.side-desc:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.side-imdb { justify-self: start; display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; }
+.side-imdb:hover { border-color: var(--accent); color: var(--accent-fg); }

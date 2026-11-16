@@ -229,6 +229,12 @@ pub async fn open_key_page(core: Core<'_>, service: String) -> CmdResult<()> {
     let core = core.inner().clone();
     blocking(move || Ok(core.open_key_page(&service)?)).await
 }
+/// Ficha de IMDb del título en el navegador.
+#[tauri::command]
+pub async fn catalog_open_imdb(core: Core<'_>, imdb_id: String) -> CmdResult<()> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.open_imdb(&imdb_id)?)).await
+}
 /// "Contar seeders reales" de opciones del catálogo (se conecta al enjambre; ~50 s por tanda).
 #[tauri::command]
 pub async fn catalog_swarm(

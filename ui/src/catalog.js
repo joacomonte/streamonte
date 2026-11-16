@@ -213,19 +213,35 @@ function renderSide() {
   if (!s) { aside.replaceChildren(); return; }
   aside.replaceChildren(
     el('button', { id: 'cat-side-close', class: 'side-close', title: 'Cerrar (Esc)', 'aria-label': 'Cerrar panel', onclick: closeSide }, '✕'),
-    ...(s.meta ? [hero(s.meta)] : []), // replaceChildren escribiría "null"
+    ...(s.meta ? [hero(s.meta), about(s.meta)] : []), // replaceChildren escribiría "null"
     el('div', { class: 'side-head' }, crumbs(s)),
     el('div', { id: 'cat-side-body', class: 'side-body' }, sideBody(s)));
   renderStreamsOnly();
 }
 
+/** Géneros de Cinemeta (en inglés) a español; los que no están se muestran tal cual. */
+const GENRE_ES = { Action: 'Acción', Adventure: 'Aventura', Animation: 'Animación', Biography: 'Biografía', Comedy: 'Comedia', Crime: 'Crimen', Documentary: 'Documental', Drama: 'Drama', Family: 'Familia', Fantasy: 'Fantasía', 'Film-Noir': 'Cine negro', History: 'Historia', Horror: 'Terror', Music: 'Música', Musical: 'Musical', Mystery: 'Misterio', Romance: 'Romance', 'Sci-Fi': 'Ciencia ficción', 'Science Fiction': 'Ciencia ficción', Short: 'Corto', Sport: 'Deportes', Thriller: 'Suspenso', War: 'Bélica', Western: 'Western', 'Reality-TV': 'Reality', 'Talk-Show': 'Talk show', 'Game-Show': 'Concurso', News: 'Noticias' };
+
 /** Cabecera de la serie o película: fondo, póster y datos. */
 function hero(m) {
-  const facts = [m.year, m.imdb_rating && `★ ${m.imdb_rating}`, m.genres.slice(0, 3).join(' · ')].filter(Boolean).join('  ·  ');
+  const facts = [m.year, m.imdb_rating && `★ ${m.imdb_rating}`, m.runtime_min && `${m.runtime_min} min`].filter(Boolean).join('  ·  ');
   return el('div', { class: 'side-hero' },
     m.background ? el('div', { class: 'side-hero-bg', style: `background-image:url("${encodeURI(m.background)}")` }) : null,
     m.poster ? el('img', { class: 'side-hero-poster', src: m.poster, alt: '', referrerpolicy: 'no-referrer', onerror: (ev) => ev.target.remove() }) : null,
     el('div', { class: 'side-hero-text' }, el('h2', {}, m.name), facts ? el('p', {}, facts) : null));
+}
+
+/** Debajo de la cabecera (pedido 2026-11-15): géneros, sinopsis (clic para verla entera) y link a IMDb. */
+function about(m) {
+  const desc = m.description ? el('p', {
+    class: 'side-desc', tabindex: 0, 'aria-expanded': 'false',
+    onclick: (ev) => { const p = ev.currentTarget; p.setAttribute('aria-expanded', String(p.classList.toggle('open'))); },
+    onkeydown: (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.currentTarget.click(); } },
+  }, m.description) : null;
+  return el('div', { class: 'side-about' },
+    m.genres.length ? el('div', { class: 'side-genres' }, m.genres.map((g) => el('span', { class: 'side-genre' }, GENRE_ES[g] ?? g))) : null,
+    desc,
+    el('button', { id: 'cat-open-imdb', class: 'side-imdb', onclick: () => api.catalogOpenImdb(m.id).catch(showError) }, 'Ver en IMDb', icon('external', 14)));
 }
 
 const shortDate = (iso) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : '');

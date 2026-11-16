@@ -526,6 +526,15 @@ impl AppCore {
             .map_err(|_| CoreError::Unsupported("abrir el navegador"))
     }
 
+    /// Abre la ficha de IMDb del título en el navegador (solo ids `tt…` válidos).
+    pub fn open_imdb(&self, imdb_id: &str) -> Result<()> {
+        if !crate::catalog::is_imdb_id(imdb_id) {
+            return Err(CoreError::NotFound(format!("ficha {imdb_id}")));
+        }
+        crate::external::open_external(format!("https://www.imdb.com/title/{imdb_id}/"))
+            .map_err(|_| CoreError::Unsupported("abrir el navegador"))
+    }
+
     /// Póster de TMDB para un título cuyo póster de Cinemeta no existe (2026-11-15).
     pub async fn catalog_poster(&self, imdb_id: &str) -> Option<String> {
         let timeout = self.catalog_timeout().await;

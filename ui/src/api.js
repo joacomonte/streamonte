@@ -66,6 +66,8 @@ export const api = {
   /** Mejor puntuadas con filtros de IMDb (solo películas, necesita key de TMDB): {items, has_more:false}.
    *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera. */
   catalogBrowseTop: (from, to, minVotes, languages, genre) => invoke('catalog_browse_top', { from, to, minVotes, languages, genre }),
+  /** Abre la ficha de IMDb del título en el navegador. */
+  catalogOpenImdb: (imdbId) => invoke('catalog_open_imdb', { imdbId }),
   /** FR-38/39: ficha con episodios. */
   catalogMeta: (kind, id) => invoke('catalog_meta', { kind, id }),
   /** FR-42: los streams llegan por el evento catalog-streams. */
