@@ -146,14 +146,15 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-options { display: grid; gap: 10px; }
 .cat-opt {
   display: grid; align-items: center; gap: 6px 14px;
-  /* Una sola línea (2026-11-15): peso · seeds · badges a la derecha · acciones. */
-  grid-template-columns: minmax(110px, auto) auto minmax(0, 1fr) auto;
+  /* Peso · salud y seeds · acciones. La del medio se achica (2026-11-16: con la salud como rango la
+     fila pasaba el ancho del panel y aparecía scroll horizontal). */
+  grid-template-columns: minmax(110px, auto) minmax(0, 1fr) auto;
   padding: 14px 18px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border);
   transition: border-color .15s var(--ease), background .15s var(--ease);
 }
 .cat-options .cat-opt:hover { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
 .cat-size { font-size: 17px; font-weight: 700; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.cat-opt-actions { grid-column: 4; display: flex; align-items: center; gap: 8px; }
+.cat-opt-actions { grid-column: 3; display: flex; align-items: center; gap: 8px; }
 
 /* Resoluciones en acordeón: encabezados siempre en la lista; uno abierto (2026-11-15). */
 .cat-sticky { position: sticky; top: -16px; z-index: 3; margin: -16px -18px 12px; padding: 12px 18px 10px; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
@@ -256,7 +257,7 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 @keyframes cat-best-in { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
 @keyframes cat-pop-tag { from { opacity: 0; transform: scale(.7); } }
 @media (prefers-reduced-motion: reduce) { .cat-seeds-btn.flash, .cat-opt.new-best, .cat-opt.new-best .cat-best-tag { animation: none; } }
-.cat-opt > .cat-stats-cell { display: flex; align-items: center; gap: 6px; justify-self: start; }
+.cat-opt > .cat-stats-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; justify-self: start; min-width: 0; }
 /* Angosto: los badges bajan de línea en vez de cortarse. */
 /* Descartados por el embudo del análisis (motivo en el tooltip de seeders) y salud estimada. */
 .cat-opt.skipped { opacity: .6; }

@@ -81,24 +81,37 @@ document.addEventListener('pointerdown', (ev) => { if (pkBtn && !pk.contains(ev.
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { if (pkBtn) closePk(true); else wantTip(null); } });
 document.addEventListener('scroll', () => { if (pkBtn) closePk(false); }, { capture: true, passive: true });
 
-/** Pregunta el idioma si el video trae más de un audio. `null` = nada que elegir; `undefined` = cancelado. */
-async function askAudio(e, anchor) {
-  // Ya ordenadas y con etiquetas cortas por el núcleo (`audio::play_options`).
-  const opts = e?.audio_options ?? [];
+// Idioma original según el país de Cinemeta (2026-11-16): va primero en el selector. Solo los
+// casos que el selector ofrece (Latino / Inglés / Español); el resto no cambia el orden.
+const EN = ['United States', 'USA', 'United Kingdom', 'UK', 'Canada', 'Australia', 'Ireland', 'New Zealand'];
+const LAT = ['Mexico', 'Argentina', 'Colombia', 'Chile', 'Peru', 'Venezuela', 'Uruguay', 'Paraguay', 'Bolivia', 'Ecuador', 'Cuba', 'Guatemala', 'Costa Rica', 'Puerto Rico', 'Dominican Republic'];
+/** Código de audio del idioma original (`en`, `lat`, `es`) por el primer país, o null. */
+export function originalAudio(country) {
+  const first = country?.split(',')[0].trim();
+  return EN.includes(first) ? 'en' : LAT.includes(first) ? 'lat' : first === 'Spain' ? 'es' : null;
+}
+
+/** Pregunta el idioma si el video trae más de un audio. `null` = nada que elegir; `undefined` = cancelado.
+ *  `original`: código del idioma original, que pasa a ser el primero (el preseleccionado). */
+async function askAudio(e, anchor, original) {
+  // Ordenadas y con etiquetas cortas por el núcleo (`audio::play_options`); el original, primero.
+  const base = e?.audio_options ?? [];
+  const opts = original ? [...base].sort((a, b) => (b.code === original) - (a.code === original)) : base;
   if (opts.length < 2) return null;
   const at = anchor ?? $('.topbar');
   const i = await openPk(at, opts);
   return i === undefined ? undefined : { code: opts[i].code, aid: opts[i].aid };
 }
 
-/** `entry`: la fila, si el que llama la tiene antes de que llegue su evento (catálogo).
+/** `entry`: la fila, si el que llama la tiene antes de que llegue su evento (catálogo). `original`:
+ *  código de audio del idioma original (`originalAudio`), primero en el selector.
  *  Devuelve `true` si el núcleo aceptó el pedido (no si se canceló o falló). */
-export async function play(key, anchor, entry = state.entries.get(key)) {
+export async function play(key, anchor, entry = state.entries.get(key), original = null) {
   try {
     // Si ESTE video ya está en el panel (pausado) se retoma con el audio que se eligió la otra
     // vez. Otro episodio del mismo pack no cuenta: es otra clave.
     const resuming = [...state.playbacks.values()].some((p) => p.key === key);
-    const audio = resuming ? null : await askAudio(entry, anchor);
+    const audio = resuming ? null : await askAudio(entry, anchor, original);
     if (audio === undefined) return;
     anchor?.classList.add('busy');
     activity.push({ area: 'reproduccion', text: `${resuming ? 'Retomando' : 'Abriendo'} ${titleOf(key)}${audio?.code ? ` con audio ${audio.code === 'lat' ? 'latino' : audio.code === 'en' ? 'en inglés' : audio.code}` : ''}…` });

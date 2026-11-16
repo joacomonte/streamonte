@@ -4,7 +4,7 @@
 // Todo texto que viene de Cinemeta o de los addons entra como texto, nunca como HTML (NFR-24).
 
 import { api, onCoreEvent } from './api.js';
-import { play } from './audio-picker.js';
+import { originalAudio, play } from './audio-picker.js';
 import { $, el, icon, setStatus, showError as reportError } from './dom.js';
 import { openSettings } from './dialogs.js';
 import { humanBytes, mbps, nf, nf1, playbackText } from './format.js';
@@ -1322,7 +1322,7 @@ async function playOption(hash, btn) {
     const [row] = await api.catalogAdd(state.side.kind, state.side.videoId, [hash]);
     if (row && starting.has(hash)) {
       starting.set(hash, row.key);
-      started = await play(row.key, btn, row);
+      started = await play(row.key, btn, row, originalAudio(state.side.meta?.country));
     }
   } catch (e) { showError(e); }
   // Cancelado, error, o ya se estaba viendo (el núcleo no manda evento): se suelta ya.
