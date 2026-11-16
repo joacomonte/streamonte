@@ -56,64 +56,46 @@ function measurements(rows, since, saved = {}) {
 const sustainedMbps = (l) => ((l.sustained_bps ?? l.avg_speed_bps) * 8) / 1e6;
 /** Mediana: con pares toma la mitad baja. */
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[Math.floor((s.length - 1) / 2)]; };
-/** Cuantil p con la misma regla que `median` (p = 0,5 da lo mismo). */
-const quantile = (xs, p) => [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) * p)];
-
-/** Banda del aporte por seeder (2026-11-16, spec 08): `{lo, p50, p75, hi, conf}` en Mbps. `q` =
- *  [p25, p50, p75] de las mediciones (null sin MIN_SAMPLES): con pocas, se ensancha ±1/(2√n). Sin
- *  mediciones, alrededor del default (×0,5 a ×8; el ×8 ≈ la medición real de seedboxes) movido por
- *  `bias` (sesgo aprendido, spec 04; 1 sin él). */
-export function perSeedBand(q, n, bias = 1) {
-  if (!q) { const d = DEFAULT_SEED_MBPS * bias; return { lo: d * 0.5, p50: d, p75: d * 4, hi: d * 8, conf: 'baja' }; }
-  const w = 1 / (2 * Math.sqrt(n));
-  return { lo: q[0] * (1 - w), p50: q[1], p75: q[2], hi: q[2] * (1 + w), conf: 'media' };
-}
-/** Rango de Mbps de un torrent: `eff` seeders equivalentes × la banda, con tope `cap` (null = sin). */
-export function supplyRange(eff, band, cap) {
-  const at = (x) => (cap ? Math.min(eff * x, cap) : eff * x);
-  return { lo: at(band.lo), p50: at(band.p50), p75: at(band.p75), hi: at(band.hi), conf: band.conf };
-}
-
-// ---------- corrección aprendida análisis → reproducción (idea 4, 2026-11-16) ----------
-/** Ventana de "lo real": segundos 120–300 de descarga activa (sin el arranque). Con menos de
- *  WIN_MIN ahí (se cortó antes), la ventana corta 30→fin con medio peso: si no, lo que anduvo mal
- *  y se abandonó no entraría nunca. */
+// ---------- salud fiel, Fase 1 (2026-11-16): corrección aprendida + rango ----------
+// Spec: docs/plans/salud-fiel/salud-fiel.spec.md. Lo "real" es lo que bajó una reproducción en
+// sus minutos 2 a 5; cada evidencia del análisis aprende cuánto se equivoca en esta red. Lo que se
+// muestra (`predict`) y lo que evalúa la fidelidad son la misma predicción.
+/** Ventana de "lo real" (segundos de descarga activa): 120–300; si se cortó antes, 30→fin a medio peso. */
 const WIN_FROM = 120, WIN_TO = 300, WIN_MIN = 60, SHORT_FROM = 30, SHORT_MIN = 30;
 /** Muestras equivalentes del "sin sesgo" y vida media de una muestra (días). */
 const PRIOR_N = 2, HALF_LIFE_DAYS = 30;
 const BIAS_MIN = -Math.log(4), BIAS_MAX = Math.log(20);
 const MIN_PRED_MBPS = 0.5;
-const KINDS = ['tracker', 'counted', 'measured'];
+const LEECH = 1 / 6;
+/** Evidencias: la medición del análisis (manda) y las estimaciones por seeders. */
+const KINDS = ['measured', 'counted', 'tracker'];
+/** Banda sin muestras propias, × la predicción corregida: [lo, p75, hi]. Por seeders es amplia
+ *  (el ×8 ≈ la única medición real de seedboxes); una medición, angosta. */
+const PRIOR_BAND = { seeds: [0.5, 4, 8], measured: [0.8, 1.5, 2.5] };
 
 export const levelOf = (ratio) => (ratio >= 2 ? 0 : ratio >= 1 ? 1 : 2);
 
-/** Predicción SIN corregir de una evidencia, en Mbps (null si no la hay): lo que diría el modelo base. */
+/** Predicción SIN corregir de una evidencia, en Mbps (null si no la hay). */
 export function rawPrediction(ev, kind) {
   if (!ev) return null;
   if (kind === 'measured') return ev.analysis_mbps > 0 ? ev.analysis_mbps : null;
   const [s, l] = kind === 'tracker' ? [ev.tracker_seeds, ev.tracker_leechers] : [ev.counted_seeds, ev.counted_leech];
-  if (s == null || (kind === 'tracker' && !(s > 0))) return null; // 0 de tracker: no confiable (`trackersWin`)
-  return Math.max(MIN_PRED_MBPS, (s + (l ?? 0) / 6) * DEFAULT_SEED_MBPS);
-}
-/** La evidencia que usa `health()` del catálogo (spec 08): lo medido y, si no, la de más Mbps entre
- *  contadas y trackers (con 0 contados, los trackers no entran). Compara predicciones sin corregir. */
-export function basisOf(ev) {
-  if (rawPrediction(ev, 'measured') != null) return 'measured';
-  const c = rawPrediction(ev, 'counted'), t = rawPrediction(ev, 'tracker');
-  if (c == null) return t == null ? null : 'tracker';
-  return t != null && ev.counted_seeds !== 0 && t > c ? 'tracker' : 'counted';
+  if (s == null || (kind === 'tracker' && !(s > 0))) return null; // 0 de tracker: no confiable
+  return Math.max(MIN_PRED_MBPS, (s + (l ?? 0) * LEECH) * DEFAULT_SEED_MBPS);
 }
 
-function weightedMedian(pts) {
+/** Cuantil ponderado de `[[x, peso]]` (el primero cuyo peso acumulado llega a `p` del total). */
+function weightedQuantile(pts, p) {
   const s = [...pts].sort((a, b) => a[0] - b[0]);
-  const half = s.reduce((t, [, w]) => t + w, 0) / 2;
+  const total = s.reduce((t, [, w]) => t + w, 0);
   let acc = 0;
-  for (const [x, w] of s) { acc += w; if (acc >= half) return x; }
+  for (const [x, w] of s) { acc += w; if (acc >= total * p) return x; }
   return 0;
 }
 
 /** Sesgo aprendido por evidencia: mediana ponderada (por antigüedad) de ln(real ÷ predicción),
- *  contraída hacia 0 con PRIOR_N muestras equivalentes. Topadas por la línea y pesimistas: fuera. */
+ *  contraída hacia 0 con PRIOR_N muestras equivalentes; `lo`/`hi` = cuartiles de esos ln menos la
+ *  mediana (ancho del rango). Las topadas por la línea que dan pesimista no enseñan: fuera. */
 export function learnBias(samples, nowMs, link) {
   const out = {};
   for (const kind of KINDS) {
@@ -127,10 +109,51 @@ export function learnBias(samples, nowMs, link) {
       pts.push([r, (s.weight ?? 1) * 0.5 ** (age / HALF_LIFE_DAYS)]);
     }
     const nEff = pts.reduce((t, [, w]) => t + w, 0);
-    const bias = pts.length ? Math.min(BIAS_MAX, Math.max(BIAS_MIN, (nEff * weightedMedian(pts)) / (nEff + PRIOR_N))) : 0;
-    out[kind] = { bias, factor: Math.exp(bias), n: pts.length, nEff, ratios: pts.map(([r]) => Math.exp(r)) };
+    const m = pts.length ? weightedQuantile(pts, 0.5) : 0;
+    const bias = pts.length ? Math.min(BIAS_MAX, Math.max(BIAS_MIN, (nEff * m) / (nEff + PRIOR_N))) : 0;
+    out[kind] = { bias, factor: Math.exp(bias), n: pts.length, nEff,
+      lo: pts.length ? weightedQuantile(pts, 0.25) - m : 0, hi: pts.length ? weightedQuantile(pts, 0.75) - m : 0 };
   }
   return out;
+}
+
+/** Rango corregido de una evidencia: `{kind, lo, p50, p75, hi, conf}` en Mbps, o null sin ella. */
+function rangeOf(ev, kind, cal) {
+  const raw = rawPrediction(ev, kind);
+  if (raw == null) return null;
+  const bySeeds = kind !== 'measured';
+  const cap = (x) => (bySeeds && cal.capMbps ? Math.min(x, cal.capMbps) : x);
+  if (bySeeds && cal.manual) { const v = cap((raw / DEFAULT_SEED_MBPS) * cal.manual); return { kind, lo: v, p50: v, p75: v, hi: v, conf: 'media' }; }
+  const b = cal.bias?.[kind] ?? { factor: 1, nEff: 0, lo: 0, hi: 0 };
+  const p50 = raw * b.factor;
+  let lo, p75, hi, conf;
+  if (b.nEff >= MIN_SAMPLES) {
+    const w = 1 / (2 * Math.sqrt(b.nEff)); // pocas muestras: los cuartiles subestiman la dispersión
+    [lo, p75, conf] = [p50 * Math.exp(b.lo) * (1 - w), p50 * Math.exp(b.hi), 'media'];
+    hi = p75 * (1 + w);
+  } else {
+    const [fl, f75, fh] = bySeeds ? PRIOR_BAND.seeds : PRIOR_BAND.measured;
+    [lo, p75, hi, conf] = [p50 * fl, p50 * f75, p50 * fh, 'baja'];
+  }
+  return { kind, lo: cap(lo), p50: cap(p50), p75: cap(p75), hi: cap(hi), conf };
+}
+
+/** Lo que el catálogo muestra de una opción (`health()`) y lo que `fidelity` evalúa: la medición
+ *  manda (B6); si no, entre seeders contados y de trackers gana el p50 más alto (todas subestiman);
+ *  con 0 contados los trackers no entran. `cal` = {bias, manual, capMbps}. */
+export function predict(ev, cal) {
+  const measured = rangeOf(ev, 'measured', cal);
+  if (measured) return measured;
+  const counted = rangeOf(ev, 'counted', cal);
+  const tracker = ev?.counted_seeds === 0 ? null : rangeOf(ev, 'tracker', cal);
+  return [counted, tracker].filter(Boolean).reduce((a, b) => (!a || b.p50 > a.p50 ? b : a), null);
+}
+
+/** Nivel del p50 y nivel mostrado: sube uno ("probable") si el p75 alcanza el de arriba. */
+export function shownLevel(r, need) {
+  const level = levelOf(r.p50 / need);
+  const probable = r.conf !== 'alta' && level > 0 && levelOf(r.p75 / need) < level;
+  return { level, shown: probable ? level - 1 : level, probable };
 }
 
 /** Qué tan fiel fue la salud en esta red: cada muestra se predice con lo aprendido SOLO de las
@@ -139,39 +162,38 @@ export function fidelity(samples, link) {
   const asc = [...samples].sort((a, b) => Date.parse(a.measured_at) - Date.parse(b.measured_at));
   const rows = [];
   asc.forEach((s, i) => {
-    const kind = basisOf(s.ev);
     const need = s.ev?.need_mbps;
-    if (!kind || !(need > 0)) return;
-    const raw = rawPrediction(s.ev, kind);
-    const k = learnBias(asc.slice(0, i), Date.parse(s.measured_at), link)[kind].factor;
-    const cap = (x) => (link && kind !== 'measured' ? Math.min(x, link) : x);
-    const after = cap(raw * k), real = levelOf(s.real_mbps / need), got = levelOf(after / need);
-    rows.push({ before: Math.log(cap(raw) / s.real_mbps), after: Math.log(after / s.real_mbps), hit: got === real, pess: got > real });
+    if (!(need > 0)) return;
+    const before = predict(s.ev, { bias: {}, capMbps: link });
+    const after = predict(s.ev, { bias: learnBias(asc.slice(0, i), Date.parse(s.measured_at), link), capMbps: link });
+    if (!before || !after) return;
+    const real = levelOf(s.real_mbps / need), got = shownLevel(after, need).shown;
+    rows.push({ before: Math.log(before.p50 / s.real_mbps), after: Math.log(after.p50 / s.real_mbps), hit: got === real, pess: got > real, opt: got < real,
+      inBand: after.lo <= s.real_mbps && s.real_mbps <= after.hi });
   });
   if (!rows.length) return null;
   const med = (f) => median(rows.map(f));
-  return {
-    n: rows.length, biasBefore: med((r) => r.before), biasAfter: med((r) => r.after),
+  const count = (f) => rows.filter(f).length;
+  return { n: rows.length, biasBefore: med((r) => r.before), biasAfter: med((r) => r.after),
     typBefore: med((r) => Math.abs(r.before)), typAfter: med((r) => Math.abs(r.after)),
-    hits: rows.filter((r) => r.hit).length, pessimistic: rows.filter((r) => r.pess).length,
-  };
+    hits: count((r) => r.hit), pessimistic: count((r) => r.pess), optimistic: count((r) => r.opt), inBand: count((r) => r.inBand) };
 }
 
-/** Muestra lista para aprender (migración al leer: ver spec 04 §5). Null = no aprende. */
+/** Muestra lista para aprender (migración al leer, nada se reescribe). Null = no aprende: las del
+ *  análisis (son predicción) y las viejas de menos de 2 min. */
 function learnable(l) {
   if (l.ev && l.real_mbps > 0) return { ...l, weight: l.short ? 0.5 : 1 };
   if (l.source === 'análisis' || !(l.measured_secs >= WIN_FROM)) return null;
+  // Viejas: su p25 incluye el arranque (pesimista) → medio peso. Un 0 viejo no es "0 contados".
   return { ...l, weight: 0.5, real_mbps: sustainedMbps(l),
-    ev: { counted_seeds: l.seeds ?? null, counted_leech: null, tracker_seeds: l.tracker_seeds ?? null, tracker_leechers: l.tracker_leechers ?? null, analysis_mbps: null, need_mbps: null } };
+    ev: { counted_seeds: l.seeds > 0 ? l.seeds : null, counted_leech: null, tracker_seeds: l.tracker_seeds ?? null,
+      tracker_leechers: l.tracker_leechers ?? null, analysis_mbps: null, need_mbps: null } };
 }
 
-/** `rows`: filas de la biblioteca. `capMbps` = techo del aporte total: la velocidad de internet
- *  medida (`capFrom: 'test'`) o, sin test, lo más rápido que bajó esta PC (`'measured'`; null sin
- *  mediciones suficientes); `samples` = todas las mediciones (también las del análisis), la más nueva
- *  primero; `learnable` = las que aprenden; `bias` = `{tracker, counted, measured}: {bias, factor, n,
- *  nEff}`; `seedMbps` / `trackerSeedMbps` = aporte por seeder contado / de trackers (base × factor);
- *  `seedBand` / `trackerBand` = banda `{lo, p50, p75, hi, conf}` del aporte por seeder (spec 08);
- *  `measuredFactor` = corrección de lo medido por el análisis; `n` / `trackerN` = muestras de cada una. */
+/** `rows`: filas de la biblioteca. `bias` = sesgo aprendido por evidencia (salud fiel); `manual` =
+ *  Mbps por seeder fijados a mano o null; `seedMbps`/`trackerSeedMbps` = 3 Mbps × su factor (para
+ *  "Tu conexión"); `capMbps` = techo (test de velocidad o lo más rápido medido); `samples` = todas
+ *  las mediciones (techo y lista); `learnable` = las que enseñan. */
 export function healthCalibration(rows) {
   const cfg = load();
   const samples = measurements(rows, cfg.since, cfg.bg)
@@ -180,23 +202,13 @@ export function healthCalibration(rows) {
   const capMbps = linkMbps ?? fastest;
   const capFrom = linkMbps ? 'test' : fastest ? 'measured' : null;
   const learn = samples.map(learnable).filter(Boolean);
-  // Sesgo aprendido (idea 4): lo real de min 2–5 vs lo que predijo el análisis, por evidencia.
   const bias = learnBias(learn, Date.now(), linkMbps);
-  const manual = cfg.seedMbps > 0;
-  // Banda por seeder (spec 08): su p50 es el aporte de arriba (default × factor); con MIN_SAMPLES
-  // reproducciones, la dispersión sale de cuánto varió real ÷ predicción (cuartiles), si no, el prior.
-  const bandOf = (b) => {
-    const d = DEFAULT_SEED_MBPS * b.factor, m = quantile(b.ratios.length ? b.ratios : [1], 0.5);
-    const q = b.n >= MIN_SAMPLES ? [d * Math.min(1, quantile(b.ratios, 0.25) / m), d, d * Math.max(1, quantile(b.ratios, 0.75) / m)] : null;
-    return perSeedBand(q, b.n, b.factor);
-  };
-  const v = cfg.seedMbps, fixed = { lo: v, p50: v, p75: v, hi: v, conf: 'media' };
+  const manual = cfg.seedMbps > 0 ? cfg.seedMbps : null;
   return {
-    capMbps, capFrom, samples, learnable: learn, bias,
-    seedBand: manual ? fixed : bandOf(bias.counted), trackerBand: manual ? fixed : bandOf(bias.tracker),
+    capMbps, capFrom, samples, learnable: learn, bias, manual,
     n: bias.counted.n, trackerN: bias.tracker.n,
-    seedMbps: manual ? cfg.seedMbps : DEFAULT_SEED_MBPS * bias.counted.factor,
-    trackerSeedMbps: manual ? cfg.seedMbps : DEFAULT_SEED_MBPS * bias.tracker.factor,
+    seedMbps: manual ?? DEFAULT_SEED_MBPS * bias.counted.factor,
+    trackerSeedMbps: manual ?? DEFAULT_SEED_MBPS * bias.tracker.factor,
     measuredFactor: bias.measured.factor,
     source: manual ? 'manual' : bias.counted.n ? 'measured' : 'default',
   };
@@ -233,7 +245,9 @@ export function trackPlayback(row, ev) {
   t.incoming = Math.max(t.incoming, row.incoming_peers ?? 0);
   noteIncoming(t);
   // Cada 10 s se guarda (pisa la anterior de ese torrent): si se corta, queda lo medido hasta ahí.
-  if (t.ev && t.n % 10 === 0 && t.n <= WIN_TO + 10) addSample(hash, t);
+  // Solo enseña si alguna evidencia predijo algo (si no, no hay contra qué comparar).
+  const predicts = KINDS.some((k) => rawPrediction(t.ev, k) != null);
+  if (predicts && t.n % 10 === 0 && t.n <= WIN_TO + 10) addSample(hash, t);
   else window.dispatchEvent(new Event('health-calib-changed'));
 }
 

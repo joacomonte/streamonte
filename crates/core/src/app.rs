@@ -522,7 +522,12 @@ impl AppCore {
         crate::incoming::check(&engine, &self.paths).await
     }
 
-    pub async fn set_network(&self, incoming: bool, upnp: bool, announce_early: bool) -> Result<()> {
+    pub async fn set_network(
+        &self,
+        incoming: bool,
+        upnp: bool,
+        announce_early: bool,
+    ) -> Result<()> {
         self.update_config(|c| {
             c.engine.incoming = incoming;
             c.engine.upnp = upnp;

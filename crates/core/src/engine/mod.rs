@@ -93,7 +93,10 @@ impl Metadata {
     /// `.txt`, o en un pack de la serie entera un video de entrevistas, 2026-11-16). Si no, el del
     /// episodio o el video más grande.
     pub fn pick_file(&self, pick: FilePick) -> Result<FileInfo> {
-        let names_it = |f: &FileInfo| pick.episode.map_or(true, |(s, e)| names_episode(&f.name, s, e));
+        let names_it = |f: &FileInfo| {
+            pick.episode
+                .map_or(true, |(s, e)| names_episode(&f.name, s, e))
+        };
         let any_names_it = self.files.iter().any(|f| is_video(&f.name) && names_it(f));
         match pick.index.map(|i| (i, self.files.get(i))) {
             Some((_, Some(f))) if is_video(&f.name) && (names_it(f) || !any_names_it) => {
@@ -540,8 +543,16 @@ mod tests {
         ]);
         let pick = |index, episode| m.pick_file(FilePick { index, episode }).unwrap().index;
         assert_eq!(pick(None, Some((1, 3))), 1);
-        assert_eq!(pick(Some(0), Some((1, 3))), 1, "fileIdx a otro episodio: el pedido");
-        assert_eq!(pick(Some(0), None), 0, "sin episodio: se confía en el fileIdx");
+        assert_eq!(
+            pick(Some(0), Some((1, 3))),
+            1,
+            "fileIdx a otro episodio: el pedido"
+        );
+        assert_eq!(
+            pick(Some(0), None),
+            0,
+            "sin episodio: se confía en el fileIdx"
+        );
         assert_eq!(pick(None, Some((2, 1))), 2); // sin coincidencia: el más grande
         assert_eq!(
             pick(Some(3), Some((1, 3))),
@@ -554,8 +565,16 @@ mod tests {
             "GoT/Season 3/Game of Thrones - S03E03 - Walk of Punishment.mkv",
         ]);
         let pick_pack = |index, episode| pack.pick_file(FilePick { index, episode }).unwrap().index;
-        assert_eq!(pick_pack(Some(0), Some((3, 3))), 1, "fileIdx a entrevistas: el del episodio");
-        assert_eq!(pick_pack(Some(0), Some((9, 1))), 0, "ningún archivo nombra el episodio: el fileIdx");
+        assert_eq!(
+            pick_pack(Some(0), Some((3, 3))),
+            1,
+            "fileIdx a entrevistas: el del episodio"
+        );
+        assert_eq!(
+            pick_pack(Some(0), Some((9, 1))),
+            0,
+            "ningún archivo nombra el episodio: el fileIdx"
+        );
         assert!(names_episode("Breaking_Bad_1x01_Pilot.mkv", 1, 1));
         assert!(!names_episode("Show.S01E010.mkv", 1, 1));
         assert!(!names_episode("Show.11x01.mkv", 1, 1));

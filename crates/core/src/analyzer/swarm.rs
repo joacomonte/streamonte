@@ -160,9 +160,17 @@ async fn count_one(
     (min_secs, max_secs, stable_secs): (u64, u64, u64),
     progress: &(dyn Fn(SwarmCount) + Sync),
 ) -> Option<(InfoHash, SwarmCount)> {
-    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg, Some(COUNT_DOWNLOAD_BPS))
-        .await
-        .ok()?;
+    let handle = add_deselected(
+        engine,
+        paths,
+        cleanup,
+        dir,
+        magnet,
+        cfg,
+        Some(COUNT_DOWNLOAD_BPS),
+    )
+    .await
+    .ok()?;
     let result = async {
         // Sin `wait_metadata`: acá que no respondan es un resultado, no un error para el log.
         // Se corta antes si a los `DEAD_SECS` la red no conoce ni un peer.

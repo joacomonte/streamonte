@@ -542,9 +542,16 @@ impl TorrentEngine for RqbitEmbedded {
                 (h, seen.len() as u32) // al soltar `peers` se cancela la búsqueda
             }
         });
-        let out = futures_util::future::join_all(tasks).await.into_iter().collect();
+        let out = futures_util::future::join_all(tasks)
+            .await
+            .into_iter()
+            .collect();
         let st = dht.stats();
-        tracing::info!(n = hashes.len(), rt = st.routing_table_size, "censo DHT listo");
+        tracing::info!(
+            n = hashes.len(),
+            rt = st.routing_table_size,
+            "censo DHT listo"
+        );
         Some(out)
     }
 
