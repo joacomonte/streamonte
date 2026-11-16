@@ -64,17 +64,6 @@ pub trait ClipboardSource: Send + Sync {
     async fn history(&self) -> Result<ClipboardHistory>;
 }
 
-/// Un magnet encontrado en el portapapeles, para el diálogo de selección.
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct ClipboardMagnet {
-    /// Texto original del magnet ("Copiar magnet", FR-04).
-    pub raw: String,
-    pub info_hash: crate::magnet::InfoHash,
-    /// `dn` del magnet (puede ser genérico, p. ej. "Torrentio").
-    pub name: Option<String>,
-    pub copied_at: Option<chrono::DateTime<chrono::Utc>>,
-}
-
 /// Lo que hay para leer: el historial, o si no está (apagado, otro SO o error) solo el último
 /// copiado, con el motivo para avisar.
 async fn read(source: &dyn ClipboardSource) -> (Vec<HistoryItem>, Option<ClipboardUnavailable>) {
@@ -96,14 +85,6 @@ async fn read(source: &dyn ClipboardSource) -> (Vec<HistoryItem>, Option<Clipboa
     };
     let items = current.map(|t| vec![HistoryItem::from(t.as_str())]);
     (items.unwrap_or_default(), Some(reason))
-}
-
-/// Diálogo "Leer portapapeles" (FR-01c): todos los magnets del historial, con su hora.
-pub async fn scan_all(
-    source: &dyn ClipboardSource,
-) -> (Vec<ClipboardMagnet>, Option<ClipboardUnavailable>) {
-    let (items, unavailable) = read(source).await;
-    (all_magnets(&items), unavailable)
 }
 
 /// Resultado de [`import`]: magnets a agregar (con su texto original) y, si corresponde, por qué
@@ -130,26 +111,6 @@ pub async fn import(source: &dyn ClipboardSource) -> ClipboardImport {
         magnets,
         unavailable,
     }
-}
-
-/// Regla FR-01c (diálogo): TODOS los magnets, no solo hasta el primer no-magnet (el usuario
-/// elige), sin repetir, del más nuevo al más viejo.
-pub fn all_magnets(items_newest_first: &[HistoryItem]) -> Vec<ClipboardMagnet> {
-    let mut seen = std::collections::HashSet::new();
-    let mut out = Vec::new();
-    for item in items_newest_first {
-        for (m, raw) in magnet::extract_all_with_raw(&item.text) {
-            if seen.insert(m.info_hash) {
-                out.push(ClipboardMagnet {
-                    raw,
-                    info_hash: m.info_hash,
-                    name: m.display_name.clone(),
-                    copied_at: item.copied_at,
-                });
-            }
-        }
-    }
-    out
 }
 
 /// Regla FR-02: recorrer del más nuevo al más viejo y DETENERSE en el primer elemento
@@ -537,17 +498,6 @@ mod tests {
         assert_eq!(magnets_from_history(&items).len(), 2);
         // Un elemento que no es texto llega como "" y también corta.
         assert!(magnets_from_history(&["", M1].map(HistoryItem::from)).is_empty());
-    }
-
-    /// FR-01c: el diálogo muestra todos, sin repetir, aunque haya texto en el medio.
-    #[test]
-    fn dialogo_muestra_todos_los_magnets_sin_repetir() {
-        let items = [M3, "hola", M1, M3].map(HistoryItem::from);
-        let got: Vec<_> = all_magnets(&items)
-            .into_iter()
-            .map(|m| m.name.unwrap())
-            .collect();
-        assert_eq!(got, ["Tears of Steel", "Sintel"]);
     }
 
     /// Prueba manual en la sesión real (lección 7): adaptador del SO de verdad.

@@ -104,7 +104,9 @@ pub struct EngineConfig {
     pub listen_ports: [u16; 2],
     /// Pedir al router el reenvío del puerto por UPnP (sin NAT-PMP/PCP).
     pub upnp: bool,
-    /// uTP (UDP) además de TCP. librqbit todavía lo marca inestable: apagado por defecto.
+    /// uTP (UDP) además de TCP. Prendido por defecto (2026-11-16): con el puerto cerrado y sin
+    /// acceso al router, suma peers salientes (muchos clientes lo prefieren). librqbit todavía lo
+    /// marca inestable: si da problemas, se apaga acá.
     pub utp: bool,
 }
 
@@ -120,7 +122,7 @@ impl Default for EngineConfig {
             // Fuera del rango efímero de Windows (49152+) y de 6881-6889, que algunos ISP limitan.
             listen_ports: [41850, 41859],
             upnp: true,
-            utp: false,
+            utp: true,
         }
     }
 }

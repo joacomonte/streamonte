@@ -23,7 +23,7 @@ const RATINGS_URL: &str = "https://datasets.imdbws.com/title.ratings.tsv.gz";
 /// El .gz pesa ~8 MB; margen por si crece.
 const RATINGS_MAX: usize = 40 * 1024 * 1024;
 /// Los datasets de IMDb se actualizan a diario: lo guardado sirve un día.
-const DATASET_TTL: Duration = Duration::from_secs(24 * 3600);
+pub(super) const DATASET_TTL: Duration = Duration::from_secs(24 * 3600);
 /// Las fichas de TMDB (IMDb id, idioma) casi no cambian.
 const DETAILS_TTL: Duration = Duration::from_secs(90 * 24 * 3600);
 const DETAILS_KEY: &str = "tmdb-fichas.json";
@@ -186,6 +186,12 @@ impl TopRated {
             .await?;
         let details = self.details.lock().expect("details").clone();
         Ok(rank(candidates, &details, &ratings, q))
+    }
+
+    /// Los puntajes si ya están en memoria, sin esperar a leerlos (para no frenar la búsqueda).
+    pub(super) fn ratings_loaded(&self) -> Option<Arc<Ratings>> {
+        let slot = self.ratings.try_lock().ok()?;
+        slot.as_ref().map(|(_, r)| r.clone())
     }
 
     /// Puntajes de IMDb, leídos del dataset una vez por día (si no se puede actualizar, sirven

@@ -27,7 +27,7 @@ use crate::library::CatalogOrigin;
 use crate::magnet::{InfoHash, Magnet};
 use crate::{CoreError, Result};
 use addons::Addon;
-use cinemeta::{BrowsePage, BrowseSort, Meta, MetaPreview, SearchResults};
+use cinemeta::{BrowsePage, BrowseSort, Meta, MetaPreview};
 use http::{FetchError, Http};
 use normalize::StreamCandidate;
 
@@ -236,7 +236,7 @@ impl Catalog {
         &self,
         query: &str,
         timeout: Duration,
-    ) -> Result<(SearchResults, CancellationToken)> {
+    ) -> Result<(Vec<MetaPreview>, CancellationToken)> {
         let token = supersede(&self.search);
         let both = async {
             tokio::join!(
@@ -251,10 +251,12 @@ impl Catalog {
         match (movies, series) {
             (Err(e), Err(_)) => Err(fetch_error("buscar", &e)),
             (m, s) => Ok((
-                SearchResults {
-                    movies: m.unwrap_or_default(),
-                    series: s.unwrap_or_default(),
-                },
+                by_relevance(
+                    query,
+                    m.unwrap_or_default(),
+                    s.unwrap_or_default(),
+                    self.top.ratings_loaded().as_deref(),
+                ),
                 token,
             )),
         }
@@ -267,21 +269,13 @@ impl Catalog {
         query: &str,
         timeout: Duration,
         on_excluded: impl Fn(String) + Send + 'static,
-    ) -> Result<SearchResults> {
+    ) -> Result<Vec<MetaPreview>> {
         let query = query.trim();
         if query.chars().count() < 2 {
-            return Ok(SearchResults {
-                movies: Vec::new(),
-                series: Vec::new(),
-            });
+            return Ok(Vec::new());
         }
         let (results, token) = self.search(query, timeout).await?;
-        let previews = results
-            .movies
-            .iter()
-            .chain(&results.series)
-            .cloned()
-            .collect();
+        let previews = results.clone();
         let catalog = self.clone();
         tokio::spawn(async move {
             catalog
@@ -291,8 +285,19 @@ impl Catalog {
         Ok(results)
     }
 
-    /// Puntaje promedio por temporada de una serie (para ver si decayó). `quick`: sin TMDB no se
-    /// calcula con IMDb (tarda), solo se da el estado; lo usan las tarjetas al pasar el mouse.
+    /// Puntaje promedio por temporada de una serie (para ver si decayó). `quick` (tarjetas al pasar
+    /// el mouse): no espera al índice de IMDb si todavía se está armando.
+    /// De fondo al abrir la app: los puntajes de IMDb (ordenan la búsqueda) y el índice de puntajes
+    /// por temporada.
+    pub async fn warm_imdb(&self) {
+        if let Err(e) = self.top.ratings(&self.http).await {
+            tracing::warn!("puntajes de IMDb: {e}");
+        }
+        if let Err(e) = self.seasons.index(&self.http, &self.top).await {
+            tracing::warn!("índice de temporadas: {e}");
+        }
+    }
+
     pub async fn season_ratings(
         &self,
         imdb_id: &str,
@@ -680,9 +685,93 @@ impl Catalog {
     }
 }
 
+/// FR-36 (2026-11-16): películas y series juntas, lo más popular primero. Cinemeta ordena cada tipo
+/// por su cuenta y sin popularidad: se intercalan por ese puesto (a igual puesto, primero el título que
+/// empieza con lo escrito) y, si los puntajes de IMDb ya están en memoria, se ordena por votos.
+fn by_relevance(
+    query: &str,
+    movies: Vec<MetaPreview>,
+    series: Vec<MetaPreview>,
+    ratings: Option<&top::Ratings>,
+) -> Vec<MetaPreview> {
+    let q = query.trim().to_lowercase();
+    let place =
+        |i: usize, p: &MetaPreview| 2 * i + usize::from(!p.name.to_lowercase().starts_with(&q));
+    let mut list: Vec<(usize, MetaPreview)> = movies
+        .into_iter()
+        .enumerate()
+        .chain(series.into_iter().enumerate())
+        .map(|(i, p)| (place(i, &p), p))
+        .collect();
+    list.sort_by_key(|(place, _)| *place);
+    if let Some(ratings) = ratings {
+        let votes = |p: &MetaPreview| {
+            top::tt_number(&p.id)
+                .and_then(|n| ratings.get(&n))
+                .map_or(0, |(_, v)| *v)
+        };
+        list.sort_by_key(|(_, p)| std::cmp::Reverse(votes(p)));
+    }
+    list.into_iter().map(|(_, p)| p).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn busqueda_lo_mas_votado_primero() {
+        let p = |id: &str, name: &str, kind| MetaPreview {
+            id: id.into(),
+            kind,
+            name: name.into(),
+            year: None,
+            imdb_rating: None,
+            excluded: false,
+            poster: None,
+            released: None,
+            popularity: None,
+            genres: Vec::new(),
+        };
+        let movies = vec![
+            p(
+                "tt10090796",
+                "Game of Thrones: The Last Watch",
+                MediaKind::Movie,
+            ),
+            p("tt0409182", "The Game of Their Lives", MediaKind::Movie),
+        ];
+        let series = vec![p("tt0944947", "Game of Thrones", MediaKind::Series)];
+        let names = |v: Vec<MetaPreview>| v.into_iter().map(|p| p.name).collect::<Vec<_>>();
+        assert_eq!(
+            names(by_relevance(
+                "game of th",
+                movies.clone(),
+                series.clone(),
+                None
+            )),
+            [
+                "Game of Thrones: The Last Watch",
+                "Game of Thrones",
+                "The Game of Their Lives"
+            ],
+            "sin puntajes: puesto de Cinemeta y lo que empieza con lo escrito"
+        );
+        let ratings: top::Ratings = [
+            (10090796, (7.0, 9_000)),
+            (409182, (6.6, 5_000)),
+            (944947, (9.2, 2_400_000)),
+        ]
+        .into();
+        assert_eq!(
+            names(by_relevance("game of th", movies, series, Some(&ratings))),
+            [
+                "Game of Thrones",
+                "Game of Thrones: The Last Watch",
+                "The Game of Their Lives"
+            ]
+        );
+    }
 
     /// T-20.
     #[test]

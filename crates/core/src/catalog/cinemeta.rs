@@ -34,12 +34,6 @@ pub struct MetaPreview {
     pub genres: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct SearchResults {
-    pub movies: Vec<MetaPreview>,
-    pub series: Vec<MetaPreview>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Meta {
     pub id: String,

@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 use streamonte_core::analyzer::swarm::SwarmCount;
 use streamonte_core::analyzer::AnalyzeScope;
 use streamonte_core::app::{
-    ApiKeyStatus, AppCore, ClipboardPreview, LibraryView, SubtitleFound, TempUsage,
+    ApiKeyStatus, AppCore, CopiedMagnet, LibraryView, SubtitleFound, TempUsage,
 };
-use streamonte_core::catalog::cinemeta::{BrowsePage, BrowseSort, Meta, SearchResults};
+use streamonte_core::catalog::cinemeta::{BrowsePage, BrowseSort, Meta, MetaPreview};
 use streamonte_core::catalog::{AddonView, MediaKind};
 use streamonte_core::cleanup::CleanupReport;
 use streamonte_core::config::{Config, PlayerKind, SubtitleLanguage};
@@ -90,8 +90,8 @@ pub async fn analyzer_resume(core: Core<'_>) -> CmdResult<()> {
     Ok(core.analyzer_resume().await?)
 }
 #[tauri::command]
-pub async fn clipboard_preview(core: Core<'_>) -> CmdResult<ClipboardPreview> {
-    Ok(core.clipboard_preview().await?)
+pub async fn copied_magnet(core: Core<'_>) -> CmdResult<Option<CopiedMagnet>> {
+    Ok(core.copied_magnet().await)
 }
 #[tauri::command]
 pub async fn library_add_selected(core: Core<'_>, raws: Vec<String>) -> CmdResult<usize> {
@@ -260,7 +260,7 @@ pub async fn catalog_poster(core: Core<'_>, imdb_id: String) -> CmdResult<Option
 
 // ----- Catálogo y addons (F4b, spec 09) -----
 #[tauri::command]
-pub async fn catalog_search(core: Core<'_>, query: String) -> CmdResult<SearchResults> {
+pub async fn catalog_search(core: Core<'_>, query: String) -> CmdResult<Vec<MetaPreview>> {
     Ok(core.catalog_search(&query).await?)
 }
 #[tauri::command]
@@ -307,6 +307,17 @@ pub async fn catalog_reset_addons(core: Core<'_>) -> CmdResult<Vec<AddonView>> {
 #[tauri::command]
 pub async fn catalog_set_exclude_japanese(core: Core<'_>, exclude: bool) -> CmdResult<()> {
     Ok(core.catalog_set_exclude_japanese(exclude).await?)
+}
+#[tauri::command]
+pub fn catalog_stop_swarm(core: Core<'_>) {
+    core.catalog_stop_swarm();
+}
+#[tauri::command]
+pub async fn speed_test(
+    core: Core<'_>,
+    force: bool,
+) -> CmdResult<streamonte_core::speedtest::SpeedResult> {
+    Ok(core.speed_test(force).await?)
 }
 #[tauri::command]
 pub fn data_cache_size(core: Core<'_>) -> u64 {

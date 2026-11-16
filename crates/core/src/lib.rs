@@ -32,6 +32,7 @@ mod rebrand;
 pub mod magnet;
 pub mod ranking;
 pub mod release;
+pub mod speedtest;
 pub mod video_key;
 
 pub mod cleanup;

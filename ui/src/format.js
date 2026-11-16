@@ -45,8 +45,8 @@ export function playbackText(pb) {
   if (k === 'stopping') return 'cerrando…';
   if (k === 'download-paused') return 'reproduciendo · descarga en pausa';
   if (k === 'ask-after-close') return 'cerraste el reproductor…';
-  if (k === 'background') return `bajando de fondo · ${Math.floor((pb.progress ?? 0) * 100)} %`;
-  if (k === 'paused') return `pausada · ${Math.floor((pb.progress ?? 0) * 100)} % bajado`;
+  if (k === 'background') return `descargando · ${Math.floor((pb.progress ?? 0) * 100)} %`;
+  if (k === 'paused') return `pausado · ${Math.floor((pb.progress ?? 0) * 100)} % bajado`;
   if (k === 'failed') return `falló: ${pb.state.message}`;
   return 'reproduciendo';
 }

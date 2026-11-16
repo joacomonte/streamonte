@@ -440,6 +440,7 @@ impl TorrentEngine for WebtorrentSidecar {
             upload_speed_bps: w.upload_speed_bps,
             peers: w.peers,
             seeds: w.seeds,
+            incoming_peers: 0, // el sidecar no lo informa
             progress: w.progress,
             paused: w.paused,
             ranges: w

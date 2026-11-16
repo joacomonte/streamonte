@@ -75,6 +75,10 @@ impl AppPaths {
     pub fn calibration_file(&self) -> PathBuf {
         self.data_dir.join("calibration.json")
     }
+    /// Velocidad de internet medida, una por red (`speedtest`).
+    pub fn speed_file(&self) -> PathBuf {
+        self.data_dir.join("velocidad.json")
+    }
     pub fn subtitles_memory_file(&self) -> PathBuf {
         self.data_dir.join("subtitles-memory.json")
     }

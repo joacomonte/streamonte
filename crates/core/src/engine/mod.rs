@@ -85,9 +85,18 @@ pub struct FilePick {
 }
 
 impl Metadata {
+    /// El índice pedido solo si es un video: el `fileIdx` de una fuente a veces apunta a otro
+    /// archivo del pack (un `.txt`, 2026-11-16) y mpv no lo abre. Si no, el del episodio o el video
+    /// más grande.
     pub fn pick_file(&self, pick: FilePick) -> Result<FileInfo> {
-        if pick.index.is_some() {
-            return self.choose_file(pick.index);
+        match pick.index.map(|i| (i, self.files.get(i))) {
+            Some((_, Some(f))) if is_video(&f.name) => return Ok(f.clone()),
+            Some((i, f)) => tracing::warn!(
+                index = i,
+                file = f.map(|f| f.name.as_str()),
+                "el archivo pedido no es un video: busco el del episodio"
+            ),
+            None => {}
         }
         if let Some((s, e)) = pick.episode {
             if let Some(f) = self
@@ -204,6 +213,10 @@ pub struct Stats {
     /// Peers conectados que tienen el archivo completo (seeders reales, no los que dice el tracker).
     #[serde(default)]
     pub seeds: u32,
+    /// Peers conectados que se conectaron ellos (conexiones entrantes): > 0 = el puerto llega desde
+    /// afuera, por IPv4 o IPv6 (2026-11-16: sin acceso al router no hay otra forma de saberlo).
+    #[serde(default)]
+    pub incoming_peers: u32,
     /// 0.0–1.0 del archivo seleccionado.
     pub progress: f32,
     pub paused: bool,
@@ -462,7 +475,7 @@ mod tests {
         }
     }
 
-    /// FR-49: pack sin `fileIdx` → el archivo del episodio pedido; con `fileIdx` → ese.
+    /// FR-49: pack sin `fileIdx` → el archivo del episodio pedido; con `fileIdx` → ese, si es video.
     #[test]
     fn elige_el_archivo_del_episodio() {
         let m = meta(&[
@@ -475,6 +488,11 @@ mod tests {
         assert_eq!(pick(None, Some((1, 3))), 1);
         assert_eq!(pick(Some(0), Some((1, 3))), 0);
         assert_eq!(pick(None, Some((2, 1))), 2); // sin coincidencia: el más grande
+        assert_eq!(
+            pick(Some(3), Some((1, 3))),
+            1,
+            "fileIdx a un .txt: el del episodio"
+        );
         assert!(names_episode("Breaking_Bad_1x01_Pilot.mkv", 1, 1));
         assert!(!names_episode("Show.S01E010.mkv", 1, 1));
         assert!(!names_episode("Show.11x01.mkv", 1, 1));

@@ -3,10 +3,11 @@
 // selector de audio en audio-picker.js y la burbuja de actividad en activity-feed.js.
 import { api, onCoreEvent } from './api.js';
 import { logEvent, renderActivity } from './activity-feed.js';
-import { askAfterClose, onConfirmClose, onHealthCalibration, onNetCheck, openSettings, saveKey, saveNetwork } from './dialogs.js';
-import { $, setStatus, showError } from './dom.js';
+import { askAfterClose, onConfirmClose, onNetCheck, openSettings, saveKey, saveNetwork } from './dialogs.js';
+import { $, icon, setStatus, showError } from './dom.js';
+import { initSpeed, onSpeedEvent } from './speed.js';
 import { state } from './state.js';
-import { onCacheClick, refreshCache, refreshDownloads, toggleClipboard, toggleDownloads } from './top-menus.js';
+import { playCopied, refreshCache, refreshCopied, refreshDownloads, toggleDownloads } from './top-menus.js';
 import './tooltip.js'; // tooltips propios en toda la app (se instala solo)
 import './updater.js'; // aviso de versión nueva (GitHub Releases)
 
@@ -27,6 +28,9 @@ function onEvent(event) {
   switch (event.type) {
     case 'status':
       setStatus(event.message);
+      break;
+    case 'speed-test':
+      onSpeedEvent(event.state);
       break;
     case 'analyzer-progress': {
       const wasRunning = state.analyzerState.kind !== 'idle' && state.analyzerState.kind !== 'paused';
@@ -59,12 +63,14 @@ function onEvent(event) {
       if (event.row.state.kind === 'failed' && state.playbacks.get(event.row.id)?.state.kind !== 'failed') setStatus(`No se pudo reproducir: ${event.row.state.message}`);
       if (event.row.state.kind === 'ask-after-close' && state.playbacks.get(event.row.id)?.state.kind !== 'ask-after-close') askAfterClose(event.row);
       state.playbacks.set(event.row.id, event.row);
+      window.dispatchEvent(new CustomEvent('playback-changed', { detail: event })); // ya guardada: el catálogo redibuja
       renderActivity();
       refreshDownloads();
       break;
     case 'playback-removed':
       state.playbacks.delete(event.id);
       state.logs.delete(event.id);
+      window.dispatchEvent(new CustomEvent('playback-changed', { detail: event }));
       renderActivity();
       refreshDownloads();
       break;
@@ -88,16 +94,17 @@ function onEvent(event) {
 
 // ---------- arranque ----------
 async function init() {
-  $('#btn-clipboard').addEventListener('click', toggleClipboard);
+  $('#btn-clipboard').addEventListener('click', playCopied);
   $('#btn-downloads').addEventListener('click', toggleDownloads);
-  $('#btn-cache').addEventListener('click', onCacheClick);
+  $('#btn-settings').append(icon('gear', 24));
   $('#btn-settings').addEventListener('click', openSettings);
+  // Lo copiado se mira al volver a la app y cada tanto (copiar un magnet afuera y volver).
+  window.addEventListener('focus', refreshCopied);
+  refreshCopied();
+  setInterval(() => { if (document.hasFocus()) refreshCopied(); }, 3000);
   $('#set-incoming').addEventListener('change', saveNetwork);
   $('#set-upnp').addEventListener('change', saveNetwork);
   $('#btn-net-check').addEventListener('click', onNetCheck);
-  $('#btn-health-fix').addEventListener('click', () => onHealthCalibration('fix'));
-  $('#btn-health-recalibrate').addEventListener('click', () => onHealthCalibration('recalibrate'));
-  $('#btn-health-reset').addEventListener('click', () => onHealthCalibration('reset'));
   document.querySelectorAll('[data-save-key]').forEach((b) => b.addEventListener('click', () => saveKey(b.dataset.saveKey)));
   document.querySelectorAll('[data-key-page]').forEach((b) => b.addEventListener('click', () => api.openKeyPage(b.dataset.keyPage).catch(showError)));
   document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
@@ -114,6 +121,7 @@ async function init() {
   refreshDownloads();
   refreshCache();
   setInterval(refreshCache, 30_000);
+  initSpeed();
 }
 
 init().catch(showError);

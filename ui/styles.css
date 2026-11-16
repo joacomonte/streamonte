@@ -350,7 +350,7 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .act-new { position: relative; align-self: center; margin: -36px 0 8px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--accent-fg); font-size: 12px; font-weight: 600; box-shadow: 0 4px 12px -4px var(--shadow-lg); }
 .act-new[hidden] { display: none; }
 
-/* Barra superior y menús desplegables (2026-11-15: Portapapeles, Descargas). */
+/* Barra superior: magnet copiado, Descargas y Ajustes. */
 .topbar { padding: 12px 20px; }
 .actions { gap: 10px; align-items: center; }
 .top-btn {
@@ -360,7 +360,62 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 }
 .top-btn:hover, .top-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
 .top-btn[hidden] { display: none; }
-.top-btn.icon { width: 42px; padding: 0; justify-content: center; font-size: 17px; }
+/* Ajustes (2026-11-16): solo el ícono, más grande, sin círculo de fondo. */
+/* "Tu conexión" (menú del botón de velocidad, 2026-11-16) */
+.conn-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg); }
+.conn-card + .conn-card { margin-top: 10px; }
+.conn-title { font-size: 15px; font-weight: 700; }
+.conn-incoming.open .conn-title { color: var(--green); }
+.conn-incoming.closed .conn-title { color: #d29922; }
+.conn-gauge { display: grid; place-items: center; flex: none; }
+.conn-gauge .speed-gauge path { stroke-width: 2; }
+.conn-main { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.conn-big { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.conn-big small { font-size: 13px; font-weight: 600; color: var(--muted); }
+.conn-sub { font-size: 13px; color: var(--muted); }
+.conn-live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conn-live i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.4s ease-in-out infinite; }
+.conn-edit { display: flex; gap: 6px; flex: none; }
+.conn-edit input { width: 72px; }
+.conn-how { margin-top: 16px; display: grid; gap: 8px; }
+.conn-how p { margin: 0; }
+.conn-formula { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.conn-formula span { padding: 3px 9px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.conn-legend { font-size: 13px; color: var(--muted); }
+.conn-legend .good { color: var(--green); } .conn-legend .fair { color: #d29922; } .conn-legend .risky { color: #e5534b; }
+.conn-samples { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; }
+.conn-samples summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.conn-samples .calib-list { margin: 10px 0; padding: 0; list-style: none; }
+/* Velocidad de internet (2026-11-16, ui/src/speed.js): medidor con aguja; mientras mide, la aguja
+   sigue lo que va bajando y un brillo recorre el borde. */
+.top-btn.speed { gap: 8px; padding: 0 16px; font-variant-numeric: tabular-nums; }
+.top-btn.speed small { font-size: 12px; font-weight: 500; color: var(--muted); }
+.speed-gauge { overflow: visible; }
+.speed-gauge path { fill: none; stroke-width: 2.4; stroke-linecap: round; }
+.speed-gauge .track { stroke: var(--border-strong); }
+.speed-gauge .fill { stroke: var(--green); transition: stroke-dasharray .35s var(--ease); }
+.speed-gauge .needle { stroke: var(--text); stroke-width: 1.6; stroke-linecap: round; transform-origin: 11px 11px; transition: transform .35s var(--ease); }
+.speed-gauge .hub { fill: var(--text); }
+.top-btn.speed.measuring { border-color: transparent; background:
+  linear-gradient(var(--bg), var(--bg)) padding-box,
+  conic-gradient(from var(--speed-turn, 0deg), transparent 0 70%, var(--accent) 85%, var(--green) 100%) border-box;
+  animation: speed-turn 1.4s linear infinite; cursor: progress; }
+.top-btn.speed.measuring .fill { stroke: var(--accent); }
+.top-btn.speed.failed .speed-val { color: var(--muted); }
+.top-btn.speed:disabled { opacity: 1; }
+@property --speed-turn { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes speed-turn { to { --speed-turn: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .top-btn.speed.measuring { animation: none; } }
+.top-btn.bare { width: 42px; padding: 0; justify-content: center; border-color: transparent; background: none; color: var(--muted); }
+.top-btn.bare:hover, .top-btn.bare.active { border-color: transparent; background: none; color: var(--text); }
+.top-btn.bare svg { transition: transform .4s cubic-bezier(.16, 1, .3, 1); }
+.top-btn.bare:hover svg { transform: rotate(45deg); }
+/* Magnet copiado (2026-11-16): botón de acción, aparece solo con un magnet en el portapapeles. */
+.top-btn.play-copied { max-width: min(420px, 40vw); border-color: transparent; background: var(--accent); color: var(--accent-text); animation: play-copied-in .3s cubic-bezier(.16, 1, .3, 1); }
+.top-btn.play-copied:hover { filter: brightness(1.1); background: var(--accent); }
+.top-btn.play-copied .play-copied-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: color-mix(in srgb, var(--accent-text) 75%, transparent); }
+@keyframes play-copied-in { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .top-btn.play-copied { animation: none; } .top-btn.bare svg { transition: none; } }
 .top-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .top-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 12px; font-weight: 700; display: inline-grid; place-items: center; }
 .top-badge[hidden] { display: none; }
@@ -407,4 +462,6 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .close-dl-head span { flex: none; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .close-dl-bar { display: block; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .close-dl-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--green)); }
-.pop-disk-data { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.pop-data-line { margin: 12px 0 0; font-size: 12px; color: var(--muted); opacity: .75; }
+.pop-data-line button { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.pop-data-line button:hover, .pop-data-line button:focus-visible { color: var(--text); }

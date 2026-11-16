@@ -1,6 +1,7 @@
 //! `intake` — cómo entran los magnets a *Mis magnets* (FR-01, FR-02): pegar o arrastrar texto,
-//! captura en vivo del portapapeles y "Leer portapapeles" (con o sin diálogo). Lo recién llegado
-//! pasa en tandas a buscar su nombre real y, si la config lo pide, al análisis automático.
+//! captura en vivo del portapapeles, "Leer portapapeles" y el magnet recién copiado (para el botón
+//! que lo reproduce). Lo recién llegado pasa en tandas a buscar su nombre real y, si la config lo
+//! pide, al análisis automático.
 
 use std::sync::Arc;
 
@@ -8,7 +9,7 @@ use serde::Serialize;
 use tokio::sync::{mpsc, Mutex, RwLock};
 
 use crate::analyzer::{AnalyzeScope, AnalyzerHandle};
-use crate::clipboard::{ClipboardMagnet, ClipboardSource, WatchGuard};
+use crate::clipboard::{ClipboardSource, WatchGuard};
 use crate::config::Config;
 use crate::events::{CoreEvent, EventSink, StatusLevel};
 use crate::library::{AddOutcome, Library};
@@ -19,22 +20,14 @@ use crate::video_key::VideoKey;
 /// Cuánto se juntan los magnets que llegan seguidos (pegar 5 juntos = una sola tanda).
 const BATCH_WINDOW: std::time::Duration = std::time::Duration::from_millis(400);
 
-/// Diálogo "Leer portapapeles": magnets encontrados para elegir (2026-11-14).
+/// Lo último copiado, si es un magnet (2026-11-16): el botón de arriba lo reproduce directo.
 #[derive(Debug, Clone, Serialize)]
-pub struct ClipboardPreview {
-    pub items: Vec<ClipboardPreviewItem>,
-    /// `false` → solo se vio el último copiado (Win+V apagado o macOS).
-    pub history_available: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct ClipboardPreviewItem {
-    #[serde(flatten)]
-    pub magnet: ClipboardMagnet,
-    /// Ya está en la lista.
-    pub in_list: bool,
-    /// Nombre real si ya lo conocemos (metadatos de una vez anterior).
-    pub known_name: Option<String>,
+pub struct CopiedMagnet {
+    /// Texto original del magnet, para agregarlo tal cual (FR-04).
+    pub raw: String,
+    pub info_hash: InfoHash,
+    /// Nombre real si ya lo conocemos; si no, el `dn` del magnet.
+    pub name: Option<String>,
 }
 
 /// Resultado de "Leer portapapeles" sin diálogo (FR-02, lectura al abrir la app).
@@ -96,29 +89,23 @@ impl Intake {
         }
     }
 
-    /// Diálogo "Leer portapapeles" (2026-11-14): TODOS los magnets del historial Win+V con la
-    /// hora en que se copiaron, para que el usuario elija cuáles agregar. Marca los que ya están.
-    pub(crate) async fn clipboard_preview(&self) -> ClipboardPreview {
-        let (items, unavailable) = crate::clipboard::scan_all(self.clipboard.as_ref()).await;
-        let library = self.library.lock().await;
-        let items = items
+    /// Lo último copiado, si tiene un magnet (el primero, si hay varios).
+    pub(crate) async fn copied_magnet(&self) -> Option<CopiedMagnet> {
+        let text = self.clipboard.current_text().await.ok()??;
+        let (m, raw) = crate::magnet::extract_all_with_raw(&text)
             .into_iter()
-            .map(|m| {
-                // Pegarlo agregaría la fila del torrent entero (no las de episodios).
-                let in_list = library.get(&VideoKey::whole(m.info_hash)).is_some();
-                ClipboardPreviewItem {
-                    in_list,
-                    known_name: library
-                        .any_of(&m.info_hash)
-                        .and_then(|e| e.torrent_name.clone()),
-                    magnet: m,
-                }
-            })
-            .collect();
-        ClipboardPreview {
-            items,
-            history_available: unavailable.is_none(),
-        }
+            .next()?;
+        let known = self
+            .library
+            .lock()
+            .await
+            .any_of(&m.info_hash)
+            .and_then(|e| e.torrent_name.clone());
+        Some(CopiedMagnet {
+            raw,
+            info_hash: m.info_hash,
+            name: known.or(m.display_name),
+        })
     }
 
     /// Captura en vivo (FR-01): de cada texto copiado se extraen todos los magnets. Si el SO no

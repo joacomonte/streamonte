@@ -98,19 +98,18 @@ pub(super) async fn run(
     if !cached.is_file() {
         metadata.save_torrent_cache(&cached);
     }
-    // FR-49: sin índice pedido, el archivo del episodio si la fila vino del catálogo.
-    let pick = match req.file_index {
-        Some(i) => crate::engine::FilePick {
-            index: Some(i),
-            episode: None,
-        },
-        None => deps
-            .library
-            .lock()
-            .await
-            .get(&req.key)
-            .map(|e| e.file_pick())
-            .unwrap_or_default(),
+    // FR-49: el índice pedido (retomar) o el de la fuente; el episodio de la fila del catálogo
+    // queda siempre como respaldo si ese índice no es un video.
+    let saved = deps
+        .library
+        .lock()
+        .await
+        .get(&req.key)
+        .map(|e| e.file_pick())
+        .unwrap_or_default();
+    let pick = crate::engine::FilePick {
+        index: req.file_index.or(saved.index),
+        episode: saved.episode,
     };
     let file = metadata.pick_file(pick)?;
     *slot.file_index.lock().expect("file_index") = Some(file.index);
@@ -301,6 +300,7 @@ pub(super) async fn run(
                         row.progress = stats.progress;
                         row.speed_bps = stats.download_speed_bps;
                         row.peers = stats.peers;
+                        row.incoming_peers = stats.incoming_peers;
                         row.state == PlaybackState::DownloadPaused
                     };
                     calibration.push(playing_since.elapsed(), &stats, download_paused);
@@ -392,6 +392,7 @@ async fn background_download(
                     row.progress = stats.progress;
                     row.speed_bps = stats.download_speed_bps;
                     row.peers = stats.peers;
+                    row.incoming_peers = stats.incoming_peers;
                 }
                 shared.emit_row(slot);
                 if stats.progress >= 0.999 {

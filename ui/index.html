@@ -15,10 +15,12 @@
     <h1 class="brand">Streamonte</h1>
     <div class="actions">
       <!-- 2026-11-15: menús desplegables (ui/src/top-menus.js) -->
-      <button id="btn-clipboard" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Magnets en tu portapapeles (Ctrl+V)">Portapapeles</button>
-      <button id="btn-downloads" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Lo descargado, lo que se reproduce o baja de fondo, y limpieza">Descargas<span id="downloads-size" class="top-size" hidden></span><span id="downloads-badge" class="top-badge" hidden></span></button>
-      <button id="btn-cache" class="top-btn" hidden title="Caché de la app: lo analizado y restos que no se están usando. Tocá para borrarlo (no toca lo que se reproduce ni las descargas guardadas).">Caché<span id="cache-size" class="top-size"></span></button>
-      <button id="btn-settings" class="top-btn icon" title="Ajustes" aria-label="Ajustes">⚙</button>
+      <!-- Solo con un magnet en el portapapeles: lo reproduce directo (2026-11-16). -->
+      <button id="btn-clipboard" class="top-btn play-copied" hidden title="Reproducir el magnet copiado (Ctrl+V)"></button>
+      <!-- Velocidad de internet (2026-11-16, ui/src/speed.js): tocar = medir de nuevo. -->
+      <button id="btn-speed" class="top-btn speed" title="Velocidad de internet"></button>
+      <button id="btn-downloads" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Lo descargado, lo que se reproduce o baja de fondo, y limpieza">Descargas<span id="downloads-size" class="top-size" hidden></span><span id="downloads-cache" class="top-size" hidden></span><span id="downloads-badge" class="top-badge" hidden></span></button>
+      <button id="btn-settings" class="top-btn bare" title="Ajustes" aria-label="Ajustes"></button>
     </div>
   </header>
 
@@ -97,21 +99,6 @@
         </ol>
         <p class="hint">"Verificar" abre el puerto un momento y le pide a portchecker.io que intente conectarse a tu IP pública (que averigua con api.ipify.org).</p>
       </details>
-    </section>
-
-    <section class="set-card" aria-labelledby="set-h-calib">
-      <h4 id="set-h-calib">Calidad del stream</h4>
-      <p class="hint">Automática: cuando ves o cargás en background una opción ya analizada, se mide cuánto aporta cada seeder en tu conexión. Con eso se calcula el badge Bueno / Justo / Malo del catálogo.</p>
-      <div id="health-calib-panel" class="calib-panel" aria-live="polite"></div>
-      <div class="key-row">
-        <div class="key-head"><label for="set-seed-mbps">Mbps por seeder</label><span id="health-calib-state" class="key-state"></span></div>
-        <div class="key-line">
-          <input id="set-seed-mbps" type="number" min="0.1" step="0.5" inputmode="decimal">
-          <button id="btn-health-fix">Fijar</button>
-          <button id="btn-health-recalibrate">Usar lo medido</button>
-        </div>
-      </div>
-      <button id="btn-health-reset" class="link">Restablecer (olvidar mediciones)</button>
     </section>
 
     <section class="set-card" aria-labelledby="set-h-keys">

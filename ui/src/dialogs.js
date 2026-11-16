@@ -2,8 +2,7 @@
 // Ajustes y cierre con reproducciones activas (FR-17).
 import { api } from './api.js';
 import { $, el, setStatus, showError } from './dom.js';
-import { ago, humanBytes, mbps, nf1 } from './format.js';
-import { DEFAULT_SEED_MBPS, MIN_SAMPLES, MIN_SECS, healthCalibration, measuringNow, recalibrate, resetCalibration, setSeedMbps } from './health-calib.js';
+import { humanBytes } from './format.js';
 import { state, titleOf } from './state.js';
 
 /** Diálogo de confirmación con botones; devuelve el `value` del botón elegido (o null).
@@ -129,54 +128,7 @@ export async function openSettings() {
   } catch (e) {
     showError(e);
   }
-  showHealthCalibration();
   $('#dlg-settings').showModal();
-}
-
-// ---------- Ajustes: calibración de la salud estimada (2026-11-15) ----------
-/** Panel de calibración (2026-11-15): estado, lo que se mide ahora y cada medición. Se redibuja
- *  solo mientras Ajustes está abierto (`health-calib-changed`). */
-function showHealthCalibration() {
-  const cal = healthCalibration(state.entries.values());
-  const editing = document.activeElement === $('#set-seed-mbps');
-  if (!editing) $('#set-seed-mbps').value = Math.round(cal.seedMbps * 10) / 10;
-  $('#health-calib-state').textContent = { measured: 'calibrado', manual: 'fijado a mano', default: 'por defecto' }[cal.source];
-  const perSeed = (l) => `${nf1((l.avg_speed_bps * 8) / 1e6 / l.seeds)} Mbps/seeder`;
-  const status = cal.source === 'manual'
-    ? `Fijado a mano en ${nf1(cal.seedMbps)} Mbps por seeder; lo medido sigue juntándose (${cal.n}).`
-    : cal.source === 'measured'
-      ? `Calibrado con ${cal.n} mediciones: ${nf1(cal.seedMbps)} Mbps por seeder${cal.capMbps ? ` · tu conexión llegó a ~${Math.round(cal.capMbps)} Mbps` : ''}.`
-      : `Juntando mediciones: ${cal.n} de ${MIN_SAMPLES}. Hasta entonces se usa ${DEFAULT_SEED_MBPS} Mbps por seeder.`;
-  const now = measuringNow();
-  $('#health-calib-panel').replaceChildren(
-    el('p', { class: 'calib-status' }, status),
-    cal.source === 'default' ? el('div', { class: 'calib-bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(MIN_SAMPLES), 'aria-valuenow': String(cal.n) },
-      el('i', { style: `width:${Math.round((cal.n / MIN_SAMPLES) * 100)}%` })) : null,
-    el('h5', {}, 'Midiendo ahora'),
-    now.length
-      ? el('ul', { class: 'calib-list' }, now.map((t) => el('li', {},
-        el('b', {}, t.name), el('span', {}, `${t.source} · ${mbps(t.avg_speed_bps)} · ${t.secs} s`),
-        el('span', { class: 'calib-note' }, !t.seeds ? 'sin seeders contados: no calibra (analizalo antes de verlo)'
-          : t.secs < MIN_SECS ? `cuenta a partir de los ${MIN_SECS} s` : `${t.seeds} seeders · ${perSeed(t)}`))))
-      : el('p', { class: 'hint' }, 'Nada ahora. Se mide solo cuando ves o cargás en background una opción ya analizada.'),
-    el('h5', {}, `Mediciones (${cal.n})`),
-    cal.samples.length
-      ? el('ul', { class: 'calib-list' }, cal.samples.map((l) => el('li', {},
-        el('b', {}, l.name ?? 'torrent'),
-        el('span', {}, `${l.source ?? 'background'} · ${l.seeds} seeders · ${mbps(l.avg_speed_bps)} en ${Math.round(l.measured_secs)} s`),
-        el('span', { class: 'calib-note' }, `${perSeed(l)} · ${ago(l.measured_at)}`))))
-      : el('p', { class: 'hint' }, 'Todavía ninguna.'));
-}
-window.addEventListener('health-calib-changed', () => { if ($('#dlg-settings').open) showHealthCalibration(); });
-
-export function onHealthCalibration(action) {
-  const v = Number($('#set-seed-mbps').value);
-  if (action === 'fix' && !(v > 0)) { setStatus('Poné un número mayor a 0.'); return; }
-  if (action === 'fix') setSeedMbps(v);
-  if (action === 'recalibrate') recalibrate();
-  if (action === 'reset') resetCalibration();
-  showHealthCalibration();
-  setStatus('Salud estimada: se aplica al volver a dibujar el catálogo.');
 }
 
 // ADR-30: entrantes / UPnP. El motor se crea por reproducción, así que aplica en la próxima.

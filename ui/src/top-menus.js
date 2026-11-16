@@ -1,11 +1,11 @@
-// Menús de la barra superior (2026-11-15): Portapapeles (los magnets copiados, para agregar uno o
-// todos) y Descargas (en un solo lugar: lo que se reproduce o baja de fondo, lo pausado, el análisis
-// y el espacio en disco, con todo lo que se puede detener, borrar o limpiar).
+// Barra superior: el botón del magnet copiado (2026-11-16) y el menú Descargas (en un solo lugar:
+// lo que se reproduce o baja de fondo, lo pausado, el análisis y el espacio en disco, con todo lo
+// que se puede detener, borrar o limpiar).
 import { api } from './api.js';
 import { play } from './audio-picker.js';
 import { cleanTemp, clearDataCache, openLog, stopAllAndClean } from './dialogs.js';
-import { $, el, setStatus, showError } from './dom.js';
-import { ago, humanBytes, mbps, playbackText } from './format.js';
+import { $, el, icon, setStatus, showError } from './dom.js';
+import { humanBytes, mbps, playbackText } from './format.js';
 import { state, titleOf } from './state.js';
 
 const pop = el('div', { id: 'top-pop', class: 'top-pop', role: 'dialog', hidden: true });
@@ -22,7 +22,8 @@ function closePop() {
   pop.replaceChildren();
 }
 
-async function togglePop(btn, render) {
+/** Abre (o cierra, si ya estaba) el menú de `btn`; `render` llena `pop`. También lo usa `speed.js`. */
+export async function togglePop(btn, render) {
   if (open?.btn === btn) { closePop(); return; }
   closePop();
   open = { btn, render };
@@ -42,60 +43,37 @@ document.addEventListener('pointerdown', (ev) => {
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && open && !document.querySelector('dialog[open]')) closePop(); });
 window.addEventListener('resize', closePop);
 
+/** El elemento del menú abierto si es el de `btnId` (para redibujarlo), o null. */
+export const popFor = (btnId) => (open?.btn.id === btnId ? pop : null);
+
 const section = (title, ...children) => el('section', { class: 'pop-section' }, el('h4', {}, title), ...children);
 const empty = (text) => el('p', { class: 'pop-empty' }, text);
 
-// ---------- Portapapeles ----------
-let clip = null; // último ClipboardPreview
+// ---------- Magnet copiado (2026-11-16) ----------
+// El botón aparece solo si lo último copiado es un magnet, y lo reproduce directo, sin análisis ni
+// preguntas: es la app usada como reproductor de magnets.
+let copied = null; // {raw, info_hash, name} o null
 
-function copiedAt(iso) {
-  if (!iso) return 'ahora en el portapapeles';
-  const d = new Date(iso);
-  const time = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  const today = new Date().toDateString() === d.toDateString();
-  return `${today ? 'hoy' : d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })} ${time} · ${ago(iso)}`;
+export async function refreshCopied() {
+  copied = await api.copiedMagnet().catch(() => null);
+  const btn = $('#btn-clipboard');
+  btn.hidden = !copied;
+  if (!copied) return;
+  btn.replaceChildren(icon('play', 15), el('span', {}, 'Reproducir magnet copiado'),
+    copied.name ? el('span', { class: 'top-size play-copied-name' }, `· ${copied.name}`) : null);
+  btn.title = `Reproducir ${copied.name ?? 'el magnet copiado'} (Ctrl+V)`;
 }
 
-async function addRaws(raws) {
+export async function playCopied() {
+  if (!copied) return;
+  const { raw, info_hash: key, name } = copied;
+  const btn = $('#btn-clipboard');
+  btn.disabled = true;
   try {
-    const n = await api.addSelected(raws);
-    setStatus(n ? `${n} magnet(s) agregado(s): están en Buscar › Pegados.` : 'Esos magnets ya estaban en la lista.');
-    clip = await api.clipboardPreview();
-    renderClipboard();
-  } catch (e) { showError(e); }
-}
-
-function renderClipboard() {
-  if (!clip) { pop.replaceChildren(empty('Leyendo el portapapeles…')); return; }
-  const fresh = clip.items.filter((it) => !it.in_list);
-  const note = clip.history_available
-    ? 'Del historial del portapapeles, el más reciente arriba.'
-    : 'Solo se ve lo último copiado (sin historial del portapapeles en este sistema).';
-  pop.replaceChildren(
-    el('div', { class: 'pop-head' },
-      el('div', {}, el('h3', {}, 'Portapapeles'), el('p', { class: 'pop-sub' }, note)),
-      fresh.length ? el('button', { id: 'clip-add-all', class: 'pop-primary', onclick: () => addRaws(fresh.map((it) => it.raw)) }, `Agregar todos (${fresh.length})`) : null),
-    clip.items.length
-      ? el('ul', { class: 'pop-list' }, clip.items.map((it, i) => {
-        const title = it.known_name || it.name || `magnet ${it.info_hash.slice(0, 8)}…`;
-        return el('li', { class: `pop-item ${it.in_list ? 'muted' : ''}` },
-          el('div', { class: 'pop-item-text' },
-            el('span', { class: 'pop-item-title', title }, title),
-            el('span', { class: 'pop-item-sub' }, copiedAt(it.copied_at))),
-          it.in_list
-            ? el('span', { class: 'pop-tag' }, 'En la lista')
-            : el('button', { id: `clip-add-${i}`, class: 'pop-btn', onclick: () => addRaws([it.raw]) }, 'Agregar'));
-      }))
-      : empty('No hay magnets en el portapapeles.'));
-}
-
-export async function toggleClipboard() {
-  await togglePop($('#btn-clipboard'), async () => {
-    clip = null;
-    renderClipboard();
-    try { clip = await api.clipboardPreview(); } catch (e) { showError(e); closePop(); return; }
-    if (open?.btn.id === 'btn-clipboard') renderClipboard();
-  });
+    await api.addSelected([raw]);
+    await api.play(key);
+    setStatus(`Abriendo ${name ?? 'el magnet copiado'}…`);
+  } catch (e) { showError(e); } finally { btn.disabled = false; }
 }
 
 // ---------- Descargas ----------
@@ -165,12 +143,11 @@ function renderDownloads() {
         el('button', { id: 'dl-open-folder', class: 'pop-btn', onclick: () => api.openDownloadsFolder().catch(showError) }, 'Abrir carpeta'),
         el('button', { id: 'dl-clean', class: 'pop-btn', title: 'Borra lo analizado y los restos que no están en uso (no toca lo activo ni lo guardado)', onclick: () => afterClean(cleanTemp) }, 'Borrar caché'),
         el('button', { id: 'dl-stop-all', class: 'pop-btn danger', title: 'Detiene todo y borra todo lo descargado, también lo pausado', onclick: () => afterClean(stopAllAndClean) }, 'Detener y borrar todo')),
-      // Datos guardados (2026-11-16): aparte de los videos; "Borrar caché" no los toca.
-      el('div', { class: 'pop-disk pop-disk-data' },
-        el('span', { class: 'pop-disk-size' }, dataBytes == null ? '…' : humanBytes(dataBytes)),
-        el('span', { class: 'pop-item-sub' }, 'de datos guardados (fichas, portadas, puntajes) para abrir todo más rápido')),
-      el('div', { class: 'pop-actions wrap' },
-        el('button', { id: 'dl-clear-data', class: 'pop-btn', title: 'Borra fichas, portadas y puntajes guardados (se vuelven a bajar cuando hagan falta)', onclick: () => afterClean(clearDataCache) }, 'Borrar datos guardados'))));
+      // Datos guardados (2026-11-16): aparte de los videos; "Borrar caché" no los toca. Discreto a
+      // propósito: sirven para abrir todo más rápido, no conviene invitar a borrarlos.
+      el('p', { class: 'pop-data-line' },
+        `Datos guardados · ${dataBytes == null ? '…' : humanBytes(dataBytes)} · `,
+        el('button', { id: 'dl-clear-data', type: 'button', title: 'Borra fichas, portadas y puntajes guardados (se vuelven a bajar cuando hagan falta)', onclick: () => afterClean(clearDataCache) }, 'borrar'))));
 }
 
 export async function toggleDownloads() {
@@ -193,20 +170,14 @@ function downloadedBytes() {
   return total;
 }
 
-// ---------- Caché (2026-11-15: "no quiero que vaya dejando basura por la PC") ----------
-/** Lo que se puede borrar sin tocar lo activo ni lo guardado (lo analizado y restos). Recorre
- *  carpetas en disco: se pide al abrir, cada 30 s y después de limpiar, no con cada evento. */
+// ---------- Caché en el botón Descargas (2026-11-16) ----------
+/** Lo que se puede borrar sin tocar lo activo ni lo guardado (lo analizado y restos), en el botón
+ *  Descargas. Recorre carpetas en disco: se pide al abrir, cada 30 s y después de limpiar. */
 export async function refreshCache() {
-  const usage = await api.tempUsage().catch(() => null);
-  const btn = $('#btn-cache');
-  btn.hidden = !usage || usage.bytes < 1024 ** 2;
-  if (usage) $('#cache-size').textContent = ` · ${humanBytes(usage.bytes)}`;
-}
-
-export async function onCacheClick() {
-  await cleanTemp();
-  await refreshCache();
-  if (open?.btn.id === 'btn-downloads') { usage = await api.tempUsage().catch(() => usage); renderDownloads(); }
+  const u = await api.tempUsage().catch(() => null);
+  const cache = $('#downloads-cache');
+  cache.hidden = !u || u.bytes < 1024 ** 2;
+  if (u) cache.textContent = `· ${humanBytes(u.bytes)} de caché`;
 }
 
 /** Lo llama app.js con cada evento de reproducción o análisis: tamaño, badge y menú abierto al día. */
@@ -214,7 +185,7 @@ export function refreshDownloads() {
   const bytes = downloadedBytes();
   const size = $('#downloads-size');
   size.hidden = bytes < 1024 ** 2;
-  size.textContent = `· ${humanBytes(bytes)}`;
+  size.textContent = `· ${humanBytes(bytes)} bajados`;
   const n = [...state.playbacks.values()].filter(ACTIVE).length;
   const badge = $('#downloads-badge');
   badge.hidden = n === 0;

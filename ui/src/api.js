@@ -22,8 +22,8 @@ export const api = {
   analyze: (scope) => invoke('analyze', { scope }),
   analyzerPause: () => invoke('analyzer_pause'),
   analyzerResume: () => invoke('analyzer_resume'),
-  /** Menú Portapapeles: magnets del historial con fecha, para agregar uno o todos. */
-  clipboardPreview: () => invoke('clipboard_preview'),
+  /** Lo último copiado si es un magnet: {raw, info_hash, name} o null. */
+  copiedMagnet: () => invoke('copied_magnet'),
   /** Agrega solo los magnets elegidos (texto original de cada uno). */
   remove: (key) => invoke('library_remove', { key }),
   addSelected: (raws) => invoke('library_add_selected', { raws }),
@@ -53,16 +53,18 @@ export const api = {
   catalogPoster: (imdbId) => invoke('catalog_poster', { imdbId }),
   /** "Contar seeders reales": se conecta a cada enjambre (~50 s por tanda). {hash: {seeds, peers}}; falta = no se pudo. */
   catalogSwarm: (hashes, deep = false) => invoke('catalog_swarm', { hashes, deep }),
+  /** Corta los conteos en curso ("Detener" el análisis); lo ya contado queda. */
+  catalogStopSwarm: () => invoke('catalog_stop_swarm'),
   /** "Bajar subtítulos" de una opción: hasta 5, `language` ('es'|'en') primero. Devuelve [{provider, language, release_name}]. */
   catalogSubtitles: (videoId, hash, language) => invoke('catalog_subtitles', { videoId, hash, language }),
 
   // Catálogo y addons (F4b, spec 09). kind: 'movie' | 'series'; videoId: 'tt…' o 'tt…:T:E'.
-  /** FR-36: {movies, series}. Una búsqueda nueva cancela la anterior (error "Cancelado."). */
+  /** FR-36: películas y series juntas, lo más popular primero. Una búsqueda nueva cancela la anterior (error "Cancelado."). */
   catalogSearch: (query) => invoke('catalog_search', { query }),
   /** En tendencia ahora (sin key de TMDB): {items, has_more}, 50 por página desde `skip`. */
   catalogTrending: (kind, genre, skip) => invoke('catalog_trending', { kind, genre, skip }),
   /** Puntaje promedio por temporada: {source: 'IMDb'|'TMDB', seasons: [{season, rating, episodes}], status}.
-   *  quick: sin key de TMDB no calcula con IMDb (tarda segundos), solo trae el estado. */
+   *  quick: no espera al índice de IMDb si se está armando (solo el estado). */
   catalogSeasonRatings: (imdbId, quick = false) => invoke('catalog_season_ratings', { imdbId, quick }),
   /** Explorar con filtros de IMDb (necesita key de TMDB): {items, has_more:false}. sort: 'popular' | 'rating'.
    *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera. */
@@ -89,6 +91,9 @@ export const api = {
   tempUsage: () => invoke('temp_usage'),
   cleanTemp: () => invoke('clean_temp'),
   /** Caché de datos (fichas, puntajes, datasets de IMDb): bytes que ocupa / borrarla toda (devuelve los liberados). */
+  /** Velocidad de internet de esta red: la guardada o, con `force` (o sin medición), la mide
+   *  (~10 s; el progreso llega como evento `speed-test`). → `{mbps, measured_at}`. */
+  speedTest: (force = false) => invoke('speed_test', { force }),
   dataCacheSize: () => invoke('data_cache_size'),
   clearDataCache: () => invoke('clear_data_cache'),
   /** ¿El puerto entrante llega desde internet? {port, reachable: bool|null, local_ip, problem}. */

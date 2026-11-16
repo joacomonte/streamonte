@@ -12,14 +12,14 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 use crate::analyzer::{AnalyzeScope, AnalyzerHandle};
-use crate::catalog::cinemeta::{BrowsePage, BrowseSort, Meta, SearchResults};
+use crate::catalog::cinemeta::{BrowsePage, BrowseSort, Meta, MetaPreview};
 use crate::catalog::{AddonView, MediaKind, VideoId};
 use crate::cleanup::{Cleanup, CleanupReport};
 use crate::clipboard::WatchGuard;
 use crate::config::{Config, ConfigStore};
 use crate::events::{CoreEvent, EventSink, StatusLevel};
 use crate::intake::Intake;
-pub use crate::intake::{ClipboardPreview, ClipboardPreviewItem, ClipboardReadReport};
+pub use crate::intake::{ClipboardReadReport, CopiedMagnet};
 use crate::library::{Group, Library, LibraryRowView};
 use crate::logger::LoggerGuard;
 use crate::magnet::InfoHash;
@@ -100,6 +100,7 @@ pub struct AppCore {
     catalog: Arc<crate::catalog::Catalog>,
     /// Caché de datos (fichas, puntajes, datasets de IMDb): aparte de la de videos.
     data_cache: Arc<crate::datacache::DataCache>,
+    speed_test: crate::speedtest::SpeedTest,
     /// "Agregar addon" de a uno: dos altas a la vez podrían elegir el mismo id (y su secreto).
     adding_addon: Mutex<()>,
     /// Conteos de enjambre en curso (catálogo): cerrar o cambiar de video los corta.
@@ -210,6 +211,11 @@ impl AppCore {
             &config.read().await.catalog,
             data_cache.clone(),
         ));
+        // Puntajes de IMDb e índice por temporada, de fondo: la búsqueda y la primera serie no esperan.
+        {
+            let catalog = catalog.clone();
+            tokio::spawn(async move { catalog.warm_imdb().await });
+        }
         // Lista compartida de trackers, de fondo: la primera reproducción no la espera.
         {
             let (config, file) = (config.clone(), paths.shared_trackers_file());
@@ -223,6 +229,7 @@ impl AppCore {
         let core = Arc::new(Self {
             catalog,
             data_cache,
+            speed_test: crate::speedtest::SpeedTest::new(paths.speed_file()),
             cleanup: Cleanup::new(paths.clone()),
             paths,
             config,
@@ -261,8 +268,9 @@ impl AppCore {
     }
 
     /// Diálogo "Leer portapapeles" (2026-11-14): todos los magnets del historial para elegir.
-    pub async fn clipboard_preview(&self) -> Result<ClipboardPreview> {
-        Ok(self.intake.clipboard_preview().await)
+    /// Lo último copiado, si es un magnet (botón "Reproducir magnet copiado").
+    pub async fn copied_magnet(&self) -> Option<CopiedMagnet> {
+        self.intake.copied_magnet().await
     }
 
     /// Agrega solo los magnets elegidos en el diálogo (texto original de cada uno).
@@ -416,6 +424,11 @@ impl AppCore {
     /// analizado de los magnets de la lista SÍ se borra (decidido), salvo lo que se esté midiendo.
     pub fn clean_temp(&self) -> Result<CleanupReport> {
         self.cleanup.clean(&self.playback.active_dirs())
+    }
+    /// Velocidad de internet de la red actual: la guardada (salvo `force`) o la mide, con progreso
+    /// en `CoreEvent::SpeedTest`.
+    pub async fn speed_test(&self, force: bool) -> Result<crate::speedtest::SpeedResult> {
+        self.speed_test.run(force, self.events.as_ref()).await
     }
     /// Lo que ocupa la caché de datos (fichas, puntajes, datasets de IMDb).
     pub fn data_cache_size(&self) -> u64 {
@@ -691,7 +704,7 @@ impl AppCore {
     /// FR-36: búsqueda en Cinemeta (películas y series a la vez). Una búsqueda nueva cancela la
     /// anterior (`Cancelled`, la UI la ignora). FR-40: en segundo plano se piden las fichas para
     /// avisar con `CatalogExcluded` cuáles son anime / japonés.
-    pub async fn catalog_search(&self, query: &str) -> Result<SearchResults> {
+    pub async fn catalog_search(&self, query: &str) -> Result<Vec<MetaPreview>> {
         let timeout = self.catalog_timeout().await;
         let events = self.events.clone();
         self.catalog
@@ -701,7 +714,7 @@ impl AppCore {
             .await
     }
 
-    /// Puntaje promedio por temporada de una serie (TMDB con key; si no, IMDb).
+    /// Puntaje promedio por temporada de una serie (IMDb) y su estado.
     pub async fn catalog_season_ratings(
         &self,
         imdb_id: &str,
@@ -756,6 +769,12 @@ impl AppCore {
         self.catalog.streams(&cfg, kind, video_id, move |update| {
             events.emit(CoreEvent::CatalogStreams { update });
         })
+    }
+
+    /// "Detener" el análisis profundo (2026-11-16): corta los conteos de enjambre en curso; la
+    /// consulta de fuentes sigue.
+    pub fn catalog_stop_swarm(&self) {
+        std::mem::take(&mut *self.swarm_cancel.lock().expect("swarm")).cancel();
     }
 
     /// Cerrar la ficha / volver a buscar: corta la consulta en curso.

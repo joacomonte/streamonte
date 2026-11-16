@@ -101,6 +101,11 @@ pub enum CoreEvent {
         active: usize,
     },
 
+    /// Test de velocidad de internet (2026-11-16): midiendo, listo o falló.
+    SpeedTest {
+        state: crate::speedtest::SpeedState,
+    },
+
     /// Mensaje para la barra de estado (NFR-12).
     Status {
         level: StatusLevel,

@@ -590,6 +590,16 @@ impl TorrentEngine for RqbitEmbedded {
                 .as_ref()
                 .map(|l| l.snapshot.peer_stats.live_seeders)
                 .unwrap_or_default(),
+            incoming_peers: torrent
+                .live()
+                .map(|l| {
+                    l.per_peer_stats_snapshot(Default::default())
+                        .peers
+                        .values()
+                        .filter(|p| p.counters.incoming_connections > 0)
+                        .count() as u32
+                })
+                .unwrap_or_default(),
             progress: match (file_done, file_len) {
                 (Some(d), Some(l)) if l > 0 => d as f32 / l as f32,
                 _ if s.total_bytes > 0 => s.progress_bytes as f32 / s.total_bytes as f32,

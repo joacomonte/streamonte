@@ -8,7 +8,7 @@ import { play } from './audio-picker.js';
 import { $, el, icon, setStatus, showError as reportError } from './dom.js';
 import { openSettings } from './dialogs.js';
 import { humanBytes, mbps, nf1, playbackText } from './format.js';
-import { healthCalibration, speedOf, trackPlayback } from './health-calib.js';
+import { MIN_SECS, healthCalibration, speedOf, trackPlayback } from './health-calib.js';
 import { state as lib } from './state.js';
 
 /** Errores del catálogo: solo en la barra de estado (no en la burbuja) y sin los "Cancelado." de
@@ -36,7 +36,7 @@ function latBadge(c, badge) {
 const safeGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const safeSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* sin almacenamiento */ } };
 const state = {
-  results: null,          // {movies, series}
+  results: null,          // MetaPreview[] ya ordenadas
   searching: false,       // tipeando / esperando la búsqueda: cards de carga
   excluded: new Set(),    // ids anime/japonés (FR-40)
   hideJapanese: true,
@@ -55,7 +55,7 @@ const toTop = () => document.querySelector('.cat-main')?.scrollTo({ top: 0 });
 
 // ---------- búsqueda (FR-36) ----------
 /** Se pide recién cuando se deja de tipear un momento (2026-11-16: no un pedido por letra). */
-const SEARCH_WAIT_MS = 450;
+const SEARCH_WAIT_MS = 900;
 function onQueryInput() {
   clearTimeout(searchTimer);
   searchSeq++; // lo que esté en vuelo ya no se muestra
@@ -73,7 +73,7 @@ async function search(q) {
     if (seq !== searchSeq) return;
     state.searching = false;
     state.results = r;
-    setStatus(r.movies.length + r.series.length ? 'Elegí una película o serie.' : `No encontré "${q}". Probá con el título en inglés.`);
+    setStatus(r.length ? 'Elegí una película o serie.' : `No encontré "${q}". Probá con el título en inglés.`);
     render();
   } catch (e) {
     if (seq === searchSeq) { state.searching = false; render(); showError(e); }
@@ -171,16 +171,10 @@ function seasonMini(r, o) {
   return out.filter(Boolean);
 }
 
-/** Resultados de la búsqueda (2026-11-15): películas y series juntas. La búsqueda de Cinemeta no
- *  trae popularidad, solo su orden por tipo (que ya es por popularidad): se intercalan por ese
- *  puesto y, en el mismo puesto, primero el título que empieza con lo escrito. */
+/** Resultados de la búsqueda: películas y series juntas, ya ordenadas por el núcleo (lo más popular
+ *  primero). */
 function renderResults(root) {
-  const q = $('#cat-q').value.trim().toLowerCase();
-  const rank = (p, i) => i - (p.name.toLowerCase().startsWith(q) ? 0.5 : 0);
-  const list = [...state.results.movies.map((p, i) => [rank(p, i), p]), ...state.results.series.map((p, i) => [rank(p, i), p])]
-    .sort((a, b) => a[0] - b[0])
-    .map(([, p]) => p)
-    .filter((p) => !(state.hideJapanese && state.excluded.has(p.id)));
+  const list = state.results.filter((p) => !(state.hideJapanese && state.excluded.has(p.id)));
   root.append(list.length
     ? el('div', { class: 'cat-grid' }, list.map(cardFor))
     : el('p', { class: 'hint' }, 'Sin resultados para esa búsqueda.'));
@@ -350,7 +344,7 @@ function seasonChart(r, o) {
       el('span', { class: 'season-chart-meta' },
         end ? el('span', { class: `season-end ${o.tone}`, title: 'No hay más temporadas' }, icon(o.tone === 'done' ? 'flag' : 'ban', 12), o.label) : null,
         trend ? el('span', { class: `season-trend ${trend.tone}` }, icon(trend.icon, 13), trend.text) : null,
-        el('span', { class: 'season-chart-src' }, r.source))),
+        el('span', { class: 'season-chart-src' }, 'IMDb'))),
     bars);
 }
 
@@ -461,7 +455,9 @@ function lightOf(c) {
   const e = rowsOf(c.info_hash)[0];
   if (!e) return { cls: 'none', text: '' };
   if (e.status?.kind === 'measuring') return { cls: 'measuring', text: 'midiendo…' };
-  if (e.status?.kind === 'scraping') return { cls: 'measuring', text: 'analizando…' };
+  // Consulta de trackers del analizador: si ya se contó a fondo no aporta nada (2026-11-16: parecía
+  // que el análisis no terminaba).
+  if (e.status?.kind === 'scraping') return counted.has(c.info_hash) ? { cls: 'none', text: '' } : { cls: 'measuring', text: 'consultando trackers…' };
   if (e.status?.kind === 'failed') return { cls: 'red', text: 'falló' };
   const light = e.score?.light ?? 'unknown';
   const speed = e.live?.avg_speed_bps;
@@ -476,24 +472,51 @@ function seedsOf(c) {
   return trackersWin(c) ? c.seeders : c.seeders_declared ?? null;
 }
 
-/** Orden de las opciones: analizadas primero, después por seeders, leechers y peso. */
+/** Por seeders, leechers y peso (lo usan los subtítulos y el desempate de `sortOptions`). */
 const bySeeds = (a, b) => tierOf(b) - tierOf(a) || (knownSeeds(b) ?? -1) - (knownSeeds(a) ?? -1) || (leechersOf(b) ?? -1) - (leechersOf(a) ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0);
 
-/** Grupo para ordenar (2026-11-15): 2 = analizado a fondo (va siempre arriba), 1 = el resto
- *  (trackers, fuente o una medición vieja de la biblioteca), 0 = nadie respondió al analizarlo. */
+/** Orden de las opciones (2026-11-16), recalculado en cada redibujo (también con los conteos
+ *  parciales mientras analiza): arriba las que se están analizando; después las analizadas a fondo, por salud y, entre las de salud buena,
+ *  la más pesada (mejor calidad: la salud ya dice que alcanza para su bitrate; los packs van después
+ *  porque su peso es de varios episodios); entre las demás, la de más margen. Debajo, las sin analizar
+ *  por seeders y leechers (`bySeeds`): con números de trackers la salud no es confiable. Devuelve
+ *  `{list, best}`: `best` = la primera por ese orden; arriba de todo, igual, va lo que se reproduce o
+ *  baja (que quede a la vista). */
+function sortOptions(cands) {
+  const key = (c) => {
+    // Las que se están contando, arriba (2026-11-16: se ve el análisis avanzar); el resto, `bySeeds`.
+    const tier = counting.has(c.info_hash) ? 3 : tierOf(c);
+    if (tier !== 2) return [-tier];
+    const h = health(c);
+    const lvl = h?.level ?? 3;
+    const good = lvl === 0;
+    const bySize = good && h.exact && !c.is_pack; // el peso de un pack es de varios episodios
+    return [-tierOf(c), lvl, good && !bySize ? 1 : 0, bySize ? -(c.size_bytes ?? 0) : -(h?.ratio ?? -1)];
+  };
+  const byKey = (ka, kb) => ka.map((x, i) => x - (kb[i] ?? 0)).find((d) => d !== 0) ?? 0;
+  const list = cands.map((c) => [key(c), c]).sort(([ka, a], [kb, b]) => byKey(ka, kb) || bySeeds(a, b)).map(([, c]) => c);
+  const active = new Set([...lib.playbacks.values()].filter((r) => r.state.kind !== 'failed').map((r) => r.key.split(':')[0]));
+  return { list: [...list.filter((c) => active.has(c.info_hash)), ...list.filter((c) => !active.has(c.info_hash))], best: list[0] };
+}
+
+/** Grupo para ordenar: 2 = analizado a fondo (arriba), 1 = el resto (trackers, fuente o una
+ *  medición vieja de la biblioteca), 0,5 = sin respuesta pero con peers conocidos (no está muerto,
+ *  2026-11-16), 0 = nadie lo comparte. */
 function tierOf(c) {
   const n = counted.get(c.info_hash);
-  return !n ? 1 : n.reached === false ? 0 : 2;
+  return !n ? 1 : n.reached !== false ? 2 : n.peers ? 0.5 : 0;
 }
 /** Seeders que se saben de una opción, de lo más confiable a lo menos: contados al analizar
  *  (aunque sea 0), medidos al reproducir o cargar, según los trackers y, por último, la fuente. */
 function knownSeeds(c) {
-  return counted.get(c.info_hash)?.seeds ?? rowsOf(c.info_hash).find((e) => e.live)?.live.seeds
-    ?? seedsOf(c);
+  const partial = liveCount.get(c.info_hash);
+  return counted.get(c.info_hash)?.seeds ?? (partial?.reached ? partial.seeds : null)
+    ?? rowsOf(c.info_hash).find((e) => e.live)?.live.seeds ?? seedsOf(c);
 }
 /** Leechers (desempate): conectados sin el archivo completo al contar, o los del scrape automático. */
 function leechersOf(c) {
-  const n = counted.get(c.info_hash) ?? rowsOf(c.info_hash).find((e) => e.live)?.live;
+  const partial = liveCount.get(c.info_hash);
+  const n = counted.get(c.info_hash) ?? (partial?.reached ? partial : null) ?? rowsOf(c.info_hash).find((e) => e.live)?.live;
   if (n?.reached === false) return null; // nadie respondió: esos peers solo los conoce la DHT
   return n ? Math.max(0, n.peers - n.seeds) : c.leechers ?? null;
 }
@@ -523,9 +546,9 @@ function optionsHead() {
 function deepPanel() {
   const u = state.update, d = state.side.deep, res = openRes;
   const resText = res === 'other' ? 'las otras resoluciones' : resLabel(res);
-  const panel = (cls, ic, title, sub, extra) => el('div', { id: 'cat-deep', class: `cat-deep ${cls}`, role: 'status' },
+  const panel = (cls, ic, title, sub, ...extra) => el('div', { id: 'cat-deep', class: `cat-deep ${cls}`, role: 'status' },
     el('span', { class: 'cat-deep-icon', 'aria-hidden': 'true' }, ic),
-    el('span', { class: 'cat-deep-text' }, el('span', { class: 'cat-deep-title' }, title), el('span', { class: 'cat-deep-sub' }, sub)), extra);
+    el('span', { class: 'cat-deep-text' }, el('span', { class: 'cat-deep-title' }, title), el('span', { class: 'cat-deep-sub' }, sub)), ...extra);
   const spin = () => el('span', { class: 'cat-deep-spin' });
   if (!u?.done) {
     const answered = u ? u.addons.filter((a) => a.state !== 'pending').length : 0;
@@ -534,8 +557,10 @@ function deepPanel() {
   }
   if (d.status === 'run') {
     const { done, n, frac } = deepStatus(d);
-    return panel('running', spin(), el('b', {}, `Analizando ${d.res === 'other' ? 'otras' : resLabel(d.res)} · ${done} de ${n}`),
+    const what = d.single ? (n === 1 ? '1 torrent' : `${n} torrents`) : d.res === 'other' ? 'otras' : resLabel(d.res);
+    return panel('running', spin(), el('b', {}, `Analizando ${what} · ${done} de ${n}`),
       'Conectándose a cada torrent y contando los seeders reales',
+      el('button', { id: 'cat-deep-stop', class: 'cat-deep-go', onclick: (ev) => { ev.currentTarget.disabled = true; stopDeep(); } }, 'Detener'),
       el('span', { class: 'cat-deep-bar' }, el('i', { style: `width:${Math.max(4, Math.round(frac * 100))}%` })));
   }
   if (!res) return panel('idle', icon('radar', 16), el('b', {}, 'Análisis completo'), 'Abrí una resolución para analizarla a fondo');
@@ -549,6 +574,19 @@ function deepPanel() {
     const more = Math.min(TOP, inRes.filter((c) => !counted.has(c.info_hash) && !unlikely(c)).length);
     const next = more ? el('button', { id: 'cat-deep-more', class: 'cat-deep-go', onclick: () => runDeep(state.side.videoId, res) }, `Analizar ${more} más`)
       : el('button', { id: 'cat-deep-go', class: 'cat-deep-go', onclick: start }, 'Repetir');
+    // Ninguna con salud buena (2026-11-16): se recomienda analizar la resolución siguiente más baja.
+    const lower = RES_ORDER.slice(RES_ORDER.indexOf(res) + 1).find((r) => r !== 'other' && u.candidates.some((c) => inScope(c, r)));
+    const anyGood = inRes.some((c) => counted.get(c.info_hash)?.reached && health(c)?.level === 0);
+    if (!anyGood && lower) {
+      const goLower = () => {
+        openRes = lower;
+        reanalyze(u.candidates.filter((c) => inScope(c, lower)).map((c) => c.info_hash), lower);
+        document.getElementById(`cat-group-${lower}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      };
+      return panel('done warn', icon('radar', 16), el('b', {}, `Ninguna de ${resText} llega a salud buena`),
+        `Con estos seeders y tu conexión probablemente se corte. En ${resLabel(lower)} hay más chances.`,
+        el('button', { id: 'cat-deep-lower', class: 'cat-deep-go', onclick: goLower }, `Analizar ${resLabel(lower)}`));
+    }
     return panel('done', icon('check', 16), el('b', {}, 'Análisis completo'), `${resText}: ${alive} de ${checkedN} con seeders reales`, next);
   }
   // Sin analizar, todo el panel es el botón (variante F, 2026-11-16): la acción recomendada es obvia.
@@ -557,6 +595,16 @@ function deepPanel() {
     el('span', { class: 'cat-deep-cta-text' }, el('b', {}, 'Encontrar el mejor torrent'),
       el('span', {}, `Recomendado · cuenta seeders reales de las ${TOP} mejores de ${resText} · ${DEEP_ETA}`)),
     el('span', { class: 'cat-deep-cta-arrow', 'aria-hidden': 'true' }, icon('arrow', 18)));
+}
+
+/** "Detener" el análisis (2026-11-16): corta los conteos en curso; lo ya contado queda. Los cortados
+ *  se marcan en `stopped` para no tomarlos como "nadie respondió". */
+const stopped = new Set();
+function stopDeep() {
+  const d = state.side?.deep;
+  counting.forEach((h) => stopped.add(h));
+  if (d) d.stopped = true;
+  api.catalogStopSwarm().catch(showError);
 }
 
 /** Avance del análisis profundo en curso (`runDeep`): cuántos respondieron y fracción 0–1. */
@@ -589,47 +637,85 @@ let liveRender = null;
 const starting = new Map();
 const PB_STARTING = new Set(['fetching-metadata', 'preparing']);
 
-/** "Pesado" (2026-11-15): solo una precaución, no cambia el orden. Mbps que hay que bajar
- *  sostenidos para verlo sin cortes = tamaño ÷ duración. Los packs (varios episodios) no aplican. */
-/** Bytes/s que hay que bajar sostenidos para verlo sin cortes = tamaño ÷ duración. `null` sin
- *  duración o sin tamaño, y en packs (varios episodios en un archivo no tienen una duración). */
-function neededBps(c) {
-  const min = state.side?.runtime;
-  return min && c.size_bytes && !c.is_pack ? c.size_bytes / (min * 60) : null;
+/** Bytes del archivo que se ve. En un pack (2026-11-16) no sirve el peso del pack entero: el del
+ *  episodio si ya se analizó o reprodujo (fila de la biblioteca `hash:sXeY`: el archivo real leído
+ *  de los metadatos, `live.file_size`; `video_size` a veces trae el de otra fuente), el que da la fuente si
+ *  señala el archivo (`file_name`), o el del pack ÷ los episodios de la temporada. Un pack de varias
+ *  temporadas sin más datos: null. */
+function fileBytes(c) {
+  if (!c.is_pack) return c.size_bytes ?? null;
+  const [, season, episode] = (state.side?.videoId ?? '').split(':');
+  const e = episode && state.library.get(`${c.info_hash}:s${season}e${episode}`);
+  if (e?.live?.file_size || e?.video_size) return e.live?.file_size || e.video_size;
+  if (!c.size_bytes) return null;
+  if (c.file_name) return c.size_bytes;
+  if (/\bS\d{1,2}\s*-\s*S?\d{1,2}\b|complete\s*series|integral/i.test(c.release_name)) return null;
+  const eps = (state.side?.meta?.episodes ?? []).filter((x) => String(x.season) === season).length;
+  return eps ? c.size_bytes / eps : null;
 }
+/** Bytes/s que hay que bajar sostenidos para verlo sin cortes = archivo ÷ duración (la real si se
+ *  analizó, si no la de la ficha). `null` sin alguno de los dos. */
+function neededBps(c) {
+  const [, season, episode] = (state.side?.videoId ?? '').split(':');
+  const e = c.is_pack && episode ? state.library.get(`${c.info_hash}:s${season}e${episode}`) : rowsOf(c.info_hash)[0];
+  const secs = e?.live?.duration_secs ?? (state.side?.runtime && state.side.runtime * 60);
+  const bytes = fileBytes(c);
+  return bytes && secs ? bytes / secs : null;
+}
+/** Mbps típicos por resolución (2026-11-16) cuando no se sabe cuánto pide (pack sin analizar): un
+ *  4K web anda en 15–25, un 1080p en 5–10. Mejor una estimación que solo contar seeders. */
+const TYPICAL_MBPS = { '2160p': 25, '1080p': 8, '720p': 4 };
 const toMbps = (bps) => (bps * 8) / 1e6;
+/** "Pesado" (2026-11-15): solo una precaución. */
 const HEAVY_MBPS = 35; // un remux 4K anda en 60–80; un 4K web en 15–25; un 1080p en 5–10
 function heavyBadge(c, badge) {
   const bps = neededBps(c);
   if (!bps || toMbps(bps) < HEAVY_MBPS) return null;
   const need = toMbps(bps);
-  return badge('Pesado', 'cat-heavy', `Necesita ~${Math.round(need)} Mbps sostenidos (${humanBytes(c.size_bytes)} en ${state.side.runtime} min). Con pocos seeders puede cortarse: conviene cargarlo en background (⤓) para ver si la velocidad alcanza, o elegir uno más liviano.`);
+  return badge('Pesado', 'cat-heavy', `Necesita ~${Math.round(need)} Mbps sostenidos (tamaño ÷ duración del episodio o película). Con pocos seeders puede cortarse: conviene cargarlo en background (⤓) para ver si la velocidad alcanza, o elegir uno más liviano.`);
 }
 
-/** Salud estimada del stream (2026-11-15): lo que aportarían los conectados al contar contra los
- *  Mbps que pide (tamaño ÷ duración). Solo una estimación: no cambia el orden. El aporte por
- *  seeder y el tope de la conexión salen de lo medido en esta PC (`health-calib.js`,
- *  ajustable en Ajustes); un leecher aporta una fracción fija de un seeder. */
+/** Salud estimada del stream (2026-11-15): lo que aportarían seeders y leechers contra los Mbps que
+ *  pide (tamaño ÷ duración), con techo en la velocidad de internet (2026-11-16: el test de velocidad;
+ *  sin él, lo más rápido que bajó esta PC). El aporte por seeder sale de lo medido en esta PC
+ *  (`health-calib.js`); un leecher aporta una fracción fija. Ordena la lista (`sortOptions`) y da el
+ *  ícono de señal. `level`: 0 bueno (≥ 2×), 1 justo (≥ 1×), 2 malo; null sin seeders conocidos o si
+ *  nadie respondió. Sin saber cuánto pide (pack sin analizar, sin duración) se usa lo típico de su
+ *  resolución (`exact = false`). Tres niveles: la estimación es gruesa; más serían ruido. */
 const LEECH_SHARE = 1 / 6;
-function healthBadge(c) {
-  const n = counted.get(c.info_hash);
-  if (!n?.reached) return null; // sin contar o nadie respondió (ya se ve con ✕)
-  const leech = Math.max(0, n.peers - n.seeds);
-  const need = neededBps(c) && toMbps(neededBps(c));
+function health(c) {
+  const seeds = knownSeeds(c);
+  if (seeds == null || counted.get(c.info_hash)?.reached === false) return null;
+  const leech = leechersOf(c) ?? 0;
+  const bps = neededBps(c);
+  const need = bps ? toMbps(bps) : TYPICAL_MBPS[c.resolution] ?? 3;
   const cal = renderCal ?? healthCalibration(state.library.values());
-  const raw = (n.seeds + leech * LEECH_SHARE) * cal.seedMbps;
-  const supply = cal.capMbps ? Math.min(raw, cal.capMbps) : raw;
-  const ratio = need ? supply / need : null;
-  // Una palabra, no "N×": no es una velocidad medida (eso lo da la carga en background).
-  // Tres niveles (2026-11-15): la estimación es gruesa; más niveles serían ruido.
-  const level = ratio != null ? (ratio >= 2 ? 0 : ratio >= 1 ? 1 : 2)
-    : n.seeds >= 10 ? 0 : n.seeds >= 4 ? 1 : 2;
-  const [text, cls, bars] = [['Bueno', 'cat-health-good', 3], ['Justo', 'cat-health-fair', 2], ['Malo', 'cat-health-risky', 1]][level];
-  const basis = need
-    ? `Pide ~${Math.round(need)} Mbps; ${n.seeds} seeders y ${leech} leechers conectados aportarían ~${Math.round(supply)} Mbps (${nf1(ratio)}×). Bueno desde 2×, justo desde 1×.`
-    : `Sin duración conocida: solo por seeders conectados (${n.seeds}). Bueno desde 10, justo desde 4.`;
-  // Ícono de señal (2026-11-15): tantas barras llenas como el nivel; el detalle va en el tooltip.
-  const tipText = `Salud estimada del stream: ${text}. No es una medición. ${basis} Supone ~${nf1(cal.seedMbps)} Mbps por seeder (${cal.source === 'measured' ? `calibrado con ${cal.n} mediciones de esta PC` : cal.source === 'manual' ? 'fijado en Ajustes' : 'valor por defecto'}) y un sexto de eso por leecher${cal.capMbps ? `, con tope de ~${Math.round(cal.capMbps)} Mbps (lo más rápido que bajó esta PC)` : ''}; el conteo se corta en 30 conexiones. Para saberlo de verdad: cargarlo en background (⤓).`;
+  // Lo medido de este torrent manda sobre la estimación (2026-11-16): reproduciendo o cargando en
+  // background (≥ MIN_SECS), o la medición del análisis.
+  const pb = playbackOf(c.info_hash);
+  const now = pb && speedOf(pb.key);
+  const measuredBps = now?.n >= MIN_SECS ? now.avg : rowsOf(c.info_hash).find((e) => e.live?.avg_speed_bps > 0)?.live.avg_speed_bps;
+  const raw = (seeds + leech * LEECH_SHARE) * cal.seedMbps;
+  const supply = measuredBps ? toMbps(measuredBps) : cal.capMbps ? Math.min(raw, cal.capMbps) : raw;
+  const ratio = supply / need;
+  const level = ratio >= 2 ? 0 : ratio >= 1 ? 1 : 2;
+  return { level, ratio, supply, need, exact: !!bps, measured: !!measuredBps, seeds, leech, cal };
+}
+
+/** Ícono de señal de la salud: solo con los seeders reales contados (análisis profundo). Una
+ *  palabra, no "N×": no es una velocidad medida (eso lo da la carga en background). */
+function healthBadge(c) {
+  if (!counted.get(c.info_hash)?.reached) return null; // sin contar o nadie respondió (ya se ve con ✕)
+  const { level, ratio, supply, need, exact, measured, seeds, leech, cal } = health(c);
+  const [text, cls, bars] = [['Buena salud', 'cat-health-good', 3], ['Puede cortarse', 'cat-health-fair', 2], ['Mala salud', 'cat-health-risky', 1]][level];
+  // Ícono de señal (2026-11-15): tantas barras llenas como el nivel; el cálculo, corto, en el tooltip
+  // (el detalle y la calibración, en el botón de velocidad de arriba).
+  const verdict = ['sobra el doble de lo que pide', 'alcanza apenas; si la velocidad baja, se corta', 'no alcanza, se va a cortar'][level];
+  const internet = cal.capMbps ? ` (tope: tu internet, ${Math.round(cal.capMbps)} Mbps)` : '';
+  const asks = exact ? `pide ~${Math.round(need)}` : `un ${resLabel(resKey(c))} suele pedir ~${Math.round(need)} (el tamaño real del episodio se sabe al analizarlo)`;
+  const tipText = measured
+    ? `${text}: ${verdict}\nMedido: bajó a ~${Math.round(supply)} Mbps y ${asks} (${nf1(ratio)}×).`
+    : `${text}: ${verdict}\nLe llegarían ~${Math.round(supply)} Mbps y ${asks} (${nf1(ratio)}×).\n${seeds} seeders y ${leech} leechers × ${nf1(cal.seedMbps)} Mbps por seeder${internet}.\nEs una estimación: cargar en background (⤓) lo mide de verdad.`;
   const ic = el('span', { class: `cat-health-ic ${cls}`, title: tipText, role: 'img', 'aria-label': `Salud estimada: ${text}` });
   ic.innerHTML = `<svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}"/>`).join('')}</svg>`;
   return ic;
@@ -695,19 +781,28 @@ document.addEventListener('click', (ev) => {
   if ((playMenu || playAsk) && !ev.target.closest?.('.cat-split, .cat-ask')) { playMenu = playAsk = null; renderStreamsOnly(); }
 });
 
+/** La reproducción de ese torrent que importa ahora: un torrent puede tener varias (otro episodio del
+ *  pack, una vieja que se está cerrando); gana la más viva. */
+/** Estados en que la opción muestra Detener en vez de ▶. */
+const PB_LIVE = new Set(['fetching-metadata', 'preparing', 'playing', 'download-paused', 'background', 'ask-after-close']);
+const PB_RANK = ['playing', 'preparing', 'fetching-metadata', 'download-paused', 'ask-after-close', 'background', 'paused', 'stopping', 'failed'];
+function playbackOf(hash) {
+  return [...lib.playbacks.values()].filter((r) => r.key.split(':')[0] === hash)
+    .sort((a, b) => PB_RANK.indexOf(a.state.kind) - PB_RANK.indexOf(b.state.kind))[0];
+}
+
 /** Una opción: peso con sus etiquetas, seeders (tocar = analizar), "Analizar" recomendado y ▶ con
  *  menú (cargar en background). */
 function optionRow(c, best = false) {
   const light = lightOf(c);
   const bg = bgText(c);
   // Al dar ▶, los estados de la reproducción en la card (2026-11-15).
-  const pb = [...lib.playbacks.values()].find((r) => r.key.split(':')[0] === c.info_hash);
-  const pbStatus = starting.has(c.info_hash) && !pb ? 'preparando…' : pb && pb.state.kind !== 'background' ? playbackText(pb) : null;
+  const pb = playbackOf(c.info_hash);
+  // La de "Cargar en background" la cuenta `bgText` (velocidad y si alcanza).
+  const pbStatus = starting.has(c.info_hash) && !pb ? 'preparando…' : pb && !(pb.state.kind === 'background' && bgLoads.has(c.info_hash)) ? playbackText(pb) : null;
   const live = rowsOf(c.info_hash).find((e) => e.live)?.live ?? null;
   const scraped = counted.get(c.info_hash);
   const busy = counting.has(c.info_hash);
-  // Hasta que terminan fuentes y trackers los números no son finales: la fila espera (2026-11-16).
-  const pending = !state.update?.done;
   const tip = [c.release_name, c.resolution && `Resolución: ${c.resolution}`, c.file_name && `Archivo: ${c.file_name}`, c.is_pack && 'Pack: varios episodios en un torrent', `Fuentes: ${c.addons.join(' + ')}${c.sites.length ? ` (${c.sites.join(', ')})` : ''}`].filter(Boolean).join('\n');
   const badge = (text, cls = '', title = '') => el('span', { class: `cat-tag ${cls}`, title }, text);
   const hdrTip = c.hdr.map((x) => HDR_TIP[x]).filter(Boolean).join('\n');
@@ -719,15 +814,16 @@ function optionRow(c, best = false) {
     ? 'No se analizó: los trackers y la fuente dan 0 seeders y 0 leechers (casi seguro muerto). Tocá para analizarlo igual.'
     : `No se analizó a fondo: quedó fuera de los ${TOP} mejores según los trackers. Tocá para analizarlo.`)
     : dead
-    ? (scraped.peers ? `Nadie respondió: la red conoce ${scraped.peers} peers de este torrent pero ninguno contestó. Muy flojo, probablemente no arranque. Tocá para analizarlo.` : 'Nadie lo está compartiendo ahora (0 peers). Casi seguro muerto. Tocá para analizarlo.')
+    ? (scraped.peers ? `Sin respuesta: la red tiene ${scraped.peers} direcciones de peers para este torrent, pero no se pudo conectar con ninguna (direcciones viejas, peers llenos o, lo más común, los dos detrás de un router con el puerto cerrado). No quiere decir que esté muerto. Tocá para reintentar.` : 'Nadie lo está compartiendo ahora (0 peers). Casi seguro muerto. Tocá para analizarlo.')
     : scraped ? `Conectado al enjambre: ${scraped.seeds} seeders (archivo completo) de ${scraped.peers} peers${c.seeders != null ? ` (los trackers anuncian ${c.seeders}, sin verificar)` : ''}. Es lo que respondió de verdad; al reproducir suelen aparecer algunos más. Tocá para analizarlo.`
     : live && live.seeds === 0 ? 'Al analizarlo no se vio ningún seeder conectado (puede ser el momento). Tocá para analizarlo.'
     : live ? `Seeders vistos al analizarlo: ${live.seeds} (${live.peers} peers conectados). Tocá para analizarlo.`
       : checked === 'trackers' ? `${TRACKERS_TIP} ${c.seeders} seeders, ${c.leechers ?? 0} leechers. Tocá para el análisis profundo (se conecta y cuenta los reales).`
         : 'Según la fuente (los trackers no lo conocen o no respondieron). Tocá para el análisis profundo.';
-  // "Mejor opción" solo con el análisis completo hecho (2026-11-16): antes es la primera según los trackers.
-  const confirmed = best && counted.has(c.info_hash);
-  return el('li', { class: `cat-opt light-${light.cls} ${pending ? 'pending' : ''} ${confirmed ? 'best' : ''} ${skipped.has(c.info_hash) ? 'skipped' : ''}`, title: tip, 'data-hash': c.info_hash,
+  // "Mejor opción" solo con el análisis profundo terminado (mientras corre, el orden cambia) y salud
+  // buena: si no alcanza, no se recomienda (2026-11-16).
+  const confirmed = best && counted.has(c.info_hash) && state.side.deep?.status === 'done' && health(c)?.level === 0;
+  return el('li', { class: `cat-opt light-${light.cls} ${confirmed ? 'best' : ''} ${skipped.has(c.info_hash) ? 'skipped' : ''}`, title: tip, 'data-hash': c.info_hash,
     // Cada redibujo recrea la fila: la fase sale del reloj para que la animación no reinicie.
     style: busy ? `--live-phase:-${Date.now() % 3600}ms` : null },
     confirmed ? el('span', { class: 'cat-best-tags' }, el('span', { class: 'cat-best-tag' }, 'Mejor opción')) : null,
@@ -739,26 +835,26 @@ function optionRow(c, best = false) {
         : bg ? el('span', { class: `cat-speed bg-${bg.cls}`, title: bg.tip ?? '', role: 'status' }, bg.text)
         : light.text ? el('span', { class: 'cat-speed', title: 'Velocidad medida · margen' }, light.text) : null),
     // Seeds/leechers y, a su derecha, la salud estimada que sale de ellos (2026-11-15).
-    pending ? el('span', { class: 'cat-stats-cell' }, el('span', { class: 'cat-stat-sub cat-live' }, el('span', { class: 'cat-live-dot', 'aria-hidden': 'true' }), 'chequeando trackers…'))
-    : el('span', { class: 'cat-stats-cell' }, el('button', {
+    el('span', { class: 'cat-stats-cell' }, el('button', {
       id: `cat-seeds-${c.info_hash}`, class: `cat-seeds-btn ${checked === 'deep' ? 'analyzed' : ''} ${dead ? 'dead' : ''} ${busy ? 'busy' : ''}`, title: seedsTip,
       'aria-label': `${seedsNow ?? 'Sin dato de'} seeders: análisis profundo`, 'aria-busy': busy ? 'true' : null, disabled: busy,
       onclick: () => reanalyze([c.info_hash]),
     }, // Seeds primero y grande; leechers y profundidad como una línea chica debajo.
     el('span', { class: 'cat-stat seeds' }, el('span', { class: 'cat-seeds-n' }, seedsNow ?? '—'), el('span', { class: 'cat-stat-label' }, 'seeds'),
       busy ? null // ya lo dice "analizando · N peers" debajo
-        : dead ? el('span', { class: 'cat-seeds-dead', 'aria-hidden': 'true' }, '✕')
+        : dead && !scraped.peers ? el('span', { class: 'cat-seeds-dead', 'aria-hidden': 'true' }, '✕')
         : checked === 'deep' ? el('span', { class: 'cat-deep-ic', title: 'Análisis profundo: se conectó al enjambre y contó los seeders reales.', role: 'img', 'aria-label': 'Análisis profundo' }, icon('radar', 14))
           : el('span', { class: 'cat-seeds-hint', 'aria-hidden': 'true' }, icon('refresh', 13))),
-    busy ? el('span', { class: 'cat-stat-sub cat-live' }, el('span', { class: 'cat-live-dot', 'aria-hidden': 'true' }),
-      !partial ? 'analizando · conectando…'
-        : partial.reached ? `analizando · ${partial.peers} ${partial.peers === 1 ? 'peer conectado' : 'peers conectados'}`
-          : `analizando · ${partial.peers} en la red, esperando respuesta…`)
+    // Corto y en una línea (2026-11-16): el punto que late ya dice "analizando"; el detalle, en el tooltip.
+    busy ? el('span', { class: 'cat-stat-sub cat-live', title: !partial ? 'Analizando: buscando peers' : partial.reached ? `Analizando: ${partial.peers} peers conectados` : `Analizando: la red tiene ${partial.peers} direcciones de peers; probando conectarse (no todas responden)` },
+      el('span', { class: 'cat-live-dot', 'aria-hidden': 'true' }),
+      !partial ? 'buscando peers…' : partial.reached ? `${partial.peers} conectados` : `probando ${partial.peers} peers…`)
+    : dead && scraped.peers ? el('span', { class: 'cat-stat-sub cat-noanswer' }, 'sin respuesta · ', el('u', {}, 'reintentar'))
     : el('span', { class: 'cat-stat-sub' },
       leechersOf(c) != null ? el('span', { title: 'Leechers: bajando ahora; comparten los pedazos que ya tienen' }, `${leechersOf(c)} leechers`) : null)),
     healthBadge(c)),
     el('span', { class: 'cat-opt-actions' },
-      pending ? null : playSplit(c)));
+      playSplit(c)));
 }
 
 /** ▶ Reproducir con un ▾ al lado: el menú tiene "Cargar en background" (o cancelarla). */
@@ -767,10 +863,17 @@ function playSplit(c) {
   // Sin sus seeders reales contados (2026-11-16), ▶ primero pregunta: analizar (recomendado) o reproducir igual.
   if (playAsk === hash) {
     return el('span', { class: 'cat-ask' },
-      el('button', { id: `cat-ask-analyze-${hash}`, class: 'cat-ask-analyze', title: 'Recomendado: se conecta al torrent y cuenta los seeders reales (1 min aprox.). No baja el video.',
+      el('button', { id: `cat-ask-analyze-${hash}`, class: 'cat-ask-analyze', title: 'Recomendado: se conecta al torrent y cuenta los seeders reales (1 a 2 min). No baja el video.',
         onclick: () => { playAsk = null; reanalyze([hash]); } }, icon('radar', 15), 'Analizar primero'),
       el('button', { id: `cat-ask-play-${hash}`, class: 'cat-ask-play', title: 'Reproducir igual, sin analizar', 'aria-label': 'Reproducir igual',
         onclick: (ev) => { playAsk = null; playOption(hash, ev.currentTarget); } }, icon('play', 16)));
+  }
+  // Reproduciéndose o bajando (2026-11-16): en lugar de ▶, Detener. "Cargar en background" se cancela
+  // desde su menú.
+  const pb = playbackOf(hash);
+  if (pb && PB_LIVE.has(pb.state.kind) && !loading) {
+    return el('button', { id: `cat-stop-${hash}`, class: 'cat-stop', title: 'Detener: cierra el reproductor y la descarga queda pausada y guardada',
+      onclick: (ev) => { ev.currentTarget.disabled = true; api.playbackAction(pb.id, 'stop').catch(showError); } }, icon('stop', 16), 'Detener');
   }
   const ask = !counted.has(hash) && !counting.has(hash);
   return el('span', { class: `cat-split ${loading ? 'bg-on' : ''}` },
@@ -865,10 +968,17 @@ async function countSeeds(hashes) {
     if (state.side?.videoId !== video) return; // se fue de ese video: el resultado no se usa
     // Sin resultado = ningún peer dio los metadatos a tiempo: cuenta como "nadie respondió", no se
     // queda con el número de los trackers (que suele ser justamente el inflado).
-    for (const h of todo) counted.set(h, found[h] ?? { seeds: 0, peers: 0, reached: false });
+    // Detenido por el usuario: lo que no llegó a contarse queda sin contar (no "nadie respondió").
+    for (const h of todo) {
+      if (found[h] || !stopped.has(h)) counted.set(h, found[h] ?? { seeds: 0, peers: 0, reached: false });
+      deepDone.add(h);
+      stopped.delete(h);
+    }
     if (todo.length === 1 && !found[todo[0]]) setStatus('No se pudo contar ese torrent: nadie respondió a tiempo.');
   } catch (e) { showError(e); } finally {
     todo.forEach((h) => { counting.delete(h); liveCount.delete(h); });
+    const d = state.side?.deep;
+    if (d?.single && !counting.size) Object.assign(d, { status: d.after, single: false, hashes: [] });
     renderStreamsOnly();
   }
 }
@@ -885,7 +995,7 @@ const checkedBy = (c) => (counted.has(c.info_hash) ? 'deep' : trackersWin(c) ? '
 const TOP = 15;
 /** Tiempo del análisis profundo (todos a la vez, ver `swarm.rs`): trackers unos segundos +
  *  metadatos hasta 35 s + conteo de 45 a 85 s. Los muertos se liberan a los 15 s. */
-const DEEP_ETA = '1 a 2 min';
+const DEEP_ETA = '1 a 4 min'; // 10 a la vez: metadatos hasta 90 s mientras haya novedades + conteo hasta 85 s
 /** Finalistas que además reciben el análisis rápido (metadatos, duración, idiomas). */
 const FINALISTS = 8;
 function finalists(cands) {
@@ -906,6 +1016,12 @@ function reanalyze(hashes, res = null) {
   if (hashes.length === 1) quickAnalyze(hashes);
   hashes.forEach((h) => { counted.delete(h); if (hashes.length === 1) skipped.delete(h); });
   if (hashes.length === 1) {
+    // El panel de arriba muestra también los sueltos (2026-11-16): durante un lote suman a su "N de
+    // M"; sin lote, el panel pasa a "Analizando N" y al terminar vuelve a lo que había (el usuario no
+    // eligió analizar en lote).
+    const d = state.side?.deep;
+    if (d && d.status !== 'run') Object.assign(d, { status: 'run', single: true, after: d.status, hashes: [] });
+    if (d && !d.hashes.includes(hashes[0])) { d.hashes.push(hashes[0]); deepDone.delete(hashes[0]); }
     countSeeds(hashes);
   } else {
     runDeep(video, res);
@@ -961,14 +1077,19 @@ function renderStreamsBody(box) {
   const u = state.update;
   const body = $('#cat-side-body');
   const scroll = body?.scrollTop ?? 0;
-  box.replaceChildren();
-  if (!u || (!u.done && !u.candidates.length)) {
-    // Esqueleto con forma de fila mientras llegan los primeros torrents (2026-11-16).
-    box.append(el('div', { class: 'cat-sticky' }, optionsHead()), el('div', { class: 'opt-skeleton', 'aria-busy': 'true' }, Array.from({ length: 6 }, (_, i) =>
+  if (!u || !u.done) {
+    // Esqueleto con forma de fila hasta que terminan fuentes y trackers (2026-11-16): antes los
+    // números no son finales y la lista se reacomodaba a la vista. Mientras llegan torrents solo se
+    // cambia el encabezado: el esqueleto queda en la página y su animación sigue sin reiniciarse.
+    const head = el('div', { class: 'cat-sticky' }, optionsHead());
+    const sticky = box.querySelector(':scope > .opt-skeleton') && box.querySelector(':scope > .cat-sticky');
+    if (sticky) { sticky.replaceWith(head); return; }
+    box.replaceChildren(head, el('div', { class: 'opt-skeleton', 'aria-busy': 'true' }, Array.from({ length: 6 }, (_, i) =>
       el('div', { class: 'opt-skel', style: `animation-delay:${i * 70}ms` },
         el('span', { class: 'skel tall' }), el('span', { class: 'skel' }), el('span', { class: 'skel' }), el('span', { class: 'skel pill' })))));
     return;
   }
+  box.replaceChildren();
   if (u.done && !u.candidates.length) {
     const anyOk = u.addons.some((a) => a.state === 'ok');
     box.append(el('p', { class: 'pop-empty' }, anyOk ? 'Ninguna fuente tiene torrents para esto.' : 'Ninguna fuente respondió. Cerrá y volvé a abrirlo para reintentar.'));
@@ -991,12 +1112,18 @@ function renderStreamsBody(box) {
   if (!present.length) { box.append(el('p', { class: 'pop-empty' }, 'Ninguna opción con HDR / Dolby Vision.')); return; }
   box.append(...present.map((r) => {
     const open = r === openRes;
-    return el('section', { class: `cat-group ${open ? 'open' : ''}`, id: `cat-group-${r}` },
+    // Mientras corre el análisis profundo, el borde del grupo abierto gira (2026-11-16).
+    const analyzing = open && state.side.deep?.status === 'run';
+    return el('section', { class: `cat-group ${open ? 'open' : ''} ${analyzing ? 'analyzing' : ''}`, id: `cat-group-${r}`, 'aria-busy': analyzing ? 'true' : null,
+      style: analyzing ? `--group-phase:-${Date.now() % 4000}ms` : null },
       el('button', { id: `cat-res-${r}`, class: 'cat-group-head', 'aria-expanded': String(open), onclick: () => toggle(r) },
         el('span', { class: 'cat-group-name' }, resLabel(r)),
         el('span', { class: 'cat-res-count' }, `${groups.get(r).length} ${groups.get(r).length === 1 ? 'opción' : 'opciones'}`),
         el('span', { class: 'cat-chev' }, icon('chev', 18))),
-      open ? el('ul', { class: 'cat-options' }, groups.get(r).sort(bySeeds).map((c, i) => optionRow(c, i === 0))) : null);
+      open ? (() => {
+        const { list: sorted, best } = sortOptions(groups.get(r));
+        return el('ul', { class: 'cat-options' }, sorted.map((c) => optionRow(c, c === best)));
+      })() : null);
   }));
   if (body) body.scrollTop = scroll;
 }
@@ -1021,7 +1148,8 @@ async function runDeep(video, res) {
   deepDone.clear();
   renderStreamsOnly();
   if (d.hashes.length) await countSeeds(d.hashes);
-  if (state.side?.deep === d) { d.status = 'done'; renderStreamsOnly(); }
+  // Detenido: vuelve a ofrecer el análisis en lote; si no, queda hecho para esa resolución.
+  if (state.side?.deep === d) { d.status = d.stopped ? null : 'done'; d.stopped = false; renderStreamsOnly(); }
   // Los finalistas, además, con análisis rápido (metadatos, duración, idiomas reales).
   if (state.side?.videoId === video) quickAnalyze(finalists(all));
 }
@@ -1508,6 +1636,24 @@ async function init() {
     const lib = await api.library();
     for (const e of [...lib.pasted_now, ...lib.previous]) state.library.set(e.key, e);
   } catch (e) { showError(e); }
+  // Reproducciones (2026-11-16): se dibujan con lo que app.js ya guardó en `lib.playbacks` (avisa con
+  // `playback-changed` después de guardar). Oír el evento del núcleo directo dibujaba a veces con la
+  // fila vieja ("preparando 0 %" reproduciendo, o una pausada ya borrada): el orden entre oyentes
+  // no está garantizado.
+  window.addEventListener('playback-changed', ({ detail: event }) => {
+    if (event.type === 'playback-removed') { if (state.update) renderStreamsOnly(); return; }
+    const n = starting.size;
+    onPlaybackRow(event.row);
+    measurePlayback(event.row);
+    // Redibuja si cambió lo que muestra la card de esa opción (llega una fila por segundo
+    // mientras reproduce y casi siempre dice lo mismo, 2026-11-15).
+    const hash = event.row.key.split(':')[0];
+    const c = state.update?.candidates.find((x) => x.info_hash === hash);
+    const sig = c ? `${playbackText(event.row)}|${bgText(c)?.text ?? ''}` : null;
+    const changed = c && cardSig.get(hash) !== sig;
+    if (c) cardSig.set(hash, sig);
+    if (state.update && (starting.size !== n || changed)) renderStreamsOnly();
+  });
   await onCoreEvent((event) => {
     switch (event.type) {
       case 'catalog-streams': onStreams(event.update); break;
@@ -1542,22 +1688,6 @@ async function init() {
         refreshPasted();
         if (state.update) renderStreamsOnly();
         break;
-      case 'playback-updated': {
-        const n = starting.size;
-        onPlaybackRow(event.row);
-        measurePlayback(event.row);
-        // Redibuja si cambió lo que muestra la card de esa opción (llega una fila por segundo
-        // mientras reproduce y casi siempre dice lo mismo, 2026-11-15).
-        const hash = event.row.key.split(':')[0];
-        const c = state.update?.candidates.find((x) => x.info_hash === hash);
-        const sig = c ? `${playbackText(event.row)}|${bgText(c)?.text ?? ''}` : null;
-        const changed = c && cardSig.get(hash) !== sig;
-        if (c) cardSig.set(hash, sig);
-        if (state.update && (starting.size !== n || changed)) renderStreamsOnly();
-        break;
-      }
-      // La card deja de mostrar el estado (app.js ya la sacó de `lib.playbacks`).
-      case 'playback-removed': if (state.update) renderStreamsOnly(); break;
       default: break;
     }
   });

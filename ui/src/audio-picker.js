@@ -29,7 +29,10 @@ function closePk(refocus, instant) {
 }
 
 /** Abre el selector junto a `anchor`; resuelve con la opción elegida o `undefined` (cancelado). */
-function openPk(anchor, opts) {
+function openPk(btn, opts) {
+  // La lista del catálogo se redibuja mientras se prepara (2026-11-16): el botón tocado ya no está
+  // en la página y su posición daría 0,0 (arriba a la izquierda). Se usa el que lo reemplazó.
+  const anchor = btn.isConnected ? btn : (btn.id && document.getElementById(btn.id)) || btn;
   if (pkBtn) closePk(false, true);
   wantTip(null);
   pk.querySelector('.pk-l').replaceChildren(...opts.map((o, i) => el('button', {

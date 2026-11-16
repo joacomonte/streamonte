@@ -1,32 +1,33 @@
-//! Puntaje por temporada de una serie (pedido 2026-11-16: ver si la serie decayó). Con la key de
-//! TMDB, el promedio por temporada de TMDB (un pedido). Sin key, el de IMDb: el dataset oficial
-//! `title.episode` (qué episodios tiene cada serie) cruzado con `title.ratings` (que ya baja
-//! `top`), promediando los episodios de cada temporada. Junto va el estado de la serie y el
-//! próximo episodio anunciado (TMDB; sin key, lo que dice Cinemeta y su lista de episodios).
+//! Puntaje por temporada de una serie (pedido 2026-11-16: ver si la serie decayó), siempre el de
+//! IMDb: el dataset oficial `title.episode` (qué episodios tiene cada serie) cruzado con
+//! `title.ratings` (que ya baja `top`), promediando los episodios de cada temporada. TMDB tiene sus
+//! propios votos y no coincide con lo que el usuario ve en IMDb, así que de TMDB (con key) solo se
+//! toma el estado de la serie y el próximo episodio; sin key, los de Cinemeta.
+//!
+//! Los datasets se cruzan una vez por día en un índice (serie → temporadas) que queda en la caché
+//! de datos y se arma de fondo al abrir la app: cada serie sale después en milisegundos.
 
 use std::collections::{BTreeMap, HashMap};
 use std::io::{BufRead, BufReader, Read};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
 use super::cinemeta::Meta;
 use super::http::{FetchError, Http};
-use super::top::{imdb_dataset, tt_number, Ratings, TopRated};
+use super::top::{imdb_dataset, tt_number, Ratings, TopRated, DATASET_TTL};
 use crate::datacache::DataCache;
 use crate::Result;
 
 const EPISODES_URL: &str = "https://datasets.imdbws.com/title.episode.tsv.gz";
 /// El .gz pesa ~55 MB; margen por si crece.
 const EPISODES_MAX: usize = 150 * 1024 * 1024;
-/// Puntajes y estado de una serie guardados: cambian poco.
-const SEASONS_TTL: Duration = Duration::from_secs(7 * 24 * 3600);
+/// El índice armado, en la caché de datos (se rehace cuando vence, como los datasets).
+const INDEX_KEY: &str = "imdb-temporadas-v1.tsv";
+/// Estado de una serie guardado: cambia poco.
+const STATUS_TTL: Duration = Duration::from_secs(7 * 24 * 3600);
 const API: &str = "https://api.themoviedb.org/3";
-/// TMDB: un episodio cuenta con al menos estos votos y una temporada con al menos estos en total.
-/// Con menos, un 10 de dos personas tapa todo (pasó con una temporada en emisión).
-const MIN_EPISODE_VOTES: u32 = 3;
-const MIN_SEASON_VOTES: u32 = 25;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SeasonScore {
@@ -39,8 +40,7 @@ pub struct SeasonScore {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SeasonRatings {
-    /// `"IMDb"` o `"TMDB"`: de dónde salen los puntajes.
-    pub source: String,
+    /// Puntajes de IMDb (vacío si IMDb no tiene, o con `quick` si el índice no está listo).
     pub seasons: Vec<SeasonScore>,
     /// `None` si ninguna fuente lo sabe.
     pub status: Option<ShowStatus>,
@@ -73,20 +73,27 @@ pub struct ShowStatus {
     pub next: Option<NextEpisode>,
 }
 
+/// IMDb id numérico de la serie → sus temporadas en orden.
+type Index = HashMap<u32, Vec<SeasonScore>>;
+
 pub struct Seasons {
     data: Arc<DataCache>,
-    /// Resultado por IMDb id en esta sesión (en disco dura `SEASONS_TTL`).
-    cache: Mutex<HashMap<String, SeasonRatings>>,
+    index: tokio::sync::Mutex<Option<(Instant, Arc<Index>)>>,
+    /// Estado por IMDb id en esta sesión (en disco dura `STATUS_TTL`).
+    status: Mutex<HashMap<String, Option<ShowStatus>>>,
 }
 
 impl Seasons {
     pub fn new(data: Arc<DataCache>) -> Self {
         Self {
             data,
-            cache: Mutex::default(),
+            index: tokio::sync::Mutex::default(),
+            status: Mutex::default(),
         }
     }
 
+    /// `quick` (tarjetas del catálogo): no espera al índice; si todavía se está armando, va solo el
+    /// estado.
     pub async fn list(
         &self,
         http: &Http,
@@ -96,60 +103,37 @@ impl Seasons {
         quick: bool,
         timeout: Duration,
     ) -> Result<SeasonRatings> {
-        if let Some(hit) = self.cache.lock().expect("seasons").get(imdb_id) {
-            return Ok(hit.clone());
-        }
-        // v2 (2026-11-16): TMDB pasó a ponderar por votos; lo guardado antes se descarta.
-        let key = format!("temporadas-v2-{imdb_id}.json");
-        // Con un estreno anunciado ya pasado, lo guardado quedó viejo aunque no haya vencido.
-        let still_true = |r: &SeasonRatings| {
-            r.status
-                .as_ref()
-                .and_then(|s| s.next.as_ref())
-                .map_or(true, |n| {
-                    n.date.as_str() > chrono::Utc::now().format("%Y-%m-%d").to_string().as_str()
-                })
+        let index = if quick {
+            self.index
+                .try_lock()
+                .ok()
+                .and_then(|slot| slot.as_ref().map(|(_, i)| i.clone()))
+        } else {
+            Some(self.index(http, top).await?)
         };
-        if let Some((saved, _)) = self
+        let seasons = index
+            .zip(tt_number(imdb_id))
+            .and_then(|(i, series)| i.get(&series).cloned())
+            .unwrap_or_default();
+        let status = self.status(http, imdb_id, meta, timeout).await;
+        Ok(SeasonRatings { seasons, status })
+    }
+
+    /// El índice del día: en memoria, si no el guardado, si no se arma (unos segundos) y se guarda.
+    pub async fn index(&self, http: &Http, top: &TopRated) -> Result<Arc<Index>> {
+        let mut slot = self.index.lock().await;
+        if let Some((_, i)) = slot.as_ref().filter(|(at, _)| at.elapsed() < DATASET_TTL) {
+            return Ok(i.clone());
+        }
+        let saved = self
             .data
-            .get::<SeasonRatings>(&key)
-            .filter(|(r, age)| *age < SEASONS_TTL && still_true(r))
-        {
-            self.cache
-                .lock()
-                .expect("seasons")
-                .insert(imdb_id.to_string(), saved.clone());
-            return Ok(saved);
-        }
-        let tmdb = match crate::secrets::secret(super::tmdb::ACCOUNT) {
-            Some(key) => from_tmdb(http, &key, imdb_id, timeout).await,
-            None => None,
-        };
-        // Sin TMDB (o sin su estado), el de Cinemeta y su primer episodio por estrenar.
-        let fallback_status = || meta.and_then(cinemeta_status);
-        let out = match tmdb {
-            Some((seasons, status)) => SeasonRatings {
-                source: "TMDB".into(),
-                seasons,
-                status: status.or_else(fallback_status),
-            },
-            // `quick` (tarjetas del catálogo): sin TMDB no se calcula con IMDb (leer sus episodios
-            // tarda segundos); va solo el estado y no se guarda, así el panel lo calcula completo.
-            None if quick => {
-                return Ok(SeasonRatings {
-                    source: "IMDb".into(),
-                    seasons: Vec::new(),
-                    status: fallback_status(),
-                })
-            }
+            .read(INDEX_KEY)
+            .filter(|(_, age)| *age < DATASET_TTL);
+        let index = match saved {
+            Some((tsv, _)) => tokio::task::spawn_blocking(move || parse_index(&tsv))
+                .await
+                .unwrap_or_default(),
             None => {
-                let Some(series) = tt_number(imdb_id) else {
-                    return Ok(SeasonRatings {
-                        source: "IMDb".into(),
-                        seasons: Vec::new(),
-                        status: fallback_status(),
-                    });
-                };
                 let ratings = top.ratings(http).await?;
                 let gz = imdb_dataset(
                     http,
@@ -159,25 +143,62 @@ impl Seasons {
                     "los episodios",
                 )
                 .await?;
-                let seasons = tokio::task::spawn_blocking(move || {
-                    let eps = episodes_of(flate2::read::GzDecoder::new(&gz[..]), series);
-                    average(&eps, &ratings)
+                let (index, tsv) = tokio::task::spawn_blocking(move || {
+                    let index = build_index(flate2::read::GzDecoder::new(&gz[..]), &ratings);
+                    let tsv = to_tsv(&index);
+                    (index, tsv)
                 })
                 .await
                 .unwrap_or_default();
-                SeasonRatings {
-                    source: "IMDb".into(),
-                    seasons,
-                    status: fallback_status(),
-                }
+                self.data.write(INDEX_KEY, tsv.as_bytes());
+                index
             }
         };
-        self.data.put(&key, &out);
-        self.cache
+        tracing::info!(series = index.len(), "índice de temporadas listo");
+        let index = Arc::new(index);
+        *slot = Some((Instant::now(), index.clone()));
+        Ok(index)
+    }
+
+    /// Estado: TMDB si hay key (sabe renovaciones y fechas); si no, Cinemeta.
+    async fn status(
+        &self,
+        http: &Http,
+        imdb_id: &str,
+        meta: Option<&Meta>,
+        timeout: Duration,
+    ) -> Option<ShowStatus> {
+        if let Some(hit) = self.status.lock().expect("status").get(imdb_id) {
+            return hit.clone();
+        }
+        let key = format!("estado-serie-{imdb_id}.json");
+        // Con un estreno anunciado ya pasado, lo guardado quedó viejo aunque no haya vencido.
+        let still_true = |s: &Option<ShowStatus>| {
+            s.as_ref().and_then(|s| s.next.as_ref()).map_or(true, |n| {
+                n.date.as_str() > chrono::Utc::now().format("%Y-%m-%d").to_string().as_str()
+            })
+        };
+        let status = match self
+            .data
+            .get::<Option<ShowStatus>>(&key)
+            .filter(|(s, age)| *age < STATUS_TTL && still_true(s))
+        {
+            Some((saved, _)) => saved,
+            None => {
+                let tmdb = match crate::secrets::secret(super::tmdb::ACCOUNT) {
+                    Some(key) => tmdb_status_of(http, &key, imdb_id, timeout).await,
+                    None => None,
+                };
+                let status = tmdb.or_else(|| meta.and_then(cinemeta_status));
+                self.data.put(&key, &status);
+                status
+            }
+        };
+        self.status
             .lock()
-            .expect("seasons")
-            .insert(imdb_id.to_string(), out.clone());
-        Ok(out)
+            .expect("status")
+            .insert(imdb_id.to_string(), status.clone());
+        status
     }
 }
 
@@ -194,8 +215,6 @@ struct FoundTv {
 
 #[derive(Deserialize)]
 struct TvDetail {
-    #[serde(default)]
-    seasons: Vec<TmdbSeason>,
     status: Option<String>,
     next_episode_to_air: Option<TmdbEpisode>,
 }
@@ -207,19 +226,14 @@ struct TmdbEpisode {
     air_date: Option<String>,
 }
 
-#[derive(Deserialize)]
-struct TmdbSeason {
-    season_number: u32,
-}
-
-/// Puntajes y estado. `None` si TMDB no la tiene, falló o no tiene puntajes: entonces se usa IMDb.
-async fn from_tmdb(
+/// Estado y próximo episodio según TMDB; `None` si no la tiene o falló.
+async fn tmdb_status_of(
     http: &Http,
     key: &str,
     imdb_id: &str,
     timeout: Duration,
-) -> Option<(Vec<SeasonScore>, Option<ShowStatus>)> {
-    let log = |e: FetchError| tracing::debug!(imdb_id, "TMDB temporadas: {}", e.user_text());
+) -> Option<ShowStatus> {
+    let log = |e: FetchError| tracing::debug!(imdb_id, "TMDB estado: {}", e.user_text());
     let find: Find = http
         .get_json(
             &format!("{API}/find/{imdb_id}?external_source=imdb_id&api_key={key}"),
@@ -234,75 +248,7 @@ async fn from_tmdb(
         .await
         .map_err(log)
         .ok()?;
-    let status = tmdb_status(&tv);
-    // El promedio por temporada de TMDB no dice cuántos votos tiene: se pide cada temporada y se
-    // pondera por los votos de cada episodio (temporada 0 = especiales, afuera).
-    let mut tasks = tokio::task::JoinSet::new();
-    for n in tv
-        .seasons
-        .iter()
-        .map(|s| s.season_number)
-        .filter(|n| *n > 0)
-    {
-        let (http, url) = (
-            http.clone(),
-            format!("{API}/tv/{id}/season/{n}?api_key={key}"),
-        );
-        tasks.spawn(async move { (n, http.get_json::<TmdbSeasonDetail>(&url, timeout).await) });
-    }
-    let mut seasons = Vec::new();
-    while let Some(done) = tasks.join_next().await {
-        let Ok((season, res)) = done else { continue };
-        match res {
-            Ok(detail) => {
-                seasons.extend(
-                    weighted(&detail.episodes).map(|(rating, episodes)| SeasonScore {
-                        season,
-                        rating,
-                        episodes,
-                    }),
-                )
-            }
-            Err(e) => log(e),
-        }
-    }
-    seasons.sort_by_key(|s| s.season);
-    (!seasons.is_empty()).then_some((seasons, status))
-}
-
-#[derive(Deserialize)]
-struct TmdbSeasonDetail {
-    #[serde(default)]
-    episodes: Vec<TmdbEpisodeVotes>,
-}
-
-#[derive(Deserialize)]
-struct TmdbEpisodeVotes {
-    #[serde(default)]
-    vote_average: f32,
-    #[serde(default)]
-    vote_count: u32,
-}
-
-/// Promedio de la temporada ponderado por votos, con los episodios que tienen suficientes; `None`
-/// si en total no alcanzan. Devuelve (puntaje con un decimal, episodios contados).
-fn weighted(episodes: &[TmdbEpisodeVotes]) -> Option<(f32, u32)> {
-    let counted: Vec<_> = episodes
-        .iter()
-        .filter(|e| e.vote_count >= MIN_EPISODE_VOTES)
-        .collect();
-    let votes: u32 = counted.iter().map(|e| e.vote_count).sum();
-    if votes < MIN_SEASON_VOTES {
-        return None;
-    }
-    let sum: f32 = counted
-        .iter()
-        .map(|e| e.vote_average * e.vote_count as f32)
-        .sum();
-    Some((
-        (sum / votes as f32 * 10.0).round() / 10.0,
-        counted.len() as u32,
-    ))
+    tmdb_status(&tv)
 }
 
 fn tmdb_status(tv: &TvDetail) -> Option<ShowStatus> {
@@ -349,59 +295,70 @@ fn cinemeta_status(meta: &Meta) -> Option<ShowStatus> {
     Some(ShowStatus { state, next })
 }
 
-/// Episodios (`tt` del episodio, temporada) de una serie: `tconst\tparentTconst\tseason\tepisode`.
-fn episodes_of(r: impl Read, series: u32) -> Vec<(u32, u32)> {
-    BufReader::new(r)
-        .lines()
-        .map_while(std::result::Result::ok)
-        .filter_map(|line| {
-            let mut f = line.split('\t');
-            let ep = tt_number(f.next()?)?;
-            (tt_number(f.next()?)? == series).then_some(())?;
-            let season: u32 = f.next()?.parse().ok()?; // "\N" = sin temporada
-            Some((ep, season))
-        })
-        .collect()
-}
-
-/// Promedio por temporada de los episodios con puntaje (sin especiales).
-fn average(episodes: &[(u32, u32)], ratings: &Ratings) -> Vec<SeasonScore> {
-    let mut by_season: BTreeMap<u32, (f32, u32)> = BTreeMap::new();
-    for (ep, season) in episodes {
-        if let (true, Some(&(rating, _))) = (*season > 0, ratings.get(ep)) {
-            let e = by_season.entry(*season).or_default();
+/// Recorre `title.episode` (`tconst\tparentTconst\tseason\tepisode`) una vez y promedia, por
+/// serie y temporada, los episodios con puntaje (sin especiales ni episodios sin temporada).
+fn build_index(r: impl Read, ratings: &Ratings) -> Index {
+    let mut sums: BTreeMap<(u32, u32), (f32, u32)> = BTreeMap::new();
+    for line in BufReader::new(r).lines().map_while(std::result::Result::ok) {
+        let mut f = line.split('\t');
+        let (Some(ep), Some(series), Some(season)) = (
+            f.next().and_then(tt_number),
+            f.next().and_then(tt_number),
+            f.next().and_then(|s| s.parse::<u32>().ok()), // "\N" = sin temporada
+        ) else {
+            continue;
+        };
+        if let (true, Some(&(rating, _))) = (season > 0, ratings.get(&ep)) {
+            let e = sums.entry((series, season)).or_default();
             e.0 += rating;
             e.1 += 1;
         }
     }
-    by_season
-        .into_iter()
-        .map(|(season, (sum, n))| SeasonScore {
+    let mut index = Index::new();
+    for ((series, season), (sum, n)) in sums {
+        index.entry(series).or_default().push(SeasonScore {
             season,
             rating: (sum / n as f32 * 10.0).round() / 10.0,
             episodes: n,
-        })
-        .collect()
+        });
+    }
+    index
+}
+
+/// Una línea por temporada: `serie\ttemporada\tpuntaje\tepisodios`, en orden de temporada.
+fn to_tsv(index: &Index) -> String {
+    let mut out = String::new();
+    for (series, seasons) in index {
+        for s in seasons {
+            out += &format!("{series}\t{}\t{}\t{}\n", s.season, s.rating, s.episodes);
+        }
+    }
+    out
+}
+
+fn parse_index(tsv: &[u8]) -> Index {
+    let mut index = Index::new();
+    for line in tsv.split(|b| *b == b'\n') {
+        let mut f = std::str::from_utf8(line).unwrap_or_default().split('\t');
+        if let (Some(series), Some(season), Some(rating), Some(episodes)) = (
+            f.next().and_then(|v| v.parse::<u32>().ok()),
+            f.next().and_then(|v| v.parse().ok()),
+            f.next().and_then(|v| v.parse().ok()),
+            f.next().and_then(|v| v.parse().ok()),
+        ) {
+            index.entry(series).or_default().push(SeasonScore {
+                season,
+                rating,
+                episodes,
+            });
+        }
+    }
+    index
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn promedio_de_tmdb_ponderado_y_sin_temporadas_con_pocos_votos() {
-        let ep = |vote_average, vote_count| TmdbEpisodeVotes {
-            vote_average,
-            vote_count,
-        };
-        // 2 votos de 10 no cuentan; el resto pondera por votos: (8×30 + 9×10) / 40 = 8,25 → 8,3.
-        assert_eq!(
-            weighted(&[ep(8.0, 30), ep(9.0, 10), ep(10.0, 2)]),
-            Some((8.3, 2))
-        );
-        // Temporada en emisión con pocos votos: afuera.
-        assert_eq!(weighted(&[ep(10.0, 4), ep(10.0, 6)]), None);
-    }
 
     #[test]
     fn estado_de_tmdb() {
@@ -425,38 +382,46 @@ mod tests {
     }
 
     #[test]
-    fn episodios_de_la_serie_y_promedio_por_temporada() {
+    fn indice_por_serie_y_temporada_ida_y_vuelta() {
         let tsv = "tconst\tparentTconst\tseasonNumber\tepisodeNumber\n\
-                   tt0000011\ttt0000001\t1\t1\n\
-                   tt0000012\ttt0000001\t1\t2\n\
-                   tt0000021\ttt0000001\t2\t1\n\
-                   tt0000031\ttt0000001\t0\t1\n\
-                   tt0000041\ttt0000001\t\\N\t\\N\n\
+                   tt0000011\ttt33043892\t1\t1\n\
+                   tt0000012\ttt33043892\t1\t2\n\
+                   tt0000021\ttt33043892\t2\t1\n\
+                   tt0000031\ttt33043892\t0\t1\n\
+                   tt0000041\ttt33043892\t\\N\t\\N\n\
+                   tt0000051\ttt33043892\t3\t1\n\
                    tt0000099\ttt0000002\t1\t1\n";
-        let eps = episodes_of(tsv.as_bytes(), 1);
-        assert_eq!(eps.len(), 4, "otra serie y sin temporada quedan afuera");
         let ratings: Ratings = [
             (11, (8.0, 100)),
             (12, (9.0, 100)),
             (21, (6.5, 100)),
             (31, (9.9, 100)),
+            (41, (9.9, 100)),
+            (99, (5.0, 100)),
         ]
         .into();
+        let index = build_index(tsv.as_bytes(), &ratings);
+        let expected = [
+            SeasonScore {
+                season: 1,
+                rating: 8.5,
+                episodes: 2,
+            },
+            SeasonScore {
+                season: 2,
+                rating: 6.5,
+                episodes: 1,
+            },
+        ];
         assert_eq!(
-            average(&eps, &ratings),
-            [
-                SeasonScore {
-                    season: 1,
-                    rating: 8.5,
-                    episodes: 2
-                },
-                SeasonScore {
-                    season: 2,
-                    rating: 6.5,
-                    episodes: 1
-                },
-            ],
-            "sin especiales (temporada 0)"
+            index[&33043892], expected,
+            "sin especiales, sin temporada ni episodios sin puntaje"
+        );
+        assert_eq!(index[&2].len(), 1, "cada serie con lo suyo");
+        assert_eq!(
+            parse_index(to_tsv(&index).as_bytes()),
+            index,
+            "guardado y leído da lo mismo (ids grandes incluidos)"
         );
     }
 
@@ -472,10 +437,20 @@ mod tests {
         let gz = imdb_dataset(&http, &data, EPISODES_URL, EPISODES_MAX, "los episodios")
             .await
             .unwrap();
-        let eps = episodes_of(flate2::read::GzDecoder::new(&gz[..]), 903747);
-        let seasons = average(&eps, &ratings);
+        let at = Instant::now();
+        let index = build_index(flate2::read::GzDecoder::new(&gz[..]), &ratings);
+        println!("índice: {} series en {:?}", index.len(), at.elapsed());
+        let tsv = to_tsv(&index);
+        let at = Instant::now();
+        assert_eq!(parse_index(tsv.as_bytes()).len(), index.len());
+        println!("{} MB, leído en {:?}", tsv.len() / 1_000_000, at.elapsed());
+        let seasons = &index[&903747];
         println!("{seasons:?}");
         assert_eq!(seasons.len(), 5, "Breaking Bad: 5 temporadas");
         assert!(seasons.iter().all(|s| s.rating > 8.0));
+        // Dexter: Resurrection, T1 en IMDb ≈ 9,3 (TMDB daba 7,5: por eso se usa IMDb).
+        let dexter = &index[&33043892];
+        println!("{dexter:?}");
+        assert!(dexter[0].season == 1 && dexter[0].rating > 9.0);
     }
 }
