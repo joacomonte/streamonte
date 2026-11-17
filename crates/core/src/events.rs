@@ -70,12 +70,15 @@ pub enum CoreEvent {
     CatalogSwarmCounted {
         hash: InfoHash,
         count: crate::analyzer::swarm::SwarmCount,
+        /// `false` = prueba rápida (2026-11-17); la UI los guarda aparte.
+        deep: bool,
     },
     /// Conteo parcial mientras cuenta (2026-11-15): la UI lo muestra en vivo en la fila. Sin
     /// metadatos todavía, `reached = false` y `peers` = los que encontró la DHT.
     CatalogSwarmProgress {
         hash: InfoHash,
         count: crate::analyzer::swarm::SwarmCount,
+        deep: bool,
     },
     CatalogSubtitlesProgress {
         video_id: String,

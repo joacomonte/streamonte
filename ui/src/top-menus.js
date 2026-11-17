@@ -47,7 +47,6 @@ window.addEventListener('resize', closePop);
 export const popFor = (btnId) => (open?.btn.id === btnId ? pop : null);
 
 const section = (title, ...children) => el('section', { class: 'pop-section' }, el('h4', {}, title), ...children);
-const empty = (text) => el('p', { class: 'pop-empty' }, text);
 
 // ---------- Magnet copiado (2026-11-16) ----------
 // El botón aparece solo si lo último copiado es un magnet, y lo reproduce directo, sin análisis ni
@@ -102,7 +101,7 @@ function playbackItem(r) {
 
 function analyzerSection() {
   const s = state.analyzerState;
-  if (!s || s.kind === 'idle') return section('Análisis', empty('Nada analizándose.'));
+  if (!s || s.kind === 'idle') return null;
   const queued = state.queued?.length ?? 0;
   const what = s.kind === 'paused' ? 'En pausa'
     : s.kind === 'measuring' ? `Midiendo ${titleOf(s.current)}`
@@ -128,26 +127,29 @@ function renderDownloads() {
     refreshCache();
     if (open?.btn.id === 'btn-downloads') renderDownloads();
   };
-  pop.replaceChildren(
-    el('div', { class: 'pop-head' }, el('div', {}, el('h3', {}, 'Descargas'), el('p', { class: 'pop-sub' }, 'Lo que se reproduce o baja, lo guardado y la limpieza.'))),
-    section(`En curso${running.length ? ` · ${running.length}` : ''}`,
-      running.length ? el('ul', { class: 'pop-list' }, running.map(playbackItem)) : empty('Nada reproduciéndose ni bajando.')),
-    section(`Guardadas${kept.length ? ` · ${kept.length}` : ''}`,
-      kept.length ? el('ul', { class: 'pop-list' }, kept.map(playbackItem)) : empty('No hay descargas pausadas.')),
+  const total = usage && dataBytes != null ? humanBytes(usage.bytes + dataBytes) : '…';
+  pop.replaceChildren(...[
+    el('div', { class: 'pop-head' },
+      el('div', {}, el('h3', {}, 'Descargas'), el('p', { class: 'pop-sub' }, `${total} en disco`)),
+      el('button', { id: 'dl-open-folder', class: 'pop-btn', onclick: () => api.openDownloadsFolder().catch(showError) }, icon('folder', 15), 'Abrir carpeta')),
+    el('ul', { class: 'disk-list' },
+      el('li', { class: 'disk-row' },
+        el('span', { class: 'disk-row-text' }, el('b', {}, 'Caché'), el('span', {}, 'Lo analizado y restos sin uso')),
+        el('span', { class: 'disk-row-size' }, usage ? humanBytes(usage.bytes) : '…'),
+        el('button', { id: 'dl-clean', class: 'pop-btn', title: 'Borra lo analizado y los restos que no están en uso (no toca lo activo ni lo guardado)', disabled: usage?.bytes === 0, onclick: () => afterClean(cleanTemp) }, 'Borrar'))),
+    // Datos guardados: discreto a propósito, sirven para abrir todo más rápido y no conviene
+    // invitar a borrarlos (se vuelven a bajar si se borran).
+    el('p', { class: 'pop-data-line' },
+      `Datos guardados · ${dataBytes == null ? '…' : humanBytes(dataBytes)} · aceleran el catálogo, no hace falta borrarlos · `,
+      el('button', { id: 'dl-clear-data', type: 'button', title: 'Borra fichas, portadas y puntajes guardados (se vuelven a bajar cuando hagan falta)', onclick: () => afterClean(clearDataCache) }, 'borrar')),
+    // Las secciones vacías no se muestran (2026-11-17).
+    running.length ? section(`En curso · ${running.length}`, el('ul', { class: 'pop-list' }, running.map(playbackItem))) : null,
+    kept.length ? section(`Guardadas · ${kept.length}`, el('ul', { class: 'pop-list' }, kept.map(playbackItem))) : null,
     analyzerSection(),
-    section('Espacio en disco',
-      el('div', { class: 'pop-disk' },
-        el('span', { class: 'pop-disk-size' }, usage ? humanBytes(usage.bytes) : '…'),
-        el('span', { class: 'pop-item-sub' }, 'de caché (lo analizado y restos) que se puede borrar')),
-      el('div', { class: 'pop-actions wrap' },
-        el('button', { id: 'dl-open-folder', class: 'pop-btn', onclick: () => api.openDownloadsFolder().catch(showError) }, 'Abrir carpeta'),
-        el('button', { id: 'dl-clean', class: 'pop-btn', title: 'Borra lo analizado y los restos que no están en uso (no toca lo activo ni lo guardado)', onclick: () => afterClean(cleanTemp) }, 'Borrar caché'),
-        el('button', { id: 'dl-stop-all', class: 'pop-btn danger', title: 'Detiene todo y borra todo lo descargado, también lo pausado', onclick: () => afterClean(stopAllAndClean) }, 'Detener y borrar todo')),
-      // Datos guardados (2026-11-16): aparte de los videos; "Borrar caché" no los toca. Discreto a
-      // propósito: sirven para abrir todo más rápido, no conviene invitar a borrarlos.
-      el('p', { class: 'pop-data-line' },
-        `Datos guardados · ${dataBytes == null ? '…' : humanBytes(dataBytes)} · `,
-        el('button', { id: 'dl-clear-data', type: 'button', title: 'Borra fichas, portadas y puntajes guardados (se vuelven a bajar cuando hagan falta)', onclick: () => afterClean(clearDataCache) }, 'borrar'))));
+    // Solo hace algo distinto de "Borrar caché" cuando hay reproducciones o descargas guardadas.
+    rows.length ? el('div', { class: 'pop-foot' },
+      el('button', { id: 'dl-stop-all', class: 'pop-btn danger', title: 'Detiene todo y borra todo lo descargado, también lo pausado', onclick: () => afterClean(stopAllAndClean) }, 'Detener y borrar todo')) : null,
+  ].filter(Boolean));
 }
 
 export async function toggleDownloads() {
@@ -180,6 +182,24 @@ export async function refreshCache() {
   if (u) cache.textContent = `· ${humanBytes(u.bytes)} de caché`;
 }
 
+/** Estados en que de verdad baja datos (pausada o "solo reproduciendo lo bajado" no). */
+const TRANSFER = new Set(['fetching-metadata', 'preparing', 'playing', 'background']);
+/** Si algo está bajando, la velocidad total en el botón Descargas y una barra al pie del toolbar
+ *  (2026-11-17): antes solo había un número y no se notaba que bajaba de fondo. */
+function showTransfer() {
+  const rows = [...state.playbacks.values()].filter((r) => TRANSFER.has(r.state.kind) && (r.progress ?? 0) < 1);
+  const speed = $('#downloads-speed'), bar = $('#top-dl');
+  speed.hidden = bar.hidden = !rows.length;
+  if (!rows.length) return;
+  const bps = rows.reduce((t, r) => t + (r.speed_bps || 0), 0);
+  const pct = Math.round((rows.reduce((t, r) => t + (r.progress ?? 0), 0) / rows.length) * 100);
+  speed.textContent = `↓ ${mbps(bps)}`;
+  bar.classList.toggle('waiting', pct === 0); // conectando o sin metadatos: barra que corre
+  bar.firstElementChild.style.width = `${Math.max(pct, 2)}%`;
+  bar.setAttribute('aria-valuenow', String(pct));
+  bar.title = `Bajando ${rows.length === 1 ? rows[0].name : `${rows.length} videos`} · ${pct} % · ${mbps(bps)}`;
+}
+
 /** Lo llama app.js con cada evento de reproducción o análisis: tamaño, badge y menú abierto al día. */
 export function refreshDownloads() {
   const bytes = downloadedBytes();
@@ -187,6 +207,7 @@ export function refreshDownloads() {
   size.hidden = bytes < 1024 ** 2;
   size.textContent = `· ${humanBytes(bytes)} bajados`;
   const n = [...state.playbacks.values()].filter(ACTIVE).length;
+  showTransfer();
   const badge = $('#downloads-badge');
   badge.hidden = n === 0;
   badge.textContent = String(n);

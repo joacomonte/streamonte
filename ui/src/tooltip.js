@@ -91,7 +91,7 @@ export function wantTip(target) {
     tip.style.setProperty('--ax', `${Math.max(14, Math.min(w - 14, r.left + r.width / 2 - x))}px`);
     if (!target.hasAttribute('aria-label')) { target.setAttribute('aria-describedby', 'tip'); tipFor = target; }
     requestAnimationFrame(() => tip.classList.add('on'));
-  }, tip.classList.contains('on') ? 60 : 380);
+  }, Number(target.dataset.tipDelay) || (tip.classList.contains('on') ? 60 : 380)); // `data-tip-delay`: espera propia (fila de opción: 2 s)
 }
 function tipScope(t) {
   const n = t.closest?.('[data-tip], [title]');

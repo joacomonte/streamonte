@@ -81,13 +81,17 @@ document.addEventListener('pointerdown', (ev) => { if (pkBtn && !pk.contains(ev.
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { if (pkBtn) closePk(true); else wantTip(null); } });
 document.addEventListener('scroll', () => { if (pkBtn) closePk(false); }, { capture: true, passive: true });
 
-// Idioma original según el país de Cinemeta (2026-11-16): va primero en el selector. Solo los
-// casos que el selector ofrece (Latino / Inglés / Español); el resto no cambia el orden.
+// Idioma original (2026-11-16): va primero en el selector. Manda el de TMDB (con key); sin él, se
+// adivina por el país de Cinemeta. Solo los casos que el selector ofrece (Latino / Inglés /
+// Español); el resto no cambia el orden.
 const EN = ['United States', 'USA', 'United Kingdom', 'UK', 'Canada', 'Australia', 'Ireland', 'New Zealand'];
 const LAT = ['Mexico', 'Argentina', 'Colombia', 'Chile', 'Peru', 'Venezuela', 'Uruguay', 'Paraguay', 'Bolivia', 'Ecuador', 'Cuba', 'Guatemala', 'Costa Rica', 'Puerto Rico', 'Dominican Republic'];
-/** Código de audio del idioma original (`en`, `lat`, `es`) por el primer país, o null. */
-export function originalAudio(country) {
+/** Código de audio del idioma original (`en`, `lat`, `es`) o null. `lang`: ISO 639-1 de TMDB;
+ *  el país (primero de la lista) solo decide si falta, o entre Latino y España si es español. */
+export function originalAudio(country, lang) {
   const first = country?.split(',')[0].trim();
+  if (lang === 'es') return first === 'Spain' ? 'es' : 'lat';
+  if (lang) return lang === 'en' ? 'en' : null;
   return EN.includes(first) ? 'en' : LAT.includes(first) ? 'lat' : first === 'Spain' ? 'es' : null;
 }
 

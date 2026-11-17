@@ -52,7 +52,7 @@ export const api = {
   /** Póster de TMDB para un título sin imagen en Cinemeta (null sin key o si no lo tiene). */
   catalogPoster: (imdbId) => invoke('catalog_poster', { imdbId }),
   /** "Contar seeders reales": se conecta a cada enjambre (~50 s por tanda). {hash: {seeds, peers}}; falta = no se pudo. */
-  catalogSwarm: (hashes, deep = false) => invoke('catalog_swarm', { hashes, deep }),
+  catalogSwarm: (hashes, depth = 'deep') => invoke('catalog_swarm', { hashes, depth }),
   /** Censo DHT sin conectarse (~12 s): {hash: direcciones}; falta = 0. */
   catalogCensus: (hashes) => invoke('catalog_census', { hashes }),
   /** Corta los conteos en curso ("Detener" el análisis); lo ya contado queda. */
@@ -67,11 +67,16 @@ export const api = {
   catalogTrending: (kind, genre, skip) => invoke('catalog_trending', { kind, genre, skip }),
   /** Puntaje promedio por temporada: {source: 'IMDb'|'TMDB', seasons: [{season, rating, episodes}], status}.
    *  quick: no espera al índice de IMDb si se está armando (solo el estado). */
+  catalogDetails: (kind, imdbId) => invoke('catalog_details', { kind, imdbId }),
+  catalogSimilar: (kind, imdbId) => invoke('catalog_similar', { kind, imdbId }),
   catalogSeasonRatings: (imdbId, quick = false) => invoke('catalog_season_ratings', { imdbId, quick }),
   /** Explorar con filtros de IMDb (necesita key de TMDB): {items, has_more:false}. sort: 'popular' | 'rating'.
    *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera. */
   catalogBrowseTop: (kind, sort, from, to, minVotes, languages, genre) => invoke('catalog_browse_top', { kind, sort, from, to, minVotes, languages, genre }),
   /** Abre la ficha de IMDb del título en el navegador. */
+  catalogOpenTrailer: (youtubeId) => invoke('catalog_open_trailer', { youtubeId }),
+  catalogSwarmSaved: (hashes) => invoke('catalog_swarm_saved', { hashes }),
+  downloadsFreeBytes: () => invoke('downloads_free_bytes'),
   catalogOpenImdb: (imdbId) => invoke('catalog_open_imdb', { imdbId }),
   /** FR-38/39: ficha con episodios. */
   catalogMeta: (kind, id) => invoke('catalog_meta', { kind, id }),
@@ -110,6 +115,8 @@ export const api = {
   config: () => invoke('config_get'),
   // Un comando por ajuste: nunca se reescribe la config entera desde la UI.
   /** Ajustes → Red (ADR-30): entrantes / UPnP. */
+  /** 'cine' | 'voices' | 'flat' (Ajustes → Reproductor, 2026-11-17). */
+  setEqualizer: (equalizer) => invoke('config_set_equalizer', { equalizer }),
   setNetwork: (incoming, upnp, announceEarly) => invoke('config_set_network', { incoming, upnp, announceEarly }),
 };
 

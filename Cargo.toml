@@ -6,7 +6,7 @@ resolver = "2"
 members = ["crates/core", "src-tauri"]
 
 [workspace.package]
-version = "0.8.2"
+version = "0.9.0"
 edition = "2021"
 rust-version = "1.80"
 license = "UNLICENSED"
@@ -25,6 +25,17 @@ directories = "5"
 which = "6"
 chrono = { version = "0.4", features = ["serde"] }
 data-encoding = "2"
+
+[profile.dev]
+# 2026-11-17: /target llegó a 143 GB, casi todo info de depuración. Lo propio guarda solo las líneas
+# (los backtraces las siguen mostrando); las dependencias, nada. La poda va en scripts/trim-target.sh.
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+# 2026-11-17: optimizadas las dependencias (motor de torrents, tokio, cripto). Sin optimizar, la app de
+# desarrollo usaba mucha CPU con 30 pruebas a la vez; el código propio sigue rápido de compilar.
+opt-level = 2
 
 [profile.release]
 # NFR-14: app liviana.

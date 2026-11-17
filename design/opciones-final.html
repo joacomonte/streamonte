@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opciones · prototipo final</title>
+<style>
+:root {
+  --bg: #0d1014; --surface: #161a20; --surface-2: #1c2129; --surface-3: #232a34; --sunk: #11151a;
+  --text: #e7eaee; --muted: #9aa3ae; --dim: #6f7883; --border: #252b34; --border-strong: #353d48;
+  --track: #46505d; --accent: #2563eb; --accent-fg: #7ab0ff;
+  --green: #4ade80; --yellow: #facc15; --red: #f87171; --gold: #e8c26a; --lat: #38bdf8;
+  --out: cubic-bezier(.16, 1, .3, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+button { font: inherit; }
+button:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+.wrap { max-width: 700px; margin: 0 auto; padding: 32px 20px 64px; }
+h1 { margin: 0 0 6px; font-size: 22px; }
+.lead { margin: 0 0 22px; color: var(--muted); max-width: 70ch; }
+.lead kbd { padding: 0 5px; border-radius: 4px; border: 1px solid var(--border-strong); font-size: 12px; }
+.panel { padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+
+/* ---------- cabecera del grupo ---------- */
+.ghead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 2px 4px 14px; }
+.ghead b { font-size: 17px; }
+.ghead .count { color: var(--muted); font-size: 13px; }
+.sort { margin-left: auto; display: inline-flex; padding: 3px; border-radius: 999px; background: var(--sunk); border: 1px solid var(--border); }
+.sort button { height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .2s var(--out), color .2s; }
+.sort button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+.sort button:hover:not([aria-pressed="true"]) { color: var(--text); }
+
+.testall { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); background: color-mix(in srgb, var(--accent) 8%, var(--bg)); color: var(--text); text-align: left; cursor: pointer; transition: background .2s, border-color .2s; }
+.testall:hover { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+.testall .t { display: grid; gap: 1px; flex: 1; }
+.testall .t b { font-size: 14.5px; }
+.testall .t span { color: var(--muted); font-size: 12.5px; }
+.testall .go { color: var(--accent-fg); font-weight: 700; font-size: 13px; white-space: nowrap; }
+.testall.running { cursor: default; }
+.testall .bar { margin-top: 6px; }
+
+/* ---------- fila ---------- */
+ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.opt { position: relative; display: grid; grid-template-columns: 196px minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; padding: 12px 12px 12px 18px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border); transition: border-color .15s var(--out), background .15s var(--out), box-shadow .5s var(--out); }
+.opt:hover, .opt:focus-within { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); background: color-mix(in srgb, var(--accent) 4%, var(--bg)); }
+.opt.best { border-color: color-mix(in srgb, var(--green) 50%, var(--border)); }
+.best-tag { position: absolute; top: -9px; left: 14px; padding: 1px 8px; border-radius: 999px; background: var(--green); color: #06260f; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.left { display: grid; gap: 5px; }
+.size { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.hdr { padding: 0 5px; border-radius: 5px; border: 1.5px solid currentColor; font-size: 10px; font-weight: 800; letter-spacing: .04em; opacity: .85; }
+.q { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: help; flex-wrap: wrap; }
+.q.cam, .q.cam svg { color: var(--red); }
+.stars { letter-spacing: 1px; font-size: 11px; line-height: 1; }
+.stars i { font-style: normal; color: var(--track); }
+.stars i.on { color: var(--gold); }
+.lat { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border-radius: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; color: var(--lat); background: color-mix(in srgb, var(--lat) 13%, transparent); cursor: help; }
+.lat.guess { color: var(--muted); background: var(--surface-3); }
+
+.mid { display: grid; gap: 4px; justify-items: start; align-content: center; min-width: 0; }
+.people { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; padding-left: 2px; }
+.people b { color: var(--muted); font-weight: 600; }
+
+.sig rect { fill: var(--track); transition: fill .25s; }
+.sig rect.on { fill: currentColor; }
+.good { color: var(--green); } .fair { color: var(--yellow); } .bad { color: var(--red); } .none { color: var(--dim); }
+
+.vline { display: inline-flex; align-items: center; }
+.verdict { display: inline-flex; align-items: center; gap: 9px; height: 30px; padding: 0; background: none; border: 0; color: inherit; cursor: help; }
+.verdict strong { font-size: 15px; }
+
+.cta { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px 0 10px; border-radius: 999px; border: 0; background: var(--surface-3); color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; transition: background .2s, transform .15s var(--out); }
+.cta:hover { background: var(--border-strong); }
+.cta:active { transform: scale(.97); }
+.radar { position: relative; width: 14px; height: 14px; display: grid; place-items: center; flex: none; }
+.radar::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fg); }
+.radar::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--accent-fg); opacity: 0; }
+.cta:hover .radar::after, .testing .radar::after, .testall .radar::after { animation: ping 1.3s var(--out) infinite; }
+@keyframes ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+
+.queued { display: inline-flex; align-items: center; gap: 8px; height: 30px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.queued .dots i { display: inline-block; width: 4px; height: 4px; margin-right: 3px; border-radius: 50%; background: var(--dim); animation: dot 1.2s infinite; }
+.queued .dots i:nth-child(2) { animation-delay: .2s; } .queued .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes dot { 40% { background: var(--muted); transform: translateY(-2px); } }
+
+.testing { display: grid; gap: 5px; min-width: 210px; height: 30px; align-content: center; }
+.testing .row1 { display: flex; align-items: center; gap: 8px; color: var(--accent-fg); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.bar { height: 4px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-fg)); transition: width .4s linear; }
+
+/* resultado: las barras suben una por una, la palabra entra, destello si es buena */
+.reveal .sig rect { fill: var(--track); }
+.reveal .sig rect.on { animation: rise .42s var(--out) both; transform-box: fill-box; transform-origin: bottom; }
+.reveal .sig rect.on:nth-child(2) { animation-delay: .16s; } .reveal .sig rect.on:nth-child(3) { animation-delay: .32s; }
+@keyframes rise { from { transform: scaleY(0); fill: var(--track); } to { transform: none; } }
+.reveal strong { animation: word .5s var(--out) .4s both; }
+@keyframes word { from { opacity: 0; transform: translateX(-6px); filter: blur(3px); } }
+.opt.glow-good { animation: glow 1.4s var(--out) .45s; }
+@keyframes glow { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 45%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
+.confetti { position: absolute; pointer-events: none; width: 6px; height: 6px; border-radius: 2px; animation: pop .9s var(--out) forwards; }
+@keyframes pop { from { transform: translate(0, 0) rotate(0); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) rotate(var(--r)); opacity: 0; } }
+
+.failed { display: inline-flex; align-items: center; gap: 8px; height: 30px; }
+.failed .msg { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; font-weight: 700; cursor: help; }
+.failed .msg svg { color: var(--red); }
+.retry { height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--text); font-size: 12px; font-weight: 700; cursor: pointer; }
+.retry:hover { border-color: var(--accent); }
+
+/* botones minimal */
+.btns { display: flex; align-items: center; gap: 8px; }
+.disc { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; cursor: pointer; transition: transform .2s var(--out), box-shadow .2s; }
+.disc:hover { transform: scale(1.06); box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent); }
+.mini { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--surface-3); color: var(--muted); cursor: pointer; transition: color .15s, background .15s; }
+.mini:hover { color: var(--text); background: var(--border-strong); }
+
+/* tooltips */
+.has-tip { position: relative; }
+.tip { position: absolute; z-index: 20; left: 0; top: calc(100% + 10px); width: 320px; padding: 13px 15px; border-radius: 14px; background: #1f252e; border: 1px solid #343c48; box-shadow: 0 18px 40px rgb(0 0 0 / .55); color: var(--text); font-size: 12.5px; line-height: 1.45; font-weight: 400; text-align: left; white-space: normal;
+  opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity .16s var(--out), transform .22s var(--out); }
+.has-tip:hover > .tip, .has-tip:focus-visible > .tip { opacity: 1; transform: none; transition-delay: .25s; }
+.tip h4 { margin: 0 0 4px; font-size: 13.5px; }
+.tip p { margin: 0; color: var(--muted); }
+.btn-tip { position: relative; }
+.btn-tip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); right: 0; padding: 5px 9px; border-radius: 8px; background: #1f252e; border: 1px solid #343c48; color: var(--text); font-size: 12px; font-weight: 500; white-space: nowrap; opacity: 0; transform: translateY(3px); pointer-events: none; transition: opacity .15s, transform .2s var(--out); }
+.btn-tip:hover::after, .btn-tip:focus-visible::after { opacity: 1; transform: none; transition-delay: .35s; }
+
+/* hover largo: todos los datos */
+.rowtip { position: absolute; z-index: 15; left: 50%; bottom: calc(100% + 10px); width: min(460px, 92%); transform: translate(-50%, 4px); padding: 13px 15px; border-radius: 14px; background: #1f252e; border: 1px solid #343c48; box-shadow: 0 18px 40px rgb(0 0 0 / .55); font-size: 12.5px; color: var(--muted); opacity: 0; pointer-events: none; transition: opacity .18s var(--out), transform .24s var(--out); }
+.opt:hover > .rowtip { opacity: 1; transform: translate(-50%, 0); transition-delay: 2s; }
+.opt:has(.has-tip:hover, .btns:hover, .cta:hover) > .rowtip { opacity: 0; transition-delay: 0s; }
+.rowtip h5 { margin: 0 0 9px; font-size: 13.5px; color: var(--text); }
+.rowtip dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
+.rowtip dd { margin: 0; color: var(--text); word-break: break-all; }
+
+/* recordado */
+.retest { margin-left: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: none; color: var(--dim); cursor: pointer; display: inline-grid; place-items: center; opacity: 0; transition: opacity .15s, color .15s; }
+.opt:hover .retest, .retest:focus-visible { opacity: 1; }
+.retest:hover { color: var(--text); }
+/* no entra en el disco */
+.nofit { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; color: var(--yellow); cursor: help; }
+.opt.too-big .size { color: var(--muted); }
+.opt.too-big .disc { background: var(--surface-3); color: var(--muted); }
+.opt.too-big .disc:hover { box-shadow: none; transform: none; }
+/* sugerencia de otra resolución */
+.suggest { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding: 14px 16px; border-radius: 14px; border: 1px dashed var(--border-strong); }
+.suggest .t { flex: 1; display: grid; gap: 2px; }
+.suggest .t b { font-size: 14px; }
+.suggest .t span { color: var(--muted); font-size: 12.5px; }
+.suggest button { height: 34px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.suggest button:hover { background: #3b74f0; }
+.example-title { margin: 26px 0 10px; font-size: 15px; }
+
+.notes { margin-top: 26px; color: var(--muted); font-size: 13px; }
+.notes li { margin: 4px 0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Opciones de torrent · prototipo</h1>
+  <p class="lead">Es interactivo: tocá <b>Testear las 15 mejores</b> o <b>Testear conexión</b> en una fila, cambiá el orden arriba a la derecha, pasá el mouse por la salud, por <b>LAT</b> o por "Nadie respondió", y dejalo 2 s sobre una fila para ver todos los datos.</p>
+  <div class="panel">
+    <div class="ghead"><b>4K</b><span class="count">134 opciones</span>
+      <div class="sort" role="group" aria-label="Ordenar opciones">
+        <button id="sort-quality" aria-pressed="true">Mejor imagen</button>
+        <button id="sort-fast" aria-pressed="false">Arranca más rápido</button>
+      </div>
+    </div>
+    <div id="testall-slot"></div>
+    <ul id="list"></ul>
+  </div>
+  <h2 class="example-title">Cuando ninguna anda (ejemplo)</h2>
+  <div class="panel">
+    <div class="ghead"><b>4K</b><span class="count">12 opciones · todas testeadas</span></div>
+    <ul><li class="opt" style="opacity:.55"><div class="left"><span class="size">18,3 GB<span class="hdr">HDR</span></span><span class="q"><span class="stars"><i class="on">★</i><i class="on">★</i><i class="on">★</i><i>★</i></span>Blu-ray</span></div><div class="mid"><span class="vline"><span class="verdict bad"><svg class="sig bad" viewBox="0 0 16 14" width="18" height="16"><rect x="1" y="8" width="3.4" height="4" rx="1" class="on"/><rect x="6" y="4" width="3.4" height="8" rx="1"/><rect x="11" y="0" width="3.4" height="12" rx="1"/></svg><strong>Se va a trabar</strong></span></span><span class="people"><b>3</b> seeds · 0 leechers</span></div><div></div></li></ul>
+    <div class="suggest" role="status"><span class="radar" style="width:14px"></span><span class="t"><b>Ninguna en 4K va a andar fluida</b><span>En 1080p hay 3 que sí: se ven un poco menos nítidas, pero sin cortes.</span></span><button id="go-1080">Ver 1080p →</button></div>
+  </div>
+  <ul class="notes">
+    <li>Al testear varias, cada fila pasa por <b>En cola</b> → <b>Conectando…</b> → resultado, de a 3 a la vez (como hoy).</li>
+    <li>"Arranca más rápido" ordena por salud y, entre iguales, por menos peso; "Mejor imagen" ordena por calidad y, entre iguales, por salud.</li>
+    <li>El resultado de un test se recuerda (en los datos guardados) y no hay que repetirlo; cuándo se testeó sale en el tooltip y el ↻ (al pasar el mouse) lo repite.</li>
+    <li>Espacio libre simulado: 40 GB. Las que no entran se marcan, el play queda gris y nunca son "Mejor opción".</li>
+    <li>Las que "Nadie respondió" quedan siempre al final; si al reintentar responde, sube a su lugar.</li>
+    <li>LAT azul = el análisis confirmó audio latino; gris = lo dice la fuente, sin confirmar.</li>
+  </ul>
+</div>
+<script>
+const Q = {
+  max: { name: 'Máster', stars: 4, rank: 4, why: 'REMUX: copia exacta del Blu-ray, sin recomprimir. La mejor imagen y sonido posibles.' },
+  disc: { name: 'Blu-ray', stars: 3, rank: 3, why: 'Sacada del Blu-ray y comprimida: muy buena y más liviana.' },
+  web: { name: 'Streaming', stars: 2, rank: 2, why: 'Bajada de una plataforma de streaming: la calidad que verías ahí.' },
+  cam: { name: 'Cine (cámara)', stars: 1, rank: 1, why: 'CAM / TS: alguien la grabó con una cámara en la sala. Se ve movida y el sonido es malo.' },
+};
+const H = { good: { word: 'Fluida', bars: 3, rank: 3 }, fair: { word: 'Puede cortarse', bars: 2, rank: 2 }, bad: { word: 'Se va a trabar', bars: 1, rank: 1 } };
+// state: idle | queued | testing | done | failed. `result` = salud que va a dar la prueba.
+const rows = [
+  { id: 'a', size: '58,2 GB', gb: 58.2, hdr: true, q: 'max', state: 'done', h: 'good', seeds: 34, leech: 12, lat: 'conf', name: 'Dune Part Two 2024 2160p BluRay REMUX HDR DV TrueHD Atmos-FGT', file: 'Dune.Part.Two.2024.2160p.BluRay.REMUX.HDR.DV.TrueHD.Atmos-FGT.mkv', src: 'Torrentio + Comet (1337x, rargb)' },
+  { id: 'b', size: '14,1 GB', gb: 14.1, hdr: true, q: 'disc', state: 'done', h: 'fair', ago: 'hace 12 min', seeds: 8, leech: 0, name: 'Dune Part Two 2024 2160p BluRay x265 10bit HDR-RARBG', file: 'Dune.Part.Two.2024.2160p.BluRay.x265.10bit.HDR-RARBG.mkv', src: 'Torrentio (rargb)' },
+  { id: 'c', size: '5,0 GB', gb: 5, q: 'web', state: 'idle', result: 'good', seeds: 80, leech: 31, lat: 'guess', name: 'Dune Part Two 2024 1080p WEB-DL DUAL LAT DDP5.1-FLUX', file: 'Dune.Part.Two.2024.1080p.WEB-DL.DUAL.LAT.mkv', src: 'TorrentsDB + Peerflix' },
+  { id: 'd', size: '9,8 GB', gb: 9.8, q: 'web', state: 'idle', result: 'good', seeds: 210, leech: 44, name: 'Dune Part Two 2024 2160p WEB-DL DV HDR H.265-NTb', file: 'Dune.Part.Two.2024.2160p.WEB-DL.DV.HDR.H.265-NTb.mkv', src: 'Torrentio + StremThru' },
+  { id: 'e', size: '22,4 GB', gb: 22.4, hdr: true, q: 'disc', state: 'idle', result: 'fair', seeds: 15, leech: 3, name: 'Dune Part Two 2024 2160p UHD BluRay x265-TERMiNAL', file: 'Dune.Part.Two.2024.2160p.UHD.BluRay.x265-TERMiNAL.mkv', src: 'Comet (1337x)' },
+  { id: 'f', size: '31,0 GB', gb: 31, hdr: true, q: 'max', state: 'failed', seeds: 6, leech: 1, peers: 14, name: 'Dune Part Two 2024 2160p REMUX DV-SiCFoI', file: 'Dune.Part.Two.2024.2160p.REMUX.DV-SiCFoI.mkv', src: 'Torrentio (1337x)' },
+  { id: 'g', size: '1,4 GB', gb: 1.4, q: 'cam', state: 'idle', result: 'good', seeds: 520, leech: 210, name: 'Dune Part Two 2024 HDCAM x264-SUNSCREEN', file: 'Dune.Part.Two.2024.HDCAM.x264-SUNSCREEN.mkv', src: 'Torrentio (1337x)' },
+];
+let sort = 'quality';
+/** Espacio libre en el disco de descargas (GB). */
+const FREE = 40;
+let batch = null; // { total, done }
+
+const sig = (bars, cls) => `<svg class="sig ${cls}" viewBox="0 0 16 14" width="18" height="16" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}"/>`).join('')}</svg>`;
+const stars = (q) => `<span class="stars">${[1, 2, 3, 4].map((i) => `<i class="${i <= Q[q].stars ? 'on' : ''}">★</i>`).join('')}</span>`;
+const MON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>';
+const PLAY = '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" fill="currentColor"/></svg>';
+const DL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
+const WARN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>';
+
+function mid(r) {
+  const people = `<span class="people"><b>${r.seeds}</b> seeds · ${r.leech} leechers</span>`;
+  if (r.state === 'queued') return `<span class="queued"><span class="dots"><i></i><i></i><i></i></span>En cola</span>${people}`;
+  if (r.state === 'testing') return `<div class="testing"><div class="row1"><span class="radar"></span>Conectando con ${r.found ?? 0} personas…</div><div class="bar"><i style="width:${r.pct ?? 0}%"></i></div></div>${people}`;
+  if (r.state === 'failed') return `<div class="failed"><span class="msg has-tip" tabindex="0">${WARN}Nadie respondió<div class="tip" role="tooltip"><h4>No se pudo conectar con nadie</h4><p>La red conoce ${r.peers} direcciones de gente con este torrent, pero ninguna contestó. Puede ser que estén apagadas, llenas, o que tu router y el de ellos tengan el puerto cerrado. No quiere decir que esté muerto: probá de nuevo en un rato o elegí otra.</p></div></span><button class="retry" id="retry-${r.id}">Reintentar</button></div>${people}`;
+  if (r.state === 'done') return `<span class="vline"><button class="verdict has-tip ${r.h} ${r.fresh ? 'reveal' : ''}" id="health-${r.id}">${sig(H[r.h].bars, r.h)}<strong>${H[r.h].word}</strong><div class="tip" role="tooltip"><h4>${H[r.h].word}</h4><p>${{ good: 'Baja más rápido de lo que el video necesita: no debería cortarse.', fair: 'Baja más o menos lo justo: puede pausar para cargar.', bad: 'Baja menos de lo que el video necesita: se va a trabar.' }[r.h]}${r.ago ? ` Testeado ${r.ago}; se guarda con los datos guardados.` : ''}</p></div></button>${r.ago ? `<button class="retest" id="retest-${r.id}" aria-label="Testear de nuevo" title="Testear de nuevo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>` : ''}</span>${people}`;
+  return `<button class="cta" id="test-${r.id}" title="Se conecta unos segundos con la gente que comparte este torrent y estima si va a andar fluido. No baja el video."><span class="radar"></span>Testear conexión</button>${people}`;
+}
+function row(r, best) {
+  const lat = r.lat ? `<span class="lat ${r.lat === 'guess' ? 'guess' : ''}" title="${r.lat === 'guess' ? 'Audio latino según la fuente, sin confirmar (se confirma al testearlo)' : 'Audio latino confirmado'}">LAT</span>` : '';
+  const big = r.gb > FREE;
+  return `<li class="opt ${best ? 'best' : ''} ${big ? 'too-big' : ''}" data-id="${r.id}">${best ? '<span class="best-tag">MEJOR OPCIÓN</span>' : ''}
+    <div class="rowtip" role="tooltip"><h5>${r.name}</h5><dl><dt>Calidad</dt><dd>${Q[r.q].name}</dd><dt>Archivo</dt><dd>${r.file}</dd><dt>Fuentes</dt><dd>${r.src}</dd></dl></div>
+    <div class="left"><span class="size">${r.size}${r.hdr ? '<span class="hdr">HDR</span>' : ''}</span>${big ? `<span class="nofit" title="Pesa ${r.size} y en el disco de descargas quedan ${FREE} GB libres: se cortaría a mitad. Liberá espacio o elegí una más liviana.">${WARN}No entra: te quedan ${FREE} GB</span>` : ''}<span class="q ${r.q === 'cam' ? 'cam' : ''}" title="Calidad de imagen: ${Q[r.q].why}">${MON}${stars(r.q)}${Q[r.q].name}${lat}</span></div>
+    <div class="mid">${mid(r)}</div>
+    <div class="btns"><button class="mini btn-tip" id="dl-${r.id}" aria-label="Bajar de fondo" data-tip="Bajar de fondo y ver después">${DL}</button><button class="disc btn-tip" id="play-${r.id}" aria-label="Ver ahora" data-tip="${big ? 'No entra en el disco' : 'Ver ahora'}">${PLAY}</button></div></li>`;
+}
+const hRank = (r) => (r.state === 'done' ? H[r.h].rank : 0);
+function ordered() {
+  const by = sort === 'quality'
+    ? (a, b) => Q[b.q].rank - Q[a.q].rank || hRank(b) - hRank(a) || b.seeds - a.seeds
+    : (a, b) => hRank(b) - hRank(a) || a.gb - b.gb || b.seeds - a.seeds;
+  // Las que nadie respondió van siempre al final, en cualquier orden.
+  return [...rows].sort((a, b) => (a.state === 'failed') - (b.state === 'failed') || by(a, b));
+}
+function render() {
+  const list = ordered();
+  const best = [...rows].filter((r) => r.state === 'done' && r.h === 'good' && r.q !== 'cam' && r.gb <= FREE).sort((a, b) => Q[b.q].rank - Q[a.q].rank)[0];
+  // FLIP: las filas se deslizan a su nuevo lugar al reordenar
+  const before = new Map([...document.querySelectorAll('#list .opt')].map((n) => [n.dataset.id, n.getBoundingClientRect().top]));
+  document.getElementById('list').innerHTML = list.map((r) => row(r, r === best)).join('');
+  for (const n of document.querySelectorAll('#list .opt')) {
+    const t = before.get(n.dataset.id);
+    if (t !== undefined) { const dy = t - n.getBoundingClientRect().top; if (Math.abs(dy) > 1) n.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 450, easing: 'cubic-bezier(.16,1,.3,1)' }); }
+  }
+  rows.forEach((r) => { r.fresh = false; });
+  const slot = document.getElementById('testall-slot');
+  const pending = rows.filter((r) => r.state === 'idle').length;
+  slot.innerHTML = batch
+    ? `<div class="testall running" role="status"><span class="radar"></span><span class="t"><b>Testeando ${batch.done} de ${batch.total}</b><span>Conectándose con la gente que comparte cada una · no baja los videos</span><div class="bar"><i style="width:${(batch.done / batch.total) * 100}%"></i></div></span><button class="retry" id="testall-stop">Detener</button></div>`
+    : pending ? `<button class="testall" id="testall"><span class="radar"></span><span class="t"><b>Testear las 15 mejores</b><span>Prueba la conexión de cada una y te marca cuáles van a andar fluidas · ~1 min</span></span><span class="go">Empezar →</span></button>` : '';
+}
+function celebrate(id) {
+  const n = document.querySelector(`.opt[data-id="${id}"]`);
+  if (!n) return;
+  n.classList.add('glow-good');
+  const at = n.querySelector('.verdict .sig')?.getBoundingClientRect(), box = n.getBoundingClientRect();
+  if (!at) return;
+  for (let i = 0; i < 10; i++) {
+    const c = document.createElement('span');
+    c.className = 'confetti';
+    const a = (Math.PI * 2 * i) / 10;
+    c.style.cssText = `left:${at.left - box.left + 8}px;top:${at.top - box.top + 6}px;background:${['#4ade80', '#7ab0ff', '#e8c26a'][i % 3]};--dx:${Math.cos(a) * 34}px;--dy:${Math.sin(a) * 26 - 8}px;--r:${i * 40}deg;animation-delay:.4s`;
+    n.append(c);
+  }
+}
+function runTest(r) {
+  return new Promise((resolve) => {
+    r.state = 'testing'; r.pct = 0; r.found = 0; render();
+    const dur = 3200 + Math.random() * 1600, t0 = performance.now();
+    const tick = () => {
+      if (r.state !== 'testing') return resolve();
+      const k = Math.min(1, (performance.now() - t0) / dur);
+      r.pct = Math.round(k * 100); r.found = Math.round(k * (r.seeds % 40 + 6));
+      const n = document.querySelector(`.opt[data-id="${r.id}"] .testing`);
+      if (n) { n.querySelector('.bar i').style.width = `${r.pct}%`; n.querySelector('.row1').lastChild.textContent = `Conectando con ${r.found} personas…`; }
+      if (k < 1) return setTimeout(tick, 120);
+      r.state = 'done'; r.h = r.result; r.fresh = true; render();
+      if (r.h === 'good') celebrate(r.id);
+      resolve();
+    };
+    tick();
+  });
+}
+async function testAll() {
+  const todo = rows.filter((r) => r.state === 'idle');
+  todo.forEach((r) => { r.state = 'queued'; });
+  batch = { total: todo.length, done: 0 }; render();
+  const queue = [...todo];
+  const worker = async () => { while (queue.length && batch) { const r = queue.shift(); await runTest(r); if (batch) { batch.done++; render(); } } };
+  await Promise.all([worker(), worker(), worker()]);
+  batch = null; render();
+}
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('button');
+  if (!b) return;
+  if (b.id === 'testall') testAll();
+  else if (b.id === 'testall-stop') { batch = null; rows.forEach((r) => { if (r.state === 'queued' || r.state === 'testing') r.state = 'idle'; }); render(); }
+  else if (b.id.startsWith('test-')) runTest(rows.find((r) => r.id === b.id.slice(5)));
+  else if (b.id.startsWith('retest-')) { const r = rows.find((x) => x.id === b.id.slice(7)); r.ago = null; r.result = r.h; runTest(r); }
+  else if (b.id.startsWith('retry-')) { const r = rows.find((x) => x.id === b.id.slice(6)); r.result = 'fair'; runTest(r); }
+  else if (b.id === 'sort-quality' || b.id === 'sort-fast') {
+    sort = b.id === 'sort-quality' ? 'quality' : 'fast';
+    document.querySelectorAll('.sort button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  }
+});
+render();
+</script>
+</body>
+</html>

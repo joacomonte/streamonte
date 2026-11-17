@@ -39,7 +39,7 @@ flate2 = "1.1"
 keyring = { version = "3", features = ["windows-native", "apple-native"] }
 
 # Limpieza (FR-16/20, T-05): saber si el dueño de una carpeta sigue vivo (con hora de inicio, por PIDs reciclados).
-sysinfo = { version = "0.40", default-features = false, features = ["system"] }
+sysinfo = { version = "0.40", default-features = false, features = ["system", "disk"] }
 
 # Portapapeles (FR-01/02): oyente Win32 + historial Win+V (WinRT). Misma versión que usa Tauri.
 [target.'cfg(windows)'.dependencies]

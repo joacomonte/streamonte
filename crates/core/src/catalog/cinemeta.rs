@@ -53,6 +53,18 @@ pub struct Meta {
     pub excluded: bool,
     /// Series: `Continuing` o `Ended` (lo que dice Cinemeta).
     pub status: Option<String>,
+    /// Reparto principal (los primeros 3).
+    #[serde(default)]
+    pub cast: Vec<String>,
+    /// Premios en español y corto: `Ganó 2 Óscar · 164 premios`.
+    #[serde(default)]
+    pub awards: Option<String>,
+    /// Id de YouTube del primer tráiler.
+    #[serde(default)]
+    pub trailer: Option<String>,
+    /// Votos de IMDb (dataset oficial, si ya está cargado); no se guarda con la ficha.
+    #[serde(default)]
+    pub imdb_votes: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -230,7 +242,86 @@ fn to_meta(m: RawMeta, kind: MediaKind, id: &str, now: chrono::DateTime<chrono::
         background: https_only(m.background),
         episodes,
         status: m.status.as_deref().map(clean),
+        cast: m
+            .cast
+            .unwrap_or_default()
+            .iter()
+            .take(3)
+            .map(|c| clean(c))
+            .collect(),
+        awards: m.awards.as_deref().and_then(awards_es),
+        trailer: m
+            .trailer_streams
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|t| t.get("ytId")?.as_str())
+            .find(|id| is_youtube_id(id))
+            .map(str::to_string),
+        imdb_votes: None,
     }
+}
+
+/// Id de video de YouTube: 11 caracteres de `[A-Za-z0-9_-]` (también valida lo que pide la UI).
+pub fn is_youtube_id(id: &str) -> bool {
+    id.len() == 11
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+}
+
+/// `Won 2 Oscars. 164 wins & 165 nominations total` → `Ganó 2 Óscar · 164 premios`; sin premios
+/// ni nominaciones, `None`. Lo que no se reconoce se omite (mejor nada que inglés a medias).
+fn awards_es(raw: &str) -> Option<String> {
+    let num = |s: &str| s.split_whitespace().next()?.parse::<u32>().ok();
+    let prize = |rest: &str| {
+        [
+            ("Oscar", "Óscar"),
+            ("Primetime Emmy", "Emmy"),
+            ("Golden Globe", "Globo de Oro"),
+            ("BAFTA", "BAFTA"),
+        ]
+        .into_iter()
+        .find(|(en, _)| rest.contains(en))
+        .map(|(_, es)| es)
+    };
+    let mut out = Vec::new();
+    for part in raw.split('.').map(str::trim) {
+        if let Some(rest) = part.strip_prefix("Won ") {
+            if let (Some(n), Some(p)) = (num(rest), prize(rest)) {
+                out.push(format!("Ganó {n} {p}"));
+            }
+        } else if let Some(rest) = part.strip_prefix("Nominated for ") {
+            if let (Some(n), Some(p)) = (num(rest), prize(rest)) {
+                out.push(format!(
+                    "{n} {} al {p}",
+                    if n == 1 {
+                        "nominación"
+                    } else {
+                        "nominaciones"
+                    }
+                ));
+            }
+        } else if part.contains(" win") {
+            if let Some(n) = num(part).filter(|&n| n > 0) {
+                out.push(format!("{n} {}", if n == 1 { "premio" } else { "premios" }));
+            }
+        } else if let Some(n) = part
+            .contains(" nomination")
+            .then(|| num(part))
+            .flatten()
+            .filter(|&n| n > 0)
+        {
+            out.push(format!(
+                "{n} {}",
+                if n == 1 {
+                    "nominación"
+                } else {
+                    "nominaciones"
+                }
+            ));
+        }
+    }
+    (!out.is_empty()).then(|| out.join(" · "))
 }
 
 /// Regla de exclusión (FR-40, Q-12 confirmada 2026-11-14): Japón como primer país, o Japón en
@@ -266,6 +357,27 @@ mod tests {
     use super::*;
 
     /// T-25 (regla Q-12).
+    #[test]
+    fn premios_en_espanol() {
+        assert_eq!(
+            awards_es("Won 2 Oscars. 164 wins & 165 nominations total").as_deref(),
+            Some("Ganó 2 Óscar · 164 premios")
+        );
+        assert_eq!(
+            awards_es("Won 59 Primetime Emmys. 396 wins & 656 nominations total").as_deref(),
+            Some("Ganó 59 Emmy · 396 premios")
+        );
+        assert_eq!(
+            awards_es("Nominated for 1 Oscar. 3 wins & 10 nominations total").as_deref(),
+            Some("1 nominación al Óscar · 3 premios")
+        );
+        assert_eq!(
+            awards_es("4 nominations total").as_deref(),
+            Some("4 nominaciones")
+        );
+        assert_eq!(awards_es(""), None);
+    }
+
     #[test]
     fn exclusion_japonesa() {
         let g = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();

@@ -298,6 +298,46 @@ impl Catalog {
         }
     }
 
+    /// Idioma original, cadenas y similares de TMDB (con key).
+    pub async fn details(
+        &self,
+        kind: MediaKind,
+        imdb_id: &str,
+        timeout: Duration,
+    ) -> tmdb::DetailsView {
+        if !is_imdb_id(imdb_id) {
+            return tmdb::DetailsView {
+                has_key: tmdb::has_key(),
+                details: None,
+            };
+        }
+        tmdb::details(&self.http, &self.data, kind, imdb_id, timeout).await
+    }
+
+    /// Similares de TMDB (al abrirlos), con el puntaje de IMDb que usa el resto de la app (si no,
+    /// el de TMDB); mejor puntaje primero.
+    pub async fn similar(
+        &self,
+        kind: MediaKind,
+        imdb_id: &str,
+        timeout: Duration,
+    ) -> Vec<tmdb::Similar> {
+        if !is_imdb_id(imdb_id) {
+            return Vec::new();
+        }
+        let mut list = tmdb::similar(&self.http, &self.data, kind, imdb_id, timeout).await;
+        let ratings = self.top.ratings_loaded();
+        for x in &mut list {
+            let imdb = ratings
+                .as_ref()
+                .zip(top::tt_number(&x.id))
+                .and_then(|(r, tt)| r.get(&tt).map(|&(rating, _)| rating));
+            x.rating = imdb.or(x.tmdb_rating.map(|v| (v * 10.0).round() / 10.0));
+        }
+        list.sort_by(|a, b| b.rating.unwrap_or(0.0).total_cmp(&a.rating.unwrap_or(0.0)));
+        list
+    }
+
     pub async fn season_ratings(
         &self,
         imdb_id: &str,
@@ -420,11 +460,12 @@ impl Catalog {
         }
         let key = format!("{}:{id}", kind.as_str());
         if let Some(m) = self.metas.lock().expect("metas").get(&key) {
-            return Ok(m.clone());
+            return Ok(self.with_votes(m.clone()));
         }
         // Guardada: una película o una serie terminada sirve un mes; una en emisión, 12 h (salen
         // episodios). Si Cinemeta no responde, sirve aunque esté vencida.
-        let file = format!("ficha-{}-{id}.json", kind.as_str());
+        // v3 (2026-11-17): reparto, premios y tráiler; las guardadas antes no los tienen.
+        let file = format!("ficha-v3-{}-{id}.json", kind.as_str());
         let saved = self.data.get::<Meta>(&file);
         let fresh = |m: &Meta, age: Duration| {
             let ttl = if kind == MediaKind::Movie || m.status.as_deref() == Some("Ended") {
@@ -447,7 +488,23 @@ impl Catalog {
             },
         };
         self.metas.lock().expect("metas").insert(key, m.clone());
-        Ok(m)
+        Ok(self.with_votes(m))
+    }
+
+    /// Votos de IMDb del dataset, si ya está en memoria (no se espera a bajarlo).
+    /// Votos de IMDb y, si Cinemeta no trae el puntaje (pasa con títulos nuevos), el de la base de
+    /// IMDb ya bajada (2026-11-17).
+    fn with_votes(&self, mut m: Meta) -> Meta {
+        let imdb = self
+            .top
+            .ratings_loaded()
+            .zip(top::tt_number(&m.id))
+            .and_then(|(r, tt)| r.get(&tt).copied());
+        m.imdb_votes = imdb.map(|(_, votes)| votes);
+        if m.imdb_rating.is_none() {
+            m.imdb_rating = imdb.map(|(rating, _)| format!("{rating:.1}"));
+        }
+        m
     }
 
     /// FR-40 en búsquedas: los previews no traen país ni géneros (10 §B.3), así que se pide la

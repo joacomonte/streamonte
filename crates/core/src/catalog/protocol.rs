@@ -167,6 +167,14 @@ pub struct RawMeta {
     /// Series: `Continuing` o `Ended`.
     #[serde(default, deserialize_with = "lenient")]
     pub status: Option<String>,
+    #[serde(default, deserialize_with = "lenient")]
+    pub cast: Option<Vec<String>>,
+    /// En inglés: `Won 2 Oscars. 164 wins & 165 nominations total`.
+    #[serde(default, deserialize_with = "lenient")]
+    pub awards: Option<String>,
+    /// `[{"title": …, "ytId": "…"}]`: tráilers de YouTube.
+    #[serde(default, deserialize_with = "lenient")]
+    pub trailer_streams: Option<Vec<serde_json::Value>>,
 }
 
 /// Puntajes de popularidad que Cinemeta trae en sus catálogos; se usa el de TMDB (`moviedb`).

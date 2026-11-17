@@ -109,7 +109,7 @@ pub struct EngineConfig {
     /// acceso al router, suma peers salientes (muchos clientes lo prefieren). librqbit todavía lo
     /// marca inestable: si da problemas, se apaga acá.
     pub utp: bool,
-    /// Salud fiel, idea 1 (2026-11-16): al abrir un título, contar a fondo los 10 mejores enseguida
+    /// Salud fiel, idea 1 (2026-11-16): al elegir un episodio, contar a fondo los 15 mejores enseguida
     /// con el motor ESCUCHANDO: se anuncia con el puerto real a trackers y DHT y los peers se
     /// conectan solos (entrantes). Deja la IP listada ~30 min en esos enjambres.
     pub announce_early: bool,
@@ -259,6 +259,33 @@ pub struct PlayerConfig {
     pub use_app_profile: bool,
     /// uosc + thumbfast (FR-35).
     pub modern_ui: bool,
+    /// Ecualizador de mpv (2026-11-17, Ajustes): por defecto el "cine" que venía fijo.
+    pub equalizer: Equalizer,
+}
+
+/// Presets del ecualizador de mpv (Ajustes → Reproductor).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum Equalizer {
+    /// +2 dB de graves (80 Hz), +1,5 dB de presencia de voces (3 kHz) y +1 dB de aire (10 kHz).
+    #[default]
+    Cine,
+    /// Voces al frente: +1,5 dB a 1,5 kHz y +3 dB a 3 kHz; graves sin tocar.
+    Voices,
+    /// Sin ecualizador.
+    Flat,
+}
+
+impl Equalizer {
+    /// Cadena de filtros lavfi para `--af-append`; `None` = sin ecualizador. Siempre -2 dB antes de
+    /// realzar, para no saturar.
+    pub fn lavfi(self) -> Option<&'static str> {
+        match self {
+            Equalizer::Cine => Some("volume=-2dB,equalizer=f=80:t=q:w=0.8:g=2,equalizer=f=3000:t=q:w=1:g=1.5,equalizer=f=10000:t=q:w=1:g=1"),
+            Equalizer::Voices => Some("volume=-2dB,equalizer=f=1500:t=q:w=1:g=1.5,equalizer=f=3000:t=q:w=1:g=3"),
+            Equalizer::Flat => None,
+        }
+    }
 }
 
 impl Default for PlayerConfig {
@@ -269,6 +296,7 @@ impl Default for PlayerConfig {
             vlc_path: None,
             use_app_profile: true,
             modern_ui: false,
+            equalizer: Equalizer::default(),
         }
     }
 }

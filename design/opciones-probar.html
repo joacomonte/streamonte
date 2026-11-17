@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opciones · probar conexión</title>
+<style>
+:root {
+  --bg: #0d1014; --surface: #161a20; --surface-2: #1c2129; --surface-3: #232a34;
+  --text: #e7eaee; --muted: #9aa3ae; --dim: #6f7883; --border: #252b34; --border-strong: #353d48;
+  --track: #46505d; --accent: #2563eb; --accent-fg: #7ab0ff;
+  --green: #4ade80; --yellow: #facc15; --red: #f87171;
+  --gold: #e8c26a; --silver: #c9d1db; --bronze: #d29a6a;
+  --out: cubic-bezier(.16, 1, .3, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+header { max-width: 1340px; margin: 0 auto; padding: 32px 24px 8px; }
+header h1 { margin: 0 0 6px; font-size: 22px; }
+header p { margin: 0; color: var(--muted); max-width: 70ch; }
+.grid { max-width: 1340px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr)); gap: 28px; }
+.variant { display: grid; gap: 12px; align-content: start; }
+.variant h2 { margin: 0; font-size: 16px; display: flex; gap: 10px; align-items: baseline; }
+.variant h2 b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--surface-3); font-size: 13px; }
+.variant > p { margin: 0; color: var(--muted); font-size: 13px; max-width: 64ch; }
+.panel { padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+.group-head { display: flex; align-items: baseline; gap: 10px; padding: 2px 4px 12px; }
+.group-head b { font-size: 17px; }
+.group-head span { color: var(--muted); font-size: 13px; }
+ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+/* ---------- piezas comunes ---------- */
+.opt { position: relative; display: grid; align-items: center; gap: 4px 14px; padding: 12px 12px 12px 18px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border); transition: border-color .15s var(--out), background .15s var(--out); }
+.opt:hover, .opt:focus-within { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); background: color-mix(in srgb, var(--accent) 4%, var(--bg)); }
+.size { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hdr { padding: 1px 6px; border-radius: 5px; border: 1.5px solid currentColor; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; color: var(--text); opacity: .85; }
+.sig rect { fill: var(--track); }
+.sig rect.on { fill: currentColor; }
+.good { color: var(--green); } .fair { color: var(--yellow); } .bad { color: var(--red); } .none { color: var(--dim); }
+.peers { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.peers b { color: var(--muted); font-weight: 600; }
+.play { display: flex; align-items: center; height: 44px; border-radius: 999px; background: var(--accent); color: #fff; overflow: hidden; }
+.play button { height: 100%; border: 0; background: none; color: inherit; cursor: pointer; display: grid; place-items: center; }
+.play .p { width: 52px; padding-left: 4px; }
+.play .m { width: 38px; border-left: 1px solid rgb(255 255 255 / .28); }
+.play button:hover { background: rgb(255 255 255 / .1); }
+.play button:focus-visible { outline: 2px solid #fff; outline-offset: -4px; border-radius: 999px; }
+.verify { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.verify:hover { color: var(--text); border-color: var(--accent); }
+.live { display: inline-flex; align-items: center; gap: 7px; color: var(--accent-fg); font-size: 13px; font-weight: 600; }
+.live i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-fg); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; transform: scale(.8); } }
+.best-tag { position: absolute; top: -9px; left: 14px; padding: 1px 8px; border-radius: 999px; background: var(--green); color: #06260f; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.opt.best { border-color: color-mix(in srgb, var(--green) 50%, var(--border)); }
+
+/* ---------- tooltip (igual para todas) ---------- */
+.has-tip { position: relative; }
+.tip { position: absolute; z-index: 20; left: 0; top: calc(100% + 10px); width: 330px; padding: 14px 16px; border-radius: 14px; background: #1f252e; border: 1px solid #343c48; box-shadow: 0 18px 40px rgb(0 0 0 / .55), 0 2px 6px rgb(0 0 0 / .4); color: var(--text); font-size: 12.5px; line-height: 1.45; text-align: left; font-weight: 400; white-space: normal;
+  opacity: 0; transform: translateY(-4px) scale(.98); transform-origin: top left; pointer-events: none; transition: opacity .16s var(--out), transform .22s var(--out); transition-delay: 0s; }
+.has-tip:hover > .tip, .has-tip:focus-visible > .tip, .has-tip:focus-within > .tip { opacity: 1; transform: none; transition-delay: .25s; }
+.tip h4 { margin: 0 0 2px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.tip .sub { color: var(--muted); margin: 0 0 12px; }
+.meter { position: relative; height: 8px; border-radius: 999px; background: var(--surface-3); margin: 18px 0 6px; }
+.meter .band { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: currentColor; opacity: .85; }
+.meter .need { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--text); border-radius: 2px; }
+.meter .need::after { content: attr(data-l); position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.meter-legend { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; margin-bottom: 12px; }
+.tip dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0; }
+.tip dt { color: var(--muted); }
+.tip dd { margin: 0; font-variant-numeric: tabular-nums; }
+.tip .file { margin-top: 10px; padding-top: 10px; border-top: 1px solid #343c48; color: var(--muted); font-size: 11.5px; word-break: break-all; }
+
+/* ---------- base de A: peso + calidad a la izquierda, veredicto al medio ---------- */
+.v .opt { grid-template-columns: 172px minmax(0, 1fr) auto; }
+.v .left { display: grid; gap: 5px; }
+.v .mid { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-width: 0; }
+.v .verdict { text-align: left; display: inline-flex; align-items: center; gap: 9px; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: help; }
+.v .verdict strong { font-size: 15px; }
+.v .verdict small { display: block; color: var(--dim); font-size: 12px; font-weight: 400; }
+.stars { letter-spacing: 1px; font-size: 11px; line-height: 1; }
+.stars i { font-style: normal; color: var(--track); }
+.stars i.on { color: var(--gold); }
+.q { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: help; }
+.q svg { flex: none; color: var(--muted); }
+/* Q2: mini pantalla con las estrellas adentro */
+.screen { display: inline-flex; flex-direction: column; align-items: center; }
+.screen .tv { display: inline-flex; align-items: center; gap: 1px; padding: 3px 6px; border: 1.5px solid var(--border-strong); border-radius: 5px; background: var(--sunk, #11151a); }
+.screen .stand { width: 10px; height: 3px; border-radius: 0 0 2px 2px; background: var(--border-strong); }
+/* Q3: chip de resolución + calidad */
+.res { padding: 1px 6px; border-radius: 5px; background: var(--surface-3); color: var(--text); font-size: 11px; font-weight: 800; letter-spacing: .02em; }
+/* Q4: barra de "nitidez" con el nombre */
+.sharp { display: grid; gap: 4px; }
+.sharp .cap { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); font-weight: 700; }
+
+/* ---------- columna central: siempre 2 líneas (arriba estado, abajo gente) ---------- */
+.t .mid { display: grid; gap: 4px; justify-items: start; align-content: center; }
+.t .people { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; padding-left: 2px; }
+.t .people b { color: var(--muted); font-weight: 600; }
+.q.cam { color: var(--red); }
+.q.cam svg { color: var(--red); }
+.cta { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px 0 10px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .2s, border-color .2s, color .2s, transform .15s var(--out); }
+.cta:active { transform: scale(.97); }
+/* T1 */
+.cta.t1 { border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border)); background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent-fg); }
+.cta.t1:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+/* T2: barras que se llenan al pasar el mouse */
+.cta.t2 { border: 1px dashed var(--border-strong); background: none; color: var(--text); }
+.cta.t2:hover { border-style: solid; border-color: var(--green); }
+.cta.t2 .sig rect { transition: fill .15s; }
+.cta.t2:hover .sig rect:nth-child(1) { fill: var(--green); transition-delay: 0s; }
+.cta.t2:hover .sig rect:nth-child(2) { fill: var(--green); transition-delay: .12s; }
+.cta.t2:hover .sig rect:nth-child(3) { fill: var(--green); transition-delay: .24s; }
+/* T3: radar */
+.cta.t3 { border: 0; background: var(--surface-3); color: var(--text); }
+.cta.t3:hover { background: var(--border-strong); }
+.radar { position: relative; width: 14px; height: 14px; display: grid; place-items: center; }
+.radar::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fg); }
+.radar::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--accent-fg); opacity: 0; }
+.cta.t3:hover .radar::after, .testing .radar::after { animation: ping 1.3s var(--out) infinite; }
+@keyframes ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+/* probando: mismo lugar y alto que el botón, con progreso */
+.testing { display: grid; gap: 5px; min-width: 190px; }
+.testing .row1 { white-space: nowrap; display: flex; align-items: center; gap: 8px; height: 22px; color: var(--accent-fg); font-size: 13px; font-weight: 700; }
+.testing .row1 .s { margin-left: auto; color: var(--dim); font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; }
+.bar { height: 4px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 45%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-fg)); animation: fill 12s linear infinite; }
+@keyframes fill { from { width: 4%; } to { width: 100%; } }
+.sig.scan rect { animation: scan 1.2s ease-in-out infinite; fill: var(--accent-fg); opacity: .25; }
+.sig.scan rect:nth-child(2) { animation-delay: .15s; } .sig.scan rect:nth-child(3) { animation-delay: .3s; }
+@keyframes scan { 40% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .bar i, .sig.scan rect, .radar::after { animation: none; } }
+
+/* ---------- botones ---------- */
+.btns { display: flex; align-items: center; gap: 8px; }
+/* P1: "Ver" + descarga redonda aparte */
+.see { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px 0 14px; border-radius: 999px; border: 0; background: var(--accent); color: #fff; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent); transition: transform .15s var(--out), background .15s; }
+.see:hover { background: #3b74f0; transform: translateY(-1px); }
+.see:active { transform: none; }
+.ghost { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--muted); cursor: pointer; transition: color .15s, border-color .15s, background .15s; }
+.ghost:hover { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+/* P2: play circular grande, descarga chica pegada */
+.disc { position: relative; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; cursor: pointer; transition: transform .2s var(--out), box-shadow .2s; }
+.disc:hover { transform: scale(1.06); box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent); }
+.mini { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--surface-3); color: var(--muted); cursor: pointer; }
+.mini:hover { color: var(--text); background: var(--border-strong); }
+/* P3: botón partido con texto en las dos mitades */
+.seg { display: inline-flex; height: 40px; border-radius: 12px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 60%, var(--border)); }
+.seg button { display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; border: 0; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.seg .a { background: var(--accent); color: #fff; }
+.seg .a:hover { background: #3b74f0; }
+.seg .b { background: none; color: var(--accent-fg); }
+.seg .b:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+/* P4: aparece al pasar el mouse por la fila; en reposo solo un ▶ discreto */
+.reveal { display: flex; align-items: center; gap: 6px; }
+.reveal .dl { width: 0; opacity: 0; overflow: hidden; padding: 0; border-width: 0; transition: width .25s var(--out), opacity .2s, margin .25s; }
+.opt:hover .reveal .dl, .opt:focus-within .reveal .dl { width: 40px; opacity: 1; border-width: 1px; }
+.reveal .go { display: inline-flex; align-items: center; gap: 0; height: 40px; padding: 0 13px; border-radius: 999px; border: 0; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-fg); font: inherit; font-weight: 700; cursor: pointer; transition: background .2s, color .2s, gap .25s var(--out); }
+.reveal .go span { max-width: 0; overflow: hidden; white-space: nowrap; transition: max-width .3s var(--out); }
+.opt:hover .reveal .go, .opt:focus-within .reveal .go { background: var(--accent); color: #fff; gap: 7px; }
+.opt:hover .reveal .go span, .opt:focus-within .reveal .go span { max-width: 80px; }
+.btn-tip { position: relative; }
+.btn-tip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); right: 0; padding: 5px 9px; border-radius: 8px; background: #1f252e; border: 1px solid #343c48; color: var(--text); font-size: 12px; font-weight: 500; white-space: nowrap; opacity: 0; transform: translateY(3px); pointer-events: none; transition: opacity .15s, transform .2s var(--out); }
+.btn-tip:hover::after, .btn-tip:focus-visible::after { opacity: 1; transform: none; transition-delay: .35s; }
+
+/* ---------- hover largo (2 s) sobre la fila: todos los datos del torrent ---------- */
+.rowtip { position: absolute; z-index: 15; left: 50%; bottom: calc(100% + 10px); width: min(460px, 92%); transform: translate(-50%, 4px); padding: 14px 16px; border-radius: 14px; background: #1f252e; border: 1px solid #343c48; box-shadow: 0 18px 40px rgb(0 0 0 / .55); font-size: 12.5px; line-height: 1.45; color: var(--muted);
+  opacity: 0; pointer-events: none; transition: opacity .18s var(--out), transform .24s var(--out); transition-delay: 0s; }
+.opt:hover > .rowtip { opacity: 1; transform: translate(-50%, 0); transition-delay: 2s; }
+/* Si hay un tooltip de salud abierto, el largo no aparece encima. */
+.opt:has(.has-tip:hover) > .rowtip { opacity: 0; transition-delay: 0s; }
+.rowtip h5 { margin: 0 0 10px; font-size: 13.5px; color: var(--text); word-break: break-word; }
+.rowtip dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0; }
+.rowtip dd { margin: 0; color: var(--text); word-break: break-all; }
+.rowtip .hint { margin-top: 10px; font-size: 11px; color: var(--dim); }
+.opt .hold { position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; opacity: .7; }
+.opt:hover .hold { transform: scaleX(1); opacity: 0; transition: transform 2s linear, opacity .2s 2s; }
+@media (prefers-reduced-motion: reduce) { .rowtip, .opt .hold { transition: none; } }
+
+.legend { max-width: 1340px; margin: 0 auto; padding: 0 24px 48px; color: var(--muted); font-size: 13px; }
+.legend table { border-collapse: collapse; margin-top: 8px; }
+.legend td { padding: 6px 14px 6px 0; border-top: 1px solid var(--border); vertical-align: top; }
+.legend td:first-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .tip, .live i { transition: none; animation: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fila de opción: botón de prueba y estado probando</h1>
+  <p>Base: variante A con los botones minimal (bajar chico + play redondo). Seis opciones: Máster, Blu-ray que puede cortarse, streaming fluida, dos sin probar (una filmada en el cine) y una probándose. La columna del medio siempre tiene dos líneas: arriba el estado o el botón, abajo la gente. Pasá el mouse (o tabulá) sobre la salud para ver el tooltip. Dejá el mouse 2 s sobre una fila para ver todos los datos del torrent (la línea azul de abajo marca la espera). Seeds y leechers siempre visibles, en gris chico.</p>
+</header>
+<main class="grid" id="grid"></main>
+<section class="legend">
+  <b>Nombres de calidad que propongo (para alguien no técnico)</b>
+  <table>
+    <tr><td>Máster · copia exacta del disco</td><td>REMUX. Lo mismo que trae el Blu-ray, sin recomprimir: la mejor imagen y sonido posibles. Pesa mucho.</td></tr>
+    <tr><td>Blu-ray</td><td>BluRay / BDRip. Sacada del disco y comprimida: muy buena, más liviana.</td></tr>
+    <tr><td>Streaming · como Netflix</td><td>WEB-DL / WEBRip. Bajada de una plataforma: la calidad que verías ahí.</td></tr>
+    <tr><td>TV</td><td>HDTV. Grabada de la tele.</td></tr>
+    <tr><td>Filmada en el cine</td><td>CAM / TS. Alguien la grabó con una cámara en la sala: se ve y escucha mal.</td></tr>
+  </table>
+</section>
+<script>
+const Q = {
+  max: { name: 'Máster', long: 'Máster · copia exacta del disco', stars: 4, medal: 'gold', short: 'MÁX', why: 'REMUX: lo mismo que trae el Blu-ray, sin recomprimir. La mejor calidad que existe.' },
+  disc: { name: 'Blu-ray', long: 'Blu-ray', stars: 3, medal: 'silver', short: 'BD', why: 'Sacada del Blu-ray y comprimida: muy buena y más liviana.' },
+  cam: { name: 'Cine (cámara)', long: 'Filmada en el cine', stars: 1, medal: 'warn', short: 'CAM', why: 'CAM / TS: alguien la grabó con una cámara en la sala. Se ve movida y el sonido es malo.' },
+  web: { name: 'Streaming', long: 'Streaming · como Netflix', stars: 2, medal: 'bronze', short: 'WEB', why: 'Bajada de una plataforma de streaming: la calidad que verías ahí.' },
+};
+const H = {
+  good: { word: 'Fluida', long: 'Va a andar fluida', bars: 3 },
+  fair: { word: 'Puede cortarse', long: 'Puede cortarse', bars: 2 },
+  bad: { word: 'Se va a trabar', long: 'Se va a trabar', bars: 1 },
+};
+const rows = [
+  { id: 'a', name: 'Dune Part Two 2024 2160p BluRay REMUX HDR DV TrueHD Atmos-FGT', res: '2160p', addons: 'Torrentio + Comet (1337x, rargb)', size: '58,2 GB', hdr: true, q: 'max', h: 'good', lo: 140, hi: 210, need: 62, seeds: 34, leech: 12, src: 'seeders contados', best: true, file: 'Dune.Part.Two.2024.2160p.BluRay.REMUX.HDR.DV.TrueHD.Atmos-FGT.mkv' },
+  { id: 'b', name: 'Dune Part Two 2024 2160p BluRay x265 10bit HDR-RARBG', res: '2160p', addons: 'Torrentio (rargb)', size: '14,1 GB', hdr: true, q: 'disc', h: 'fair', lo: 24, hi: 48, need: 30, seeds: 8, leech: 0, src: 'trackers · sin calibrar', file: 'Dune.Part.Two.2024.2160p.BluRay.x265.10bit.HDR-RARBG.mkv' },
+  { id: 'c', name: 'Dune Part Two 2024 1080p WEB-DL DDP5.1 H.264-FLUX', res: '1080p', addons: 'TorrentsDB + Peerflix', size: '5,0 GB', q: 'web', h: 'good', lo: 40, hi: 80, need: 12, seeds: 80, leech: 31, src: 'medido al analizarlo', file: 'Dune.Part.Two.2024.1080p.WEB-DL.DDP5.1.H.264-FLUX.mkv' },
+  { id: 'd', name: 'Dune Part Two 2024 2160p WEB-DL DV HDR H.265-NTb', res: '2160p', addons: 'Torrentio + StremThru', size: '9,8 GB', q: 'web', h: null, seeds: 210, leech: 44, file: 'Dune.Part.Two.2024.2160p.WEB-DL.DV.HDR.H.265-NTb.mkv' },
+  { id: 'f', name: 'Dune Part Two 2024 HDCAM x264-SUNSCREEN', res: '720p', addons: 'Torrentio (1337x)', size: '1,4 GB', q: 'cam', h: null, seeds: 520, leech: 210, file: 'Dune.Part.Two.2024.HDCAM.x264-SUNSCREEN.mkv' },
+  { id: 'e', name: 'Dune Part Two 2024 2160p UHD BluRay x265-TERMiNAL', res: '2160p', addons: 'Comet (1337x)', size: '22,4 GB', hdr: true, q: 'disc', h: 'live', seeds: 15, leech: 3, file: 'Dune.Part.Two.2024.2160p.UHD.BluRay.x265-TERMiNAL.mkv' },
+];
+const sig = (bars, cls) => `<svg class="sig ${cls}" viewBox="0 0 16 14" width="18" height="16" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}"/>`).join('')}</svg>`;
+const play = (r, v) => `<div class="play"><button class="p" id="${v}-play-${r.id}" aria-label="Reproducir"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" fill="currentColor"/></svg></button><button class="m" id="${v}-more-${r.id}" aria-label="Más opciones"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button></div>`;
+const peers = (r) => `<span class="peers"><b>${r.seeds}</b> seeds · ${r.leech} leechers</span>`;
+const tip = (r) => {
+  if (!r.h || r.h === 'live') return '';
+  const max = Math.max(r.hi, r.need) * 1.25;
+  const pct = (x) => `${(x / max) * 100}%`;
+  const h = H[r.h];
+  return `<div class="tip ${r.h}" role="tooltip"><h4>${sig(h.bars, r.h)}<span style="color:var(--text)">${h.long}</span></h4>
+  <p class="sub">Bajaría entre ${r.lo} y ${r.hi} Mbps; este video necesita ~${r.need}.</p>
+  <div class="meter ${r.h}"><span class="band" style="left:${pct(r.lo)};width:${pct(r.hi - r.lo)}"></span><span class="need" style="left:${pct(r.need)}" data-l="necesita ${r.need}"></span></div>
+  <div class="meter-legend"><span>0</span><span>${Math.round(max)} Mbps</span></div>
+  <dl><dt>Calidad</dt><dd>${Q[r.q].long}</dd><dt></dt><dd style="color:var(--muted)">${Q[r.q].why}</dd>
+  <dt>Gente</dt><dd>${r.seeds} con el archivo completo · ${r.leech} bajándolo</dd><dt>Dato</dt><dd>${r.src}</dd></dl>
+  <div class="file">${r.file}</div></div>`;
+};
+const rowTip = (r) => `<div class="rowtip" role="tooltip"><h5>${r.name}</h5><dl><dt>Resolución</dt><dd>${r.res}</dd><dt>Calidad</dt><dd>${Q[r.q].long}</dd><dt>Archivo</dt><dd>${r.file}</dd><dt>Fuentes</dt><dd>${r.addons}</dd></dl><div class="hint">Aparece tras 2 s con el mouse quieto sobre la fila.</div></div><span class="hold" aria-hidden="true"></span>`;
+const ICO = {
+  play: '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" fill="currentColor"/></svg>',
+  dl: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>',
+  monitor: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+};
+const stars = (q) => `<span class="stars">${[1, 2, 3, 4].map((i) => `<i class="${i <= Q[q].stars ? 'on' : ''}">★</i>`).join('')}</span>`;
+const hdr = (r) => (r.hdr ? '<span class="hdr" title="HDR: más rango de luz y color">HDR</span>' : '');
+const QUAL = {
+  // Q1: ícono de pantalla + "Imagen" + estrellas + nombre
+  q1: (r) => `<span class="q" title="Calidad de imagen: ${Q[r.q].why}">${ICO.monitor}${stars(r.q)}${Q[r.q].name}</span>`,
+  // Q2: las estrellas dentro de una mini tele
+  q2: (r) => `<span class="q" title="Calidad de imagen: ${Q[r.q].why}"><span class="screen"><span class="tv">${stars(r.q)}</span><span class="stand"></span></span>Imagen ${Q[r.q].name.toLowerCase()}</span>`,
+  // Q3: resolución + estrellas + nombre, todo como "imagen"
+  q3: (r) => `<span class="q" title="Calidad de imagen: ${Q[r.q].why}"><span class="res">${r.res === '2160p' ? '4K' : 'HD'}</span>${stars(r.q)}${Q[r.q].name}</span>`,
+  // Q4: rótulo "Calidad de imagen" arriba, estrellas y nombre abajo
+  q4: (r) => `<span class="sharp" title="${Q[r.q].why}"><span class="cap">Calidad de imagen</span><span class="q">${stars(r.q)}${Q[r.q].name}</span></span>`,
+};
+const BTN = {
+  p1: (r, v) => `<div class="btns"><button class="ghost btn-tip" id="${v}-dl-${r.id}" aria-label="Bajar de fondo" data-tip="Bajar de fondo y ver después">${ICO.dl}</button><button class="see" id="${v}-play-${r.id}">${ICO.play}Ver</button></div>`,
+  p2: (r, v) => `<div class="btns"><button class="mini btn-tip" id="${v}-dl-${r.id}" aria-label="Bajar de fondo" data-tip="Bajar de fondo y ver después">${ICO.dl}</button><button class="disc btn-tip" id="${v}-play-${r.id}" aria-label="Ver ahora" data-tip="Ver ahora">${ICO.play}</button></div>`,
+  p3: (r, v) => `<div class="seg"><button class="a" id="${v}-play-${r.id}">${ICO.play}Ver</button><button class="b btn-tip" id="${v}-dl-${r.id}" data-tip="Bajar de fondo y ver después">${ICO.dl}Bajar</button></div>`,
+  p4: (r, v) => `<div class="reveal"><button class="ghost dl btn-tip" id="${v}-dl-${r.id}" aria-label="Bajar de fondo" data-tip="Bajar de fondo y ver después">${ICO.dl}</button><button class="go" id="${v}-play-${r.id}" aria-label="Ver ahora">${ICO.play}<span>Ver ahora</span></button></div>`,
+};
+const people = (r) => `<span class="people"><b>${r.seeds}</b> seeds · ${r.leech} leechers</span>`;
+const qual = (r) => `<span class="q ${r.q === 'cam' ? 'cam' : ''}" title="Calidad de imagen: ${Q[r.q].why}">${ICO.monitor}${stars(r.q)}${Q[r.q].name}</span>`;
+const CTA = {
+  t1: { label: 'Probar velocidad', ico: () => '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>', testing: (r) => `<div class="testing"><div class="row1">Probando velocidad…<span class="s">8 s</span></div><div class="bar"><i></i></div></div>` },
+  t2: { label: '¿Va a andar? Probar', ico: () => sig(0, 'none'), testing: (r) => `<div class="testing"><div class="row1">${sig(3, 'scan')}Buscando gente…<span class="s">12 encontradas</span></div><div class="bar"><i></i></div></div>` },
+  t3: { label: 'Testear conexión', ico: () => '<span class="radar"></span>', testing: (r) => `<div class="testing"><div class="row1"><span class="radar"></span>Conectando con 23 personas…</div><div class="bar"><i></i></div></div>` },
+};
+const rowT = (t, v) => (r) => `<li class="opt ${r.best ? 'best' : ''}">${rowTip(r)}${r.best ? '<span class="best-tag">MEJOR OPCIÓN</span>' : ''}
+  <div class="left"><span class="size">${r.size} ${hdr(r)}</span>${qual(r)}</div>
+  <div class="mid">${r.h === 'live' ? CTA[t].testing(r)
+    : r.h ? `<button class="verdict has-tip ${r.h}" id="${v}-health-${r.id}">${sig(H[r.h].bars, r.h)}<strong>${H[r.h].word}</strong>${tip(r)}</button>`
+      : `<button class="cta ${t}" id="${v}-test-${r.id}" title="Se conecta unos segundos con la gente que comparte este torrent y estima si va a andar fluido. No baja el video.">${CTA[t].ico()}${CTA[t].label}</button>`}
+    ${people(r)}</div>
+  ${BTN.p2(r, v)}</li>`;
+const V = {
+  T1: { title: '"Probar velocidad" ⚡', note: 'Botón azul suave con un rayo: invita a tocar. Probando: texto + barra que avanza + segundos que faltan. Seeds siempre abajo, en el mismo lugar.', row: rowT('t1', 'T1') },
+  T2: { title: '"¿Va a andar? Probar"', note: 'Pregunta lo que el usuario se pregunta. Al pasar el mouse las barras se llenan de verde una por una (promesa de respuesta). Probando: las barras escanean y dice cuánta gente encontró.', row: rowT('t2', 'T2') },
+  T3: { title: '"Testear conexión" con radar', note: 'Un punto de radar que late al pasar el mouse. Probando: el radar sigue latiendo y dice con cuántas personas se está conectando.', row: rowT('t3', 'T3') },
+};
+document.getElementById('grid').innerHTML = Object.entries(V).map(([k, v]) => `<section class="variant v t ${k}"><h2><b>${k}</b>${v.title}</h2><p>${v.note}</p>
+  <div class="panel"><div class="group-head"><b>4K</b><span>134 opciones</span></div><ul>${rows.map(v.row).join('')}</ul></div></section>`).join('');
+</script>
+</body>
+</html>

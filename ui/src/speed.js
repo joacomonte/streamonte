@@ -7,7 +7,7 @@
 import { api } from './api.js';
 import { $, el, setStatus } from './dom.js';
 import { ago, mbps, nf1 } from './format.js';
-import { DEFAULT_SEED_MBPS, fidelity, healthCalibration, incomingStatus, measuringNow, predict, recalibrate, resetCalibration, setLinkMbps, setSeedMbps } from './health-calib.js';
+import { DEFAULT_SEED_MBPS, MIN_SAMPLES, TRACKER_MIN, fidelity, healthCalibration, incomingStatus, measuringNow, predict, recalibrate, resetCalibration, setLinkMbps, setSeedMbps } from './health-calib.js';
 import { state } from './state.js';
 import { popFor, togglePop } from './top-menus.js';
 
@@ -73,17 +73,24 @@ function renderPop() {
           : v.kind === 'failed' ? v.message : 'Todavía no se midió')),
     el('button', { id: 'speed-retest', class: 'pop-btn', disabled: measuring, onclick: () => measure(true) }, measuring ? 'Midiendo…' : 'Medir de nuevo'));
 
-  const perSeedNote = cal.source === 'manual' ? 'Fijado a mano'
-    : cal.n ? `Aprendido de ${cal.n} reproducciones en esta red (×${nf1(cal.bias.counted.factor)} sobre ${DEFAULT_SEED_MBPS})`
-      : `Sin reproducciones en esta red: ${DEFAULT_SEED_MBPS} Mbps (se aprende solo)`;
+  const perSeedNote = cal.source === 'manual' ? 'Fijado a mano' : `Se aprende solo en esta red (arranca en ${DEFAULT_SEED_MBPS} Mbps)`;
+  const tracks = calibTracks(cal);
+  const doneCount = tracks.filter((t) => t.have >= t.goal).length;
   const now = measuringNow();
   const seeder = el('div', { class: 'conn-card' },
     el('span', { class: 'conn-main' },
       el('span', { class: 'conn-big' }, `${nf1(cal.seedMbps)} Mbps `, el('small', {}, 'por seeder')),
       el('span', { class: 'conn-sub' }, perSeedNote),
-      // 2026-11-16: el aporte que sale de los seeders de trackers (no cuentan más que los contados).
-      el('span', { class: 'conn-sub' }, `Con seeders de trackers: ${nf1(cal.trackerSeedMbps)} Mbps por seeder (${cal.trackerN} reproducciones)`),
-      el('span', { class: 'conn-sub' }, `Medición del análisis: ×${nf1(cal.measuredFactor)} (${cal.bias.measured.n} reproducciones)`),
+      el('div', { id: 'calib-tracks', class: 'calib' },
+        el('span', { class: `calib-head ${doneCount === tracks.length ? 'all' : ''}` }, `Calibración ${doneCount}/${tracks.length}`),
+        tracks.map((t) => {
+          const done = t.have >= t.goal;
+          return el('div', { id: `calib-${t.id}`, class: `calib-row ${done ? 'done' : ''}` },
+            el('span', { class: 'calib-label' }, t.label, el('b', {}, t.value)),
+            el('span', { class: 'calib-steps', role: 'progressbar', 'aria-valuenow': t.have, 'aria-valuemin': 0, 'aria-valuemax': t.goal, 'aria-label': t.label },
+              Array.from({ length: t.goal }, (_, i) => el('i', { class: i < t.have ? 'on' : '' }))),
+            el('span', { class: 'calib-state' }, done ? t.reward : `faltan ${t.goal - t.have} reprod.`));
+        })),
       now.length ? el('span', { class: 'conn-live' }, el('i', { 'aria-hidden': 'true' }),
         `Midiendo: ${now[0].name} · ${mbps(now[0].avg_speed_bps)}${now[0].ev ? '' : ' (sin datos del análisis: no cuenta)'}`) : null),
     editing
@@ -137,6 +144,16 @@ function renderPop() {
     el('div', { class: 'pop-head' }, el('div', {}, el('h3', {}, 'Tu conexión'),
       el('p', { class: 'pop-sub' }, 'Con esto se estima si cada torrent va a andar bien: el ícono de señal y el orden de las opciones.'))),
     internet, seeder, incoming, fid, how, samples);
+}
+
+/** Progreso de cada calibración (2026-11-17): segmentos hasta la meta, que es cuando esa evidencia
+ *  pasa a confiarse (MIN_SAMPLES) o, la de trackers, a mostrar salud sola (TRACKER_MIN). */
+function calibTracks(cal) {
+  return [
+    { id: 'counted', label: 'Seeders contados', value: `${nf1(cal.seedMbps)} Mbps c/u`, goal: MIN_SAMPLES, reward: 'Calibrado' },
+    { id: 'tracker', label: 'Seeders de trackers', value: `${nf1(cal.trackerSeedMbps)} Mbps c/u`, goal: TRACKER_MIN, reward: 'Ya estima salud' },
+    { id: 'measured', label: 'Medición del análisis', value: `×${nf1(cal.measuredFactor)}`, goal: MIN_SAMPLES, reward: 'Calibrado' },
+  ].map((t) => ({ ...t, have: Math.min(t.goal, Math.round(cal.bias[t.id]?.nEff ?? 0)) }));
 }
 
 function sampleText(l) {

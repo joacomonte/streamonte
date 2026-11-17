@@ -2,9 +2,10 @@
 //!
 //! mpv solo muestra 2 subtítulos a la vez (`sid` + `secondary-sid`); para ver 5 juntos se
 //! fusionan en un ASS con un estilo por fuente: todos abajo, apilados en orden (1 abajo, 2
-//! encima, …) sin huecos (2026-11-16), cada uno con su color y una etiqueta chica
-//! "N · fuente/release" delante del texto. El apilado lo hace libass: eventos de la misma capa
-//! que chocan se corren hacia arriba, en el orden en que aparecen en el archivo.
+//! encima, …) sin huecos (2026-11-16), cada uno con su color. Sin etiqueta de fuente en cada
+//! línea (2026-11-17): arriba queda fija una guía con el número de cada color y las teclas para
+//! elegir, ver todos y mover el tiempo. El apilado lo hace libass: eventos de la misma capa que
+//! chocan se corren hacia arriba, en el orden en que aparecen en el archivo.
 
 use super::LabeledSubtitle;
 use crate::{CoreError, Result};
@@ -28,7 +29,7 @@ const COLORS: [&str; 5] = [
     "&H003CAAFF",
 ];
 const FONT_SIZE: u32 = 46;
-const LABEL_SIZE: u32 = 26;
+const GUIDE_SIZE: u32 = 28;
 
 /// Fusiona hasta 5 subtítulos en un único ASS con un estilo (color/posición/etiqueta) por fuente.
 /// Prototipo temprano en F5 por riesgo R-05.
@@ -42,16 +43,13 @@ pub fn merge_ass(subs: &[LabeledSubtitle]) -> Result<String> {
             path: sub.path.clone(),
             source,
         })?;
-        parsed.push((
-            sub.label.as_str(),
-            parse_any(&super::providers::cache::to_utf8(&bytes)),
-        ));
+        parsed.push(parse_any(&super::providers::cache::to_utf8(&bytes)));
     }
     Ok(merge_cues(&parsed))
 }
 
 /// La parte pura de la fusión (probada sin archivos).
-pub(crate) fn merge_cues(subs: &[(&str, Vec<Cue>)]) -> String {
+pub(crate) fn merge_cues(subs: &[Vec<Cue>]) -> String {
     let mut out = String::with_capacity(64 * 1024);
     out.push_str(
         "[Script Info]\n\
@@ -73,25 +71,53 @@ pub(crate) fn merge_cues(subs: &[(&str, Vec<Cue>)]) -> String {
             n = i + 1
         ));
     }
+    // La guía: arriba al centro, gris y chica.
+    out.push_str(&format!(
+        "Style: Guide,Arial,{GUIDE_SIZE},&H00C8C8C8,&H000000FF,&H00000000,&H80000000,\
+         0,0,0,0,100,100,0,0,1,2,0,8,60,60,30,1\n"
+    ));
     out.push_str(
         "\n[Events]\n\
          Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
     );
     // Agrupados por fuente (todos los de la 1, después los de la 2…) y en la misma capa: libass
     // ubica primero los que lee primero, así la 1 queda abajo y cada una encima de la anterior.
-    for (i, (label, cues)) in subs.iter().enumerate().take(SLOTS) {
-        let label = escape_text(label);
+    let subs = &subs[..subs.len().min(SLOTS)];
+    for (i, cues) in subs.iter().enumerate() {
         for cue in cues {
             out.push_str(&format!(
-            "Dialogue: 0,{start},{end},S{n},,0,0,0,,{{\\fs{LABEL_SIZE}\\b0\\alpha&H30&}}{label}  {{\\r}}{text}\n",
-            start = ass_time(cue.start_ms),
-            end = ass_time(cue.end_ms),
-            n = i + 1,
-            text = cue.text,
-        ));
+                "Dialogue: 0,{start},{end},S{n},,0,0,0,,{text}\n",
+                start = ass_time(cue.start_ms),
+                end = ass_time(cue.end_ms),
+                n = i + 1,
+                text = cue.text,
+            ));
         }
     }
+    // Capa 1 para que no entre en el apilado de los de abajo; dura todo el video.
+    let end = subs.iter().flatten().map(|c| c.end_ms).max().unwrap_or(0);
+    out.push_str(&format!(
+        "Dialogue: 1,{start},{end},Guide,,0,0,0,,{text}\n",
+        start = ass_time(0),
+        end = ass_time(end),
+        text = guide(subs.len()),
+    ));
     out
+}
+
+/// "1 2 3 elegí uno · 0 todos · Z X mover · R tiempo original · S ocultar", cada número en el
+/// color de su subtítulo (ASS `\c` es `&HBBGGRR&`: el color sin el alfa).
+fn guide(n: usize) -> String {
+    let numbers: Vec<String> = COLORS
+        .iter()
+        .take(n)
+        .enumerate()
+        .map(|(i, color)| format!("{{\\b1\\c&H{}&}}{}{{\\r}}", &color[4..], i + 1))
+        .collect();
+    format!(
+        "{}  elegí uno  ·  0 todos  ·  Z X mover el tiempo  ·  R tiempo original  ·  S ocultar",
+        numbers.join(" ")
+    )
 }
 
 /// Extensiones con las que se guarda en caché lo bajado: las que puede devolver [`format_ext`].
@@ -389,21 +415,15 @@ mod tests {
         assert_eq!(texts(s), vec!["uno".to_string()]);
     }
 
-    /// 5 entradas → 5 estilos (un color cada uno, todos abajo) y los eventos de todos, etiquetados.
+    /// 5 entradas → 5 estilos (un color cada uno, todos abajo), los eventos de todos sin etiqueta
+    /// y la guía de teclas arriba.
     #[test]
     fn fusion_de_cinco() {
         let cues: Vec<Cue> = parse_any(SRT);
-        let labels = [
-            "1 · torrent/Sintel.es",
-            "2 · Wyzie/x",
-            "3 · Subdivx/y",
-            "4 · OpenSubs/z",
-            "5 · Wyzie/w",
-        ];
-        let input: Vec<(&str, Vec<Cue>)> = labels.iter().map(|l| (*l, cues.clone())).collect();
+        let input = vec![cues; 5];
         let ass = merge_cues(&input);
 
-        let styles: Vec<&str> = ass.lines().filter(|l| l.starts_with("Style:")).collect();
+        let styles: Vec<&str> = ass.lines().filter(|l| l.starts_with("Style: S")).collect();
         assert_eq!(styles.len(), 5);
         let colors: std::collections::HashSet<&str> = styles
             .iter()
@@ -415,21 +435,27 @@ mod tests {
             "todos abajo: libass los apila"
         );
 
-        let dialogues: Vec<&str> = ass.lines().filter(|l| l.starts_with("Dialogue:")).collect();
+        let dialogues: Vec<&str> = ass
+            .lines()
+            .filter(|l| l.starts_with("Dialogue: 0,"))
+            .collect();
         assert_eq!(dialogues.len(), 10, "2 eventos × 5 fuentes");
-        for (i, label) in labels.iter().enumerate() {
-            let n = i + 1;
+        for n in 1..=5 {
             assert_eq!(
                 dialogues
                     .iter()
-                    .filter(|d| d.contains(&format!(",S{n},")) && d.contains(label))
+                    .filter(|d| d.contains(&format!(",S{n},")))
                     .count(),
                 2
             );
         }
-        // Agrupados por fuente, en orden (la 1 se ubica primero = abajo) y todos en la capa 0.
+        // Agrupados por fuente, en orden (la 1 se ubica primero = abajo), sin etiqueta delante.
         assert!(dialogues[0].contains(",S1,") && dialogues[9].contains(",S5,"));
-        assert!(dialogues.iter().all(|d| d.starts_with("Dialogue: 0,")));
+        assert!(dialogues[0].ends_with(",,{\\i1}Hola{\\i0} (mundo)\\Nsegunda línea"));
+        // La guía: una sola, arriba, con los 5 números.
+        let guide: Vec<&str> = ass.lines().filter(|l| l.contains(",Guide,")).collect();
+        assert_eq!(guide.len(), 1);
+        assert!(guide[0].starts_with("Dialogue: 1,") && guide[0].contains("5{\\r}"));
     }
 
     #[test]

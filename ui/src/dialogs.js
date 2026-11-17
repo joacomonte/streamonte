@@ -114,14 +114,9 @@ export async function stopAllAndClean() {
 // ---------- Ajustes: API keys de subtítulos ----------
 export async function openSettings() {
   try {
-    for (const k of await api.apiKeys()) {
-      const badge = document.getElementById(`key-${k.service}-state`);
-      if (badge) {
-        badge.textContent = k.configured ? '✔ configurada' : 'sin configurar';
-        badge.className = `key-state ${k.configured ? 'ok' : ''}`;
-      }
-    }
-    const { engine } = await api.config();
+    for (const k of await api.apiKeys()) placeKey(k.service, k.configured);
+    const { engine, player } = await api.config();
+    $(`#set-eq-${player.equalizer}`).checked = true;
     $('#set-incoming').checked = engine.incoming;
     $('#set-upnp').checked = engine.upnp;
     $('#set-upnp').disabled = !engine.incoming;
@@ -131,6 +126,16 @@ export async function openSettings() {
     showError(e);
   }
   $('#dlg-settings').showModal();
+}
+
+/** Ecualizador (2026-11-17): rige desde la próxima reproducción. */
+export async function saveEqualizer(ev) {
+  try {
+    await api.setEqualizer(ev.target.value);
+    setStatus('Sonido guardado: rige desde la próxima reproducción.');
+  } catch (e) {
+    showError(e);
+  }
 }
 
 // ADR-30: entrantes / UPnP. El motor se crea por reproducción, así que aplica en la próxima.
@@ -146,14 +151,58 @@ export async function saveNetwork() {
 }
 
 const SERVICE_NAMES = { wyzie: 'Wyzie', opensubtitles: 'OpenSubtitles', tmdb: 'TMDB' };
+/** Sección de cada key sin configurar (2026-11-17); configurada, baja a "Conectado". */
+const KEY_HOME = { tmdb: 'set-catalog', wyzie: 'set-subs', opensubtitles: 'set-subs' };
 
+/** Pone la fila de la key donde corresponde según si está configurada, con su estado. */
+function placeKey(service, configured) {
+  const row = document.querySelector(`.key-row[data-service="${service}"]`);
+  const home = configured ? $('#set-connected') : document.getElementById(KEY_HOME[service]);
+  if (!row || !home) return;
+  const badge = document.getElementById(`key-${service}-state`);
+  badge.textContent = configured ? '✔ conectada' : 'sin configurar';
+  badge.className = `key-state ${configured ? 'ok' : ''}`;
+  row.classList.remove('editing', 'saved');
+  if (row.parentElement === home) return;
+  // En su sección, antes de lo que no es key (las fuentes del catálogo).
+  const before = !configured && home.querySelector(':scope > .set-line');
+  if (before) before.before(row); else home.append(row);
+}
+
+/** "Cambiar" en una key conectada: abre el campo. */
+export function toggleKeyEdit(service) {
+  const row = document.querySelector(`.key-row[data-service="${service}"]`);
+  if (row?.classList.toggle('editing')) document.getElementById(`key-${service}`)?.focus();
+}
+
+const DONE_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>';
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Guarda la key (vacía = la borra). Guardada (2026-11-17): un tilde que se dibuja y un mensaje, y
+ *  después la fila baja a "Conectado". TMDB además avisa al catálogo, que se recarga con sus filtros. */
 export async function saveKey(service) {
   const input = document.getElementById(`key-${service}`);
+  const value = input.value.trim();
+  const row = input.closest('.key-row');
   try {
-    await api.setApiKey(service, input.value.trim());
+    await api.setApiKey(service, value);
     input.value = '';
+    if (service === 'tmdb') document.dispatchEvent(new CustomEvent('streamonte:tmdb-key'));
+    if (!value) {
+      placeKey(service, false);
+      setStatus(`Key de ${SERVICE_NAMES[service]} borrada.`);
+      return;
+    }
+    const done = row.querySelector('.key-done');
+    done.innerHTML = DONE_ICON;
+    done.append(service === 'tmdb' ? '¡TMDB conectada! El catálogo se recarga con filtros por votos, idioma y géneros.' : `¡${SERVICE_NAMES[service]} conectada!`);
+    row.classList.add('saved');
     setStatus(`Key de ${SERVICE_NAMES[service]} guardada en el almacén seguro.`);
-    await openSettings();
+    await wait(1800);
+    const motion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (motion) await row.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(6px)' }], { duration: 220, easing: 'ease-in' }).finished;
+    placeKey(service, true);
+    if (motion) row.animate([{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.16,1,.3,1)' });
   } catch (e) {
     showError(e);
   }

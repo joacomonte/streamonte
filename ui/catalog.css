@@ -2,7 +2,7 @@
 
 /* Grilla a la izquierda; al elegir un título, panel de opciones a la derecha (2026-11-15). */
 .catalog { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; background: var(--bg); }
-.catalog.side-open { grid-template-columns: minmax(0, 1fr) min(560px, 48vw); }
+.catalog.side-open { grid-template-columns: minmax(0, 1fr) min(620px, 52vw); }
 .catalog[hidden] { display: none; }
 /* Contenido centrado con aire a los costados; buscador tipo píldora al centro (2026-11-15). */
 .cat-main { overflow: auto; padding: 20px clamp(20px, 4vw, 64px); min-height: 0; }
@@ -45,17 +45,17 @@
 
 /* Panel lateral: migas de pan (serie) + temporadas / episodios / opciones. */
 .cat-side { display: none; }
-.side-open .cat-side { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-left: 1px solid var(--border); }
-.side-head { display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.side-open .cat-side { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overscroll-behavior: contain; background: var(--surface); border-left: 1px solid var(--border); }
+.cat-side > * { flex: none; }
+/* Las migas quedan pegadas arriba al scrollear el panel. */
+.side-head { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface); }
 .side-head .spacer { flex: 1; }
-.side-body { overflow: auto; padding: 16px 18px; min-height: 0; flex: 1; }
+.side-body { padding: 16px 18px; }
+/* Cabecera + ficha: se pliegan al elegir una temporada (la animación la hace renderSide). */
+.side-intro { overflow: hidden; }
+.side-intro.collapsed { height: 0; opacity: 0; }
 
 /* Semáforo: punto antes del peso (solo si se analizó). */
-.cat-opt:is(.light-green, .light-yellow, .light-red, .light-measuring) .cat-size::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
-.cat-opt.light-green .cat-size::before { background: var(--green); }
-.cat-opt.light-yellow .cat-size::before { background: var(--yellow); }
-.cat-opt.light-red .cat-size::before { background: var(--red); }
-.cat-opt.light-measuring .cat-size::before { background: var(--accent); }
 
 .cat-sources { display: grid; gap: 6px; margin: 8px 0; }
 .cat-sources li { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
@@ -145,11 +145,11 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 /* Opciones: encabezado sutil ordenable + filas grandes (2026-11-15). */
 .cat-options { display: grid; gap: 10px; }
 .cat-opt {
-  display: grid; align-items: center; gap: 6px 14px;
-  /* Peso · salud y seeds · acciones. La del medio se achica (2026-11-16: con la salud como rango la
-     fila pasaba el ancho del panel y aparecía scroll horizontal). */
-  grid-template-columns: minmax(110px, auto) minmax(0, 1fr) auto;
-  padding: 14px 18px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border);
+  display: grid; align-items: center; gap: 4px 14px;
+  /* Peso y calidad · veredicto y gente · bajar y ▶ (2026-11-17). La del medio se achica: si no, la
+     fila pasa el ancho del panel y aparece scroll horizontal. */
+  grid-template-columns: minmax(130px, 190px) minmax(0, 1fr) auto;
+  padding: 12px 12px 12px 18px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border);
   transition: border-color .15s var(--ease), background .15s var(--ease);
 }
 .cat-options .cat-opt:hover { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
@@ -198,30 +198,13 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-size-cell .cat-speed.bg-yellow { color: var(--yellow); }
 .cat-size-cell .cat-speed.bg-red { color: var(--red); }
 .cat-icon-btn.on { color: var(--accent); border-color: var(--accent); }
-.cat-seeds-btn { display: inline-flex; height: auto; min-height: 44px; padding: 4px 10px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; border-radius: 12px; border: 1px solid transparent; background: none; cursor: default; font-size: 16px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; justify-self: start; }
 .cat-icon-btn.busy { opacity: .6; }
 .cat-icon-btn.primary.busy { opacity: 1; }
 .cat-seeds-spin { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
-.cat-seeds-btn.busy { color: var(--muted); }
-.cat-stat { display: inline-flex; align-items: baseline; gap: 5px; line-height: 1.1; }
-.cat-stat > [aria-hidden] { align-self: center; }
-.cat-seeds-n { font-size: 18px; font-weight: 700; }
-.cat-stat-label { font-size: 12px; font-weight: 500; color: var(--muted); }
-.cat-stat-sub { display: flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 11px; font-weight: 500; line-height: 1.2; color: var(--muted); }
-.cat-stat-sub:empty { display: none; }
-.cat-stat-sub > span + span::before { content: "·"; margin-right: 6px; color: var(--muted); }
 /* Un solo verde: analizado (a cualquier profundidad, dice cuál el chip). Sin analizar: gris. */
-.cat-seeds-btn .cat-seeds-n { color: var(--muted); }
-.cat-seeds-btn.dead { color: var(--muted); opacity: .7; }
-.cat-seeds-dead { font-size: 12px; color: var(--red); opacity: .8; }
 /* Subtítulos desde el catálogo (2026-11-15). */
 /* Encabezado de opciones compacto: nada parte en dos líneas; si no entra, baja de fila. */
 /* Subtítulos del video: un único botón "Subs ▾" con menú de idioma (2026-11-15). */
-.cat-subs-box { position: relative; }
-.cat-subs-caret { font-size: 10px; opacity: .7; }
-.cat-subs-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; min-width: 120px; padding: 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 10px 24px rgb(0 0 0 / .35); display: grid; }
-.cat-subs-menu button { height: 30px; padding: 0 10px; border: none; border-radius: 7px; background: none; text-align: left; font-size: 13px; font-weight: 600; color: var(--text); }
-.cat-subs-menu button:hover { background: color-mix(in srgb, var(--accent) 15%, transparent); }
 
 /* Pegados del portapapeles, arriba del catálogo (2026-11-15). */
 .cat-pasted { margin-bottom: 28px; }
@@ -238,38 +221,22 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-best-tag { padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .04em; background: var(--green); color: #fff; }
 /* Cerrar el panel: grande, arriba a la derecha, sobre la cabecera (2026-11-15). */
 .side-open .cat-side { position: relative; }
-.side-close { position: absolute; top: 14px; right: 14px; z-index: 5; width: 48px; height: 48px; padding: 0; border-radius: 999px; font-size: 20px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); box-shadow: 0 6px 20px rgb(0 0 0 / .35); }
+.side-close { position: sticky; top: 14px; align-self: flex-end; margin: 14px 14px -62px 0; z-index: 5; width: 48px; height: 48px; padding: 0; border-radius: 999px; font-size: 20px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); box-shadow: 0 6px 20px rgb(0 0 0 / .35); }
 .side-close:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
 .side-head { padding-right: 76px; }
-.cat-subs-counts { display: inline-flex; gap: 8px; }
-.cat-subs-n { font-weight: 500; font-size: 12px; }
-.cat-subs-n.es { color: var(--green); }
-.cat-subs-n.en { color: var(--yellow); }
-.cat-subs-n.none { color: var(--red); }
-.cat-subs-get.done { color: var(--muted); }
 
 
 /* Lista en vivo mientras se analiza (2026-11-15): progreso, número que cambia y mejor opción nueva. */
-.cat-seeds-btn.flash { animation: cat-flash .9s ease-out; }
 @keyframes cat-flash { 0% { background: color-mix(in srgb, var(--accent) 35%, transparent); transform: scale(1.08); } 100% { transform: none; } }
 .cat-opt.new-best { animation: cat-best-in .9s ease-out; }
 .cat-opt.new-best .cat-best-tag { animation: cat-pop-tag .5s ease-out; }
 @keyframes cat-best-in { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
 @keyframes cat-pop-tag { from { opacity: 0; transform: scale(.7); } }
-@media (prefers-reduced-motion: reduce) { .cat-seeds-btn.flash, .cat-opt.new-best, .cat-opt.new-best .cat-best-tag { animation: none; } }
-.cat-opt > .cat-stats-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; justify-self: start; min-width: 0; }
 /* Angosto: los badges bajan de línea en vez de cortarse. */
 /* Descartados por el embudo del análisis (motivo en el tooltip de seeders) y salud estimada. */
 .cat-opt.skipped { opacity: .6; }
 .cat-opt.skipped:hover, .cat-opt.skipped:focus-within { opacity: 1; }
 /* Contando en vivo (2026-11-15): punto que late, texto en acento y un brillo que recorre la fila. */
-.cat-stat-sub.cat-live { color: var(--accent); gap: 6px; white-space: nowrap; }
-.cat-stat-sub.cat-noanswer { color: var(--muted); font-style: italic; }
-.cat-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: cat-live-pulse 1.2s ease-in-out infinite var(--live-phase, 0s); }
-@keyframes cat-live-pulse { 0%, 100% { opacity: .35; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
-.cat-opt:has(.cat-seeds-btn.busy) { background-image: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--accent) 9%, transparent) 50%, transparent 70%); background-size: 250% 100%; animation: cat-live-sweep 1.8s linear infinite var(--live-phase, 0s); }
-@keyframes cat-live-sweep { from { background-position: 100% 0; } to { background-position: -150% 0; } }
-@media (prefers-reduced-motion: reduce) { .cat-live-dot, .cat-opt:has(.cat-seeds-btn.busy) { animation: none; } }
 /* Salud estimada como ícono de señal (2026-11-15): barras llenas según el nivel, detalle al pasar. */
 .cat-health-ic { display: inline-grid; place-items: center; width: 22px; height: 22px; cursor: help; }
 .cat-health-ic rect { fill: color-mix(in srgb, var(--muted) 35%, transparent); }
@@ -279,22 +246,8 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 /* Análisis profundo: ícono chico al lado de los seeds. */
 /* Estado de la reproducción en grande (2026-11-16): manda sobre seeds y salud, que pasan a una
    línea chica debajo del peso. */
-.cat-check-health { display: inline-flex; align-items: center; gap: 6px; height: 30px; margin-right: 10px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--muted); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
-.cat-check-health:hover { color: var(--accent-fg, var(--accent)); border-color: var(--accent); }
-.cat-check-health svg rect { fill: currentColor; opacity: .35; }
-button.cat-health-ic { width: 26px; height: 26px; padding: 0; border: none; border-radius: 8px; background: none; cursor: pointer; }
-button.cat-health-ic:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
-/* Salud como rango (spec 08): ícono + "lo–hi Mbps" + de dónde sale. */
-.cat-health { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 2px 8px 2px 4px; border: none; border-radius: 10px; background: none; cursor: pointer; text-align: left; }
-.cat-health:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
-.cat-health .cat-health-ic { cursor: inherit; }
-.cat-health-txt { display: flex; flex-direction: column; gap: 1px; line-height: 1.2; white-space: nowrap; }
-.cat-health-range { font-size: 12.5px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-.cat-health-src { font-size: 11px; font-weight: 500; color: var(--muted); }
 /* Probable: la barra más alta, a medias. */
 .cat-health-ic rect.on.maybe { fill-opacity: .4; }
-.cat-mini-stats { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
-.cat-mini-stats .cat-health-ic svg { width: 13px; height: 12px; }
 .cat-status { display: grid; gap: 6px; min-width: 170px; justify-self: start; }
 .cat-status-line { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--accent-fg, var(--accent)); white-space: nowrap; }
 .cat-status-line b { font-weight: 700; }
@@ -333,18 +286,46 @@ button.cat-health-ic:hover { background: color-mix(in srgb, var(--text) 8%, tran
 .side-desc.open { -webkit-line-clamp: unset; display: block; }
 .side-desc:hover { color: var(--text); }
 .side-desc:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
-.side-imdb { justify-self: start; display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; }
-.side-imdb:hover { border-color: var(--accent); color: var(--accent-fg); }
+.side-imdb { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
+.side-imdb:hover, .side-imdb:focus-visible { color: var(--text); text-decoration-color: currentColor; }
+/* Ficha (2026-11-17): cadenas como badge con borde de acento, reparto e idioma, similares y la
+   invitación a TMDB cuando no hay key. */
+.side-genre.network { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); color: var(--accent-fg); }
+.side-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13px; }
+.side-facts dt { color: var(--muted); }
+.side-facts dd { margin: 0; color: var(--text); }
+.side-similar { display: grid; gap: 10px; margin-top: 2px; border-top: 1px solid var(--border); padding-top: 4px; }
+/* Plegado al final de la ficha: sin el aire de abajo de la sección (quedaba una franja vacía). */
+.side-about:has(> .side-similar:last-child:not(.open)) { padding-bottom: 4px; }
+.side-similar.open { padding-bottom: 6px; }
+.side-similar-head { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 38px; padding: 0 2px; border: 0; background: none; color: var(--text); font-size: 14px; font-weight: 700; }
+.side-similar-head .ico { color: var(--muted); transform: rotate(-90deg); transition: transform .2s var(--out); }
+.side-similar.open .side-similar-head .ico { transform: none; }
+.side-similar-head:hover .ico { color: var(--text); }
+.side-similar-skel { display: block; aspect-ratio: 2 / 3; border-radius: 8px; }
+.side-similar-grid { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 30px) / 4.3); gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; padding-bottom: 6px; scrollbar-width: thin; }
+.side-similar-card { scroll-snap-align: start; }
+.side-similar-card { display: grid; gap: 6px; padding: 0; border: 0; background: none; color: var(--text); text-align: left; font-size: 12px; font-weight: 600; cursor: pointer; }
+.side-similar-card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; background: var(--surface-2); transition: transform .2s var(--out); }
+.side-similar-card:not(:has(img))::before { content: ''; aspect-ratio: 2 / 3; border-radius: 8px; background: var(--surface-2); }
+.side-similar-card { position: relative; }
+.side-similar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Puntaje sobre el póster, arriba a la izquierda, con el color de la nota (como las temporadas). */
+.side-similar-score { position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums; background: rgb(0 0 0 / .72); backdrop-filter: blur(6px); color: #fff; }
+.side-similar-score.great { color: #6ee7a0; }
+.side-similar-score.good { color: #b8e986; }
+.side-similar-score.meh { color: #f2c94c; }
+.side-similar-score.bad { color: #ff8a80; }
+.side-similar-card:hover img, .side-similar-card:focus-visible img { transform: translateY(-2px); }
+.side-similar-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+.side-tmdb-teaser { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; border: 1px dashed var(--border-strong); }
+.side-tmdb-teaser p { display: grid; gap: 2px; margin: 0; flex: 1; font-size: 12.5px; color: var(--muted); }
+.side-tmdb-teaser b { font-size: 13.5px; color: var(--text); }
+.side-tmdb-teaser .pop-btn { flex: none; }
 
-/* Encabezado de opciones (2026-11-16): panel de análisis completo + herramientas chicas. */
-.cat-opt-head { display: flex; align-items: stretch; gap: 12px; container-type: inline-size; }
-.cat-opt-tools { flex: none; display: grid; align-content: center; gap: 6px; }
-.cat-tool, .cat-subs-get { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 14px; border-radius: 999px;
-  border: 1px solid var(--border); background: var(--bg); color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; transition: color .12s, border-color .12s, background .12s; }
-.cat-tool:hover, .cat-subs-get:hover:not(:disabled), .cat-subs-get[aria-expanded="true"] { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
-.cat-tool.active { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
-.cat-subs-get:disabled { cursor: progress; }
-.cat-subs-box, .cat-subs-get { width: 100%; }
+/* Encabezado de opciones: el panel de test, solo (2026-11-17). */
+/* Arriba de las opciones: "Elegí la mejor" y debajo el panel de pruebas, cada uno a todo el ancho. */
+.cat-opt-head { display: grid; gap: 10px; container-type: inline-size; }
 
 .cat-deep { flex: 1; min-width: 0; min-height: 66px; position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; border-radius: 14px; overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 13%, var(--bg)), var(--bg) 75%); }
@@ -360,7 +341,7 @@ button.cat-health-ic:hover { background: color-mix(in srgb, var(--text) 8%, tran
 .cat-deep.done .cat-deep-icon { background: color-mix(in srgb, var(--green) 18%, var(--surface)); color: var(--green); }
 .cat-deep.done .cat-deep-go { background: none; color: var(--muted); border: 1px solid var(--border); }
 .cat-deep.done .cat-deep-go:hover { color: var(--text); border-color: var(--border-strong); }
-.cat-deep.waiting .cat-deep-icon, .cat-deep.running .cat-deep-icon { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+.cat-deep.running .cat-deep-icon { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
 .cat-deep-spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid color-mix(in srgb, var(--accent) 30%, transparent); border-top-color: var(--accent); animation: spin .8s linear infinite; }
 /* Barra al pie del panel, con brillo que corre mientras analiza. */
 .cat-deep-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: color-mix(in srgb, var(--accent) 12%, transparent); }
@@ -372,14 +353,7 @@ button.cat-health-ic:hover { background: color-mix(in srgb, var(--text) 8%, tran
 @keyframes cat-deep-creep { to { width: var(--slice); } }
 
 /* Mientras llegan los torrents (2026-11-16): esqueleto con forma de fila y las nuevas entran deslizándose. */
-.opt-skeleton { display: grid; gap: 10px; }
-.opt-skel { display: grid; grid-template-columns: 90px 70px 1fr 84px; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg);
-  animation: opt-skel-in .5s var(--ease) both; }
-.opt-skel .skel { height: 14px; border-radius: 6px; }
-.opt-skel .skel.tall { height: 22px; }
-.opt-skel .skel.pill { height: 32px; border-radius: 999px; }
-@keyframes opt-skel-in { from { opacity: 0; transform: translateY(6px); } }
-@media (prefers-reduced-motion: reduce) { .cat-deep-bar i, .opt-skel, .cat-deep-creep { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cat-deep-bar i, .cat-deep-creep { animation: none; } }
 
 /* Fila de opción (2026-11-16): etiquetas chicas junto al peso, "Analizar" recomendado y ▶ con menú. */
 .cat-size-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -388,36 +362,10 @@ button.cat-health-ic:hover { background: color-mix(in srgb, var(--text) 8%, tran
 .cat-tag.cat-hdr { color: var(--text); border-color: color-mix(in srgb, var(--text) 45%, transparent); }
 .cat-tag.focus.lat { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
 .cat-tag.guess { border-style: dashed; }
-.cat-tag.cat-heavy { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 45%, transparent); }
 
 
-.cat-split { position: relative; display: inline-flex; border-radius: 999px; background: var(--accent); color: var(--accent-text); }
-.cat-split > button { border: none; background: none; color: inherit; display: grid; place-items: center; height: 42px; padding: 0; }
-.cat-play { position: relative; width: 46px; border-radius: 999px 0 0 999px; }
-.cat-play-more { width: 28px; border-radius: 0 999px 999px 0; border-left: 1px solid color-mix(in srgb, var(--accent-text) 25%, transparent) !important; }
-.cat-split > button:hover { background: color-mix(in srgb, var(--accent-text) 12%, transparent); }
-.cat-play.busy > * { visibility: hidden; }
-.cat-play.busy::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
-/* Cargando en background: un punto en el ▾ lo recuerda. */
-.cat-split.bg-on .cat-play-more::after { content: ""; position: absolute; top: 7px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px var(--accent); }
-.cat-play-more { position: relative; }
-.cat-play-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 10; min-width: 270px; padding: 6px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border-strong); box-shadow: 0 14px 32px var(--shadow-lg); }
-.cat-play-menu button { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 9px 10px; border: none; border-radius: 8px; background: none; color: var(--text); text-align: left; }
-.cat-play-menu button:hover { background: var(--surface-3); }
-.cat-play-menu b { display: block; font-size: 13px; }
-.cat-play-menu small { display: block; font-size: 11.5px; color: var(--muted); }
-
-/* ▶ en una opción sin contar: dos opciones en el lugar del botón (2026-11-16). */
-.cat-ask { display: inline-flex; align-items: center; gap: 8px; animation: cat-ask-in .2s var(--ease); }
-@keyframes cat-ask-in { from { opacity: 0; transform: scale(.96); } }
-.cat-ask button { display: inline-flex; align-items: center; justify-content: center; height: 42px; border-radius: 999px; white-space: nowrap; transition: filter .12s, background .12s, color .12s; }
-.cat-ask-analyze { gap: 8px; padding: 0 18px; border: none; background: var(--accent); color: var(--accent-text); font-size: 13.5px; font-weight: 700; }
-.cat-ask-analyze:hover { filter: brightness(1.1); }
-.cat-ask-play { width: 42px; padding: 0; border: 1px solid var(--border-strong); background: none; color: var(--muted); }
-.cat-ask-play:hover { color: var(--text); border-color: var(--text); }
-@media (prefers-reduced-motion: reduce) { .cat-ask { animation: none; } }
 /* Sin analizar: el panel entero es el botón (variante F, 2026-11-16). */
-.cat-deep-cta { flex: 1; min-width: 0; min-height: 66px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border: none; border-radius: 14px; text-align: left;
+.cat-deep-cta { flex: 1; min-width: 0; min-height: 58px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border: none; border-radius: 14px; text-align: left;
   background: var(--accent); color: var(--accent-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent); transition: filter .15s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease); }
 .cat-deep-cta:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 38%, transparent); }
 .cat-deep-cta:active { transform: none; }
@@ -491,7 +439,7 @@ button.cat-health-ic:hover { background: color-mix(in srgb, var(--text) 8%, tran
 .cat-info-genres { display: flex; flex-wrap: wrap; gap: 5px; }
 .cat-info-genres span { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: rgb(255 255 255 / .14); border: 1px solid rgb(255 255 255 / .18); }
 .cat-info-meta { font-size: 12px; font-weight: 600; color: rgb(255 255 255 / .75); font-variant-numeric: tabular-nums; }
-.cat-info-desc { font-size: 12.5px; line-height: 1.45; color: rgb(255 255 255 / .9); display: -webkit-box; -webkit-line-clamp: 7; -webkit-box-orient: vertical; overflow: hidden; }
+.cat-info-awards { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: #f2c94c; }
 @media (prefers-reduced-motion: reduce) { .cat-card-info { transition: opacity .15s; transform: none; } }
 /* Título sobre el póster (2026-11-16): franja baja con degradado, sin ocupar lugar abajo. */
 .cat-card-caption { position: absolute; left: 0; right: 0; bottom: 0; display: grid; gap: 1px; padding: 28px 10px 8px; pointer-events: none;
@@ -509,7 +457,6 @@ button.cat-health-ic:hover { background: color-mix(in srgb, var(--text) 8%, tran
 .cat-mini-next.go .show-status-dot { background: var(--green); }
 .cat-mini-next.wait .show-status-dot { background: var(--yellow); }
 .cat-mini-next.stop .show-status-dot { background: var(--red); }
-.cat-info-seasons:not(:empty) ~ .cat-info-desc { -webkit-line-clamp: 4; }
 
 /* Barras de puntaje por temporada (2026-11-16): el mismo componente en el panel (.large) y en la
    tarjeta (.small). La pista ocupa el alto; la barra crece desde abajo con el color de la nota. */
@@ -548,3 +495,177 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-mini-soon { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px; font-weight: 800;
   color: #0b1a10; background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent); }
 .cat-mini-next.soon { gap: 8px; }
+
+/* ---------- Fila de opción (2026-11-17, design/opciones-final.html) ----------
+   Peso + calidad de imagen · veredicto (o testear) con la gente debajo · bajar de fondo y ▶. */
+.cat-size-line { display: flex; align-items: center; gap: 6px; }
+.cat-quality { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.cat-quality-q { display: inline-flex; align-items: center; gap: 6px; cursor: help; }
+.cat-quality.cam, .cat-quality.cam .ico { color: var(--red); }
+.cat-stars { letter-spacing: 1px; font-size: 11px; line-height: 1; }
+.cat-stars i { font-style: normal; color: var(--track); }
+.cat-stars i.on { color: #e8c26a; }
+.cat-nofit { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; color: var(--yellow); cursor: help; }
+.cat-opt.too-big .cat-size { color: var(--muted); }
+.cat-opt.too-big .cat-play { background: var(--surface-3); color: var(--muted); }
+.cat-mid { display: grid; gap: 4px; justify-items: start; align-content: center; min-width: 0; }
+.cat-people { display: inline-flex; align-items: center; gap: 4px; padding-left: 2px; color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cat-people b { color: var(--muted); font-weight: 600; }
+.cat-people.flash { animation: cat-flash .9s ease-out; border-radius: 6px; }
+
+/* Veredicto: ícono de señal + palabra. */
+.cat-verdict { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px 0 2px; margin-left: -2px; border: 0; border-radius: 8px; background: none; color: var(--text); cursor: pointer; }
+.cat-verdict:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.cat-verdict strong { font-size: 15px; }
+.cat-verdict.compact { height: 18px; padding: 0; margin: 0 2px 0 0; }
+.cat-verdict.compact .cat-health-ic { width: 16px; height: 16px; }
+.cat-verdict.compact svg { width: 13px; height: 12px; }
+.cat-verdict .cat-health-ic { cursor: inherit; }
+/* Resultado de un test: las barras suben una por una y entra la palabra. */
+.cat-verdict.reveal rect.on { animation: cat-rise .42s var(--out) both; transform-box: fill-box; transform-origin: bottom; }
+.cat-verdict.reveal rect.on:nth-child(2) { animation-delay: .16s; }
+.cat-verdict.reveal rect.on:nth-child(3) { animation-delay: .32s; }
+@keyframes cat-rise { from { transform: scaleY(0); } }
+.cat-verdict.reveal strong { animation: cat-word .5s var(--out) .4s both; }
+@keyframes cat-word { from { opacity: 0; transform: translateX(-6px); filter: blur(3px); } }
+.cat-confetti { position: absolute; z-index: 6; width: 6px; height: 6px; border-radius: 2px; pointer-events: none; }
+
+/* Testear conexión: punto de radar que late. */
+.cat-radar { position: relative; flex: none; display: inline-grid; place-items: center; width: 14px; height: 14px; }
+.cat-radar::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fg); }
+.cat-radar::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--accent-fg); opacity: 0; }
+.cat-test:hover .cat-radar::after, .cat-testing .cat-radar::after, .cat-lower .cat-radar::after, .cat-deep .cat-radar::after { animation: cat-ping 1.3s var(--out) infinite; }
+.cat-radar.big { width: 18px; height: 18px; }
+@keyframes cat-ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+.cat-test { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px 0 10px; border-radius: 999px; border: 0; background: var(--surface-3); color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; transition: background .2s, transform .15s var(--out); }
+.cat-test:hover { background: var(--border-strong); }
+.cat-test:active { transform: scale(.97); }
+.cat-testing { display: grid; gap: 5px; min-width: 200px; height: 30px; align-content: center; }
+.cat-testing-line { display: flex; align-items: center; gap: 8px; color: var(--accent-fg); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.cat-testing-bar { height: 4px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+/* Sin avance real por torrent: la barra llena en lo que suele tardar (~70 s); la fase sale de `--t`. */
+.cat-testing-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-fg)); animation: cat-fill 70s cubic-bezier(.2, .6, .4, 1) var(--t, 0ms) both; }
+/* Esperando lugar en la tanda (2026-11-17): quieto y apagado, para no parecer que ya prueba. */
+.cat-waiting { display: inline-flex; align-items: center; gap: 8px; height: 30px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.cat-waiting-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; }
+/* Una barra por etapa (2026-11-17): arranca de cero al pasar a la siguiente. Duraciones ≈ las del núcleo
+   (`swarm.rs`): a fondo, datos hasta ~1 min y conteo hasta 85 s; rápida, 12 s y ~18 s. */
+.cat-testing.phase-meta .cat-testing-bar i { animation-duration: 60s; }
+.cat-testing.phase-count .cat-testing-bar i { animation-duration: 85s; }
+.cat-testing.quick.phase-meta .cat-testing-bar i { animation-duration: 12s; animation-timing-function: linear; }
+.cat-testing.quick.phase-count .cat-testing-bar i { animation-duration: 18s; animation-timing-function: linear; }
+.cat-testing-step { padding: 1px 6px; border-radius: 999px; background: var(--surface-3); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+/* Calidad sin dato: gris y chico, el porqué en el tooltip. */
+.cat-quality-unknown { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; cursor: help; opacity: .8; }
+.cat-quality-unknown:hover, .cat-quality-unknown:focus-visible { opacity: 1; }
+@keyframes cat-fill { from { width: 3%; } to { width: 96%; } }
+.cat-failed { display: inline-flex; align-items: center; gap: 8px; height: 30px; }
+.cat-failed-msg { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; font-weight: 700; cursor: help; white-space: nowrap; }
+.cat-failed-msg .ico { color: var(--red); }
+.cat-retry { height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--text); font-size: 12px; font-weight: 700; }
+.cat-retry:hover { border-color: var(--accent); }
+.cat-mid .cat-speed { font-size: 13px; font-weight: 700; color: var(--muted); }
+.cat-mid .cat-speed.bg-green { color: var(--green); }
+.cat-mid .cat-speed.bg-yellow { color: var(--yellow); }
+.cat-mid .cat-speed.bg-red { color: var(--red); }
+.cat-mid .cat-speed.bg-measuring { color: var(--accent-fg); }
+
+/* Bajar de fondo y ▶, minimal. */
+.cat-play-btns { display: flex; align-items: center; gap: 8px; }
+.cat-bg-btn { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 0; background: var(--surface-3); color: var(--muted); transition: color .15s, background .15s; }
+.cat-bg-btn:hover { color: var(--text); background: var(--border-strong); }
+.cat-bg-btn.on { color: var(--green); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--green) 60%, transparent); }
+.cat-play { position: relative; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-text); transition: transform .2s var(--out), box-shadow .2s; }
+.cat-play:hover:not(:disabled) { transform: scale(1.06); box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent); }
+.cat-play.busy > * { visibility: hidden; }
+.cat-play.busy::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+
+/* Orden: Mejor imagen / Arranca más rápido, arriba de las opciones del grupo abierto. */
+.cat-list-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 0 12px 10px 18px; }
+.cat-sort-row { display: flex; align-items: center; gap: 10px; }
+/* Solo HDR: filtro de la lista, a la derecha del orden. */
+.cat-hdr-filter { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 12px; border-radius: 999px; border: 1px dashed var(--border-strong); background: none; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .02em; transition: color .15s, border-color .15s, background .15s; }
+.cat-hdr-filter:hover { color: var(--text); border-color: var(--text); }
+.cat-hdr-filter[aria-pressed="true"] { border-style: solid; border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+
+
+.cat-sort-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.cat-sort-fixed { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px 0 8px; border-radius: 999px; background: var(--sunk); border: 1px solid var(--border); color: var(--text); font-size: 12px; font-weight: 600; cursor: help; }
+.cat-sort { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--sunk); border: 1px solid var(--border); }
+.cat-sort button { height: 26px; padding: 0 11px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; transition: background .2s var(--out), color .2s; }
+.cat-sort button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+.cat-sort button:hover:not([aria-pressed="true"]) { color: var(--text); }
+
+/* Ninguna anda en esta resolución: la siguiente, al final de la lista. */
+.cat-lower { display: flex; align-items: center; gap: 14px; margin: 2px 10px 10px; padding: 14px 16px; border-radius: 14px; border: 1px dashed var(--border-strong); }
+.cat-lower-text { flex: 1; display: grid; gap: 2px; }
+.cat-lower-text b { font-size: 14px; }
+.cat-lower-text span { color: var(--muted); font-size: 12.5px; }
+.cat-lower button { height: 34px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--accent); color: var(--accent-text); font-weight: 700; white-space: nowrap; }
+.cat-lower button:hover { filter: brightness(1.12); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-people.flash, .cat-opt.new-best, .cat-opt.new-best .cat-best-tag, .cat-verdict.reveal rect.on, .cat-verdict.reveal strong, .cat-radar::after, .cat-testing-bar i { animation: none !important; }
+  .cat-testing-bar i { width: 50%; }
+}
+
+/* Buscando torrents (2026-11-17): una línea chica con barra; la lista aparece al terminar. */
+.cat-scan { flex: 1; display: grid; gap: 7px; padding: 6px 2px; }
+.cat-scan-line { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cat-scan .cat-radar::after { animation: cat-ping 1.3s var(--out) infinite; }
+.cat-scan-bar { height: 3px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.cat-scan-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-fg)); transition: width .5s var(--out); }
+
+/* Subtítulos: solo informa, en una línea (2026-11-17). */
+.cat-subs-info { display: flex; align-items: center; gap: 7px; margin: 0 0 12px; padding: 0 4px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: default; }
+.cat-subs-info.ok .ico { color: color-mix(in srgb, var(--green) 70%, var(--muted)); }
+.cat-subs-info.warn .ico { color: var(--yellow); }
+.cat-subs-info.bad .ico { color: var(--red); }
+@media (prefers-reduced-motion: reduce) { .cat-scan .cat-radar::after { animation: none; } .cat-scan-bar i { transition: none; } }
+
+/* Rendimiento (2026-11-17): las filas fuera de la vista no se pintan ni se animan. */
+.cat-opt { content-visibility: auto; contain-intrinsic-size: auto 92px; }
+.cat-more-rows { justify-self: center; margin: 4px auto 0; padding: 8px 16px; border: 1px solid var(--border); border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.cat-more-rows:hover { color: var(--text); border-color: var(--accent); }
+
+/* Categoría por puntaje en la tarjeta chica (2026-11-17). */
+.cat-info-tier { font-size: 12.5px; font-weight: 700; color: var(--text); }
+
+/* Prueba rápida terminada (2026-11-17): el botón del análisis profundo entra con un salto y brilla
+   tres veces, una sola vez (--arrive = cuánto pasó, para no reiniciar al redibujar). */
+.cat-deep-badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, #fff 22%, transparent); font-size: 11px; font-weight: 800; letter-spacing: .02em; vertical-align: 1px; }
+.cat-deep-cta.arrive { animation: cta-arrive .6s cubic-bezier(.2, 1.4, .4, 1) var(--arrive, 0ms) both, cta-glow 2.6s ease-out var(--arrive, 0ms) both; }
+@keyframes cta-arrive { from { transform: scale(.94); opacity: .4; } to { transform: none; opacity: 1; } }
+@keyframes cta-glow {
+  0%, 33%, 66% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent); }
+  20%, 53%, 86% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent); }
+  100% { box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) { .cat-deep-cta.arrive { animation: none; } }
+
+/* Invitación en el encabezado de cada resolución cerrada (2026-11-17). */
+.cat-group-cta { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 12%, transparent); font-size: 12.5px; font-weight: 700; transition: background .15s var(--ease); }
+.cat-group-head:hover .cat-group-cta { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.cat-group-cta + .cat-chev { margin-left: 0; }
+
+/* Primera tanda de la prueba rápida: se llena pareja en ~30 s (lo máximo que dura cada una). */
+.cat-deep-bar.quick-fill i { width: 100%; transform-origin: left; animation: quick-fill 32s linear var(--t, 0ms) both; }
+@keyframes quick-fill { from { transform: scaleX(0); } to { transform: scaleX(.97); } }
+@media (prefers-reduced-motion: reduce) { .cat-deep-bar.quick-fill i { animation: none; transform: scaleX(.5); } }
+
+/* "Elegí la mejor" (2026-11-17): arriba de las resoluciones; mientras corre, una línea con en qué anda. */
+.cat-auto { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: 14px; background: color-mix(in srgb, var(--accent) 10%, var(--bg)); color: var(--text); text-align: left; font: inherit; cursor: pointer; transition: background .15s var(--ease), border-color .15s var(--ease); }
+.cat-auto:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg)); border-color: var(--accent); }
+.cat-auto:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+.cat-auto-ic { flex: none; display: grid; color: var(--accent-fg); }
+.cat-auto-text { display: grid; gap: 2px; min-width: 0; }
+.cat-auto-text b { font-size: 14px; font-weight: 750; }
+.cat-auto-text span { font-size: 12px; color: var(--muted); text-wrap: pretty; }
+.cat-auto-status { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--surface-2, var(--surface)); font-size: 13px; color: var(--muted); }
+.cat-auto-status .cat-auto-msg { flex: 1; min-width: 0; }
+.cat-auto-status b { color: var(--text); }
+.cat-auto-status .cat-radar::after { animation: cat-ping 1.3s var(--out) infinite; }
+.cat-auto-status.done { color: var(--text); background: color-mix(in srgb, var(--green) 12%, var(--bg)); }
+.cat-auto-status.done .ico { color: var(--green); }
+.cat-auto-status.none .ico { color: var(--yellow); }
+@media (prefers-reduced-motion: reduce) { .cat-auto-status .cat-radar::after { animation: none; } }

@@ -10,6 +10,8 @@
 export const DEFAULT_SEED_MBPS = 3;
 /** Mediciones mínimas para confiar en lo medido (por debajo: el default y sin tope). */
 export const MIN_SAMPLES = 3;
+/** Reproducciones (nEff) para mostrar salud estimada solo con seeders de trackers. */
+export const TRACKER_MIN = 5;
 /** Segundos de descarga para que una medición cuente: menos es más arranque que velocidad sostenida. */
 export const MIN_SECS = 10;
 const KEY = 'streamonte.health';
@@ -297,7 +299,7 @@ function addSample(hash, t) {
 /** Fija el aporte a mano (Ajustes). */
 export const setSeedMbps = (v) => save({ ...load(), seedMbps: v });
 /** Vuelve a lo medido (borra el valor fijo). */
-export const recalibrate = () => { const { seedMbps, ...rest } = load(); save(rest); };
+export const recalibrate = () => { const { seedMbps: _omit, ...rest } = load(); save(rest); };
 /** Olvida las mediciones hechas hasta ahora y el valor fijo: default hasta juntar `MIN_SAMPLES`. */
 export const resetCalibration = () => save({ since: Date.now() });
 

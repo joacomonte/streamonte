@@ -203,6 +203,13 @@ pub async fn config_get(core: Core<'_>) -> CmdResult<Config> {
 /// Ajustes → Red. Un comando por ajuste: la UI nunca reescribe la config entera (no pisa lo
 /// que cambió otro mientras tanto).
 #[tauri::command]
+pub async fn config_set_equalizer(
+    core: Core<'_>,
+    equalizer: streamonte_core::config::Equalizer,
+) -> CmdResult<()> {
+    Ok(core.set_equalizer(equalizer).await?)
+}
+#[tauri::command]
 pub async fn config_set_network(
     core: Core<'_>,
     incoming: bool,
@@ -232,20 +239,40 @@ pub async fn open_key_page(core: Core<'_>, service: String) -> CmdResult<()> {
     let core = core.inner().clone();
     blocking(move || Ok(core.open_key_page(&service)?)).await
 }
+/// Tráiler en YouTube, en el navegador.
+#[tauri::command]
+pub async fn catalog_open_trailer(core: Core<'_>, youtube_id: String) -> CmdResult<()> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.open_trailer(&youtube_id)?)).await
+}
 /// Ficha de IMDb del título en el navegador.
 #[tauri::command]
 pub async fn catalog_open_imdb(core: Core<'_>, imdb_id: String) -> CmdResult<()> {
     let core = core.inner().clone();
     blocking(move || Ok(core.open_imdb(&imdb_id)?)).await
 }
-/// "Contar seeders reales" de opciones del catálogo (se conecta al enjambre; ~50 s por tanda).
+/// "Contar seeders reales" de opciones del catálogo (se conecta al enjambre): `quick` ≤ 30 s,
+/// `deep` ~2 min.
 #[tauri::command]
 pub async fn catalog_swarm(
     core: Core<'_>,
     hashes: Vec<InfoHash>,
-    deep: bool,
+    depth: streamonte_core::analyzer::swarm::Depth,
 ) -> CmdResult<std::collections::HashMap<InfoHash, SwarmCount>> {
-    Ok(core.catalog_swarm(&hashes, deep).await)
+    Ok(core.catalog_swarm(&hashes, depth).await)
+}
+/// Tests de conexión de la última hora (datos guardados).
+#[tauri::command]
+pub fn catalog_swarm_saved(
+    core: Core<'_>,
+    hashes: Vec<InfoHash>,
+) -> CmdResult<std::collections::HashMap<InfoHash, streamonte_core::app::SavedTest>> {
+    Ok(core.catalog_swarm_saved(&hashes))
+}
+/// Espacio libre del disco de descargas, en bytes (null si no se pudo leer).
+#[tauri::command]
+pub fn downloads_free_bytes(core: Core<'_>) -> CmdResult<Option<u64>> {
+    Ok(core.downloads_free_bytes())
 }
 /// Censo DHT sin conectarse (~12 s): direcciones únicas por hash; falta = 0.
 #[tauri::command]
@@ -339,6 +366,22 @@ pub fn data_cache_size(core: Core<'_>) -> u64 {
 #[tauri::command]
 pub fn clear_data_cache(core: Core<'_>) -> CmdResult<u64> {
     Ok(core.clear_data_cache()?)
+}
+#[tauri::command]
+pub async fn catalog_details(
+    core: Core<'_>,
+    kind: MediaKind,
+    imdb_id: String,
+) -> CmdResult<streamonte_core::catalog::tmdb::DetailsView> {
+    Ok(core.catalog_details(kind, &imdb_id).await)
+}
+#[tauri::command]
+pub async fn catalog_similar(
+    core: Core<'_>,
+    kind: MediaKind,
+    imdb_id: String,
+) -> CmdResult<Vec<streamonte_core::catalog::tmdb::Similar>> {
+    Ok(core.catalog_similar(kind, &imdb_id).await)
 }
 #[tauri::command]
 pub async fn catalog_season_ratings(

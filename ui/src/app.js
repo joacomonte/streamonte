@@ -3,7 +3,7 @@
 // selector de audio en audio-picker.js y la burbuja de actividad en activity-feed.js.
 import { api, onCoreEvent } from './api.js';
 import { logEvent, renderActivity } from './activity-feed.js';
-import { askAfterClose, onConfirmClose, onNetCheck, openSettings, saveKey, saveNetwork } from './dialogs.js';
+import { askAfterClose, onConfirmClose, onNetCheck, openSettings, saveEqualizer, saveKey, saveNetwork, toggleKeyEdit } from './dialogs.js';
 import { $, icon, setStatus, showError } from './dom.js';
 import { initSpeed, onSpeedEvent } from './speed.js';
 import { state } from './state.js';
@@ -33,7 +33,6 @@ function onEvent(event) {
       onSpeedEvent(event.state);
       break;
     case 'analyzer-progress': {
-      const wasRunning = state.analyzerState.kind !== 'idle' && state.analyzerState.kind !== 'paused';
       state.analyzerState = event.state;
       if (event.state.kind === 'idle') state.pending.clear();
       if (event.state.kind === 'measuring' && event.state.current) state.pending.delete(event.state.current);
@@ -102,11 +101,13 @@ async function init() {
   window.addEventListener('focus', refreshCopied);
   refreshCopied();
   setInterval(() => { if (document.hasFocus()) refreshCopied(); }, 3000);
+  for (const r of document.querySelectorAll('input[name="set-eq"]')) r.addEventListener('change', saveEqualizer);
   $('#set-incoming').addEventListener('change', saveNetwork);
   $('#set-announce').addEventListener('change', saveNetwork);
   $('#set-upnp').addEventListener('change', saveNetwork);
   $('#btn-net-check').addEventListener('click', onNetCheck);
   document.querySelectorAll('[data-save-key]').forEach((b) => b.addEventListener('click', () => saveKey(b.dataset.saveKey)));
+  document.querySelectorAll('.key-change').forEach((b) => b.addEventListener('click', () => toggleKeyEdit(b.closest('.key-row').dataset.service)));
   document.querySelectorAll('[data-key-page]').forEach((b) => b.addEventListener('click', () => api.openKeyPage(b.dataset.keyPage).catch(showError)));
   document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
   document.addEventListener('keydown', onShortcut);

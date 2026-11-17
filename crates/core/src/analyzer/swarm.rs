@@ -30,27 +30,77 @@ use crate::paths::AppPaths;
 const METADATA_MIN_SECS: u64 = 35;
 const METADATA_STALL_SECS: u64 = 25;
 const METADATA_MAX_SECS: u64 = 90;
-/// Sin ningún peer a los `DEAD_SECS` (ni por DHT ni trackers) se da por muerto y libera el lugar.
-const DEAD_SECS: u64 = 15;
-/// Torrents contando a la vez (2026-11-16: eran 25 × `MAX_PEERS` ≈ 750 conexiones y los routers
-/// caseros se saturan; muchas fallaban por eso). El motor tiene 40 permisos de E/S y cada uno
-/// retiene uno mientras cuenta (ver `hold_peers`).
-pub const CONCURRENCY: usize = 10;
 /// Tope de descarga de cada torrent al contar (2026-11-16): `hold_peers` selecciona el archivo
 /// para anunciarse como que le falta (los trackers y los seeders le dan seeders, no solo
 /// leechers) y esto evita bajarlo: ~1 MB por minuto por torrent. librqbit pide de a 16 KB y con un
 /// tope menor da error y corta al peer: no bajar de 16384.
 const COUNT_DOWNLOAD_BPS: u32 = 16 * 1024;
-/// Conexiones por torrent al contar: "30+ seeders" ya alcanza para decidir y no satura el router.
-const MAX_PEERS: u32 = 30;
-/// Ventana de conteo una vez que hay metadatos (máximo visto): `(mínimo, máximo, estable)` en
-/// segundos. Sigue mientras aparezcan peers nuevos (DHT y trackers los van dando de a poco) hasta
-/// el máximo, o corta tras `estable` s sin subir. Normal: 35 + 25 ≈ 1 min por tanda; profundo:
-/// 35 + 85 ≈ 2 min, más cerca de lo que se ve a los minutos de reproducir.
-const WINDOW: (u64, u64, u64) = (12, 25, 8);
-const WINDOW_DEEP: (u64, u64, u64) = (45, 85, 25);
+/// Qué tan a fondo se cuenta (2026-11-17, embudo): `Quick` prueba todas las opciones al abrir un
+/// video para descartar con seeds reales y no con los anunciados (que vienen muy inflados);
+/// `Deep` cuenta las mejores con una ventana larga, la que decide la salud.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Depth {
+    Quick,
+    Deep,
+}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+/// Cómo cuenta cada profundidad.
+struct Plan {
+    /// Torrents a la vez. El motor tiene 40 permisos de E/S y cada uno retiene uno mientras cuenta
+    /// (ver `hold_peers`); conexiones en total ≈ `concurrency × max_peers` y los routers caseros se
+    /// saturan pasando ~300 (2026-11-16: con 25 × 30 ≈ 750 fallaban muchas por eso).
+    concurrency: usize,
+    /// Conexiones por torrent: también es el techo de seeds que se pueden contar.
+    max_peers: u32,
+    /// Ventana de conteo una vez que hay metadatos: `(mínimo, máximo, estable)` en segundos. Sigue
+    /// mientras aparezcan peers nuevos hasta el máximo, o corta tras `estable` s sin subir.
+    window: (u64, u64, u64),
+    /// Corta apenas cuenta estos seeds (ya decidió: está viva).
+    enough_seeds: Option<u32>,
+    /// Tope total desde que arranca ese torrent, metadatos incluidos.
+    budget_secs: Option<u64>,
+    /// Espera máxima de metadatos (sin ellos no se sabe quién tiene el archivo completo).
+    metadata_secs: u64,
+    /// Sin ningún peer a estos segundos (ni por DHT ni trackers) se da por muerto y libera el lugar.
+    dead_secs: u64,
+    /// Con metadatos, 0 seeds a estos segundos de contar: se descarta ya.
+    zero_seeds_secs: Option<u64>,
+}
+
+impl Depth {
+    fn plan(self) -> Plan {
+        match self {
+            // 30 × 8 ≈ 240 conexiones: todas las opciones de una peli en ~1 min. 8 seeds reales ya
+            // dicen "viva"; lo fino lo decide el profundo.
+            Depth::Quick => Plan {
+                concurrency: 30,
+                max_peers: 8,
+                window: (0, 30, 30),
+                enough_seeds: Some(8),
+                budget_secs: Some(30),
+                // Descarta rápido (2026-11-17): sin metadatos a los 12 s o sin seeds a los 10 s de
+                // contar, no vale la pena esperar más.
+                metadata_secs: 12,
+                dead_secs: 8,
+                zero_seeds_secs: Some(10),
+            },
+            // 10 × 30 ≈ 300 conexiones; 35 + 85 ≈ 2 min, cerca de lo que se ve a los minutos de reproducir.
+            Depth::Deep => Plan {
+                concurrency: 10,
+                max_peers: 30,
+                window: (45, 85, 25),
+                enough_seeds: None,
+                budget_secs: None,
+                metadata_secs: METADATA_MAX_SECS,
+                dead_secs: 15,
+                zero_seeds_secs: None,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
 pub struct SwarmCount {
     /// Conectados con el archivo completo.
     pub seeds: u32,
@@ -72,15 +122,15 @@ pub async fn count(
     paths: &AppPaths,
     cfg: &Config,
     magnets: Vec<Magnet>,
-    deep: bool,
+    depth: Depth,
     cancel: CancellationToken,
     on_count: impl Fn(InfoHash, SwarmCount, bool) + Send + Sync + 'static,
 ) -> HashMap<InfoHash, SwarmCount> {
-    let window = if deep { WINDOW_DEEP } else { WINDOW };
+    let plan = Arc::new(depth.plan());
     let on_count = Arc::new(on_count);
     let cleanup = Cleanup::new(paths.clone());
     let mut engine_cfg = cfg.engine.clone();
-    engine_cfg.max_connections = MAX_PEERS;
+    engine_cfg.max_connections = plan.max_peers;
     // Idea 1: escuchando, los peers que ven el anuncio se conectan solos (entrantes).
     let created = if cfg.engine.announce_early {
         crate::engine::create_for_playback(&engine_cfg, paths).await
@@ -104,15 +154,16 @@ pub async fn count(
             ))
         })
         .collect();
-    let slots = Arc::new(tokio::sync::Semaphore::new(CONCURRENCY));
+    let slots = Arc::new(tokio::sync::Semaphore::new(plan.concurrency));
     let mut tasks = tokio::task::JoinSet::new();
     for (m, dir) in magnets.into_iter().zip(dirs.clone()) {
-        let (engine, paths, cfg, slots, report) = (
+        let (engine, paths, cfg, slots, report, plan) = (
             engine.clone(),
             paths.clone(),
             cfg.clone(),
             slots.clone(),
             on_count.clone(),
+            plan.clone(),
         );
         tasks.spawn(async move {
             let _slot = slots.acquire_owned().await.ok()?;
@@ -125,7 +176,7 @@ pub async fn count(
                 &cfg,
                 &m,
                 &dir,
-                window,
+                &plan,
                 &progress,
             )
             .await
@@ -157,9 +208,18 @@ async fn count_one(
     cfg: &Config,
     magnet: &Magnet,
     dir: &std::path::Path,
-    (min_secs, max_secs, stable_secs): (u64, u64, u64),
+    plan: &Plan,
     progress: &(dyn Fn(SwarmCount) + Sync),
 ) -> Option<(InfoHash, SwarmCount)> {
+    let (min_secs, max_secs, stable_secs) = plan.window;
+    // Arrancó (2026-11-17): la UI distingue los que cuentan de los que esperan lugar.
+    progress(SwarmCount {
+        seeds: 0,
+        peers: 0,
+        reached: false,
+        known: 0,
+        incoming: 0,
+    });
     let handle = add_deselected(
         engine,
         paths,
@@ -173,7 +233,7 @@ async fn count_one(
     .ok()?;
     let result = async {
         // Sin `wait_metadata`: acá que no respondan es un resultado, no un error para el log.
-        // Se corta antes si a los `DEAD_SECS` la red no conoce ni un peer.
+        // Se corta antes si a los `dead_secs` la red no conoce ni un peer.
         let meta = engine.metadata(handle);
         tokio::pin!(meta);
         let start = Instant::now();
@@ -193,10 +253,10 @@ async fn count_one(
                         }
                     }
                     let stalled = secs >= METADATA_MIN_SECS && secs - last_news >= METADATA_STALL_SECS;
-                    if stalled || secs >= METADATA_MAX_SECS {
+                    if stalled || secs >= plan.metadata_secs {
                         break None;
                     }
-                    if secs >= DEAD_SECS
+                    if secs >= plan.dead_secs
                         && matches!(waiting, Some(crate::engine::Waiting::Metadata { peers: Some(0) }))
                     {
                         break None;
@@ -245,6 +305,13 @@ async fn count_one(
                 }
             }
             if sec >= min_secs && sec - last_rise >= stable_secs {
+                break;
+            }
+            // Rápido: ya decidió (viva) o se acabó su tiempo.
+            if plan.enough_seeds.is_some_and(|n| best.seeds >= n)
+                || plan.zero_seeds_secs.is_some_and(|z| sec >= z && best.seeds == 0)
+                || plan.budget_secs.is_some_and(|b| start.elapsed().as_secs() >= b)
+            {
                 break;
             }
         }

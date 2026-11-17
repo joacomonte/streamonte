@@ -3,11 +3,22 @@
 //! función de `ui/src/api.js`. Ningún método bloquea: lo largo corre en tareas y avisa por eventos (NFR-10).
 //! Ningún comando hace `panic`: los errores vuelven como [`CoreError`] con mensaje para el usuario.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+/// Tests de conexión guardados en los datos guardados (2026-11-17): valen una hora.
+const TESTS_KEY: &str = "tests-conexion.json";
+const TEST_TTL_SECS: i64 = 3600;
+
+/// Resultado de un test de conexión (conteo del enjambre) y cuándo se hizo.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct SavedTest {
+    pub count: crate::analyzer::swarm::SwarmCount,
+    pub at: chrono::DateTime<chrono::Utc>,
+}
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
@@ -522,6 +533,15 @@ impl AppCore {
         crate::incoming::check(&engine, &self.paths).await
     }
 
+    /// Ecualizador del reproductor (Ajustes, 2026-11-17): rige desde la próxima reproducción.
+    pub async fn set_equalizer(&self, equalizer: crate::config::Equalizer) -> Result<()> {
+        self.update_config(|c| {
+            c.player.equalizer = equalizer;
+            Ok(())
+        })
+        .await
+    }
+
     pub async fn set_network(
         &self,
         incoming: bool,
@@ -583,6 +603,15 @@ impl AppCore {
             .map_err(|_| CoreError::Unsupported("abrir el navegador"))
     }
 
+    /// Abre el tráiler en YouTube (solo ids de video válidos).
+    pub fn open_trailer(&self, youtube_id: &str) -> Result<()> {
+        if !crate::catalog::cinemeta::is_youtube_id(youtube_id) {
+            return Err(CoreError::NotFound(format!("tráiler {youtube_id}")));
+        }
+        crate::external::open_external(format!("https://www.youtube.com/watch?v={youtube_id}"))
+            .map_err(|_| CoreError::Unsupported("abrir el navegador"))
+    }
+
     /// Póster de TMDB para un título cuyo póster de Cinemeta no existe (2026-11-15).
     pub async fn catalog_poster(&self, imdb_id: &str) -> Option<String> {
         let timeout = self.catalog_timeout().await;
@@ -590,27 +619,92 @@ impl AppCore {
     }
 
     /// "Contar seeders reales" de opciones del catálogo (2026-11-15): se conecta al enjambre de
-    /// cada una y cuenta los que ve (~50 s por tanda), sin bajar el video ni sumarlo a Mis
-    /// magnets. Varios conteos conviven; cerrar o cambiar de video los corta todos.
+    /// cada una y cuenta los que ve, sin bajar el video ni sumarlo a Mis magnets. `Quick` (≤ 30 s,
+    /// todas) descarta; `Deep` (~2 min, las mejores) decide la salud. Varios conteos conviven;
+    /// cerrar o cambiar de video los corta todos.
     pub async fn catalog_swarm(
         &self,
         hashes: &[InfoHash],
-        deep: bool,
+        depth: crate::analyzer::swarm::Depth,
     ) -> std::collections::HashMap<InfoHash, crate::analyzer::swarm::SwarmCount> {
+        let deep = depth == crate::analyzer::swarm::Depth::Deep;
         let cancel = self.swarm_cancel.lock().expect("swarm").clone();
         let magnets = self.catalog.magnets_of(hashes);
         let cfg = self.config.read().await.clone();
-        crate::analyzer::swarm::count(&self.paths, &cfg, magnets, deep, cancel, {
-            let events = self.events.clone();
-            move |hash, count, done| {
-                events.emit(if done {
-                    CoreEvent::CatalogSwarmCounted { hash, count }
-                } else {
-                    CoreEvent::CatalogSwarmProgress { hash, count }
-                })
-            }
-        })
-        .await
+        let found =
+            crate::analyzer::swarm::count(&self.paths, &cfg, magnets, depth, cancel.clone(), {
+                let events = self.events.clone();
+                move |hash, count, done| {
+                    events.emit(if done {
+                        CoreEvent::CatalogSwarmCounted { hash, count, deep }
+                    } else {
+                        CoreEvent::CatalogSwarmProgress { hash, count, deep }
+                    })
+                }
+            })
+            .await;
+        // Cortado por el usuario: lo que no llegó no es "nadie respondió" y no se guarda. La prueba
+        // rápida no se guarda: es barata y se repite al volver a abrir.
+        if deep && !cancel.is_cancelled() {
+            self.save_tests(hashes, &found);
+        }
+        found
+    }
+
+    /// Tests de conexión guardados (2026-11-17) de esos torrents, de la última hora.
+    pub fn catalog_swarm_saved(&self, hashes: &[InfoHash]) -> HashMap<InfoHash, SavedTest> {
+        let saved = self.saved_tests();
+        hashes
+            .iter()
+            .filter_map(|h| saved.get(&h.to_hex()).map(|t| (*h, *t)))
+            .collect()
+    }
+
+    fn saved_tests(&self) -> HashMap<String, SavedTest> {
+        let now = chrono::Utc::now();
+        let mut map: HashMap<String, SavedTest> = self
+            .data_cache
+            .get(TESTS_KEY)
+            .map(|(m, _)| m)
+            .unwrap_or_default();
+        map.retain(|_, t| (now - t.at).num_seconds() < TEST_TTL_SECS);
+        map
+    }
+
+    /// Guarda el resultado de cada torrent pedido; sin resultado = nadie respondió.
+    fn save_tests(
+        &self,
+        hashes: &[InfoHash],
+        found: &HashMap<InfoHash, crate::analyzer::swarm::SwarmCount>,
+    ) {
+        let at = chrono::Utc::now();
+        let mut map = self.saved_tests();
+        for h in hashes {
+            let count = found
+                .get(h)
+                .copied()
+                .unwrap_or(crate::analyzer::swarm::SwarmCount {
+                    seeds: 0,
+                    peers: 0,
+                    reached: false,
+                    known: 0,
+                    incoming: 0,
+                });
+            map.insert(h.to_hex(), SavedTest { count, at });
+        }
+        self.data_cache.put(TESTS_KEY, &map);
+    }
+
+    /// Espacio libre (bytes) del disco donde se guardan las descargas; `None` si no se pudo leer.
+    pub fn downloads_free_bytes(&self) -> Option<u64> {
+        let dir = self.paths.downloads_dir();
+        let dir = dir.canonicalize().unwrap_or(dir);
+        let disks = sysinfo::Disks::new_with_refreshed_list().ok()?;
+        disks
+            .iter()
+            .filter(|d| dir.starts_with(d.mount_point()))
+            .max_by_key(|d| d.mount_point().as_os_str().len())
+            .map(|d| d.available_space())
     }
 
     /// Censo DHT de opciones del catálogo (2026-11-16): direcciones únicas por hash, sin conectarse
@@ -770,6 +864,26 @@ impl AppCore {
             .await
     }
 
+    /// Datos de TMDB para el panel (2026-11-17); sin key, `has_key = false`.
+    pub async fn catalog_details(
+        &self,
+        kind: MediaKind,
+        imdb_id: &str,
+    ) -> crate::catalog::tmdb::DetailsView {
+        let timeout = self.catalog_timeout().await;
+        self.catalog.details(kind, imdb_id, timeout).await
+    }
+
+    /// Similares de TMDB del título, al abrir "Similares" en el panel (2026-11-17).
+    pub async fn catalog_similar(
+        &self,
+        kind: MediaKind,
+        imdb_id: &str,
+    ) -> Vec<crate::catalog::tmdb::Similar> {
+        let timeout = self.catalog_timeout().await;
+        self.catalog.similar(kind, imdb_id, timeout).await
+    }
+
     /// FR-38/39: ficha de película o serie (con episodios).
     pub async fn catalog_meta(&self, kind: MediaKind, id: &str) -> Result<Meta> {
         let timeout = self.catalog_timeout().await;
@@ -778,9 +892,9 @@ impl AppCore {
 
     /// FR-42: pide streams a todos los addons habilitados; llegan por `CatalogStreams`.
     /// Cambiar de video cancela la consulta anterior. Los seeders reales llegan solos (scrape).
+    /// Las pruebas de conexión del video anterior siguen (2026-11-17): la UI pregunta si cortarlas
+    /// ([`Self::catalog_stop_swarm`]).
     pub async fn catalog_streams(&self, kind: MediaKind, video_id: &str) -> Result<()> {
-        // Otro video: los conteos de enjambre del anterior ya no sirven.
-        std::mem::take(&mut *self.swarm_cancel.lock().expect("swarm")).cancel();
         let cfg = self.config.read().await.clone();
         let events = self.events.clone();
         self.catalog.streams(&cfg, kind, video_id, move |update| {
@@ -794,11 +908,10 @@ impl AppCore {
         std::mem::take(&mut *self.swarm_cancel.lock().expect("swarm")).cancel();
     }
 
-    /// Cerrar la ficha / volver a buscar: corta la consulta en curso.
+    /// Cerrar la ficha / volver a buscar: corta la consulta en curso. Las pruebas de conexión no
+    /// (2026-11-17): la UI pregunta si seguir de fondo.
     pub fn catalog_stop_streams(&self) {
         self.catalog.stop_streams();
-        // Corta los conteos de enjambre de ese video; los próximos usan un token nuevo.
-        std::mem::take(&mut *self.swarm_cancel.lock().expect("swarm")).cancel();
     }
 
     /// Candidatos → filas de la biblioteca con `origin` (spec 09 §8.1), sin analizar ("Reproducir"

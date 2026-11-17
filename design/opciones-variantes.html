@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opciones de torrent · variantes</title>
+<style>
+:root {
+  --bg: #0d1014; --surface: #161a20; --surface-2: #1c2129; --surface-3: #232a34;
+  --text: #e7eaee; --muted: #9aa3ae; --dim: #6f7883; --border: #252b34; --border-strong: #353d48;
+  --track: #46505d; --accent: #2563eb; --accent-fg: #7ab0ff;
+  --green: #4ade80; --yellow: #facc15; --red: #f87171;
+  --gold: #e8c26a; --silver: #c9d1db; --bronze: #d29a6a;
+  --out: cubic-bezier(.16, 1, .3, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+header { max-width: 1340px; margin: 0 auto; padding: 32px 24px 8px; }
+header h1 { margin: 0 0 6px; font-size: 22px; }
+header p { margin: 0; color: var(--muted); max-width: 70ch; }
+.grid { max-width: 1340px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr)); gap: 28px; }
+.variant { display: grid; gap: 12px; align-content: start; }
+.variant h2 { margin: 0; font-size: 16px; display: flex; gap: 10px; align-items: baseline; }
+.variant h2 b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--surface-3); font-size: 13px; }
+.variant > p { margin: 0; color: var(--muted); font-size: 13px; max-width: 64ch; }
+.panel { padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+.group-head { display: flex; align-items: baseline; gap: 10px; padding: 2px 4px 12px; }
+.group-head b { font-size: 17px; }
+.group-head span { color: var(--muted); font-size: 13px; }
+ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+/* ---------- piezas comunes ---------- */
+.opt { position: relative; display: grid; align-items: center; gap: 4px 14px; padding: 12px 12px 12px 18px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border); transition: border-color .15s var(--out), background .15s var(--out); }
+.opt:hover, .opt:focus-within { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); background: color-mix(in srgb, var(--accent) 4%, var(--bg)); }
+.size { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hdr { padding: 1px 6px; border-radius: 5px; border: 1.5px solid currentColor; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; color: var(--text); opacity: .85; }
+.sig rect { fill: var(--track); }
+.sig rect.on { fill: currentColor; }
+.good { color: var(--green); } .fair { color: var(--yellow); } .bad { color: var(--red); } .none { color: var(--dim); }
+.peers { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.peers b { color: var(--muted); font-weight: 600; }
+.play { display: flex; align-items: center; height: 44px; border-radius: 999px; background: var(--accent); color: #fff; overflow: hidden; }
+.play button { height: 100%; border: 0; background: none; color: inherit; cursor: pointer; display: grid; place-items: center; }
+.play .p { width: 52px; padding-left: 4px; }
+.play .m { width: 38px; border-left: 1px solid rgb(255 255 255 / .28); }
+.play button:hover { background: rgb(255 255 255 / .1); }
+.play button:focus-visible { outline: 2px solid #fff; outline-offset: -4px; border-radius: 999px; }
+.verify { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.verify:hover { color: var(--text); border-color: var(--accent); }
+.live { display: inline-flex; align-items: center; gap: 7px; color: var(--accent-fg); font-size: 13px; font-weight: 600; }
+.live i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-fg); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; transform: scale(.8); } }
+.best-tag { position: absolute; top: -9px; left: 14px; padding: 1px 8px; border-radius: 999px; background: var(--green); color: #06260f; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.opt.best { border-color: color-mix(in srgb, var(--green) 50%, var(--border)); }
+
+/* ---------- tooltip (igual para todas) ---------- */
+.has-tip { position: relative; }
+.tip { position: absolute; z-index: 20; left: 0; top: calc(100% + 10px); width: 330px; padding: 14px 16px; border-radius: 14px; background: #1f252e; border: 1px solid #343c48; box-shadow: 0 18px 40px rgb(0 0 0 / .55), 0 2px 6px rgb(0 0 0 / .4); color: var(--text); font-size: 12.5px; line-height: 1.45; text-align: left; font-weight: 400; white-space: normal;
+  opacity: 0; transform: translateY(-4px) scale(.98); transform-origin: top left; pointer-events: none; transition: opacity .16s var(--out), transform .22s var(--out); transition-delay: 0s; }
+.has-tip:hover > .tip, .has-tip:focus-visible > .tip, .has-tip:focus-within > .tip { opacity: 1; transform: none; transition-delay: .25s; }
+.tip h4 { margin: 0 0 2px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.tip .sub { color: var(--muted); margin: 0 0 12px; }
+.meter { position: relative; height: 8px; border-radius: 999px; background: var(--surface-3); margin: 18px 0 6px; }
+.meter .band { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: currentColor; opacity: .85; }
+.meter .need { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--text); border-radius: 2px; }
+.meter .need::after { content: attr(data-l); position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.meter-legend { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; margin-bottom: 12px; }
+.tip dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0; }
+.tip dt { color: var(--muted); }
+.tip dd { margin: 0; font-variant-numeric: tabular-nums; }
+.tip .file { margin-top: 10px; padding-top: 10px; border-top: 1px solid #343c48; color: var(--muted); font-size: 11.5px; word-break: break-all; }
+
+/* ---------- A · Veredicto en palabras + estrellas de calidad ---------- */
+.A .opt { grid-template-columns: 150px minmax(0, 1fr) auto; }
+.A .left { display: grid; gap: 4px; }
+.A .q { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.A .stars { letter-spacing: 1px; font-size: 11px; }
+.A .stars i { font-style: normal; color: var(--track); }
+.A .stars i.on { color: var(--gold); }
+.A .mid { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.A .verdict { text-align: left; display: inline-flex; align-items: center; gap: 9px; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: help; }
+.A .verdict strong { font-size: 15px; }
+.A .verdict small { display: block; color: var(--dim); font-size: 12px; font-weight: 400; }
+
+/* ---------- B · Medallas (oro, plata, bronce) ---------- */
+.B .opt { grid-template-columns: auto minmax(0, 1fr) auto; }
+.B .medal { position: relative; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; font-size: 10px; font-weight: 900; letter-spacing: .02em; color: #1b1406; cursor: help; border: 0; padding: 0; }
+.B .medal.gold { background: radial-gradient(circle at 35% 30%, #fff3c9, var(--gold) 45%, #a8812f); }
+.B .medal.silver { background: radial-gradient(circle at 35% 30%, #fff, var(--silver) 45%, #7f8a97); color: #161b22; }
+.B .medal.bronze { background: radial-gradient(circle at 35% 30%, #ffe0c4, var(--bronze) 45%, #7d4f2b); color: #24130a; }
+.B .medal.warn { background: var(--surface-3); color: var(--red); border: 1.5px dashed color-mix(in srgb, var(--red) 60%, transparent); }
+.B .info { display: grid; gap: 3px; min-width: 0; }
+.B .line1 { display: flex; align-items: center; gap: 8px; }
+.B .qname { font-size: 12.5px; color: var(--muted); }
+.B .line2 { display: flex; align-items: center; gap: 10px; }
+.B .chip { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 11px 0 9px; border-radius: 999px; font-size: 13px; font-weight: 700; border: 0; font-family: inherit; cursor: help; }
+.B .chip.good { background: color-mix(in srgb, var(--green) 14%, transparent); }
+.B .chip.fair { background: color-mix(in srgb, var(--yellow) 14%, transparent); }
+.B .chip.bad { background: color-mix(in srgb, var(--red) 14%, transparent); }
+
+/* ---------- C · Fila mínima en dos líneas ---------- */
+.C .opt { grid-template-columns: minmax(0, 1fr) auto; padding: 12px 12px 12px 16px; }
+.C .top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.C .bottom { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 12.5px; margin-top: 3px; }
+.C .bottom .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--dim); }
+.C .health { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; padding: 0; background: none; border: 0; font: inherit; font-weight: 700; font-size: 14px; cursor: help; }
+.C .src { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; }
+.C .src.max { color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, transparent); }
+.C .src.disc { color: var(--silver); background: color-mix(in srgb, var(--silver) 10%, transparent); }
+.C .src.web { color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.C .src.cam { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+.C .opt > div:first-child { min-width: 0; }
+.C .mainline { display: flex; align-items: center; gap: 12px; }
+
+/* ---------- D · Escalera de calidad (como un ecualizador) ---------- */
+.D .opt { grid-template-columns: 150px minmax(0, 1fr) auto; }
+.D .ladder { display: grid; gap: 5px; cursor: help; }
+.D .steps { display: flex; gap: 3px; }
+.D .steps i { width: 22px; height: 5px; border-radius: 3px; background: var(--surface-3); }
+.D .steps i.on { background: linear-gradient(90deg, #8ab4ff, #c3a1ff); }
+.D .ladder span { font-size: 12px; color: var(--muted); }
+.D .ladder span b { color: var(--text); font-weight: 700; }
+.D .mid { display: flex; align-items: center; gap: 12px; }
+.D .ring { position: relative; width: 38px; height: 38px; display: grid; place-items: center; cursor: help; border: 0; background: none; padding: 0; }
+.D .ring svg { position: absolute; inset: 0; }
+.D .ring .lbl { font-size: 11px; font-weight: 800; }
+.D .say { display: grid; }
+.D .say strong { font-size: 14px; }
+
+/* ---------- hover largo (2 s) sobre la fila: todos los datos del torrent ---------- */
+.rowtip { position: absolute; z-index: 15; left: 50%; bottom: calc(100% + 10px); width: min(460px, 92%); transform: translate(-50%, 4px); padding: 14px 16px; border-radius: 14px; background: #1f252e; border: 1px solid #343c48; box-shadow: 0 18px 40px rgb(0 0 0 / .55); font-size: 12.5px; line-height: 1.45; color: var(--muted);
+  opacity: 0; pointer-events: none; transition: opacity .18s var(--out), transform .24s var(--out); transition-delay: 0s; }
+.opt:hover > .rowtip { opacity: 1; transform: translate(-50%, 0); transition-delay: 2s; }
+/* Si hay un tooltip de salud abierto, el largo no aparece encima. */
+.opt:has(.has-tip:hover) > .rowtip { opacity: 0; transition-delay: 0s; }
+.rowtip h5 { margin: 0 0 10px; font-size: 13.5px; color: var(--text); word-break: break-word; }
+.rowtip dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0; }
+.rowtip dd { margin: 0; color: var(--text); word-break: break-all; }
+.rowtip .hint { margin-top: 10px; font-size: 11px; color: var(--dim); }
+.opt .hold { position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; opacity: .7; }
+.opt:hover .hold { transform: scaleX(1); opacity: 0; transition: transform 2s linear, opacity .2s 2s; }
+@media (prefers-reduced-motion: reduce) { .rowtip, .opt .hold { transition: none; } }
+
+.legend { max-width: 1340px; margin: 0 auto; padding: 0 24px 48px; color: var(--muted); font-size: 13px; }
+.legend table { border-collapse: collapse; margin-top: 8px; }
+.legend td { padding: 6px 14px 6px 0; border-top: 1px solid var(--border); vertical-align: top; }
+.legend td:first-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .tip, .live i { transition: none; animation: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fila de opción: 4 variantes</h1>
+  <p>Mismas 5 opciones en cada una: la mejor (Máster), una de disco que puede cortarse, una de streaming buena, una sin verificar y una analizándose. Pasá el mouse (o tabulá) sobre la salud para ver el tooltip. Dejá el mouse 2 s sobre una fila para ver todos los datos del torrent (la línea azul de abajo marca la espera). Seeds y leechers siempre visibles, en gris chico.</p>
+</header>
+<main class="grid" id="grid"></main>
+<section class="legend">
+  <b>Nombres de calidad que propongo (para alguien no técnico)</b>
+  <table>
+    <tr><td>Máster · copia exacta del disco</td><td>REMUX. Lo mismo que trae el Blu-ray, sin recomprimir: la mejor imagen y sonido posibles. Pesa mucho.</td></tr>
+    <tr><td>Blu-ray</td><td>BluRay / BDRip. Sacada del disco y comprimida: muy buena, más liviana.</td></tr>
+    <tr><td>Streaming · como Netflix</td><td>WEB-DL / WEBRip. Bajada de una plataforma: la calidad que verías ahí.</td></tr>
+    <tr><td>TV</td><td>HDTV. Grabada de la tele.</td></tr>
+    <tr><td>Filmada en el cine</td><td>CAM / TS. Alguien la grabó con una cámara en la sala: se ve y escucha mal.</td></tr>
+  </table>
+</section>
+<script>
+const Q = {
+  max: { name: 'Máster', long: 'Máster · copia exacta del disco', stars: 4, medal: 'gold', short: 'MÁX', why: 'REMUX: lo mismo que trae el Blu-ray, sin recomprimir. La mejor calidad que existe.' },
+  disc: { name: 'Blu-ray', long: 'Blu-ray', stars: 3, medal: 'silver', short: 'BD', why: 'Sacada del Blu-ray y comprimida: muy buena y más liviana.' },
+  web: { name: 'Streaming', long: 'Streaming · como Netflix', stars: 2, medal: 'bronze', short: 'WEB', why: 'Bajada de una plataforma de streaming: la calidad que verías ahí.' },
+};
+const H = {
+  good: { word: 'Fluida', long: 'Va a andar fluida', bars: 3 },
+  fair: { word: 'Puede cortarse', long: 'Puede cortarse', bars: 2 },
+  bad: { word: 'Se va a trabar', long: 'Se va a trabar', bars: 1 },
+};
+const rows = [
+  { id: 'a', name: 'Dune Part Two 2024 2160p BluRay REMUX HDR DV TrueHD Atmos-FGT', res: '2160p', addons: 'Torrentio + Comet (1337x, rargb)', size: '58,2 GB', hdr: true, q: 'max', h: 'good', lo: 140, hi: 210, need: 62, seeds: 34, leech: 12, src: 'seeders contados', best: true, file: 'Dune.Part.Two.2024.2160p.BluRay.REMUX.HDR.DV.TrueHD.Atmos-FGT.mkv' },
+  { id: 'b', name: 'Dune Part Two 2024 2160p BluRay x265 10bit HDR-RARBG', res: '2160p', addons: 'Torrentio (rargb)', size: '14,1 GB', hdr: true, q: 'disc', h: 'fair', lo: 24, hi: 48, need: 30, seeds: 8, leech: 0, src: 'trackers · sin calibrar', file: 'Dune.Part.Two.2024.2160p.BluRay.x265.10bit.HDR-RARBG.mkv' },
+  { id: 'c', name: 'Dune Part Two 2024 1080p WEB-DL DDP5.1 H.264-FLUX', res: '1080p', addons: 'TorrentsDB + Peerflix', size: '5,0 GB', q: 'web', h: 'good', lo: 40, hi: 80, need: 12, seeds: 80, leech: 31, src: 'medido al analizarlo', file: 'Dune.Part.Two.2024.1080p.WEB-DL.DDP5.1.H.264-FLUX.mkv' },
+  { id: 'd', name: 'Dune Part Two 2024 2160p WEB-DL DV HDR H.265-NTb', res: '2160p', addons: 'Torrentio + StremThru', size: '9,8 GB', q: 'web', h: null, seeds: 210, leech: 44, file: 'Dune.Part.Two.2024.2160p.WEB-DL.DV.HDR.H.265-NTb.mkv' },
+  { id: 'e', name: 'Dune Part Two 2024 2160p UHD BluRay x265-TERMiNAL', res: '2160p', addons: 'Comet (1337x)', size: '22,4 GB', hdr: true, q: 'disc', h: 'live', seeds: 15, leech: 3, file: 'Dune.Part.Two.2024.2160p.UHD.BluRay.x265-TERMiNAL.mkv' },
+];
+const sig = (bars, cls) => `<svg class="sig ${cls}" viewBox="0 0 16 14" width="18" height="16" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}"/>`).join('')}</svg>`;
+const play = (r, v) => `<div class="play"><button class="p" id="${v}-play-${r.id}" aria-label="Reproducir"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z" fill="currentColor"/></svg></button><button class="m" id="${v}-more-${r.id}" aria-label="Más opciones"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button></div>`;
+const peers = (r) => `<span class="peers"><b>${r.seeds}</b> seeds · ${r.leech} leechers</span>`;
+const tip = (r) => {
+  if (!r.h || r.h === 'live') return '';
+  const max = Math.max(r.hi, r.need) * 1.25;
+  const pct = (x) => `${(x / max) * 100}%`;
+  const h = H[r.h];
+  return `<div class="tip ${r.h}" role="tooltip"><h4>${sig(h.bars, r.h)}<span style="color:var(--text)">${h.long}</span></h4>
+  <p class="sub">Bajaría entre ${r.lo} y ${r.hi} Mbps; este video necesita ~${r.need}.</p>
+  <div class="meter ${r.h}"><span class="band" style="left:${pct(r.lo)};width:${pct(r.hi - r.lo)}"></span><span class="need" style="left:${pct(r.need)}" data-l="necesita ${r.need}"></span></div>
+  <div class="meter-legend"><span>0</span><span>${Math.round(max)} Mbps</span></div>
+  <dl><dt>Calidad</dt><dd>${Q[r.q].long}</dd><dt></dt><dd style="color:var(--muted)">${Q[r.q].why}</dd>
+  <dt>Gente</dt><dd>${r.seeds} con el archivo completo · ${r.leech} bajándolo</dd><dt>Dato</dt><dd>${r.src}</dd></dl>
+  <div class="file">${r.file}</div></div>`;
+};
+const rowTip = (r) => `<div class="rowtip" role="tooltip"><h5>${r.name}</h5><dl><dt>Resolución</dt><dd>${r.res}</dd><dt>Calidad</dt><dd>${Q[r.q].long}</dd><dt>Archivo</dt><dd>${r.file}</dd><dt>Fuentes</dt><dd>${r.addons}</dd></dl><div class="hint">Aparece tras 2 s con el mouse quieto sobre la fila.</div></div><span class="hold" aria-hidden="true"></span>`;
+const V = {
+  A: { title: 'Veredicto en palabras', note: 'El ícono de señal acompaña una palabra ("Fluida", "Puede cortarse"); debajo, en gris, los seeds. La calidad va bajo el peso como estrellas doradas con su nombre.',
+    row: (r) => `<li class="opt ${r.best ? 'best' : ''}">${rowTip(r)}${r.best ? '<span class="best-tag">MEJOR OPCIÓN</span>' : ''}
+      <div class="left"><span class="size">${r.size} ${r.hdr ? '<span class="hdr" title="HDR: más rango de luz y color">HDR</span>' : ''}</span><span class="q" title="${Q[r.q].why}"><span class="stars">${[1, 2, 3, 4].map((i) => `<i class="${i <= Q[r.q].stars ? 'on' : ''}">★</i>`).join('')}</span>${Q[r.q].name}</span></div>
+      <div class="mid">${r.h === 'live' ? `<span class="live"><i></i>Verificando…</span>` : r.h ? `<button class="verdict has-tip ${r.h}" id="A-health-${r.id}">${sig(H[r.h].bars, r.h)}<span><strong>${H[r.h].word}</strong><small>${r.seeds} seeds · ${r.leech} leechers</small></span>${tip(r)}</button>` : `<button class="verify" id="A-verify-${r.id}">${sig(0, 'none')}Verificar</button>${peers(r)}`}
+      ${r.h === 'live' ? peers(r) : ''}</div>
+      ${play(r, 'A')}</li>` },
+  B: { title: 'Medallas', note: 'La calidad es una medalla: oro = Máster, plata = Blu-ray, bronce = Streaming. Todos entienden oro > plata > bronce sin leer nada. La salud es una píldora tintada con ícono y palabra.',
+    row: (r) => `<li class="opt ${r.best ? 'best' : ''}">${rowTip(r)}${r.best ? '<span class="best-tag">MEJOR OPCIÓN</span>' : ''}
+      <button class="medal ${Q[r.q].medal} has-tip" id="B-medal-${r.id}" aria-label="Calidad: ${Q[r.q].long}">${Q[r.q].short}<div class="tip" role="tooltip"><h4>${Q[r.q].long}</h4><p class="sub" style="margin:0">${Q[r.q].why}</p></div></button>
+      <div class="info"><div class="line1"><span class="size">${r.size}</span>${r.hdr ? '<span class="hdr">HDR</span>' : ''}<span class="qname">${Q[r.q].name}</span></div>
+      <div class="line2">${r.h === 'live' ? `<span class="live"><i></i>Verificando…</span>` : r.h ? `<button class="chip ${r.h} has-tip" id="B-health-${r.id}">${sig(H[r.h].bars, r.h)}<span style="color:var(--text)">${H[r.h].word}</span>${tip(r)}</button>` : `<button class="verify" id="B-verify-${r.id}" style="height:26px">${sig(0, 'none')}Verificar</button>`}${peers(r)}</div></div>
+      ${play(r, 'B')}</li>` },
+  C: { title: 'Mínima en dos líneas', note: 'Arriba lo que decide: peso, etiqueta de calidad con color y la salud a la derecha. Abajo, en gris y chico, seeds y leechers. Todo lo demás en el tooltip.',
+    row: (r) => {
+      const cls = { max: 'max', disc: 'disc', web: 'web' }[r.q];
+      return `<li class="opt ${r.best ? 'best' : ''}">${rowTip(r)}${r.best ? '<span class="best-tag">MEJOR OPCIÓN</span>' : ''}<div>
+      <div class="mainline"><span class="size">${r.size}</span><span class="src ${cls}" title="${Q[r.q].why}">${r.q === 'max' ? '✦ ' : ''}${Q[r.q].long}</span>${r.hdr ? '<span class="hdr">HDR</span>' : ''}
+      ${r.h === 'live' ? `<span class="live" style="margin-left:auto"><i></i>Verificando…</span>` : r.h ? `<button class="health has-tip ${r.h}" id="C-health-${r.id}">${sig(H[r.h].bars, r.h)}<span>${H[r.h].word}</span>${tip(r)}</button>` : `<button class="verify" id="C-verify-${r.id}" style="margin-left:auto;height:28px">${sig(0, 'none')}Verificar</button>`}</div>
+      <div class="bottom"><span>${r.seeds} seeds</span><span class="dot"></span><span>${r.leech} leechers</span></div></div>
+      ${play(r, 'C')}</li>`;
+    } },
+  D: { title: 'Escalera de calidad + anillo', note: 'La calidad es una escalera de 4 escalones (más escalones = mejor), con el nombre debajo. La salud es un anillo que se llena según cuánto sobra velocidad; al lado, la palabra.',
+    row: (r) => {
+      const ring = (h) => { const f = { good: 1, fair: .55, bad: .25 }[h]; const c = 2 * Math.PI * 16; return `<svg viewBox="0 0 38 38" width="38" height="38"><circle cx="19" cy="19" r="16" fill="none" stroke="var(--surface-3)" stroke-width="4"/><circle cx="19" cy="19" r="16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="${c * f} ${c}" transform="rotate(-90 19 19)"/></svg>`; };
+      return `<li class="opt ${r.best ? 'best' : ''}">${rowTip(r)}${r.best ? '<span class="best-tag">MEJOR OPCIÓN</span>' : ''}
+      <div style="display:grid;gap:6px"><span class="size">${r.size} ${r.hdr ? '<span class="hdr">HDR</span>' : ''}</span>
+      <div class="ladder" title="${Q[r.q].why}"><div class="steps">${[1, 2, 3, 4].map((i) => `<i class="${i <= Q[r.q].stars ? 'on' : ''}"></i>`).join('')}</div><span><b>${Q[r.q].name}</b></span></div></div>
+      <div class="mid">${r.h === 'live' ? `<span class="live"><i></i>Verificando…</span>` : r.h ? `<button class="ring has-tip ${r.h}" id="D-health-${r.id}" aria-label="${H[r.h].long}">${ring(r.h)}${tip(r)}</button><span class="say"><strong class="${r.h}">${H[r.h].word}</strong>${peers(r)}</span>` : `<button class="verify" id="D-verify-${r.id}">${sig(0, 'none')}Verificar</button>${peers(r)}`}${r.h === 'live' ? peers(r) : ''}</div>
+      ${play(r, 'D')}</li>`;
+    } },
+};
+document.getElementById('grid').innerHTML = Object.entries(V).map(([k, v]) => `<section class="variant ${k}"><h2><b>${k}</b>${v.title}</h2><p>${v.note}</p>
+  <div class="panel"><div class="group-head"><b>4K</b><span>134 opciones</span></div><ul>${rows.map(v.row).join('')}</ul></div></section>`).join('');
+</script>
+</body>
+</html>

@@ -129,7 +129,15 @@ where
 
 fn general_enabled(m: &Metadata<'_>) -> bool {
     !m.target().starts_with(DIAG_PREFIX)
+        && !utp_noise(m)
         && (level_allows(LEVEL.load(Ordering::Relaxed), m) || upnp_result(m))
+}
+
+/// uTP avisa "too many concurrent connectins" cuando varios torrents a la vez (prueba rápida) intentan
+/// conectarse a la propia IP pública, que la red devuelve como un peer más: inofensivo y repetido.
+/// De uTP solo pasan los errores (2026-11-17), al log y a la actividad.
+pub(crate) fn utp_noise(m: &Metadata<'_>) -> bool {
+    m.target().starts_with("librqbit_utp") && *m.level() > tracing::Level::ERROR
 }
 
 /// librqbit loguea el éxito del mapeo UPnP en debug: se deja pasar para ver si funcionó (ADR-30).

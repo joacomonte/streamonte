@@ -113,7 +113,7 @@ impl<S: Subscriber> Layer<S> for ActivityLayer {
 /// Propios INFO+, ajenos WARN+, y el resultado de UPnP (librqbit lo loguea en debug, ADR-30).
 fn wanted(m: &Metadata<'_>) -> bool {
     let t = m.target();
-    if t.starts_with(crate::logger::DIAG_PREFIX) {
+    if t.starts_with(crate::logger::DIAG_PREFIX) || crate::logger::utp_noise(m) {
         return false;
     }
     let lvl = *m.level();

@@ -19,9 +19,11 @@
       <button id="btn-clipboard" class="top-btn play-copied" hidden title="Reproducir el magnet copiado (Ctrl+V)"></button>
       <!-- Velocidad de internet (2026-11-16, ui/src/speed.js): tocar = medir de nuevo. -->
       <button id="btn-speed" class="top-btn speed" title="Velocidad de internet"></button>
-      <button id="btn-downloads" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Lo descargado, lo que se reproduce o baja de fondo, y limpieza">Descargas<span id="downloads-size" class="top-size" hidden></span><span id="downloads-cache" class="top-size" hidden></span><span id="downloads-badge" class="top-badge" hidden></span></button>
+      <button id="btn-downloads" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Lo descargado, lo que se reproduce o baja de fondo, y limpieza">Descargas<span id="downloads-size" class="top-size" hidden></span><span id="downloads-cache" class="top-size" hidden></span><span id="downloads-speed" class="top-speed" hidden></span><span id="downloads-badge" class="top-badge" hidden></span></button>
       <button id="btn-settings" class="top-btn bare" title="Ajustes" aria-label="Ajustes"></button>
     </div>
+    <!-- Algo bajando (2026-11-17): barra fina al pie del toolbar con el progreso; ui/src/top-menus.js. -->
+    <div id="top-dl" class="top-dl" role="progressbar" aria-label="Descargando" hidden><i></i></div>
   </header>
 
   <main class="layout">
@@ -33,86 +35,119 @@
   </main>
 
   <!-- Ajustes (mínimo, F4 completa): API keys de subtítulos y teclas en mpv -->
-  <dialog id="dlg-settings" class="dialog wide settings">
-    <h3>Ajustes</h3>
+  <dialog id="dlg-settings" class="dialog settings" aria-labelledby="set-title">
+    <header class="set-head">
+      <h3 id="set-title">Ajustes</h3>
+      <button id="btn-settings-x" class="set-x" data-close aria-label="Cerrar ajustes" title="Cerrar (Esc)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </header>
+    <div class="set-body">
+      <!-- Las keys sin configurar van en su sección; las configuradas pasan a "Conectado", al final (2026-11-17). -->
+      <section class="set-card" id="set-catalog" aria-labelledby="set-h-catalog">
+        <h4 id="set-h-catalog">Catálogo</h4>
+        <div class="key-row" data-service="tmdb">
+          <div class="key-head">
+            <label for="key-tmdb">TMDB</label><span id="key-tmdb-state" class="key-state"></span>
+            <button id="key-tmdb-change" class="key-change" type="button">Cambiar</button>
+          </div>
+          <div class="key-edit">
+            <p class="hint">Gratis. Filtrá por fecha, votos, idioma y géneros, con pósters que faltan, idioma original, cadena y similares. Sin key, solo lo que está en tendencia.</p>
+            <div class="key-line">
+              <input id="key-tmdb" type="password" placeholder="Pegá la API key (v3)" autocomplete="off">
+              <button id="key-tmdb-save" class="primary" data-save-key="tmdb">Guardar</button>
+            </div>
+            <button id="key-tmdb-page" class="link" data-key-page="tmdb">¿No tenés? Pedila gratis (cuenta → Ajustes → API)</button>
+          </div>
+          <p class="key-done" role="status"></p>
+        </div>
+        <div class="set-line">
+          <p class="hint">Fuentes de torrents: los addons que se consultan al abrir una película o episodio.</p>
+          <button id="btn-sources">Ver y activar fuentes</button>
+        </div>
+      </section>
 
-    <section class="set-card" aria-labelledby="set-h-catalog">
-      <h4 id="set-h-catalog">Catálogo</h4>
-      <div class="key-row">
-        <div class="key-head">
-          <label for="key-tmdb">TMDB</label><span id="key-tmdb-state" class="key-state"></span>
-          <button class="link" data-key-page="tmdb">Pedir key gratis (cuenta → Ajustes → API)</button>
+      <section class="set-card keys-only" id="set-subs" aria-labelledby="set-h-subs">
+        <h4 id="set-h-subs">Subtítulos</h4>
+        <p class="hint">Se bajan hasta 5 en español, primero los que trae el torrent. Para buscar más hacen falta estas keys gratuitas.</p>
+        <div class="key-row" data-service="wyzie">
+          <div class="key-head">
+            <label for="key-wyzie">Wyzie Subs</label><span id="key-wyzie-state" class="key-state"></span>
+            <button id="key-wyzie-change" class="key-change" type="button">Cambiar</button>
+          </div>
+          <div class="key-edit">
+            <div class="key-line">
+              <input id="key-wyzie" type="password" placeholder="Pegá la key" autocomplete="off">
+              <button id="key-wyzie-save" data-save-key="wyzie">Guardar</button>
+            </div>
+            <button id="key-wyzie-page" class="link" data-key-page="wyzie">Pedir key (solo email, 1000/día)</button>
+          </div>
+          <p class="key-done" role="status"></p>
         </div>
-        <p class="hint">Filtra por votos, idioma y géneros, y trae pósters que faltan en Cinemeta. Sin key, el catálogo filtra solo por fecha.</p>
-        <div class="key-line">
-          <input id="key-tmdb" type="password" placeholder="Pegá la API key (v3)" autocomplete="off">
-          <button data-save-key="tmdb">Guardar</button>
+        <div class="key-row" data-service="opensubtitles">
+          <div class="key-head">
+            <label for="key-opensubtitles">OpenSubtitles</label><span id="key-opensubtitles-state" class="key-state"></span>
+            <button id="key-opensubtitles-change" class="key-change" type="button">Cambiar</button>
+          </div>
+          <div class="key-edit">
+            <div class="key-line">
+              <input id="key-opensubtitles" type="password" placeholder="Pegá la key" autocomplete="off">
+              <button id="key-opensubtitles-save" data-save-key="opensubtitles">Guardar</button>
+            </div>
+            <button id="key-opensubtitles-page" class="link" data-key-page="opensubtitles">Crear key (cuenta gratis, 20 descargas/día)</button>
+          </div>
+          <p class="key-done" role="status"></p>
         </div>
-      </div>
-      <div class="set-line">
-        <p class="hint">Fuentes de torrents: los addons que se consultan al abrir una película o episodio.</p>
-        <button id="btn-sources">Ver y activar fuentes</button>
-      </div>
-    </section>
+      </section>
 
-    <section class="set-card" aria-labelledby="set-h-subs">
-      <h4 id="set-h-subs">Subtítulos</h4>
-      <p class="hint">Se bajan hasta 5 en español, primero los que trae el torrent. Para buscar más hacen falta estas keys gratuitas; se guardan en el almacén seguro del sistema y nunca se muestran.</p>
-      <div class="key-row">
-        <div class="key-head">
-          <label for="key-wyzie">Wyzie Subs</label><span id="key-wyzie-state" class="key-state"></span>
-          <button class="link" data-key-page="wyzie">Pedir key (solo email, 1000/día)</button>
+      <!-- Ecualizador de mpv (2026-11-17): rige desde la próxima reproducción. -->
+      <section class="set-card" aria-labelledby="set-h-player">
+        <h4 id="set-h-player">Sonido del reproductor</h4>
+        <div class="set-eq" role="radiogroup" aria-labelledby="set-h-player">
+          <label class="set-eq-opt"><input id="set-eq-cine" type="radio" name="set-eq" value="cine"><span><b>Cine</b><small>Graves y voces un poco más presentes.</small></span></label>
+          <label class="set-eq-opt"><input id="set-eq-voices" type="radio" name="set-eq" value="voices"><span><b>Voces claras</b><small>Diálogos al frente, graves sin tocar.</small></span></label>
+          <label class="set-eq-opt"><input id="set-eq-flat" type="radio" name="set-eq" value="flat"><span><b>Plano</b><small>Tal cual viene el video.</small></span></label>
         </div>
-        <div class="key-line">
-          <input id="key-wyzie" type="password" placeholder="Pegá la key" autocomplete="off">
-          <button data-save-key="wyzie">Guardar</button>
-        </div>
-      </div>
-      <div class="key-row">
-        <div class="key-head">
-          <label for="key-opensubtitles">OpenSubtitles</label><span id="key-opensubtitles-state" class="key-state"></span>
-          <button class="link" data-key-page="opensubtitles">Crear key (cuenta gratis, 20 descargas/día)</button>
-        </div>
-        <div class="key-line">
-          <input id="key-opensubtitles" type="password" placeholder="Pegá la key" autocomplete="off">
-          <button data-save-key="opensubtitles">Guardar</button>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="set-card" aria-labelledby="set-h-net">
-      <h4 id="set-h-net">Red</h4>
-      <label class="setting-check"><input id="set-incoming" type="checkbox"> Aceptar conexiones entrantes de peers (más fuentes, suele bajar más rápido)</label>
-      <label class="setting-check"><input id="set-upnp" type="checkbox"> Abrir el puerto en el router automáticamente (UPnP)</label>
-      <label class="setting-check"><input id="set-announce" type="checkbox"> Analizar apenas abro un título y anunciarme a los peers (más fiel; tu IP queda listada ~30 min en los enjambres de las 10 mejores opciones)</label>
-      <p class="hint">Aplica desde la próxima reproducción. Si el firewall o el router lo bloquean, todo sigue funcionando solo con conexiones salientes.</p>
-      <div class="net-check">
-        <button id="btn-net-check">Verificar puerto</button>
-        <span id="net-check-result" class="net-check-result" role="status"></span>
-      </div>
-      <details id="set-net-guide" class="net-guide">
-        <summary>¿No abre el puerto?</summary>
-        <ol class="net-steps">
-          <li><b>Probá con UPnP:</b> dejá activadas las dos opciones de arriba y verificá. Si el router lo soporta, abre el puerto solo. Algunos lo rechazan (por ejemplo, los Sagemcom de los cable-módems).</li>
-          <li><b>Si da cerrado, abrí el puerto a mano:</b> entrá al router (suele ser <code>192.168.0.1</code> o <code>192.168.1.1</code>), buscá "Reenvío de puertos", "Port forwarding" o "NAT" y creá una regla: protocolo <b>TCP</b>, puerto externo e interno <b>41850</b>, hacia la IP de esta PC (la muestra "Verificar"). Conviene reservar esa IP en el DHCP del router para que no cambie.</li>
-          <li><b>Firewall:</b> en macOS, Ajustes del Sistema › Red › Firewall › Opciones: permití las conexiones entrantes de Streamonte. En Windows, aceptá el aviso del firewall la primera vez.</li>
-          <li><b>Si aun así da cerrado:</b> tu proveedor puede usar CGNAT (sin IP pública propia). Pedile una IP pública; sin eso no se pueden recibir entrantes.</li>
-        </ol>
-        <p class="hint">"Verificar" abre el puerto un momento y le pide a portchecker.io que intente conectarse a tu IP pública (que averigua con api.ipify.org).</p>
-      </details>
-    </section>
+      <section class="set-card" aria-labelledby="set-h-net">
+        <h4 id="set-h-net">Red</h4>
+        <label class="set-switch"><input id="set-incoming" type="checkbox" role="switch"><span><b>Conexiones entrantes</b><small>Más peers pueden mandarte pedazos: suele bajar más rápido.</small></span></label>
+        <label class="set-switch"><input id="set-upnp" type="checkbox" role="switch"><span><b>Abrir el puerto solo (UPnP)</b><small>Le pide al router que abra el puerto.</small></span></label>
+        <label class="set-switch"><input id="set-announce" type="checkbox" role="switch"><span><b>Testear al elegir un episodio</b><small>En series, testea solas las 15 mejores apenas elegís el episodio. Tu IP queda listada ~30 min en esos enjambres.</small></span></label>
+        <div class="net-check">
+          <button id="btn-net-check">Verificar puerto</button>
+          <span id="net-check-result" class="net-check-result" role="status"></span>
+        </div>
+        <details id="set-net-guide" class="net-guide">
+          <summary>¿No abre el puerto?</summary>
+          <ol class="net-steps">
+            <li><b>Probá con UPnP:</b> dejá activadas las dos primeras opciones y verificá. Si el router lo soporta, abre el puerto solo. Algunos lo rechazan (por ejemplo, los Sagemcom de los cable-módems).</li>
+            <li><b>Si da cerrado, abrí el puerto a mano:</b> entrá al router (suele ser <code>192.168.0.1</code> o <code>192.168.1.1</code>), buscá "Reenvío de puertos", "Port forwarding" o "NAT" y creá una regla: protocolo <b>TCP</b>, puerto externo e interno <b>41850</b>, hacia la IP de esta PC (la muestra "Verificar"). Conviene reservar esa IP en el DHCP del router para que no cambie.</li>
+            <li><b>Firewall:</b> en macOS, Ajustes del Sistema › Red › Firewall › Opciones: permití las conexiones entrantes de Streamonte. En Windows, aceptá el aviso del firewall la primera vez.</li>
+            <li><b>Si aun así da cerrado:</b> tu proveedor puede usar CGNAT (sin IP pública propia). Pedile una IP pública; sin eso no se pueden recibir entrantes.</li>
+          </ol>
+          <p class="hint">Aplica desde la próxima reproducción; si el router lo bloquea, todo sigue andando con conexiones salientes. "Verificar" abre el puerto un momento y le pide a portchecker.io que intente conectarse a tu IP pública (que averigua con api.ipify.org).</p>
+        </details>
+      </section>
 
-    <section class="set-card" aria-labelledby="set-h-keys">
-      <h4 id="set-h-keys">Teclas en el reproductor</h4>
-      <table class="kv keys">
-        <tr><th>1 – 5</th><td>Dejar solo ese subtítulo</td></tr>
-        <tr><th>0</th><td>Ver todos a la vez para comparar</td></tr>
-        <tr><th>S</th><td>Ocultar / mostrar subtítulos</td></tr>
-        <tr><th>Z / X</th><td>La voz llega antes / después (±0,1 s; con Shift ±1 s)</td></tr>
-        <tr><th>R</th><td>Volver la sincronización a cero</td></tr>
-      </table>
-    </section>
-    <div class="dialog-actions"><button id="btn-settings-close" data-close>Cerrar</button></div>
+      <section class="set-card" aria-labelledby="set-h-keys">
+        <h4 id="set-h-keys">Teclas en el reproductor</h4>
+        <table class="kv keys">
+          <tr><th>1 – 5</th><td>Dejar solo ese subtítulo</td></tr>
+          <tr><th>0</th><td>Ver todos a la vez para comparar</td></tr>
+          <tr><th>S</th><td>Ocultar / mostrar subtítulos</td></tr>
+          <tr><th>Z / X</th><td>La voz llega antes / después (±0,1 s; con Shift ±1 s)</td></tr>
+          <tr><th>R</th><td>Volver la sincronización a cero</td></tr>
+        </table>
+      </section>
+
+      <section class="set-card set-connected" id="set-connected" aria-labelledby="set-h-connected">
+        <h4 id="set-h-connected">Conectado</h4>
+      </section>
+    </div>
+    <footer class="set-foot">
+      <span class="hint">Las keys se guardan en el almacén seguro del sistema y nunca se muestran.</span>
+      <button id="btn-settings-close" data-close>Cerrar</button>
+    </footer>
   </dialog>
 
   <!-- FR-15: detalle (log en vivo) de una reproducción -->
