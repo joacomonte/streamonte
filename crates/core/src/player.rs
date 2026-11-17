@@ -27,6 +27,85 @@ static NEXT_IPC: AtomicU64 = AtomicU64::new(1);
 
 /// En Windows, `mpv.com` (el que suele quedar en PATH) es un envoltorio de consola que abre una
 /// ventana negra extra; si al lado está `mpv.exe`, usamos ese.
+/// El reproductor que se usa (2026-11-17): el elegido; si es mpv y no hay ninguno (ni el incluido
+/// ni uno instalado, p. ej. macOS < 15 sin mpv), VLC si está instalado.
+pub fn resolve_player(wanted: PlayerKind, cfg: &PlayerConfig) -> PlayerKind {
+    let no_mpv = || find_executable(Executable::Mpv, cfg.mpv_path.as_deref()).is_none();
+    let has_vlc = || find_executable(Executable::Vlc, cfg.vlc_path.as_deref()).is_some();
+    if wanted == PlayerKind::Mpv && no_mpv() && has_vlc() {
+        PlayerKind::Vlc
+    } else {
+        wanted
+    }
+}
+
+/// Qué reproductores hay en este equipo (Ajustes → Reproductor).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct PlayersStatus {
+    /// De dónde sale el mpv que se usaría; `None` = no hay.
+    pub mpv: Option<crate::paths::Source>,
+    pub vlc: bool,
+    /// El elegido en Ajustes y el que de verdad se usa (VLC si se eligió mpv y no hay).
+    pub chosen: PlayerKind,
+    pub effective: PlayerKind,
+    /// macOS con Homebrew: "Instalar mpv" lo instala solo; si no, abre la guía.
+    pub can_install_mpv: bool,
+}
+
+pub fn players_status(cfg: &PlayerConfig) -> PlayersStatus {
+    PlayersStatus {
+        mpv: crate::paths::locate(Executable::Mpv, cfg.mpv_path.as_deref()).map(|(_, s)| s),
+        vlc: find_executable(Executable::Vlc, cfg.vlc_path.as_deref()).is_some(),
+        chosen: cfg.default_player,
+        effective: resolve_player(cfg.default_player, cfg),
+        can_install_mpv: homebrew().is_some(),
+    }
+}
+
+/// Homebrew (solo macOS): el de Apple Silicon primero (el de `/usr/local` puede ser de Intel).
+fn homebrew() -> Option<PathBuf> {
+    if !cfg!(target_os = "macos") {
+        return None;
+    }
+    ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
+        .into_iter()
+        .map(PathBuf::from)
+        .find(|p| p.is_file())
+}
+
+/// "Instalar mpv" (Ajustes): con Homebrew lo instala (`brew install mpv`, unos minutos); si no,
+/// abre la guía de instalación. `true` = quedó instalado.
+pub async fn install_mpv() -> crate::Result<bool> {
+    let Some(brew) = homebrew() else {
+        crate::external::open_external("https://mpv.io/installation/").map_err(|source| {
+            crate::CoreError::Io {
+                path: "https://mpv.io/installation/".into(),
+                source,
+            }
+        })?;
+        return Ok(false);
+    };
+    let out = tokio::process::Command::new(&brew)
+        .args(["install", "mpv"])
+        .env("HOMEBREW_NO_AUTO_UPDATE", "1")
+        .output()
+        .await
+        .map_err(|source| crate::CoreError::Io {
+            path: brew.clone(),
+            source,
+        })?;
+    if !out.status.success() {
+        tracing::warn!(
+            "brew install mpv falló: {}",
+            String::from_utf8_lossy(&out.stderr)
+                .lines()
+                .last()
+                .unwrap_or("")
+        );
+    }
+    Ok(out.status.success())
+}
+
 fn prefer_gui_binary(path: PathBuf) -> PathBuf {
     let is_com = path
         .extension()

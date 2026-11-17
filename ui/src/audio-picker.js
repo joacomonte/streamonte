@@ -28,17 +28,20 @@ function closePk(refocus, instant) {
   pkDone = null;
 }
 
-/** Abre el selector junto a `anchor`; resuelve con la opción elegida o `undefined` (cancelado). */
-function openPk(btn, opts) {
+/** Abre el selector junto a `anchor`; resuelve con la opción elegida o `undefined` (cancelado).
+ *  Cada opción: `{label, sub?, art?, tip?}` (`art`: ilustración; sin ella, el ícono de audio). `big`:
+ *  más grande (elegir reproductor). */
+function openPk(btn, opts, title = 'Elegí el audio', big = false) {
   // La lista del catálogo se redibuja mientras se prepara (2026-11-16): el botón tocado ya no está
   // en la página y su posición daría 0,0 (arriba a la izquierda). Se usa el que lo reemplazó.
   const anchor = btn.isConnected ? btn : (btn.id && document.getElementById(btn.id)) || btn;
   if (pkBtn) closePk(false, true);
   wantTip(null);
+  pk.querySelector('.pk-h').textContent = title;
+  pk.classList.toggle('big', big);
   pk.querySelector('.pk-l').replaceChildren(...opts.map((o, i) => el('button', {
-    class: `pk-o${i ? '' : ' pri'}`, type: 'button', 'data-i': String(i),
-    ...(o.code === 'lat' ? { 'data-tip': 'Con Latino, los subtítulos arrancan ocultos (S los muestra).' } : {}),
-  }, icon('speaker', 18), el('span', {}, el('b', {}, o.label), el('small', {}, o.confirmed ? 'Pista confirmada' : 'Adivinado por el nombre')), icon('play', 16))));
+    id: `pk-o-${i}`, class: `pk-o${i ? '' : ' pri'}`, type: 'button', 'data-i': String(i), ...(o.tip ? { 'data-tip': o.tip } : {}),
+  }, o.art ?? icon('speaker', 18), el('span', {}, el('b', {}, o.label), o.sub ? el('small', {}, o.sub) : null), icon('play', 16))));
   clearTimeout(pkT);
   pk.hidden = false;
   pk.classList.remove('on', 'up');
@@ -103,8 +106,32 @@ async function askAudio(e, anchor, original) {
   const opts = original ? [...base].sort((a, b) => (b.code === original) - (a.code === original)) : base;
   if (opts.length < 2) return null;
   const at = anchor ?? $('.topbar');
-  const i = await openPk(at, opts);
+  // Solo se aclara lo confirmado por el análisis (2026-11-17: "adivinado por el nombre" era ruido).
+  const i = await openPk(at, opts.map((o) => ({ label: o.label, sub: o.confirmed ? 'Pista confirmada' : null,
+    tip: o.code === 'lat' ? 'Con Latino, los subtítulos arrancan ocultos (S los muestra).' : null })));
   return i === undefined ? undefined : { code: opts[i].code, aid: opts[i].aid };
+}
+
+/** Con VLC instalado y un mpv que anda (2026-11-17), pregunta con cuál; si no, el que haya (null =
+ *  el de Ajustes, con VLC de respaldo). `undefined` = cerró el aviso: no se reproduce. */
+async function askPlayer(anchor) {
+  const p = await api.playersStatus().catch(() => null);
+  if (!p?.vlc || !p.mpv) return null;
+  // El selector de siempre, más grande y con un dibujito de cada uno (2026-11-17). El de Ajustes, primero.
+  const opts = [
+    { value: 'mpv', label: 'mpv', sub: 'Recomendado: más liviano, subtítulos combinados y ecualizador', art: playerArt('mpv') },
+    { value: 'vlc', label: 'VLC', sub: 'El clásico: sin subtítulos combinados ni ecualizador', art: playerArt('vlc') },
+  ].sort((a, b) => (b.value === p.chosen) - (a.value === p.chosen));
+  const i = await openPk(anchor ?? $('.topbar'), opts, '¿Con qué lo abrimos?', true);
+  return i === undefined ? undefined : opts[i].value;
+}
+/** Dibujito de cada reproductor (inline, sin archivos): mpv, un disco con ▶; VLC, el cono naranja. */
+function playerArt(kind) {
+  const span = el('span', { class: `pk-art ${kind}`, 'aria-hidden': 'true' });
+  span.innerHTML = kind === 'mpv'
+    ? '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="#4b2a8a"/><circle cx="24" cy="24" r="15" fill="#6a3fc4"/><path d="M20 16v16l13-8z" fill="#fff"/></svg>'
+    : '<svg viewBox="0 0 48 48"><path d="M19 6h10l9 34H10z" fill="#ff8800"/><path d="M16.4 16h15.2l1.6 6H14.8zM13.8 26h20.4l1.6 6H12.2z" fill="#fff"/><rect x="6" y="38" width="36" height="5" rx="2.5" fill="#d96f00"/></svg>';
+  return span;
 }
 
 /** `entry`: la fila, si el que llama la tiene antes de que llegue su evento (catálogo). `original`:
@@ -117,9 +144,11 @@ export async function play(key, anchor, entry = state.entries.get(key), original
     const resuming = [...state.playbacks.values()].some((p) => p.key === key);
     const audio = resuming ? null : await askAudio(entry, anchor, original);
     if (audio === undefined) return;
+    const player = resuming ? null : await askPlayer(anchor);
+    if (player === undefined) return;
     anchor?.classList.add('busy');
     activity.push({ area: 'reproduccion', text: `${resuming ? 'Retomando' : 'Abriendo'} ${titleOf(key)}${audio?.code ? ` con audio ${audio.code === 'lat' ? 'latino' : audio.code === 'en' ? 'en inglés' : audio.code}` : ''}…` });
-    await api.play(key, null, null, audio);
+    await api.play(key, player, null, audio);
     setStatus('Preparando la reproducción…');
     return true;
   } catch (e) {

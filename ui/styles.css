@@ -177,6 +177,16 @@ button.danger { color: var(--red); }
 .pk-o + .pk-o { margin-top: 4px; }
 .pk-o b { display: block; font-weight: 600; font-size: 14px; }
 .pk-o small { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Elegir reproductor (2026-11-17): el mismo selector, más grande y con un dibujito de cada uno. */
+.pk.big { width: min(400px, calc(100vw - 16px)); }
+.pk.big .pk-h { font-size: 15px; font-weight: 700; color: var(--text); padding: 6px 10px 10px; }
+.pk.big .pk-o { grid-template-columns: 48px minmax(0, 1fr) 18px; gap: 14px; padding: 12px 14px; border-radius: 12px; }
+.pk.big .pk-o b { font-size: 16px; }
+.pk.big .pk-o small { white-space: normal; line-height: 1.35; }
+.pk-art { width: 48px; height: 48px; display: grid; place-items: center; transition: transform .3s var(--out); }
+.pk-art svg { width: 100%; height: 100%; }
+.pk-o:hover .pk-art, .pk-o:focus-visible .pk-art { transform: rotate(-8deg) scale(1.08); }
+@media (prefers-reduced-motion: reduce) { .pk-o:hover .pk-art, .pk-o:focus-visible .pk-art { transform: none; } }
 .pk-o > .ico:last-child { opacity: .7; }
 .pk-o:hover, .pk-o:focus-visible { background: var(--surface-2); }
 .pk-o.pri { background: var(--accent); color: #fff; }
@@ -273,12 +283,24 @@ button.danger { color: var(--red); }
 @keyframes set-draw { to { stroke-dashoffset: 0; } }
 @keyframes set-pop { from { opacity: 0; transform: scale(.96); } }
 /* Interruptores de Red */
+/* Reproductor sin mpv usable (2026-11-17): aviso con el botón para instalarlo. */
+.set-mpv-missing { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--yellow) 12%, transparent); font-size: 12.5px; }
+.set-mpv-missing[hidden] { display: none; }
+.set-mpv-missing span { flex: 1; }
+.set-sub { margin: 6px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.set-eq-opt input:disabled + span { opacity: .5; cursor: not-allowed; }
 /* Sonido del reproductor (2026-11-17): tres opciones lado a lado; la elegida, con borde de acento. */
 .set-eq { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
 .set-eq-opt { position: relative; display: block; cursor: pointer; }
 .set-eq-opt input { position: absolute; opacity: 0; pointer-events: none; }
 .set-eq-opt span { display: grid; gap: 2px; height: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; transition: border-color .15s var(--ease), background .15s var(--ease); }
 .set-eq-opt b { font-size: 13.5px; }
+/* Curva de cada ecualizador (2026-11-17): graves a la izquierda, agudos a la derecha. */
+.set-eq-curve { width: 100%; height: 36px; margin-bottom: 6px; overflow: visible; }
+.set-eq-curve .grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 4; fill: none; }
+.set-eq-curve .line { stroke: var(--muted); stroke-width: 2.5; fill: none; stroke-linecap: round; transition: stroke .2s var(--ease); }
+.set-eq-opt input:checked + span .set-eq-curve .line { stroke: var(--accent-fg); }
+.set-eq:has(#set-eq-cine) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .set-eq-opt small { color: var(--muted); font-size: 12px; line-height: 1.35; }
 .set-eq-opt:hover span { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
 .set-eq-opt input:checked + span { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
@@ -548,3 +570,17 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .calib-steps i { flex: 1; height: 6px; border-radius: 3px; background: var(--border); transition: background .3s; }
 .calib-steps i.on { background: var(--accent); }
 .calib-row.done .calib-steps i { background: var(--green); }
+
+/* Bajando de fondo, en la barra de arriba (2026-11-17): nombre, %, barrita y ▶. */
+.top-bg { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 6px 0 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); max-width: 320px; }
+.top-bg[hidden] { display: none; }
+.top-bg-info { position: relative; display: inline-flex; align-items: center; gap: 7px; min-width: 0; font-size: 13px; color: var(--muted); }
+.top-bg-info .ico { color: var(--accent-fg); flex: none; }
+.top-bg-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 600; }
+.top-bg-info b { flex: none; font-variant-numeric: tabular-nums; color: var(--text); }
+.top-bg-more { flex: none; font-size: 12px; }
+.top-bg-bar { position: absolute; left: 0; right: 0; bottom: -7px; height: 2px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.top-bg-bar i { display: block; height: 100%; background: var(--accent); transition: width .6s var(--ease, ease); }
+.top-bg-play { flex: none; width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: var(--accent); color: #fff; cursor: pointer; }
+.top-bg-play:hover { filter: brightness(1.1); }
+.top-bg-play:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }

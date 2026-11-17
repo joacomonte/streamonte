@@ -203,6 +203,22 @@ pub async fn config_get(core: Core<'_>) -> CmdResult<Config> {
 /// Ajustes → Red. Un comando por ajuste: la UI nunca reescribe la config entera (no pisa lo
 /// que cambió otro mientras tanto).
 #[tauri::command]
+pub async fn players_status(core: Core<'_>) -> CmdResult<streamonte_core::player::PlayersStatus> {
+    Ok(core.players_status().await)
+}
+#[tauri::command]
+pub async fn config_set_player(
+    core: Core<'_>,
+    player: streamonte_core::config::PlayerKind,
+) -> CmdResult<()> {
+    Ok(core.set_player(player).await?)
+}
+/// "Instalar mpv" (Ajustes): con Homebrew lo instala; si no, abre la guía. `true` = instalado.
+#[tauri::command]
+pub async fn install_mpv() -> CmdResult<bool> {
+    Ok(streamonte_core::player::install_mpv().await?)
+}
+#[tauri::command]
 pub async fn config_set_equalizer(
     core: Core<'_>,
     equalizer: streamonte_core::config::Equalizer,

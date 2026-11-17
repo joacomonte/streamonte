@@ -603,6 +603,20 @@ impl AppCore {
             .map_err(|_| CoreError::Unsupported("abrir el navegador"))
     }
 
+    /// Reproductores de este equipo (Ajustes → Reproductor, 2026-11-17).
+    pub async fn players_status(&self) -> crate::player::PlayersStatus {
+        crate::player::players_status(&self.config.read().await.player)
+    }
+
+    /// Reproductor elegido en Ajustes; rige desde la próxima reproducción.
+    pub async fn set_player(&self, player: crate::config::PlayerKind) -> Result<()> {
+        self.update_config(|c| {
+            c.player.default_player = player;
+            Ok(())
+        })
+        .await
+    }
+
     /// Abre el tráiler en YouTube (solo ids de video válidos).
     pub fn open_trailer(&self, youtube_id: &str) -> Result<()> {
         if !crate::catalog::cinemeta::is_youtube_id(youtube_id) {

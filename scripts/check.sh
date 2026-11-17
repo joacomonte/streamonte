@@ -13,6 +13,9 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets -q -- -D warnings
 # no-window*: la UI usa `window` a propósito (es un webview, no Deno).
 deno lint -q --rules-exclude=no-window,no-window-prefix ui/src
+# Nombres sin definir (2026-11-17: un `const` borrado de más no lo marcaba nadie). `no-undef` no conoce
+# los globales del navegador: se ignoran solo esos.
+deno lint --json --rules-include=no-undef ui/src | python3 scripts/lint-undef.py
 if [ "$1" = "full" ]; then
   cargo nextest run -p streamonte-core --no-fail-fast --status-level fail
 fi

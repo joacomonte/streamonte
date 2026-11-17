@@ -1,6 +1,8 @@
 // Estado compartido del catálogo (2026-11-17, root-fix): lo que leen y cambian la búsqueda, el panel,
 // las opciones y las pruebas. Sin importar otros módulos del catálogo (evita ciclos al cargar).
 
+// Ojo: `reportError` también existe como función global del navegador; sin este import se usaría esa.
+
 import { showError as reportError } from './dom.js';
 
 /** Errores del catálogo: solo en la barra de estado (no en la burbuja) y sin los "Cancelado." de

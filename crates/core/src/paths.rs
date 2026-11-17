@@ -183,18 +183,74 @@ impl Executable {
     }
 }
 
-/// Busca un ejecutable: 1) ruta configurada, 2) PATH, 3) ubicaciones típicas del SO
-/// (p. ej. `Program Files\MPV Player`, `/Applications/mpv.app`, Homebrew).
-/// Devuelve `None` si no está; la UI pide la ruta en Ajustes.
+/// Busca un ejecutable: 1) ruta configurada, 2) el mpv que trae la app (2026-11-17), 3) PATH,
+/// 4) ubicaciones típicas del SO (p. ej. `Program Files\MPV Player`, `/Applications/mpv.app`,
+/// Homebrew). Devuelve `None` si no está.
 pub fn find_executable(exe: Executable, configured: Option<&Path>) -> Option<PathBuf> {
+    locate(exe, configured).map(|(path, _)| path)
+}
+
+/// De dónde sale el ejecutable que se usa (Ajustes lo muestra).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Source {
+    Configured,
+    Bundled,
+    Installed,
+}
+
+/// [`find_executable`] con de dónde salió.
+pub fn locate(exe: Executable, configured: Option<&Path>) -> Option<(PathBuf, Source)> {
     if let Some(path) = configured {
         // La ruta configurada manda; si no existe, no adivinamos otra (el usuario la corrige).
-        return path.is_file().then(|| path.to_path_buf());
+        return path
+            .is_file()
+            .then(|| (path.to_path_buf(), Source::Configured));
     }
-    if let Ok(path) = which::which(exe.binary_name()) {
-        return Some(path);
+    if exe == Executable::Mpv {
+        if let Some(path) = bundled_mpv() {
+            return Some((path, Source::Bundled));
+        }
     }
-    exe.typical_locations().into_iter().find(|p| p.is_file())
+    let installed = which::which(exe.binary_name())
+        .ok()
+        .or_else(|| exe.typical_locations().into_iter().find(|p| p.is_file()));
+    installed.map(|p| (p, Source::Installed))
+}
+
+/// El mpv que trae la app (2026-11-17), si este equipo lo puede correr: en macOS el oficial pide
+/// macOS 15+ (en uno más viejo no carga y se usa el instalado o VLC). Junto al ejecutable (Windows y
+/// desarrollo) o en `Resources` del `.app`. Se prueba una vez por ejecución.
+pub fn bundled_mpv() -> Option<PathBuf> {
+    static RUNS: std::sync::OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
+    RUNS.get_or_init(|| {
+        let dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
+        let rel = if cfg!(windows) {
+            "mpv/mpv.exe"
+        } else {
+            "mpv/mpv.app/Contents/MacOS/mpv"
+        };
+        let path = [dir.join(rel), dir.join("../Resources").join(rel)]
+            .into_iter()
+            .find(|p| p.is_file())?;
+        // Bajado con la app sin firmar: macOS lo marca en cuarentena y podría frenarlo al abrirlo.
+        #[cfg(target_os = "macos")]
+        if let Some(app) = path.ancestors().nth(3) {
+            let _ = std::process::Command::new("xattr")
+                .args(["-dr", "com.apple.quarantine"])
+                .arg(app)
+                .output();
+        }
+        let ok = std::process::Command::new(&path)
+            .arg("--version")
+            .output()
+            .is_ok_and(|o| o.status.success());
+        if !ok {
+            tracing::info!("mpv incluido: no corre en este equipo, se usa el instalado o VLC");
+        }
+        ok.then_some(path)
+    })
+    .clone()
 }
 
 impl Executable {

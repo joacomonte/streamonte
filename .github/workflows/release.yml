@@ -22,7 +22,8 @@ jobs:
           NOTES: |
             Mac: the universal .dmg (Apple Silicon and Intel). The first time macOS blocks it (not notarized): System Settings → Privacy & Security → "Open Anyway".
             Windows: the -setup.exe. If SmartScreen warns, "More info" → "Run anyway".
-            Requires mpv installed (https://mpv.io/installation/); if it isn't found, set its path in Settings.
+            Mac: pick the .dmg for your chip (aarch64 = Apple Silicon, x64 = Intel).
+            mpv is included (macOS 15 or newer, and Windows). On older macOS, install mpv (Settings → Player → Install mpv) or use VLC if you have it.
         # The id comes from the create response: a draft isn't findable by its tag until it's published.
         run: |
           id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" -f tag_name="$GITHUB_REF_NAME" -f name="Streamonte $GITHUB_REF_NAME" \
@@ -36,10 +37,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # One .dmg per chip (2026-11-17): each bundles its own mpv (~50 MB), a universal one would carry both.
           - platform: macos-latest
-            args: --target universal-apple-darwin # one .dmg for Apple Silicon and Intel
+            args: --target aarch64-apple-darwin
+            target: aarch64-apple-darwin
+            mpv: macos-arm
+          - platform: macos-latest
+            args: --target x86_64-apple-darwin
+            target: x86_64-apple-darwin
+            mpv: macos-intel
           - platform: windows-latest
             args: ""
+            target: ""
+            mpv: windows
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
@@ -49,10 +59,13 @@ jobs:
           node-version: lts/*
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.target }}
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: ". -> target" # cargo workspace at the repo root
+      # Official mpv for this platform into src-tauri/mpv (bundle.resources), checksum-pinned.
+      - run: sh scripts/fetch-mpv.sh ${{ matrix.mpv }}
+        shell: bash
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

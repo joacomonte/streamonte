@@ -200,6 +200,25 @@ function showTransfer() {
   bar.title = `Bajando ${rows.length === 1 ? rows[0].name : `${rows.length} videos`} · ${pct} % · ${mbps(bps)}`;
 }
 
+/** Lo que baja de fondo (2026-11-17), siempre a la vista en la barra de arriba: nombre, % y ▶ para
+ *  verlo ya. Con varios, el más avanzado y "+N". */
+function showBackground() {
+  const box = $('#top-bg');
+  const rows = [...state.playbacks.values()].filter((r) => r.state.kind === 'background')
+    .sort((a, b) => (b.progress ?? 0) - (a.progress ?? 0));
+  box.hidden = !rows.length;
+  if (!rows.length) return;
+  const r = rows[0];
+  const pct = Math.floor((r.progress ?? 0) * 100);
+  box.replaceChildren(
+    el('span', { class: 'top-bg-info', title: `Bajando de fondo: ${titleOf(r.key)} · ${pct} %${r.speed_bps > 0 ? ` · ${mbps(r.speed_bps)}` : ''}` },
+      icon('download', 14), el('span', { class: 'top-bg-name' }, titleOf(r.key)), el('b', {}, `${pct} %`),
+      rows.length > 1 ? el('span', { class: 'top-bg-more' }, `+${rows.length - 1}`) : null,
+      el('span', { class: 'top-bg-bar', 'aria-hidden': 'true' }, el('i', { style: `width:${Math.max(pct, 2)}%` }))),
+    el('button', { id: 'top-bg-play', class: 'top-bg-play', 'aria-label': `Ver ${titleOf(r.key)}`, title: 'Verla ahora (sigue bajando mientras la ves)',
+      onclick: (ev) => play(r.key, ev.currentTarget) }, icon('play', 14)));
+}
+
 /** Lo llama app.js con cada evento de reproducción o análisis: tamaño, badge y menú abierto al día. */
 export function refreshDownloads() {
   const bytes = downloadedBytes();
@@ -208,6 +227,7 @@ export function refreshDownloads() {
   size.textContent = `· ${humanBytes(bytes)} bajados`;
   const n = [...state.playbacks.values()].filter(ACTIVE).length;
   showTransfer();
+  showBackground();
   const badge = $('#downloads-badge');
   badge.hidden = n === 0;
   badge.textContent = String(n);

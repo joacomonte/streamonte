@@ -69,13 +69,14 @@ Streamonte no es una página web disfrazada de app:
 ## Instalación
 
 1. Bajá el instalador de la [última versión](https://github.com/joacomonte/streamonte/releases/latest):
-   - **macOS**: el `.dmg` (sirve para Apple Silicon e Intel). La primera vez macOS la bloquea
+   - **macOS**: el `.dmg` de tu chip (`aarch64` = Apple Silicon, `x64` = Intel). La primera vez macOS la bloquea
      porque no está firmada por Apple: andá a **Ajustes del Sistema › Privacidad y seguridad**
      y tocá **"Abrir igualmente"**.
    - **Windows**: el `-setup.exe`. Si aparece SmartScreen, "Más información" › "Ejecutar de
      todas formas".
-2. Instalá **mpv**, el reproductor: <https://mpv.io/installation/> (en Mac, `brew install mpv`).
-   Si la app no lo encuentra, se elige en Ajustes.
+2. El reproductor (**mpv**) ya viene incluido (macOS 15 o más nuevo, y Windows). En un macOS más
+   viejo, instalalo desde **Ajustes › Reproductor › Instalar mpv** (o con `brew install mpv`); si
+   tenés **VLC**, mientras tanto se usa ese.
 
 > Streamonte es una herramienta para reproducir torrents. Usala con contenido que tengas
 > derecho a ver.

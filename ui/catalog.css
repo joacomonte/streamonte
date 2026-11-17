@@ -217,7 +217,9 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 
 /* La mejor opción de la lista final. */
 .cat-opt.best { position: relative; border-color: color-mix(in srgb, var(--green) 55%, var(--border)); background: color-mix(in srgb, var(--green) 6%, var(--bg)); }
-.cat-best-tags { position: absolute; top: -10px; left: 14px; display: flex; align-items: center; gap: 6px; }
+.cat-best-tags { position: absolute; top: -10px; left: 14px; z-index: 1; display: flex; align-items: center; gap: 6px; }
+/* Aire para la etiqueta "Mejor opción" de la primera fila. */
+.cat-group .cat-options { padding-top: 8px; }
 .cat-best-tag { padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .04em; background: var(--green); color: #fff; }
 /* Cerrar el panel: grande, arriba a la derecha, sobre la cabecera (2026-11-15). */
 .side-open .cat-side { position: relative; }
@@ -365,17 +367,7 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 
 
 /* Sin analizar: el panel entero es el botón (variante F, 2026-11-16). */
-.cat-deep-cta { flex: 1; min-width: 0; min-height: 58px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border: none; border-radius: 14px; text-align: left;
   background: var(--accent); color: var(--accent-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent); transition: filter .15s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease); }
-.cat-deep-cta:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 38%, transparent); }
-.cat-deep-cta:active { transform: none; }
-.cat-deep-cta:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-.cat-deep-cta-ic, .cat-deep-cta-arrow { flex: none; display: grid; }
-.cat-deep-cta-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.cat-deep-cta-text b { font-size: 14px; font-weight: 750; }
-.cat-deep-cta-text span { font-size: 11.5px; line-height: 1.35; opacity: .88; text-wrap: pretty; }
-.cat-deep-cta-arrow { transition: transform .15s var(--ease); }
-.cat-deep-cta:hover .cat-deep-cta-arrow { transform: translateX(3px); }
 /* Encabezado angosto (panel lateral): sin ícono, el texto respira y no se corta. */
 @container (max-width: 640px) { .cat-deep-icon { display: none; } .cat-deep { padding-left: 16px; gap: 14px; } }
 /* Sin key de TMDB (2026-11-16): invitación a cargarla para tener los filtros. */
@@ -609,63 +601,98 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   .cat-testing-bar i { width: 50%; }
 }
 
-/* Buscando torrents (2026-11-17): una línea chica con barra; la lista aparece al terminar. */
-.cat-scan { flex: 1; display: grid; gap: 7px; padding: 6px 2px; }
-.cat-scan-line { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
-.cat-scan .cat-radar::after { animation: cat-ping 1.3s var(--out) infinite; }
-.cat-scan-bar { height: 3px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
-.cat-scan-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-fg)); transition: width .5s var(--out); }
 
 /* Subtítulos: solo informa, en una línea (2026-11-17). */
 .cat-subs-info { display: flex; align-items: center; gap: 7px; margin: 0 0 12px; padding: 0 4px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: default; }
 .cat-subs-info.ok .ico { color: color-mix(in srgb, var(--green) 70%, var(--muted)); }
 .cat-subs-info.warn .ico { color: var(--yellow); }
 .cat-subs-info.bad .ico { color: var(--red); }
-@media (prefers-reduced-motion: reduce) { .cat-scan .cat-radar::after { animation: none; } .cat-scan-bar i { transition: none; } }
 
 /* Rendimiento (2026-11-17): las filas fuera de la vista no se pintan ni se animan. */
 .cat-opt { content-visibility: auto; contain-intrinsic-size: auto 92px; }
+/* content-visibility recorta lo que sobresale: la etiqueta "Mejor opción" (arriba de la fila) quedaba cortada. */
+.cat-opt.best { content-visibility: visible; }
 .cat-more-rows { justify-self: center; margin: 4px auto 0; padding: 8px 16px; border: 1px solid var(--border); border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .cat-more-rows:hover { color: var(--text); border-color: var(--accent); }
 
 /* Categoría por puntaje en la tarjeta chica (2026-11-17). */
 .cat-info-tier { font-size: 12.5px; font-weight: 700; color: var(--text); }
 
-/* Prueba rápida terminada (2026-11-17): el botón del análisis profundo entra con un salto y brilla
-   tres veces, una sola vez (--arrive = cuánto pasó, para no reiniciar al redibujar). */
-.cat-deep-badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, #fff 22%, transparent); font-size: 11px; font-weight: 800; letter-spacing: .02em; vertical-align: 1px; }
-.cat-deep-cta.arrive { animation: cta-arrive .6s cubic-bezier(.2, 1.4, .4, 1) var(--arrive, 0ms) both, cta-glow 2.6s ease-out var(--arrive, 0ms) both; }
-@keyframes cta-arrive { from { transform: scale(.94); opacity: .4; } to { transform: none; opacity: 1; } }
-@keyframes cta-glow {
   0%, 33%, 66% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent); }
   20%, 53%, 86% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent); }
   100% { box-shadow: none; }
 }
-@media (prefers-reduced-motion: reduce) { .cat-deep-cta.arrive { animation: none; } }
 
-/* Invitación en el encabezado de cada resolución cerrada (2026-11-17). */
-.cat-group-cta { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 12%, transparent); font-size: 12.5px; font-weight: 700; transition: background .15s var(--ease); }
-.cat-group-head:hover .cat-group-cta { background: color-mix(in srgb, var(--accent) 22%, transparent); }
-.cat-group-cta + .cat-chev { margin-left: 0; }
 
 /* Primera tanda de la prueba rápida: se llena pareja en ~30 s (lo máximo que dura cada una). */
 .cat-deep-bar.quick-fill i { width: 100%; transform-origin: left; animation: quick-fill 32s linear var(--t, 0ms) both; }
 @keyframes quick-fill { from { transform: scaleX(0); } to { transform: scaleX(.97); } }
 @media (prefers-reduced-motion: reduce) { .cat-deep-bar.quick-fill i { animation: none; transform: scaleX(.5); } }
 
-/* "Elegí la mejor" (2026-11-17): arriba de las resoluciones; mientras corre, una línea con en qué anda. */
-.cat-auto { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: 14px; background: color-mix(in srgb, var(--accent) 10%, var(--bg)); color: var(--text); text-align: left; font: inherit; cursor: pointer; transition: background .15s var(--ease), border-color .15s var(--ease); }
-.cat-auto:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg)); border-color: var(--accent); }
-.cat-auto:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-.cat-auto-ic { flex: none; display: grid; color: var(--accent-fg); }
-.cat-auto-text { display: grid; gap: 2px; min-width: 0; }
-.cat-auto-text b { font-size: 14px; font-weight: 750; }
-.cat-auto-text span { font-size: 12px; color: var(--muted); text-wrap: pretty; }
-.cat-auto-status { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--surface-2, var(--surface)); font-size: 13px; color: var(--muted); }
-.cat-auto-status .cat-auto-msg { flex: 1; min-width: 0; }
-.cat-auto-status b { color: var(--text); }
-.cat-auto-status .cat-radar::after { animation: cat-ping 1.3s var(--out) infinite; }
-.cat-auto-status.done { color: var(--text); background: color-mix(in srgb, var(--green) 12%, var(--bg)); }
-.cat-auto-status.done .ico { color: var(--green); }
-.cat-auto-status.none .ico { color: var(--yellow); }
+/* "Bajar el mejor" (2026-11-17): una línea con en qué anda o cómo terminó. */
 @media (prefers-reduced-motion: reduce) { .cat-auto-status .cat-radar::after { animation: none; } }
+
+@keyframes cat-quick-spin { to { transform: rotate(1turn); } }
+
+
+/* Buscando torrents (2026-11-17): las resoluciones ya se ven y se pueden elegir; la elegida se
+   analiza sola al terminar. */
+.cat-group.searching .cat-res-count { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.cat-res-spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--surface-3, var(--border)); border-top-color: var(--accent); animation: cat-quick-spin .9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .cat-res-spin { animation-duration: 3s; } }
+
+
+/* El panel del análisis vive dentro de la resolución elegida (2026-11-17). */
+.cat-group > .cat-deep { margin: 0 14px 14px; }
+
+/* Tarjeta cerrada: una sola acción a la derecha (2026-11-17). */
+.cat-res-go { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 650; color: var(--accent-fg); }
+.cat-res-go-text { display: grid; justify-items: end; gap: 1px; }
+.cat-res-go-label { display: inline-flex; align-items: center; gap: 4px; }
+.cat-res-eta { font-size: 11.5px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* El ícono `chev` apunta abajo: a la derecha, como "seguir". */
+.cat-res-arrow { display: inline-flex; transform: rotate(-90deg); transition: transform .15s var(--ease); }
+.cat-group-head:hover .cat-res-arrow { transform: rotate(-90deg) translateY(2px); }
+/* Analizando: dos íconos (bajar la mejor al terminar, detener) y la línea de avance que cambia. */
+.cat-deep-icons { flex: none; display: inline-flex; gap: 8px; }
+.cat-icon-btn { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--muted); cursor: pointer; transition: color .15s var(--ease), border-color .15s var(--ease), background .15s var(--ease); }
+.cat-icon-btn:hover { color: var(--text); border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.cat-icon-btn.on { color: #fff; background: var(--accent); border-color: var(--accent); }
+.cat-icon-btn.stop:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, var(--border)); }
+.cat-icon-btn:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+.cat-progress-line.fresh { animation: cat-line-in .35s var(--ease) both; }
+@keyframes cat-line-in { from { opacity: 0; transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .cat-progress-line.fresh { animation: none; } }
+
+/* Esperando la lista de torrents: una franja que corre (no se sabe cuánto falta). */
+.cat-deep-bar.waiting i { width: 30%; animation: top-dl-run 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .cat-deep-bar.waiting i { animation: none; } }
+
+/* "Dejar bajando el mejor": texto sutil que es botón; prendido, en acento. */
+.cat-deep-icons { align-items: center; }
+.cat-best-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: color .15s var(--ease), background .15s var(--ease); }
+.cat-best-toggle:hover { color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent); }
+.cat-best-toggle.on { color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.cat-best-toggle:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+
+.cat-res-spin.big { width: 22px; height: 22px; border-width: 2.5px; }
+.cat-deep.stopping .cat-deep-title b { color: var(--muted); }
+
+/* Tarjeta cerrada: la acción principal (toda la tarjeta) y, a la derecha, "Ver lista" chico (2026-11-17). */
+.cat-group-row { display: flex; align-items: center; gap: 6px; padding-right: 12px; }
+.cat-group-row > .cat-group-head { flex: 1; min-width: 0; }
+.cat-group-row > .cat-group-head { padding-right: 6px; }
+.cat-res-quick { flex: none; display: grid; justify-items: center; gap: 1px; padding: 6px 12px; border: 0; border-radius: 12px; background: none; color: var(--text); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; transition: border-color .15s var(--ease), background .15s var(--ease); }
+.cat-res-quick small { font-size: 10.5px; font-weight: 500; color: var(--muted); }
+.cat-res-quick:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+/* Las que siguen probándose de fondo, en una línea al pie de la lista. */
+.cat-probing { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 10px 0 2px; font-size: 12.5px; color: var(--muted); }
+.cat-res-quick:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+
+.cat-deep-bar > i { transition: width .5s var(--ease, ease); }
+/* Con la lista de la prueba rápida: ofrecer el análisis a fondo, sin gritar. */
+.cat-deep-offer { width: calc(100% - 28px); margin: 0 14px 12px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: 12px; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.cat-deep-offer:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.cat-deep-offer-text { flex: 1; display: grid; gap: 2px; }
+.cat-deep-offer-text b { color: var(--accent-fg); font-size: 13.5px; }
+.cat-deep-offer-text span { font-size: 12px; color: var(--muted); }

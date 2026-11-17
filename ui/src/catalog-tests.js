@@ -12,11 +12,12 @@ import { safeGet, safeSet, showError, state, view } from './catalog-state.js';
 /** Estado de las pruebas de un video (2026-11-17, antes flags sueltos en `state.side`): `once` = lo
  *  que se hace una sola vez por video (subs, censo, tests guardados, timers del panel); `ready` = ya
  *  se cargaron los tests guardados de la última hora (antes no se prueba: los repetiría);
- *  `earlyOk` = el motor escucha (series: profundo solo después de la rápida); `first[res]` = la
- *  primera tanda de la prueba rápida de esa resolución {hashes, at}; `ctaAt[res]` = cuándo apareció
- *  el botón del profundo (su animación); `auto` = el modo "Elegí la mejor" en curso o su resultado. */
+ *  `first[res]` = la primera tanda de la prueba rápida de esa resolución {hashes, at}; `run` = el
+ *  análisis en curso {res, best, stage: 'quick' | 'deep', at} (uno solo a la vez en toda la app);
+ *  `auto` = el resultado de "bajar la mejor al terminar" {step: 'done' | 'none', text};
+ *  `intent` = la resolución elegida mientras todavía se buscaban torrents {res}. */
 export function newVideoTests() {
-  return { once: new Set(), ready: false, earlyOk: false, first: {}, ctaAt: {}, auto: null };
+  return { once: new Set(), ready: false, first: {}, run: null, auto: null, intent: null };
 }
 /** true la primera vez que se pide `key` en ese video. */
 export function once(t, key) {
@@ -32,69 +33,122 @@ export async function loadSavedTests(video, cands) {
   for (const [h, t] of Object.entries(saved)) {
     if (!counted.has(h) && !counting.has(h)) { counted.set(h, t.count); testedAt.set(h, t.at); }
   }
-  const cfg = await api.config().catch(() => null);
-  if (state.side?.videoId !== video) return;
-  Object.assign(state.side.tests, { ready: true, earlyOk: !!(cfg?.engine.announce_early && cfg.engine.incoming) });
+  state.side.tests.ready = true;
   renderStreamsOnly();
-  if (view.openRes) testGroup(view.openRes);
+  const intent = state.side.tests.intent;
+  state.side.tests.intent = null;
+  if (!intent) return;
+  // Elegida mientras buscaba y al final no hubo ninguna de esa calidad: vuelve a las tarjetas.
+  if (!groupsOf().get(intent.res)?.length) {
+    state.side.tests.run = null;
+    openGroup('');
+    setStatus(`No apareció ningún torrent en ${resLabel(intent.res)}: elegí otra calidad.`);
+    return;
+  }
+  startAnalysis(intent.res);
 }
 
-/** Abrir una resolución (paso 1 del embudo): prueba rápida de sus opciones. En series, con el motor
- *  escuchando, sigue solo el análisis profundo de las mejores (elegir el episodio ya es querer verlo;
- *  una película se abre también para leer la ficha). */
-export async function testGroup(res) {
-  const video = state.side?.videoId;
-  await runQuick(video, res);
-  if (state.side?.videoId !== video || state.side.tests.auto?.running) return;
-  if (state.side.kind === 'series' && state.side.tests.earlyOk) startEarly(res);
+/** Tocar una resolución (2026-11-17): arranca su análisis. Mientras se buscan torrents queda anotado
+ *  y arranca al terminar; tocar de nuevo lo anula. */
+export function requestGroup(res) {
+  const t = state.side.tests;
+  if (!state.update?.done || !t.ready) {
+    // Ya se muestra analizando (esperando la lista); arranca de verdad en `loadSavedTests`.
+    stopTests();
+    t.intent = { res };
+    t.run = { res, best: false, stage: 'waiting', at: Date.now() };
+    view.openRes = res;
+    renderStreamsOnly();
+    return;
+  }
+  startAnalysis(res);
 }
-
-/** "Elegí la mejor" (2026-11-17): hace solo lo que haría el usuario. Abre la mejor resolución (o la
- *  abierta), prueba rápida → análisis profundo → si hay una fluida segura (`isSafeBest`) la deja
- *  bajando de fondo; si no, prueba la resolución siguiente más baja (hasta 720p) y, si en ninguna hay,
- *  para y avisa con la mejor candidata. Todo el proceso se ve igual que a mano. */
-export async function chooseBest() {
+/** Arranca el análisis de una resolución. Nunca dos a la vez: corta el que haya en curso (de este
+ *  video o uno dejado de fondo en otro) y empieza de nuevo en esta. */
+export function startAnalysis(res, best = false, quickOnly = false) {
+  stopTests();
+  if (quickOnly) quickList(res);
+  else analyze(res, best);
+}
+/** "Ver lista" (2026-11-17): solo la primera tanda de la prueba rápida (~30 s) y la lista ordenada por
+ *  seeds reales, para el que no quiere esperar el análisis a fondo. Lo que quede sigue de fondo. */
+async function quickList(res) {
   const video = state.side?.videoId;
   const t = state.side.tests;
-  const groups = groupsOf();
-  let res = view.openRes || RES_ORDER.find((r) => r !== 'other' && groups.get(r).length) || RES_ORDER.find((r) => groups.get(r).length);
-  const alive = () => state.side?.videoId === video && t.auto?.running;
-  const step = (st, text) => { t.auto = { running: true, step: st, text, res }; renderStreamsOnly(); };
-  let prev = null;
+  const run = (t.run = { res, best: false, quickOnly: true, stage: 'quick', at: Date.now() });
+  openGroup(res);
+  runQuick(video, res);
+  await waitUntil(() => t.run !== run || state.side?.videoId !== video || quickFirstDone(res));
+  if (t.run === run) { t.run = null; renderStreamsOnly(); }
+}
+/** "Bajar la mejor al terminar" (2026-11-17): se prende o apaga mientras corre el análisis. */
+export function toggleBest() {
+  const run = state.side?.tests?.run;
+  if (!run) return;
+  run.best = !run.best;
+  renderStreamsOnly();
+}
+
+/** El análisis de una resolución (2026-11-17): prueba rápida de todas → apenas termina su primera
+ *  tanda, análisis profundo de las mejores. Con `best` además deja bajando de fondo la primera que
+ *  ande sin cortes (`isSafeBest`, en el orden elegido); si en esa calidad no hay, sigue con la más baja
+ *  siguiente (hasta 720p) y, si en ninguna hay, avisa. Se corta con `stopTests`. */
+async function analyze(start, best) {
+  const video = state.side?.videoId;
+  const t = state.side.tests;
+  const run = (t.run = { res: start, best, stage: 'quick', prev: null });
+  const alive = () => t.run === run && state.side?.videoId === video;
+  t.auto = null;
+  let res = start;
   while (res) {
-    if (view.openRes !== res) openGroup(res);
-    step('quick', prev ? `En ${resLabel(prev)} ninguna anda sin cortes: pruebo ${resLabel(res)}…` : `buscando seeds reales en ${resLabel(res)}…`);
+    Object.assign(run, { res, stage: 'quick', at: Date.now() });
+    openGroup(res);
     runQuick(video, res);
     await waitUntil(() => !alive() || quickFirstDone(res));
     if (!alive()) return;
-    step('deep', `probando a fondo las mejores de ${resLabel(res)}…`);
+    learnEta('quick', (Date.now() - run.at) / 1000);
+    Object.assign(run, { stage: 'deep', at: Date.now() });
+    renderStreamsOnly();
     await runDeep(video, res);
     if (!alive()) return;
-    const best = sortOptions(groupsOf().get(res)).list.find(isSafeBest);
-    if (best) {
+    const batches = Math.ceil((state.side.deep.hashes?.length ?? 0) / DEEP_BATCH);
+    if (batches) learnEta('deepBatch', (Date.now() - run.at) / 1000 / batches);
+    if (!run.best) break;
+    const pick = sortOptions(groupsOf().get(res)).list.find(isSafeBest);
+    if (pick) {
       try {
-        if (!bgLoads.has(best.info_hash)) await startBg(best.info_hash);
-        t.auto = { running: false, step: 'done', res, hash: best.info_hash,
-          text: `elegí una de ${resLabel(res)} que anda sin cortes y ya la estoy descargando de fondo. Dale play cuando quieras.` };
+        if (!bgLoads.has(pick.info_hash)) await startBg(pick.info_hash);
+        t.auto = { step: 'done', res, text: `elegí una de ${resLabel(res)} que anda sin cortes y ya la estoy descargando de fondo. Dale play cuando quieras.` };
       } catch (e) {
         showError(e);
-        t.auto = { running: false, step: 'none', res, text: 'encontré una buena pero no pude empezar a bajarla. Probá con ▶ en la primera de la lista.' };
+        t.auto = { step: 'none', res, text: 'encontré una buena pero no pude empezar a bajarla. Probá con ▶ en la primera de la lista.' };
       }
-      renderStreamsOnly();
-      return;
+      break;
     }
-    prev = res;
+    run.prev = res;
     const lower = lowerRes(res);
     res = lower && RES_ORDER.indexOf(lower) <= RES_ORDER.indexOf('720p') ? lower : null;
+    if (!res) t.auto = { step: 'none', res: run.prev, text: 'no encontré ninguna que ande sin cortes. Arriba de la lista quedó la mejor candidata: podés probarla igual o volver más tarde.' };
   }
-  t.auto = { running: false, step: 'none', res: prev,
-    text: 'no encontré ninguna que ande sin cortes. Arriba de la lista quedó la mejor candidata: podés probarla igual o volver más tarde.' };
+  if (t.run === run) t.run = null;
   renderStreamsOnly();
 }
-/** Corta "Elegí la mejor" (lo ya probado queda; lo que esté bajando sigue). */
-export function cancelAuto() {
-  state.side.tests.auto = null;
-  stopDeep();
+
+/** Hashes cortados por "Detener": al volver sin resultado no cuentan como "nadie respondió". */
+export const stopped = new Set();
+/** "Detener" (2026-11-17): corta todo lo que esté probando (rápida y profunda, de cualquier video); lo
+ *  ya probado queda. */
+export function stopTests() {
+  const t = state.side?.tests;
+  // "Deteniendo…" mientras el núcleo corta las conexiones (tarda unos segundos): ver `groupPanel`.
+  if (t?.run) t.stopping = { res: t.run.res };
+  if (t) { t.run = null; t.intent = null; }
+  const d = state.side?.deep;
+  if (d?.status === 'run') d.stopped = true;
+  counting.forEach((h) => stopped.add(h));
+  quickRunning.clear();
+  quickLive.clear();
+  if (counting.size || t) api.catalogStopSwarm().catch(showError);
   renderStreamsOnly();
 }
 const waitUntil = async (ok) => { while (!ok()) await new Promise((r) => setTimeout(r, 500)); };
@@ -110,21 +164,10 @@ export async function leaveTests() {
       { id: 'dlg-tests-cancel', label: 'Cancelar pruebas', value: 'cancel' }]);
   state.side.tests.auto = null; // el automático no sigue sin el video abierto
   if (pick !== 'cancel') return;
-  counting.forEach((h) => stopped.add(h));
+  stopTests();
   counting.clear();
-  quickRunning.clear();
-  api.catalogStopSwarm().catch(() => {});
 }
 
-/** "Detener" el análisis (2026-11-16): corta los conteos en curso; lo ya contado queda. Los cortados
- *  se marcan en `stopped` para no tomarlos como "nadie respondió". */
-export const stopped = new Set();
-export function stopDeep() {
-  const d = state.side?.deep;
-  counting.forEach((h) => stopped.add(h));
-  if (d) d.stopped = true;
-  api.catalogStopSwarm().catch(showError);
-}
 
 /** Testeados (conectándose al enjambre): hash → SwarmCount. Incluye los de la última hora que el
  *  núcleo guarda en los datos guardados (2026-11-17). */
@@ -174,8 +217,8 @@ export function quickFirstDone(res) {
   return !first || first.hashes.every((h) => quick.has(h) || counted.has(h) || !quickRunning.has(h))
     || Date.now() - first.at > QUICK_LATE_MS;
 }
-/** Desde acá la primera tanda dice "ya casi termina"; y a `QUICK_LATE_MS` se da por terminada. */
-export const QUICK_ALMOST_MS = 25_000, QUICK_LATE_MS = 45_000;
+/** A `QUICK_LATE_MS` la primera tanda se da por terminada (las rezagadas siguen de fondo). */
+export const QUICK_LATE_MS = 45_000;
 /** Del grupo: probándose todavía, y ya probadas con gente real (3+) que el test profundo no vio. */
 export function quickPending(res) {
   const inRes = (state.update?.candidates ?? []).filter((c) => inScope(c, res));
@@ -206,7 +249,10 @@ export async function runQuick(video, res) {
     .filter((c) => !counted.has(c.info_hash) && !counting.has(c.info_hash) && !quick.has(c.info_hash) && !quickRunning.has(c.info_hash))
     .sort((a, b) => (seedsOf(b) ?? -1) - (seedsOf(a) ?? -1)).map((c) => c.info_hash);
   if (!hashes.length) return;
-  t.first[res] ??= { hashes: hashes.slice(0, QUICK_BATCH), at: Date.now() };
+  // Solo una tanda, las de mejor pinta (2026-11-17): nada sigue probándose de fondo después, así la
+  // lista queda quieta una vez que aparece.
+  hashes.splice(QUICK_BATCH);
+  t.first[res] = { hashes, at: Date.now() };
   hashes.forEach((h) => quickRunning.add(h));
   renderStreamsOnly();
   try {
@@ -259,21 +305,26 @@ export function logCensus(hashes) {
   } catch { /* el log es opcional */ }
 }
 
-/** Series (idea 1, 2026-11-16): después de la prueba rápida se testean a fondo solas las `TOP`
- *  mejores de esa resolución, con el motor escuchando. */
-function startEarly(res) {
-  const ranked = (state.update?.candidates ?? []).filter((c) => inScope(c, res) && !unlikely(c) && !counted.has(c.info_hash) && quickGroup(c) < 3)
-    .sort(byQuick);
-  const hashes = ranked.slice(0, TOP).map((c) => c.info_hash);
-  if (hashes.length) countSeeds(hashes);
-}
-
 /** Etapa 2 del embudo: cuántos se cuentan a fondo. 15 (pedido 2026-11-15): el núcleo cuenta 10 a la
  *  vez con hasta 30 conexiones cada uno (`swarm::Depth::Deep`), así que van en dos tandas. */
 export const TOP = 15;
-/** Tiempo del análisis profundo: por tanda, datos del torrent hasta ~90 s mientras haya novedades y
- *  conteo de 45 a 85 s; los muertos se liberan a los 15 s. */
-export const DEEP_ETA = '1 a 4 min';
+/** Cuánto tarda el análisis (2026-11-17), aprendido de los anteriores en esta compu (promedio móvil):
+ *  la primera tanda de la prueba rápida y cada tanda del profundo (`DEEP_BATCH` a la vez, como
+ *  `swarm::Depth::Deep`). Sin historia: lo típico. */
+const ETA_KEY = 'streamonte.analysis-eta';
+const DEEP_BATCH = 10;
+const etaStats = () => { try { return JSON.parse(safeGet(ETA_KEY) ?? '{}'); } catch { return {}; } };
+function learnEta(field, secs) {
+  const s = etaStats();
+  s[field] = s[field] ? s[field] * 0.7 + secs * 0.3 : secs;
+  safeSet(ETA_KEY, JSON.stringify(s));
+}
+/** "~3 min" para analizar `n` opciones (sin dato todavía, como si fueran muchas). */
+export function analysisEta(n = TOP) {
+  const s = etaStats();
+  const secs = (s.quick ?? 35) + Math.ceil(Math.min(TOP, n || TOP) / DEEP_BATCH) * (s.deepBatch ?? 110);
+  return `~${Math.max(1, Math.round(secs / 60))} min`;
+}
 /** Finalistas que además reciben el análisis rápido (metadatos, duración, idiomas). */
 export const FINALISTS = 8;
 export function finalists(cands) {

@@ -9,7 +9,7 @@ import { healthCalibration, MIN_SECS, notePrediction, predict, shownLevel, speed
 import { state as lib } from './state.js';
 import { renderSide } from './catalog-side.js';
 import { safeSet, showError, state, view } from './catalog-state.js';
-import { cancelAuto, census, chooseBest, counted, counting, DEEP_ETA, deepDone, liveCount, loadSavedTests, newVideoTests, once, phaseAt, quick, QUICK_ALMOST_MS, QUICK_ENOUGH, QUICK_LATE_MS, quickFirstDone, quickGroup, quickLive, quickPending, quickRunning, reanalyze, runCensus, runDeep, skipped, stopDeep, testedAt, testGroup, TOP, unlikely } from './catalog-tests.js';
+import { analysisEta, census, counted, counting, deepDone, liveCount, loadSavedTests, newVideoTests, once, phaseAt, quick, QUICK_ENOUGH, QUICK_LATE_MS, quickGroup, quickLive, quickPending, quickRunning, reanalyze, requestGroup, runCensus, runDeep, skipped, startAnalysis, stopTests, testedAt, toggleBest, TOP, unlikely } from './catalog-tests.js';
 
 /** Tooltips del badge HDR (pedido 2026-11-15, en blanco y negro): HDR y Dolby Vision se muestran igual;
  *  el tooltip dice cuál es. */
@@ -147,28 +147,18 @@ export const inScope = (c, res) => (!res || resKey(c) === res) && (!view.onlyHdr
 
 /** Arriba de la lista: el panel de búsqueda y test, solo (2026-11-17: subtítulos y HDR van aparte). */
 export function optionsHead() {
-  const auto = autoBar(), panel = deepPanel();
-  return auto || panel ? el('div', { class: 'cat-opt-head' }, auto, panel) : null;
+  const auto = autoBar();
+  return auto ? el('div', { class: 'cat-opt-head' }, auto) : null;
 }
 
-/** "Elegí la mejor" (2026-11-17): el botón, o en qué anda el modo automático (`chooseBest`). */
+/** Cómo terminó "bajar la mejor al terminar" (2026-11-17): la elegida ya bajando, o que no hubo. */
 export function autoBar() {
-  const u = state.update, t = state.side.tests;
-  if (!u?.done || !u.candidates.length) return null;
-  const a = t.auto;
-  if (!a) {
-    // Solo al principio (2026-11-17): si abre una resolución a mano, ya no se pregunta más en ese video.
-    if (t.once.has('manual')) return null;
-    return el('button', { id: 'cat-auto', class: 'cat-auto', onclick: () => chooseBest() },
-      el('span', { class: 'cat-auto-ic', 'aria-hidden': 'true' }, icon('radar', 18)),
-      el('span', { class: 'cat-auto-text' }, el('b', {}, 'Elegí la mejor'),
-        el('span', {}, 'Pruebo todo, elijo la que anda sin cortes y la dejo descargando. Vos volvé y dale play.')));
-  }
+  const t = state.side.tests, a = t.auto;
+  if (!a || !state.update?.done) return null;
   return el('div', { id: 'cat-auto-status', class: `cat-auto-status ${a.step}`, role: 'status' },
-    a.running ? el('span', { class: 'cat-radar', 'aria-hidden': 'true' }) : icon(a.step === 'done' ? 'check' : 'ban', 16),
-    el('span', { class: 'cat-auto-msg' }, el('b', {}, 'Elegí la mejor · '), a.text),
-    a.running ? el('button', { id: 'cat-auto-cancel', class: 'link', onclick: cancelAuto }, 'Cancelar')
-      : el('button', { id: 'cat-auto-close', class: 'link', onclick: () => { t.auto = null; renderStreamsOnly(); } }, 'Cerrar'));
+    icon(a.step === 'done' ? 'check' : 'ban', 16),
+    el('span', { class: 'cat-auto-msg' }, el('b', {}, 'La mejor · '), a.text),
+    el('button', { id: 'cat-auto-close', class: 'link', onclick: () => { t.auto = null; renderStreamsOnly(); } }, 'Cerrar'));
 }
 
 /** Orden de la lista (2026-11-17), arriba de las opciones del grupo abierto (no junto al panel de
@@ -192,93 +182,135 @@ export function sortRow() {
   return el('div', { class: 'cat-list-bar' }, order, hdr);
 }
 
-/** "Análisis completo" (2026-11-16): análisis profundo del grupo de resolución abierto. Un solo
- *  panel con sus estados: buscando torrents, listo para empezar, analizando (con barra) y hecho
- *  (para esa resolución; con otra abierta vuelve a ofrecerlo). */
-export function deepPanel() {
-  const u = state.update, d = state.side.deep, res = view.openRes;
+/** Cada cuánto cambia la línea de avance aunque no lleguen resultados. */
+const TICK_MS = 3200;
+/** Lo que va pasando, en una línea que cambia cada `TICK_MS` (2026-11-17): para que se vea que avanza
+ *  y no que quedó pensando. Sale de los datos que van llegando; sin datos, una frase de lo que hace. */
+function progressLine(res, stage, run) {
+  const t = state.side.tests;
+  const pick = (lines) => { const ok = lines.filter(Boolean); return ok[Math.floor(Date.now() / TICK_MS) % ok.length]; };
+  if (stage === 'quick') {
+    const first = t.first[res]?.hashes ?? [];
+    const results = first.map((h) => quick.get(h) ?? (counted.has(h) ? counted.get(h) : null)).filter(Boolean);
+    const alive = results.filter((q) => q.reached && q.seeds > 0).length;
+    const deadN = results.length - alive;
+    const live = first.filter((h) => quickLive.has(h)).length;
+    const asking = first.filter((h) => quickRunning.has(h) && !quick.has(h) && !quickLive.has(h)).length;
+    const seeds = results.reduce((s, q) => s + (q.seeds || 0), 0) + first.reduce((s, h) => s + (quickLive.get(h)?.reached ? quickLive.get(h).seeds : 0), 0);
+    const left = first.length - results.length;
+    return pick([
+      run?.prev && `En ${resLabel(run.prev)} ninguna anda sin cortes: sigo con ${resLabel(res)}`,
+      !results.length && !live && 'Preguntándole a la red quién tiene cada torrent…',
+      live && `Conectando con ${live} ${live === 1 ? 'torrent' : 'torrents'} a la vez`,
+      asking && `Esperando que respondan ${asking} más`,
+      results.length && `Ya respondieron ${results.length} de ${first.length}`,
+      alive && `Encontré ${alive} con seeds reales`,
+      seeds && `${seeds} seeds reales contados hasta ahora`,
+      deadN && `Descarté ${deadN} que no tienen a nadie`,
+      left && results.length && `Me ${left === 1 ? 'falta 1' : `faltan ${left}`} para pasar a la etapa 2`,
+    ]) ?? 'Buscando seeds reales…';
+  }
+  const d = state.side.deep;
+  const hashes = d.hashes ?? [];
+  const doneN = hashes.filter((h) => deepDone.has(h)).length;
+  const lives = hashes.map((h) => liveCount.get(h)).filter(Boolean);
+  const peers = lives.reduce((s, l) => s + (l.peers || 0), 0);
+  const counting = lives.filter((l) => l.reached).length;
+  const cands = (state.update?.candidates ?? []).filter((c) => hashes.includes(c.info_hash));
+  const fluid = cands.filter((c) => counted.has(c.info_hash) && health(c)?.level === 0).length;
+  const left = hashes.length - doneN;
+  return pick([
+    'Verificando la salud de las mejores',
+    peers && `Midiendo la velocidad con ${peers} conexiones`,
+    counting && `Contando seeds reales en ${counting} a la vez`,
+    doneN && `${doneN} de ${hashes.length} verificados`,
+    fluid && `${fluid} ya ${fluid === 1 ? 'anda' : 'andan'} sin cortes`,
+    left && doneN && `Me ${left === 1 ? 'falta 1' : `faltan ${left}`}`,
+    run?.best && 'Al terminar dejo bajando la mejor',
+  ]);
+}
+
+/** Panel de la resolución abierta (2026-11-17, antes arriba de todo): el análisis en curso —
+ *  1 de 2 prueba rápida, 2 de 2 análisis profundo — con "Detener", o el resultado con "Testear más". */
+export function groupPanel(res) {
+  const u = state.update, d = state.side.deep, t = state.side.tests;
   const resText = res === 'other' ? 'las otras resoluciones' : resLabel(res);
   const panel = (cls, ic, title, sub, ...extra) => el('div', { id: 'cat-deep', class: `cat-deep ${cls}`, role: 'status' },
     el('span', { class: 'cat-deep-icon', 'aria-hidden': 'true' }, ic),
     el('span', { class: 'cat-deep-text' }, el('span', { class: 'cat-deep-title' }, title), el('span', { class: 'cat-deep-sub' }, sub)), ...extra);
-  if (!u?.done) return scanStatus(u);
-  if (d.status === 'run') {
-    const { done, n, frac } = deepStatus(d);
-    const what = d.single ? (n === 1 ? '1 torrent' : `${n} torrents`) : d.res === 'other' ? 'otras' : resLabel(d.res);
-    return panel('running', el('span', { class: 'cat-radar big' }), el('b', {}, `Testeando ${what} · ${done} de ${n}`),
-      'Bancame un toque: estoy viendo cuáles van a andar sin cortes · no baja los videos',
-      el('button', { id: 'cat-deep-stop', class: 'cat-deep-go', onclick: (ev) => { ev.currentTarget.disabled = true; stopDeep(); } }, 'Detener'),
-      deepBar(d, frac, n));
-  }
-  // Sin resolución abierta no hay panel (2026-11-17): cada resolución lo invita en su encabezado.
-  if (!res) return null;
-  const t = state.side.tests;
-  const doneHere = d.status === 'done' && d.res === res && !t.auto?.running;
-  const start = () => reanalyze(u.candidates.filter((c) => inScope(c, res)).map((c) => c.info_hash), res);
-  if (doneHere) {
-    const inRes = u.candidates.filter((c) => inScope(c, res));
-    const checkedN = inRes.filter((c) => counted.has(c.info_hash)).length;
-    const alive = inRes.filter((c) => counted.get(c.info_hash)?.seeds > 0).length;
-    // Quedan sin contar (y no muertos): se ofrece otra tanda, solo si el usuario quiere (2026-11-16).
-    // La prueba rápida sigue de fondo (2026-11-17): las que encuentra con gente real se ofrecen acá.
-    const { running, potential } = quickPending(res);
-    const more = Math.min(TOP, potential || inRes.filter((c) => !counted.has(c.info_hash) && !unlikely(c)).length);
-    const next = more ? el('button', { id: 'cat-deep-more', class: 'cat-deep-go', onclick: () => runDeep(state.side.videoId, res) }, `Testear ${more} más`)
-      : el('button', { id: 'cat-deep-go', class: 'cat-deep-go', onclick: start }, 'Repetir');
-    const extra = [potential ? `${potential} más con seeds reales para testear` : null, running ? `sigo probando ${running} más de fondo: cuanto más esperes, mejor la elección` : null].filter(Boolean).join(' · ');
-    return panel('done', icon('check', 16), el('b', {}, 'Test completo'), `${resText}: ${alive} de ${checkedN} con seeds reales${extra ? ` · ${extra}` : ''}`, next);
-  }
-  // Primera tanda de la prueba rápida en curso: el test profundo se ofrece recién con ese dato.
-  if (!quickFirstDone(res)) {
-    const { hashes: first, at } = t.first[res];
-    const doneN = first.filter((h) => quick.has(h) || counted.has(h)).length;
-    const elapsed = Date.now() - at;
-    const almost = elapsed >= QUICK_ALMOST_MS || first.length - doneN <= 3;
-    // Sin eventos nuevos el panel no se redibuja: estos avisan el cambio de texto y el corte.
-    if (once(t, `timers-${res}`)) {
-      for (const ms of [QUICK_ALMOST_MS, QUICK_LATE_MS + 100]) if (elapsed < ms) setTimeout(scheduleRender, ms - elapsed);
+  // Deteniendo (2026-11-17): hasta que el núcleo cortó todo, para que se vea que el clic hizo algo.
+  if (t.stopping?.res === res) {
+    if (counting.size || d.status === 'run') {
+      return el('div', { id: 'cat-deep', class: 'cat-deep running stopping', role: 'status', 'aria-busy': 'true' },
+        el('span', { class: 'cat-deep-icon', 'aria-hidden': 'true' }, el('span', { class: 'cat-res-spin big' })),
+        el('span', { class: 'cat-deep-text' }, el('span', { class: 'cat-deep-title' }, el('b', {}, 'Deteniendo…')),
+          el('span', { class: 'cat-deep-sub' }, 'Cortando las conexiones. Lo ya probado queda.')),
+        el('span', { class: 'cat-deep-bar waiting' }, el('i')));
     }
-    return panel('running', el('span', { class: 'cat-radar big' }),
-      el('b', {}, almost ? `Ya casi termina · ${doneN} de ${first.length}` : `Buscando seeds reales · ${doneN} de ${first.length}`),
-      almost ? 'Faltan las últimas, que tardan más en responder. En unos segundos te muestro el siguiente paso.'
-        : 'Primero las de mejor pinta según los trackers. Cuanto más lo dejes probando, más chances de encontrar la mejor en calidad y velocidad.',
-      // Barra por tiempo, sin saltos (2026-11-17): la tanda va toda a la vez y ninguna pasa de ~30 s.
-      el('span', { class: 'cat-deep-bar quick-fill', style: `--t:-${elapsed}ms` }, el('i')));
+    t.stopping = null;
   }
-  if (t.auto?.running) return null; // "Elegí la mejor" sigue solo: no hace falta el botón
-  const { running } = quickPending(res);
-  // Recién terminada la prueba rápida (2026-11-17): el botón entra con una animación que llama la
-  // atención una sola vez; sale del reloj para que redibujar no la reinicie.
-  const quickDone = !!t.first[res];
-  if (quickDone) t.ctaAt[res] ??= Date.now();
-  const since = quickDone ? Date.now() - t.ctaAt[res] : Infinity;
-  // Sin analizar, todo el panel es el botón (variante F, 2026-11-16): la acción recomendada es obvia.
-  return el('button', { id: 'cat-deep-go', class: `cat-deep-cta ${since < 3200 ? 'arrive' : ''}`, onclick: start,
-    style: since < 3200 ? `--arrive:-${since}ms` : null },
-    el('span', { class: 'cat-deep-cta-ic', 'aria-hidden': 'true' }, icon('radar', 18)),
-    quickDone ? el('span', { class: 'cat-deep-cta-text' },
-      el('b', {}, 'Pasar al análisis profundo ', el('span', { class: 'cat-deep-badge' }, 'Hacelo antes de darle play')),
-      el('span', {}, `En ${DEEP_ETA} te digo cuáles de las ${TOP} con más seeds de ${resText} van a andar sin cortes. Vale la espera: te ahorra arrancar una que se traba a la mitad${running ? ` · mientras, sigo probando ${running} más` : ''}`))
-    : el('span', { class: 'cat-deep-cta-text' }, el('b', {}, `Testear las ${TOP} mejores`),
-      el('span', {}, `Prueba la conexión de cada una de ${resText} y te marca cuáles van a andar fluidas · ${DEEP_ETA}${running ? ` · sigo probando ${running} más de fondo: cuanto más esperes, mejor la elección` : ''}`)),
-    el('span', { class: 'cat-deep-cta-arrow', 'aria-hidden': 'true' }, icon('arrow', 18)));
-}
-
-/** Mientras buscan las fuentes y se escanean los trackers (2026-11-17): una línea chica con barra, no
- *  un panel; la lista ya se ve y se reordena sola. Escaneado = el tracker ya respondió (`completed`). */
-export function scanStatus(u) {
-  const addons = u?.addons ?? [];
-  const answered = addons.filter((a) => a.state !== 'pending').length;
-  const total = u?.candidates.length ?? 0;
-  const scanned = u?.candidates.filter((c) => c.completed != null).length ?? 0;
-  const [text, frac] = !total
-    ? [`Buscando torrents${addons.length ? ` · ${answered} de ${addons.length} fuentes` : '…'}`, addons.length ? answered / addons.length / 2 : 0.05]
-    : answered < addons.length
-      ? [`${total} encontrados · ${answered} de ${addons.length} fuentes · buscando torrents`, 0.5 * (answered / addons.length) + 0.5 * (scanned / total) * 0.5]
-      : [`Buscando torrents · ${scanned} de ${total}`, 0.5 + 0.5 * (scanned / total)];
-  return el('div', { id: 'cat-deep', class: 'cat-scan', role: 'status' },
-    el('span', { class: 'cat-scan-line' }, el('span', { class: 'cat-radar', 'aria-hidden': 'true' }), text),
-    el('span', { class: 'cat-scan-bar' }, el('i', { style: `width:${Math.max(4, Math.round(frac * 100))}%` })));
+  // Analizando (2026-11-17): título fijo, debajo en gris lo que va pasando (cambia cada pocos segundos
+  // con los datos que llegan) y dos íconos: bajar la mejor al terminar (se prende/apaga) y detener.
+  const run = t.run?.res === res ? t.run : null;
+  const single = !run && d.status === 'run' && d.single;
+  if (run || single) {
+    const deepNow = single || run.stage === 'deep';
+    const { done, n, frac } = deepNow ? deepStatus(d) : { done: 0, n: 0, frac: 0 };
+    const first = t.first[res];
+    const waiting = run?.stage === 'waiting';
+    const elapsed = first ? Date.now() - first.at : 0;
+    // Sin resultados nuevos igual cambia el texto: un redibujo cada `TICK_MS` mientras analiza.
+    if (!t.tick) t.tick = setTimeout(() => { t.tick = null; scheduleRender(); }, TICK_MS);
+    if (first && once(t, `timers-${res}`) && elapsed < QUICK_LATE_MS) setTimeout(scheduleRender, QUICK_LATE_MS + 100 - elapsed);
+    const title = single ? `Verificando ${n === 1 ? '1 torrent' : `${n} torrents`} · ${done} de ${n}`
+      : run.quickOnly ? `Armando la lista de ${resText} · estimado ~30 s`
+        : `Analizando ${resText} · ${deepNow ? 'fase 2 de 2' : 'fase 1 de 2'}`;
+    return el('div', { id: 'cat-deep', class: 'cat-deep running', role: 'status' },
+      el('span', { class: 'cat-deep-icon', 'aria-hidden': 'true' }, el('span', { class: 'cat-radar big' })),
+      el('span', { class: 'cat-deep-text' }, el('span', { class: 'cat-deep-title' }, el('b', {}, title)),
+        // La línea entra animada solo cuando cambia (la lista se redibuja cada 400 ms).
+        (() => {
+          const line = waiting ? 'Esperando que terminen de llegar los torrents de las fuentes…' : progressLine(res, deepNow ? 'deep' : 'quick', run);
+          const fresh = t.lastLine !== line;
+          t.lastLine = line;
+          return el('span', { class: `cat-deep-sub cat-progress-line ${fresh ? 'fresh' : ''}`, 'aria-live': 'polite' }, line);
+        })()),
+      el('span', { class: 'cat-deep-icons' },
+        // Texto sutil que es botón (2026-11-17): se prende o apaga mientras analiza.
+        run && !waiting && !run.quickOnly ? el('button', { id: 'cat-run-best', class: `cat-best-toggle ${run.best ? 'on' : ''}`, 'aria-pressed': String(run.best),
+          title: run.best ? 'Al terminar la dejo bajando de fondo (tocá para no hacerlo)'
+            : 'Al terminar dejo bajando de fondo la que ande sin cortes; si en esta calidad no hay, pruebo la siguiente más baja',
+          onclick: toggleBest }, icon(run.best ? 'check' : 'download', 14), run.best ? 'La dejo bajando' : 'Dejar bajando el mejor') : null,
+        el('button', { id: 'cat-deep-stop', class: 'cat-icon-btn stop', 'aria-label': 'Detener', title: 'Detener: lo ya probado queda y se muestra la lista',
+          onclick: (ev) => { ev.currentTarget.disabled = true; stopTests(); } }, icon('stop', 14))),
+      // Avance real: cuántas de la tanda ya respondieron (y en la fase 2, cuántas se verificaron).
+      deepNow ? deepBar(d, frac, n) : waiting ? el('span', { class: 'cat-deep-bar waiting' }, el('i'))
+        : (() => {
+          const total = first?.hashes.length ?? 0;
+          const ready = first ? first.hashes.filter((h) => quick.has(h) || counted.has(h)).length : 0;
+          return el('span', { class: 'cat-deep-bar', role: 'progressbar', 'aria-valuenow': String(ready), 'aria-valuemax': String(total) },
+            el('i', { style: `width:${total ? Math.max(4, (ready / total) * 100) : 4}%` }));
+        })());
+  }
+  // Lista armada con la prueba rápida ("Ver lista") y todavía sin análisis a fondo: se ofrece.
+  if (d.status !== 'done' || d.res !== res) {
+    if (!t.first[res] || d.status === 'run') return null;
+    return el('button', { id: 'cat-deep-go', class: 'cat-deep-offer', onclick: () => startAnalysis(res) },
+      el('span', { class: 'cat-deep-offer-text' }, el('b', {}, 'Buscar el mejor torrent'),
+        el('span', {}, `Verifico a fondo cuáles van a andar sin cortes · Tiempo estimado ${analysisEta(u.candidates.filter((c) => inScope(c, res)).length)}`)),
+      el('span', { class: 'cat-res-arrow' }, icon('chev', 16)));
+  }
+  const inRes = u.candidates.filter((c) => inScope(c, res));
+  const checkedN = inRes.filter((c) => counted.has(c.info_hash)).length;
+  const alive = inRes.filter((c) => counted.get(c.info_hash)?.seeds > 0).length;
+  // Quedan sin contar (y no muertos): otra tanda, solo si el usuario quiere; primero las que la prueba
+  // rápida encontró con seeds reales.
+  const { potential } = quickPending(res);
+  const more = Math.min(TOP, potential || inRes.filter((c) => !counted.has(c.info_hash) && !unlikely(c)).length);
+  const next = more ? el('button', { id: 'cat-deep-more', class: 'cat-deep-go', onclick: () => runDeep(state.side.videoId, res) }, `Testear ${more} más`)
+    : el('button', { id: 'cat-deep-go', class: 'cat-deep-go', onclick: () => startAnalysis(res) }, 'Repetir');
+  return panel('done', icon('check', 16), el('b', {}, 'Análisis completo'),
+    `${resText}: ${alive} de ${checkedN} con seeds reales${potential ? ` · ${potential} más con seeds reales para testear` : ''}`, next);
 }
 
 /** Avance del análisis profundo en curso (`runDeep`): cuántos respondieron y fracción 0–1. */
@@ -469,7 +501,9 @@ export function bgText(c) {
   const speed = speedOf(b.key);
   if (!speed?.n) return { cls: 'measuring', text: 'cargando…', tip: 'Buscando metadatos y precargando el principio; después mide la velocidad.' };
   const avg = speed.avg;
-  const done = speed.done ? 'completo · ' : '';
+  // Cuánto va (2026-11-17): que se vea que está bajando, no solo si la velocidad alcanza.
+  const pct = Math.floor((playbackOf(c.info_hash)?.progress ?? 0) * 100);
+  const done = speed.done ? 'completo · ' : `bajando ${pct} % · `;
   const need = neededBps(c);
   if (!need) return { cls: 'none', text: `${done}${mbps(avg)}`, tip: `${mbps(avg)} de promedio bajando de fondo (sin duración conocida no se calcula si alcanza).` };
   const x = avg / need;
@@ -659,8 +693,9 @@ export function subsRow() {
   const en = found?.filter((f) => f.language === 'en').length ?? 0;
   const [tone, text] = busy ? ['', p?.downloading ? `Bajando subtítulos · ${p.done} de ${p.total}` : 'Buscando subtítulos en español…']
     : !found ? ['', 'Subtítulos: se buscan solos']
-      : es ? ['ok', `Subtítulos en español encontrados (${es})${en ? ` · ${en} en inglés` : ''}`]
-        : en ? ['warn', `Sin español · ${en} en inglés de respaldo`]
+      // Solo español (2026-11-17); el inglés se menciona recién si no hay ninguno en español.
+      : es ? ['ok', es === 1 ? 'Encontré 1 subtítulo en español' : `Encontré ${es} subtítulos en español`]
+        : en ? ['warn', `No hay en español, pero encontré ${en === 1 ? '1 en inglés' : `${en} en inglés`}`]
           : ['bad', 'Sin subtítulos: cargá las keys gratis en Ajustes'];
   const tip = found?.length ? `Listos en el reproductor (1–5 cambia, S oculta):\n${found.map((f) => `· ${f.language.toUpperCase()} · ${f.provider} · ${f.release_name}`).join('\n')}` : null;
   return el('p', { class: `cat-subs-info ${tone}`, id: 'cat-subs-info', role: 'status', title: tip },
@@ -789,30 +824,21 @@ export function renderStreamsBody(box) {
   const u = state.update;
   const body = $('#cat-side');
   const scroll = body?.scrollTop ?? 0;
-  if (!u?.done) {
-    // Buscando (2026-11-17): solo el estado de la búsqueda, nada más. Al terminar aparecen las
-    // resoluciones cerradas y el usuario elige cuál abrir (recién ahí se prueba).
-    box.replaceChildren(el('div', { class: 'cat-sticky' }, optionsHead()));
-    return;
-  }
   box.replaceChildren();
-  if (!u.candidates.length) {
+  const searching = !u?.done;
+  if (!searching && !u.candidates.length) {
     const anyOk = u.addons.some((a) => a.state === 'ok');
     box.append(el('p', { class: 'pop-empty' }, anyOk ? 'Ninguna fuente tiene torrents para esto.' : 'Ninguna fuente respondió. Cerrá y volvé a abrirlo para reintentar.'));
     return;
   }
   // Por resolución (2026-11-15): acordeón vertical. Uno abierto a la vez; los demás quedan en la
   // lista como encabezados colapsados. Arriba, fijos, los títulos de columna y el filtro HDR.
-  const groups = groupsOf(u);
-  const present = RES_ORDER.filter((r) => groups.get(r).length);
-  // Todas cerradas hasta que el usuario elige una (2026-11-17): abrirla es lo que la pone a probar.
-  if (view.openRes === null || (view.openRes && !present.includes(view.openRes))) view.openRes = '';
-  const toggle = (r) => {
-    openGroup(view.openRes === r ? '' : r);
-    if (!view.openRes) return;
-    state.side.tests.once.add('manual'); // eligió a mano: "Elegí la mejor" ya no se ofrece
-    testGroup(r); // paso 1 del embudo: recién al abrir el grupo
-  };
+  const groups = u ? groupsOf(u) : new Map(RES_ORDER.map((r) => [r, []]));
+  // Buscando (2026-11-17): las 4 de siempre, con lo encontrado hasta ahora; ya se puede elegir cuál
+  // analizar y al terminar se abre sola y arranca su prueba (`loadSavedTests`).
+  const present = searching ? ['2160p', '1080p', '720p', 'other'] : RES_ORDER.filter((r) => groups.get(r).length);
+  // Todas cerradas hasta que el usuario elige una: abrirla es lo que la pone a probar.
+  if (!searching && (view.openRes === null || (view.openRes && !present.includes(view.openRes)))) view.openRes = '';
   const head = optionsHead();
   box.append(...[head && el('div', { class: 'cat-sticky' }, head), subsRow()].filter(Boolean));
   if (!present.length) {
@@ -821,25 +847,72 @@ export function renderStreamsBody(box) {
     return;
   }
   box.append(...present.map((r) => {
-    const open = r === view.openRes;
+    const n = groups.get(r).length;
+    const open = !searching && r === view.openRes;
+    // Cerrada (o buscando todavía): a la derecha, testeo completo o bajar el mejor (2026-11-17).
+    // Cerrada (2026-11-17): una sola acción, toda la tarjeta. Buscando torrents todavía: queda anotada
+    // (✓) y arranca al terminar.
+    // Ya analizada (en esta sesión o en la última hora, datos guardados): se ve la lista, sin repetir.
+    const analyzed = !searching && groups.get(r).filter((c) => counted.has(c.info_hash)).length >= Math.min(5, n);
+    const start = el('span', { class: 'cat-res-go' },
+      el('span', { class: 'cat-res-go-text' },
+        el('span', { class: 'cat-res-go-label' }, analyzed ? 'Ver lista' : 'Buscar mejor torrent'),
+        analyzed ? null : el('span', { class: 'cat-res-eta' }, `Tiempo estimado ${analysisEta(n)}`)),
+      el('span', { class: 'cat-res-arrow' }, icon('chev', 16)));
+    // Elegida mientras se buscan torrents (2026-11-17): ya se ve como analizando, esperando la lista.
+    if (searching && state.side.tests.run?.res === r) {
+      return el('section', { class: 'cat-group open searching', id: `cat-group-${r}` },
+        el('div', { class: 'cat-group-head' },
+          el('span', { class: 'cat-group-name' }, resLabel(r)),
+          el('span', { class: 'cat-res-count' }, el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }), 'Buscando torrents…')),
+        groupPanel(r));
+    }
+    if (searching) {
+      return el('section', { class: 'cat-group searching', id: `cat-group-${r}` },
+        el('button', { id: `cat-res-${r}`, class: 'cat-group-head', onclick: () => requestGroup(r),
+          title: 'Buscar el mejor torrent de esta calidad: arranca apenas terminen de llegar los torrents' },
+          el('span', { class: 'cat-group-name' }, resLabel(r)),
+          el('span', { class: 'cat-res-count' }, el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }), 'Buscando torrents…'),
+          start));
+    }
     // Mientras corre el análisis profundo, el borde del grupo abierto gira (2026-11-16).
     const analyzing = open && state.side.deep?.status === 'run';
     return el('section', { class: `cat-group ${open ? 'open' : ''} ${analyzing ? 'analyzing' : ''}`, id: `cat-group-${r}`, 'aria-busy': analyzing ? 'true' : null,
       style: analyzing ? `--group-phase:-${Date.now() % 4000}ms` : null },
-      el('button', { id: `cat-res-${r}`, class: 'cat-group-head', 'aria-expanded': String(open), onclick: () => toggle(r) },
+      // Cerrada: toda la tarjeta arranca su análisis. Abierta: el encabezado la cierra.
+      open ? el('button', { id: `cat-res-${r}`, class: 'cat-group-head', 'aria-expanded': 'true', onclick: () => openGroup(''), title: 'Cerrar' },
         el('span', { class: 'cat-group-name' }, resLabel(r)),
-        el('span', { class: 'cat-res-count' }, `${groups.get(r).length} ${groups.get(r).length === 1 ? 'opción' : 'opciones'}`),
-        // Cerrada: abrirla es lo que busca las mejores (prueba sus seeds reales).
-        !open ? el('span', { class: 'cat-group-cta' }, icon('radar', 15), 'Buscar las mejores') : null,
-        el('span', { class: 'cat-chev' }, icon('chev', 18))),
+        el('span', { class: 'cat-res-count' }, `${n} ${n === 1 ? 'opción' : 'opciones'}`),
+        el('span', { class: 'cat-chev' }, icon('chev', 18)))
+        : el('div', { class: 'cat-group-row' },
+          el('button', { id: `cat-res-${r}`, class: 'cat-group-head', onclick: () => (analyzed ? openGroup(r) : requestGroup(r)),
+            title: analyzed ? 'Ya analizada: ver la lista ordenada'
+              : `Buscar el mejor torrent en ${resLabel(r)}: pruebo todas y verifico a fondo las ${TOP} mejores (${analysisEta(n)}, según lo que tardaron los anteriores)` },
+            el('span', { class: 'cat-group-name' }, resLabel(r)),
+            el('span', { class: 'cat-res-count' }, `${n} ${n === 1 ? 'opción' : 'opciones'}`),
+            start),
+          // Para el apurado (2026-11-17): solo la prueba rápida (~30 s) y la lista, sin el análisis a fondo.
+          analyzed ? null : el('button', { id: `cat-res-quick-${r}`, class: 'cat-res-quick', onclick: () => startAnalysis(r, false, true),
+            title: 'Ver la lista ya: pruebo rápido cuántos seeds reales tiene cada una y te la ordeno. Sin verificar a fondo si va a andar sin cortes.' },
+          el('span', {}, 'Ver lista'), el('small', {}, 'estimado ~30 s'))),
       open ? (() => {
-        const { list: sorted, best } = sortOptions(groups.get(r));
+        // Analizando (2026-11-17): solo el panel con su avance y "Detener"; sin filas (eran decenas de
+        // animaciones a la vez). Al terminar, el resultado y la lista ya ordenada.
+        const gp = groupPanel(r);
+        if (state.side.tests.run?.res === r || state.side.tests.stopping?.res === r) return gp;
+        // Las que todavía se están probando de fondo no se muestran hasta terminar (2026-11-17): se
+        // movían y cambiaban sin parar; aparecen ya ordenadas con su resultado.
+        const probing = groups.get(r).filter((c) => quickRunning.has(c.info_hash) && !quick.has(c.info_hash) && !counting.has(c.info_hash));
+        const { list: sortedAll, best } = sortOptions(groups.get(r));
+        const sorted = probing.length ? sortedAll.filter((c) => !probing.includes(c)) : sortedAll;
         // Solo las primeras (2026-11-17): con 150+ filas redibujar todas trababa la compu; las de
         // abajo casi nunca se eligen y siguen probándose igual.
         const rest = sorted.length - view.shownRows;
-        return [sortRow(), el('ul', { class: 'cat-options' }, sorted.slice(0, view.shownRows).map((c) => optionRow(c, c === best))),
+        return [gp, sortRow(), el('ul', { class: 'cat-options' }, sorted.slice(0, view.shownRows).map((c) => optionRow(c, c === best))),
           rest > 0 ? el('button', { id: 'cat-more-rows', class: 'cat-more-rows', onclick: () => { view.shownRows += PAGE_ROWS; renderStreamsOnly(); } },
             `Mostrar ${Math.min(PAGE_ROWS, rest)} más · quedan ${rest}`) : null,
+          probing.length ? el('p', { class: 'cat-probing', role: 'status' }, el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }),
+            `Probando ${probing.length} más de fondo: aparecen acá cuando terminan`) : null,
           lowerSuggestion(r, groups)];
       })() : null);
   }));

@@ -11,7 +11,7 @@ use super::protocol::Stream;
 use crate::magnet::InfoHash;
 
 /// Stream normalizado y deduplicado (spec 09 §7.2), listo para analizar/reproducir.
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize, PartialEq)]
 pub struct StreamCandidate {
     pub info_hash: InfoHash,
     pub file_idx: Option<usize>,

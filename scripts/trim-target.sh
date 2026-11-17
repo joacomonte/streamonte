@@ -14,6 +14,7 @@ for d in target/*/incremental/*/; do
   [ -z "$(find "$d" -type f \( -atime -1 -o -mtime -1 \) -print -quit)" ] && rm -rf "$d"
 done
 # El resto: archivos sin leer ni escribir en 24 h, y las carpetas que quedan vacías.
-find target -type f -not -path '*/incremental/*' -atime +0 -mtime +0 -delete 2>/dev/null
+# El mpv incluido (copia de src-tauri/mpv) no se lee al compilar: no se poda.
+find target -type f -not -path '*/incremental/*' -not -path '*/mpv/*' -atime +0 -mtime +0 -delete 2>/dev/null
 find target -mindepth 1 -type d -empty -delete 2>/dev/null
 exit 0

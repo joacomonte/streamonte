@@ -53,6 +53,14 @@ pub fn is_imdb_id(id: &str) -> bool {
         .is_some_and(|d| (5..=10).contains(&d.len()) && d.bytes().all(|b| b.is_ascii_digit()))
 }
 
+/// Cuánto se recuerda la lista de torrents de un video (2026-11-17, datos guardados): después se
+/// vuelve a buscar (aparecen torrents nuevos y cambian los seeders).
+const RECENT_TTL: Duration = Duration::from_secs(30 * 60);
+/// Archivo de datos guardados con la lista de ese video (`tt…:T:E` → sin `:`).
+fn recent_key(video_id: &str) -> String {
+    format!("torrents-{}.json", video_id.replace(':', "_"))
+}
+
 /// Lo que se pide a los addons (spec 10 §A.3): `tt…` o `tt…:T:E`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VideoId {
@@ -569,6 +577,30 @@ impl Catalog {
         emit: impl Fn(aggregate::StreamsUpdate) + Send + Sync + 'static,
     ) -> Result<()> {
         let video = VideoId::parse(video_id)?;
+        // Ya buscado hace poco (datos guardados: sobrevive a cerrar la app y no se borra con la
+        // caché de descargas): la misma lista al toque y vigente para analizar y reproducir.
+        let key = recent_key(video_id);
+        let cached = self
+            .data
+            .get::<aggregate::StreamsUpdate>(&key)
+            .filter(|(_, age)| *age < RECENT_TTL)
+            .map(|(u, _)| u);
+        if let Some(update) = cached {
+            self.stop_streams();
+            *self.latest.lock().expect("latest") = aggregate::Latest {
+                video: Some(video),
+                candidates: update.candidates.clone(),
+            };
+            emit(update);
+            return Ok(());
+        }
+        let data = self.data.clone();
+        let emit = move |update: aggregate::StreamsUpdate| {
+            if update.done && !update.candidates.is_empty() {
+                data.put(&key, &update);
+            }
+            emit(update);
+        };
         let addons = self.enabled_addons(&cfg.catalog);
         if addons.is_empty() {
             return Err(CoreError::Catalog {

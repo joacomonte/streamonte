@@ -19,6 +19,8 @@
       <button id="btn-clipboard" class="top-btn play-copied" hidden title="Reproducir el magnet copiado (Ctrl+V)"></button>
       <!-- Velocidad de internet (2026-11-16, ui/src/speed.js): tocar = medir de nuevo. -->
       <button id="btn-speed" class="top-btn speed" title="Velocidad de internet"></button>
+      <!-- Bajando de fondo (2026-11-17): siempre a la vista, con su % y ▶ para verla ya; ui/src/top-menus.js. -->
+      <span id="top-bg" class="top-bg" hidden></span>
       <button id="btn-downloads" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Lo descargado, lo que se reproduce o baja de fondo, y limpieza">Descargas<span id="downloads-size" class="top-size" hidden></span><span id="downloads-cache" class="top-size" hidden></span><span id="downloads-speed" class="top-speed" hidden></span><span id="downloads-badge" class="top-badge" hidden></span></button>
       <button id="btn-settings" class="top-btn bare" title="Ajustes" aria-label="Ajustes"></button>
     </div>
@@ -98,13 +100,22 @@
         </div>
       </section>
 
-      <!-- Ecualizador de mpv (2026-11-17): rige desde la próxima reproducción. -->
+      <!-- Reproductor (2026-11-17): mpv incluido o VLC si está instalado, y el ecualizador de mpv. -->
       <section class="set-card" aria-labelledby="set-h-player">
-        <h4 id="set-h-player">Sonido del reproductor</h4>
-        <div class="set-eq" role="radiogroup" aria-labelledby="set-h-player">
-          <label class="set-eq-opt"><input id="set-eq-cine" type="radio" name="set-eq" value="cine"><span><b>Cine</b><small>Graves y voces un poco más presentes.</small></span></label>
-          <label class="set-eq-opt"><input id="set-eq-voices" type="radio" name="set-eq" value="voices"><span><b>Voces claras</b><small>Diálogos al frente, graves sin tocar.</small></span></label>
-          <label class="set-eq-opt"><input id="set-eq-flat" type="radio" name="set-eq" value="flat"><span><b>Plano</b><small>Tal cual viene el video.</small></span></label>
+        <h4 id="set-h-player">Reproductor</h4>
+        <div class="set-eq" role="radiogroup" aria-label="Reproductor">
+          <label class="set-eq-opt"><input id="set-player-mpv" type="radio" name="set-player" value="mpv"><span><b>mpv</b><small id="set-mpv-note">Recomendado: anda mejor y gasta menos.</small></span></label>
+          <label class="set-eq-opt"><input id="set-player-vlc" type="radio" name="set-player" value="vlc"><span><b>VLC</b><small id="set-vlc-note">Sin subtítulos combinados ni ecualizador.</small></span></label>
+        </div>
+        <div id="set-mpv-missing" class="set-mpv-missing" hidden>
+          <span id="set-mpv-missing-text"></span>
+          <button id="btn-install-mpv"></button>
+        </div>
+        <h5 class="set-sub">Sonido (mpv)</h5>
+        <div class="set-eq" role="radiogroup" aria-label="Sonido">
+          <label class="set-eq-opt"><input id="set-eq-cine" type="radio" name="set-eq" value="cine"><span><svg class="set-eq-curve" viewBox="0 0 120 36" aria-hidden="true"><path class="grid" d="M0 18H120"/><path class="line" d="M0 18 C8 18 10 9 18 9 S30 17 40 18 S60 19 70 14 S82 11 88 15 S100 15 108 13 S116 12 120 13"/></svg><b>Cine</b><small>Graves y voces un poco más presentes.</small></span></label>
+          <label class="set-eq-opt"><input id="set-eq-voices" type="radio" name="set-eq" value="voices"><span><svg class="set-eq-curve" viewBox="0 0 120 36" aria-hidden="true"><path class="grid" d="M0 18H120"/><path class="line" d="M0 18 C20 18 40 18 50 16 S62 8 72 8 S84 13 92 17 S110 18 120 18"/></svg><b>Voces claras</b><small>Diálogos al frente, graves sin tocar.</small></span></label>
+          <label class="set-eq-opt"><input id="set-eq-flat" type="radio" name="set-eq" value="flat"><span><svg class="set-eq-curve" viewBox="0 0 120 36" aria-hidden="true"><path class="grid" d="M0 18H120"/><path class="line" d="M0 18 H120"/></svg><b>Plano</b><small>Tal cual viene el video.</small></span></label>
         </div>
       </section>
 

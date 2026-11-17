@@ -68,7 +68,9 @@ impl CoreError {
         match self {
             Self::InvalidMagnet(_) => "Eso no parece un magnet válido.".into(),
             Self::ExecutableNotFound { name } => {
-                format!("No encuentro {name}. Indicá dónde está en Ajustes.")
+                format!(
+                    "No encuentro {name}. En Ajustes → Reproductor podés instalarlo o elegir otro."
+                )
             }
             Self::Engine(_) => "El motor de descarga tuvo un problema; reintentando.".into(),
             Self::Timeout { what, .. } => format!("Tardó demasiado: {what}."),

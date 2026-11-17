@@ -117,6 +117,7 @@ export async function openSettings() {
     for (const k of await api.apiKeys()) placeKey(k.service, k.configured);
     const { engine, player } = await api.config();
     $(`#set-eq-${player.equalizer}`).checked = true;
+    await renderPlayers();
     $('#set-incoming').checked = engine.incoming;
     $('#set-upnp').checked = engine.upnp;
     $('#set-upnp').disabled = !engine.incoming;
@@ -126,6 +127,41 @@ export async function openSettings() {
     showError(e);
   }
   $('#dlg-settings').showModal();
+}
+
+/** Reproductor (2026-11-17): mpv incluido (o el instalado) o VLC si está. Sin mpv que corra (macOS < 15
+ *  sin uno instalado) se recomienda instalarlo; mientras tanto se usa VLC si está. */
+async function renderPlayers() {
+  const p = await api.playersStatus();
+  $(`#set-player-${p.chosen}`).checked = true;
+  $('#set-player-vlc').disabled = !p.vlc;
+  $('#set-vlc-note').textContent = p.vlc ? 'Sin subtítulos combinados ni ecualizador.' : 'No está instalado en esta compu.';
+  $('#set-mpv-note').textContent = { bundled: 'Incluido en la app. Recomendado: anda mejor y gasta menos.', installed: 'El que tenés instalado. Recomendado: anda mejor y gasta menos.',
+    configured: 'El de la ruta que elegiste.' }[p.mpv] ?? 'Esta compu no puede usar el que trae la app (pide macOS 15 o más nuevo).';
+  $('#set-mpv-missing').hidden = !!p.mpv;
+  $('#set-mpv-missing-text').textContent = p.vlc ? 'Mientras tanto se usa VLC. Te recomendamos instalar mpv: anda mejor y gasta menos.'
+    : 'Sin mpv ni VLC no se puede reproducir. Instalá mpv (recomendado).';
+  $('#btn-install-mpv').textContent = p.can_install_mpv ? 'Instalar mpv' : 'Cómo instalarlo';
+}
+export async function savePlayer(ev) {
+  try {
+    await api.setPlayer(ev.target.value);
+    setStatus('Reproductor guardado: rige desde la próxima reproducción.');
+    await renderPlayers();
+  } catch (e) { showError(e); }
+}
+/** Con Homebrew instala mpv (puede tardar unos minutos); si no, abre la guía de instalación. */
+export async function installMpv(ev) {
+  const btn = ev.currentTarget;
+  btn.disabled = true;
+  btn.textContent = 'Instalando… (unos minutos)';
+  try {
+    const ok = await api.installMpv();
+    setStatus(ok ? 'mpv instalado: se usa desde la próxima reproducción.' : 'Abrí la guía de instalación de mpv.');
+  } catch (e) { showError(e); } finally {
+    btn.disabled = false;
+    await renderPlayers().catch(() => {});
+  }
 }
 
 /** Ecualizador (2026-11-17): rige desde la próxima reproducción. */

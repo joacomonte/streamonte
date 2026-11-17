@@ -18,7 +18,7 @@ use crate::trackers::ScrapeResult;
 
 const FLUSH_EVERY: Duration = Duration::from_millis(250);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AddonState {
     Pending,
@@ -30,7 +30,7 @@ pub enum AddonState {
     Error,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct AddonStatus {
     pub id: String,
     pub name: String,
@@ -43,7 +43,7 @@ pub struct AddonStatus {
 }
 
 /// Lo que recibe la UI (evento `catalog-streams`): la lista completa ya fusionada y ordenada.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct StreamsUpdate {
     pub video_id: String,
     pub addons: Vec<AddonStatus>,

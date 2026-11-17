@@ -7,3 +7,12 @@
 
 # Snapshots del navegador de Claude (Playwright MCP)
 /.playwright-mcp
+
+# Locales: memoria de mem, planes y basura de macOS (2026-11-17)
+mem.db*
+/docs/plans/
+.DS_Store
+
+# mpv incluido: lo baja scripts/fetch-mpv.sh (no va al repo)
+/src-tauri/mpv/*
+!/src-tauri/mpv/.gitkeep

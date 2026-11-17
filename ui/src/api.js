@@ -116,6 +116,11 @@ export const api = {
   // Un comando por ajuste: nunca se reescribe la config entera desde la UI.
   /** Ajustes → Red (ADR-30): entrantes / UPnP. */
   /** 'cine' | 'voices' | 'flat' (Ajustes → Reproductor, 2026-11-17). */
+  /** Reproductores de este equipo: {mpv: 'bundled'|'installed'|'configured'|null, vlc, chosen, effective, can_install_mpv}. */
+  playersStatus: () => invoke('players_status'),
+  setPlayer: (player) => invoke('config_set_player', { player }),
+  /** Con Homebrew instala mpv (minutos); si no, abre la guía. true = instalado. */
+  installMpv: () => invoke('install_mpv'),
   setEqualizer: (equalizer) => invoke('config_set_equalizer', { equalizer }),
   setNetwork: (incoming, upnp, announceEarly) => invoke('config_set_network', { incoming, upnp, announceEarly }),
 };
