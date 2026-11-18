@@ -52,11 +52,25 @@
 	let manual = $state(/** @type {{url: string, release: string, kind: 'video' | 'sub', t?: Torrent} | null} */ (null));
 	/** Hoja "¡Link copiado!" del video recién copiado: si trae subs en español y, si no, ver los disponibles. */
 	let linkDone = $state(/** @type {Torrent | null} */ (null));
-	/** El link de video copiado; si es de descarga (no stream), la versión para Web Video Caster y si ya se copió. */
-	let doneUrl = $state('');
-	let wvcCopied = $state(false);
-	/** Link de descarga dentro de /play.html (un <video> que Web Video Caster detecta); el link va después del #. */
-	const wvcUrl = $derived(/\.tb-cdn\./.test(doneUrl) && !/\.m3u8/.test(doneUrl) ? `${location.origin}/play.html#${encodeURIComponent(doneUrl)}` : '');
+	/** "¿Dónde lo vas a ver?": el link de descarga sirve directo en los reproductores, pero Web Video Caster lo
+	 * muestra como texto; para él va dentro de /play.html (un <video> que detecta; el link después del #). El toque en
+	 * la opción es el que copia (iOS). */
+	let whereFor = $state(/** @type {{t: Torrent, url: string} | null} */ (null));
+	/** A dónde se copió el último video: cambia el texto de la hoja "¡Link copiado!". */
+	let doneWhere = $state(/** @type {'wvc' | 'app'} */ ('app'));
+	/** El stream (.m3u8) anda igual en todos: se copia directo; el de descarga pregunta. @param {Torrent} t @param {string} url */
+	function askWhere(t, url) {
+		if (/\.tb-cdn\./.test(url) && !/\.m3u8/.test(url)) whereFor = { t, url };
+		else copyUrl(t, url);
+	}
+	/** @param {'wvc' | 'app'} where */
+	function copyWhere(where) {
+		if (!whereFor) return;
+		const { t, url } = whereFor;
+		whereFor = null;
+		doneWhere = where;
+		copyUrl(t, where === 'wvc' ? `${location.origin}/play.html#${encodeURIComponent(url)}` : url);
+	}
 	let subsOpen = $state(false);
 	/** Hoja de "Link copiado": qué se copió (video o subtítulo) y su nombre. */
 	let copied = $state(/** @type {{kind: 'video' | 'sub', name: string} | null} */ (null));
@@ -345,7 +359,7 @@
 		else if (got.subsEs != null && !known(t)) know(t.hash, { subs: got.subsEs, audio: null });
 		subsFor(t, got.file, got.natives, got.video);
 		if (got.choices?.length) audioFor = { t, choices: got.choices };
-		else copyUrl(t, got.url);
+		else askWhere(t, got.url);
 	}
 	function resetSubs() {
 		subs = null;
@@ -393,8 +407,6 @@
 	/** Copia ya (Chrome deja unos segundos después del toque); si el navegador no deja, un toque más en la hoja.
 	 * @param {Torrent} t @param {string} url */
 	async function copyUrl(t, url) {
-		doneUrl = url;
-		wvcCopied = false;
 		if (copyNow(url)) return done(t, 'ok');
 		try {
 			await navigator.clipboard.writeText(url);
@@ -812,7 +824,7 @@
 					onclick={() => {
 						const t = /** @type {Torrent} */ (audioFor?.t);
 						audioFor = null;
-						copyUrl(t, c.url);
+						askWhere(t, c.url);
 					}}
 				>
 					{c.label}
@@ -822,6 +834,37 @@
 	{/if}
 </Sheet>
 
+<!-- Antes de copiar un link de descarga: ¿Web Video Caster o un reproductor? (cada uno necesita otro link). -->
+<Sheet id="where-sheet" title={tr('¿Dónde lo vas a ver?')} open={!!whereFor} onclose={() => (whereFor = null)}>
+	<div class="where">
+		<button id="where-wvc" type="button" class="spot" onclick={() => copyWhere('wvc')}>
+			<!-- Celu que manda ondas a la tele. -->
+			<svg class="art" viewBox="0 0 120 80" aria-hidden="true">
+				<rect class="tv" x="38" y="10" width="74" height="46" rx="6" />
+				<path class="tv" d="M64 66h22M75 56v10" />
+				<path class="play" d="M70 25v16l14-8z" />
+				<rect class="phone" x="8" y="34" width="22" height="38" rx="5" />
+				<path class="wave w1" d="M30 36a8 8 0 0 1 8-8" />
+				<path class="wave w2" d="M30 30a14 14 0 0 1 14-14" />
+				<path class="wave w3" d="M30 24a20 20 0 0 1 20-20" />
+			</svg>
+			<b>{tr('En la tele')}</b>
+			<small>Web Video Caster</small>
+		</button>
+		<button id="where-app" type="button" class="spot" onclick={() => copyWhere('app')}>
+			<!-- Celu con el video adentro. -->
+			<svg class="art" viewBox="0 0 120 80" aria-hidden="true">
+				<rect class="phone big" x="42" y="4" width="36" height="72" rx="8" />
+				<rect class="screen" x="47" y="14" width="26" height="46" rx="3" />
+				<path class="play pop" d="M55 29v16l13-8z" />
+				<path class="bar" d="M50 66h20" />
+			</svg>
+			<b>{tr('En otra app')}</b>
+			<small>SenPlayer · VLC</small>
+		</button>
+	</div>
+</Sheet>
+
 <!-- Al copiar el link de un video: confirmación, si trae subs en español (de `info`) y, abajo, el tutorial. -->
 <Sheet id="copied-sheet" title={tr('¡Link copiado!')} open={!!linkDone} onclose={() => (linkDone = null)}>
 	{#if linkDone}
@@ -829,7 +872,7 @@
 		{@const k = known(linkDone)}
 		<div class="done-head">
 			<svg class="toast-mark" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="26" /><path d="M17 29l7.5 7.5L40 21" /></svg>
-			<span>{tr('Pegalo en Web Video Caster o en tu reproductor.')}</span>
+			<span>{doneWhere === 'wvc' ? tr('Pegalo en el navegador de Web Video Caster.') : tr('Pegalo en tu reproductor.')}</span>
 		</div>
 		{#if v === 'busy'}
 			<p class="native"><span class="spin"></span>{tr('Viendo si trae subtítulos en español…')}</p>
@@ -838,11 +881,6 @@
 		{:else}
 			<p class="native"><Icon name="subs" size={18} />{k ? tr('No trae subtítulos en español.') : tr('No pude ver si trae subtítulos en español.')}</p>
 			<button id="see-subs" type="button" class="btn primary see-subs" onclick={() => linkDone && showSubs(linkDone)}><Icon name="search" size={16} />{tr('Ver subtítulos disponibles')}</button>
-		{/if}
-		{#if wvcUrl}
-			<button id="copy-wvc" type="button" class="btn wvc" onclick={() => (wvcCopied = copyNow(wvcUrl))}>
-				<Icon name={wvcCopied ? 'check' : 'cast'} size={16} />{wvcCopied ? tr('Copiado: pegalo en Web Video Caster') : tr('Copiar para Web Video Caster')}
-			</button>
 		{/if}
 		<button id="cast-line" type="button" class="cast-line" onclick={() => { linkDone = null; tutorialOpen = true; }}><Icon name="cast" size={15} /><span>{tr('¿Lo vas a ver en la tele?')} <u>{tr('Cómo mandarlo')}</u></span></button>
 	{/if}
@@ -1097,7 +1135,40 @@
 	.native.yes { background: color-mix(in srgb, var(--green) 12%, transparent); }
 	.native :global(svg) { flex: none; }
 	.see-subs { width: 100%; height: 48px; margin-top: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-	.wvc { width: 100%; height: 46px; margin-top: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+	/* "¿Dónde lo vas a ver?": dos tarjetas con dibujo animado y casi sin texto. */
+	.where { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 0 6px; }
+	.spot {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		padding: 14px 8px 14px;
+		border: 1px solid var(--border);
+		border-radius: 18px;
+		background: var(--surface-2);
+		color: var(--text);
+		animation: spot-in 0.45s var(--out) both;
+		transition: transform 0.15s var(--out), border-color 0.2s var(--ease);
+	}
+	.spot + .spot { animation-delay: 0.08s; }
+	.spot:active { transform: scale(0.96); border-color: var(--accent-fg); }
+	.spot b { font-size: 15.5px; margin-top: 6px; }
+	.spot small { font-size: 12px; color: var(--muted); }
+	@keyframes spot-in { from { opacity: 0; transform: translateY(14px) scale(0.97); } }
+	.art { width: 100%; max-width: 132px; height: auto; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+	.art .tv, .art .phone { stroke: var(--muted); stroke-width: 3; }
+	.art .phone.big { stroke: var(--text); }
+	.art .screen { fill: color-mix(in srgb, var(--accent) 22%, transparent); }
+	.art .play { fill: var(--accent); }
+	.art .bar { stroke: var(--muted); stroke-width: 3; }
+	.art .wave { stroke: var(--accent-fg); stroke-width: 3; opacity: 0; animation: wave 1.8s var(--ease) infinite; }
+	.art .w2 { animation-delay: 0.25s; }
+	.art .w3 { animation-delay: 0.5s; }
+	@keyframes wave { 0% { opacity: 0; } 30% { opacity: 1; } 70%, 100% { opacity: 0; } }
+	.art .pop { transform-box: fill-box; transform-origin: center; animation: pop 2s var(--out) infinite; }
+	@keyframes pop { 0%, 60%, 100% { transform: scale(1); } 30% { transform: scale(1.18); } }
+	@media (hover: hover) { .spot:hover { border-color: var(--accent-fg); } }
+	@media (prefers-reduced-motion: reduce) { .spot, .art .wave, .art .pop { animation: none; } .art .wave { opacity: 1; } }
 	.cast-line { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 14px; border: 0; background: none; color: var(--muted); font-size: 13px; }
 	.cast-line u { color: var(--accent-fg); text-underline-offset: 3px; }
 	.link-btn { flex-basis: 100%; min-height: 36px; border: 0; background: none; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
