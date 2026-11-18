@@ -282,5 +282,12 @@ export default {
 	'Sinopsis y géneros': 'Synopsis and genres',
 	'Como los títulos': 'Same as titles',
 	'Como la app': 'Same as app',
+	'Audio LAT': 'LATAM audio',
+	'Subs ES': 'Spanish subs',
+	'Solo las verificadas que traen subtítulos en español': 'Only verified options with Spanish subtitles',
+	'Verificar subtítulos': 'Check subtitles',
+	'Verificando…': 'Checking…',
+	'Hay una versión nueva': 'A new version is available',
+	'Actualizar': 'Update',
 	'Tu plan de TorBox no incluye streaming: no se pueden leer las pistas del video.': 'Your TorBox plan doesn’t include streaming: the video tracks can’t be read.'
 };

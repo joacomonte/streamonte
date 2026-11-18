@@ -40,6 +40,8 @@
 	let res = $state('');
 	let onlyLat = $state(false);
 	let onlyHdr = $state(false);
+	/** Solo las que ya se sabe que traen subs en español (verificadas o con .srt en el torrent). */
+	let onlyEs = $state(false);
 	/** Estado del botón copiar por hash. @type {Record<string, 'busy' | 'ok' | 'err'>} */
 	let copy = $state({});
 	/** Link que el navegador no dejó copiar solo (http en la LAN): se muestra para copiarlo a mano. */
@@ -111,7 +113,9 @@
 	const count = (r) => (data?.list ?? []).filter((t) => t.res === r).length;
 	/** Resolución elegida; por defecto 4K y, si no hay, la mejor que haya (sin datos de resolución: todas). */
 	const shown = $derived(res && count(res) ? res : (RES.find(([v]) => count(v))?.[0] ?? ''));
-	const list = $derived((data?.list ?? []).filter((t) => (!shown || t.res === shown) && (!onlyLat || t.lat) && (!onlyHdr || t.hdr.length)));
+	const list = $derived((data?.list ?? []).filter((t) => (!shown || t.res === shown) && (!onlyLat || t.lat) && (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
+	/** @param {Torrent} t */
+	const hasEs = (t) => t.subFile || (typeof subsEs[t.hash] === 'number' && /** @type {number} */ (subsEs[t.hash]) > 0);
 	/** El video que copiaste: los subtítulos se ordenan por cuánto calzan con él. */
 	let match = $state(/** @type {{release: string, natives?: Native[], file?: {hash: string, size: string}, video?: {fps: number | null, duration: number | null}} | null} */ (null));
 	/** Fuente del release: HDTV, web y Blu-ray del mismo capítulo pueden tener otro corte. @param {string} x */
@@ -140,7 +144,6 @@
 		.sort((a, b) => b.level - a.level || Number(b.latino) - Number(a.latino) || b.downloads - a.downloads);
 	const ranked = $derived(subs ? rank(subs) : []);
 	const premRanked = $derived(rank(prem.results));
-	const exactCount = $derived(subs?.filter((x) => x.exact).length ?? 0);
 	/** Encabezado de la fila: grupo del release y "fuente resolución". @param {Sub} sub */
 	const headOf = (sub) => sub.group || groupOf(sub.release) || (sub.premium ? 'OpenSubtitles' : 'OpenSubtitles.org');
 	/** @param {Sub} sub */
@@ -385,22 +388,6 @@
 	{:else if error && !data}
 		<p class="status error" role="alert">{error}</p>
 	{:else if data}
-		<button id="open-subs" type="button" class="subs-btn" disabled={!match} onclick={() => (subsOpen = true)}>
-			<Icon name="subs" size={18} />
-			<span class="subs-text">
-				<strong>{tr('Subtítulos en español')}</strong>
-				<span class="muted">
-					{#if !match}{tr('Copiá el link de un torrent y aparecen los suyos')}
-					{:else if match.natives?.length}{tr('El video trae subtítulos en español')}
-					{:else if searching}{tr('Buscando en OpenSubtitles.org…')}
-					{:else if subsError}{tr('No se pudieron buscar')}
-					{:else if !subs?.length}{tr('No hay para este video · probá Premium')}
-					{:else}{#if exactCount}{tr('{n} exactos para tu video · ', { n: exactCount })}{/if}{tr('{n} encontrados', { n: subs.length })}{/if}
-				</span>
-			</span>
-			{#if searching}<span class="spin"></span>{:else if match}<Icon name="chev" size={18} />{/if}
-		</button>
-
 		<div class="bar">
 			<div class="chips" role="toolbar" aria-label={tr('Filtros de torrents')}>
 				{#each RES as [v, l] (v)}
@@ -412,8 +399,9 @@
 				{/each}
 			</div>
 			<div class="chips toggles" role="toolbar" aria-label={tr('Idioma y HDR')}>
-				<button id="only-lat" type="button" class="chip toggle" class:on={onlyLat} aria-pressed={onlyLat} onclick={() => (onlyLat = !onlyLat)}>{tr('Solo Latino')}</button>
-				<button id="only-hdr" type="button" class="chip toggle" class:on={onlyHdr} aria-pressed={onlyHdr} onclick={() => (onlyHdr = !onlyHdr)}>{tr('Solo HDR')}</button>
+				<button id="only-lat" type="button" class="chip toggle" class:on={onlyLat} aria-pressed={onlyLat} onclick={() => (onlyLat = !onlyLat)}>{tr('Audio LAT')}</button>
+				<button id="only-hdr" type="button" class="chip toggle" class:on={onlyHdr} aria-pressed={onlyHdr} onclick={() => (onlyHdr = !onlyHdr)}>HDR</button>
+				<button id="only-es" type="button" class="chip toggle" class:on={onlyEs} aria-pressed={onlyEs} title={tr('Solo las verificadas que traen subtítulos en español')} onclick={() => (onlyEs = !onlyEs)}><Icon name="subs" size={14} />{tr('Subs ES')}</button>
 			</div>
 			<p class="summary" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>{tr('{n} de {f} en TorBox · por tamaño', { n: data.list.length, f: data.found })}</p>
 		</div>
@@ -437,6 +425,7 @@
 						{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
 						{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
 						{#if t.lat}<span class="tag lat">{tr('LATINO')}</span>{/if}
+						<span class="tag tb" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>TorBox</span>
 						{#if sb}<span class="tag cc {sb.on ? 'es' : 'nosub'}" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES</span>{/if}
 					</div>
 					<div class="quality" title={q ? tr('Calidad de imagen: {q}', { q: tr(q[0]) }) : tr('El nombre del torrent no dice de dónde salió el video')}>
@@ -450,22 +439,21 @@
 							<span class="qname unknown">{tr('Calidad sin dato')}</span>
 						{/if}
 					</div>
-					</div>
-					<div class="acts">
-					<!-- Sin dato de subs: píldora mínima al lado de copiar; un toque es un pedido y deja el badge. -->
+					<!-- Sin dato de subs: un texto chico; un toque es un pedido y deja el badge arriba. -->
 					{#if !sb && subsEs[t.hash] === 'busy'}
-						<span class="probe busy" role="status" aria-label={tr('Viendo si trae subtítulos en español')}><span class="spin"></span></span>
+						<span class="verify busy" role="status"><span class="spin"></span>{tr('Verificando…')}</span>
 					{:else if !sb}
 						<button
 							id="probe-{t.hash}"
 							type="button"
-							class="probe"
+							class="verify"
 							class:err={subsEs[t.hash] === 'err'}
 							title={subsEs[t.hash] === 'err' ? tr('No se pudo ver: tocá para reintentar') : tr('Ver si trae subtítulos en español')}
-							aria-label={subsEs[t.hash] === 'err' ? tr('No se pudo ver si trae subtítulos en español: reintentar') : tr('Ver si trae subtítulos en español')}
 							onclick={() => probe(t)}
-						><Icon name="subs" size={15} />?</button>
+						><Icon name="subs" size={14} />{subsEs[t.hash] === 'err' ? tr('Reintentar') : tr('Verificar subtítulos')}</button>
 					{/if}
+					</div>
+					<div class="acts">
 					<!-- Como ▶ del desktop: un botón redondo; lleno solo en la primera fila. -->
 					<button
 						id="copy-{t.hash}"
@@ -653,24 +641,6 @@
 	.status { display: flex; align-items: center; gap: 10px; padding: 14px 0; margin: 0; font-size: 14px; }
 	.row-skel { height: 132px; border-radius: var(--radius-card); margin-bottom: 10px; }
 
-	.subs-btn {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		width: 100%;
-		min-height: 56px;
-		margin: 4px 0 6px;
-		padding: 8px 12px 8px 14px;
-		border-radius: var(--radius-card);
-		border: 1px solid var(--border);
-		background: var(--surface);
-		text-align: left;
-		color: var(--accent-fg);
-	}
-	.subs-btn:disabled { cursor: default; color: var(--muted); }
-	.subs-btn:not(:disabled):active { background: var(--surface-2); }
-	.subs-text { flex: 1; min-width: 0; display: flex; flex-direction: column; color: var(--text); font-size: 13px; }
-	.subs-text strong { font-size: 14.5px; font-weight: 650; }
 
 	.bar { position: sticky; top: calc(var(--safe-top) + 64px); z-index: 5; background: var(--bg); padding: 8px 0 6px; }
 	.chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 5px 16px; }
@@ -732,30 +702,25 @@
 	.acts { display: flex; align-items: center; gap: 8px; }
 	/* Badge de subs compacto (cc + ES): entra en la línea de los tags. (`.sub` ya es la fila de subtítulo.) */
 	.tag.cc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px 1px 4px; }
-	/* Píldora punteada: todavía no se sabe si trae subs en español; un toque lo consulta. */
-	.probe {
+	.tag.tb { color: #3ecf8e; }
+	/* "Verificar subtítulos": texto chico debajo de la calidad; sin borde ni caja, solo el color del acento. */
+	.verify {
 		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		gap: 1px;
-		width: 40px;
-		height: 30px;
+		gap: 5px;
+		min-height: 32px;
+		margin: 2px 0 -6px;
 		padding: 0;
-		border: 1.5px dashed var(--border-strong);
-		border-radius: 999px;
+		border: 0;
 		background: none;
-		color: var(--muted);
-		font-size: 13px;
-		font-weight: 750;
-		position: relative;
-		transition: transform 0.15s var(--out), background 0.2s var(--ease);
+		color: var(--accent-fg);
+		font-size: 12.5px;
+		font-weight: 650;
 	}
-	/* Área táctil de 44 px de alto sin agrandar la píldora. */
-	button.probe::after { content: ''; position: absolute; inset: -6px -2px; }
-	button.probe:active { transform: scale(0.94); background: var(--surface-2); }
-	.probe.err { border-color: var(--amber); color: var(--amber); }
-	.probe.busy { border-style: solid; }
-	.probe .spin { width: 14px; height: 14px; border-width: 2px; }
+	button.verify:active { opacity: 0.6; }
+	.verify.err { color: var(--amber); }
+	.verify.busy { color: var(--muted); }
+	.verify .spin { width: 12px; height: 12px; border-width: 2px; }
 	.tag.nosub { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); background: color-mix(in srgb, var(--amber) 10%, transparent); }
 	.quality { display: flex; align-items: center; gap: 5px; margin-top: 5px; color: var(--muted); font-size: 13.5px; }
 	.stars { display: inline-flex; gap: 1px; color: color-mix(in srgb, var(--muted) 45%, transparent); }

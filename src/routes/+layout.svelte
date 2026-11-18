@@ -4,6 +4,8 @@
 	import Tour from '#lib/Tour.svelte';
 	import { device, markSeen, seen, welcomeSteps } from '#lib/tours.js';
 	import { i18n, t } from '#lib/i18n.svelte.js';
+	import { updated } from '$app/state';
+	import Icon from '#lib/Icon.svelte';
 
 	/** @type {{data: {langs: import('#lib/i18n/translate.js').Langs, info: 'titles' | 'app'}, children: import('svelte').Snippet}} */
 	let { data, children } = $props();
@@ -47,6 +49,41 @@
 
 {@render children()}
 
+<!-- Versión nueva publicada (la app instalada en el celu queda abierta días): se ofrece recargar. -->
+{#if updated.current}
+	<div id="update-bar" class="update" role="status">
+		<span>{t('Hay una versión nueva')}</span>
+		<button id="update-now" type="button" class="update-btn" onclick={() => location.reload()}><Icon name="download" size={16} />{t('Actualizar')}</button>
+	</div>
+{/if}
+
 {#if welcome}
 	<Tour id="welcome" label={t('Bienvenida')} open steps={welcome} onclose={() => { markSeen('welcome'); welcomeOpen = false; }} />
 {/if}
+
+<style>
+	.update {
+		position: fixed;
+		left: 12px;
+		right: 12px;
+		bottom: calc(12px + var(--safe-bottom));
+		z-index: 60;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		max-width: 520px;
+		margin: 0 auto;
+		padding: 8px 8px 8px 16px;
+		border-radius: 14px;
+		background: var(--raised);
+		box-shadow: 0 8px 28px var(--shadow-lg);
+		font-size: 14.5px;
+		font-weight: 600;
+		animation: update-in 0.4s var(--out);
+	}
+	.update-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-text); font-size: 14px; font-weight: 700; }
+	.update-btn:active { transform: scale(0.97); }
+	@keyframes update-in { from { transform: translateY(24px); opacity: 0; } }
+	@media (prefers-reduced-motion: reduce) { .update { animation: none; } }
+</style>

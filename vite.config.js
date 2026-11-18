@@ -12,7 +12,9 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			// En Vercel (VERCEL=1 en su build) usa su adapter; en la Mac sigue el server node.
-			adapter: process.env.VERCEL ? vercelAdapter() : nodeAdapter()
+			adapter: process.env.VERCEL ? vercelAdapter() : nodeAdapter(),
+			// Busca versión nueva cada 5 min (y al volver a la app): la instalada en el celu avisa para actualizar.
+			version: { pollInterval: 5 * 60 * 1000 }
 		})
 	]
 });
