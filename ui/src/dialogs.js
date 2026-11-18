@@ -129,10 +129,36 @@ export async function saveOsLogin() {
   } catch (e) { showError(e); }
 }
 
+/** Lat-Team: el toggle sigue a la fuente `latteam` y el estado al token guardado. */
+async function showLatTeam(keys) {
+  const addons = await api.catalogAddons();
+  $('#set-latteam-on').checked = addons.some((a) => a.id === 'latteam' && a.enabled);
+  const has = keys.some((k) => k.service === 'latteam' && k.configured);
+  $('#latteam-state').textContent = has ? '✔ token guardado' : 'sin token';
+  $('#latteam-state').className = `key-state ${has ? 'ok' : ''}`;
+}
+export async function toggleLatTeam() {
+  try {
+    await api.catalogSetAddonEnabled('latteam', $('#set-latteam-on').checked);
+  } catch (e) { showError(e); }
+}
+/** Guarda el token (vacío = lo borra). */
+export async function saveLatTeamToken() {
+  const input = $('#key-latteam');
+  try {
+    await api.setApiKey('latteam', input.value.trim());
+    input.value = '';
+    await showLatTeam(await api.apiKeys());
+    setStatus('Token de Lat-Team guardado en el almacén seguro.');
+  } catch (e) { showError(e); }
+}
+
 export async function openSettings() {
   try {
     showOsLogin();
-    for (const k of await api.apiKeys()) placeKey(k.service, k.configured);
+    const keys = await api.apiKeys();
+    for (const k of keys) placeKey(k.service, k.configured);
+    await showLatTeam(keys);
     const { engine, player } = await api.config();
     $(`#set-eq-${player.equalizer}`).checked = true;
     await renderPlayers();

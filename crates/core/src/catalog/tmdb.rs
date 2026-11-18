@@ -47,6 +47,9 @@ struct Found {
     #[serde(default)]
     id: u64,
     poster_path: Option<String>,
+    /// Con `language=…` (solo en `localized`): título traducido y fecha de estreno.
+    title: Option<String>,
+    release_date: Option<String>,
 }
 
 /// Póster por IMDb id, recordado por id (también "no hay"; un error de red no se recuerda) y
@@ -242,6 +245,37 @@ pub async fn details(
         has_key: true,
         details: found,
     }
+}
+
+/// Película en TMDB con su título en español: lo necesitan las fuentes que solo buscan por ese
+/// título (Hacktorrent). `None` sin key o si TMDB no responde.
+pub struct Localized {
+    pub tmdb_id: u64,
+    pub title: Option<String>,
+    pub year: Option<String>,
+}
+
+pub async fn localized(http: &Http, imdb_id: &str, timeout: Duration) -> Option<Localized> {
+    let key = crate::secrets::secret(ACCOUNT)?;
+    let find: FindResponse = http
+        .get_json(
+            &format!(
+                "https://api.themoviedb.org/3/find/{imdb_id}?external_source=imdb_id&language=es-MX&api_key={key}"
+            ),
+            timeout,
+        )
+        .await
+        .map_err(|e| tracing::debug!(imdb_id, "TMDB título: {}", e.user_text()))
+        .ok()?;
+    let f = find.movie_results.into_iter().next()?;
+    Some(Localized {
+        tmdb_id: f.id,
+        title: f
+            .title
+            .map(|t| super::normalize::clean(&t))
+            .filter(|t| !t.is_empty()),
+        year: f.release_date.and_then(|d| d.get(..4).map(String::from)),
+    })
 }
 
 const fn tmdb_path(kind: MediaKind) -> &'static str {

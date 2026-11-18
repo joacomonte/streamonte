@@ -9,9 +9,9 @@ import { healthCalibration, MIN_SECS, notePrediction, predict, shownLevel, speed
 import { state as lib } from './state.js';
 import { renderSide } from './catalog-side.js';
 import { safeSet, showError, state, view } from './catalog-state.js';
-import { isReading, openSubs, readSubsNow, readTracks, readUntil, stopReading, subsStep } from './catalog-subs.js';
+import { isReading, openSubs, readError, readSubsNow, readTracks, readUntil, stopReading, subsScan, subsStep, toggleSubsScan } from './catalog-subs.js';
 import { analysisEta, census, counted, counting, deepDone, liveCount, loadSavedTests, newVideoTests, once, phaseAt, quick, QUICK_ENOUGH, QUICK_LATE_MS, quickGroup, quickLive, quickPending, quickRunning, reanalyze, runCensus, runDeep, skipped, startAnalysis, stopTests, testedAt, toggleBest, TOP, unlikely } from './catalog-tests.js';
-import { crumbs, flowFilter, flowStep, newFlow } from './catalog-flow.js';
+import { crumbs, fitsNet, flowFilter, flowStep, hasResStep, isMatch, moreRow, newFlow } from './catalog-flow.js';
 
 /** Tooltips del badge HDR (pedido 2026-11-15, en blanco y negro): HDR y Dolby Vision se muestran igual;
  *  el tooltip dice cuál es. */
@@ -73,9 +73,13 @@ function langActions(c) {
  *  queda cargando y otro clic corta la espera (lo leído hasta ahí no se pierde). */
 function checkButton(hash, kind) {
   const reading = isReading(hash);
-  const [ic, text, busy, tip] = kind === 'subs'
+  const error = readError(hash);
+  const [ic, text0, busy, tip0] = kind === 'subs'
     ? ['subs', '¿Trae subs?', 'Leyendo subs…', 'Mira adentro del video si trae subtítulos en español (no baja nada)']
     : ['speaker', '¿Audio latino?', 'Leyendo audio…', 'Lee sus pistas de audio para confirmar si es latino'];
+  // No se pudo leer (2026-11-18: antes volvía al botón de siempre y parecía que no hizo nada): dice por qué.
+  const text = error ? 'No se pudo · reintentar' : text0;
+  const tip = error ? `No se pudo leer: ${error}. Tocá para reintentar` : tip0;
   return el('button', { id: `cat-${kind}check-${hash}`, type: 'button', class: `cat-dock-btn ${reading ? 'loading' : ''}`,
     title: reading ? 'Tocá para cancelar' : `${tip} (${inTorbox.has(hash) ? 'un pedido a TorBox, unos segundos' : 'por torrent: necesita seeds'})`,
     'aria-label': reading ? `${busy} Tocá para cancelar` : text,
@@ -152,11 +156,14 @@ export const deepTested = () => state.side?.deep?.status === 'done' && state.sid
  *  todo va lo que se reproduce o baja. `best` = la primera que entra, no es de cine y anda fluida (la
  *  fila confirma que esté testeada). */
 export function sortOptions(cands) {
-  // "Solo TorBox" (2026-11-17): se ven desde sus servidores, así que seeds y salud no importan: de
-  // mejor a peor calidad de imagen, y a igual calidad la más pesada (menos comprimida).
+  // TorBox (2026-11-17): se ven desde sus servidores, así que seeds y salud no importan.
   if (state.side?.flow?.mode === 'torbox') {
-    const list = [...cands].sort((a, b) => qualityRank(b) - qualityRank(a) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0));
-    return { list: pinPlaying(list), best: list.find(isTorboxBest) ?? null };
+    // Por bitrate (2026-11-18): más Mbps = más imagen por segundo; la resolución sola no dice cuánto se comprimió. A
+    // igual bitrate, la de mejor calidad de imagen; la de cine al final.
+    // Sin peso no se sabe cuánto pide: al final, como la de cine (2026-11-18: salía "Mejor opción" sin tamaño).
+    const unknown = (c) => c.size_bytes == null || c.source === 'CAM';
+    const list = [...cands].sort((a, b) => unknown(a) - unknown(b) || mbpsOf(b) - mbpsOf(a) || qualityRank(b) - qualityRank(a));
+    return { list: pinPlaying(list), best: list.find(isMatch) ?? null };
   }
   const mode = deepTested() ? view.optSort : 'fast';
   const lvl = new Map(cands.map((c) => { const h = health(c); return [c, h ? h.shown + (h.probable ? 0.5 : 0) : 1.75]; }));
@@ -179,10 +186,10 @@ export function sortOptions(cands) {
   const best = list.find((c) => fits(c) && c.source !== 'CAM' && lvl.get(c) === 0) ?? null;
   return { list: pinPlaying(list), best };
 }
-/** Fija arriba (2026-11-18) lo que se reproduce o baja y lo que se está preparando (▶ tocado: audio, subtítulos,
- *  TorBox): el resto se reordena debajo sin moverla. */
+/** Fija arriba (2026-11-18) lo que se reproduce o baja: el resto se reordena debajo sin moverla. Lo que se está
+ *  preparando (▶ tocado, eligiendo audio y subtítulos) no se mueve: sube recién al arrancar. */
 function pinPlaying(list) {
-  const active = new Set([...[...lib.playbacks.values()].filter((r) => r.state.kind !== 'failed').map((r) => r.key.split(':')[0]), ...starting.keys()]);
+  const active = new Set([...lib.playbacks.values()].filter((r) => r.state.kind !== 'failed').map((r) => r.key.split(':')[0]));
   return [...list.filter((c) => active.has(c.info_hash)), ...list.filter((c) => !active.has(c.info_hash))];
 }
 
@@ -249,12 +256,13 @@ const closeCtx = () => { ctx.hidden = true; };
  *  sigue valiendo después de esperar al núcleo (WebKit lo pierde con un `await` antes de copiar). */
 function copyLink(hash, torbox) {
   closeCtx();
-  const link = api.catalogLink(hash, torbox);
+  const f = state.side?.flow;
+  const link = api.catalogLink(hash, torbox, state.side?.details?.details?.original_language ?? null, !!(f?.lat && !f.latOff));
   const done = typeof ClipboardItem === 'function'
     ? navigator.clipboard.write([new ClipboardItem({ 'text/plain': link.then((t) => new Blob([t], { type: 'text/plain' })) })])
     : link.then((t) => navigator.clipboard.writeText(t));
   if (torbox) setStatus('Pidiéndole el link a TorBox…');
-  done.then(() => setStatus(torbox ? 'Link de TorBox copiado: vence en unas horas.' : 'Magnet copiado.')).catch(showError);
+  done.then(() => setStatus(torbox ? 'Link para castear copiado (stream de TorBox): pegalo en Web Video Caster. Vence en unas horas.' : 'Magnet copiado.')).catch(showError);
 }
 document.addEventListener('contextmenu', (ev) => {
   const row = ev.target.closest?.('.cat-opt[data-hash]');
@@ -263,7 +271,7 @@ document.addEventListener('contextmenu', (ev) => {
   const hash = row.dataset.hash;
   const item = (id, label, torbox) => el('button', { id, class: 'cat-ctx-item', role: 'menuitem', type: 'button', onclick: () => copyLink(hash, torbox) }, icon(torbox ? 'external' : 'copy', 14), label);
   ctx.replaceChildren(...[
-    view.torboxKey && inTorbox.has(hash) ? item('cat-ctx-torbox', 'Copiar link de TorBox (https)', true) : null,
+    view.torboxKey && inTorbox.has(hash) ? item('cat-ctx-torbox', 'Copiar link para castear (TorBox)', true) : null,
     item('cat-ctx-magnet', 'Copiar magnet', false),
     el('button', { id: 'cat-ctx-subs', class: 'cat-ctx-item', role: 'menuitem', type: 'button',
       onclick: () => { closeCtx(); openSubs(hash, !!view.torboxKey && inTorbox.has(hash), document.getElementById(`cat-play-${hash}`) ?? row); } }, icon('subs', 14), 'Subtítulos…'),
@@ -299,7 +307,7 @@ export function autoBar() {
 
 /** Orden de la lista (2026-11-17), arriba de las opciones del grupo abierto (no junto al panel de
  *  test). Antes del test profundo es solo información. */
-export function sortRow() {
+export function sortRow(extra = null) {
   // Filtro, a la derecha del orden: es sobre la lista, no sobre el test.
   const hdr = el('button', {
     id: 'cat-only-hdr', class: 'cat-hdr-filter', 'aria-pressed': String(view.onlyHdr),
@@ -319,7 +327,21 @@ export function sortRow() {
       [['quality', 'Mejor imagen', 'Arriba las testeadas que andan fluidas, de mejor a peor calidad de imagen; después el resto por conexión'], ['fast', 'Arranca más rápido', 'Primero las de mejor conexión: las más fluidas y con más seeds']].map(([k, label, tip]) =>
         el('button', { id: `cat-sort-${k}`, 'aria-pressed': String(view.optSort === k), title: tip,
           onclick: () => { view.optSort = k; safeSet('streamonte.catalog.sort', k); renderStreamsOnly(); } }, label))));
-  return el('div', { class: 'cat-list-bar' }, order, el('span', { class: 'cat-list-filters' }, hdr));
+  return el('div', { class: 'cat-list-bar' }, order, el('span', { class: 'cat-list-filters' }, extra, hdr));
+}
+/** "Buscar sub ES" (2026-11-18): lee de a una, en el orden de la lista, hasta encontrar una con subtítulos en español
+ *  dentro del video; el mismo botón pausa y sigue. Sin pendientes ni resultado, no aparece. */
+function subsScanChip(list) {
+  const st = subsScan();
+  if (st === 'found' || list.some((c) => hasSpanishSubs(c.info_hash) === true)) return null;
+  const left = list.filter((c) => hasSpanishSubs(c.info_hash) == null).length;
+  if (st === 'none' || !left) return el('span', { id: 'cat-subscan', class: 'cat-hdr-filter done', role: 'status' }, icon('subs', 12), 'Ninguna trae sub ES');
+  const running = st === 'running';
+  return el('button', { id: 'cat-subscan', class: `cat-hdr-filter ${running ? 'busy' : ''}`, 'aria-pressed': String(running),
+    title: running ? 'Pausar la búsqueda (lo leído queda)' : `Lee de a una (${left} sin leer) hasta encontrar una que traiga subtítulos en español dentro del video`,
+    onclick: toggleSubsScan },
+  running ? el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }) : icon('subs', 12),
+  running ? 'Buscando sub ES… · Pausar' : st === 'paused' ? 'Seguir buscando sub ES' : 'Buscar sub ES');
 }
 
 /** Cada cuánto cambia la línea de avance aunque no lleguen resultados. */
@@ -534,6 +556,8 @@ export function neededBps(c) {
  *  4K web anda en 15–25, un 1080p en 5–10. Mejor una estimación que solo contar seeders. */
 export const TYPICAL_MBPS = { '2160p': 25, '1440p': 14, '1080p': 8, '720p': 4 };
 export const toMbps = (bps) => (bps * 8) / 1e6;
+/** Mbps que pide una opción para verse sin cortes: peso ÷ duración; sin dato, lo típico de su resolución. */
+export const mbpsOf = (c) => { const b = neededBps(c); return b ? toMbps(b) : TYPICAL_MBPS[c.resolution] ?? 3; };
 /** Salud del stream (salud fiel, 2026-11-16): un RANGO de Mbps contra lo que pide (tamaño ÷
  *  duración). Lo que baja ahora manda; si no, `predict` (medición del análisis > el p50 más alto entre
  *  seeders contados y de trackers) corregido con lo aprendido en esta red. `level` = nivel del p50
@@ -779,7 +803,10 @@ export function optionRow(c, best = false) {
     el('span', { class: 'cat-size-cell' },
       el('span', { class: 'cat-size-line' }, el('span', { class: 'cat-size' }, humanBytes(c.size_bytes)),
         hdrTip ? el('span', { class: 'cat-tag cat-hdr', title: hdrTip }, 'HDR') : null,
-        inTorbox.has(hash) ? el('span', { class: 'cat-tag cat-torbox', title: 'TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Este ya lo tiene bajado: se ve al instante y sin depender de los seeds, sin bajar nada a tu Mac.' }, 'TorBox') : null,
+        hasResStep() ? null : el('span', { class: 'cat-tag cat-res', title: 'Resolución' }, resLabel(resKey(c))),
+        hasResStep() || fitsNet(c) || c.size_bytes == null ? null : el('span', { class: 'cat-tag cat-heavy', title: `Pide ~${Math.round(mbpsOf(c))} Mbps: más de lo que da tu conexión` }, 'Puede cortarse'),
+        // Por TorBox ya se eligió en los pasos: el badge solo informa por torrent (2026-11-18).
+        inTorbox.has(hash) && state.side?.flow?.mode !== 'torbox' ? el('span', { class: 'cat-tag cat-torbox', title: 'TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Este ya lo tiene bajado: se ve al instante y sin depender de los seeds, sin bajar nada a tu Mac.' }, 'TorBox') : null,
         langTags(c)),
       qualityLine(c),
       big ? el('span', { class: 'cat-nofit', title: `No entra en el disco: pesa ${humanBytes(fileBytes(c))} y en el disco de descargas quedan ${humanBytes(view.freeBytes)} libres. Se cortaría a mitad: liberá espacio o elegí una más liviana.` },
@@ -945,9 +972,9 @@ export function openGroup(r) {
   view.shownRows = PAGE_ROWS;
   renderStreamsOnly();
 }
-/** "Mejor opción" en TorBox (2026-11-18): salud y seeds no aplican; la recomendada cumple lo pedido. Pidiendo latino,
- *  latino confirmado en sus pistas (los subs no importan); si no, subtítulos en español dentro del video. */
-const isTorboxBest = (c) => c.source !== 'CAM' && (wantsLatino() ? latOf(c) === 'real' : hasSpanishSubs(c.info_hash) === true);
+/** Todas las opciones sin separar por calidad (TorBox): de 4K a "Otras" y, dentro de cada una, el orden de
+ *  `sortOptions` (calidad de imagen y peso). */
+export const flatSorted = (cands) => sortOptions(cands).list;
 /** La única que se recomienda ("Mejor opción") o se elige sola ("Elegí la mejor"): testeada a fondo,
  *  fluida segura (lo probable no), que entre en el disco y no sea de cine. */
 export function isSafeBest(c) {
@@ -970,53 +997,66 @@ export function renderStreamsBody(box) {
   if (step) { box.append(step); if (body) body.scrollTop = scroll; return; }
   const r = view.openRes;
   const groups = groupsOf(u);
-  const n = groups.get(r).length;
+  // Sin paso de calidad (TorBox, "Ver todas las opciones"): una sola lista con todas las calidades, cada fila con la suya.
+  const flat = !hasResStep();
+  const cands = flat ? [...groups.values()].flat() : groups.get(r);
+  const n = cands.length;
   const head = optionsHead();
   const f = state.side.flow;
   // Mientras corre el análisis profundo, el borde de la lista gira (2026-11-16).
   const analyzing = state.side.deep?.status === 'run';
   box.append(...[crumbs(), head && el('div', { class: 'cat-sticky' }, head),
-    el('section', { class: `cat-group open ${analyzing ? 'analyzing' : ''}`, id: `cat-group-${r}`, 'aria-busy': analyzing ? 'true' : null,
+    el('section', { class: `cat-group open ${analyzing ? 'analyzing' : ''}`, id: `cat-group-${flat ? 'all' : r}`, 'aria-busy': analyzing ? 'true' : null,
       style: analyzing ? `--group-phase:-${Date.now() % 4000}ms` : null },
     el('div', { class: 'cat-group-head', id: `cat-res-${r}` },
-      el('span', { class: 'cat-group-name' }, resLabel(r)),
+      el('span', { class: 'cat-group-name' }, flat ? 'Todas las calidades' : resLabel(r)),
       el('span', { class: 'cat-res-count' }, `${n} ${n === 1 ? 'opción' : 'opciones'}`)),
-    f.latOff ? el('p', { class: 'cat-flow-note inline', role: 'status' }, `Ninguna de ${resLabel(r)} tiene audio latino: se muestran todas.`) : null,
+    f.latOff ? el('p', { class: 'cat-flow-note inline', role: 'status' }, 'Sin filtro de latino: se muestran todas.') : null,
     (() => {
       // Analizando (2026-11-17): solo el panel con su avance y "Detener"; sin filas (eran decenas de
       // animaciones a la vez). Al terminar, el resultado y la lista ya ordenada.
-      const gp = groupPanel(r);
-      if (state.side.tests.run?.res === r || state.side.tests.stopping?.res === r) return gp;
+      const gp = flat ? null : groupPanel(r);
+      if (!flat && (state.side.tests.run?.res === r || state.side.tests.stopping?.res === r)) return gp;
       // Las que todavía se están probando de fondo no se muestran hasta terminar (2026-11-17): se
       // movían y cambiaban sin parar; aparecen ya ordenadas con su resultado.
-      const probing = groups.get(r).filter((c) => quickRunning.has(c.info_hash) && !quick.has(c.info_hash) && !counting.has(c.info_hash));
-      const { list: sortedAll, best } = sortOptions(groups.get(r));
+      const probing = cands.filter((c) => quickRunning.has(c.info_hash) && !quick.has(c.info_hash) && !counting.has(c.info_hash));
+      const flatList = flat ? flatSorted(cands) : null;
+      const { list: sortedAll, best } = flat ? { list: flatList, best: flatList.find(isMatch) ?? null } : sortOptions(cands);
       const sorted = probing.length ? sortedAll.filter((c) => !probing.includes(c)) : sortedAll;
-      // TorBox (2026-11-18): sus pistas se leen de a una y solo hasta encontrar una que sirva (sub ES y, si pidió
-      // latino, latino confirmado).
-      if (f.mode === 'torbox') {
-        const wantLat = f.lat && !f.latOff;
-        const byHash = new Map(sorted.map((c) => [c.info_hash, c]));
-        readUntil(sorted.map((c) => c.info_hash), (h) => hasSpanishSubs(h) === true && (!wantLat || latOf(byHash.get(h)) === 'real'));
-      }
+      // "Buscar sub ES" de la barra (por torrent; en TorBox lo hace "Seguir buscando"): lee de a una solo hasta
+      // encontrar una que sirva (sub ES y, si pidió latino, latino confirmado).
+      const wantLat = f.lat && !f.latOff;
+      const byHash = new Map(sorted.map((c) => [c.info_hash, c]));
+      if (!flat) readUntil(sorted.map((c) => c.info_hash), (h) => hasSpanishSubs(h) === true && (!wantLat || latOf(byHash.get(h)) === 'real'));
       // Solo las primeras (2026-11-17): con 150+ filas redibujar todas trababa la compu; las de
       // abajo casi nunca se eligen y siguen probándose igual.
       const rest = sorted.length - view.shownRows;
-      if (!n) return [gp, sortRow(), noMatches()];
-      return [gp, sortRow(), el('ul', { class: 'cat-options' }, sorted.slice(0, view.shownRows).map((c) => optionRow(c, c === best))),
+      if (!n) return [gp, sortRow(), noMatches(u.candidates.some((c) => flat || resKey(c) === r)), moreRow()];
+      return [gp, sortRow(flat ? null : subsScanChip(sorted)), el('ul', { class: 'cat-options' }, sorted.slice(0, view.shownRows).map((c) => optionRow(c, c === best))),
         rest > 0 ? el('button', { id: 'cat-more-rows', class: 'cat-more-rows', onclick: () => { view.shownRows += PAGE_ROWS; renderStreamsOnly(); } },
           `Mostrar ${Math.min(PAGE_ROWS, rest)} más · quedan ${rest}`) : null,
         probing.length ? el('p', { class: 'cat-probing', role: 'status' }, el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }),
           `Probando ${probing.length} más de fondo: aparecen acá cuando terminan`) : null,
-        lowerSuggestion(r, groups)];
+        moreRow(), flat ? null : lowerSuggestion(r, groups)];
     })())].filter(Boolean));
   if (body) body.scrollTop = scroll;
 }
 
-/** Ninguna opción pasa los filtros puestos: lo dice y ofrece sacarlos. */
-function noMatches() {
+/** Lista vacía (2026-11-18): si la resolución tiene torrents que los filtros esconden, lo dice y ofrece sacarlos;
+ *  si no tiene ninguno, no hay nada que destrabar. */
+function noMatches(hasCandidates) {
+  if (!hasCandidates) return el('p', { class: 'pop-empty', role: 'status' }, 'No se encontraron torrents.');
   return el('p', { class: 'pop-empty', role: 'status' }, 'No hay opciones con estos filtros. ',
-    el('button', { id: 'cat-filters-off', class: 'link', onclick: () => { view.onlyHdr = false; if (state.side.flow?.lat) state.side.flow.latOff = true; renderStreamsOnly(); } }, 'Quitar filtros'));
+    el('button', { id: 'cat-filters-off', class: 'link', onclick: clearFilters }, 'Quitar filtros'));
+}
+/** Quita todos los filtros que limitan la lista (2026-11-18): HDR, latino y TorBox (pasa a torrent, sin filtro).
+ *  Antes, con TorBox puesto, el botón no alcanzaba y el mensaje se repetía. */
+function clearFilters() {
+  view.onlyHdr = false;
+  const f = state.side.flow;
+  if (f?.lat) f.latOff = true;
+  if (f?.mode === 'torbox') f.mode = 'torrent';
+  renderStreamsOnly();
 }
 
 /** Al final de la lista (2026-11-17, antes en el panel de arriba): con el test de esa resolución
@@ -1072,7 +1112,10 @@ export async function playOption(hash, btn, torbox = false) {
         return true;
       };
       if (starting.has(hash)) {
-        started = await play(row.key, btn, fresh, originalAudio(state.side.meta?.country, state.side.details?.details?.original_language), subsStep(hash, torbox), start);
+        // El audio ya se eligió en los pasos del video: original o latino (si está confirmado en las pistas).
+        const lat = state.side.flow?.lat;
+        started = await play(row.key, btn, fresh, originalAudio(state.side.meta?.country, state.side.details?.details?.original_language), subsStep(hash, torbox), start,
+          lat === true ? 'lat' : lat === false ? 'original' : null);
       }
     }
   } catch (e) { showError(e); }

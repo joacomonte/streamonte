@@ -69,6 +69,7 @@ fn addon(base: &str, name: &str, timeout_ms: u64) -> Arc<Addon> {
             secret: false,
             enabled: true,
             timeout_ms: Some(timeout_ms),
+            kind: streamonte_core::config::SourceKind::Stremio,
         },
         url,
     ))

@@ -59,6 +59,20 @@ pub struct TopQuery {
 /// Puntaje (una decimal, como lo muestra IMDb) y votos, por número de `tt`.
 pub(super) type Ratings = HashMap<u32, (f32, u32)>;
 
+/// Puntaje de IMDb como lo muestran las cards (`7.8`).
+pub(super) fn rating_label(rating: f32) -> String {
+    format!("{rating:.1}")
+}
+
+/// Completa el puntaje de un resultado que no lo trae (Cinemeta search) con el índice de IMDb.
+pub(super) fn fill_rating(p: &mut MetaPreview, ratings: &Ratings) {
+    if p.imdb_rating.is_none() {
+        p.imdb_rating = tt_number(&p.id)
+            .and_then(|n| ratings.get(&n))
+            .map(|&(rating, _)| rating_label(rating));
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Detail {
     imdb: Option<u32>,
@@ -422,7 +436,7 @@ fn rank(
                     kind: q.kind,
                     name: c.title,
                     year: released.as_ref().map(|d| d[..4.min(d.len())].to_string()),
-                    imdb_rating: Some(format!("{rating:.1}")),
+                    imdb_rating: Some(rating_label(rating)),
                     excluded: d.excluded,
                     poster: c.poster_path.map(|p| format!("{IMAGE_BASE}{p}")),
                     released,

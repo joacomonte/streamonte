@@ -408,6 +408,7 @@ impl ConfigStore {
         match crate::fsutil::read_json::<Config>(&self.path) {
             Ok(Some(mut config)) => {
                 config.ranking.fix_invalid();
+                add_missing_sources(&mut config);
                 self.own_port(&mut config);
                 Ok(config)
             }
@@ -482,6 +483,21 @@ impl Default for CatalogConfig {
     }
 }
 
+/// De dónde sale una fuente: un addon de Stremio o una fuente propia de la app (API conocida,
+/// sin manifest). Las propias se agregan solas a las configs guardadas (`add_missing_sources`).
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum SourceKind {
+    #[default]
+    Stremio,
+    /// hacktorrent.cc con pelispanda.org de respaldo (audio latino/castellano, solo películas).
+    Hacktorrent,
+    /// elitetorrent.com (castellano/latino, solo películas; magnets decodificados en local).
+    EliteTorrent,
+    /// Tracker privado lat-team.com (necesita el API token del usuario).
+    LatTeam,
+}
+
 /// Un addon configurado. Las URLs con configuración propia (pueden llevar claves) NO se guardan
 /// acá: van al almacén seguro del SO con `secret = true` (NFR-22); acá queda la versión enmascarada.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -499,6 +515,8 @@ pub struct AddonEntry {
     pub enabled: bool,
     #[serde(default)]
     pub timeout_ms: Option<u64>,
+    #[serde(default)]
+    pub kind: SourceKind,
 }
 
 /// Lista por defecto (spec 09 §9, Q-11): todos los que funcionaron en P2P sin debrid.
@@ -511,6 +529,18 @@ pub fn default_addons() -> Vec<AddonEntry> {
         secret: false,
         enabled: true,
         timeout_ms,
+        kind: SourceKind::Stremio,
+    };
+    // Fuentes propias: sin URL (la base está en su módulo).
+    let own = |id: &str, name: &str, kind: SourceKind, shown: &str, enabled: bool| AddonEntry {
+        id: id.into(),
+        name: name.into(),
+        url: None,
+        display_url: shown.into(),
+        secret: false,
+        enabled,
+        timeout_ms: None,
+        kind,
     };
     vec![
         public(
@@ -527,7 +557,41 @@ pub fn default_addons() -> Vec<AddonEntry> {
             enabled: false,
             ..public("cometa", "Cometa", "https://cometa.stremaddon.net/manifest.json", Some(8_000))
         },
+        own(
+            "hacktorrent",
+            "Hacktorrent",
+            SourceKind::Hacktorrent,
+            "hacktorrent.cc (respaldo: pelispanda.org) · latino y castellano, películas",
+            true,
+        ),
+        own(
+            "elitetorrent",
+            "EliteTorrent",
+            SourceKind::EliteTorrent,
+            "elitetorrent.com · castellano y latino, películas",
+            true,
+        ),
+        // Apagada: necesita el API token del usuario y es un tracker privado con reglas de ratio.
+        own(
+            "latteam",
+            "Lat-Team",
+            SourceKind::LatTeam,
+            "lat-team.com · tracker privado, con tu API token",
+            false,
+        ),
     ]
+}
+
+/// Las fuentes propias que una config vieja todavía no tiene (apagadas o no, como en fábrica).
+fn add_missing_sources(config: &mut Config) {
+    for d in default_addons()
+        .into_iter()
+        .filter(|d| d.kind != SourceKind::Stremio)
+    {
+        if !config.catalog.addons.iter().any(|a| a.id == d.id) {
+            config.catalog.addons.push(d);
+        }
+    }
 }
 
 #[cfg(test)]

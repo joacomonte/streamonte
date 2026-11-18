@@ -53,15 +53,23 @@ pub struct AudioPick {
 }
 
 impl AudioPick {
-    /// ¿Audio en español? Entonces los subtítulos en español arrancan ocultos (S los muestra).
+    /// ¿Audio en español (latino, España o sin variante)?
     pub fn is_spanish(&self) -> bool {
         matches!(self.code.as_str(), "lat" | "cast" | "es")
     }
 
-    /// Argumentos de mpv para arrancar con ese audio.
+    /// Argumentos de mpv para este audio. Con audio en español los subtítulos arrancan ocultos (no hacen falta; S los
+    /// muestra): la regla vive acá para que valga igual por torrent y por TorBox.
     pub fn mpv_args(&self) -> Vec<String> {
+        let mut args = vec![self.track_arg()];
+        if self.is_spanish() {
+            args.push("--sub-visibility=no".into());
+        }
+        args
+    }
+    fn track_arg(&self) -> String {
         if let Some(aid) = self.aid {
-            return vec![format!("--aid={aid}")];
+            return format!("--aid={aid}");
         }
         let alang = match self.code.as_str() {
             "lat" => "es-419,es-MX,es-AR,lat,spa,es",
@@ -70,7 +78,7 @@ impl AudioPick {
             "en" => "eng,en",
             other => other,
         };
-        vec![format!("--alang={alang}")]
+        format!("--alang={alang}")
     }
 }
 
@@ -642,7 +650,7 @@ mod tests {
             code: "lat".into(),
             aid: Some(2),
         };
-        assert_eq!(exact.mpv_args(), ["--aid=2"]);
+        assert_eq!(exact.mpv_args(), ["--aid=2", "--sub-visibility=no"]);
         assert!(exact.is_spanish());
         let by_lang = AudioPick {
             code: "en".into(),

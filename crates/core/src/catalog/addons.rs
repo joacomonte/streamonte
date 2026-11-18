@@ -9,7 +9,7 @@ use super::http::{redact, FetchError, Http};
 use super::normalize::{self, ParseCtx, Parsed, StreamCandidate};
 use super::protocol::{Manifest, Stream, StreamsResponse};
 use super::{MediaKind, VideoId};
-use crate::config::AddonEntry;
+use crate::config::{AddonEntry, SourceKind};
 
 /// NFR-24: como mucho esto por addon.
 const MAX_STREAMS: usize = 1000;
@@ -74,6 +74,19 @@ impl Addon {
         rank: usize,
         timeout: Duration,
     ) -> AddonOutcome {
+        let name = &self.entry.name;
+        match self.entry.kind {
+            SourceKind::Hacktorrent => {
+                return super::wpreact::streams(http, video, kind, rank, name, timeout).await
+            }
+            SourceKind::EliteTorrent => {
+                return super::elitetorrent::streams(http, video, kind, rank, name, timeout).await
+            }
+            SourceKind::LatTeam => {
+                return super::latteam::streams(http, video, kind, rank, name, timeout).await
+            }
+            SourceKind::Stremio => {}
+        }
         let deadline = tokio::time::Instant::now() + timeout;
         let left = || deadline.saturating_duration_since(tokio::time::Instant::now());
         let manifest = match self.manifest(http, left()).await {

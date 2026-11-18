@@ -174,7 +174,7 @@ export async function openSources() {
     el('ul', { class: 'cat-sources' }, addons.map((a) => el('li', {},
       el('label', {}, el('input', { type: 'checkbox', checked: a.enabled, onchange: (ev) => api.catalogSetAddonEnabled(a.id, ev.target.checked).catch(showError) }), ` ${a.name}`),
       el('span', { class: 'hint cat-url' }, a.display_url),
-      el('button', { class: 'small danger', onclick: () => api.catalogRemoveAddon(a.id).then(refresh, showError) }, 'Quitar')))),
+      a.own ? null : el('button', { class: 'small danger', onclick: () => api.catalogRemoveAddon(a.id).then(refresh, showError) }, 'Quitar')))),
     el('div', { class: 'key-line' }, input,
       el('button', { onclick: async () => {
         msg.textContent = 'Validando…';

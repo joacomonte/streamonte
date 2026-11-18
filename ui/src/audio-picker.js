@@ -76,22 +76,28 @@ function renderStep(dir) {
   place();
   if (dir || !pk.contains(document.activeElement)) (pkBody.querySelector('button:not([disabled])') ?? pk).focus({ preventScroll: true });
 }
+/** El paso siguiente (o anterior, `dir` -1) que aplica con lo elegido hasta ahora (`skip`), o -1. */
+function stepFrom(i, dir) {
+  for (let j = i + dir; j >= 0 && j < wiz.steps.length; j += dir) if (!wiz.steps[j].skip?.(wiz.results)) return j;
+  return -1;
+}
 function next(value) {
   if (!wiz) return;
   wiz.results[wiz.steps[wiz.i].id] = value;
-  if (wiz.i + 1 < wiz.steps.length) { wiz.i++; renderStep(1); return; }
+  const j = stepFrom(wiz.i, 1);
+  if (j >= 0) { wiz.i = j; renderStep(1); return; }
   const w = wiz;
   wiz = null;
   closePk(true);
   w.resolve(w.results);
 }
-pkBack.addEventListener('click', () => { if (wiz?.i) { wiz.i--; renderStep(-1); } });
+pkBack.addEventListener('click', () => { const j = wiz ? stepFrom(wiz.i, -1) : -1; if (j >= 0) { wiz.i = j; renderStep(-1); } });
 // Un paso propio (subtítulos) avisa que cambió lo que muestra: se redibuja sin animar.
 document.addEventListener('subs-changed', () => { if (wiz?.steps[wiz.i].render) renderStep(0); });
 
 /** Abre el panel junto a `btn` con sus pasos y resuelve con `{[id]: valor}` o `undefined` (se cerró). Cada paso:
  *  `{id, title, opts: [{label, sub?, art?, tip?}], big?}` (valor = índice elegido) o `{id, title, render(next)}`
- *  (dibuja lo suyo y llama `next(valor)` para seguir). */
+ *  (dibuja lo suyo y llama `next(valor)` para seguir); `skip(resultados)`: no aplica con lo elegido antes. */
 export function openWizard(btn, steps) {
   const anchor = live(btn);
   if (pkBtn) closePk(false, true);
@@ -119,8 +125,9 @@ pk.addEventListener('keydown', (ev) => {
 });
 document.addEventListener('pointerdown', (ev) => { if (pkBtn && !pk.contains(ev.target) && !live(pkBtn).contains(ev.target)) closePk(false); });
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { if (pkBtn) closePk(true); else wantTip(null); } });
-// Scroll de la página (no el de adentro del panel): el ▶ se movió.
-document.addEventListener('scroll', (ev) => { if (pkBtn && !pk.contains(ev.target)) closePk(false); }, { capture: true, passive: true });
+// Scroll de la página (no el de adentro del panel): el ▶ se movió y el panel lo sigue. Cerrarlo acá lo cerraba solo:
+// la lista del catálogo se redibuja mientras se prepara y al restaurar su scroll dispara este evento (2026-11-18).
+document.addEventListener('scroll', (ev) => { if (pkBtn && !pk.contains(ev.target)) place(); }, { capture: true, passive: true });
 
 // Idioma original (2026-11-16): va primero en el selector. Manda el de TMDB (con key); sin él, se
 // adivina por el país de Cinemeta. Solo los casos que el selector ofrece (Latino / Inglés /
@@ -163,29 +170,46 @@ function playerArt(kind) {
   return span;
 }
 
+/** El audio ya decidido en el catálogo (2026-11-18), sin preguntar: `prefer` 'original' = el del idioma original
+ *  (si no se reconoce, el primero que no es español); 'lat' = el latino confirmado en las pistas (si no hay, se
+ *  pregunta). Índice en `opts` o -1. */
+function preferredAudio(opts, prefer, original) {
+  if (prefer === 'lat') return opts.findIndex((o) => o.code === 'lat' && o.confirmed);
+  if (prefer !== 'original') return -1;
+  const i = original ? opts.findIndex((o) => o.code === original) : -1;
+  return i >= 0 ? i : Math.max(0, opts.findIndex((o) => !['lat', 'cast', 'es'].includes(o.code)));
+}
+const SPANISH = new Set(['lat', 'cast', 'es']);
+
 /** Preparar la reproducción en un solo panel con pasos: reproductor → audio → subtítulos → abrirlo. Es el único
  *  camino al reproductor. `entry`: la fila, si el que llama la tiene antes de que llegue su evento (catálogo).
  *  `original`: código de audio del idioma original (`originalAudio`), primero. `subsStep(next)`: el paso de
  *  subtítulos (catálogo, 2026-11-18). `start(player, audio)`: cómo se abre (catálogo: motor o TorBox); sin él, por
- *  el motor. Devuelve `true` si el núcleo aceptó el pedido (no si se canceló o falló). */
-export async function play(key, anchor, entry = state.entries.get(key), original = null, subsStep = null, start = null) {
+ *  el motor. `prefer` ('original' | 'lat' | null): el audio ya elegido en el catálogo (`preferredAudio`); con audio
+ *  en español no hay paso de subtítulos (el núcleo los deja ocultos). Devuelve `true` si el núcleo aceptó el pedido
+ *  (no si se canceló o falló). */
+export async function play(key, anchor, entry = state.entries.get(key), original = null, subsStep = null, start = null, prefer = null) {
   try {
     // Si ESTE video ya está en el panel (pausado) se retoma con el audio que se eligió la otra
     // vez. Otro episodio del mismo pack no cuenta: es otra clave.
     const resuming = [...state.playbacks.values()].some((p) => p.key === key);
     const players = resuming ? null : await playerOptions();
     const audios = resuming ? null : audioOptions(entry, original);
+    const decided = audios ? preferredAudio(audios, prefer, original) : -1;
+    const audioOf = (r) => audios?.[r.audio ?? decided] ?? null;
     const steps = [
       players && { id: 'player', title: '¿Con qué lo abrimos?', big: true, opts: players },
       // Solo se aclara lo confirmado por el análisis (2026-11-17: "adivinado por el nombre" era ruido).
-      audios && { id: 'audio', title: 'Elegí el audio', opts: audios.map((o) => ({ label: o.label, sub: o.confirmed ? 'Pista confirmada' : null,
-        tip: o.code === 'lat' ? 'Con Latino, los subtítulos arrancan ocultos (S los muestra).' : null })) },
-      !resuming && subsStep && { id: 'subs', title: 'Subtítulos', render: subsStep },
+      audios && decided < 0 && { id: 'audio', title: 'Elegí el audio', opts: audios.map((o) => ({ label: o.label, sub: o.confirmed ? 'Pista confirmada' : null,
+        tip: SPANISH.has(o.code) ? 'En español: va sin subtítulos (S los muestra).' : null })) },
+      !resuming && subsStep && { id: 'subs', title: 'Subtítulos', render: subsStep, skip: (r) => SPANISH.has(audioOf(r)?.code) },
     ].filter(Boolean);
-    const got = steps.length ? await openWizard(anchor ?? $('.topbar'), steps) : {};
+    const shown = steps.filter((s) => !s.skip?.({}));
+    const got = shown.length ? await openWizard(anchor ?? $('.topbar'), shown) : {};
     if (!got) return;
     const player = got.player != null ? players[got.player].value : null;
-    const audio = got.audio != null ? { code: audios[got.audio].code, aid: audios[got.audio].aid } : null;
+    const a = audioOf(got);
+    const audio = a ? { code: a.code, aid: a.aid } : null;
     anchor?.classList.add('busy');
     activity.push({ area: 'reproduccion', text: `${resuming ? 'Retomando' : 'Abriendo'} ${titleOf(key)}${audio?.code ? ` con audio ${audio.code === 'lat' ? 'latino' : audio.code === 'en' ? 'en inglés' : audio.code}` : ''}…` });
     if (start) return await start(player, audio);

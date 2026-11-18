@@ -263,23 +263,19 @@ pub(super) async fn run(
         SubtitleLanguage::En => extra_args.push("--slang=en,eng".into()),
         SubtitleLanguage::None => {}
     }
-    // Audio elegido al reproducir (inglés / latino…). Con audio en español los subtítulos en
-    // español arrancan ocultos: no hacen falta, y S los muestra.
+    // Audio elegido al reproducir (inglés / latino…; con español, subs ocultos: `AudioPick::mpv_args`).
     let audio = slot
         .audio
         .clone()
         .filter(|_| player_kind == PlayerKind::Mpv);
-    let hide_subs = audio.as_ref().is_some_and(|a| a.is_spanish())
-        && cfg.subtitles.language == SubtitleLanguage::Es;
+    // La sesión de subtítulos tampoco los prende al cargarlos (los oculta `mpv_args` con audio en español).
+    let hide_subs = audio.as_ref().is_some_and(|a| a.is_spanish());
     if let Some(a) = &audio {
         extra_args.extend(a.mpv_args());
         shared.log(
             slot,
             format!("audio elegido: {} ({})", a.code, a.mpv_args().join(" ")),
         );
-    }
-    if hide_subs {
-        extra_args.push("--sub-visibility=no".into());
     }
     let launcher = PlayerLauncher::new(deps.paths.clone(), cfg.player.clone());
     let mut player = launcher

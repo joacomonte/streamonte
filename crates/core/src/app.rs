@@ -702,6 +702,7 @@ impl AppCore {
         match service {
             crate::catalog::tmdb::TMDB => crate::catalog::tmdb::set_key(key),
             crate::catalog::torbox::TORBOX => crate::catalog::torbox::set_key(key),
+            crate::catalog::latteam::LATTEAM => crate::catalog::latteam::set_key(key),
             provider => crate::subtitles::secrets::set_api_key(provider, key),
         }
     }
@@ -723,6 +724,10 @@ impl AppCore {
                     service: crate::catalog::torbox::TORBOX.to_string(),
                     configured: crate::catalog::torbox::has_key(),
                 },
+                ApiKeyStatus {
+                    service: crate::catalog::latteam::LATTEAM.to_string(),
+                    configured: crate::catalog::latteam::has_key(),
+                },
             ])
             .collect()
     }
@@ -731,6 +736,7 @@ impl AppCore {
         let url = match service {
             crate::catalog::tmdb::TMDB => Some(crate::catalog::tmdb::KEY_PAGE),
             crate::catalog::torbox::TORBOX => Some(crate::catalog::torbox::KEY_PAGE),
+            crate::catalog::latteam::LATTEAM => Some(crate::catalog::latteam::KEY_PAGE),
             provider => crate::subtitles::secrets::key_page(provider),
         }
         .ok_or_else(|| CoreError::NotFound(format!("servicio {service}")))?;
@@ -887,7 +893,8 @@ impl AppCore {
         video_id: &str,
         hash: InfoHash,
     ) -> Result<()> {
-        const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+        // Un REMUX de 50+ GB tarda en dar el primer byte desde TorBox: 30 s cortaba lecturas que iban a andar.
+        const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
         let timeout = self
             .catalog_timeout()
             .await
@@ -896,7 +903,9 @@ impl AppCore {
         let mpv_path = self.config.read().await.player.mpv_path.clone();
         let mpv = crate::paths::find_executable(crate::paths::Executable::Mpv, mpv_path.as_deref())
             .ok_or_else(|| CoreError::Player("no hay mpv para leer las pistas".into()))?;
-        let probe = crate::player::probe_media(&mpv, &url, PROBE_TIMEOUT).await?;
+        let probe = crate::player::probe_media(&mpv, &url, PROBE_TIMEOUT)
+            .await
+            .inspect_err(|e| tracing::warn!("leer pistas por TorBox ({hash}): {e}"))?;
         if !self.library.lock().await.has_torrent(&hash) {
             self.catalog_add(kind, video_id, &[hash]).await?;
         }
@@ -933,15 +942,23 @@ impl AppCore {
         Ok(())
     }
 
-    /// Link para copiar de una opción (clic derecho, 2026-11-17): el magnet con sus trackers, o el
-    /// link https directo de TorBox (`torbox`; vence a las horas, se pide al momento).
-    pub async fn catalog_link(&self, hash: InfoHash, torbox: bool) -> Result<String> {
+    /// Link de una opción para copiar: magnet o, por TorBox, el de castear (HLS con el audio original o latino).
+    pub async fn catalog_link(
+        &self,
+        hash: InfoHash,
+        torbox: bool,
+        orig: Option<String>,
+        latino: bool,
+    ) -> Result<String> {
         if torbox {
             let timeout = self
                 .catalog_timeout()
                 .await
                 .max(std::time::Duration::from_secs(20));
-            return Ok(self.catalog.torbox_stream(hash, timeout).await?.0);
+            return self
+                .catalog
+                .torbox_cast(hash, orig.as_deref(), latino, timeout)
+                .await;
         }
         self.catalog
             .magnets_of(&[hash])
@@ -1498,6 +1515,20 @@ impl AppCore {
     }
 
     pub async fn catalog_remove_addon(&self, id: &str) -> Result<()> {
+        let own = self
+            .config
+            .read()
+            .await
+            .catalog
+            .addons
+            .iter()
+            .any(|a| a.id == id && a.kind != crate::config::SourceKind::Stremio);
+        if own {
+            return Err(CoreError::Catalog {
+                user: "Esta fuente viene con la app: no se quita, apagala.".into(),
+                detail: format!("fuente propia {id}"),
+            });
+        }
         let entry = self
             .update_config(|c| {
                 let pos = c.catalog.addons.iter().position(|a| a.id == id);

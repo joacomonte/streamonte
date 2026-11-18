@@ -168,7 +168,15 @@ impl Http {
     }
 
     async fn get_bytes(&self, url: &str) -> Result<Vec<u8>, FetchError> {
-        self.get_capped(url, LIMITS).await
+        self.get_capped(url, LIMITS, "application/json").await
+    }
+
+    /// GET de texto (RSS/HTML de una fuente propia), UTF-8 con pérdida.
+    pub async fn get_text(&self, url: &str, timeout: Duration) -> Result<String, FetchError> {
+        let bytes = tokio::time::timeout(timeout, self.get_capped(url, LIMITS, "*/*"))
+            .await
+            .map_err(|_| FetchError::Timeout)??;
+        Ok(String::from_utf8_lossy(&bytes).into_owned())
     }
 
     /// GET binario más grande que [`MAX_BODY`] (los datasets de IMDb, ~8 MB comprimidos).
@@ -182,18 +190,23 @@ impl Http {
             max_body,
             retry_transient: true,
         };
-        tokio::time::timeout(timeout, self.get_capped(url, limits))
+        tokio::time::timeout(timeout, self.get_capped(url, limits, "application/json"))
             .await
             .map_err(|_| FetchError::Timeout)?
     }
 
-    async fn get_capped(&self, url: &str, limits: Limits) -> Result<Vec<u8>, FetchError> {
+    async fn get_capped(
+        &self,
+        url: &str,
+        limits: Limits,
+        accept: &str,
+    ) -> Result<Vec<u8>, FetchError> {
         let slot = self.host_slot(url);
         let _permit = slot
             .acquire_owned()
             .await
             .map_err(|_| FetchError::Timeout)?;
-        let req = self.client.get(url).header("Accept", "application/json");
+        let req = self.client.get(url).header("Accept", accept);
         Ok(crate::http::get_bytes(req, limits).await?)
     }
 }

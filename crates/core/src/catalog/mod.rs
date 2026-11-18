@@ -7,13 +7,16 @@
 pub mod addons;
 pub mod aggregate;
 pub mod cinemeta;
+pub mod elitetorrent;
 pub mod http;
+pub mod latteam;
 pub mod normalize;
 pub mod protocol;
 pub mod seasons;
 pub mod tmdb;
 pub mod top;
 pub mod torbox;
+pub mod wpreact;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -127,6 +130,8 @@ pub struct AddonView {
     pub display_url: String,
     pub enabled: bool,
     pub secret: bool,
+    /// Fuente propia de la app (no se quita, solo se apaga).
+    pub own: bool,
 }
 
 impl From<&AddonEntry> for AddonView {
@@ -137,6 +142,7 @@ impl From<&AddonEntry> for AddonView {
             display_url: e.display_url.clone(),
             enabled: e.enabled,
             secret: e.secret,
+            own: e.kind != crate::config::SourceKind::Stremio,
         }
     }
 }
@@ -548,7 +554,9 @@ impl Catalog {
             .iter()
             .filter(|e| e.enabled)
             .filter_map(|e| {
-                let url = if e.secret {
+                let url = if e.kind != crate::config::SourceKind::Stremio {
+                    Some(String::new()) // fuente propia: sin manifest
+                } else if e.secret {
                     crate::secrets::secret(&secret_account(&e.id))
                 } else {
                     e.url.clone()
@@ -687,6 +695,30 @@ impl Catalog {
         Ok((url, magnet.display_name.unwrap_or_else(|| hash.to_hex())))
     }
 
+    /// Link para castear de esa opción por TorBox (HLS; si no, descarga): ver `torbox::cast_url`. `orig`: idioma
+    /// original en ISO 639-1 (TMDB).
+    pub async fn torbox_cast(
+        &self,
+        hash: InfoHash,
+        orig: Option<&str>,
+        latino: bool,
+        timeout: Duration,
+    ) -> Result<String> {
+        let magnet = self
+            .magnets_of(&[hash])
+            .into_iter()
+            .next()
+            .ok_or_else(|| CoreError::NotFound("esa opción ya no está en la lista".into()))?;
+        torbox::cast_url(
+            &self.http,
+            &magnet.to_uri(),
+            orig.and_then(torbox::iso3),
+            latino,
+            timeout,
+        )
+        .await
+    }
+
     /// Magnets (con sus trackers) de opciones de la lista vigente, para contar su enjambre.
     pub fn magnets_of(&self, hashes: &[InfoHash]) -> Vec<Magnet> {
         self.latest
@@ -794,6 +826,7 @@ impl Catalog {
             secret,
             enabled: true,
             timeout_ms: None,
+            kind: crate::config::SourceKind::Stremio,
             id,
         })
     }
@@ -832,6 +865,8 @@ fn by_relevance(
         .collect();
     list.sort_by_key(|(place, _)| *place);
     if let Some(ratings) = ratings {
+        list.iter_mut()
+            .for_each(|(_, p)| top::fill_rating(p, ratings));
         let votes = |p: &MetaPreview| {
             top::tt_number(&p.id)
                 .and_then(|n| ratings.get(&n))
@@ -891,12 +926,23 @@ mod tests {
         ]
         .into();
         assert_eq!(
-            names(by_relevance("game of th", movies, series, Some(&ratings))),
+            names(by_relevance(
+                "game of th",
+                movies.clone(),
+                series.clone(),
+                Some(&ratings)
+            )),
             [
                 "Game of Thrones",
                 "Game of Thrones: The Last Watch",
                 "The Game of Their Lives"
             ]
+        );
+        let rated = by_relevance("game of th", movies, series, Some(&ratings));
+        assert_eq!(
+            rated[0].imdb_rating.as_deref(),
+            Some("9.2"),
+            "puntaje del índice"
         );
     }
 

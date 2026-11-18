@@ -343,8 +343,14 @@ pub fn save_subtitles(
 }
 /// Magnet o link https de TorBox de una opción, para copiar (clic derecho).
 #[tauri::command]
-pub async fn catalog_link(core: Core<'_>, hash: InfoHash, torbox: bool) -> CmdResult<String> {
-    Ok(core.catalog_link(hash, torbox).await?)
+pub async fn catalog_link(
+    core: Core<'_>,
+    hash: InfoHash,
+    torbox: bool,
+    orig: Option<String>,
+    latino: bool,
+) -> CmdResult<String> {
+    Ok(core.catalog_link(hash, torbox, orig, latino).await?)
 }
 /// Tests de conexión de la última hora (datos guardados).
 #[tauri::command]

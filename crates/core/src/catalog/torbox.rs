@@ -173,16 +173,14 @@ fn fail(detail: impl Into<String>) -> crate::CoreError {
     }
 }
 
-/// Link directo del video de ese torrent en TorBox (2026-11-17): lo agrega a la cuenta (en caché
-/// queda listo al instante), elige el archivo de video más grande y pide su link de descarga, que
-/// mpv reproduce como cualquier video en línea.
-pub async fn stream_url(http: &Http, magnet: &str, timeout: Duration) -> Result<String> {
+/// El torrent en la cuenta de TorBox y su archivo de video más grande (2026-11-17): lo agrega solo si ya está en
+/// caché (si no, TorBox empezaría a bajarlo y no estaría al instante). Devuelve la key, el id y el archivo.
+async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(String, u64, TbFile)> {
     let key = crate::secrets::secret(ACCOUNT).ok_or_else(|| fail("sin key de TorBox"))?;
     let created: Created = http
         .post_multipart_bearer(
             &format!("{API}/createtorrent"),
             &key,
-            // Solo si ya está en caché: si no, TorBox empezaría a bajarlo y no estaría al instante.
             &[
                 ("magnet", magnet.to_string()),
                 ("add_only_if_cached", "true".into()),
@@ -210,21 +208,30 @@ pub async fn stream_url(http: &Http, magnet: &str, timeout: Duration) -> Result<
         .map(|d| d.files)
         .unwrap_or_default()
         .into_iter()
-        .filter(|f| {
-            VIDEO_EXT
-                .iter()
-                .any(|ext| f.name.to_ascii_lowercase().ends_with(ext))
-        })
+        .filter(|f| video_ext(&f.name).is_some())
         .max_by_key(|f| f.size)
         .ok_or_else(|| fail("sin archivo de video (¿todavía no está listo?)"))?;
-    // `requestdl` pide la key en la URL (así lo documenta TorBox); no se loguea.
+    Ok((key, id, file))
+}
+fn video_ext(name: &str) -> Option<&'static str> {
+    let lower = name.to_ascii_lowercase();
+    VIDEO_EXT.iter().copied().find(|ext| lower.ends_with(ext))
+}
+/// Link de descarga del archivo. `requestdl` pide la key en la URL (así lo documenta TorBox); no se loguea.
+async fn download_url(
+    http: &Http,
+    key: &str,
+    id: u64,
+    file: &TbFile,
+    timeout: Duration,
+) -> Result<String> {
     let dl: Download = http
         .get_json_bearer(
             &format!(
                 "{API}/requestdl?token={key}&torrent_id={id}&file_id={}&zip_link=false",
                 file.id
             ),
-            &key,
+            key,
             timeout,
         )
         .await
@@ -232,6 +239,146 @@ pub async fn stream_url(http: &Http, magnet: &str, timeout: Duration) -> Result<
     dl.data
         .filter(|u| u.starts_with("https://"))
         .ok_or_else(|| fail("requestdl sin link"))
+}
+
+/// Link directo del video de ese torrent en TorBox (2026-11-17), que mpv reproduce como cualquier video en línea.
+pub async fn stream_url(http: &Http, magnet: &str, timeout: Duration) -> Result<String> {
+    let (key, id, file) = video_file(http, magnet, timeout).await?;
+    download_url(http, &key, id, &file, timeout).await
+}
+
+#[derive(Deserialize)]
+struct Stream {
+    data: Option<StreamData>,
+}
+#[derive(Deserialize)]
+struct StreamData {
+    hls_url: Option<String>,
+    #[serde(default)]
+    metadata: Option<StreamMeta>,
+}
+#[derive(Deserialize, Default)]
+struct StreamMeta {
+    #[serde(default)]
+    audios: Vec<StreamAudio>,
+}
+#[derive(Deserialize)]
+struct StreamAudio {
+    #[serde(default)]
+    language: String,
+    #[serde(default)]
+    title: Option<String>,
+}
+
+/// Link para castear (2026-11-18, "Copiar link de TorBox"): el stream HLS (`.m3u8`) de TorBox, que Web Video Caster
+/// detecta como video y la tele reproduce en segmentos; el de descarga llega como archivo genérico y se abría como
+/// texto. Audio: el latino si `latino`, si no el idioma original (`orig`, ISO 639-2 como "eng"), si no inglés, si no
+/// el que venga primero. Si TorBox no da stream (plan sin streaming), el link de descarga terminado en la extensión.
+pub async fn cast_url(
+    http: &Http,
+    magnet: &str,
+    orig: Option<&str>,
+    latino: bool,
+    timeout: Duration,
+) -> Result<String> {
+    let (key, id, file) = video_file(http, magnet, timeout).await?;
+    match hls_url(http, &key, id, file.id, orig, latino, timeout).await {
+        Ok(url) => Ok(url),
+        Err(e) => {
+            tracing::info!("TorBox sin stream HLS, va el link de descarga: {e}");
+            let url = download_url(http, &key, id, &file, timeout).await?;
+            let ext = video_ext(&file.name).unwrap_or(".mkv");
+            let sep = if url.contains('?') { '&' } else { '?' };
+            Ok(format!("{url}{sep}f=video{ext}"))
+        }
+    }
+}
+async fn hls_url(
+    http: &Http,
+    key: &str,
+    id: u64,
+    file_id: u64,
+    orig: Option<&str>,
+    latino: bool,
+    timeout: Duration,
+) -> Result<String> {
+    let base = format!("{STREAM_API}/createstream?id={id}&file_id={file_id}&type=torrent");
+    let ask = |url: String| async move {
+        let s: Stream = http
+            .get_json_bearer(&url, key, timeout)
+            .await
+            .map_err(|e| fail(format!("createstream: {}", e.user_text())))?;
+        s.data.ok_or_else(|| fail("createstream sin datos"))
+    };
+    let first = ask(base.clone()).await?;
+    let audios = first
+        .metadata
+        .as_ref()
+        .map(|m| m.audios.as_slice())
+        .unwrap_or_default();
+    let audio = pick_audio(audios, orig, latino);
+    let data = if audio > 0 {
+        ask(format!("{base}&chosen_audio_index={audio}")).await?
+    } else {
+        first
+    };
+    data.hls_url
+        .filter(|u| u.starts_with("https://"))
+        .ok_or_else(|| fail("createstream sin hls_url"))
+}
+/// ISO 639-1 (TMDB, "ja") → el código de 3 letras de las pistas de TorBox ("jpn"; bibliográfico como mpv).
+pub fn iso3(iso1: &str) -> Option<&'static str> {
+    Some(match iso1 {
+        "en" => "eng",
+        "es" => "spa",
+        "fr" => "fre",
+        "de" => "ger",
+        "it" => "ita",
+        "ja" => "jpn",
+        "ko" => "kor",
+        "pt" => "por",
+        "ru" => "rus",
+        "zh" | "cn" => "chi",
+        "hi" => "hin",
+        "tr" => "tur",
+        "pl" => "pol",
+        "nl" => "dut",
+        "sv" => "swe",
+        "da" => "dan",
+        "no" => "nor",
+        "fi" => "fin",
+        "ar" => "ara",
+        "he" => "heb",
+        "th" => "tha",
+        "cs" => "cze",
+        "hu" => "hun",
+        "el" => "gre",
+        "id" => "ind",
+        "uk" => "ukr",
+        "fa" => "per",
+        "is" => "ice",
+        "ro" => "rum",
+        _ => return None,
+    })
+}
+const STREAM_API: &str = "https://api.torbox.app/v1/api/stream";
+/// Posición del audio a poner: latino (español con "lat"/"419"/"mex" en el título) si se pidió y está; si no, el
+/// idioma original; si no, inglés; si no, el primero.
+fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool) -> usize {
+    let find = |f: &dyn Fn(&StreamAudio) -> bool| audios.iter().position(f);
+    let lat = || {
+        find(&|a| {
+            a.language == "spa"
+                && a.title.as_deref().is_some_and(|t| {
+                    let t = t.to_ascii_lowercase();
+                    t.contains("lat") || t.contains("419") || t.contains("mex")
+                })
+        })
+    };
+    (if latino { lat() } else { None })
+        .or_else(|| orig.and_then(|o| find(&|a| a.language == o)))
+        .or_else(|| find(&|a| a.language == "eng"))
+        .unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -248,5 +395,23 @@ mod tests {
         let list = serde_json::json!([{ "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }]);
         assert_eq!(in_cache(&[a, b], Some(&list)), vec![b]);
         assert!(in_cache(&[a], None).is_empty());
+    }
+
+    #[test]
+    fn elige_audio_para_castear() {
+        let a = |language: &str, title: Option<&str>| StreamAudio {
+            language: language.into(),
+            title: title.map(Into::into),
+        };
+        let audios = [
+            a("rus", None),
+            a("eng", None),
+            a("spa", Some("Español Latino")),
+            a("jpn", None),
+        ];
+        assert_eq!(pick_audio(&audios, Some("jpn"), false), 3);
+        assert_eq!(pick_audio(&audios, Some("jpn"), true), 2);
+        assert_eq!(pick_audio(&audios, Some("kor"), false), 1);
+        assert_eq!(pick_audio(&[a("rus", None)], None, true), 0);
     }
 }

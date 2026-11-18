@@ -83,6 +83,18 @@
         </div>
       </section>
 
+      <!-- Lat-Team (2026-11-18): tracker privado; fuente apagada por defecto y token en el almacén seguro. -->
+      <section class="set-card" id="set-latteam" aria-labelledby="set-h-latteam">
+        <h4 id="set-h-latteam">Lat-Team</h4>
+        <label class="set-line"><input id="set-latteam-on" type="checkbox"> Buscar también en Lat-Team <span id="latteam-state" class="key-state"></span></label>
+        <p class="hint">Tracker privado con audio latino. El API token está en tu perfil de Lat-Team → Ajustes → Seguridad. Tiene reglas de ratio: reproducir desde ahí con el motor de la app puede no estar permitido. Con TorBox no hace ratio.</p>
+        <div class="key-line">
+          <input id="key-latteam" type="password" placeholder="Pegá tu API token de Lat-Team" autocomplete="off">
+          <button id="key-latteam-save" type="button">Guardar</button>
+        </div>
+        <button id="key-latteam-page" class="link" data-key-page="latteam">Abrir Lat-Team</button>
+      </section>
+
       <section class="set-card keys-only" id="set-subs" aria-labelledby="set-h-subs">
         <h4 id="set-h-subs">Subtítulos</h4>
         <p class="hint">Se bajan hasta 5 en español, primero los que trae el torrent. Para buscar más hacen falta estas keys gratuitas.</p>

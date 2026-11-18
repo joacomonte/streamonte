@@ -45,7 +45,7 @@ const VARIANT = { latino: 'Latinoamérica', spain: 'España', unknown: 'Español
 
 function subsOf(hash) {
   if (forVideo !== state.side?.videoId) { byHash.clear(); forVideo = state.side?.videoId; }
-  return byHash.get(hash) ?? byHash.set(hash, { phase: null, read: null, torbox: false, found: null, picks: null, premium: { open: false, status: 'idle', results: [], busy: null } }).get(hash);
+  return byHash.get(hash) ?? byHash.set(hash, { phase: null, read: null, error: null, torbox: false, found: null, picks: null, premium: { open: false, status: 'idle', results: [], busy: null } }).get(hash);
 }
 /** Los en español que trae esa opción; `null` = todavía no se leyeron sus pistas. */
 const natives = (hash) => rowsOf(hash).find((e) => e.native_subs)?.native_subs ?? null;
@@ -60,35 +60,45 @@ export async function readTracks(hash, torbox) {
   s.read = 'reading';
   s.torbox = torbox;
   changed();
+  s.error = null;
   let wait = READ_WAIT_MS;
   if (torbox) {
-    try { await api.catalogTorboxTracks(state.side.kind, state.side.videoId, hash); wait = ROW_WAIT_MS; } catch (e) { showError(e); wait = 0; }
+    try { await api.catalogTorboxTracks(state.side.kind, state.side.videoId, hash); wait = ROW_WAIT_MS; } catch (e) { s.error = e?.message ?? String(e); wait = 0; }
   } else quickAnalyze([hash]);
   for (const end = Date.now() + wait; natives(hash) == null && Date.now() < end && s.read === 'reading';) await sleep(250);
-  // Sin leer (falló, se pasó el tiempo o "No esperar"): no se reintenta; se sigue buscando afuera.
-  s.read = natives(hash) != null ? 'done' : 'failed';
+  // Sin leer (falló, se pasó el tiempo o "No esperar"): no se reintenta solo; el botón de la fila dice por qué.
+  const skipped = s.read === 'skipped';
+  s.read = natives(hash) != null ? 'done' : skipped ? null : 'failed';
+  if (s.read === 'failed' && !s.error) s.error = torbox ? 'TorBox no devolvió sus pistas a tiempo' : 'Nadie compartió el comienzo del video a tiempo (pocos seeds)';
   changed();
 }
 
-/** ¿Trae subs en español? (2026-11-18): en la lista de TorBox se leen solas, de a una y en el orden de la lista,
- *  solo hasta encontrar una que sirva (`satisfied`: sub ES y, si se pidió, latino confirmado); tope `AUTO_READ`
- *  por video. El resto queda con el chip "¿Sub ES?". Lo leído queda guardado por torrent. Un fallo (TorBox frenó,
- *  sin mpv) corta las automáticas del video; el chip sigue. */
-const AUTO_READ = 5;
-let auto = { video: null, busy: false, stopped: false, count: 0 };
+/** "Buscar sub ES" (2026-11-18, lista por torrent; en TorBox lo hace la búsqueda del mejor match): lee de a una, en el
+ *  orden de la lista y por el enjambre, solo hasta encontrar una que sirva (`satisfied`: sub ES y, si se pidió, latino
+ *  confirmado); saltea las que fallan y se pausa con el mismo botón (`toggleSubsScan`). Lo leído queda guardado por
+ *  torrent. */
+let auto = { video: null, busy: false, manual: null };
 export const isReading = (hash) => subsOf(hash).read === 'reading';
+/** Por qué no se pudo leer esa opción, o null. */
+export const readError = (hash) => (subsOf(hash).read === 'failed' ? subsOf(hash).error : null);
+const forVideo$ = () => { if (auto.video !== state.side?.videoId) auto = { video: state.side?.videoId, busy: false, manual: null }; return auto; };
+/** Estado de "Buscar sub ES" del video: null | 'running' | 'paused' | 'found' | 'none'. */
+export const subsScan = () => forVideo$().manual;
+export function toggleSubsScan() {
+  const a = forVideo$();
+  a.manual = a.manual === 'running' ? 'paused' : 'running';
+  changed();
+}
 export function readUntil(hashes, satisfied) {
-  const video = state.side?.videoId;
-  if (auto.video !== video) auto = { video, busy: false, stopped: false, count: 0 };
-  if (auto.busy || auto.stopped || auto.count >= AUTO_READ || hashes.some(satisfied)) return;
+  const a = forVideo$();
+  if (a.manual !== 'running') return;
+  if (hashes.some(satisfied)) { a.manual = 'found'; changed(); return; }
+  if (a.busy) return;
   const next = hashes.find((h) => natives(h) == null && !subsOf(h).read);
-  if (!next) return;
-  const run = auto;
-  run.busy = true;
-  run.count++;
-  readTracks(next, true).then(() => {
-    run.busy = false;
-    if (subsOf(next).read === 'failed') run.stopped = true;
+  if (!next) { a.manual = 'none'; changed(); return; }
+  a.busy = true;
+  readTracks(next, false).then(() => {
+    a.busy = false;
     changed();
   });
 }

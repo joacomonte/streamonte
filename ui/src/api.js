@@ -108,7 +108,8 @@ export const api = {
   /** Copia subtítulos bajados (`[{path, name}]`) a Descargas y abre la carpeta. */
   saveSubtitles: (title, files) => invoke('save_subtitles', { title, files }),
   /** Magnet de una opción, o su link https de TorBox (`torbox`). */
-  catalogLink: (hash, torbox) => invoke('catalog_link', { hash, torbox }),
+  /** Magnet o, con `torbox`, el link para castear (HLS): `orig` = idioma original ISO 639-1, `latino` = poner ese audio. */
+  catalogLink: (hash, torbox, orig = null, latino = false) => invoke('catalog_link', { hash, torbox, orig, latino }),
   catalogAdd: (kind, videoId, hashes) => invoke('catalog_add', { kind, videoId, hashes }),
   /** Ajustes → Fuentes (FR-41). Las URLs secretas vuelven enmascaradas. */
   catalogAddons: () => invoke('catalog_addons'),
