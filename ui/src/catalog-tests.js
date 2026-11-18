@@ -3,21 +3,20 @@
 // pruebas de fondo al cambiar de video.
 
 import { api } from './api.js';
-import { confirmDialog } from './dialogs.js';
 import { setStatus } from './dom.js';
 import { currentNetwork } from './health-calib.js';
 import { bgLoads, groupsOf, health, inScope, isSafeBest, knownSeeds, lowerRes, openGroup, renderStreamsOnly, RES_ORDER, resLabel, scheduleRender, seedsOf, sortOptions, startBg } from './catalog-options.js';
-import { safeGet, safeSet, showError, state, view } from './catalog-state.js';
+import { cancelFlowWork } from './catalog-flow.js';
+import { safeGet, safeSet, showError, state } from './catalog-state.js';
 
 /** Estado de las pruebas de un video (2026-11-17, antes flags sueltos en `state.side`): `once` = lo
- *  que se hace una sola vez por video (subs, censo, tests guardados, timers del panel); `ready` = ya
+ *  que se hace una sola vez por video (censo, tests guardados, timers del panel); `ready` = ya
  *  se cargaron los tests guardados de la última hora (antes no se prueba: los repetiría);
  *  `first[res]` = la primera tanda de la prueba rápida de esa resolución {hashes, at}; `run` = el
  *  análisis en curso {res, best, stage: 'quick' | 'deep', at} (uno solo a la vez en toda la app);
- *  `auto` = el resultado de "bajar la mejor al terminar" {step: 'done' | 'none', text};
- *  `intent` = la resolución elegida mientras todavía se buscaban torrents {res}. */
+ *  `auto` = el resultado de "bajar la mejor al terminar" {step: 'done' | 'none', text}. */
 export function newVideoTests() {
-  return { once: new Set(), ready: false, first: {}, run: null, auto: null, intent: null };
+  return { once: new Set(), ready: false, first: {}, run: null, auto: null };
 }
 /** true la primera vez que se pide `key` en ese video. */
 export function once(t, key) {
@@ -26,7 +25,7 @@ export function once(t, key) {
   return true;
 }
 /** Los testeados en la última hora (datos guardados, 2026-11-17) no se repiten; recién con eso se
- *  prueba. Si ya abrió una resolución mientras cargaban, arranca su prueba. */
+ *  prueba. */
 export async function loadSavedTests(video, cands) {
   const saved = await api.catalogSwarmSaved(cands.map((c) => c.info_hash)).catch(() => ({}));
   if (state.side?.videoId !== video) return;
@@ -35,34 +34,8 @@ export async function loadSavedTests(video, cands) {
   }
   state.side.tests.ready = true;
   renderStreamsOnly();
-  const intent = state.side.tests.intent;
-  state.side.tests.intent = null;
-  if (!intent) return;
-  // Elegida mientras buscaba y al final no hubo ninguna de esa calidad: vuelve a las tarjetas.
-  if (!groupsOf().get(intent.res)?.length) {
-    state.side.tests.run = null;
-    openGroup('');
-    setStatus(`No apareció ningún torrent en ${resLabel(intent.res)}: elegí otra calidad.`);
-    return;
-  }
-  startAnalysis(intent.res, false, intent.quickOnly);
 }
 
-/** Tocar una resolución (2026-11-17): arranca su análisis. Mientras se buscan torrents queda anotado
- *  y arranca al terminar; tocar de nuevo lo anula. */
-export function requestGroup(res, quickOnly = false) {
-  const t = state.side.tests;
-  if (!state.update?.done || !t.ready) {
-    // Ya se muestra analizando (esperando la lista); arranca de verdad en `loadSavedTests`.
-    stopTests();
-    t.intent = { res, quickOnly };
-    t.run = { res, best: false, quickOnly, stage: 'waiting', at: Date.now() };
-    view.openRes = res;
-    renderStreamsOnly();
-    return;
-  }
-  startAnalysis(res, false, quickOnly);
-}
 /** Arranca el análisis de una resolución. Nunca dos a la vez: corta el que haya en curso (de este
  *  video o uno dejado de fondo en otro) y empieza de nuevo en esta. */
 export function startAnalysis(res, best = false, quickOnly = false) {
@@ -142,7 +115,7 @@ export function stopTests() {
   const t = state.side?.tests;
   // "Deteniendo…" mientras el núcleo corta las conexiones (tarda unos segundos): ver `groupPanel`.
   if (t?.run) t.stopping = { res: t.run.res };
-  if (t) { t.run = null; t.intent = null; }
+  if (t) t.run = null;
   const d = state.side?.deep;
   if (d?.status === 'run') d.stopped = true;
   counting.forEach((h) => stopped.add(h));
@@ -153,21 +126,15 @@ export function stopTests() {
 }
 const waitUntil = async (ok) => { while (!ok()) await new Promise((r) => setTimeout(r, 500)); };
 
-/** Al dejar un video con pruebas de conexión en curso (2026-11-17): seguir de fondo (los resultados
- *  quedan para cuando vuelvas) o cancelarlas. Cerrar el aviso = seguir. */
-export async function leaveTests() {
-  const n = new Set([...counting, ...quickRunning]).size;
-  if (!n) return;
-  const pick = await confirmDialog('¿Seguir testeando de fondo?',
-    `Hay ${n} ${n === 1 ? 'prueba' : 'pruebas'} de conexión en curso de ${state.side?.name ?? 'este título'}. Pueden seguir de fondo mientras mirás otra cosa: cuando vuelvas, vas a ver los resultados.`,
-    [{ id: 'dlg-tests-keep', label: 'Seguir de fondo', value: 'keep', primary: true },
-      { id: 'dlg-tests-cancel', label: 'Cancelar pruebas', value: 'cancel' }]);
-  state.side.tests.auto = null; // el automático no sigue sin el video abierto
-  if (pick !== 'cancel') return;
-  stopTests();
+/** Al dejar un video (pedido 2026-11-18): se corta todo lo que esté analizando (pruebas de conexión y la búsqueda
+ *  de latino); lo ya probado queda guardado. */
+export function leaveTests() {
+  if (!state.side) return;
+  cancelFlowWork();
+  if (counting.size || quickRunning.size) stopTests();
+  if (state.side.tests) state.side.tests.auto = null;
   counting.clear();
 }
-
 
 /** Testeados (conectándose al enjambre): hash → SwarmCount. Incluye los de la última hora que el
  *  núcleo guarda en los datos guardados (2026-11-17). */

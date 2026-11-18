@@ -41,6 +41,40 @@ async fn wait_answer(
     }
 }
 
+/// Ver en línea (TorBox): abre el reproductor con el link y espera a que se cierre o se detenga.
+pub(super) async fn stream(
+    shared: &Arc<Shared>,
+    slot: &Arc<Slot>,
+    req: super::StreamRequest,
+) -> Result<()> {
+    let player_cfg = shared.deps.config.read().await.player.clone();
+    let mut player = PlayerLauncher::new(shared.deps.paths.clone(), player_cfg)
+        .launch(LaunchRequest {
+            kind: req.player,
+            url: req.url,
+            title: req.name,
+            subtitle_files: req.subtitle_files,
+            log_file: None,
+            extra_args: req.extra_args,
+        })
+        .await?;
+    shared.log(
+        slot,
+        format!("reproductor abierto en línea (pid {})", player.pid),
+    );
+    *slot.mpv.lock().expect("mpv") = player.mpv.clone();
+    slot.set_state(PlaybackState::Playing);
+    shared.emit_row(slot);
+    tokio::select! {
+        _ = player.wait_exit() => {}
+        _ = slot.cancel.cancelled() => {
+            let _ = player.kill().await;
+        }
+    }
+    *slot.mpv.lock().expect("mpv") = None;
+    Ok(())
+}
+
 pub(super) async fn run(
     shared: &Arc<Shared>,
     slot: &Arc<Slot>,
@@ -267,6 +301,7 @@ pub(super) async fn run(
         return Err(e);
     }
     shared.log(slot, format!("reproductor abierto (pid {})", player.pid));
+    *slot.mpv.lock().expect("mpv") = player.mpv.clone();
     slot.set_state(PlaybackState::Playing);
     shared.emit_row(slot);
     if let Some(mpv) = &player.mpv {
@@ -322,6 +357,7 @@ pub(super) async fn run(
     if let Some(task) = subtitles {
         task.abort();
     }
+    *slot.mpv.lock().expect("mpv") = None;
     let closed_by_user = exit.is_some();
     // mpv que sale con error sin haber mostrado imagen = no pudo abrir el video: no preguntar.
     let failed_to_open = player_kind == PlayerKind::Mpv
@@ -479,20 +515,24 @@ async fn prefetch_subtitles(
         file.size,
     );
     let key = slot.row.lock().expect("row").key;
-    let origin = shared
-        .deps
-        .library
-        .lock()
-        .await
-        .get(&key)
-        .and_then(|e| e.origin.clone());
+    let (origin, live) = {
+        let library = shared.deps.library.lock().await;
+        let entry = library.get(&key);
+        (
+            entry.and_then(|e| e.origin.clone()),
+            entry.and_then(|e| e.live.clone()),
+        )
+    };
     video.apply_catalog(origin.as_ref(), file.index);
+    // Duración y fps reales del análisis: ordenan por "mismos fps y duración".
+    video.duration_secs = live.as_ref().and_then(|l| l.duration_secs);
+    video.fps = live.as_ref().and_then(|l| l.fps);
     let paths = &shared.deps.paths;
     // Con el video, en su carpeta (lo del análisis ya vino adentro al adoptarla). Lo pedido
-    // desde el catálogo antes de reproducir se mueve acá, salvo que ya haya guardados.
+    // desde el catálogo (incluido un Premium elegido) se mueve acá; si ya había guardados, se suma.
     let video_id = video.video_id();
     let cache_dir = crate::paths::AppPaths::video_subtitles_dir(&slot.dir, &video_id);
-    let pending = paths.pending_subtitles_dir(&video_id);
+    let pending = paths.pending_subtitles_dir(&video_id, &metadata.info_hash);
     if pending.is_dir() && !cache_dir.exists() {
         if let Some(parent) = cache_dir.parent() {
             let _ = std::fs::create_dir_all(parent);
@@ -500,6 +540,9 @@ async fn prefetch_subtitles(
         if let Err(e) = std::fs::rename(&pending, &cache_dir) {
             tracing::warn!("no se pudieron mover los subtítulos del catálogo: {e}");
         }
+    } else if pending.is_dir() {
+        // Sin borrar `pending`: puede ser de otro idioma; la limpieza de restos se encarga.
+        subtitles::session::merge_saved(&pending, &cache_dir, language);
     }
     let fetch = subtitles::session::Fetch {
         video,
@@ -508,7 +551,6 @@ async fn prefetch_subtitles(
         language,
         cache_dir,
         remembered: None, // la completa `prefetch` desde la memoria (FR-28)
-        opensubtitles: true,
         log: subtitles_log(shared, slot),
     };
     subtitles::session::prefetch(fetch, &key, &paths.subtitles_memory_file())

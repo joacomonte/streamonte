@@ -7,7 +7,7 @@ use crate::config::SubtitleLanguage;
 
 /// Idioma (y variante) por el nombre de un archivo de subtítulo del torrent:
 /// `Sintel.es.srt`, `2_Spanish.srt`, `peli.spa.lat.srt`, `x.es-419.srt`, `x.eng.srt`.
-pub(super) fn lang_from_name(name: &str) -> Option<(SubtitleLanguage, SpanishVariant)> {
+pub(crate) fn lang_from_name(name: &str) -> Option<(SubtitleLanguage, SpanishVariant)> {
     let file = name.rsplit(['/', '\\']).next().unwrap_or(name);
     let w = words(file);
     let spanish = w.iter().any(|t| {

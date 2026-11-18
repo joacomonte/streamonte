@@ -1,6 +1,7 @@
-//! Proveedor 4, OpenSubtitles (Q-01): API REST v1 con la key gratuita del usuario; cuota de 20
-//! descargas/día, por eso va último. La cuota se controla ANTES de cada descarga con un único
-//! [`QuotaGate`] para toda la app (ADR-12).
+//! OpenSubtitles.com (Q-01), el "Premium" del dropdown (2026-11-18): API REST v1 con la key del
+//! usuario y pocas descargas por día. Buscar no gasta; cada `POST /download` gasta 1, por eso se
+//! baja de a uno y solo cuando el usuario lo elige. La cuota se controla ANTES de cada descarga con
+//! un único [`QuotaGate`] para toda la app (ADR-12) y se conoce recién con la primera descarga.
 
 use std::future::Future;
 use std::path::{Path, PathBuf};
@@ -18,7 +19,8 @@ use crate::subtitles::{MatchKind, Quota, SpanishVariant, SubtitleCandidate, Vide
 use crate::{CoreError, Result};
 
 const OS_API: &str = "https://api.opensubtitles.com/api/v1";
-/// Cuota de la cuenta gratuita (Q-01); la real llega en cada descarga (`remaining`).
+/// Cuota de la cuenta gratuita (Q-01), solo si el servidor no la dijo; la real llega en cada
+/// descarga (`requests` + `remaining`).
 const OS_PER_DAY: u32 = 20;
 
 /// Cuota de descargas de la cuenta de OpenSubtitles. Es UNA para todo el proceso (como el
@@ -63,10 +65,12 @@ impl QuotaState {
             }
         };
         let used = json["requests"].as_u64().unwrap_or(0) as u32;
-        self.per_day = if exhausted {
-            self.per_day.max(OS_PER_DAY)
-        } else {
-            (used + remaining).max(OS_PER_DAY)
+        // Lo que dice el servidor (usadas + restantes); agotada sin datos: lo último conocido.
+        self.per_day = match (exhausted, used) {
+            (false, _) => used + remaining,
+            (true, used) if used > 0 => used,
+            (true, _) if self.per_day > 0 => self.per_day,
+            (true, _) => OS_PER_DAY,
         };
         self.remaining = Some(remaining);
         let reset = json["reset_time_utc"]
@@ -84,11 +88,20 @@ fn next_utc_day(now: DateTime<Utc>) -> DateTime<Utc> {
 }
 
 impl QuotaGate {
+    /// Lo que informó la cuenta (`/infos/user`).
+    async fn set(&self, q: &AccountQuota) {
+        let mut s = self.0.lock().await;
+        s.remaining = Some(q.remaining);
+        s.per_day = q.per_day;
+        s.resets_at = q.resets_at;
+    }
+
     async fn snapshot(&self, now: DateTime<Utc>) -> Option<Quota> {
         let s = self.0.lock().await.current(now);
         s.remaining.map(|remaining| Quota {
             remaining,
             per_day: s.per_day,
+            resets_at: s.resets_at,
         })
     }
 
@@ -120,9 +133,47 @@ impl QuotaGate {
     }
 }
 
+/// Sesión con la cuenta del usuario (`POST /login`): token y servidor para bajar (los VIP tienen
+/// otro). Una para todo el proceso; un login fallido no se reintenta hasta que cambien los datos.
+#[derive(Clone)]
+struct Session {
+    token: String,
+    base: String,
+    until: DateTime<Utc>,
+}
+
+fn sessions() -> &'static tokio::sync::Mutex<Option<std::result::Result<Session, String>>> {
+    static S: OnceLock<tokio::sync::Mutex<Option<std::result::Result<Session, String>>>> =
+        OnceLock::new();
+    S.get_or_init(Default::default)
+}
+
+/// Olvida la sesión (y un login fallido): al guardar otros datos de la cuenta.
+pub fn forget_opensubtitles_login() {
+    match sessions().try_lock() {
+        Ok(mut s) => *s = None,
+        // Un login en curso: se olvida apenas termine.
+        Err(_) => {
+            if let Ok(rt) = tokio::runtime::Handle::try_current() {
+                rt.spawn(async { *sessions().lock().await = None });
+            }
+        }
+    }
+}
+
+/// Un token dura 24 h; se renueva un rato antes.
+const SESSION_HOURS: i64 = 23;
+
 pub struct OpenSubtitlesProvider {
     key: Option<String>,
     quota: &'static QuotaGate,
+}
+
+/// Cuota que informa la cuenta (`GET /infos/user`).
+pub struct AccountQuota {
+    pub remaining: u32,
+    pub per_day: u32,
+    pub resets_at: Option<DateTime<Utc>>,
 }
 
 impl OpenSubtitlesProvider {
@@ -135,6 +186,85 @@ impl OpenSubtitlesProvider {
     pub fn has_key(&self) -> bool {
         self.key.is_some()
     }
+    /// Sesión con la cuenta: `Ok(None)` sin login guardado; `Err` si el login falló (mensaje
+    /// para el usuario; no se reintenta hasta cambiar los datos).
+    async fn session(&self) -> Result<Option<Session>> {
+        let Some((user, pass)) = crate::subtitles::secrets::opensubtitles_login() else {
+            return Ok(None);
+        };
+        let mut cached = sessions().lock().await;
+        match &*cached {
+            Some(Ok(s)) if s.until > Utc::now() => return Ok(Some(s.clone())),
+            Some(Err(msg)) => return Err(err(OPENSUBTITLES, msg.clone())),
+            _ => {}
+        }
+        let body = serde_json::json!({ "username": user, "password": pass });
+        let req = http()
+            .post(format!("{OS_API}/login"))
+            .header("Api-Key", self.key()?)
+            .header(reqwest::header::ACCEPT, "application/json")
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(body.to_string());
+        let result = match get_bytes(req).await {
+            Ok(bytes) => {
+                let json: Value = serde_json::from_slice(&bytes).unwrap_or_default();
+                match json["token"].as_str() {
+                    Some(token) => Ok(Session {
+                        token: token.to_string(),
+                        base: json["base_url"]
+                            .as_str()
+                            .filter(|b| !b.is_empty())
+                            .map_or_else(|| OS_API.to_string(), |b| format!("https://{b}/api/v1")),
+                        until: Utc::now() + chrono::Duration::hours(SESSION_HOURS),
+                    }),
+                    None => Err("el login no devolvió sesión".to_string()),
+                }
+            }
+            Err(HttpError::Status { status: 401, .. }) => {
+                Err("usuario o contraseña de OpenSubtitles.com incorrectos".to_string())
+            }
+            // Sin red o el servidor no respondió: no se guarda (se reintenta la próxima vez).
+            Err(e) => return Err(os_http_err(e)),
+        };
+        *cached = Some(result.clone());
+        result.map(Some).map_err(|msg| err(OPENSUBTITLES, msg))
+    }
+
+    /// Cuota de la cuenta con login (`None` sin login). La deja también en la cuota de la app.
+    pub async fn account_quota(&self) -> Result<Option<AccountQuota>> {
+        let Some(session) = self.session().await? else {
+            return Ok(None);
+        };
+        let req = http()
+            .get(format!("{}/infos/user", session.base))
+            .header("Api-Key", self.key()?)
+            .header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", session.token),
+            )
+            .header(reqwest::header::ACCEPT, "application/json");
+        let bytes = get_bytes(req).await.map_err(os_http_err)?;
+        let json: Value = serde_json::from_slice(&bytes)
+            .map_err(|e| err(OPENSUBTITLES, format!("respuesta inválida: {e}")))?;
+        let data = &json["data"];
+        let (Some(per_day), Some(remaining)) = (
+            data["allowed_downloads"].as_u64(),
+            data["remaining_downloads"].as_i64(),
+        ) else {
+            return Ok(None);
+        };
+        let q = AccountQuota {
+            remaining: remaining.max(0) as u32,
+            per_day: per_day as u32,
+            resets_at: data["reset_time_utc"]
+                .as_str()
+                .and_then(|t| DateTime::parse_from_rfc3339(t).ok())
+                .map(|t| t.with_timezone(&Utc)),
+        };
+        self.quota.set(&q).await;
+        Ok(Some(q))
+    }
+
     fn key(&self) -> Result<&str> {
         self.key
             .as_deref()
@@ -179,7 +309,7 @@ pub(super) fn parse_opensubtitles(
             let file_id = a["files"].as_array()?.first()?["file_id"].as_u64()?;
             let release = a["release"].as_str().unwrap_or_default().to_string();
             let match_kind = if a["moviehash_match"].as_bool() == Some(true) {
-                MatchKind::Hash
+                MatchKind::Exact
             } else {
                 release_match(video, &release)
             };
@@ -195,6 +325,8 @@ pub(super) fn parse_opensubtitles(
                     .min(u32::MAX as u64) as u32,
                 variant,
                 url: String::new(),
+                fps: a["fps"].as_f64().filter(|f| *f > 0.0),
+                last_secs: None,
             })
         })
         .collect()
@@ -251,13 +383,24 @@ impl SubtitleProvider for OpenSubtitlesProvider {
             return Ok(p); // de la caché: no gasta cuota
         }
         let key = self.key()?;
+        // Con login, con la cuota (y el servidor) de la cuenta; si el login falló, con la key sola.
+        let session = self.session().await.ok().flatten();
         let body = serde_json::json!({ "file_id": cand.provider_id.parse::<u64>().unwrap_or(0) });
-        let req = http()
-            .post(format!("{OS_API}/download"))
+        let mut req = http()
+            .post(format!(
+                "{}/download",
+                session.as_ref().map_or(OS_API, |s| s.base.as_str())
+            ))
             .header("Api-Key", key)
             .header(reqwest::header::ACCEPT, "application/json")
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(body.to_string());
+        if let Some(s) = &session {
+            req = req.header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", s.token),
+            );
+        }
         let bytes = self.quota.spend(Utc::now(), get_bytes(req)).await?;
         let json: Value = serde_json::from_slice(&bytes)
             .map_err(|e| err(OPENSUBTITLES, format!("respuesta inválida: {e}")))?;
@@ -285,11 +428,12 @@ mod tests {
         assert_eq!(c[0].provider_id, "7001");
         assert_eq!(
             (c[0].variant, c[0].match_kind),
-            (SpanishVariant::Latino, MatchKind::Hash)
+            (SpanishVariant::Latino, MatchKind::Exact)
         );
         assert_eq!(
+            // Mismo nombre que el archivo del video: exacto.
             (c[1].variant, c[1].match_kind),
-            (SpanishVariant::Spain, MatchKind::Release)
+            (SpanishVariant::Spain, MatchKind::Exact)
         );
         assert_eq!(c[2].variant, SpanishVariant::Unknown);
     }

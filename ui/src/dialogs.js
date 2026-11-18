@@ -112,8 +112,26 @@ export async function stopAllAndClean() {
 }
 
 // ---------- Ajustes: API keys de subtítulos ----------
+/** Estado de la cuenta de OpenSubtitles.com: conectada (con su cuota), login fallido o sin cuenta. */
+async function showOsLogin() {
+  const q = await api.premiumQuota().catch(() => null);
+  $('#os-login-state').textContent = !q?.has_login ? 'Sin cuenta: la cuota se sabe con la primera descarga.'
+    : q.login_error ? `No se pudo entrar: ${q.login_error}`
+      : `Cuenta conectada${q.remaining != null ? ` · quedan ${q.remaining} de ${q.per_day} descargas hoy` : ''}.`;
+}
+/** Guarda usuario y contraseña (vacíos = borrar) y prueba entrar. */
+export async function saveOsLogin() {
+  const user = $('#os-user'), pass = $('#os-pass');
+  try {
+    await api.setOpensubtitlesLogin(user.value.trim(), pass.value);
+    pass.value = '';
+    await showOsLogin();
+  } catch (e) { showError(e); }
+}
+
 export async function openSettings() {
   try {
+    showOsLogin();
     for (const k of await api.apiKeys()) placeKey(k.service, k.configured);
     const { engine, player } = await api.config();
     $(`#set-eq-${player.equalizer}`).checked = true;

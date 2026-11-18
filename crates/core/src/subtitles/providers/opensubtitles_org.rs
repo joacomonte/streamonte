@@ -181,7 +181,13 @@ pub(super) fn parse_search(
                 .unwrap_or_default();
             let (language, variant) = match code {
                 "spl" => (SubtitleLanguage::Es, SpanishVariant::Latino),
-                "spa" | "spn" => (SubtitleLanguage::Es, SpanishVariant::Unknown),
+                // Muchos latinos vienen como "spa" y lo dicen en el nombre ("Español (Latinoamérica)").
+                "spa" | "spn" => (
+                    SubtitleLanguage::Es,
+                    crate::audio::spanish_variant(
+                        r.get("MovieReleaseName").map_or("", String::as_str),
+                    ),
+                ),
                 "eng" => (SubtitleLanguage::En, SpanishVariant::Unknown),
                 _ => return None,
             };
@@ -209,9 +215,23 @@ pub(super) fn parse_search(
                     .unwrap_or(0),
                 variant,
                 url: String::new(),
+                fps: r
+                    .get("MovieFPS")
+                    .and_then(|f| f.parse().ok())
+                    .filter(|f| *f > 0.0),
+                last_secs: r.get("SubLastTS").and_then(|t| hms_secs(t)),
             })
         })
         .collect()
+}
+
+/// `hh:mm:ss` (con o sin milésimas) → segundos.
+fn hms_secs(t: &str) -> Option<f64> {
+    let mut parts = t.trim().splitn(3, ':');
+    let h: f64 = parts.next()?.parse().ok()?;
+    let m: f64 = parts.next()?.parse().ok()?;
+    let s: f64 = parts.next()?.split(['.', ',']).next()?.parse().ok()?;
+    Some(h * 3600.0 + m * 60.0 + s)
 }
 
 /// Contenido de `DownloadSubtitles`: base64 → gzip → bytes del subtítulo.

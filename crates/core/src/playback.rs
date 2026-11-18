@@ -101,6 +101,9 @@ pub struct PlaybackRow {
     pub preload_secs: Option<f32>,
     /// Segundos desde Reproducir hasta la primera imagen (Q-07, métrica de O1).
     pub time_to_first_frame_secs: Option<f32>,
+    /// Se ve en línea desde un link https (TorBox, 2026-11-18): sin motor ni descarga, así que sin
+    /// progreso ni pares; al cerrar el reproductor la fila se va.
+    pub stream: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -116,6 +119,27 @@ pub enum PlaybackAction {
     OpenFolder,
     /// Respuesta a [`PlaybackState::AskAfterClose`]: seguir bajando de fondo. (Pausar = `Stop`.)
     KeepDownloading,
+}
+
+/// Ver en línea desde un link https (TorBox): la misma "reproducción en curso" que la del motor,
+/// sin descarga.
+#[derive(Debug, Clone)]
+pub struct StreamRequest {
+    pub key: VideoKey,
+    pub name: String,
+    pub url: String,
+    pub player: PlayerKind,
+    pub subtitle_files: Vec<PathBuf>,
+    pub extra_args: Vec<String>,
+}
+
+/// Un subtítulo para cargar en el reproductor abierto (2026-11-18).
+#[derive(Debug, Clone)]
+pub enum LiveSubtitle {
+    /// Pista que trae el video (`sid` de mpv).
+    Track(i64),
+    /// Archivo ya bajado: `sub-add` y queda elegido.
+    File(PathBuf),
 }
 
 /// Cuánto se espera a que una reproducción que se cierra quede guardada (`Shared::wait_gone`).
@@ -182,6 +206,8 @@ struct Slot {
     keep_downloading: tokio::sync::Notify,
     /// Arrancó con [`StartRequest::background`]: nunca abre reproductor.
     background: bool,
+    /// El mpv abierto (para cargarle subtítulos mientras se ve); `None` sin reproductor o con VLC.
+    mpv: Mutex<Option<Arc<dyn crate::player::MpvControl>>>,
 }
 
 impl Slot {
@@ -334,6 +360,7 @@ impl PlaybackManager {
                 metadata_secs: None,
                 preload_secs: None,
                 time_to_first_frame_secs: None,
+                stream: false,
             }),
             dir,
             started: Instant::now(),
@@ -349,6 +376,7 @@ impl PlaybackManager {
             magnet_uri: Mutex::new(None),
             log: Mutex::default(),
             audio: req.audio.clone(),
+            mpv: Mutex::new(None),
         });
         self.shared
             .slots
@@ -397,6 +425,107 @@ impl PlaybackManager {
         Ok(id)
     }
 
+    /// Ver en línea (TorBox): cierra lo que se esté viendo (FR-12b, como [`Self::start`]), abre el
+    /// reproductor con el link y la fila vive hasta que se cierra o se detiene.
+    pub async fn start_stream(&self, req: StreamRequest) -> Result<PlaybackId> {
+        let _turn = self.shared.starting.lock().await;
+        if let Some(id) = self.shared.active_id_for(&req.key) {
+            return Ok(id);
+        }
+        let closing = self.shared.pause_active();
+        self.shared.wait_gone(&closing, CLOSE_WAIT).await;
+        let id = self.shared.new_id();
+        let slot = Arc::new(Slot {
+            row: Mutex::new(PlaybackRow {
+                id,
+                key: req.key,
+                info_hash: req.key.info_hash,
+                name: req.name.clone(),
+                state: PlaybackState::FetchingMetadata,
+                player: req.player,
+                progress: 0.0,
+                speed_bps: 0.0,
+                peers: 0,
+                seeds: 0,
+                incoming_peers: 0,
+                started_at: Utc::now(),
+                metadata_secs: None,
+                preload_secs: None,
+                time_to_first_frame_secs: None,
+                stream: true,
+            }),
+            // Sin carpeta: no baja nada (no existe; la limpieza no la toca).
+            dir: self
+                .shared
+                .deps
+                .paths
+                .downloads_dir()
+                .join(format!("stream-{}", id.0)),
+            started: Instant::now(),
+            cancel: CancellationToken::new(),
+            delete_on_stop: AtomicBool::new(false),
+            keep_player: AtomicBool::new(false),
+            keep_downloading: tokio::sync::Notify::new(),
+            background: false,
+            resume_from: None,
+            engine: Mutex::new(None),
+            position: Mutex::new(None),
+            file_index: Mutex::new(None),
+            magnet_uri: Mutex::new(None),
+            log: Mutex::default(),
+            audio: None,
+            mpv: Mutex::new(None),
+        });
+        self.shared
+            .slots
+            .lock()
+            .expect("slots")
+            .insert(id, slot.clone());
+        self.shared.emit_row(&slot);
+        let shared = self.shared.clone();
+        tokio::spawn(async move {
+            if let Err(e) = flow::stream(&shared, &slot, req).await {
+                shared.log(&slot, format!("error: {e}"));
+                shared.status(StatusLevel::Error, e.user_message());
+            }
+            shared.forget(&slot);
+        });
+        Ok(id)
+    }
+
+    /// Carga un subtítulo en el reproductor abierto de esa reproducción, sin reiniciarla
+    /// (2026-11-18). Devuelve su clave de video (para recordar la elección). Solo mpv.
+    pub async fn load_subtitle(&self, id: PlaybackId, sub: LiveSubtitle) -> Result<VideoKey> {
+        let slot = self.shared.slot(id)?;
+        let mpv = slot
+            .mpv
+            .lock()
+            .expect("mpv")
+            .clone()
+            .ok_or(CoreError::Unsupported(
+                "cambiar el subtítulo sin mpv abierto",
+            ))?;
+        match sub {
+            LiveSubtitle::Track(sid) => {
+                mpv.set_property("sid", serde_json::json!(sid)).await?;
+            }
+            LiveSubtitle::File(path) => {
+                mpv.command(&[
+                    serde_json::json!("sub-add"),
+                    serde_json::json!(path.to_string_lossy()),
+                    serde_json::json!("select"),
+                ])
+                .await?;
+            }
+        }
+        mpv.set_property("sub-visibility", serde_json::json!(true))
+            .await?;
+        self.shared
+            .log(&slot, "subtítulo cambiado desde la app".into());
+        let key = slot.row.lock().expect("row").key;
+        Ok(key)
+    }
+
     pub async fn act(&self, id: PlaybackId, action: PlaybackAction) -> Result<()> {
         // Filas pausadas (sin motor ni reproductor).
         if let Some((key, dir)) = self.shared.kept_info(id) {
@@ -421,6 +550,13 @@ impl PlaybackManager {
         }
 
         let slot = self.shared.slot(id)?;
+        // En línea (TorBox): no hay descarga que pausar ni carpeta; detener cierra el reproductor.
+        if slot.row.lock().expect("row").stream {
+            if matches!(action, PlaybackAction::Stop | PlaybackAction::StopAndDelete) {
+                slot.cancel.cancel();
+            }
+            return Ok(());
+        }
         match action {
             PlaybackAction::Stop | PlaybackAction::StopAndDelete => {
                 slot.delete_on_stop

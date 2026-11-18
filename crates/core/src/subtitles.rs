@@ -51,7 +51,10 @@ pub struct VideoIdentity {
     pub episode: Option<u16>,
     pub source: Option<String>,
     pub release_group: Option<String>,
+    /// Duración real (análisis): para [`fit_by_timing`].
     pub duration_secs: Option<f64>,
+    /// Cuadros por segundo reales (análisis): para [`fit_by_timing`].
+    pub fps: Option<f64>,
     /// IMDb id (`tt…`) si se pudo resolver (Wyzie lo exige). Agregado en F6 (aditivo).
     pub imdb_id: Option<String>,
 }
@@ -210,15 +213,102 @@ pub fn subtitle_files_for(metadata: &Metadata, video: &FileInfo) -> Vec<FileInfo
         .collect()
 }
 
+/// Subtítulo que trae el video (grupo "Vienen con el video", 2026-11-18): pista embebida que leyó
+/// mpv al analizar (`sid`) o archivo suelto dentro del torrent (`file`). Todos los idiomas.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NativeSub {
+    /// Número de pista de subtítulo en mpv (`--sid`); `None` = archivo suelto.
+    pub sid: Option<i64>,
+    /// Ruta dentro del torrent, si es un archivo suelto.
+    pub file: Option<String>,
+    pub lang: Option<String>,
+    pub title: Option<String>,
+    pub codec: Option<String>,
+    #[serde(default)]
+    pub forced: bool,
+}
+
+/// Un nativo en español, como lo muestra la UI.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct NativeSpanish {
+    /// Para elegirlo: `embedded:<sid>` o la clave del archivo del torrent (`torrent:…`).
+    pub key: String,
+    pub variant: SpanishVariant,
+    /// "SRT", "ASS", "PGS"… o "forzados".
+    pub kind: String,
+    /// "pista 3" o el nombre del archivo.
+    pub place: String,
+}
+
+/// Proveedor de las claves de pistas embebidas (`embedded:<sid>`): se eligen en mpv con `sid`.
+pub const EMBEDDED: &str = "embedded";
+
+/// Los nativos en español de un torrent, en su orden (los forzados al final).
+pub fn spanish_natives(subs: &[NativeSub], info_hash: InfoHash) -> Vec<NativeSpanish> {
+    let mut out: Vec<(bool, NativeSpanish)> = subs
+        .iter()
+        .filter_map(|n| {
+            let (variant, key, place, format) = match (&n.file, n.sid) {
+                (Some(file), _) => {
+                    let (lang, variant) = providers::lang_from_name(file)?;
+                    let ext = Path::new(file).extension()?.to_str()?.to_uppercase();
+                    (lang == SubtitleLanguage::Es).then_some(())?;
+                    let name = file.rsplit(['/', '\\']).next().unwrap_or(file).to_string();
+                    (variant, providers::torrent_key(info_hash, file), name, ext)
+                }
+                (None, Some(sid)) => {
+                    let variant =
+                        crate::audio::spanish_track(n.lang.as_deref(), n.title.as_deref())?;
+                    let codec = match n.codec.as_deref().unwrap_or("") {
+                        "subrip" | "srt" => "SRT".to_string(),
+                        "hdmv_pgs_subtitle" | "pgs" => "PGS".to_string(),
+                        "dvd_subtitle" => "VobSub".to_string(),
+                        "mov_text" => "texto".to_string(),
+                        other => other.to_uppercase(),
+                    };
+                    (
+                        variant,
+                        format!("{EMBEDDED}:{sid}"),
+                        format!("pista {sid}"),
+                        codec,
+                    )
+                }
+                (None, None) => return None,
+            };
+            let kind = if n.forced {
+                "forzados".to_string()
+            } else {
+                format
+            };
+            Some((
+                n.forced,
+                NativeSpanish {
+                    key,
+                    variant,
+                    kind,
+                    place,
+                },
+            ))
+        })
+        .collect();
+    out.sort_by_key(|(forced, _)| *forced);
+    out.into_iter().map(|(_, n)| n).collect()
+}
+
 // ---------- Proveedores (FR-24, R-02) ----------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+/// Cuánto calza un subtítulo con el video (dropdown "Encontrados para vos", 2026-11-18), de mejor
+/// a peor. Es la única regla: la deciden [`providers::release_match`] y [`fit_by_timing`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum MatchKind {
-    // Orden de mejor a peor (FR-24): hash > release > duración > nada.
-    Hash,
+    /// Hecho para este mismo archivo: hash de OpenSubtitles, mismo nombre o viene en el torrent.
+    Exact,
+    /// Mismo release: mismo grupo y la misma fuente (si se sabe).
     Release,
-    Duration,
+    /// Mismos fps y duración que el video.
+    Fps,
+    #[default]
     None,
 }
 
@@ -237,6 +327,10 @@ pub struct SubtitleCandidate {
     /// Agregado en F6 (aditivo): de dónde se baja (URL del proveedor o del motor, 127.0.0.1).
     #[serde(skip)]
     pub url: String,
+    /// Cuadros por segundo del video para el que se hizo, si el proveedor lo dice.
+    pub fps: Option<f64>,
+    /// Segundo del último diálogo, si el proveedor lo dice (para comparar con la duración).
+    pub last_secs: Option<f64>,
 }
 
 impl SubtitleCandidate {
@@ -250,21 +344,47 @@ impl SubtitleCandidate {
 pub struct Quota {
     pub remaining: u32,
     pub per_day: u32,
+    /// Cuándo vuelve la cuota, si el servidor lo dijo.
+    pub resets_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-/// Ordena y deja los mejores `n` (5 por FR-24). Orden (F6, anotado en spec 04):
-/// 1. los del torrent primero (FR-22, ADR-12: son del mismo archivo),
-/// 2. variante: latino > España > sin variante (Q-03),
-/// 3. coincidencia: hash > release > duración > nada (FR-24),
-/// 4. popularidad (descargas).
+/// Sube a [`MatchKind::Fps`] los que no calzan por nombre pero se hicieron para los mismos fps y
+/// terminan dentro del video (último diálogo entre el 80 % y el final + 5 s). Si el proveedor no
+/// dice el último diálogo, alcanza con los fps. Sin fps del video (no se analizó), no cambia nada.
+pub fn fit_by_timing(video: &VideoIdentity, all: &mut [SubtitleCandidate]) {
+    let Some(fps) = video.fps else { return };
+    for c in all.iter_mut().filter(|c| c.match_kind == MatchKind::None) {
+        let same_fps = c.fps.is_some_and(|f| (f - fps).abs() < 0.05);
+        let ends_inside = match (c.last_secs, video.duration_secs) {
+            (Some(last), Some(d)) => last >= d * 0.8 && last <= d + 5.0,
+            _ => true,
+        };
+        if same_fps && ends_inside {
+            c.match_kind = MatchKind::Fps;
+        }
+    }
+}
+
+/// El orden de los subtítulos (2026-11-18; uno solo para "Encontrados", Premium y mpv):
+/// 1. los del torrent primero (FR-22, ADR-12: vienen con el video),
+/// 2. cuánto calza: exacto > mismo release > mismos fps y duración > nada,
+/// 3. variante: latino > España > sin variante (Q-03),
+/// 4. OpenSubtitles.com antes que el resto (la de mejor calidad),
+/// 5. popularidad (descargas).
+pub fn rank_order(a: &SubtitleCandidate, b: &SubtitleCandidate) -> std::cmp::Ordering {
+    (a.provider != providers::TORRENT_PROVIDER)
+        .cmp(&(b.provider != providers::TORRENT_PROVIDER))
+        .then(a.match_kind.cmp(&b.match_kind))
+        .then(a.variant.cmp(&b.variant))
+        .then(
+            (a.provider != providers::OPENSUBTITLES).cmp(&(b.provider != providers::OPENSUBTITLES)),
+        )
+        .then(b.downloads.cmp(&a.downloads))
+}
+
+/// Ordena con [`rank_order`] y deja los mejores `n` (5 por FR-24).
 pub fn top_candidates(mut all: Vec<SubtitleCandidate>, n: usize) -> Vec<SubtitleCandidate> {
-    all.sort_by(|a, b| {
-        (a.provider != providers::TORRENT_PROVIDER)
-            .cmp(&(b.provider != providers::TORRENT_PROVIDER))
-            .then(a.variant.cmp(&b.variant))
-            .then(a.match_kind.cmp(&b.match_kind))
-            .then(b.downloads.cmp(&a.downloads))
-    });
+    all.sort_by(rank_order);
     all.truncate(n);
     all
 }
@@ -351,6 +471,10 @@ pub struct SubtitleChoice {
     /// inglés. Los datos viejos no lo traen → español (el default, el único que había).
     #[serde(default)]
     pub language: SubtitleLanguage,
+    /// Los que eligió para este video y después cambió por otro (no sincronizaron). Los cuenta
+    /// el dropdown ("Probaste N").
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tried: Vec<String>,
 }
 
 /// `subtitles-memory.json`: por video ([`VideoKey`] como texto: cada episodio de un pack tiene
@@ -387,6 +511,42 @@ impl SubtitleMemory {
         map.insert(key.to_string(), choice);
         crate::fsutil::write_json_atomic(&self.path, &map)
     }
+
+    /// Elige `subtitle` para ese video (dropdown del catálogo o teclas en mpv): el elegido antes
+    /// pasa a probado (no sincronizó) y el desfase vuelve a 0 si es otro. Comparar todos
+    /// ([`CHOICE_ALL`]) no cuenta como probar.
+    pub fn choose(
+        &self,
+        key: &VideoKey,
+        subtitle: &str,
+        language: SubtitleLanguage,
+    ) -> Result<SubtitleChoice> {
+        let mut map = self.load();
+        let mut c = map.remove(&key.to_string()).unwrap_or(SubtitleChoice {
+            subtitle: String::new(),
+            delay_secs: 0.0,
+            label: None,
+            language,
+            tried: Vec::new(),
+        });
+        if c.subtitle != subtitle {
+            let before = std::mem::replace(&mut c.subtitle, subtitle.to_string());
+            if !before.is_empty()
+                && before != CHOICE_ALL
+                && subtitle != CHOICE_ALL
+                && !c.tried.contains(&before)
+            {
+                c.tried.push(before);
+            }
+            c.delay_secs = 0.0;
+            c.label = None;
+        }
+        c.tried.retain(|t| t != subtitle);
+        c.language = language;
+        map.insert(key.to_string(), c.clone());
+        crate::fsutil::write_json_atomic(&self.path, &map)?;
+        Ok(c)
+    }
 }
 
 #[cfg(test)]
@@ -408,20 +568,63 @@ mod tests {
             downloads: dl,
             variant,
             url: String::new(),
+            fps: None,
+            last_secs: None,
         }
     }
 
     #[test]
-    fn ranking_latino_espana_sin_variante() {
+    fn ranking_latino_espana_sin_variante_dentro_del_mismo_nivel() {
         use SpanishVariant::*;
         let all = vec![
-            cand("wyzie", Unknown, MatchKind::Hash, 900),
-            cand("wyzie", Spain, MatchKind::Hash, 900),
+            cand("wyzie", Unknown, MatchKind::None, 900),
+            cand("wyzie", Spain, MatchKind::None, 900),
             cand("subdivx", Latino, MatchKind::None, 1),
+            cand("wyzie", Unknown, MatchKind::Release, 0),
         ];
         let top = top_candidates(all, 5);
-        let order: Vec<_> = top.iter().map(|c| c.variant).collect();
-        assert_eq!(order, vec![Latino, Spain, Unknown]);
+        let order: Vec<_> = top.iter().map(|c| (c.match_kind, c.variant)).collect();
+        assert_eq!(
+            order,
+            vec![
+                (MatchKind::Release, Unknown),
+                (MatchKind::None, Latino),
+                (MatchKind::None, Spain),
+                (MatchKind::None, Unknown),
+            ]
+        );
+    }
+
+    #[test]
+    fn mismos_fps_y_duracion_suben_de_nivel() {
+        let video = VideoIdentity {
+            fps: Some(23.976),
+            duration_secs: Some(3000.0),
+            ..Default::default()
+        };
+        let mut c = vec![
+            cand("x", SpanishVariant::Unknown, MatchKind::None, 0),
+            cand("x", SpanishVariant::Unknown, MatchKind::None, 1),
+            cand("x", SpanishVariant::Unknown, MatchKind::None, 2),
+            cand("x", SpanishVariant::Unknown, MatchKind::Release, 3),
+        ];
+        c[0].fps = Some(23.976);
+        c[0].last_secs = Some(2900.0);
+        c[1].fps = Some(25.0);
+        c[2].fps = Some(23.976);
+        c[2].last_secs = Some(1200.0); // termina mucho antes: es de otro corte
+        c[3].fps = Some(23.976);
+        fit_by_timing(&video, &mut c);
+        let kinds: Vec<_> = c.iter().map(|c| c.match_kind).collect();
+        assert_eq!(
+            kinds,
+            vec![
+                MatchKind::Fps,
+                MatchKind::None,
+                MatchKind::None,
+                MatchKind::Release
+            ]
+        );
     }
 
     #[test]
@@ -429,9 +632,9 @@ mod tests {
         use SpanishVariant::Latino;
         let all = vec![
             cand("wyzie", Latino, MatchKind::None, 10_000),
-            cand("wyzie", Latino, MatchKind::Duration, 5),
+            cand("wyzie", Latino, MatchKind::Fps, 5),
             cand("wyzie", Latino, MatchKind::Release, 1),
-            cand("wyzie", Latino, MatchKind::Hash, 0),
+            cand("wyzie", Latino, MatchKind::Exact, 0),
             cand("wyzie", Latino, MatchKind::Release, 50),
         ];
         let top = top_candidates(all, 5);
@@ -439,10 +642,10 @@ mod tests {
         assert_eq!(
             order,
             vec![
-                (MatchKind::Hash, 0),
+                (MatchKind::Exact, 0),
                 (MatchKind::Release, 50),
                 (MatchKind::Release, 1),
-                (MatchKind::Duration, 5),
+                (MatchKind::Fps, 5),
                 (MatchKind::None, 10_000),
             ]
         );
@@ -451,12 +654,12 @@ mod tests {
     #[test]
     fn ranking_torrent_primero_y_corta_en_n() {
         let mut all: Vec<_> = (0..8)
-            .map(|i| cand("wyzie", SpanishVariant::Latino, MatchKind::Hash, i))
+            .map(|i| cand("wyzie", SpanishVariant::Latino, MatchKind::Exact, i))
             .collect();
         all.push(cand(
             providers::TORRENT_PROVIDER,
             SpanishVariant::Unknown,
-            MatchKind::Hash,
+            MatchKind::Exact,
             0,
         ));
         let top = top_candidates(all, MAX_SUBTITLES);
@@ -611,6 +814,7 @@ mod tests {
             delay_secs: -0.3,
             label: Some("2 · Wyzie/rel".into()),
             language: SubtitleLanguage::En,
+            tried: Vec::new(),
         };
         mem.set(&h, choice.clone()).unwrap();
         mem.set(
@@ -637,6 +841,28 @@ mod tests {
         let old: SubtitleChoice =
             serde_json::from_str(r#"{"subtitle":"wyzie:1","delay_secs":0.0}"#).unwrap();
         assert_eq!(old.language, SubtitleLanguage::Es);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn elegir_otro_cuenta_el_anterior_como_probado() {
+        let dir =
+            std::env::temp_dir().join(format!("streamonte-test-probados-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let mem = SubtitleMemory::new(dir.join("subtitles-memory.json"));
+        let es = SubtitleLanguage::Es;
+        let k = VideoKey::whole(InfoHash::from_bytes([3; 20]));
+        mem.choose(&k, "wyzie:1", es).unwrap();
+        mem.choose(&k, CHOICE_ALL, es).unwrap(); // comparar no es probar
+        mem.choose(&k, "wyzie:2", es).unwrap();
+        let c = mem.choose(&k, "wyzie:3", es).unwrap();
+        assert_eq!(c.subtitle, "wyzie:3");
+        assert_eq!(c.tried, vec!["wyzie:2".to_string()]);
+        // Volver a uno probado lo saca de probados.
+        let c = mem.choose(&k, "wyzie:2", es).unwrap();
+        assert_eq!(c.tried, vec!["wyzie:3".to_string()]);
+        let otro = VideoKey::whole(InfoHash::from_bytes([4; 20]));
+        assert_eq!(mem.get(&otro).unwrap(), None, "es por opción");
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

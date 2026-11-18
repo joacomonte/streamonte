@@ -87,7 +87,6 @@ impl SubsCtx {
                     language: lang,
                     cache_dir: AppPaths::video_subtitles_dir(&dir, &id),
                     remembered: None,
-                    opensubtitles: false, // su cuota diaria queda para cuando se reproduce
                     log,
                 })
                 .await
@@ -199,10 +198,12 @@ mod tests {
             provider_id: "x".into(),
             release_name: "x".into(),
             language: crate::config::SubtitleLanguage::Es,
-            match_kind: crate::subtitles::MatchKind::Hash,
+            match_kind: crate::subtitles::MatchKind::Exact,
             downloads: 0,
             variant: crate::subtitles::SpanishVariant::Unknown,
             url: String::new(),
+            fps: None,
+            last_secs: None,
         };
         let a = dir.join("cache").join("a.srt");
         let b = dir.join("cache").join("b.ass");

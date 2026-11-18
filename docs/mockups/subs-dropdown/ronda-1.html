@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subtítulos · ronda 1</title>
+<style>
+/* Tokens copiados de ui/styles.css (oscuro + claro). */
+:root {
+  --bg:#f6f7f9; --surface:#fff; --surface-2:#eef1f4; --surface-3:#e3e7ec; --sunk:#f2f4f7;
+  --text:#1b1f24; --muted:#535c68; --dim:#5c6571; --border:#dde1e6; --border-strong:#c3c9d1;
+  --accent:#2563eb; --accent-fg:#1d4ed8; --green:#12733a; --yellow:#8a5300; --red:#c01c1c;
+  --amber:#9a5b00; --shadow-lg:rgb(15 23 42 / .28); --ease:cubic-bezier(.2,.8,.2,1);
+}
+:root[data-theme="dark"] {
+  --bg:#0d1014; --surface:#161a20; --surface-2:#1c2129; --surface-3:#232a34; --sunk:#11151a;
+  --text:#e7eaee; --muted:#9aa3ae; --dim:#8b949f; --border:#252b34; --border-strong:#353d48;
+  --accent-fg:#7ab0ff; --green:#4ade80; --yellow:#facc15; --red:#f87171; --amber:#f5b041;
+  --shadow-lg:rgb(0 0 0 / .7);
+}
+* { box-sizing:border-box; }
+::selection { background:color-mix(in srgb, var(--accent) 35%, transparent); }
+:focus-visible { outline:2px solid var(--accent-fg); outline-offset:2px; }
+body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif; }
+.ico { width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+
+/* Barra de controles del mockup (no es parte del diseño) */
+.ctl { position:sticky; top:0; z-index:50; display:flex; flex-wrap:wrap; gap:14px 22px; align-items:center; padding:12px 20px; background:var(--surface); border-bottom:1px solid var(--border); font-size:12.5px; }
+.ctl b { font-size:13px; }
+.ctl label { display:inline-flex; gap:6px; align-items:center; color:var(--muted); }
+.ctl select, .ctl button { font:inherit; font-size:12.5px; color:var(--text); background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:3px 6px; }
+
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(380px, 1fr)); gap:28px; padding:24px 20px 80px; align-items:start; }
+.col h2 { margin:0 0 4px; font-size:15px; }
+.col > p { margin:0 0 14px; color:var(--muted); font-size:12.5px; max-width:52ch; }
+/* Contexto: la fila del panel de catálogo donde vive el desplegable */
+.stage { padding:14px 12px 12px; border:1px solid var(--border); border-radius:12px; background:var(--surface); min-height:560px; }
+.ep { font-size:12px; color:var(--muted); margin:0 4px 10px; }
+.ep b { color:var(--text); font-weight:600; }
+
+/* === Disparador (igual al actual .cat-subs-info) === */
+.trigger { display:flex; align-items:center; gap:7px; padding:0 4px; border:0; background:none; font:inherit; font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer; }
+.trigger:hover { color:var(--text); }
+.trigger .ok { color:color-mix(in srgb, var(--green) 70%, var(--muted)); }
+
+/* === Menú base (igual al actual .cat-subs-menu) === */
+.menu { margin-top:8px; display:grid; width:100%; max-width:440px; max-height:520px; overflow-y:auto; padding:6px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); box-shadow:0 12px 32px var(--shadow-lg); scrollbar-width:thin; scrollbar-color:var(--border-strong) transparent; }
+.grp { display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:10px 10px 4px; font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); }
+.grp:first-child { padding-top:4px; }
+.grp small { font-size:11px; font-weight:500; letter-spacing:0; text-transform:none; }
+.item { display:grid; grid-template-columns:18px minmax(0,1fr) auto; align-items:center; gap:10px; padding:7px 10px; border:0; border-radius:8px; background:none; color:var(--text); font:inherit; font-size:13px; text-align:left; cursor:pointer; }
+.item:hover, .item:focus-visible { background:color-mix(in srgb, var(--accent) 12%, transparent); outline:none; }
+.item .mark { width:16px; height:16px; display:grid; place-items:center; color:var(--accent-fg); }
+.item.on { background:color-mix(in srgb, var(--accent) 16%, transparent); }
+.item.tried .name > span { color:var(--muted); text-decoration:line-through; text-decoration-color:color-mix(in srgb, var(--muted) 60%, transparent); }
+.name { display:grid; min-width:0; }
+.name > span, .name small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.name small { font-size:11px; color:var(--muted); }
+.tag { padding:1px 7px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.03em; white-space:nowrap; }
+.tag.fit { background:color-mix(in srgb, var(--green) 18%, transparent); color:color-mix(in srgb, var(--green) 85%, var(--text)); }
+.tag.near { color:var(--muted); font-weight:600; letter-spacing:0; }
+.tag.bad { color:var(--red); font-weight:600; letter-spacing:0; }
+.none { padding:2px 10px 6px 38px; font-size:11.5px; color:var(--dim); font-style:italic; }
+.sep { height:1px; margin:6px 4px; background:var(--border); }
+.spin { width:13px; height:13px; border-radius:50%; border:2px solid var(--border-strong); border-top-color:var(--accent); animation:spin .8s linear infinite; flex:none; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border:1px solid var(--border-strong); border-radius:7px; background:var(--surface); color:var(--text); font:inherit; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.btn:hover:not(:disabled) { border-color:var(--amber); }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+.cost { color:var(--amber); font-weight:700; font-variant-numeric:tabular-nums; }
+.msg { display:flex; gap:8px; align-items:flex-start; padding:8px 10px; font-size:12px; color:var(--muted); }
+.msg.err { color:var(--red); }
+.msg .btn { margin-left:auto; }
+
+/* --- A: escalera plana --- */
+.A .prem { margin-top:2px; border-radius:10px; background:color-mix(in srgb, var(--amber) 6%, transparent); border:1px dashed color-mix(in srgb, var(--amber) 45%, var(--border)); padding-bottom:4px; }
+.A .prem .grp { color:var(--amber); }
+.A .prem .item { grid-template-columns:18px minmax(0,1fr) auto; }
+.A .prem .item:hover { background:color-mix(in srgb, var(--amber) 12%, transparent); }
+
+/* --- B: Premium plegado --- */
+.B .gate { display:grid; grid-template-columns:28px minmax(0,1fr) auto; gap:10px; align-items:center; width:100%; margin-top:2px; padding:9px 10px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font:inherit; text-align:left; cursor:pointer; transition:border-color .15s var(--ease); }
+.B .gate:hover { border-color:color-mix(in srgb, var(--amber) 60%, var(--border)); }
+.B .gate.hot { border-color:color-mix(in srgb, var(--amber) 70%, var(--border)); background:color-mix(in srgb, var(--amber) 7%, var(--surface)); }
+.B .gate .gi { width:28px; height:28px; display:grid; place-items:center; border-radius:8px; background:var(--surface-3); color:var(--amber); }
+.B .gate b { display:block; font-size:13px; }
+.B .gate span { font-size:11.5px; color:var(--muted); }
+.B .open { margin-top:4px; padding:2px 0 4px; border-top:1px solid var(--border); animation:in .2s var(--ease) both; }
+@keyframes in { from { opacity:0; transform:translateY(-3px); } }
+
+/* --- C: pie fijo con cuota --- */
+.C.menu { padding:0; overflow:hidden; display:grid; grid-template-rows:minmax(0,1fr) auto; }
+.C .scroll { overflow-y:auto; padding:6px; max-height:330px; }
+.C .foot { border-top:1px solid var(--border); background:var(--sunk); padding:8px 6px 6px; }
+.C .fhead { display:flex; align-items:center; gap:8px; padding:0 8px 6px; font-size:12px; }
+.C .fhead b { font-size:12px; }
+.pips { display:inline-flex; gap:3px; margin-left:auto; align-items:center; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.pips i { width:7px; height:7px; border-radius:2px; background:var(--amber); }
+.pips i.used { background:var(--border-strong); }
+.C .foot .item { grid-template-columns:18px minmax(0,1fr) auto; }
+.C .hint { padding:0 8px 6px; font-size:11.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-subs" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6M17 10.2a2.2 2.2 0 1 0 0 3.6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="2.4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 19.5h14"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M8 4.5v15M16 4.5v15M3.5 9.5H8M3.5 14.5H8M16 9.5h4.5M16 14.5h4.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".9" fill="currentColor"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5"/><path d="M20 4v4.5h-4.5"/></symbol>
+</svg>
+
+<div class="ctl">
+  <b>Subtítulos · ronda 1</b>
+  <label>Nativos <select id="ctl-native"><option value="yes">trae 2 en ES</option><option value="no">no trae</option></select></label>
+  <label>Probados <select id="ctl-tried"><option value="0">ninguno</option><option value="3" selected>3 sin suerte</option></select></label>
+  <label>Premium <select id="ctl-prem">
+    <option value="ready">resultados</option><option value="idle">sin buscar</option><option value="loading">buscando</option>
+    <option value="downloading">bajando uno</option><option value="empty">vacío</option><option value="error">error</option>
+    <option value="quota0">sin cuota</option><option value="unknown">cuota desconocida</option><option value="nokey">sin key</option>
+  </select></label>
+  <label>Tema <select id="ctl-theme"><option value="dark">oscuro</option><option value="light">claro</option></select></label>
+</div>
+
+<div class="grid">
+  <section class="col"><h2>A · Escalera</h2><p>Una sola lista con tres grupos. Premium va al fondo en una caja punteada ámbar; cada fila muestra su costo (“−1”) en el botón.</p><div class="stage" id="stage-a"></div></section>
+  <section class="col"><h2>B · Premium plegado</h2><p>Premium es una sola fila cerrada. Cuando ya probaste varios, la fila se enciende y te lo sugiere. Abrirla busca; cada descarga se confirma por fila.</p><div class="stage" id="stage-b"></div></section>
+  <section class="col"><h2>C · Pie con cuota</h2><p>Nativos y Mejor match scrollean arriba. Premium queda fijo abajo, sobre fondo hundido, con la cuota del día a la vista en pastillas.</p><div class="stage" id="stage-c"></div></section>
+</div>
+
+<script>
+const ico = (n, s = 14) => `<svg class="ico" style="width:${s}px;height:${s}px"><use href="#i-${n}"/></svg>`;
+const S = { native: 'yes', tried: 3, prem: 'ready', bOpen: false, sel: 'm2' };
+const QUOTA = { left: 4, total: 5 };
+
+const NATIVE = [
+  { id: 'n1', name: 'Español (Latinoamérica)', meta: 'Pista 3 · SRT' },
+  { id: 'n2', name: 'Español (España) · forzados', meta: 'Pista 4 · PGS' },
+];
+const MATCH = [
+  { id: 'm1', name: 'Game.of.Thrones.S04E06.1080p.BluRay.x264-DEMAND', meta: 'Wyzie · mismo grupo, fps y duración', fit: 'fit' },
+  { id: 'm2', name: 'Game.of.Thrones.S04E06.720p.BluRay.x264-DEMAND', meta: 'Wyzie · mismo grupo, otra resolución', fit: 'fit' },
+  { id: 'm3', name: 'Game.of.Thrones.S04E06.BDRip.x264-DEMAND', meta: 'OpenSubtitles.org · misma fuente', fit: 'fit' },
+  { id: 'm4', name: 'Game.of.Thrones.S04E06.720p.HDTV.x264-KILLERS', meta: 'Wyzie · HDTV, 23.976 vs 24 fps', fit: 'near' },
+  { id: 'm5', name: 'Game.Of.Thrones.4x06.Las.Leyes.de.Dioses.y.Hombres', meta: 'Subdivx · sin datos de release', fit: 'near' },
+  { id: 'm6', name: 'Game.of.Thrones.S04E06.WEB-DL.1080p', meta: 'Wyzie · dura 1 min menos', fit: 'bad' },
+];
+const PREM = [
+  { id: 'p1', name: 'Game.of.Thrones.S04E06.1080p.BluRay.x264-DEMAND', meta: 'subido por Gorsh · 18.402 descargas' },
+  { id: 'p2', name: 'GoT.S04E06.Bluray.1080p.ES-LAT', meta: 'subido por rawdog · 6.110 descargas · HI' },
+  { id: 'p3', name: 'Game of Thrones 4x06 (BDRip)', meta: 'subido por tuSubtitulo · 3.977 descargas' },
+];
+const FIT = { fit: '<span class="tag fit">Calza</span>', near: '<span class="tag near">cerca</span>', bad: '<span class="tag bad">desfasado</span>' };
+const triedIds = () => (S.tried ? ['m1', 'm3', 'm4'] : []);
+
+function row(it, right, extra = '') {
+  const on = S.sel === it.id, tried = triedIds().includes(it.id) && !on;
+  return `<button id="sub-${it.id}-${extra}" type="button" role="menuitemradio" aria-checked="${on}" class="item ${on ? 'on' : ''} ${tried ? 'tried' : ''}" data-sel="${it.id}">
+    <span class="mark">${on ? ico('check') : ''}</span>
+    <span class="name"><span>${it.name}</span><small>${tried ? 'Probado · no sincronizó · ' : ''}${it.meta}</small></span>${right || ''}</button>`;
+}
+const nativeBlock = (v) => S.native === 'yes'
+  ? `<div class="grp">Del video</div>${NATIVE.map((n) => row(n, '', v)).join('')}`
+  : `<div class="grp">Del video</div><div class="none">No trae subs en ES</div>`;
+const matchBlock = (v) => `<div class="grp">Mejor match <small>${MATCH.filter((m) => m.fit === 'fit').length} calzan</small></div>${MATCH.map((m) => row(m, FIT[m.fit], v)).join('')}`;
+
+function quotaText(short) {
+  if (S.prem === 'unknown') return short ? 'cuota ?' : 'No sé cuántas descargas quedan hoy';
+  if (S.prem === 'quota0') return short ? '0 de 5 hoy' : 'Usaste las 5 descargas de hoy · vuelven a las 21:00';
+  return short ? `${QUOTA.left} de ${QUOTA.total} hoy` : `Quedan ${QUOTA.left} de ${QUOTA.total} descargas hoy`;
+}
+function premBody(v, dlLabel) {
+  const p = S.prem;
+  if (p === 'nokey') return `<div class="msg">${ico('lock')}<span>Necesita tu API key de opensubtitles.com.</span><button id="prem-key-${v}" class="btn" type="button">Ajustes</button></div>`;
+  if (p === 'idle') return `<div class="msg">${ico('info')}<span>Busca en opensubtitles.com. Buscar es gratis; cada descarga gasta 1.</span><button id="prem-search-${v}" class="btn" type="button">Buscar</button></div>`;
+  if (p === 'loading') return `<div class="msg"><span class="spin"></span><span>Buscando en opensubtitles.com…</span></div>`;
+  if (p === 'empty') return `<div class="msg">${ico('info')}<span>Tampoco hay en español para S04E06. No se gastó ninguna descarga.</span></div>`;
+  if (p === 'error') return `<div class="msg err">${ico('info')}<span>opensubtitles.com no respondió (timeout). No se gastó ninguna descarga.</span><button id="prem-retry-${v}" class="btn" type="button">${ico('refresh', 12)} Reintentar</button></div>`;
+  const off = p === 'quota0';
+  return PREM.map((it, i) => {
+    const busy = p === 'downloading' && i === 0;
+    const btn = busy ? `<span class="btn" aria-live="polite"><span class="spin"></span> Bajando</span>`
+      : `<span id="prem-dl-${it.id}-${v}" class="btn" role="button" tabindex="0" ${off ? 'aria-disabled="true" style="opacity:.45"' : ''}>${ico('down', 12)} ${dlLabel}</span>`;
+    return row(it, btn, v);
+  }).join('');
+}
+
+function renderA() {
+  document.getElementById('stage-a').innerHTML = `${ep()}${trigger('a')}
+  <div class="menu A" role="menu" id="menu-a">${nativeBlock('a')}${matchBlock('a')}
+    <div class="prem"><div class="grp">Premium · opensubtitles.com <small>${quotaText(true)}</small></div>
+    ${S.prem === 'ready' || S.prem === 'downloading' ? `<div class="none" style="padding-left:10px;font-style:normal">Último recurso: cada descarga gasta una de las ${QUOTA.total} diarias.</div>` : ''}
+    ${premBody('a', '<span class="cost">−1</span>')}</div></div>`;
+}
+function renderB() {
+  const hot = S.tried >= 2 && S.prem !== 'nokey';
+  const sub = S.prem === 'nokey' ? 'Necesita tu API key de opensubtitles.com'
+    : hot ? `Probaste ${S.tried} y no sincronizaron · ${quotaText(false).toLowerCase()}` : `Último recurso · ${quotaText(false).toLowerCase()}`;
+  const open = S.bOpen ? `<div class="open">${premBody('b', 'Bajar <span class="cost">· 1</span>')}</div>` : '';
+  document.getElementById('stage-b').innerHTML = `${ep()}${trigger('b')}
+  <div class="menu B" role="menu" id="menu-b">${nativeBlock('b')}${matchBlock('b')}
+    <div class="sep"></div>
+    <button id="prem-gate" type="button" class="gate ${hot ? 'hot' : ''}" aria-expanded="${S.bOpen}">
+      <span class="gi">${ico('lock', 15)}</span>
+      <span><b>${hot ? '¿Ninguno anduvo? Buscá en Premium' : 'Buscar en Premium'}</b><span>${sub}</span></span>
+      <span class="ico-wrap" style="color:var(--muted);transform:rotate(${S.bOpen ? 180 : 0}deg);display:inline-flex">${ico('chev', 13)}</span>
+    </button>${open}</div>`;
+  document.getElementById('prem-gate').onclick = () => { S.bOpen = !S.bOpen; renderB(); };
+}
+function renderC() {
+  const pips = S.prem === 'unknown' ? '<span>cuota desconocida</span>'
+    : `${Array.from({ length: QUOTA.total }, (_, i) => `<i class="${i < (S.prem === 'quota0' ? 0 : QUOTA.left) ? '' : 'used'}"></i>`).join('')}<span>&nbsp;${quotaText(true)}</span>`;
+  document.getElementById('stage-c').innerHTML = `${ep()}${trigger('c')}
+  <div class="menu C" role="menu" id="menu-c">
+    <div class="scroll">${nativeBlock('c')}${matchBlock('c')}</div>
+    <div class="foot">
+      <div class="fhead"><span style="color:var(--amber);display:inline-flex">${ico('lock')}</span><b>Premium</b><span style="color:var(--muted)">opensubtitles.com</span><span class="pips" id="prem-quota">${pips}</span></div>
+      ${S.prem === 'ready' || S.prem === 'downloading' ? `<div class="hint">${S.tried >= 2 ? `Probaste ${S.tried} sin suerte. ` : ''}Se baja solo el que elijas.</div>` : ''}
+      ${premBody('c', 'Usar 1')}
+    </div></div>`;
+}
+const ep = () => `<p class="ep"><b>Game of Thrones · S04E06</b> “The Laws of Gods and Men” · 1080p BluRay x264-DEMAND</p>`;
+const trigger = (v) => `<button id="subs-trigger-${v}" type="button" class="trigger" aria-haspopup="menu" aria-expanded="true">
+  <span class="ok">${ico('check')}</span>${S.native === 'yes' ? 'Trae subtítulos en español' : 'Encontré 3 que calzan'}<span style="transform:rotate(180deg);display:inline-flex">${ico('chev', 13)}</span></button>`;
+
+function render() { renderA(); renderB(); renderC(); }
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-sel]'); if (b && !e.target.closest('.btn')) { S.sel = b.dataset.sel; render(); } });
+for (const [id, k, num] of [['ctl-native', 'native'], ['ctl-tried', 'tried', 1], ['ctl-prem', 'prem']])
+  document.getElementById(id).onchange = (e) => { S[k] = num ? +e.target.value : e.target.value; render(); };
+const theme = document.getElementById('ctl-theme');
+theme.onchange = () => { document.documentElement.dataset.theme = theme.value; };
+document.documentElement.dataset.theme = 'dark';
+render();
+</script>
+</body>
+</html>

@@ -61,6 +61,8 @@ pub(super) fn parse_subdivx(json: &Value, video: &VideoIdentity) -> Vec<Subtitle
                 downloads: downloads.min(u32::MAX as u64) as u32,
                 variant: spanish_variant(descripcion),
                 url: String::new(),
+                fps: None,
+                last_secs: None,
             })
         })
         .collect()
@@ -204,7 +206,7 @@ mod tests {
         assert_eq!(c.len(), 3, "sin la otra película ni el año que no coincide");
         assert_eq!(c[0].provider_id, "725040");
         assert_eq!(c[0].variant, SpanishVariant::Latino);
-        assert_eq!(c[0].match_kind, MatchKind::Release);
+        assert_eq!(c[0].match_kind, MatchKind::Exact, "nombra el mismo archivo");
         assert_eq!(c[0].downloads, 12_345);
         assert_eq!(c[1].variant, SpanishVariant::Spain);
         assert_eq!(c[2].variant, SpanishVariant::Unknown);

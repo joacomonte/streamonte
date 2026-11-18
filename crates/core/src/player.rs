@@ -347,11 +347,46 @@ impl PlayerLauncher {
     }
 }
 
-/// Lo que se lee del video sin ventana: duración y pistas de audio (idioma, 2026-11-14).
+/// Lo que se lee del video sin ventana: duración, pistas de audio (idioma, 2026-11-14) y, de la
+/// misma lectura, subtítulos embebidos y fps (dropdown de subtítulos, 2026-11-18).
 #[derive(Debug, Clone)]
 pub struct MediaProbe {
     pub duration_secs: f64,
     pub audio: Vec<crate::audio::AudioTrack>,
+    pub subs: Vec<crate::subtitles::NativeSub>,
+    pub fps: Option<f64>,
+}
+
+/// Pistas de subtítulo embebidas del `track-list` de mpv (las externas no: no hay ninguna al
+/// leer sin ventana). `id` es el `sid` con que se eligen.
+fn sub_tracks(list: &serde_json::Value) -> Vec<crate::subtitles::NativeSub> {
+    let str_of =
+        |t: &serde_json::Value, k: &str| t.get(k).and_then(|v| v.as_str()).map(str::to_string);
+    list.as_array()
+        .into_iter()
+        .flatten()
+        .filter(|t| t.get("type").and_then(|v| v.as_str()) == Some("sub"))
+        .filter_map(|t| {
+            Some(crate::subtitles::NativeSub {
+                sid: Some(t.get("id")?.as_i64()?),
+                file: None,
+                lang: str_of(t, "lang"),
+                title: str_of(t, "title"),
+                codec: str_of(t, "codec"),
+                forced: t.get("forced").and_then(|v| v.as_bool()).unwrap_or(false),
+            })
+        })
+        .collect()
+}
+
+/// Cuadros por segundo de la primera pista de video (`demux-fps`).
+fn video_fps(list: &serde_json::Value) -> Option<f64> {
+    list.as_array()?
+        .iter()
+        .find(|t| t.get("type").and_then(|v| v.as_str()) == Some("video"))?
+        .get("demux-fps")?
+        .as_f64()
+        .filter(|f| *f > 0.0)
 }
 
 /// Pistas de audio del `track-list` de mpv.
@@ -410,13 +445,12 @@ pub async fn probe_media(
             if let Ok(value) = ipc.get_property("duration").await {
                 if let Some(secs) = value.as_f64().filter(|s| *s > 0.0) {
                     // Las pistas ya están: se leen de la misma cabecera que la duración.
-                    let audio = match ipc.get_property("track-list").await {
-                        Ok(list) => audio_tracks(&list),
-                        Err(_) => Vec::new(),
-                    };
+                    let list = ipc.get_property("track-list").await.unwrap_or_default();
                     return Ok(MediaProbe {
                         duration_secs: secs,
-                        audio,
+                        audio: audio_tracks(&list),
+                        subs: sub_tracks(&list),
+                        fps: video_fps(&list),
                     });
                 }
             }

@@ -54,12 +54,13 @@ pub fn is_imdb_id(id: &str) -> bool {
         .is_some_and(|d| (5..=10).contains(&d.len()) && d.bytes().all(|b| b.is_ascii_digit()))
 }
 
-/// Cuánto se recuerda la lista de torrents de un video (2026-11-17, datos guardados): después se
-/// vuelve a buscar (aparecen torrents nuevos y cambian los seeders).
-const RECENT_TTL: Duration = Duration::from_secs(30 * 60);
-/// Archivo de datos guardados con la lista de ese video (`tt…:T:E` → sin `:`).
-fn recent_key(video_id: &str) -> String {
-    format!("torrents-{}.json", video_id.replace(':', "_"))
+/// Cuánto se recuerda la lista de un video (2026-11-18, pedido: 1 h): sus torrents y cuáles están en
+/// TorBox. Después se vuelve a buscar (aparecen torrents nuevos y cambian los seeders). "Borrar
+/// datos guardados" la borra antes.
+const RECENT_TTL: Duration = Duration::from_secs(60 * 60);
+/// Archivo de datos guardados de ese video (`what`: `torrents` o `torbox`; `tt…:T:E` → sin `:`).
+fn recent_key(what: &str, video_id: &str) -> String {
+    format!("{what}-{}.json", video_id.replace(':', "_"))
 }
 
 /// Lo que se pide a los addons (spec 10 §A.3): `tt…` o `tt…:T:E`.
@@ -580,7 +581,7 @@ impl Catalog {
         let video = VideoId::parse(video_id)?;
         // Ya buscado hace poco (datos guardados: sobrevive a cerrar la app y no se borra con la
         // caché de descargas): la misma lista al toque y vigente para analizar y reproducir.
-        let key = recent_key(video_id);
+        let key = recent_key("torrents", video_id);
         let cached = self
             .data
             .get::<aggregate::StreamsUpdate>(&key)
@@ -650,15 +651,25 @@ impl Catalog {
         }
     }
 
-    /// Cuáles de esas opciones están en la caché de TorBox (`torbox::cached`).
+    /// Cuáles de esas opciones (de la lista de `video_id`) están en la caché de TorBox
+    /// (`torbox::cached`). Se recuerda como la lista: abrir de nuevo el video no vuelve a preguntar.
     pub async fn torbox_cached(
         &self,
+        video_id: &str,
         hashes: &[InfoHash],
         timeout: Duration,
-    ) -> Option<Vec<InfoHash>> {
-        torbox::cached(&self.http, hashes, timeout)
-            .await
-            .map(|s| s.into_iter().collect())
+    ) -> Option<torbox::Cached> {
+        let key = recent_key("torbox", video_id);
+        if let Some((saved, _)) = self
+            .data
+            .get::<torbox::Cached>(&key)
+            .filter(|(_, age)| *age < RECENT_TTL)
+        {
+            return Some(saved);
+        }
+        let found = torbox::cached(&self.http, hashes, timeout).await?;
+        self.data.put(&key, &found);
+        Some(found)
     }
 
     /// Link directo de TorBox para esa opción de la lista vigente, y su nombre (2026-11-17).

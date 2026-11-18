@@ -56,6 +56,8 @@ pub(super) fn partial_measurement(partial: &PartialRef) -> Option<LiveMeasuremen
         max_speed_bps: speed.max_bps,
         duration_secs: None,
         audio: None,
+        subs: None,
+        fps: None,
     })
 }
 

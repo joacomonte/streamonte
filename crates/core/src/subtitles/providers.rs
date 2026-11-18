@@ -1,12 +1,14 @@
-//! Proveedores de subtítulos (FR-22, FR-24, Q-01..Q-04). Orden de preferencia del usuario:
+//! Proveedores de subtítulos (FR-22, FR-24, Q-01..Q-04):
 //! 1. **torrent**: los `.srt/.ass` que vienen dentro del torrent (se leen por el stream del motor).
 //! 2. **Wyzie Subs**: agregador; desde 2026 exige una API key gratuita (sub.wyzie.io/redeem).
 //! 3. **Subdivx**: experimental, sin API oficial (se lee la web). Si falla o hay un bloqueo de
 //!    Cloudflare, se omite sin romper nada (no se evaden bloqueos, R-09).
 //! 4. **Gestdown** (proxy de Addic7ed) y **Subtitulamos** (web española): solo series, sin key
 //!    (2026-11-15). Gestdown casi siempre trae inglés; Subtitulamos, español e inglés.
-//! 5. **OpenSubtitles**: API REST v1 con la key gratuita del usuario; cuota de 20 descargas/día,
-//!    por eso va último y solo si faltan para llegar a 5.
+//! 5. **OpenSubtitles.org** anónimo (sin key).
+//! 6. **OpenSubtitles.com** (Premium del dropdown, 2026-11-18): key del usuario con pocas descargas
+//!    por día. Nunca entra en la búsqueda en lote: se busca aparte y se baja de a uno, solo cuando
+//!    el usuario lo elige (`app::catalog_premium_use`).
 //!
 //! Acá: la interfaz [`SubtitleProvider`], ids, nombres en pantalla, errores de proveedor y la
 //! coincidencia por release. Cada proveedor vive en su archivo; los parsers de respuestas son
@@ -38,11 +40,12 @@ mod wyzie;
 pub use cache::{cached, cached_by_key};
 pub use gestdown::GestdownProvider;
 pub use imdb::resolve_imdb;
-pub use opensubtitles::OpenSubtitlesProvider;
+pub(crate) use lang::lang_from_name;
+pub use opensubtitles::{forget_opensubtitles_login, OpenSubtitlesProvider};
 pub use opensubtitles_org::OpenSubtitlesOrgProvider;
 pub use subdivx::SubdivxProvider;
 pub use subtitulamos::SubtitulamosProvider;
-pub use torrent::{TorrentProvider, TorrentSubtitleFile};
+pub use torrent::{torrent_key, TorrentProvider, TorrentSubtitleFile};
 pub use wyzie::WyzieProvider;
 
 #[async_trait]
@@ -86,10 +89,10 @@ pub fn display_name(provider: &str) -> &'static str {
         TORRENT_PROVIDER => "torrent",
         WYZIE => "Wyzie",
         SUBDIVX => "Subdivx",
-        OPENSUBTITLES => "OpenSubs",
+        OPENSUBTITLES => "OpenSubtitles.com",
         GESTDOWN => "Gestdown",
         SUBTITULAMOS => "Subtitulamos",
-        OPENSUBTITLES_ORG => "OpenSubs.org",
+        OPENSUBTITLES_ORG => "OpenSubtitles.org",
         _ => "?",
     }
 }
@@ -109,7 +112,7 @@ fn error_label(provider: &'static str) -> &'static str {
     match provider {
         WYZIE => "Wyzie",
         SUBDIVX => "Subdivx",
-        OPENSUBTITLES => "OpenSubtitles",
+        OPENSUBTITLES => "OpenSubtitles.com",
         GESTDOWN => "Gestdown",
         SUBTITULAMOS => "Subtitulamos",
         OPENSUBTITLES_ORG => "OpenSubtitles.org",
@@ -168,20 +171,34 @@ fn words(text: &str) -> Vec<String> {
         .collect()
 }
 
-/// Coincidencia por nombre de release (FR-24): mismo grupo, o el mismo nombre de archivo.
-fn release_match(video: &VideoIdentity, release: &str) -> MatchKind {
+/// Coincidencia por nombre de release (FR-24): [`MatchKind::Exact`] si es el mismo nombre de
+/// archivo; [`MatchKind::Release`] si es el mismo grupo y no dice otra fuente (Blu-ray vs WEB…).
+pub(super) fn release_match(video: &VideoIdentity, release: &str) -> MatchKind {
     let r = release.to_lowercase();
     let stem = video
         .file_name
         .rsplit_once('.')
         .map_or(video.file_name.as_str(), |(s, _)| s)
         .to_lowercase();
+    if !stem.is_empty() && r.contains(&stem) {
+        return MatchKind::Exact;
+    }
     let group = video
         .release_group
         .as_deref()
         .map(str::to_lowercase)
         .filter(|g| g.len() >= 2);
-    if (!stem.is_empty() && r.contains(&stem)) || group.is_some_and(|g| words(&r).contains(&g)) {
+    let source = |s: Option<&str>| s.map(|s| normalized_title(s).replace(' ', ""));
+    let theirs = source(
+        crate::release::parse_release_name(release)
+            .source
+            .as_deref(),
+    );
+    let same_source = match (source(video.source.as_deref()), theirs) {
+        (Some(a), Some(b)) => a == b,
+        _ => true,
+    };
+    if group.is_some_and(|g| words(&r).contains(&g)) && same_source {
         MatchKind::Release
     } else {
         MatchKind::None
@@ -213,6 +230,26 @@ mod tests {
             release_group: Some("SURFER".into()),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn mismo_release_es_grupo_y_fuente() {
+        // Como al reproducir: grupo y fuente salen del nombre del archivo.
+        let v = VideoIdentity::from(crate::release::parse_release_name(&video().file_name));
+        assert_eq!(
+            release_match(&v, "Sintel.2010.720p.BluRay.x264-SURFER"),
+            MatchKind::Exact
+        );
+        assert_eq!(
+            release_match(&v, "Sintel.2010.1080p.BluRay.x264-SURFER"),
+            MatchKind::Release
+        );
+        assert_eq!(
+            release_match(&v, "Sintel.2010.1080p.WEB-DL.x264-SURFER"),
+            MatchKind::None,
+            "mismo grupo, otra fuente"
+        );
+        assert_eq!(release_match(&v, "Sintel.2010.DVDRip"), MatchKind::None);
     }
 
     #[test]

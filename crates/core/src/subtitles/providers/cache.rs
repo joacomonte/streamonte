@@ -121,6 +121,8 @@ mod tests {
             downloads: 0,
             variant: SpanishVariant::Unknown,
             url: String::new(),
+            fps: None,
+            last_secs: None,
         };
         assert!(save(&dir, &cand, b"<html>error</html>").is_err());
         assert_eq!(cached(&dir, &cand), None);

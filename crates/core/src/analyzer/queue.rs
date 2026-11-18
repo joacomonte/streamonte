@@ -552,6 +552,12 @@ impl Queue {
                         if new.audio.is_none() {
                             new.audio = e.live.as_ref().and_then(|old| old.audio.clone());
                         }
+                        if new.subs.is_none() {
+                            new.subs = e.live.as_ref().and_then(|old| old.subs.clone());
+                        }
+                        if new.fps.is_none() {
+                            new.fps = e.live.as_ref().and_then(|old| old.fps);
+                        }
                         e.live = Some(new);
                     }
                     e.status = EntryStatus::Measured;
@@ -765,6 +771,12 @@ fn apply_quick(e: &mut crate::library::LibraryEntry, info: &QuickInfo) {
             if info.audio.is_some() {
                 live.audio = info.audio.clone();
             }
+            if info.subs.is_some() {
+                live.subs = info.subs.clone();
+            }
+            if info.fps.is_some() {
+                live.fps = info.fps;
+            }
         }
         None => {
             e.live = Some(LiveMeasurement {
@@ -781,6 +793,8 @@ fn apply_quick(e: &mut crate::library::LibraryEntry, info: &QuickInfo) {
                 max_speed_bps: 0.0,
                 duration_secs: info.duration_secs,
                 audio: info.audio.clone(),
+                subs: info.subs.clone(),
+                fps: info.fps,
             });
         }
     }
@@ -877,6 +891,8 @@ mod tests {
                 max_speed_bps: 0.0,
                 duration_secs: Some(888.0),
                 audio: None,
+                subs: None,
+                fps: None,
             })
         }
     }

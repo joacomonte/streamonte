@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use streamonte_core::analyzer::swarm::SwarmCount;
 use streamonte_core::analyzer::AnalyzeScope;
 use streamonte_core::app::{
-    ApiKeyStatus, AppCore, CopiedMagnet, LibraryView, SubtitleFound, TempUsage,
+    ApiKeyStatus, AppCore, CatalogSubtitles, CopiedMagnet, LibraryView, PremiumPick, PremiumQuota,
+    SubtitleFound, SubtitlePicks, TempUsage,
 };
 use streamonte_core::catalog::cinemeta::{BrowsePage, BrowseSort, Meta, MetaPreview};
 use streamonte_core::catalog::{AddonView, MediaKind};
@@ -84,6 +85,11 @@ pub async fn analyze(core: Core<'_>, scope: ScopeArg) -> CmdResult<()> {
 #[tauri::command]
 pub async fn analyzer_pause(core: Core<'_>) -> CmdResult<()> {
     Ok(core.analyzer_pause().await?)
+}
+#[tauri::command]
+pub async fn analyzer_cancel(core: Core<'_>, hashes: Vec<InfoHash>) -> CmdResult<()> {
+    core.analyzer_cancel(&hashes).await;
+    Ok(())
 }
 #[tauri::command]
 pub async fn analyzer_resume(core: Core<'_>) -> CmdResult<()> {
@@ -281,14 +287,64 @@ pub async fn catalog_swarm(
 #[tauri::command]
 pub async fn catalog_torbox(
     core: Core<'_>,
+    video_id: String,
     hashes: Vec<InfoHash>,
-) -> CmdResult<Option<Vec<InfoHash>>> {
-    Ok(core.catalog_torbox(&hashes).await)
+) -> CmdResult<Option<streamonte_core::catalog::torbox::Cached>> {
+    Ok(core.catalog_torbox(&video_id, &hashes).await)
 }
-/// ▶ desde TorBox: abre el reproductor con su link directo.
+/// ▶ desde TorBox: abre el reproductor con su link directo, con el audio y el subtítulo elegidos.
 #[tauri::command]
-pub async fn play_torbox(core: Core<'_>, video_id: String, hash: InfoHash) -> CmdResult<()> {
-    Ok(core.play_torbox(&video_id, hash).await?)
+pub async fn play_torbox(
+    core: Core<'_>,
+    video_id: String,
+    hash: InfoHash,
+    player: Option<PlayerKind>,
+    audio: Option<streamonte_core::audio::AudioPick>,
+) -> CmdResult<PlaybackId> {
+    Ok(core.play_torbox(&video_id, hash, player, audio).await?)
+}
+/// Usuario y contraseña de OpenSubtitles.com (vacíos = borrar). Nunca vuelven a la UI.
+#[tauri::command]
+pub fn opensubtitles_login_set(
+    core: Core<'_>,
+    username: String,
+    password: String,
+) -> CmdResult<()> {
+    Ok(core.set_opensubtitles_login(&username, &password)?)
+}
+/// Cambiar el subtítulo de lo que se está viendo (mpv), sin reiniciar.
+#[tauri::command]
+pub async fn playback_subtitle(
+    core: Core<'_>,
+    id: PlaybackId,
+    key: String,
+    path: Option<String>,
+) -> CmdResult<()> {
+    Ok(core.playback_subtitle(id, &key, path.as_deref()).await?)
+}
+/// Lee audio y subtítulos de una opción por su link de TorBox (paso previo de Reproducir).
+#[tauri::command]
+pub async fn catalog_torbox_tracks(
+    core: Core<'_>,
+    kind: MediaKind,
+    video_id: String,
+    hash: InfoHash,
+) -> CmdResult<()> {
+    Ok(core.catalog_torbox_tracks(kind, &video_id, hash).await?)
+}
+/// Copia subtítulos ya bajados a Descargas y abre la carpeta.
+#[tauri::command]
+pub fn save_subtitles(
+    core: Core<'_>,
+    title: String,
+    files: Vec<streamonte_core::app::SubtitleSave>,
+) -> CmdResult<String> {
+    Ok(core.save_subtitles(&title, &files)?.display().to_string())
+}
+/// Magnet o link https de TorBox de una opción, para copiar (clic derecho).
+#[tauri::command]
+pub async fn catalog_link(core: Core<'_>, hash: InfoHash, torbox: bool) -> CmdResult<String> {
+    Ok(core.catalog_link(hash, torbox).await?)
 }
 /// Tests de conexión de la última hora (datos guardados).
 #[tauri::command]
@@ -311,15 +367,50 @@ pub async fn catalog_census(
 ) -> CmdResult<std::collections::HashMap<InfoHash, u32>> {
     Ok(core.catalog_census(&hashes).await)
 }
-/// "Bajar subtítulos" de una opción del catálogo (hasta 5; el idioma elegido primero).
+/// Subtítulos del video del catálogo (hasta 5 de las fuentes gratis; el idioma elegido primero)
+/// con lo elegido y lo probado para ese video.
 #[tauri::command]
 pub async fn catalog_subtitles(
     core: Core<'_>,
     video_id: String,
     hash: InfoHash,
     language: SubtitleLanguage,
-) -> CmdResult<Vec<SubtitleFound>> {
+) -> CmdResult<CatalogSubtitles> {
     Ok(core.catalog_subtitles(&video_id, &hash, language).await?)
+}
+/// "Usar" un subtítulo del dropdown: queda elegido para ese video.
+#[tauri::command]
+pub async fn catalog_subtitle_use(
+    core: Core<'_>,
+    video_id: String,
+    hash: InfoHash,
+    key: String,
+) -> CmdResult<SubtitlePicks> {
+    Ok(core.catalog_subtitle_use(&video_id, &hash, &key).await?)
+}
+/// Cuota de Premium (OpenSubtitles.com) sin pedir nada.
+#[tauri::command]
+pub async fn premium_quota(core: Core<'_>) -> CmdResult<PremiumQuota> {
+    Ok(core.premium_quota().await)
+}
+/// Busca en Premium (no gasta cuota).
+#[tauri::command]
+pub async fn catalog_premium_search(
+    core: Core<'_>,
+    video_id: String,
+    hash: InfoHash,
+) -> CmdResult<Vec<SubtitleFound>> {
+    Ok(core.catalog_premium_search(&video_id, &hash).await?)
+}
+/// Baja UN Premium elegido (gasta 1) y lo deja elegido para el reproductor.
+#[tauri::command]
+pub async fn catalog_premium_use(
+    core: Core<'_>,
+    video_id: String,
+    hash: InfoHash,
+    pick: PremiumPick,
+) -> CmdResult<CatalogSubtitles> {
+    Ok(core.catalog_premium_use(&video_id, &hash, pick).await?)
 }
 /// Póster de TMDB para un título sin imagen en Cinemeta (`null` sin key o si no lo tiene).
 #[tauri::command]

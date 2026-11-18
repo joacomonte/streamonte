@@ -3,7 +3,7 @@
 // selector de audio en audio-picker.js y la burbuja de actividad en activity-feed.js.
 import { api, onCoreEvent } from './api.js';
 import { logEvent, renderActivity } from './activity-feed.js';
-import { askAfterClose, installMpv, onConfirmClose, onNetCheck, openSettings, saveEqualizer, saveKey, saveNetwork, savePlayer, toggleKeyEdit } from './dialogs.js';
+import { askAfterClose, installMpv, onConfirmClose, onNetCheck, openSettings, saveEqualizer, saveKey, saveNetwork, saveOsLogin, savePlayer, toggleKeyEdit } from './dialogs.js';
 import { $, icon, setStatus, showError } from './dom.js';
 import { initSpeed, onSpeedEvent } from './speed.js';
 import { state } from './state.js';
@@ -109,6 +109,7 @@ async function init() {
   $('#set-upnp').addEventListener('change', saveNetwork);
   $('#btn-net-check').addEventListener('click', onNetCheck);
   document.querySelectorAll('[data-save-key]').forEach((b) => b.addEventListener('click', () => saveKey(b.dataset.saveKey)));
+  $('#os-login-save').addEventListener('click', saveOsLogin);
   document.querySelectorAll('.key-change').forEach((b) => b.addEventListener('click', () => toggleKeyEdit(b.closest('.key-row').dataset.service)));
   document.querySelectorAll('[data-key-page]').forEach((b) => b.addEventListener('click', () => api.openKeyPage(b.dataset.keyPage).catch(showError)));
   document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));

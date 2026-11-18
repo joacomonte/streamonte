@@ -117,11 +117,13 @@ async fn preload_file(
     .await
 }
 
-/// Duración + pistas de audio (idiomas) con mpv sin ventana (FR-06, lección 9), en la misma
-/// lectura de cabecera. Sin mpv o si no se puede leer → `None` (se estima con "~").
+/// Duración + pistas de audio (idiomas) y subtítulos con mpv sin ventana (FR-06, lección 9), en
+/// la misma lectura de cabecera; a los subtítulos embebidos se suman los archivos sueltos del
+/// torrent que acompañan al video. Sin mpv o si no se puede leer → `None` (se estima con "~").
 async fn probe(
     engine: &dyn TorrentEngine,
     handle: TorrentHandle,
+    metadata: &crate::engine::Metadata,
     file: &FileInfo,
     cfg: &Config,
     timeout: Duration,
@@ -132,7 +134,19 @@ async fn probe(
     };
     let url = engine.stream_url(handle, file.index).await?;
     match crate::player::probe_media(&mpv, &url, timeout).await {
-        Ok(p) => Ok(Some(p)),
+        Ok(mut p) => {
+            let loose = crate::subtitles::subtitle_files_for(metadata, file);
+            p.subs
+                .extend(loose.into_iter().map(|f| crate::subtitles::NativeSub {
+                    sid: None,
+                    file: Some(f.name),
+                    lang: None,
+                    title: None,
+                    codec: None,
+                    forced: false,
+                }));
+            Ok(Some(p))
+        }
         Err(e) => {
             tracing::warn!("no se pudo leer la duración: {e}");
             Ok(None)
@@ -193,7 +207,7 @@ pub(super) async fn quick_one(
         // esperaban 20 s en vano (2026-11-15, logs: 6 de 8 timeouts). Se estima sin probe.
         let media = match preload {
             Ok(crate::preload::PreloadOutcome::TimedOut { fraction: 0.0, .. }) => None,
-            Ok(_) => probe(engine, handle, &file, cfg, QUICK_PROBE_TIMEOUT).await?,
+            Ok(_) => probe(engine, handle, &metadata, &file, cfg, QUICK_PROBE_TIMEOUT).await?,
             Err(_) => None,
         };
         Ok(QuickInfo {
@@ -202,6 +216,8 @@ pub(super) async fn quick_one(
             peers,
             seeds,
             duration_secs: media.as_ref().map(|p| p.duration_secs),
+            fps: media.as_ref().and_then(|p| p.fps),
+            subs: media.as_ref().map(|p| p.subs.clone()),
             audio: media.map(|p| p.audio),
         })
     }
@@ -286,7 +302,7 @@ pub(super) async fn measure_with(
     });
 
     // 4. Duración real con mpv.
-    let media = probe(engine, handle, &file, cfg, MEASURE_PROBE_TIMEOUT).await?;
+    let media = probe(engine, handle, &metadata, &file, cfg, MEASURE_PROBE_TIMEOUT).await?;
     let _ = engine
         .remove(handle, RemoveOptions { delete_data: false })
         .await;
@@ -304,6 +320,8 @@ pub(super) async fn measure_with(
         avg_speed_bps: speed.avg_bps,
         max_speed_bps: speed.max_bps,
         duration_secs: media.as_ref().map(|p| p.duration_secs),
+        fps: media.as_ref().and_then(|p| p.fps),
+        subs: media.as_ref().map(|p| p.subs.clone()),
         audio: media.map(|p| p.audio),
     })
 }

@@ -45,6 +45,24 @@ pub fn api_key(provider: &str) -> Option<String> {
     crate::secrets::secret(&account(provider).ok()?)
 }
 
+/// Usuario y contraseña de OpenSubtitles.com (2026-11-18): con login se sabe la cuota desde el
+/// arranque y se baja con la cuota de la cuenta. Vacíos = borrar. Nunca van a un log.
+pub fn set_opensubtitles_login(username: &str, password: &str) -> Result<()> {
+    let clear = username.trim().is_empty() || password.is_empty();
+    crate::secrets::set_secret("opensubtitles-username", if clear { "" } else { username })?;
+    crate::secrets::set_secret("opensubtitles-password", if clear { "" } else { password })?;
+    super::providers::forget_opensubtitles_login();
+    Ok(())
+}
+
+/// El login guardado de OpenSubtitles.com, si hay.
+pub fn opensubtitles_login() -> Option<(String, String)> {
+    Some((
+        crate::secrets::secret("opensubtitles-username")?,
+        crate::secrets::secret("opensubtitles-password")?,
+    ))
+}
+
 /// Para la UI (Ajustes, F4): ¿hay key? Sin mostrarla nunca.
 pub fn has_api_key(provider: &str) -> bool {
     api_key(provider).is_some()

@@ -22,6 +22,7 @@ export const api = {
   analyze: (scope) => invoke('analyze', { scope }),
   analyzerPause: () => invoke('analyzer_pause'),
   analyzerResume: () => invoke('analyzer_resume'),
+  analyzerCancel: (hashes) => invoke('analyzer_cancel', { hashes }),
   /** Lo último copiado si es un magnet: {raw, info_hash, name} o null. */
   copiedMagnet: () => invoke('copied_magnet'),
   /** Agrega solo los magnets elegidos (texto original de cada uno). */
@@ -53,16 +54,32 @@ export const api = {
   catalogPoster: (imdbId) => invoke('catalog_poster', { imdbId }),
   /** "Contar seeders reales": se conecta a cada enjambre (~50 s por tanda). {hash: {seeds, peers}}; falta = no se pudo. */
   /** Hashes que están en la caché de TorBox; null = sin key o no respondió. */
-  catalogTorbox: (hashes) => invoke('catalog_torbox', { hashes }),
+  catalogTorbox: (videoId, hashes) => invoke('catalog_torbox', { videoId, hashes }),
   /** ▶ desde TorBox (link directo, sin P2P). */
-  playTorbox: (videoId, hash) => invoke('play_torbox', { videoId, hash }),
+  /** Ver por TorBox: una reproducción en curso más (fila, Detener, cambiar subtítulo). Devuelve su id. */
+  playTorbox: (videoId, hash, player, audio) => invoke('play_torbox', { videoId, hash, player, audio }),
+  /** Lee audio y subtítulos de esa opción por su link de TorBox (quedan en su fila, como los del análisis). */
+  catalogTorboxTracks: (kind, videoId, hash) => invoke('catalog_torbox_tracks', { kind, videoId, hash }),
+  /** Cambia el subtítulo de lo que se está viendo (mpv) sin reiniciar: `key` de la fila; `path` si es un archivo. */
+  playbackSubtitle: (id, key, path) => invoke('playback_subtitle', { id, key, path }),
+  /** Usuario y contraseña de OpenSubtitles.com (vacíos = borrar). Van al almacén seguro; nunca vuelven. */
+  setOpensubtitlesLogin: (username, password) => invoke('opensubtitles_login_set', { username, password }),
   catalogSwarm: (hashes, depth = 'deep') => invoke('catalog_swarm', { hashes, depth }),
   /** Censo DHT sin conectarse (~12 s): {hash: direcciones}; falta = 0. */
   catalogCensus: (hashes) => invoke('catalog_census', { hashes }),
   /** Corta los conteos en curso ("Detener" el análisis); lo ya contado queda. */
   catalogStopSwarm: () => invoke('catalog_stop_swarm'),
-  /** "Bajar subtítulos" de una opción: hasta 5, `language` ('es'|'en') primero. Devuelve [{provider, language, release_name}]. */
+  /** Subtítulos del video (fuentes gratis, hasta 5, `language` ('es'|'en') primero): {found: [{key, provider, language,
+   *  release_name, downloads, path, level, latino, head, spec}], picks: {chosen, tried}}. `hash`: la opción que da el release. */
   catalogSubtitles: (videoId, hash, language) => invoke('catalog_subtitles', { videoId, hash, language }),
+  /** "Usar" ese subtítulo para el video (encontrado, Premium o del video): devuelve {chosen, tried}. */
+  catalogSubtitleUse: (videoId, hash, key) => invoke('catalog_subtitle_use', { videoId, hash, key }),
+  /** Cuota de Premium (OpenSubtitles.com): {has_key, remaining, per_day, resets_at}; null = no se sabe. */
+  premiumQuota: () => invoke('premium_quota'),
+  /** Busca en Premium, solo español. No gasta cuota. Devuelve [{key, level, latino, head, spec, downloads…}]. */
+  catalogPremiumSearch: (videoId, hash) => invoke('catalog_premium_search', { videoId, hash }),
+  /** Baja UN Premium (gasta 1) y lo deja elegido: `pick` = {id, release_name, latino, level}. Devuelve como catalogSubtitles. */
+  catalogPremiumUse: (videoId, hash, pick) => invoke('catalog_premium_use', { videoId, hash, pick }),
 
   // Catálogo y addons (F4b, spec 09). kind: 'movie' | 'series'; videoId: 'tt…' o 'tt…:T:E'.
   /** FR-36: películas y series juntas, lo más popular primero. Una búsqueda nueva cancela la anterior (error "Cancelado."). */
@@ -88,6 +105,10 @@ export const api = {
   catalogStreams: (kind, videoId) => invoke('catalog_streams', { kind, videoId }),
   catalogStopStreams: () => invoke('catalog_stop_streams'),
   /** Agrega a la biblioteca sin analizar ("Reproducir" desde el catálogo). Devuelve las filas. */
+  /** Copia subtítulos bajados (`[{path, name}]`) a Descargas y abre la carpeta. */
+  saveSubtitles: (title, files) => invoke('save_subtitles', { title, files }),
+  /** Magnet de una opción, o su link https de TorBox (`torbox`). */
+  catalogLink: (hash, torbox) => invoke('catalog_link', { hash, torbox }),
   catalogAdd: (kind, videoId, hashes) => invoke('catalog_add', { kind, videoId, hashes }),
   /** Ajustes → Fuentes (FR-41). Las URLs secretas vuelven enmascaradas. */
   catalogAddons: () => invoke('catalog_addons'),

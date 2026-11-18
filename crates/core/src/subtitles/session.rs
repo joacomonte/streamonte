@@ -27,7 +27,7 @@ use crate::player::{MpvControl, MpvEvent};
 use crate::video_key::VideoKey;
 
 // La búsqueda vive en `fetch`; se re-exporta acá porque el analizador la llama por este camino.
-pub use super::fetch::{fetch, save_copy, Fetch, LogFn};
+pub use super::fetch::{add_saved, fetch, merge_saved, save_copy, Fetch, LogFn};
 
 /// Teclas de la app (FR-25, FR-26). `Z`/`X` en mayúscula = Shift.
 const KEY_SECTION: &str = "streamonte-subtitulos";
@@ -81,7 +81,8 @@ pub fn prefetch(mut req: Fetch, key: &VideoKey, memory_file: &Path) -> Prefetch 
     }
 }
 
-/// FR-28: una elección recordada de otro idioma no aplica a esta sesión.
+/// FR-28: lo elegido para este video (en el dropdown del catálogo o con las teclas). Una elección
+/// de otro idioma no aplica a esta sesión.
 fn remembered_choice(
     memory: &SubtitleMemory,
     key: &VideoKey,
@@ -91,7 +92,7 @@ fn remembered_choice(
         .get(key)
         .ok()
         .flatten()
-        .filter(|c| c.language == language)
+        .filter(|c| c.language == language && !c.subtitle.is_empty())
 }
 
 pub struct SessionRequest {
@@ -178,6 +179,20 @@ async fn find_and_load(
     // Suele estar listo: arrancó junto con la precarga. Si la tarea murió, como sin resultados.
     let loaded = (&mut req.found.task.0).await.unwrap_or_default();
 
+    // Elegido en el dropdown un subtítulo que viene dentro del video: es una pista de mpv.
+    let embedded = remembered.as_ref().and_then(|c| {
+        let sid = c
+            .subtitle
+            .strip_prefix(super::EMBEDDED)?
+            .strip_prefix(':')?;
+        Some((sid.parse::<i64>().ok()?, c.subtitle.clone()))
+    });
+    if let Some((sid, key)) = &embedded {
+        let _ = mpv.set_property("sid", json!(sid)).await;
+        let _ = mpv.set_property("sub-visibility", json!(true)).await;
+        state.lock().expect("state").current = Some(key.clone());
+    }
+
     if loaded.is_empty() {
         log("subtítulos: no encontré ninguno".into());
         let _ = mpv
@@ -262,7 +277,10 @@ async fn find_and_load(
         None if merged_sid.is_some() => None,
         None => Some(0),
     };
-    let mut headline = select(mpv.as_ref(), &state, initial).await;
+    let mut headline = match &embedded {
+        Some((sid, _)) => format!("Subtítulo del video (pista {sid})"),
+        None => select(mpv.as_ref(), &state, initial).await,
+    };
     if start_hidden {
         let _ = mpv.set_property("sub-visibility", json!(false)).await;
         headline = "ocultos porque el audio ya está en español · S para verlos".into();
@@ -392,7 +410,7 @@ async fn key_loop(
     mpv: Arc<dyn MpvControl>,
     state: Arc<Mutex<State>>,
     memory: Arc<SubtitleMemory>,
-    video_key: VideoKey,
+    video: VideoKey,
     language: SubtitleLanguage,
     log: LogFn,
 ) {
@@ -407,7 +425,7 @@ async fn key_loop(
             a if a.starts_with("sub-") && !ready => "Buscando subtítulos… (un momento)".to_string(),
             "sub-all" => {
                 let t = select(mpv.as_ref(), &state, None).await;
-                remember(&mpv, &state, &memory, &video_key, language).await;
+                remember(&mpv, &state, &memory, &video, language).await;
                 t
             }
             "sub-toggle" => {
@@ -427,7 +445,7 @@ async fn key_loop(
             a if a.starts_with("sub-") => {
                 let n: usize = a.trim_start_matches("sub-").parse().unwrap_or(0);
                 let t = select(mpv.as_ref(), &state, n.checked_sub(1)).await;
-                remember(&mpv, &state, &memory, &video_key, language).await;
+                remember(&mpv, &state, &memory, &video, language).await;
                 t
             }
             a if a.starts_with("sync-") => {
@@ -442,7 +460,7 @@ async fn key_loop(
                 let current = current_delay(mpv.as_ref()).await;
                 let next = apply_sync_key(current, key);
                 let _ = mpv.set_property("sub-delay", json!(next)).await;
-                remember(&mpv, &state, &memory, &video_key, language).await;
+                remember(&mpv, &state, &memory, &video, language).await;
                 format!("{}\n{SYNC_HELP}", sync_message(next))
             }
             other => {
@@ -487,13 +505,13 @@ async fn remember(
         (key, label)
     };
     let delay = current_delay(mpv.as_ref()).await;
-    let choice = SubtitleChoice {
-        subtitle: key,
-        delay_secs: delay,
-        label,
-        language,
-    };
-    if let Err(e) = memory.set(video_key, choice) {
+    // El anterior cuenta como probado (el dropdown lo muestra tachado).
+    let saved = memory.choose(video_key, &key, language).and_then(|mut c| {
+        c.delay_secs = delay;
+        c.label = label;
+        memory.set(video_key, c)
+    });
+    if let Err(e) = saved {
         tracing::warn!("no se pudo guardar subtitles-memory.json: {e}");
     }
 }
@@ -511,10 +529,12 @@ mod tests {
             provider_id: "Sintel/Sintel.es.srt".into(),
             release_name: "Sintel.es.srt".into(),
             language: SubtitleLanguage::Es,
-            match_kind: MatchKind::Hash,
+            match_kind: MatchKind::Exact,
             downloads: 0,
             variant: SpanishVariant::Unknown,
             url: String::new(),
+            fps: None,
+            last_secs: None,
         };
         assert_eq!(label_for(1, &c), "1 · torrent/Sintel.es");
         let mut w = c.clone();
@@ -534,7 +554,7 @@ mod tests {
         assert_eq!(c.provider, providers::OPENSUBTITLES);
         assert_eq!(c.provider_id, "7001");
         assert_eq!(c.key(), "opensubtitles:7001");
-        assert_eq!(label_for(1, &c), "1 · OpenSubs/Sintel.2010.Web");
+        assert_eq!(label_for(1, &c), "1 · OpenSubtitles.com/Sintel.2010.Web");
     }
 
     #[test]

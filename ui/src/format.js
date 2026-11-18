@@ -40,8 +40,8 @@ export function ago(iso) {
 /** Estado de una reproducción en palabras (menú Descargas y la card del catálogo). */
 export function playbackText(pb) {
   const k = pb.state.kind;
-  if (k === 'fetching-metadata') return 'buscando metadatos…';
-  if (k === 'preparing') return `preparando ${Math.round((pb.state.fraction ?? 0) * 100)} %`;
+  if (k === 'fetching-metadata') return 'cargando…';
+  if (k === 'preparing') return `cargando ${Math.round((pb.state.fraction ?? 0) * 100)} %`;
   if (k === 'stopping') return 'cerrando…';
   if (k === 'download-paused') return 'reproduciendo · descarga en pausa';
   if (k === 'ask-after-close') return 'cerraste el reproductor…';

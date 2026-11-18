@@ -102,7 +102,7 @@
         </div>
         <div class="key-row" data-service="opensubtitles">
           <div class="key-head">
-            <label for="key-opensubtitles">OpenSubtitles</label><span id="key-opensubtitles-state" class="key-state"></span>
+            <label for="key-opensubtitles">OpenSubtitles.com (Premium)</label><span id="key-opensubtitles-state" class="key-state"></span>
             <button id="key-opensubtitles-change" class="key-change" type="button">Cambiar</button>
           </div>
           <div class="key-edit">
@@ -113,6 +113,16 @@
             <button id="key-opensubtitles-page" class="link" data-key-page="opensubtitles">Crear key (cuenta gratis, 20 descargas/día)</button>
           </div>
           <p class="key-done" role="status"></p>
+        </div>
+        <!-- Cuenta de OpenSubtitles.com (2026-11-18): opcional; con ella se ve la cuota desde el arranque. -->
+        <div class="os-login" id="os-login">
+          <p class="hint">Opcional: con tu cuenta de OpenSubtitles.com se ve cuántas descargas te quedan desde que abrís la app y se baja con la cuota de tu cuenta. Se guarda en el almacén seguro.</p>
+          <div class="key-line">
+            <input id="os-user" type="text" placeholder="Usuario" autocomplete="username" aria-label="Usuario de OpenSubtitles.com">
+            <input id="os-pass" type="password" placeholder="Contraseña" autocomplete="current-password" aria-label="Contraseña de OpenSubtitles.com">
+            <button id="os-login-save" type="button">Guardar</button>
+          </div>
+          <p id="os-login-state" class="hint" role="status"></p>
         </div>
       </section>
 

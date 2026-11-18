@@ -148,6 +148,9 @@ pub struct QuickInfo {
     pub seeds: u32,
     pub duration_secs: Option<f64>,
     pub audio: Option<Vec<crate::audio::AudioTrack>>,
+    /// Subtítulos que trae (embebidos + sueltos del torrent), leídos junto con el audio.
+    pub subs: Option<Vec<crate::subtitles::NativeSub>>,
+    pub fps: Option<f64>,
 }
 
 pub type QuickSink = Arc<dyn Fn(InfoHash, QuickInfo) + Send + Sync>;

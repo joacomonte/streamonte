@@ -66,6 +66,13 @@ pub struct LiveMeasurement {
     /// Pistas de audio leídas con mpv junto con la duración. `None` = todavía no se leyeron.
     #[serde(default)]
     pub audio: Option<Vec<crate::audio::AudioTrack>>,
+    /// Subtítulos que trae el video (embebidos + sueltos del torrent), leídos con el audio.
+    /// `None` = todavía no se leyeron (2026-11-18).
+    #[serde(default)]
+    pub subs: Option<Vec<crate::subtitles::NativeSub>>,
+    /// Cuadros por segundo reales, leídos con la duración.
+    #[serde(default)]
+    pub fps: Option<f64>,
 }
 
 /// Una fila de *Mis magnets* tal como se guarda en `library.json`: SOLO lo persistido. Lo que
@@ -130,6 +137,9 @@ pub struct LibraryRowView {
     pub audio_options: Vec<AudioOption>,
     /// Título limpio, año / episodio y calidad (FR-29b).
     pub release: ReleaseInfo,
+    /// Subtítulos en español que trae el video (dropdown, 2026-11-18). `None` = todavía no se
+    /// analizó (no se sabe); vacío = no trae.
+    pub native_subs: Option<Vec<crate::subtitles::NativeSpanish>>,
     /// Bytes de ESTE video ya en disco (análisis FR-06d o descarga pausada); ver
     /// [`downloaded_bytes`].
     pub downloaded_bytes: Option<u64>,
@@ -326,6 +336,11 @@ impl Library {
             audio_options: crate::audio::play_options(&languages),
             languages,
             release: release_of(e),
+            native_subs: e
+                .live
+                .as_ref()
+                .and_then(|l| l.subs.as_deref())
+                .map(|subs| crate::subtitles::spanish_natives(subs, e.info_hash)),
             downloaded_bytes: self
                 .downloads
                 .as_deref()
@@ -701,6 +716,8 @@ mod tests {
             max_speed_bps: speed,
             duration_secs: Some(1000.0),
             audio: None,
+            subs: None,
+            fps: None,
         }
     }
 

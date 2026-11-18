@@ -64,7 +64,7 @@ pub(super) fn parse_wyzie(
                 .filter_map(Value::as_str)
                 .collect();
             let match_kind = if reasons.contains(&"hash") {
-                MatchKind::Hash
+                MatchKind::Exact
             } else if reasons
                 .iter()
                 .any(|r| matches!(*r, "group" | "source" | "resolution"))
@@ -90,6 +90,8 @@ pub(super) fn parse_wyzie(
                     .min(u32::MAX as u64) as u32,
                 variant,
                 url,
+                fps: None,
+                last_secs: None,
             })
         })
         .collect()
@@ -193,12 +195,16 @@ mod tests {
         );
         assert_eq!(c.len(), 3, "sin el inglés ni la fila de IA");
         assert_eq!(c[0].provider_id, "1955024019");
-        assert_eq!(c[0].match_kind, MatchKind::Hash);
+        assert_eq!(c[0].match_kind, MatchKind::Exact);
         assert_eq!(c[0].variant, SpanishVariant::Latino, "bandera MX");
         assert_eq!(c[0].downloads, 4821);
         assert!(c[0].url.starts_with("https://sub.wyzie.io/c/"));
         assert_eq!(c[1].variant, SpanishVariant::Spain, "bandera ES");
-        assert_eq!(c[1].match_kind, MatchKind::Release, "por el grupo SURFER");
+        assert_eq!(
+            c[1].match_kind,
+            MatchKind::Exact,
+            "mismo nombre que el archivo"
+        );
         assert_eq!(c[2].variant, SpanishVariant::Unknown);
         assert_eq!(c[2].match_kind, MatchKind::None);
     }

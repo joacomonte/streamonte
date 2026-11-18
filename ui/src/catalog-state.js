@@ -34,7 +34,8 @@ export const view = {
   renderCal: null,
   /** Orden elegido arriba de la lista: 'quality' = Mejor imagen, 'fast' = Arranca más rápido. */
   optSort: safeGet('streamonte.catalog.sort') === 'fast' ? 'fast' : 'quality',
-  onlyHdr: safeGet('streamonte.catalog.onlyHdr') === '1',
+  /** Filtro de la lista: apagado al abrir cada video (`loadStreams`). */
+  onlyHdr: false,
   /** Espacio libre del disco de descargas (bytes); null = no se sabe (todo entra). */
   freeBytes: null,
   /** Redibujo pendiente (`scheduleRender`) y si hay que redibujar al volver a mostrarse la ventana. */
@@ -42,12 +43,10 @@ export const view = {
   renderOnShow: false,
   /** Filas dibujadas del grupo abierto (de a `PAGE_ROWS`, "Mostrar más"). */
   shownRows: 25,
-  /** Filtro "Solo TorBox" (2026-11-17), como "Solo HDR". */
-  onlyTorbox: false,
-  /** Hay key de TorBox (se sabe al consultar el primer video). */
-  torboxKey: false,
-  /** Calidad con el menú "Ver torrents" abierto (uno a la vez). */
-  menuRes: null,
-  /** Grupo de resolución abierto: null = nunca se eligió, '' = todos cerrados. */
+  /** Opción (info hash) con los subtítulos abiertos (una a la vez). */
+  subsMenu: null,
+  /** Hay key de TorBox: null = todavía no se sabe (se pregunta al arrancar). */
+  torboxKey: null,
+  /** Resolución de la lista (paso 'list' de `catalog-flow.js`); '' = todavía en los pasos. */
   openRes: null,
 };

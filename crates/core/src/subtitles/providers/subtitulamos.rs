@@ -111,6 +111,8 @@ pub(super) fn parse_subtitulamos(html: &str, video: &VideoIdentity) -> Vec<Subti
                 downloads: 0,
                 variant,
                 url: format!("{SUBTITULAMOS_BASE}/subtitles/{id}/download"),
+                fps: None,
+                last_secs: None,
             });
         }
     }

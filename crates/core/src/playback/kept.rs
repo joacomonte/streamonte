@@ -236,6 +236,7 @@ pub(super) fn kept_row(id: PlaybackId, k: &Kept) -> PlaybackRow {
         metadata_secs: None,
         preload_secs: None,
         time_to_first_frame_secs: None,
+        stream: false,
     }
 }
 

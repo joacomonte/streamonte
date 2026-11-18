@@ -1,9 +1,10 @@
 //! Buscar, rankear y bajar subtítulos, sin mpv (FR-22, FR-24, FR-28). Lo usa la sesión al
 //! reproducir ([`super::session`]) y el analizador al analizar (vía `subtitles::session::fetch`).
 //!
-//! En segundo plano: hash del video, IMDb id, búsqueda en torrent → Wyzie → Subdivx → Gestdown →
-//! Subtitulamos (en paralelo, en el idioma elegido y en el otro), ranking, descarga de hasta 5;
-//! si faltan, OpenSubtitles (cuota de 20/día, va último).
+//! En segundo plano: hash del video, IMDb id, búsqueda en torrent, Wyzie, Subdivx, Gestdown,
+//! Subtitulamos y OpenSubtitles.org (en paralelo, en el idioma elegido y en el otro), ranking y
+//! descarga de hasta 5. OpenSubtitles.com (cuota diaria) no entra acá: es el Premium del dropdown,
+//! de a uno y a pedido ([`add_saved`]).
 //!
 //! Idiomas (2026-11-15): primero el elegido (español: latino, después España/sin variante) y,
 //! si no llegan a 5, se completa con el otro (inglés). Una sola tanda, un solo trabajo.
@@ -13,11 +14,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::providers::{
-    self, GestdownProvider, OpenSubtitlesOrgProvider, OpenSubtitlesProvider, SubdivxProvider,
-    SubtitleProvider, SubtitulamosProvider, TorrentProvider, TorrentSubtitleFile, WyzieProvider,
+    self, GestdownProvider, OpenSubtitlesOrgProvider, SubdivxProvider, SubtitleProvider,
+    SubtitulamosProvider, TorrentProvider, TorrentSubtitleFile, WyzieProvider,
 };
 use super::{
-    top_candidates, SubtitleCandidate, SubtitleChoice, VideoIdentity, CHOICE_ALL, MAX_SUBTITLES,
+    fit_by_timing, rank_order, top_candidates, MatchKind, SpanishVariant, SubtitleCandidate,
+    SubtitleChoice, VideoIdentity, CHOICE_ALL, MAX_SUBTITLES,
 };
 use crate::config::SubtitleLanguage;
 
@@ -39,8 +41,6 @@ pub struct Fetch {
     /// Carpeta de subtítulos de ESTE video ([`VideoIdentity::video_id`]), con su `subs.json`.
     pub cache_dir: PathBuf,
     pub remembered: Option<SubtitleChoice>,
-    /// Completar con OpenSubtitles (cuota de 20/día): sí al reproducir, no al analizar.
-    pub opensubtitles: bool,
     pub log: LogFn,
 }
 
@@ -59,6 +59,7 @@ pub async fn fetch(req: Fetch) -> Vec<(SubtitleCandidate, PathBuf)> {
             "subtítulos: {} guardado(s) con el video, sin buscar",
             saved.len()
         ));
+        refit(&req.video, &mut saved);
         if let Some(i) = remembered
             .as_ref()
             .and_then(|choice| saved.iter().position(|(c, _)| c.key() == choice.subtitle))
@@ -128,6 +129,7 @@ pub async fn fetch(req: Fetch) -> Vec<(SubtitleCandidate, PathBuf)> {
             )),
         }
     }
+    fit_by_timing(&video, &mut all);
     let mut ranked = top_candidates(all, usize::MAX);
     // El idioma elegido entero antes que el otro (estable: conserva el ranking adentro).
     ranked.sort_by_key(|c| c.language != lang);
@@ -140,70 +142,7 @@ pub async fn fetch(req: Fetch) -> Vec<(SubtitleCandidate, PathBuf)> {
     }
     let mut loaded = download_best(ranked, MAX_SUBTITLES, &free, &req.cache_dir, &log).await;
 
-    // 3. OpenSubtitles solo si faltan para llegar a 5 en el idioma elegido (cuota 20/día, Q-01):
-    //    su español va antes que el inglés gratis; su inglés, solo si aun así faltan.
-    let primary = |loaded: &[(SubtitleCandidate, PathBuf)]| {
-        loaded.iter().filter(|(c, _)| c.language == lang).count()
-    };
-    if primary(&loaded) < MAX_SUBTITLES && req.opensubtitles {
-        let os = OpenSubtitlesProvider::from_store();
-        // Agotada: ni se busca (la cuota es de toda la app, ver `QuotaGate`).
-        let exhausted = matches!(os.quota().await, Ok(Some(q)) if q.remaining == 0);
-        if os.has_key() && exhausted {
-            log("subtítulos: OpenSubs omitido: cuota diaria agotada".into());
-        } else if os.has_key() {
-            let os: Arc<dyn SubtitleProvider> = Arc::new(os);
-            for language in languages {
-                // Lugar ya ocupado por este idioma y los que van antes; lo nuevo entra ahí.
-                let taken = if language == lang {
-                    primary(&loaded)
-                } else {
-                    loaded.len()
-                };
-                if taken >= MAX_SUBTITLES {
-                    continue;
-                }
-                let search = os.search(&video, language);
-                let found = match tokio::time::timeout(SEARCH_TIMEOUT, search).await {
-                    Ok(Ok(found)) => found,
-                    Ok(Err(e)) => {
-                        log(format!("subtítulos: OpenSubs omitido: {e}"));
-                        break;
-                    }
-                    Err(_) => {
-                        log("subtítulos: OpenSubs omitido: tardó demasiado".into());
-                        break;
-                    }
-                };
-                log(format!(
-                    "subtítulos: OpenSubs ({}) → {} candidato(s)",
-                    language.name_es(),
-                    found.len()
-                ));
-                let found = top_candidates(found, usize::MAX);
-                let more = download_best(
-                    found,
-                    MAX_SUBTITLES - taken,
-                    std::slice::from_ref(&os),
-                    &req.cache_dir,
-                    &log,
-                )
-                .await;
-                loaded.splice(taken..taken, more);
-                loaded.truncate(MAX_SUBTITLES);
-            }
-            if let Ok(Some(q)) = os.quota().await {
-                log(format!(
-                    "subtítulos: cuota OpenSubtitles: quedan {} de {} hoy",
-                    q.remaining, q.per_day
-                ));
-            }
-        } else {
-            log("subtítulos: OpenSubs omitido: sin API key configurada".into());
-        }
-    }
-
-    // 4. El recordado, aunque hoy no haya salido entre los 5: desde la caché (FR-28).
+    // 3. El recordado, aunque hoy no haya salido entre los 5: desde la caché (FR-28).
     if let Some(choice) = &remembered {
         let present = loaded.iter().any(|(c, _)| c.key() == choice.subtitle);
         if choice.subtitle != CHOICE_ALL && !present {
@@ -231,9 +170,15 @@ pub async fn fetch(req: Fetch) -> Vec<(SubtitleCandidate, PathBuf)> {
 /// Índice de lo bajado para un video (`subs.json` en su carpeta de subtítulos): qué es cada
 /// archivo, para reusarlo sin volver a buscar.
 const SAVED_FILE: &str = "subs.json";
+/// 2: guarda fps y último diálogo de cada uno, para volver a ver cuánto calza (el video puede
+/// analizarse después de buscar).
+const SAVED_VERSION: u32 = 2;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct Saved {
+    /// [`SAVED_VERSION`]: uno viejo (sin fps ni último diálogo, 2026-11-18) se busca de nuevo.
+    #[serde(default)]
+    version: u32,
     /// El idioma elegido cuando se bajaron: con otro idioma se busca de nuevo.
     language: SubtitleLanguage,
     subs: Vec<SavedSub>,
@@ -245,6 +190,14 @@ struct SavedSub {
     release_name: String,
     language: SubtitleLanguage,
     downloads: u32,
+    #[serde(default)]
+    match_kind: MatchKind,
+    #[serde(default)]
+    variant: SpanishVariant,
+    #[serde(default)]
+    fps: Option<f64>,
+    #[serde(default)]
+    last_secs: Option<f64>,
     /// Nombre del archivo dentro de la misma carpeta.
     file: String,
 }
@@ -252,7 +205,7 @@ struct SavedSub {
 /// Lo guardado con el video, si es del mismo idioma y siguen todos sus archivos.
 fn load_saved(dir: &Path, lang: SubtitleLanguage) -> Option<Vec<(SubtitleCandidate, PathBuf)>> {
     let saved: Saved = crate::fsutil::read_json(&dir.join(SAVED_FILE)).ok()??;
-    if saved.language != lang || saved.subs.is_empty() {
+    if saved.version < SAVED_VERSION || saved.language != lang || saved.subs.is_empty() {
         return None;
     }
     saved
@@ -264,6 +217,10 @@ fn load_saved(dir: &Path, lang: SubtitleLanguage) -> Option<Vec<(SubtitleCandida
                 let mut c = remembered_candidate(&s.key, &s.release_name, s.language);
                 c.release_name = s.release_name;
                 c.downloads = s.downloads;
+                c.match_kind = s.match_kind;
+                c.variant = s.variant;
+                c.fps = s.fps;
+                c.last_secs = s.last_secs;
                 (c, path)
             })
         })
@@ -282,6 +239,10 @@ fn save(dir: &Path, lang: SubtitleLanguage, loaded: &[(SubtitleCandidate, PathBu
                 release_name: c.release_name.clone(),
                 language: c.language,
                 downloads: c.downloads,
+                match_kind: c.match_kind,
+                variant: c.variant,
+                fps: c.fps,
+                last_secs: c.last_secs,
                 file: path.file_name()?.to_str()?.to_string(),
             })
         })
@@ -290,6 +251,7 @@ fn save(dir: &Path, lang: SubtitleLanguage, loaded: &[(SubtitleCandidate, PathBu
         return;
     }
     let saved = Saved {
+        version: SAVED_VERSION,
         language: lang,
         subs,
     };
@@ -312,6 +274,52 @@ pub fn save_copy(dir: &Path, lang: SubtitleLanguage, got: &[(SubtitleCandidate, 
         })
         .collect();
     save(dir, lang, &copied);
+}
+
+/// Cuánto calza lo guardado con lo que hoy se sabe del video (la opción pudo analizarse después
+/// de buscar: fps y duración) y en el orden de siempre. Lo exacto de antes (por hash) se mantiene.
+fn refit(video: &VideoIdentity, saved: &mut [(SubtitleCandidate, PathBuf)]) {
+    for (c, _) in saved.iter_mut() {
+        c.match_kind = c
+            .match_kind
+            .min(providers::release_match(video, &c.release_name));
+    }
+    let mut cands: Vec<SubtitleCandidate> = saved.iter().map(|(c, _)| c.clone()).collect();
+    fit_by_timing(video, &mut cands);
+    for ((c, _), fresh) in saved.iter_mut().zip(cands) {
+        c.match_kind = fresh.match_kind;
+    }
+    saved.sort_by(|(a, _), (b, _)| rank_order(a, b));
+}
+
+/// Suma uno bajado aparte (Premium, 2026-11-18) a lo guardado con el video: el reproductor lo
+/// carga con los demás. Va primero (lo eligió el usuario); el archivo ya tiene que estar en `dir`.
+pub fn add_saved(dir: &Path, lang: SubtitleLanguage, cand: SubtitleCandidate, path: PathBuf) {
+    let mut all = load_saved(dir, lang).unwrap_or_default();
+    all.retain(|(c, _)| c.key() != cand.key());
+    all.insert(0, (cand, path));
+    save(dir, lang, &all);
+}
+
+/// Junta lo bajado desde el catálogo (`from`, sin dueño) con lo ya guardado del video en `into`
+/// (2026-11-18: un Premium elegido después de la primera reproducción tiene que llegar a mpv).
+/// Lo de `from` va primero; no pisa archivos que ya están.
+pub fn merge_saved(from: &Path, into: &Path, lang: SubtitleLanguage) {
+    let Some(fresh) = load_saved(from, lang) else {
+        return;
+    };
+    let mut all = load_saved(into, lang).unwrap_or_default();
+    for (c, src) in fresh.into_iter().rev() {
+        let Some(dest) = src.file_name().map(|n| into.join(n)) else {
+            continue;
+        };
+        if !dest.is_file() && std::fs::copy(&src, &dest).is_err() {
+            continue;
+        }
+        all.retain(|(old, _)| old.key() != c.key());
+        all.insert(0, (c, dest));
+    }
+    save(into, lang, &all);
 }
 
 /// El elegido primero; el otro completa (2026-11-15: "en español o inglés").
@@ -441,6 +449,8 @@ pub(super) fn remembered_candidate(
         downloads: 0,
         variant: super::SpanishVariant::Unknown,
         url: String::new(),
+        fps: None,
+        last_secs: None,
     }
 }
 

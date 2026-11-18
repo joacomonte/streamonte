@@ -154,6 +154,7 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 }
 .cat-options .cat-opt:hover { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
 .cat-size { font-size: 17px; font-weight: 700; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cat-opt.tb-idle .cat-size-cell { grid-column: 1 / 3; }
 .cat-opt-actions { grid-column: 3; display: flex; align-items: center; gap: 8px; }
 
 /* Resoluciones en acordeón: encabezados siempre en la lista; uno abierto (2026-11-15). */
@@ -362,8 +363,54 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-tag { display: inline-flex; align-items: center; height: 17px; padding: 0 5px; border-radius: 5px; font-size: 9.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
   color: var(--muted); border: 1px solid var(--border-strong); cursor: help; }
 .cat-tag.cat-hdr { color: var(--text); border-color: color-mix(in srgb, var(--text) 45%, transparent); }
-.cat-tag.focus.lat { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
-.cat-tag.guess { border-style: dashed; }
+/* Idioma ya sabido junto a TORBOX (2026-11-18, design/opciones-acciones/variantes-v6.html): verde trae, gris no. */
+.cat-tag.cat-lang { gap: 3px; }
+.cat-tag.cat-lang.ok { color: var(--green); border-color: color-mix(in srgb, var(--green) 55%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
+.cat-tag.cat-lang.no { color: var(--dim); border-color: var(--border-strong); }
+
+/* Lo que falta saber del idioma: cápsula con 1 o 2 botones junto al ▶. */
+.cat-dock { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 6px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+.cat-dock-acts { display: flex; align-items: center; gap: 2px; }
+.cat-dock-div { width: 1px; height: 22px; margin: 0 2px; background: var(--border-strong); }
+.cat-dock-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 8px; border-radius: 999px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; transition: background .15s var(--ease), color .15s var(--ease); }
+.cat-dock-btn:hover, .cat-dock-btn:focus-visible { background: var(--surface-3); color: var(--text); outline: none; }
+.cat-dock-btn .ico { color: var(--accent-fg); }
+/* Leyendo: el mismo botón, ícono → spinner; con el mouse encima, ■ Cancelar. */
+.cat-dock-ic { display: inline-grid; place-items: center; width: 13px; height: 13px; }
+.cat-dock-ic > * { grid-area: 1 / 1; }
+.cat-dock-ic .cat-res-spin { width: 11px; height: 11px; border-width: 1.6px; }
+.cat-dock-ic .ico, .cat-dock-cancel { display: none; }
+.cat-dock-btn.loading:hover .cat-dock-ic .cat-res-spin, .cat-dock-btn.loading:hover .cat-dock-busy,
+.cat-dock-btn.loading:focus-visible .cat-dock-ic .cat-res-spin, .cat-dock-btn.loading:focus-visible .cat-dock-busy { display: none; }
+.cat-dock-btn.loading:hover .cat-dock-ic .ico, .cat-dock-btn.loading:focus-visible .cat-dock-ic .ico { display: inline-flex; color: var(--muted); }
+.cat-dock-btn.loading:hover .cat-dock-cancel, .cat-dock-btn.loading:focus-visible .cat-dock-cancel { display: inline; }
+
+/* Con acciones pendientes, salud y seeds bajan a una 3.ª línea: la fila no se aprieta. */
+.cat-opt.pend:not(.tb-idle) .cat-size-cell { grid-column: 1 / 3; }
+.cat-opt.pend .cat-mid { grid-column: 1 / 3; grid-row: 2; display: flex; align-items: center; gap: 10px; }
+.cat-opt.pend .cat-verdict { height: 20px; gap: 6px; }
+.cat-opt.pend .cat-verdict strong { font-size: 13px; }
+.cat-opt.pend:not(.tb-idle) .cat-opt-actions { grid-row: 1 / span 2; }
+
+/* Angosto (≤ 440 px): cards más altas, ▶ arriba a la derecha, salud debajo y las acciones como píldoras de ancho justo. */
+.cat-options { container-type: inline-size; }
+@container (max-width: 440px) {
+  .cat-opt { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 10px; padding: 16px 12px 16px 16px; }
+  .cat-opt .cat-size-cell, .cat-opt.tb-idle .cat-size-cell, .cat-opt.pend:not(.tb-idle) .cat-size-cell { grid-column: 1; gap: 6px; }
+  .cat-opt .cat-opt-actions, .cat-opt.pend:not(.tb-idle) .cat-opt-actions { grid-column: 2; grid-row: 1; align-self: start; }
+  .cat-opt .cat-mid, .cat-opt.pend .cat-mid { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: 12px; }
+  .cat-opt.pend { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .cat-opt.pend .cat-opt-actions, .cat-opt.pend .cat-play-btns, .cat-opt.pend .cat-dock { display: contents; }
+  .cat-opt.pend .cat-bg-btn { grid-column: 2; grid-row: 1; align-self: start; margin-top: 7px; }
+  .cat-opt.pend .cat-play { grid-column: 3; grid-row: 1; align-self: start; }
+  .cat-opt.pend .cat-dock-div { display: none; }
+  .cat-opt.pend .cat-dock-acts { grid-column: 1 / -1; grid-row: 3; flex-wrap: wrap; gap: 8px; }
+  .cat-opt.pend.tb-idle .cat-dock-acts { grid-row: 2; }
+  .cat-opt.pend .cat-mid { grid-column: 1 / -1; }
+  .cat-opt.pend .cat-dock-btn { height: 36px; padding: 0 14px 0 12px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); font-size: 13px; }
+  /* Sin mouse: leyendo, el ■ se ve fijo para cancelar. */
+  .cat-dock-btn.loading .cat-dock-busy::after { content: " · ■"; color: var(--dim); }
+}
 
 
 /* Sin analizar: el panel entero es el botón (variante F, 2026-11-16). */
@@ -602,11 +649,57 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 }
 
 
-/* Subtítulos: solo informa, en una línea (2026-11-17). */
-.cat-subs-info { display: flex; align-items: center; gap: 7px; margin: 0 0 12px; padding: 0 4px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: default; }
-.cat-subs-info.ok .ico { color: color-mix(in srgb, var(--green) 70%, var(--muted)); }
-.cat-subs-info.warn .ico { color: var(--yellow); }
-.cat-subs-info.bad .ico { color: var(--red); }
+.cat-subs-menu { display: grid; max-height: 560px; overflow-y: auto; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); box-shadow: 0 12px 32px var(--shadow-lg); }
+/* Dropdown en tres grupos (2026-11-18, docs/mockups/subs-dropdown/ELEGIDA.md). */
+.cat-sub-grp { padding: 10px 10px 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.cat-sub-grp:first-child { padding-top: 4px; }
+.cat-sub-none { padding: 2px 10px 6px 38px; font-size: 11.5px; color: var(--dim); font-style: italic; }
+.cat-sub-sep { height: 1px; margin: 6px 4px; background: var(--border); }
+.cat-sub-item { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 8px 7px 10px; border-radius: 8px; color: var(--text); }
+.cat-sub-item:hover, .cat-sub-item:focus-within { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.cat-sub-item.on { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.cat-sub-pick { position: absolute; inset: 0; border: 0; border-radius: 8px; background: none; cursor: pointer; }
+.cat-sub-pick:disabled { cursor: default; }
+.cat-sub-mark { display: grid; place-items: center; color: var(--accent-fg); pointer-events: none; }
+.cat-sub-l1 { display: flex; align-items: baseline; gap: 7px; min-width: 0; white-space: nowrap; overflow: hidden; pointer-events: none; }
+.cat-sub-l1 > b, .cat-sub-spec, .cat-sub-lat, .cat-sub-why { flex: none; }
+.cat-sub-l1 b { font-size: 13px; font-weight: 650; }
+.cat-sub-spec { font-size: 12.5px; color: var(--muted); }
+.cat-sub-src { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.cat-sub-lat { align-self: center; padding: 0 4px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .04em; color: var(--muted); }
+.cat-sub-why { font-size: 11px; color: var(--muted); }
+.cat-sub-item.tried b, .cat-sub-item.tried .cat-sub-spec { color: var(--muted); }
+.cat-sub-end { position: relative; z-index: 1; display: flex; align-items: center; gap: 4px; }
+.cat-sub-fit { font-size: 11px; font-weight: 500; letter-spacing: .01em; }
+.cat-sub-fit.exact { color: var(--fit-3); font-weight: 600; }
+.cat-sub-fit.release { color: var(--fit-2); }
+.cat-sub-fit.fps { color: var(--fit-1); }
+.cat-sub-dl { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 7px; background: none; color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .12s var(--ease); }
+.cat-sub-item:hover .cat-sub-dl, .cat-sub-item:focus-within .cat-sub-dl { opacity: 1; }
+.cat-sub-dl:hover { background: var(--surface-3); color: var(--text); }
+.cat-sub-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.cat-sub-btn:hover:not([aria-disabled="true"]) { border-color: var(--amber); }
+.cat-sub-btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.cat-sub-cost { color: var(--amber); font-weight: 700; font-variant-numeric: tabular-nums; }
+.cat-sub-msg { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; font-size: 12px; color: var(--muted); }
+.cat-sub-msg.err { color: var(--red); }
+.cat-sub-msg .cat-sub-btn { margin-left: auto; }
+.cat-sub-more, .cat-sub-gate { display: grid; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border-radius: 10px; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.cat-sub-more { grid-template-columns: 28px minmax(0, 1fr); margin-top: 6px; border: 1px dashed var(--border-strong); background: none; }
+.cat-sub-more:hover { border-color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.cat-sub-more > .ico { justify-self: center; color: var(--accent-fg); }
+.cat-sub-more b, .cat-sub-gate b { display: block; font-size: 13px; }
+.cat-sub-more span span, .cat-sub-gs { font-size: 11.5px; color: var(--muted); }
+.cat-sub-gate { grid-template-columns: 28px minmax(0, 1fr) auto; margin-top: 2px; border: 1px solid var(--border); background: var(--surface); }
+.cat-sub-gate:hover { border-color: color-mix(in srgb, var(--amber) 60%, var(--border)); }
+.cat-sub-gate.hot { border-color: color-mix(in srgb, var(--amber) 70%, var(--border)); background: color-mix(in srgb, var(--amber) 7%, var(--surface)); }
+.cat-sub-gi { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--surface-3); color: var(--amber); }
+.cat-sub-chev { display: inline-flex; color: var(--muted); transition: transform .2s var(--ease); }
+.cat-sub-gate[aria-expanded="true"] .cat-sub-chev { transform: rotate(180deg); }
+.cat-subchange { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--muted); cursor: pointer; }
+.cat-subchange:hover, .cat-subchange:focus-visible { color: var(--text); border-color: var(--border-strong); }
+.cat-sub-foot { display: flex; justify-content: flex-end; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+.cat-sub-open { margin-top: 4px; padding: 2px 0 4px; border-top: 1px solid var(--border); }
 
 /* Rendimiento (2026-11-17): las filas fuera de la vista no se pintan ni se animan. */
 .cat-opt { content-visibility: auto; contain-intrinsic-size: auto 92px; }
@@ -687,15 +780,11 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-deep-offer-text span { font-size: 12px; color: var(--muted); }
 
 /* TorBox (2026-11-17): badge minimal junto a HDR y su filtro al lado de "Solo HDR". */
-.cat-tag.cat-torbox { border: 1px solid color-mix(in srgb, var(--green) 55%, var(--border)); color: color-mix(in srgb, var(--green) 80%, var(--text)); background: none; }
+/* TORBOX: dato fijo en blanco y negro, igual que HDR (2026-11-18). */
+.cat-tag.cat-torbox { color: var(--text); border-color: color-mix(in srgb, var(--text) 45%, transparent); background: none; }
 .cat-list-filters { display: inline-flex; gap: 8px; }
 
-/* "Ver torrents" (2026-11-17): un solo botón por calidad y su menú. */
-.cat-res-arrow.down { transform: none; }
-.cat-group-head:hover .cat-res-arrow.down { transform: translateY(2px); }
-.cat-group.menu-open { position: relative; z-index: 4; border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
-.cat-res-menu { display: grid; gap: 4px; padding: 6px 8px 10px; animation: cat-menu-in .2s var(--ease) both; }
-@keyframes cat-menu-in { from { opacity: 0; transform: translateY(-4px); } }
+/* Opciones elegibles (pasos del video, 2026-11-18): ícono, título y una línea de qué implica. */
 .cat-menu-item { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: center; width: 100%; padding: 10px 12px; border: 0; border-radius: 12px; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: background .15s var(--ease); }
 .cat-menu-item:hover:not(:disabled), .cat-menu-item:focus-visible { background: color-mix(in srgb, var(--accent) 10%, transparent); outline: none; }
 .cat-menu-item:disabled { opacity: .45; cursor: not-allowed; }
@@ -706,7 +795,37 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-menu-text > span { font-size: 12px; color: var(--muted); }
 .cat-menu-badge { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--green) 18%, transparent); color: color-mix(in srgb, var(--green) 85%, var(--text)); font-size: 10.5px; font-weight: 800; letter-spacing: .03em; }
 .cat-menu-item.deep { background: color-mix(in srgb, var(--accent) 7%, transparent); }
-@media (prefers-reduced-motion: reduce) { .cat-res-menu { animation: none; } }
+/* Más grandes que las del menú (pedido 2026-11-18): son la decisión del paso, se tocan de una. */
+.cat-choice { grid-template-columns: 60px minmax(0, 1fr); gap: 20px; min-height: 108px; padding: 22px 26px; border: 1px solid var(--border); border-radius: 18px; }
+.cat-choice + .cat-choice { margin-top: 8px; }
+.cat-choice:hover:not(:disabled), .cat-choice:focus-visible { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.cat-choice.deep { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+.cat-choice .cat-menu-ic { width: 60px; height: 60px; border-radius: 16px; }
+.cat-choice .cat-menu-text { gap: 6px; }
+.cat-choice .cat-menu-text b { font-size: 19px; }
+.cat-choice .cat-menu-text > span { font-size: 14.5px; line-height: 1.45; }
+.cat-choice .cat-menu-badge { font-size: 11.5px; padding: 2px 10px; }
+/* TorBox: el mismo ▶ verde que en sus filas. */
+.cat-choice.torbox .cat-menu-ic { background: var(--green); color: #fff; }
+.cat-choice-note { display: block; margin-top: 2px; }
+.cat-choice.muted .cat-menu-text b { color: var(--muted); }
+
+/* Pasos al elegir un video (2026-11-18): migas, título y las opciones de ese paso. */
+.cat-flow { display: grid; gap: 6px; animation: cat-flow-in .28s var(--out) both; }
+@keyframes cat-flow-in { from { opacity: 0; transform: translateY(6px); } }
+.cat-flow-title { margin: 6px 0 8px; font-size: 17px; font-weight: 700; letter-spacing: -.01em; text-wrap: balance; }
+.cat-flow-note { margin: 0 0 8px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.cat-flow-note.inline { margin: 0 18px 10px; color: var(--amber); }
+.cat-flow-wait { justify-items: center; padding: 48px 16px; text-align: center; }
+.cat-flow-wait b { margin-top: 10px; font-size: 15px; }
+.cat-flow-wait > span:last-child { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cat-flow .cat-deep { margin: 0; }
+.cat-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 8px; font-size: 12.5px; }
+.cat-crumb { padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; background: none; color: var(--text); font: inherit; cursor: pointer; transition: background .15s var(--ease), border-color .15s var(--ease); }
+.cat-crumb:hover, .cat-crumb:focus-visible { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); outline: none; }
+.cat-crumb.current { border-color: transparent; color: var(--muted); cursor: default; }
+.cat-crumb-sep { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .cat-flow { animation: none; } }
 
 /* ▶ de una opción en TorBox (2026-11-17): verde y con un pulso suave, para que se note que es especial. */
 .cat-play.torbox { background: var(--green); box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); animation: cat-tb-pulse 1.8s ease-out infinite; }
@@ -714,9 +833,10 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 @keyframes cat-tb-pulse { 70% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--green) 0%, transparent); } 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 0%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .cat-play.torbox { animation: none; } }
 
-/* Opción en TorBox: en lugar de salud y seeds, que ya está lista. */
-.cat-tb-ready { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: color-mix(in srgb, var(--green) 85%, var(--text)); }
-
-/* Grupo TorBox (2026-11-17): las que tiene en caché, de cualquier calidad. */
-#cat-group-torbox .cat-group-name { color: color-mix(in srgb, var(--green) 85%, var(--text)); }
-.cat-tag.cat-res-tag { color: var(--text); border-color: var(--border); }
+/* Clic derecho en una opción (2026-11-17): copiar magnet o link de TorBox. */
+.cat-ctx { position: fixed; z-index: 60; display: grid; min-width: 220px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); box-shadow: 0 12px 32px var(--shadow-lg); }
+/* `display: grid` le ganaba al atributo `hidden`: el menú no se cerraba. */
+.cat-ctx[hidden] { display: none; }
+.cat-ctx-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: 8px; background: none; color: var(--text); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.cat-ctx-item:hover, .cat-ctx-item:focus-visible { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: none; }
+.cat-ctx-item .ico { color: var(--muted); }

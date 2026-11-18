@@ -113,10 +113,13 @@ impl AppPaths {
     pub fn video_subtitles_dir(dir: &Path, video_id: &str) -> PathBuf {
         dir.join("subs").join(video_id)
     }
-    /// Subtítulos pedidos desde el catálogo antes de que exista la carpeta del video; la
-    /// reproducción los mueve adentro de la suya. Sin dueño: la limpieza de restos los borra.
-    pub fn pending_subtitles_dir(&self, video_id: &str) -> PathBuf {
-        self.downloads_dir().join(format!("subs-{video_id}"))
+    /// Subtítulos pedidos desde el catálogo para una opción (video + torrent: el orden depende de
+    /// su release) antes de que exista la carpeta del video; la reproducción los mueve adentro de
+    /// la suya. Sin dueño: la limpieza de restos los borra.
+    pub fn pending_subtitles_dir(&self, video_id: &str, hash: &crate::magnet::InfoHash) -> PathBuf {
+        let torrent: String = hash.to_hex().chars().take(12).collect();
+        self.downloads_dir()
+            .join(format!("subs-{video_id}-{torrent}"))
     }
     /// Caché vieja (antes de 2026-11-15), una carpeta aparte para todos los subtítulos: se borra.
     pub fn legacy_subtitle_cache_dir(&self) -> PathBuf {

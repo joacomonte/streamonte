@@ -21,6 +21,24 @@ pub struct TorrentSubtitleFile {
     pub url: String,
 }
 
+/// Id de un archivo del torrent. La caché es por video y la comparten sus torrents:
+/// "Subs/2_Spanish.srt" de dos torrents distintos son archivos distintos.
+fn torrent_id(info_hash: Option<crate::magnet::InfoHash>, name: &str) -> String {
+    let torrent: String = info_hash
+        .map(|h| h.to_hex())
+        .unwrap_or_default()
+        .chars()
+        .take(12)
+        .collect();
+    format!("{torrent}/{name}")
+}
+
+/// Clave (`torrent:…`) del archivo `name` de ese torrent: la misma que da la búsqueda al
+/// reproducir, así el nativo elegido en el catálogo se reconoce en mpv.
+pub fn torrent_key(info_hash: crate::magnet::InfoHash, name: &str) -> String {
+    format!("{TORRENT_PROVIDER}:{}", torrent_id(Some(info_hash), name))
+}
+
 pub struct TorrentProvider {
     pub files: Vec<TorrentSubtitleFile>,
 }
@@ -38,15 +56,6 @@ impl SubtitleProvider for TorrentProvider {
         video: &VideoIdentity,
         lang: SubtitleLanguage,
     ) -> Result<Vec<SubtitleCandidate>> {
-        // La caché es por video y la comparten sus torrents: "Subs/2_Spanish.srt" de dos
-        // torrents distintos son archivos distintos.
-        let torrent: String = video
-            .info_hash
-            .map(|h| h.to_hex())
-            .unwrap_or_default()
-            .chars()
-            .take(12)
-            .collect();
         Ok(self
             .files
             .iter()
@@ -54,14 +63,16 @@ impl SubtitleProvider for TorrentProvider {
                 let (l, variant) = lang_from_name(&f.name)?;
                 (l == lang).then(|| SubtitleCandidate {
                     provider: TORRENT_PROVIDER,
-                    provider_id: format!("{torrent}/{}", f.name),
+                    provider_id: torrent_id(video.info_hash, &f.name),
                     release_name: f.name.rsplit(['/', '\\']).next().unwrap_or(&f.name).into(),
                     language: l,
                     // Vienen con el mismo archivo de video: la mejor coincidencia posible.
-                    match_kind: MatchKind::Hash,
+                    match_kind: MatchKind::Exact,
                     downloads: 0,
                     variant,
                     url: f.url.clone(),
+                    fps: None,
+                    last_secs: None,
                 })
             })
             .collect())

@@ -3,7 +3,6 @@
 //! API: `GET https://api.torbox.app/v1/api/torrents/checkcached?hash=a,b&format=object` con
 //! `Authorization: Bearer <key>`; `data` trae una entrada por cada hash que está en caché.
 
-use std::collections::HashSet;
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -35,15 +34,22 @@ struct CheckCached {
     data: Option<serde_json::Value>,
 }
 
+/// Lo que dice la caché de TorBox de una lista de opciones (2026-11-18).
+#[derive(Debug, Default, serde::Serialize, Deserialize)]
+pub struct Cached {
+    /// Las que están en caché.
+    pub hashes: Vec<InfoHash>,
+    /// De esas, las que traen un subtítulo en español como archivo suelto (`x.spa.srt`). Sale
+    /// de la lista de archivos del mismo pedido: no cuesta nada. Las pistas dentro del video no
+    /// aparecen ahí (se saben recién al leerlas).
+    pub spanish_subs: Vec<InfoHash>,
+}
+
 /// Cuáles de `hashes` están en la caché de TorBox. `None` = sin key o TorBox no respondió (no se
 /// muestra nada); un hash que falta = no está.
-pub async fn cached(
-    http: &Http,
-    hashes: &[InfoHash],
-    timeout: Duration,
-) -> Option<HashSet<InfoHash>> {
+pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Option<Cached> {
     let key = crate::secrets::secret(ACCOUNT)?;
-    let mut out = HashSet::new();
+    let mut out = Cached::default();
     for chunk in hashes.chunks(CHUNK) {
         let list = chunk
             .iter()
@@ -51,16 +57,60 @@ pub async fn cached(
             .collect::<Vec<_>>()
             .join(",");
         let url = format!(
-            "https://api.torbox.app/v1/api/torrents/checkcached?hash={list}&format=object&list_files=false"
+            "https://api.torbox.app/v1/api/torrents/checkcached?hash={list}&format=object&list_files=true"
         );
         let resp: CheckCached = http
             .get_json_bearer(&url, &key, timeout)
             .await
             .map_err(|e| tracing::warn!("TorBox: {}", e.user_text()))
             .ok()?;
-        out.extend(in_cache(chunk, resp.data.as_ref()));
+        let data = resp.data.as_ref();
+        out.hashes.extend(in_cache(chunk, data));
+        out.spanish_subs.extend(
+            in_cache(chunk, data)
+                .into_iter()
+                .filter(|h| entry(data, h).is_some_and(has_spanish_sub)),
+        );
     }
     Some(out)
+}
+
+/// La entrada de `hash` en `data` (objeto por hash, o lista con `hash`).
+fn entry<'a>(
+    data: Option<&'a serde_json::Value>,
+    hash: &InfoHash,
+) -> Option<&'a serde_json::Value> {
+    let hex = hash.to_hex();
+    match data? {
+        serde_json::Value::Object(m) => m
+            .iter()
+            .find(|(k, _)| k.eq_ignore_ascii_case(&hex))
+            .map(|(_, v)| v),
+        serde_json::Value::Array(a) => a.iter().find(|v| {
+            v.get("hash")
+                .and_then(|h| h.as_str())
+                .is_some_and(|h| h.eq_ignore_ascii_case(&hex))
+        }),
+        _ => None,
+    }
+}
+
+/// ¿Trae un archivo de subtítulo en español (`files[].name`)?
+fn has_spanish_sub(entry: &serde_json::Value) -> bool {
+    let Some(files) = entry.get("files").and_then(|f| f.as_array()) else {
+        return false;
+    };
+    files
+        .iter()
+        .filter_map(|f| f.get("name")?.as_str())
+        .any(|name| {
+            let ext = name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+            crate::subtitles::SUBTITLE_EXTENSIONS.contains(&ext.as_str())
+                && matches!(
+                    crate::subtitles::providers::lang_from_name(name),
+                    Some((crate::config::SubtitleLanguage::Es, _))
+                )
+        })
 }
 
 /// Los de `chunk` que aparecen en `data` (objeto por hash; también acepta una lista con `hash`).

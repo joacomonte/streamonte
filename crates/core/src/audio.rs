@@ -76,11 +76,14 @@ impl AudioPick {
 
 /// Variante del español (Q-03: latino primero, después España, después sin variante).
 /// Para otros idiomas siempre `Unknown`. Agregado en F6 (aditivo).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum SpanishVariant {
     Latino,
     Spain,
+    #[default]
     Unknown,
 }
 
@@ -193,6 +196,24 @@ fn other_label(code: &str) -> String {
 
 fn contains_any(text: &str, words: &[&str]) -> bool {
     words.iter().any(|w| text.contains(w))
+}
+
+/// ¿Pista en español (audio o subtítulo, por etiqueta de idioma y título)? Con su variante.
+/// Misma regla que los idiomas de audio.
+pub fn spanish_track(lang: Option<&str>, title: Option<&str>) -> Option<SpanishVariant> {
+    let t = AudioTrack {
+        lang: lang.map(str::to_string),
+        title: title.map(str::to_string),
+        codec: None,
+        channels: None,
+        default: false,
+    };
+    match classify_track(&t).0 {
+        Kind::Latino => Some(SpanishVariant::Latino),
+        Kind::Castellano => Some(SpanishVariant::Spain),
+        Kind::Spanish => Some(SpanishVariant::Unknown),
+        _ => None,
+    }
 }
 
 /// Clasifica una pista real por su etiqueta de idioma y su título.

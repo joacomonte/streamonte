@@ -31,7 +31,7 @@ use crate::config::{Config, ConfigStore};
 use crate::events::{CoreEvent, EventSink, StatusLevel};
 use crate::intake::Intake;
 pub use crate::intake::{ClipboardReadReport, CopiedMagnet};
-use crate::library::{Group, Library, LibraryRowView};
+use crate::library::{Group, Library, LibraryRowView, LiveMeasurement};
 use crate::logger::LoggerGuard;
 use crate::magnet::InfoHash;
 use crate::paths::AppPaths;
@@ -54,14 +54,103 @@ pub struct LibraryView {
     pub previous: Vec<LibraryRowView>,
 }
 
-/// Un subtítulo bajado desde el catálogo (para mostrar en la fila).
+/// Un subtítulo del dropdown del catálogo (2026-11-18): bajado ("Encontrados para vos") o
+/// resultado de Premium sin bajar (`path` vacío).
 #[derive(Debug, Clone, Serialize)]
 pub struct SubtitleFound {
+    /// `proveedor:id`: para elegirlo ([`AppCore::catalog_subtitle_use`]).
+    pub key: String,
+    /// Nombre en pantalla del proveedor.
     pub provider: String,
     pub language: crate::config::SubtitleLanguage,
     pub release_name: String,
     /// Para distinguir dos del mismo release (p. ej. uno para sordos).
     pub downloads: u32,
+    /// Archivo ya bajado (en la caché de la app): para "Descargar" desde el panel.
+    pub path: String,
+    /// Cuánto calza con el video: `exact` / `release` / `fps` / `none`.
+    pub level: crate::subtitles::MatchKind,
+    pub latino: bool,
+    /// Grupo del release (o el proveedor si no se sabe) y "fuente resolución" (o "sin release").
+    pub head: String,
+    pub spec: String,
+}
+
+impl SubtitleFound {
+    fn new(cand: &crate::subtitles::SubtitleCandidate, path: Option<&std::path::Path>) -> Self {
+        let release = crate::release::parse_release_name(&cand.release_name);
+        let tags = crate::catalog::normalize::release_tags(&cand.release_name, &release);
+        let provider = crate::subtitles::providers::display_name(cand.provider).to_string();
+        let spec: Vec<String> = [tags.source, tags.resolution]
+            .into_iter()
+            .flatten()
+            .collect();
+        SubtitleFound {
+            key: cand.key(),
+            language: cand.language,
+            release_name: cand.release_name.clone(),
+            downloads: cand.downloads,
+            path: path.map(|p| p.display().to_string()).unwrap_or_default(),
+            level: cand.match_kind,
+            latino: cand.variant == crate::subtitles::SpanishVariant::Latino,
+            head: release.release_group.unwrap_or_else(|| provider.clone()),
+            spec: if spec.is_empty() {
+                "sin release".into()
+            } else {
+                spec.join(" ")
+            },
+            provider,
+        }
+    }
+}
+
+/// Subtítulos de una opción para el dropdown: lo encontrado y lo elegido / probado en ella.
+#[derive(Debug, Clone, Serialize)]
+pub struct CatalogSubtitles {
+    pub found: Vec<SubtitleFound>,
+    pub picks: SubtitlePicks,
+    /// Se saben los fps y la duración de la opción (se leyeron sus pistas): sin eso ninguno puede
+    /// calzar por "mismos fps y duración", y la UI lo dice.
+    pub timing_known: bool,
+}
+
+/// Lo elegido para la opción (clave) y los que eligió antes y cambió (no sincronizaron).
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct SubtitlePicks {
+    pub chosen: Option<String>,
+    pub tried: Vec<String>,
+}
+
+/// Cuota de OpenSubtitles.com (Premium). `remaining`/`per_day` = `None`: todavía no se sabe
+/// (se conoce con la primera descarga desde que abrió la app).
+#[derive(Debug, Clone, Serialize)]
+pub struct PremiumQuota {
+    pub has_key: bool,
+    /// Hay usuario y contraseña de OpenSubtitles.com: la cuota se sabe desde el arranque.
+    pub has_login: bool,
+    /// El login falló (mensaje para el usuario); no se reintenta hasta cambiar los datos.
+    pub login_error: Option<String>,
+    pub remaining: Option<u32>,
+    pub per_day: Option<u32>,
+    /// Hora local en que vuelve ("21:00"), si el servidor la dijo.
+    pub resets_at: Option<String>,
+}
+
+/// El Premium elegido para bajar: lo que la UI ya mostró del resultado de la búsqueda.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct PremiumPick {
+    /// `file_id` de OpenSubtitles.com.
+    pub id: u64,
+    pub release_name: String,
+    pub latino: bool,
+    pub level: crate::subtitles::MatchKind,
+}
+
+/// Un subtítulo para copiar a Descargas: el archivo de la caché y con qué nombre (sin extensión).
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct SubtitleSave {
+    pub path: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -368,6 +457,13 @@ impl AppCore {
     pub async fn analyzer_resume_one(&self, hash: InfoHash) -> Result<()> {
         self.analyzer.resume_one(hash).await
     }
+    /// Cancela el análisis de esos torrents (en cola o corriendo): el catálogo corta sus lecturas de
+    /// pistas al volver atrás o cambiar de video (2026-11-18).
+    pub async fn analyzer_cancel(&self, hashes: &[InfoHash]) {
+        for hash in hashes {
+            let _ = self.analyzer.cancel_one(*hash).await;
+        }
+    }
     /// "Reiniciar análisis": desde cero aunque ya esté en cola, pausado o midiéndose.
     pub async fn analyzer_restart(&self, hash: InfoHash, quick: bool) -> Result<()> {
         self.analyzer.restart(hash, quick).await
@@ -501,6 +597,46 @@ impl AppCore {
         Ok(dest)
     }
 
+    /// "Descargar" subtítulos del panel (2026-11-17): copia los elegidos a
+    /// `Descargas/<título> (subtítulos)` y abre la carpeta. Las rutas vienen de la UI: solo se
+    /// copian archivos de la caché de la app.
+    pub fn save_subtitles(
+        &self,
+        title: &str,
+        files: &[SubtitleSave],
+    ) -> Result<std::path::PathBuf> {
+        let base = directories::UserDirs::new()
+            .and_then(|u| u.download_dir().map(|d| d.to_path_buf()))
+            .ok_or(CoreError::Unsupported("carpeta de Descargas"))?;
+        let safe = |s: &str| -> String {
+            s.chars()
+                .map(|c| {
+                    if "/\\:*?\"<>|".contains(c) || c.is_control() {
+                        '-'
+                    } else {
+                        c
+                    }
+                })
+                .collect::<String>()
+                .trim()
+                .to_string()
+        };
+        let io = |path: &std::path::Path| {
+            let path = path.to_path_buf();
+            move |source| CoreError::Io { path, source }
+        };
+        let dest = base.join(format!("{} (subtítulos)", safe(title)));
+        std::fs::create_dir_all(&dest).map_err(io(&dest))?;
+        for f in files {
+            let from = self.cached_file(&f.path)?;
+            let ext = from.extension().and_then(|e| e.to_str()).unwrap_or("srt");
+            let to = dest.join(format!("{}.{ext}", safe(&f.name)));
+            std::fs::copy(&from, &to).map_err(io(&to))?;
+        }
+        crate::cleanup::open_in_file_manager(&dest)?;
+        Ok(dest)
+    }
+
     // ----- Configuración (NFR-04, Q-06) -----
     pub async fn config(&self) -> Config {
         self.config.read().await.clone()
@@ -613,43 +749,206 @@ impl AppCore {
 
     /// Cuáles de esas opciones (de la lista vigente) ya están en la caché de TorBox (2026-11-17).
     /// `None` = sin key de TorBox o no respondió.
-    pub async fn catalog_torbox(&self, hashes: &[InfoHash]) -> Option<Vec<InfoHash>> {
+    pub async fn catalog_torbox(
+        &self,
+        video_id: &str,
+        hashes: &[InfoHash],
+    ) -> Option<crate::catalog::torbox::Cached> {
         let timeout = self.catalog_timeout().await;
-        self.catalog.torbox_cached(hashes, timeout).await
+        self.catalog.torbox_cached(video_id, hashes, timeout).await
     }
 
     /// ▶ desde TorBox (2026-11-17): abre el reproductor con el link directo de TorBox (sin P2P ni
     /// motor). No queda en "Descargas": es un video en línea.
-    pub async fn play_torbox(&self, video_id: &str, hash: InfoHash) -> Result<()> {
+    pub async fn play_torbox(
+        &self,
+        video_id: &str,
+        hash: InfoHash,
+        player: Option<crate::config::PlayerKind>,
+        audio: Option<crate::audio::AudioPick>,
+    ) -> Result<crate::playback::PlaybackId> {
+        use crate::config::PlayerKind;
         let timeout = self
             .catalog_timeout()
             .await
             .max(std::time::Duration::from_secs(20));
         let (url, title) = self.catalog.torbox_stream(hash, timeout).await?;
-        // Los mismos subtítulos que baja el módulo de subs (casi siempre ya en caché): mejor primero.
-        let language = self.config.read().await.subtitles.language;
-        let log: crate::subtitles::session::LogFn =
-            Arc::new(|line| tracing::info!(target: "streamonte_core::subtitles", "{line}"));
-        let subtitle_files = self
-            .subtitle_files(video_id, &hash, language, log)
-            .await
-            .unwrap_or_default()
-            .into_iter()
-            .map(|(_, path)| path)
-            .collect();
-        let player = self.config.read().await.player.clone();
-        let kind = crate::player::resolve_player(player.default_player, &player);
-        crate::player::PlayerLauncher::new(self.paths.clone(), player)
-            .launch(crate::player::LaunchRequest {
-                kind,
+        let cfg = self.config.read().await.clone();
+        let kind =
+            crate::player::resolve_player(player.unwrap_or(cfg.player.default_player), &cfg.player);
+        // Lo elegido en el paso de subtítulos de Reproducir (por opción, como la reproducción
+        // por torrent): una pista del video se elige con `--sid`; un archivo va solo (mpv muestra
+        // el único `--sub-file`). Sin elegir: los ya bajados, mejor primero.
+        let (_, _, key) = self.subtitle_identity(video_id, &hash).await?;
+        let chosen = crate::subtitles::SubtitleMemory::new(self.paths.subtitles_memory_file())
+            .get(&key)
+            .ok()
+            .flatten()
+            .map(|c| c.subtitle)
+            .filter(|s| !s.is_empty() && s != crate::subtitles::CHOICE_ALL);
+        let mut extra_args = Vec::new();
+        let embedded = chosen.as_deref().and_then(|c| {
+            c.strip_prefix(crate::subtitles::EMBEDDED)?
+                .strip_prefix(':')
+        });
+        let subtitle_files = if let Some(sid) = embedded {
+            extra_args.push(format!("--sid={sid}"));
+            Vec::new()
+        } else {
+            let log: crate::subtitles::session::LogFn =
+                Arc::new(|line| tracing::info!(target: "streamonte_core::subtitles", "{line}"));
+            let got = self
+                .subtitle_files(video_id, &hash, cfg.subtitles.language, log)
+                .await
+                .unwrap_or_default();
+            match got.iter().find(|(c, _)| Some(c.key()) == chosen) {
+                Some((_, path)) => vec![path.clone()],
+                None => got.into_iter().map(|(_, path)| path).collect(),
+            }
+        };
+        // Audio elegido (como en la reproducción por torrent: solo mpv entiende estos argumentos).
+        if let Some(a) = audio.filter(|_| kind == PlayerKind::Mpv) {
+            extra_args.extend(a.mpv_args());
+        }
+        // La misma "reproducción en curso" que la del motor: fila, Detener y cambiar subtítulo.
+        self.playback
+            .start_stream(crate::playback::StreamRequest {
+                key,
+                name: title,
                 url,
-                title,
+                player: kind,
                 subtitle_files,
-                log_file: None,
-                extra_args: Vec::new(),
+                extra_args,
             })
             .await
-            .map(drop)
+    }
+
+    /// Usuario y contraseña de OpenSubtitles.com (Ajustes; vacíos = borrar). Al almacén seguro.
+    pub fn set_opensubtitles_login(&self, username: &str, password: &str) -> Result<()> {
+        crate::subtitles::secrets::set_opensubtitles_login(username, password)
+    }
+
+    /// Cambiar el subtítulo mientras se ve (2026-11-18): lo carga en el mpv abierto sin reiniciar
+    /// y queda elegido para esa opción. `key`: `embedded:<sid>` o `proveedor:id`; `path`: el
+    /// archivo ya bajado (solo de la caché de la app).
+    pub async fn playback_subtitle(
+        &self,
+        id: crate::playback::PlaybackId,
+        key: &str,
+        path: Option<&str>,
+    ) -> Result<()> {
+        use crate::playback::LiveSubtitle;
+        let sid = key
+            .strip_prefix(crate::subtitles::EMBEDDED)
+            .and_then(|k| k.strip_prefix(':'))
+            .and_then(|n| n.parse::<i64>().ok());
+        let sub = match (sid, path) {
+            (Some(sid), _) => LiveSubtitle::Track(sid),
+            (None, Some(path)) => LiveSubtitle::File(self.cached_file(path)?),
+            (None, None) => return Err(CoreError::NotFound(format!("subtítulo {key}"))),
+        };
+        let video = self.playback.load_subtitle(id, sub).await?;
+        crate::subtitles::SubtitleMemory::new(self.paths.subtitles_memory_file()).choose(
+            &video,
+            key,
+            crate::config::SubtitleLanguage::Es,
+        )?;
+        Ok(())
+    }
+
+    /// Un archivo que viene de la UI, solo si está en la caché de la app (subtítulos bajados).
+    fn cached_file(&self, path: &str) -> Result<std::path::PathBuf> {
+        let io = |path: &std::path::Path| {
+            let path = path.to_path_buf();
+            move |source| CoreError::Io { path, source }
+        };
+        let root = self
+            .paths
+            .cache_dir
+            .canonicalize()
+            .map_err(io(&self.paths.cache_dir))?;
+        let from = std::path::Path::new(path);
+        let from = from.canonicalize().map_err(io(from))?;
+        if !from.starts_with(&root) || !from.is_file() {
+            return Err(CoreError::NotFound(format!("subtítulo {path}")));
+        }
+        Ok(from)
+    }
+
+    /// Pistas de una opción que se va a ver por TorBox (2026-11-18): mpv sin ventana lee audio,
+    /// subtítulos, fps y duración del mismo link https que va a abrir (el video ya está en sus
+    /// servidores; contar el enjambre no hace falta). Quedan en la fila como las del análisis, así
+    /// el paso de audio y el de subtítulos de Reproducir las usan; los `sid` son los mismos que
+    /// verá mpv al reproducir ese link. Como "Verificar salud", la opción pasa a la biblioteca si no
+    /// estaba: lo leído es del torrent y se guarda en su fila (sin fila se perdía, 2026-11-18).
+    pub async fn catalog_torbox_tracks(
+        &self,
+        kind: MediaKind,
+        video_id: &str,
+        hash: InfoHash,
+    ) -> Result<()> {
+        const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+        let timeout = self
+            .catalog_timeout()
+            .await
+            .max(std::time::Duration::from_secs(20));
+        let (url, title) = self.catalog.torbox_stream(hash, timeout).await?;
+        let mpv_path = self.config.read().await.player.mpv_path.clone();
+        let mpv = crate::paths::find_executable(crate::paths::Executable::Mpv, mpv_path.as_deref())
+            .ok_or_else(|| CoreError::Player("no hay mpv para leer las pistas".into()))?;
+        let probe = crate::player::probe_media(&mpv, &url, PROBE_TIMEOUT).await?;
+        if !self.library.lock().await.has_torrent(&hash) {
+            self.catalog_add(kind, video_id, &[hash]).await?;
+        }
+        let video = VideoId::parse(video_id)?;
+        let c = self.catalog.candidate(&video, &hash);
+        let mut library = self.library.lock().await;
+        let keys = library.update_torrent(&hash, |e| {
+            let live = e.live.get_or_insert_with(|| LiveMeasurement {
+                measured_at: chrono::Utc::now(),
+                torrent_name: Some(title.clone()),
+                file_index: c.as_ref().and_then(|c| c.file_idx).unwrap_or(0),
+                file_name: c
+                    .as_ref()
+                    .and_then(|c| c.file_name.clone())
+                    .unwrap_or_else(|| title.clone()),
+                file_size: c.as_ref().and_then(|c| c.size_bytes).unwrap_or(0),
+                peers: 0,
+                seeds: 0,
+                partial: false,
+                measured_secs: 0.0,
+                avg_speed_bps: 0.0, // sin velocidad: no se midió el enjambre
+                max_speed_bps: 0.0,
+                duration_secs: None,
+                audio: None,
+                subs: None,
+                fps: None,
+            });
+            live.duration_secs = Some(probe.duration_secs);
+            live.audio = Some(probe.audio.clone());
+            live.subs = Some(probe.subs.clone());
+            live.fps = probe.fps;
+        });
+        library.emit_rows(&keys, self.events.as_ref());
+        Ok(())
+    }
+
+    /// Link para copiar de una opción (clic derecho, 2026-11-17): el magnet con sus trackers, o el
+    /// link https directo de TorBox (`torbox`; vence a las horas, se pide al momento).
+    pub async fn catalog_link(&self, hash: InfoHash, torbox: bool) -> Result<String> {
+        if torbox {
+            let timeout = self
+                .catalog_timeout()
+                .await
+                .max(std::time::Duration::from_secs(20));
+            return Ok(self.catalog.torbox_stream(hash, timeout).await?.0);
+        }
+        self.catalog
+            .magnets_of(&[hash])
+            .into_iter()
+            .next()
+            .map(|m| m.to_uri())
+            .ok_or_else(|| CoreError::NotFound("esa opción ya no está en la lista".into()))
     }
 
     /// Reproductores de este equipo (Ajustes → Reproductor, 2026-11-17).
@@ -781,16 +1080,16 @@ impl AppCore {
         crate::analyzer::swarm::census(&self.paths, &cfg, hashes.to_vec(), cancel).await
     }
 
-    /// "Bajar subtítulos" de una opción del catálogo (2026-11-15): busca y baja hasta 5 en
-    /// `language` (el otro idioma completa) sin necesitar el video, por IMDb + episodio y nombre
-    /// del release. Quedan en la caché de ESE video: al analizar o reproducir se reusan y se
-    /// copian junto al archivo con nombres que mpv carga solo.
+    /// Subtítulos del video abierto en el catálogo (2026-11-15; dropdown 2026-11-18): busca y baja
+    /// hasta 5 de las fuentes gratis en `language` (el otro idioma completa) sin necesitar el
+    /// video, por IMDb + episodio y el release de la opción `hash`. Quedan en la caché de ESE
+    /// video: al analizar o reproducir se reusan. OpenSubtitles.com no entra: es Premium.
     pub async fn catalog_subtitles(
         &self,
         video_id: &str,
         hash: &InfoHash,
         language: crate::config::SubtitleLanguage,
-    ) -> Result<Vec<SubtitleFound>> {
+    ) -> Result<CatalogSubtitles> {
         // El log de la búsqueda también es el progreso que ve la UI ("bajando N", "bajado …").
         let progress = Arc::new(std::sync::Mutex::new((false, 0usize, 0usize)));
         let (events, vid) = (self.events.clone(), video_id.to_string());
@@ -826,27 +1125,152 @@ impl AppCore {
                 emit();
             }
         });
+        let (identity, _, key) = self.subtitle_identity(video_id, hash).await?;
         let got = self.subtitle_files(video_id, hash, language, log).await?;
-        Ok(got
-            .into_iter()
-            .map(|(cand, _)| SubtitleFound {
-                provider: crate::subtitles::providers::display_name(cand.provider).to_string(),
-                language: cand.language,
-                release_name: cand.release_name,
-                downloads: cand.downloads,
-            })
-            .collect())
+        Ok(CatalogSubtitles {
+            found: got
+                .iter()
+                .map(|(cand, path)| SubtitleFound::new(cand, Some(path)))
+                .collect(),
+            picks: self.subtitle_picks(&key),
+            timing_known: identity.fps.is_some(),
+        })
     }
 
-    /// Subtítulos de esa opción de la lista (2026-11-17, compartido por "Bajar subtítulos" y el ▶ de
-    /// TorBox): los busca y baja (lo ya bajado sale de la caché de cada proveedor), mejor primero.
-    async fn subtitle_files(
+    /// "Usar" un subtítulo del dropdown (encontrado, Premium ya bajado o uno que trae el video):
+    /// queda elegido para esa opción y el reproductor lo pone al abrirla. El anterior cuenta como
+    /// probado.
+    pub async fn catalog_subtitle_use(
         &self,
         video_id: &str,
         hash: &InfoHash,
-        language: crate::config::SubtitleLanguage,
-        log: crate::subtitles::session::LogFn,
-    ) -> Result<Vec<(crate::subtitles::SubtitleCandidate, std::path::PathBuf)>> {
+        key: &str,
+    ) -> Result<SubtitlePicks> {
+        let (_, _, video) = self.subtitle_identity(video_id, hash).await?;
+        let memory = crate::subtitles::SubtitleMemory::new(self.paths.subtitles_memory_file());
+        let c = memory.choose(&video, key, crate::config::SubtitleLanguage::Es)?;
+        Ok(SubtitlePicks {
+            chosen: Some(c.subtitle),
+            tried: c.tried,
+        })
+    }
+
+    /// Cuota de Premium, sin pedir nada (buscar no la gasta y no la informa).
+    pub async fn premium_quota(&self) -> PremiumQuota {
+        use crate::subtitles::providers::{OpenSubtitlesProvider, SubtitleProvider};
+        let os = OpenSubtitlesProvider::from_store();
+        // Con login, la cuenta la dice siempre; sin login, se sabe recién con una descarga.
+        let has_login = crate::subtitles::secrets::opensubtitles_login().is_some();
+        let login_error = match os.has_key() && has_login {
+            true => os.account_quota().await.err().map(|e| e.user_message()),
+            false => None,
+        };
+        let q = os.quota().await.ok().flatten();
+        PremiumQuota {
+            has_key: os.has_key(),
+            has_login,
+            login_error,
+            remaining: q.map(|q| q.remaining),
+            per_day: q.map(|q| q.per_day),
+            resets_at: q
+                .and_then(|q| q.resets_at)
+                .map(|t| t.with_timezone(&chrono::Local).format("%H:%M").to_string()),
+        }
+    }
+
+    /// Busca en Premium (OpenSubtitles.com), solo en español. No gasta cuota: no baja nada.
+    pub async fn catalog_premium_search(
+        &self,
+        video_id: &str,
+        hash: &InfoHash,
+    ) -> Result<Vec<SubtitleFound>> {
+        use crate::subtitles::providers::{OpenSubtitlesProvider, SubtitleProvider};
+        let (identity, _, _) = self.subtitle_identity(video_id, hash).await?;
+        let mut found = OpenSubtitlesProvider::from_store()
+            .search(&identity, crate::config::SubtitleLanguage::Es)
+            .await?;
+        crate::subtitles::fit_by_timing(&identity, &mut found);
+        Ok(crate::subtitles::top_candidates(found, usize::MAX)
+            .iter()
+            .map(|c| SubtitleFound::new(c, None))
+            .collect())
+    }
+
+    /// "Usar · 1" de Premium: baja ESE subtítulo (gasta 1 de la cuota), lo suma a lo guardado
+    /// con el video (el reproductor lo carga) y queda elegido. Nada más se baja.
+    pub async fn catalog_premium_use(
+        &self,
+        video_id: &str,
+        hash: &InfoHash,
+        pick: PremiumPick,
+    ) -> Result<CatalogSubtitles> {
+        use crate::subtitles::providers::{OpenSubtitlesProvider, SubtitleProvider, OPENSUBTITLES};
+        let es = crate::config::SubtitleLanguage::Es;
+        let (identity, cache_dir, video) = self.subtitle_identity(video_id, hash).await?;
+        let cand = crate::subtitles::SubtitleCandidate {
+            provider: OPENSUBTITLES,
+            provider_id: pick.id.to_string(),
+            release_name: pick.release_name,
+            language: es,
+            match_kind: pick.level,
+            downloads: 0,
+            variant: if pick.latino {
+                crate::subtitles::SpanishVariant::Latino
+            } else {
+                crate::subtitles::SpanishVariant::Unknown
+            },
+            url: String::new(),
+            fps: None,
+            last_secs: None,
+        };
+        std::fs::create_dir_all(&cache_dir).map_err(|source| CoreError::Io {
+            path: cache_dir.clone(),
+            source,
+        })?;
+        let path = OpenSubtitlesProvider::from_store()
+            .download(&cand, &cache_dir)
+            .await?;
+        crate::subtitles::session::add_saved(&cache_dir, es, cand.clone(), path);
+        let memory = crate::subtitles::SubtitleMemory::new(self.paths.subtitles_memory_file());
+        memory.choose(&video, &cand.key(), es)?;
+        // Lo guardado ya lo incluye: se relee sin buscar.
+        let log: crate::subtitles::session::LogFn =
+            Arc::new(|line| tracing::info!(target: "streamonte_core::subtitles", "{line}"));
+        let got = self.subtitle_files(video_id, hash, es, log).await?;
+        Ok(CatalogSubtitles {
+            found: got
+                .iter()
+                .map(|(c, path)| SubtitleFound::new(c, Some(path)))
+                .collect(),
+            picks: self.subtitle_picks(&video),
+            timing_known: identity.fps.is_some(),
+        })
+    }
+
+    fn subtitle_picks(&self, video: &crate::video_key::VideoKey) -> SubtitlePicks {
+        crate::subtitles::SubtitleMemory::new(self.paths.subtitles_memory_file())
+            .get(video)
+            .ok()
+            .flatten()
+            .map(|c| SubtitlePicks {
+                chosen: Some(c.subtitle).filter(|s| !s.is_empty()),
+                tried: c.tried,
+            })
+            .unwrap_or_default()
+    }
+
+    /// Qué video es para los subtítulos (IMDb + episodio, el release de la opción `hash` y, si
+    /// esa opción ya se analizó, su duración y fps reales), la carpeta donde se guardan los del
+    /// catálogo y la clave con que se recuerda lo elegido (la misma que usa la reproducción).
+    async fn subtitle_identity(
+        &self,
+        video_id: &str,
+        hash: &InfoHash,
+    ) -> Result<(
+        crate::subtitles::VideoIdentity,
+        std::path::PathBuf,
+        crate::video_key::VideoKey,
+    )> {
         let video = VideoId::parse(video_id)?;
         let c = self
             .catalog
@@ -870,17 +1294,39 @@ impl AppCore {
             identity.season = u16::try_from(s).ok();
             identity.episode = u16::try_from(e).ok();
         }
-        let id = identity.video_id();
+        let live = self
+            .library
+            .lock()
+            .await
+            .of_torrent(*hash)
+            .find_map(|e| e.live.clone());
+        identity.duration_secs = live.as_ref().and_then(|l| l.duration_secs);
+        identity.fps = live.as_ref().and_then(|l| l.fps);
+        let dir = self.paths.pending_subtitles_dir(&identity.video_id(), hash);
+        // La misma clave que la fila que crea Reproducir (`library::entry_key`).
+        let key = crate::video_key::VideoKey::new(*hash, video.episode(), c.file_idx);
+        Ok((identity, dir, key))
+    }
+
+    /// Subtítulos de esa opción de la lista (2026-11-17, compartido por el dropdown y el ▶ de
+    /// TorBox): los busca y baja de las fuentes gratis (lo ya bajado sale de la caché), mejor
+    /// primero.
+    async fn subtitle_files(
+        &self,
+        video_id: &str,
+        hash: &InfoHash,
+        language: crate::config::SubtitleLanguage,
+        log: crate::subtitles::session::LogFn,
+    ) -> Result<Vec<(crate::subtitles::SubtitleCandidate, std::path::PathBuf)>> {
+        let (identity, cache_dir, _) = self.subtitle_identity(video_id, hash).await?;
         Ok(
             crate::subtitles::session::fetch(crate::subtitles::session::Fetch {
                 video: identity,
                 video_url: None,
                 torrent_files: Vec::new(),
                 language,
-                cache_dir: self.paths.pending_subtitles_dir(&id),
+                cache_dir,
                 remembered: None,
-                // Lo pidió el usuario: OpenSubtitles completa si hace falta (respeta su cuota diaria).
-                opensubtitles: true,
                 log,
             })
             .await,

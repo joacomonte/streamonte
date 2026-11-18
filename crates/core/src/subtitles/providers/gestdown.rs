@@ -68,6 +68,8 @@ pub(super) fn parse_gestdown(
                     .min(u32::MAX as u64) as u32,
                 variant,
                 url: format!("{GESTDOWN_BASE}{uri}"),
+                fps: None,
+                last_secs: None,
             })
         })
         .collect()

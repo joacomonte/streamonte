@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subtítulos · ronda 4b</title>
+<style>
+/* Tokens de ui/styles.css. --amber es nuevo: marca lo que cuesta cuota. */
+:root {
+  --bg:#f6f7f9; --surface:#fff; --surface-2:#eef1f4; --surface-3:#e3e7ec; --sunk:#f2f4f7;
+  --text:#1b1f24; --muted:#535c68; --dim:#5c6571; --border:#dde1e6; --border-strong:#c3c9d1;
+  --accent:#2563eb; --accent-fg:#1d4ed8; --green:#12733a; --red:#c01c1c; --amber:#9a5b00; --fit-3:#12733a; --fit-2:#3d7a55; --fit-1:#76681c;
+  --shadow-lg:rgb(15 23 42 / .28); --ease:cubic-bezier(.2,.8,.2,1); --out:cubic-bezier(.16,1,.3,1);
+}
+:root[data-theme="dark"] {
+  --bg:#0d1014; --surface:#161a20; --surface-2:#1c2129; --surface-3:#232a34; --sunk:#11151a;
+  --text:#e7eaee; --muted:#9aa3ae; --dim:#8b949f; --border:#252b34; --border-strong:#353d48;
+  --accent-fg:#7ab0ff; --green:#4ade80; --red:#f87171; --amber:#f5b041; --fit-3:#4ade80; --fit-2:#b5d86a; --fit-1:#d9a85b; --shadow-lg:rgb(0 0 0 / .7);
+}
+* { box-sizing:border-box; }
+::selection { background:color-mix(in srgb, var(--accent) 35%, transparent); }
+:focus-visible { outline:2px solid var(--accent-fg); outline-offset:2px; }
+body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif; }
+.ico { width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+
+.ctl { position:sticky; top:0; z-index:50; display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; padding:12px 20px; background:var(--surface); border-bottom:1px solid var(--border); font-size:12.5px; }
+.ctl b { font-size:13px; }
+.ctl label { display:inline-flex; gap:6px; align-items:center; color:var(--muted); }
+.ctl select { font:inherit; font-size:12.5px; color:var(--text); background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:3px 6px; }
+
+.grid { display:flex; flex-wrap:wrap; gap:32px; padding:24px 20px 80px; align-items:flex-start; }
+.col h2 { margin:0 0 4px; font-size:15px; }
+.col > p { margin:0 0 14px; color:var(--muted); font-size:12.5px; max-width:52ch; }
+.stage { width:min(500px, 100%); padding:14px 12px 12px; border:1px solid var(--border); border-radius:12px; background:var(--surface); }
+.ep { font-size:12px; color:var(--muted); margin:0 4px 10px; }
+.ep b { color:var(--text); font-weight:600; }
+.trigger { display:flex; align-items:center; gap:7px; padding:0 4px; border:0; background:none; font:inherit; font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer; }
+.trigger:hover { color:var(--text); }
+.trigger .ok { color:color-mix(in srgb, var(--green) 70%, var(--muted)); display:inline-flex; }
+
+/* === Menú === */
+.menu { display:grid; padding:6px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); scrollbar-width:thin; scrollbar-color:var(--border-strong) transparent; }
+.desk .menu { margin-top:8px; max-height:560px; overflow-y:auto; box-shadow:0 12px 32px var(--shadow-lg); }
+.grp { display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:10px 10px 4px; font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); }
+.grp:first-child { padding-top:4px; }
+.grp small { font-size:11px; font-weight:500; letter-spacing:0; text-transform:none; }
+.none { padding:2px 10px 6px 38px; font-size:11.5px; color:var(--dim); font-style:italic; }
+.sep { height:1px; margin:6px 4px; background:var(--border); }
+
+/* Fila: línea 1 = lo distintivo; línea 2 = nombre largo deslizándose. */
+.item { position:relative; display:grid; grid-template-columns:18px minmax(0,1fr) auto; align-items:center; gap:10px; padding:7px 8px 7px 10px; border-radius:8px; color:var(--text); cursor:pointer; }
+.item:hover, .item:focus-within { background:color-mix(in srgb, var(--accent) 12%, transparent); }
+.item.on { background:color-mix(in srgb, var(--accent) 16%, transparent); }
+.pick { position:absolute; inset:0; border:0; border-radius:8px; background:none; cursor:pointer; }
+.mark { width:16px; height:16px; display:grid; place-items:center; color:var(--accent-fg); pointer-events:none; }
+.body { display:grid; gap:1px; min-width:0; pointer-events:none; }
+.l1 { display:flex; align-items:baseline; gap:7px; min-width:0; white-space:nowrap; overflow:hidden; }
+.l1 > b, .l1 > .spec, .l1 > .tag { flex:none; }
+.l1 .why { flex:none; }
+.l1 b { font-size:13px; font-weight:650; }
+.l1 .spec { font-size:12.5px; color:var(--muted); }
+.l1 .src { font-size:11.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; }
+.item.tried .l1 b, .item.tried .l1 .spec { color:var(--muted); text-decoration:line-through; text-decoration-color:color-mix(in srgb, var(--muted) 60%, transparent); opacity:1; }
+.why { font-size:11px; color:var(--muted); }
+.end { display:flex; align-items:center; gap:4px; position:relative; z-index:1; }
+.tag { padding:1px 7px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.03em; white-space:nowrap; }
+.tag.fit { background:color-mix(in srgb, var(--green) 18%, transparent); color:color-mix(in srgb, var(--green) 85%, var(--text)); }
+.tag.near { color:var(--muted); font-weight:600; letter-spacing:0; }
+.tag.bad { color:var(--red); font-weight:600; letter-spacing:0; }
+.iconbtn { width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:7px; background:none; color:var(--muted); cursor:pointer; }
+.iconbtn:hover { background:var(--surface-3); color:var(--text); }
+.desk .iconbtn.dl { opacity:0; transition:opacity .12s var(--ease); }
+.desk .item:hover .iconbtn.dl, .desk .item:focus-within .iconbtn.dl { opacity:1; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border:1px solid var(--border-strong); border-radius:7px; background:var(--surface); color:var(--text); font:inherit; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.btn:hover:not([aria-disabled="true"]) { border-color:var(--amber); }
+.btn[aria-disabled="true"] { opacity:.45; cursor:not-allowed; }
+.cost { color:var(--amber); font-weight:700; font-variant-numeric:tabular-nums; }
+.spin { width:13px; height:13px; border-radius:50%; border:2px solid var(--border-strong); border-top-color:var(--accent); animation:spin .8s linear infinite; flex:none; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.msg { display:flex; gap:8px; align-items:flex-start; padding:8px 10px; font-size:12px; color:var(--muted); }
+.msg.err { color:var(--red); }
+.msg .btn { margin-left:auto; }
+
+/* Puerta Premium (variante B) */
+.gate { display:grid; grid-template-columns:28px minmax(0,1fr) auto; gap:10px; align-items:center; width:100%; margin-top:2px; padding:9px 10px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font:inherit; text-align:left; cursor:pointer; transition:border-color .15s var(--ease); }
+.gate:hover { border-color:color-mix(in srgb, var(--amber) 60%, var(--border)); }
+.gate.hot { border-color:color-mix(in srgb, var(--amber) 70%, var(--border)); background:color-mix(in srgb, var(--amber) 7%, var(--surface)); }
+.gate .gi { width:28px; height:28px; display:grid; place-items:center; border-radius:8px; background:var(--surface-3); color:var(--amber); }
+.gate b { display:block; font-size:13px; }
+.gate .gs { font-size:11.5px; color:var(--muted); }
+.gate .chev { color:var(--muted); display:inline-flex; transition:transform .2s var(--ease); }
+.gate[aria-expanded="true"] .chev { transform:rotate(180deg); }
+.open { margin-top:4px; padding:2px 0 4px; border-top:1px solid var(--border); animation:in .2s var(--ease) both; }
+@keyframes in { from { opacity:0; transform:translateY(-3px); } }
+
+/* === Mobile: hoja inferior dentro de un teléfono === */
+.phone { width:375px; height:780px; border:10px solid #000; border-radius:44px; background:var(--bg); overflow:hidden; position:relative; box-shadow:0 20px 50px var(--shadow-lg); }
+.phone .behind { padding:54px 16px; color:var(--muted); font-size:13px; }
+.phone .behind b { display:block; color:var(--text); font-size:17px; margin-bottom:4px; }
+.scrim { position:absolute; inset:0; background:rgb(0 0 0 / .45); }
+.sheet { position:absolute; left:0; right:0; bottom:0; max-height:86%; display:grid; grid-template-rows:auto auto minmax(0,1fr); border-radius:18px 18px 0 0; background:var(--surface-2); box-shadow:0 -10px 30px var(--shadow-lg); animation:up .32s var(--out) both; }
+@keyframes up { from { transform:translateY(24px); opacity:.6; } }
+.sheet .grab { width:36px; height:5px; border-radius:3px; background:var(--border-strong); margin:8px auto 4px; }
+.sheet .head { display:flex; align-items:center; justify-content:space-between; padding:2px 16px 8px; }
+.sheet .head b { font-size:16px; }
+.sheet .head span { font-size:12px; color:var(--muted); }
+.sheet .menu { border:0; border-radius:0; background:none; overflow-y:auto; padding:0 8px 28px; }
+.mob .item { grid-template-columns:18px minmax(0,1fr) auto; padding:4px 4px 4px 10px; min-height:48px; }
+.mob .l1 b { font-size:14px; }
+.mob .l1 .spec { font-size:13px; }
+.mob .iconbtn { width:40px; height:40px; border-radius:10px; }
+.mob .iconbtn.copy { color:var(--accent-fg); background:color-mix(in srgb, var(--accent) 12%, transparent); }
+.mob .iconbtn.dl { width:34px; }
+.mob .l1 .src, .mob .l1 .why { display:none; }
+.mob .l1 .tag { align-self:center; }
+.mob .btn { padding:9px 12px; font-size:13px; }
+.toast { position:absolute; left:50%; bottom:28px; transform:translateX(-50%); padding:8px 14px; border-radius:999px; background:var(--text); color:var(--bg); font-size:13px; font-weight:600; display:flex; gap:6px; align-items:center; animation:in .2s var(--ease) both; z-index:5; }
+
+/* === Indicador de coincidencia: 4 estilos a comparar === */
+.fit { display:inline-flex; align-items:center; gap:2px; color:var(--dim); position:relative; z-index:1; }
+.fit.l3, .fit.l2, .fit.sync { color:color-mix(in srgb, var(--green) 80%, var(--text)); }
+.fit .off { opacity:.28; }
+.fit.dots i { width:5px; height:5px; border-radius:50%; background:currentColor; }
+.fit.bars { align-items:flex-end; height:12px; gap:2px; }
+.fit.bars i { width:3px; border-radius:1px; background:currentColor; }
+.fit.bars i:nth-child(1) { height:5px; } .fit.bars i:nth-child(2) { height:8px; } .fit.bars i:nth-child(3) { height:11px; }
+.fit.checks .ico { width:11px; height:11px; stroke-width:2.6; }
+.fit.checks .ico + .ico { margin-left:-6px; }
+.fit.receipt .ico { width:14px; height:14px; }
+.fit.receipt .ico + .ico { margin-left:-9px; }
+.fit .word { margin-left:5px; font-size:11px; font-weight:600; letter-spacing:.01em; }
+.leg { display:flex; flex-wrap:wrap; gap:6px 14px; margin:0 4px 12px; font-size:11.5px; color:var(--muted); }
+.leg span { display:inline-flex; align-items:center; gap:6px; }
+.lat { font-size:10px; font-weight:700; letter-spacing:.04em; color:var(--muted); border:1px solid var(--border-strong); border-radius:4px; padding:0 4px; align-self:center; }
+
+/* ronda 4 */
+.fit.dot { width:14px; justify-content:center; }
+.fit.dot i { width:7px; height:7px; border-radius:50%; }
+.fit.dot.sync i, .fit.dot.l3 i { background:var(--fit-3); }
+.fit.dot.l2 i { background:var(--fit-2); }
+.fit.dot.l1 i { background:var(--fit-1); }
+.fit.text { font-size:11px; font-weight:500; color:var(--dim); letter-spacing:.01em; }
+.fit.text.sync, .fit.text.l3 { color:var(--fit-3); font-weight:600; }
+.fit.text.l2 { color:var(--fit-2); }
+.fit.text.l1 { color:var(--fit-1); }
+.s-fade .item.lv-1 .body { opacity:.82; }
+.s-fade .item.lv-0 .body { opacity:.6; }
+.s-fade .item:hover .body, .s-fade .item.on .body { opacity:1; }
+.l2m:empty { display:none; }
+.l2m .fit.text { font-size:11px; }
+.sheet .ht { display:grid; gap:1px; }
+.tut { display:inline-flex; align-items:center; gap:6px; padding:7px 11px; border:1px solid var(--border-strong); border-radius:999px; background:var(--surface); color:var(--text); font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
+.tut .ico { color:var(--accent-fg); }
+.more { display:grid; grid-template-columns:28px minmax(0,1fr); gap:10px; align-items:center; width:100%; margin-top:6px; padding:9px 10px; border:1px dashed var(--border-strong); border-radius:10px; background:none; color:var(--text); font:inherit; text-align:left; cursor:pointer; }
+.more:hover { border-color:var(--accent-fg); background:color-mix(in srgb, var(--accent) 6%, transparent); }
+.more > .ico { justify-self:center; color:var(--accent-fg); }
+.more b { display:block; font-size:13px; }
+.more span span { font-size:11.5px; color:var(--muted); }
+.cut { display:flex; align-items:center; gap:8px; padding:8px 10px 4px 38px; font-size:10.5px; color:var(--dim); }
+.cut::after { content:""; flex:1; height:1px; background:var(--border); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="2.4"/></symbol>
+  <symbol id="i-tick" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 19.5h14"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M8 4.5v15M16 4.5v15M3.5 9.5H8M3.5 14.5H8M16 9.5h4.5M16 14.5h4.5"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.7"/><circle cx="12" cy="17" r=".9" fill="currentColor"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".9" fill="currentColor"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5"/><path d="M20 4v4.5h-4.5"/></symbol>
+</svg>
+
+<div class="ctl">
+  <b>Subtítulos · ronda 4b</b>
+  <label>Indicador <select id="ctl-style">
+    <option value="text">palabra con color</option><option value="dot">punto con color</option><option value="fade">intensidad de fila</option><option value="rule">línea de corte</option>
+  </select></label>
+    <label>Búsqueda <select id="ctl-search"><option value="idle">sin pedir</option><option value="loading">buscando</option><option value="done">hecha</option></select></label>
+  <label>Nativos <select id="ctl-native"><option value="yes">trae 2 en ES</option><option value="no">no trae</option></select></label>
+  <label>Probados <select id="ctl-tried"><option value="0">ninguno</option><option value="3" selected>3 sin suerte</option></select></label>
+  <label>Premium <select id="ctl-prem">
+    <option value="ready">resultados</option><option value="idle">sin buscar</option><option value="loading">buscando</option>
+    <option value="downloading">bajando uno</option><option value="empty">vacío</option><option value="error">error</option>
+    <option value="quota0">sin cuota</option><option value="unknown">cuota desconocida</option><option value="nokey">sin key</option>
+  </select></label>
+  <label>Premium abierto <select id="ctl-open"><option value="0">no</option><option value="1">sí</option></select></label>
+  <label>Tema <select id="ctl-theme"><option value="dark">oscuro</option><option value="light">claro</option></select></label>
+</div>
+
+<div class="grid">
+  <section class="col desk"><h2>Desktop</h2><p>Una sola lista en el orden nuevo. A la derecha, cuánto calza; el detalle va en el tooltip.</p><div class="stage" id="stage-desk"></div></section>
+  <section class="col mob"><h2>Mobile</h2><p>Mismo orden e indicador. Copiar sigue siendo la acción principal.</p><div class="phone" id="stage-mob"></div></section>
+</div>
+
+<script>
+const ico = (n, s) => `<svg class="ico"${s ? ` style="width:${s}px;height:${s}px"` : ''}><use href="#i-${n}"/></svg>`;
+const S = { search: 'idle', style: 'text', word: 'top', native: 'yes', tried: 3, prem: 'ready', open: false, sel: 'n1', toast: '' };
+const QUOTA = { left: 4, total: 5 };
+
+// lvl: sync = trae el video · 3 Exacto · 2 Calza (mismo release) · 1 mismos fps y duración · 0 el resto.
+const LEVEL = {
+  sync: { n: 3, word: 'Incluido', why: 'Viene dentro del video: está en sync' },
+  3: { n: 3, word: 'Perfecto', why: 'Hecho para este mismo archivo' },
+  2: { n: 2, word: 'Muy probable', why: 'Mismo release: grupo DEMAND y fuente Blu-ray' },
+  1: { n: 1, word: 'Probable', why: 'Mismos fps (23.976) y misma duración' },
+  0: { n: 0, word: '', why: 'Sin datos que lo emparejen' },
+};
+const NATIVE = [
+  { id: 'n1', lvl: 'sync', head: 'Latinoamérica', spec: 'SRT', src: 'pista 3' },
+  { id: 'n2', lvl: 'sync', head: 'España', spec: 'forzados', src: 'pista 4' },
+];
+const LIST = [
+  { id: 'm1', lvl: 3, head: 'DEMAND', spec: 'BluRay 1080p', src: 'OpenSubtitles.org', full: 'Game.of.Thrones.S04E06.1080p.BluRay.x264-DEMAND' },
+  { id: 'm2', lvl: 2, head: 'DEMAND', spec: 'BluRay 720p', src: 'Wyzie', full: 'Game.of.Thrones.S04E06.720p.BluRay.x264-DEMAND' },
+  { id: 'm3', lvl: 2, head: 'DEMAND', spec: 'BDRip', src: 'Subdivx', lat: 1, full: 'Game.of.Thrones.S04E06.BDRip.x264-DEMAND' },
+  { id: 'm4', lvl: 1, head: 'ROVERS', spec: 'BluRay 1080p', src: 'Wyzie', full: 'Game.of.Thrones.S04E06.1080p.BluRay.x264-ROVERS' },
+  { id: 'm5', lvl: 0, head: 'Subdivx', spec: 'sin release', src: 'Subdivx', lat: 1, full: 'Game.Of.Thrones.4x06.Las.Leyes.de.Dioses.y.Hombres' },
+  { id: 'm6', lvl: 0, head: 'KILLERS', spec: 'HDTV 720p', src: 'Wyzie · 9.120 ↓', full: 'Game.of.Thrones.S04E06.720p.HDTV.x264-KILLERS' },
+  { id: 'm7', lvl: 0, head: 'NTb', spec: 'WEB-DL 1080p', src: 'Wyzie · 2.004 ↓', full: 'Game.of.Thrones.S04E06.WEB-DL.1080p.AAC2.0.H.264-NTb' },
+];
+const PREM = [
+  { id: 'p1', head: 'DEMAND', spec: 'BluRay 1080p', src: '18.402 ↓' },
+  { id: 'p2', head: 'ES-LAT', spec: 'BluRay 1080p', src: '6.110 ↓' },
+  { id: 'p3', head: 'tuSubtitulo', spec: 'BDRip', src: '3.977 ↓' },
+];
+const tried = (id) => S.tried && ['m1', 'm3', 'm4'].includes(id) && S.sel !== id;
+
+// Cuatro maneras mínimas de decir "cuánto calza", sin ticks.
+function fit(lvl) {
+  const L = LEVEL[lvl], st = S.style, key = lvl === 'sync' ? 'sync' : 'l' + lvl;
+  if (lvl === 'sync') return ''; // ya lo dice el grupo
+  const aria = `title="${L.why}" aria-label="${L.word || 'sin coincidencia'}: ${L.why}"`;
+  if (st === 'dot') return lvl === 0 ? '' : `<span class="fit dot ${key}" ${aria}><i></i></span>`;
+  if (st === 'text') return L.word ? `<span class="fit text ${key}" ${aria}>${L.word.toLowerCase()}</span>` : '';
+  if (st === 'fade') return lvl === 'sync' || lvl === 3 ? `<span class="fit text ${key}" ${aria}>${L.word.toLowerCase()}</span>` : '';
+  return lvl === 'sync' ? `<span class="fit text ${key}" ${aria}>incluido</span>` : '';
+}
+
+function row(it, v, prem = false) {
+  const on = S.sel === it.id, t = tried(it.id), mob = v === 'mob', off = prem && S.prem === 'quota0';
+  let end;
+  if (prem) {
+    const busy = S.prem === 'downloading' && it.id === 'p1';
+    end = busy ? `<span class="btn"><span class="spin"></span>${mob ? '' : ' Bajando'}</span>`
+      : `<button id="prem-${mob ? 'copy' : 'use'}-${it.id}-${v}" type="button" class="btn" ${off ? 'aria-disabled="true"' : ''}>${mob ? ico('copy', 13) + ' Copiar' : 'Usar'} <span class="cost">· 1</span></button>`;
+  } else if (mob) {
+    end = `<button id="sub-dl-${it.id}-${v}" type="button" class="iconbtn dl" aria-label="Bajar">${ico('down', 16)}</button><button id="sub-copy-${it.id}-${v}" type="button" class="iconbtn copy" aria-label="Copiar" data-copy>${ico('copy', 18)}</button>`;
+  } else {
+    end = `${fit(it.lvl)}<button id="sub-dl-${it.id}-${v}" type="button" class="iconbtn dl" aria-label="Bajar a la Mac" title="Bajar a la Mac">${ico('down', 14)}</button>`;
+  }
+  return `<div class="item ${on ? 'on' : ''} ${t ? 'tried' : ''} lv-${it.lvl ?? 'p'}" title="${t ? 'Probado · no sincronizó' : ''}">
+    <button id="sub-pick-${it.id}-${v}" type="button" class="pick" role="menuitemradio" aria-checked="${on}" aria-label="${it.head} ${it.spec}" title="${it.full || ''}" data-sel="${it.id}"></button>
+    <span class="mark">${on ? ico('check') : ''}</span>
+    <span class="body"><span class="l1"><b>${it.head}</b><span class="spec">${it.spec}</span>${it.lat ? '<span class="lat">LAT</span>' : ''}${t ? '<span class="why">probado</span>' : ''}<span class="src">· ${it.src}</span></span>${mob && !prem && it.lvl !== undefined ? `<span class="l2m">${fit(it.lvl)}</span>` : ''}</span>
+    <span class="end">${end}</span></div>`;
+}
+const list = (v) => `<div class="grp">Vienen con el video</div>` + (S.native === 'yes' ? NATIVE.map((n) => row(n, v)).join('') : `<div class="none">Este video no trae en español</div>`)
+  + moreBlock(v);
+// Con subs del video, buscar el resto es a pedido; sin ellos, se busca solo.
+const moreBlock = (v) => S.native === 'yes' && S.search === 'idle'
+  ? `<button id="subs-search-more-${v}" type="button" class="more" data-more>${ico('search', 14)}<span><b>Buscar más subtítulos</b><span>Por si los del video no te sirven</span></span></button>`
+  : S.native === 'yes' && S.search === 'loading'
+  ? `<div class="grp">Encontrados para vos</div><div class="msg"><span class="spin"></span><span>Buscando en Wyzie, Subdivx y OpenSubtitles.org…</span></div>`
+  : `<div class="grp">Encontrados para vos</div>` + LIST.map((m, i) => (S.style === 'rule' && LIST[i - 1] && LIST[i - 1].lvl >= 1 && m.lvl === 0 ? `<div class="cut"><span>sin datos del release</span></div>` : '')
+    + (S.style === 'rule' && i === 0 ? `<div class="cut"><span>calzan con tu release</span></div>` : '') + row(m, v)).join('');
+const searched = () => S.native !== 'yes' || S.search === 'done';
+
+function quotaText() {
+  if (S.prem === 'unknown') return 'no sé cuántas descargas quedan hoy';
+  if (S.prem === 'quota0') return 'usaste las 5 de hoy · vuelven 21:00';
+  return `quedan ${QUOTA.left} de ${QUOTA.total} descargas hoy`;
+}
+function premBody(v) {
+  const p = S.prem;
+  if (p === 'nokey') return `<div class="msg">${ico('lock')}<span>Necesita tu API key de opensubtitles.com.</span><button id="prem-key-${v}" class="btn" type="button">Ajustes</button></div>`;
+  if (p === 'idle') return `<div class="msg">${ico('info')}<span>Buscar es gratis; cada descarga gasta 1.</span><button id="prem-search-${v}" class="btn" type="button">Buscar</button></div>`;
+  if (p === 'loading') return `<div class="msg"><span class="spin"></span><span>Buscando en opensubtitles.com…</span></div>`;
+  if (p === 'empty') return `<div class="msg">${ico('info')}<span>Tampoco hay en español para S04E06. No se gastó ninguna descarga.</span></div>`;
+  if (p === 'error') return `<div class="msg err">${ico('info')}<span>opensubtitles.com no respondió. No se gastó ninguna descarga.</span><button id="prem-retry-${v}" class="btn" type="button">${ico('refresh', 12)} Reintentar</button></div>`;
+  return PREM.map((it) => row(it, v, true)).join('');
+}
+function gate(v) {
+  const hot = S.tried >= 2 && S.prem !== 'nokey';
+  const sub = S.prem === 'nokey' ? 'Necesita tu API key de opensubtitles.com'
+    : hot ? `Probaste ${S.tried} y no sincronizaron · ${quotaText()}` : `Último recurso · ${quotaText()}`;
+  return `<div class="sep"></div>
+    <button id="prem-gate-${v}" type="button" class="gate ${hot ? 'hot' : ''}" aria-expanded="${S.open}" data-gate>
+      <span class="gi">${ico('lock', 15)}</span>
+      <span><b>${hot ? '¿Ninguno anduvo? Buscá en Premium' : 'Buscar en Premium'}</b><span class="gs">${sub}</span></span>
+      <span class="chev">${ico('chev', 13)}</span></button>
+    ${S.open ? `<div class="open">${premBody(v)}</div>` : ''}`;
+}
+const NOTE = { dot: 'Mismo degradé que la palabra, en un punto: verde → verde apagado → ocre → nada',
+  text: 'Cuánto va a andar: perfecto (verde) → muy probable (lima) → probable (ocre) → nada. El porqué, en el tooltip.', fade: 'Cuanto menos calza, más se apaga la fila; solo exacto / en sync llevan palabra',
+  rule: 'Una línea fina separa los que calzan del resto; sin marcas por fila' };
+const legend = () => `<div class="leg">${NOTE[S.style]}</div>`;
+
+function render() {
+  document.body.className = 's-' + S.style;
+  document.getElementById('stage-desk').innerHTML = `<p class="ep"><b>Game of Thrones · S04E06</b> “The Laws of Gods and Men” · 1080p BluRay x264-DEMAND</p>${legend()}
+    <button id="subs-trigger" type="button" class="trigger" aria-haspopup="menu" aria-expanded="true"><span class="ok">${ico('check')}</span>${S.native === 'yes' ? 'Trae subtítulos en español' : 'Encontré 1 exacto'}<span style="transform:rotate(180deg);display:inline-flex">${ico('chev', 13)}</span></button>
+    <div class="menu" role="menu" id="subs-menu">${list('desk')}${searched() ? gate('desk') : ''}</div>`;
+  document.getElementById('stage-mob').innerHTML = `<div class="behind"><b>Game of Thrones</b>S04E06 · The Laws of Gods and Men</div><div class="scrim"></div>
+    <div class="sheet" role="dialog" id="subs-sheet" aria-label="Subtítulos"><div class="grab"></div>
+      <div class="head"><span class="ht"><b>Subtítulos</b><span>S04E06 · DEMAND 1080p</span></span>
+        <button id="subs-tutorial" type="button" class="tut" data-tut>${ico('help', 15)} Cómo funciona</button></div>
+      <div class="menu" role="menu">${list('mob')}${searched() ? gate('mob') : ''}</div></div>
+    ${S.toast ? `<div class="toast" role="status">${ico('check')} ${S.toast}</div>` : ''}`;
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-gate]')) { S.open = !S.open; return render(); }
+  if (e.target.closest('[data-more]')) { S.search = 'loading'; render(); setTimeout(() => { S.search = 'done'; render(); }, 1200); return; }
+  if (e.target.closest('[data-tut]')) { S.toast = 'Tutorial: próximamente'; render(); setTimeout(() => { S.toast = ''; render(); }, 1400); return; }
+  if (e.target.closest('[data-copy]')) { S.toast = 'Copiado'; render(); setTimeout(() => { S.toast = ''; render(); }, 1400); return; }
+  const b = e.target.closest('[data-sel]'); if (b) { S.sel = b.dataset.sel; render(); }
+});
+for (const [id, k, kind] of [['ctl-search', 'search'], ['ctl-style', 'style'], ['ctl-native', 'native'], ['ctl-tried', 'tried', 'num'], ['ctl-prem', 'prem'], ['ctl-open', 'open', 'bool']])
+  document.getElementById(id).onchange = (e) => { const x = e.target.value; S[k] = kind === 'num' ? +x : kind === 'bool' ? x === '1' : x; render(); };
+const theme = document.getElementById('ctl-theme');
+theme.onchange = () => { document.documentElement.dataset.theme = theme.value; };
+document.documentElement.dataset.theme = 'dark';
+render();
+</script>
+</body>
+</html>
