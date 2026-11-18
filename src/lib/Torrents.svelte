@@ -110,7 +110,8 @@
 			copy = {};
 			resetSubs();
 			match = null;
-			goStep(net ? 'audio' : 'net');
+			net = null;
+			goStep('net');
 			wantLat = false;
 			found = [];
 			showAll = false;
@@ -155,7 +156,7 @@
 	}
 
 	// ── Pasos ────────────────────────────────────────────────────────────────────────────────────────────────
-	/** Conexión donde se va a ver (2026-11-18): la elige el usuario una vez (queda guardada) y pone el tope de bitrate
+	/** Conexión donde se va a ver (2026-11-18): la elige el usuario en cada video y pone el tope de bitrate
 	 * del buen match; "¿Se cortó?" baja un nivel. `mbps`: lo más que se le pide al video (el piso del rango). */
 	const NET = /** @type {const} */ ([
 		{ key: 'terrible', label: 'Muy baja', range: 'Menos de 8 Mbps o señal que se corta: busco una muy liviana', mbps: 4 },
@@ -163,11 +164,11 @@
 		{ key: 'normal', label: 'Normal', range: '25 a 100 Mbps', mbps: 25 },
 		{ key: 'high', label: 'Alta', range: 'Más de 100 Mbps, en wifi 5 GHz o por cable', mbps: Infinity }
 	]);
-	let net = $state(NET.find((n) => n.key === saved.recall('net')) ?? null);
+	/** La conexión elegida para este video: se pregunta siempre (cambia según dónde se vea). */
+	let net = $state(/** @type {(typeof NET)[number] | null} */ (null));
 	/** @param {(typeof NET)[number]} n */
 	function chooseNet(n) {
 		net = n;
-		saved.remember('net', n.key);
 		goStep('audio');
 	}
 	/** Mbps típicos por resolución cuando no se sabe la duración (como el desktop, catalog-options.js `TYPICAL_MBPS`). */
@@ -269,7 +270,6 @@
 		const i = NET.findIndex((n) => n.key === net?.key);
 		if (i <= 0) return;
 		net = NET[i - 1];
-		saved.remember('net', net.key);
 		linkDone = null;
 		chooseAudio(wantLat);
 	}
