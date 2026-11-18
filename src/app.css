@@ -14,6 +14,7 @@
 	--accent-text: #ffffff;
 	--accent-fg: #1d4ed8;
 	--green: #12733a;
+	--amber: #9a5b00;
 	--yellow: #8a5300;
 	--red: #c01c1c;
 	--shadow: rgb(15 23 42 / 0.12);
@@ -40,6 +41,7 @@
 		--border-strong: #353d48;
 		--accent-fg: #7ab0ff;
 		--green: #4ade80;
+		--amber: #f5b041;
 		--yellow: #facc15;
 		--red: #f87171;
 		--shadow: rgb(0 0 0 / 0.45);

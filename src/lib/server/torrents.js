@@ -103,6 +103,7 @@ export async function torrents(imdb, s, e) {
 	}
 	const found = byHash.size;
 	const inTorbox = await cached([...byHash.keys()], s, e);
-	const list = [...byHash.values()].filter((t) => inTorbox.has(t.hash)).sort(bySize);
+	// subFile: trae un archivo de subtítulo en español (sale del mismo checkcached, sin pedidos nuevos).
+	const list = [...byHash.values()].filter((t) => inTorbox.has(t.hash)).map((t) => ({ ...t, subFile: inTorbox.get(t.hash) ?? false })).sort(bySize);
 	return { list, found, sources: lists.filter((l) => l.status === 'fulfilled').length };
 }

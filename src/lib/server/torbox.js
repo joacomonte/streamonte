@@ -4,6 +4,17 @@ import { keys } from './keys.js';
 
 const ROOT = 'https://api.torbox.app';
 const VIDEO = /\.(mkv|mp4|avi|m4v|mov|webm)$/i;
+const SUB = /\.(srt|ass|ssa|vtt)$/i;
+const SPANISH = new Set(['es', 'spa', 'spanish', 'español', 'espanol', 'esp', 'castellano', 'latino']);
+
+/** ¿Es un archivo de subtítulo en español por el nombre? (`x.spa.srt`, `2_Spanish.srt`, `x.es-419.srt`; como `lang_from_name` del desktop).
+ * @param {string} path */
+export const isSpanishSub = (path) =>
+	SUB.test(path) && (path.split('/').pop() ?? '').toLowerCase().replace(SUB, '').split(/[^a-z0-9ñ]+/).some((w) => SPANISH.has(w));
+console.assert(
+	isSpanishSub('Subs/2_Spanish.srt') && isSpanishSub('x.es-419.srt') && isSpanishSub('Show.S01E02.spa.ass') && !isSpanishSub('Les.Miserables.eng.srt') && !isSpanishSub('x.spa.mkv'),
+	'isSpanishSub'
+);
 
 async function key() {
 	const k = (await keys()).torbox;
@@ -28,10 +39,12 @@ const episodeRe = (s, e) => new RegExp(`(s0*${s}[ ._-]?e0*${e}|\\b0*${s}x0*${e})
 
 /** Hashes (en minúscula) que TorBox tiene en caché con un video suelto; en series, con el del capítulo.
  * Los que solo traen .rar/.iso/extras o un pack sin ese capítulo quedan afuera: TorBox no daría link.
- * @param {string[]} hashes @param {string | null} s @param {string | null} e */
+ * Valor: si trae un archivo de subtítulo en español. Solo dice "sí": false no descarta subs adentro del video.
+ * @param {string[]} hashes @param {string | null} s @param {string | null} e @returns {Promise<Map<string, boolean>>} */
 export async function cached(hashes, s = null, e = null) {
 	const ep = s && e ? episodeRe(s, e) : null;
-	const out = new Set();
+	/** @type {Map<string, boolean>} */
+	const out = new Map();
 	const batches = [];
 	for (let i = 0; i < hashes.length; i += 80) batches.push(hashes.slice(i, i + 80));
 	const pages = await Promise.all(batches.map((b) => tb(`/checkcached?hash=${b.join(',')}&format=object&list_files=true`)));
@@ -45,7 +58,7 @@ export async function cached(hashes, s = null, e = null) {
 			// Un solo video sirve aunque no diga S01E02: el addon ya lo dio para ese capítulo.
 			const ok = !videos || (ep ? videos.length === 1 || videos.some((f) => ep.test(f.split('/').pop() ?? '')) : videos.length > 0);
 			if (!ok) continue;
-			out.add(String(x.hash).toLowerCase());
+			out.set(String(x.hash).toLowerCase(), files?.some(isSpanishSub) ?? false);
 		}
 	}
 	return out;
@@ -58,8 +71,43 @@ export async function cached(hashes, s = null, e = null) {
  * `natives`: subtítulos en español que trae el video; cada uno con su link: el mismo stream (audio en inglés) con ese
  * subtítulo puesto (TorBox lo pone en la imagen). Vacío = no trae.
  * `video`: cuadros por segundo y duración en segundos, para ordenar los subtítulos por cuál calza.
- * @returns {Promise<{url: string, choices?: {label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}}>} */
+ * `subsEs`: cuántos subtítulos en español trae el video adentro (sin dato si no hubo stream HLS).
+ * @returns {Promise<{url: string, choices?: {label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number}>} */
 export async function link(t) {
+	const { id, file } = await added(t);
+	return (await hls(id, file.id, t.name)) ?? { url: await download(id, file) };
+}
+
+/** Subtítulos en español y audios que trae el video adentro, con un solo createstream (sin pedir un stream por
+ * subtítulo: eso queda para cuando se copia el link). El dato es del torrent y no cambia.
+ * @param {{hash: string, name: string, file: string | null, s: string | null, e: string | null}} t
+ * @returns {Promise<{subs: {label: string, kind: string, track: number}[], audios: {language: string, title: string}[]}>} */
+export async function tracks(t) {
+	const { id, file } = await added(t);
+	const meta = (await tbRoot(`/v1/api/stream/createstream?id=${id}&file_id=${file.id}&type=torrent`)).data?.metadata ?? {};
+	return {
+		subs: spanishSubs(meta.subtitles).map(({ label, kind, i }) => ({ label, kind, track: i + 1 })),
+		audios: (/** @type {any[]} */ (meta.audios ?? [])).map((a) => ({ language: String(a.language ?? ''), title: String(a.title ?? '') }))
+	};
+}
+
+/** Subtítulos en español de la metadata de createstream, los forzados al final; `i` es su posición entre todos.
+ * @param {any[] | undefined} subtitles */
+function spanishSubs(subtitles) {
+	return (subtitles ?? [])
+		.map((x, i) => ({ x, i, forced: /forced|forzad/i.test(x.title ?? '') }))
+		.filter(({ x }) => x.language === 'spa')
+		.sort((a, b) => Number(a.forced) - Number(b.forced))
+		.map(({ x, i, forced }) => ({
+			i,
+			forced,
+			label: /lat|419/i.test(x.title ?? '') ? 'Latinoamérica' : /spain|españa|castellano|es-es/i.test(x.title ?? '') ? 'España' : 'Español',
+			kind: forced ? 'forzados' : 'del video'
+		}));
+}
+
+/** Agrega el torrent a TorBox (solo si está en caché) y elige el archivo de video. @param {{hash: string, name: string, file: string | null, s: string | null, e: string | null}} t */
+async function added(t) {
 	const fd = new FormData();
 	fd.set('magnet', `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(t.name)}`);
 	fd.set('add_only_if_cached', 'true');
@@ -76,7 +124,7 @@ export async function link(t) {
 	}
 	const file = pick(files, t);
 	if (!file) throw new Fail(409, 'TorBox todavía no tiene el archivo de video.');
-	return (await hls(id, file.id, t.name)) ?? { url: await download(id, file) };
+	return { id, file };
 }
 
 /** @typedef {{label: string, kind: string, track: number, url: string}} Native */
@@ -95,8 +143,8 @@ async function hls(id, fileId, release) {
 		const at = async (i, sub) =>
 			String((i > 0 || sub != null ? await tbRoot(`${base}&chosen_audio_index=${Math.max(i, 0)}${sub != null ? `&chosen_subtitle_index=${sub}` : ''}`) : first).data?.hls_url ?? '');
 		// Subtítulos en español del propio video (siempre en sync), los forzados al final.
-		const subsIn = /** @type {any[]} */ (first.data?.metadata?.subtitles ?? []);
-		const spaSubs = subsIn.map((x, i) => ({ x, i, forced: /forced|forzad/i.test(x.title ?? '') })).filter(({ x }) => x.language === 'spa').sort((a, b) => Number(a.forced) - Number(b.forced));
+		const spaSubs = spanishSubs(first.data?.metadata?.subtitles);
+		const subsEs = spaSubs.length;
 		const d = first.data ?? {};
 		const file = /^[0-9a-f]{16}$/.test(d.open_subtitles_hash ?? '') && d.size ? { hash: d.open_subtitles_hash, size: String(d.size) } : undefined;
 		const v = d.metadata?.video ?? {};
@@ -105,9 +153,9 @@ async function hls(id, fileId, release) {
 		const eng = audios.findIndex((a) => a.language === 'eng');
 		// shortcut: hasta 4 (un stream por subtítulo, todos se piden ya); si un video trae más, sumar un pedido a demanda.
 		/** @type {Native[]} */
-		const natives = (await Promise.all(spaSubs.slice(0, 4).map(async ({ x, i, forced }) => ({
-			label: /lat|419/i.test(x.title ?? '') ? 'Latinoamérica' : /spain|españa|castellano|es-es/i.test(x.title ?? '') ? 'España' : 'Español',
-			kind: forced ? 'forzados' : 'del video',
+		const natives = (await Promise.all(spaSubs.slice(0, 4).map(async ({ i, label, kind }) => ({
+			label,
+			kind,
 			track: i + 1,
 			url: await at(eng, i).catch(() => '')
 		})))).filter((n) => n.url.startsWith('https://'));
@@ -115,10 +163,10 @@ async function hls(id, fileId, release) {
 		const lat = spa.find(({ a }) => /lat|419|mex/i.test(a.title ?? '')) ?? latinoByName(spa, release);
 		if (eng >= 0 && lat) {
 			const [en, la] = await Promise.all([at(eng), at(lat.i)]);
-			if (en.startsWith('https://') && la.startsWith('https://')) return { url: en, choices: [{ label: 'Inglés', url: en }, { label: 'Latino', url: la }], file, natives, video };
+			if (en.startsWith('https://') && la.startsWith('https://')) return { url: en, choices: [{ label: 'Inglés', url: en }, { label: 'Latino', url: la }], file, natives, video, subsEs };
 		}
 		const url = await at(Math.max(eng, 0));
-		return url.startsWith('https://') ? { url, file, natives, video } : null;
+		return url.startsWith('https://') ? { url, file, natives, video, subsEs } : null;
 	} catch (e) {
 		if (e instanceof Fail && e.status === 401) throw e;
 		return null;

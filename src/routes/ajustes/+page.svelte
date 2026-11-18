@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
+	import { clear } from '#lib/saved.js';
 
 	/** @type {{tmdb: boolean, torbox: boolean, opensubtitles: boolean, opensubtitles_user: boolean, opensubtitles_pass: boolean} | null} */
 	let status = $state(null);
@@ -11,6 +12,7 @@
 	let osPass = $state('');
 	let saving = $state(false);
 	let msg = $state('');
+	let cleared = $state('');
 
 	onMount(async () => {
 		status = await (await fetch('/api/keys')).json();
@@ -112,6 +114,15 @@
 		</button>
 		{#if msg}<p class="msg" role="status">{msg}</p>{/if}
 	</form>
+
+	<section class="field saved">
+		<span class="lbl">Listas guardadas</span>
+		<p class="help-text">Las opciones de cada película o episodio quedan guardadas 1 hora en este navegador para abrir al instante.</p>
+		<button id="clear-saved" class="btn" type="button" onclick={() => { const n = clear(); cleared = n ? `Borré ${n} lista${n > 1 ? 's' : ''}.` : 'No había listas guardadas.'; }}>
+			Borrar listas guardadas
+		</button>
+		{#if cleared}<p class="msg" role="status">{cleared}</p>{/if}
+	</section>
 </main>
 
 <style>
@@ -136,4 +147,6 @@
 	.link { border: 0; background: none; padding: 0 4px; font-size: 13px; text-decoration: underline; }
 	.btn { height: 48px; }
 	.msg { text-align: center; }
+	.saved { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+	.help-text { color: var(--muted); font-size: 13px; }
 </style>

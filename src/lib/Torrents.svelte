@@ -4,11 +4,14 @@
 	// su link (nativos primero; si no trae, se buscan afuera; Premium plegado al final).
 	import Icon from './Icon.svelte';
 	import Sheet from './Sheet.svelte';
+	import Tour from './Tour.svelte';
+	import { castSteps, device, markSeen, seen } from './tours.js';
+	import * as saved from './saved.js';
 
 	/** @type {{imdb: string, s?: number | null, e?: number | null, name: string}} */
 	let { imdb, s = null, e = null, name } = $props();
 
-	/** @typedef {{hash: string, release: string, file: string | null, res: string | null, hdr: string[], source: string | null, lat: boolean, multi: boolean, size: number | null, seeds: number, addons: string[]}} Torrent */
+	/** @typedef {{hash: string, release: string, file: string | null, res: string | null, hdr: string[], source: string | null, lat: boolean, multi: boolean, size: number | null, seeds: number, addons: string[], subFile: boolean}} Torrent */
 	/** @typedef {{id: string, release: string, latino: boolean, format: string, downloads: number, exact?: boolean, fps?: number | null, last?: number | null, group?: string, premium?: boolean}} Sub */
 	/** @typedef {{label: string, kind: string, track: number, url: string}} Native */
 	/** @typedef {{hasKey: boolean, remaining: number | null, perDay: number | null, resetsAt: number | null, login?: string | null}} Quota */
@@ -57,6 +60,15 @@
 		return () => clearTimeout(id);
 	});
 	let tutorialOpen = $state(false);
+	/** Ofrecer el tutorial de la tele al copiar un video: hasta "Ahora no" (esta visita) o "No mostrar más" (siempre). */
+	let castOffer = $state(false);
+	let castAsked = false;
+	/** @param {'show' | 'later' | 'never'} pick */
+	function answerOffer(pick) {
+		castOffer = false;
+		if (pick === 'never') markSeen('cast-never');
+		if (pick === 'show') tutorialOpen = true;
+	}
 	/** Los encontrados afuera para el torrent copiado (null = no se buscó). */
 	let subs = $state(/** @type {Sub[] | null} */ (null));
 	let searching = $state(false);
@@ -73,15 +85,25 @@
 		data = null;
 		error = '';
 		copy = {};
+		autoStop = false;
 		resetSubs();
 		match = null;
+		// Lista guardada 1 hora (saved.js): al volver al mismo video se ve al instante, sin pedidos.
+		const kept = saved.get(`torrents?${q}`);
+		if (kept) {
+			data = kept;
+			return;
+		}
 		let alive = true;
 		fetch(`/api/torrents?${q}`)
 			.then(async (r) => {
 				const j = await r.json();
 				if (!alive) return;
 				if (!r.ok) error = j.message;
-				else data = j;
+				else {
+					data = j;
+					saved.put(`torrents?${q}`, j);
+				}
 			})
 			.catch((err) => alive && (error = err.message));
 		return () => (alive = false);
@@ -130,7 +152,7 @@
 	const gb = (b) => (b == null ? '—' : b >= 1024 ** 3 ? `${(b / 1024 ** 3).toLocaleString('es-AR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} GB` : `${Math.round(b / 1024 ** 2)} MB`);
 
 	/** Link de TorBox recién pedido (uno nuevo en cada copia); `choices` si hay audio en inglés y en latino.
-	 * @param {Torrent} t @returns {Promise<{url: string, choices?: {label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}}>} */
+	 * @param {Torrent} t @returns {Promise<{url: string, choices?: {label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number}>} */
 	async function linkOf(t) {
 		const r = await fetch(`/api/link?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '' })}`);
 		const j = await r.json();
@@ -139,6 +161,59 @@
 	}
 	/** Elegir audio: el toque en la opción es el que copia (por http hace falta un toque para copiar). */
 	let audioFor = $state(/** @type {{t: Torrent, choices: {label: string, url: string}[]} | null} */ (null));
+
+	/** Subs en español que trae el video adentro, por hash: cuántos (0 = ninguno), 'busy' mientras se consulta o
+	 * 'err' si falló. Es del torrent y no cambia: se guarda para siempre (saved.remember). */
+	let subsEs = $state(/** @type {Record<string, number | 'busy' | 'err' | null>} */ ({}));
+	$effect(() => {
+		for (const t of data?.list ?? []) if (!(t.hash in subsEs)) subsEs[t.hash] = saved.recall(`subs:${t.hash}`);
+	});
+	/** @param {string} hash @param {number} n */
+	function knowSubs(hash, n) {
+		subsEs[hash] = n;
+		saved.remember(`subs:${hash}`, n);
+	}
+	/** Un pedido (/api/tracks: agrega el torrent y lee sus pistas con un solo stream). false si falló. @param {Torrent} t */
+	async function probe(t) {
+		subsEs[t.hash] = 'busy';
+		try {
+			const r = await fetch(`/api/tracks?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '' })}`);
+			if (!r.ok) throw new Error();
+			knowSubs(t.hash, (await r.json()).subs.length);
+			return true;
+		} catch {
+			subsEs[t.hash] = 'err';
+			return false;
+		}
+	}
+	/** Solo las 3 primeras de lo que se ve, de a una y sin repetir; ante un error se corta (quedan con el botón). */
+	let autoBusy = false;
+	let autoStop = false;
+	async function autoProbe() {
+		autoBusy = true;
+		try {
+			for (;;) {
+				const t = list.slice(0, 3).find((x) => subsEs[x.hash] == null && !x.subFile);
+				if (!t || !(await probe(t))) {
+					if (t) autoStop = true;
+					break;
+				}
+			}
+		} finally {
+			autoBusy = false;
+		}
+	}
+	$effect(() => {
+		if (data && !autoBusy && !autoStop && list.slice(0, 3).some((x) => subsEs[x.hash] == null && !x.subFile)) autoProbe();
+	});
+	/** @param {Torrent} t */
+	const subBadge = (t) => {
+		const n = subsEs[t.hash];
+		if (typeof n === 'number' && n > 0) return { on: true, text: 'Sub ES', title: `El video trae ${n} subtítulo${n > 1 ? 's' : ''} en español adentro` };
+		if (t.subFile) return { on: true, text: 'Sub ES', title: 'El torrent trae un archivo de subtítulo en español' };
+		if (n === 0) return { on: false, text: 'Sin sub ES', title: 'El video no trae subtítulos en español: hay que buscarlos afuera' };
+		return null;
+	};
 
 	/** Pide el link en el toque; si hay inglés y latino, pregunta antes de copiar. @param {Torrent} t */
 	async function copyLink(t) {
@@ -151,6 +226,7 @@
 			return done(t, 'err');
 		}
 		delete copy[t.hash];
+		if (got.subsEs != null) knowSubs(t.hash, got.subsEs);
 		subsFor(t, got.file, got.natives, got.video);
 		if (got.choices?.length) audioFor = { t, choices: got.choices };
 		else copyUrl(t, got.url);
@@ -207,6 +283,7 @@
 			copied = { kind: 'video', name: t.release };
 			// Recién con el link copiado aparecen los subtítulos de ese torrent.
 			subsOpen = true;
+			if (!castAsked && !seen('cast-never')) castOffer = castAsked = true;
 		}
 		setTimeout(() => copy[t.hash] === st && delete copy[t.hash], 2500);
 	}
@@ -356,7 +433,7 @@
 				<button id="only-lat" type="button" class="chip toggle" class:on={onlyLat} aria-pressed={onlyLat} onclick={() => (onlyLat = !onlyLat)}>Solo Latino</button>
 				<button id="only-hdr" type="button" class="chip toggle" class:on={onlyHdr} aria-pressed={onlyHdr} onclick={() => (onlyHdr = !onlyHdr)}>Solo HDR</button>
 			</div>
-			<p class="summary">{data.list.length} de {data.found} en TorBox · por tamaño</p>
+			<p class="summary" title="TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.">{data.list.length} de {data.found} en TorBox · por tamaño</p>
 		</div>
 		{#if error}<p class="status error" role="alert">{error}</p>{/if}
 
@@ -369,6 +446,7 @@
 		<ul>
 			{#each list as t, i (t.hash)}
 				{@const q = t.source ? QUALITY[t.source] : null}
+				{@const sb = subBadge(t)}
 				<li class="opt" class:best={i === 0}>
 					{#if i === 0}<span class="best-tag">Más pesada</span>{/if}
 					<div class="info">
@@ -377,6 +455,20 @@
 						{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
 						{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
 						{#if t.lat}<span class="tag lat">LATINO</span>{/if}
+						{#if sb}
+							<span class="tag {sb.on ? 'es' : 'nosub'}" title={sb.title} aria-label={sb.title}>{sb.text}</span>
+						{:else if subsEs[t.hash] === 'busy'}
+							<span class="probe busy" role="status" aria-label="Viendo si trae subtítulos en español"><span class="spin"></span>ES</span>
+						{:else}
+							<button
+								id="probe-{t.hash}"
+								type="button"
+								class="probe"
+								title={subsEs[t.hash] === 'err' ? 'No se pudo ver: tocá para reintentar' : 'Ver si trae subtítulos en español'}
+								aria-label={subsEs[t.hash] === 'err' ? 'No se pudo ver si trae subtítulos en español: reintentar' : 'Ver si trae subtítulos en español'}
+								onclick={() => probe(t)}
+							><Icon name="subs" size={14} />ES?</button>
+						{/if}
 					</div>
 					<div class="quality" title={q ? `Calidad de imagen: ${q[0]}` : 'El nombre del torrent no dice de dónde salió el video'}>
 						<Icon name="monitor" size={15} />
@@ -427,6 +519,20 @@
 {/snippet}
 
 <Sheet id="subs-sheet" title="Subtítulos" open={subsOpen} onclose={() => (subsOpen = false)}>
+	{#if castOffer}
+		<div class="offer" role="region" aria-labelledby="cast-offer-title">
+			<span class="offer-icon" aria-hidden="true"><Icon name="cast" size={22} /></span>
+			<div class="offer-text">
+				<strong id="cast-offer-title">¿Lo querés ver en la tele?</strong>
+				<span>Te mostramos cómo mandar el link con Web Video Caster.</span>
+			</div>
+			<div class="offer-actions">
+				<button id="cast-offer-show" type="button" class="btn primary" onclick={() => answerOffer('show')}>Ver tutorial</button>
+				<button id="cast-offer-later" type="button" class="btn" onclick={() => answerOffer('later')}>Ahora no</button>
+				<button id="cast-offer-never" type="button" class="link-btn" onclick={() => answerOffer('never')}>No mostrar más</button>
+			</div>
+		</div>
+	{/if}
 	<div class="subs-head">
 		<p class="muted">{match ? `${epLabel} · ${groupOf(match.release) || 'tu torrent'}` : 'Copiá el link de un torrent.'}</p>
 		<button id="subs-tutorial" type="button" class="tut" onclick={() => (tutorialOpen = true)}><Icon name="help" size={15} />Cómo funciona</button>
@@ -540,46 +646,9 @@
 	<button id="toast-tutorial" type="button" class="toast-btn" onclick={() => { copied = null; tutorialOpen = true; }}>Tutorial</button>
 </div>
 
-<Sheet id="tutorial-sheet" title="Cómo verlo en la tele" open={tutorialOpen} onclose={() => (tutorialOpen = false)}>
-	<p class="muted tut-intro">Recomendamos <strong>Web Video Caster</strong>: manda el link del celu a la tele, sin bajar nada.</p>
-	<ol class="steps">
-		<li>
-			<strong>Instalala en el celu</strong>
-			<span>Web Video Caster, en App Store o Google Play.</span>
-		</li>
-		<li>
-			<strong>Preparala en la tele</strong>
-			<span>En Android TV o Fire TV instalá <em>Web Video Caster Receiver</em>. Chromecast, Roku y las Samsung o LG la encuentran sin instalar nada.</span>
-		</li>
-		<li>
-			<strong>Conectá</strong>
-			<span>Celu y tele en el mismo Wi-Fi. En la app tocá el ícono de transmitir y elegí la tele.</span>
-		</li>
-		<li>
-			<strong>Pegá el link</strong>
-			<span>Pegalo en la barra de direcciones del navegador de la app: detecta el video y tocás Reproducir.</span>
-		</li>
-	</ol>
-	<h3 class="tut-h">Subtítulos en español</h3>
-	<ol class="steps">
-		<li>
-			<strong>Copiá el link</strong>
-			<span>Tocá <em>Subtítulos en español</em> arriba de la lista y, en el que quieras, <em>Copiar link</em>. Los primeros suelen ser los que mejor calzan.</span>
-		</li>
-		<li>
-			<strong>Pegalo en la app</strong>
-			<span>Mientras se reproduce, tocá el ícono de subtítulos (CC), elegí agregar por link (URL) y pegalo. El celu tiene que estar en el mismo Wi-Fi que esta Mac.</span>
-		</li>
-		<li>
-			<strong>O bajalo</strong>
-			<span>Con el botón de descarga queda un .srt en el celu: en la app, CC → buscar en el dispositivo.</span>
-		</li>
-		<li>
-			<strong>Si no coinciden</strong>
-			<span>Probá otro de la lista: los primeros suelen ser los que mejor calzan.</span>
-		</li>
-	</ol>
-</Sheet>
+{#if tutorialOpen}
+	<Tour id="cast-tour" label="Cómo verlo en la tele" open steps={castSteps(device())} onclose={() => (tutorialOpen = false)} />
+{/if}
 
 <Sheet id="link-sheet" title="Link listo" open={!!manual} onclose={() => (manual = null)}>
 	{#if manual}
@@ -671,9 +740,33 @@
 		font-weight: 750;
 		letter-spacing: 0.06em;
 		color: var(--muted);
+		white-space: nowrap;
 	}
 	.tag.res { color: var(--accent-fg); }
-	.tag.lat { color: var(--green); }
+	.tag.lat, .tag.es { color: var(--green); }
+	/* Chip punteado: todavía no se sabe; un toque lo consulta (un pedido). */
+	.probe {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		min-height: 24px;
+		padding: 0 6px;
+		border: 1.5px dashed var(--border-strong);
+		border-radius: 6px;
+		background: none;
+		color: var(--muted);
+		font-size: 11.5px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		white-space: nowrap;
+		position: relative;
+	}
+	/* Área táctil de 44 px sin agrandar el chip. */
+	button.probe::after { content: ''; position: absolute; inset: -10px -4px; }
+	button.probe:active { background: var(--surface-2); }
+	.probe.busy { border-style: solid; }
+	.probe .spin { width: 10px; height: 10px; border-width: 1.5px; }
+	.tag.nosub { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); background: color-mix(in srgb, var(--amber) 10%, transparent); }
 	.quality { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--muted); font-size: 15px; }
 	.stars { display: inline-flex; gap: 1px; color: color-mix(in srgb, var(--muted) 45%, transparent); }
 	.stars :global(svg) { fill: currentColor; stroke-width: 1.5; }
@@ -721,13 +814,6 @@
 	.toast-text strong { font-size: 14.5px; color: var(--text); }
 	.toast-btn { flex: none; min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--surface-3); color: var(--text); font-size: 13px; font-weight: 650; position: relative; }
 	.toast-btn::after { content: ''; position: absolute; inset: -4px 0; }
-	.tut-intro { margin: 0 0 14px; font-size: 14px; }
-	.tut-h { margin: 22px 0 10px; font-size: 15px; }
-	.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; display: flex; flex-direction: column; gap: 14px; }
-	.steps li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; column-gap: 12px; row-gap: 2px; font-size: 14px; }
-	.steps li::before { content: counter(step); grid-row: span 2; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent-fg); font-weight: 750; font-size: 13px; }
-	.steps strong { font-weight: 650; }
-	.steps span { color: var(--muted); }
 	.small { font-size: 12.5px; margin: 6px 0 0; }
 	.actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
 	.subs-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
@@ -774,5 +860,25 @@
 	.chev.up { transform: rotate(180deg); }
 	.tut { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 600; }
 	.tut :global(svg) { color: var(--accent-fg); }
+	.offer {
+		display: grid;
+		grid-template-columns: 40px 1fr;
+		gap: 4px 12px;
+		margin-bottom: 14px;
+		padding: 14px;
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		animation: offer-in 0.45s var(--out) both;
+	}
+	@keyframes offer-in { from { opacity: 0; transform: translateY(-8px); } }
+	.offer-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-fg); }
+	.offer-text { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+	.offer-text strong { font-size: 15px; }
+	.offer-text span { color: var(--muted); }
+	.offer-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+	.offer-actions .btn { flex: 1; height: 44px; }
+	.link-btn { flex-basis: 100%; min-height: 36px; border: 0; background: none; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+	@media (prefers-reduced-motion: reduce) { .offer { animation: none; } }
 	.link-input { width: 100%; height: 44px; margin: 10px 0 0; padding: 0 10px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface-2); font-size: 16px; }
 </style>

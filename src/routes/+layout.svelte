@@ -1,9 +1,17 @@
 <script>
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
+	import Tour from '#lib/Tour.svelte';
+	import { device, markSeen, seen, welcomeSteps } from '#lib/tours.js';
 
 	/** @type {{children: import('svelte').Snippet}} */
 	let { children } = $props();
+
+	// Bienvenida: una sola vez, al entrar por primera vez (después del código de acceso). Vista o salteada, no vuelve.
+	let welcome = $state(/** @type {import('#lib/tours.js').Step[] | null} */ (null));
+	$effect(() => {
+		if (!seen('welcome')) welcome = welcomeSteps(device());
+	});
 
 	// Solo en desarrollo. Al cambiar de app el celu corta la conexión con Vite, y al volver Vite recarga la página
 	// siempre. Se frena esa recarga (el listener no termina nunca) y, cada vez que la app vuelve a verse, se recarga
@@ -23,7 +31,8 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" type="image/svg+xml" href={favicon} />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 	<meta name="theme-color" content="#0d1014" media="(prefers-color-scheme: dark)" />
 	<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)" />
 	<meta name="apple-mobile-web-app-capable" content="yes" />
@@ -31,3 +40,7 @@
 </svelte:head>
 
 {@render children()}
+
+{#if welcome}
+	<Tour id="welcome" label="Bienvenida" open steps={welcome} onclose={() => { markSeen('welcome'); welcome = null; }} />
+{/if}
