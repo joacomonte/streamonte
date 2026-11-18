@@ -52,6 +52,11 @@
 	let manual = $state(/** @type {{url: string, release: string, kind: 'video' | 'sub', t?: Torrent} | null} */ (null));
 	/** Hoja "¡Link copiado!" del video recién copiado: si trae subs en español y, si no, ver los disponibles. */
 	let linkDone = $state(/** @type {Torrent | null} */ (null));
+	/** El link de video copiado; si es de descarga (no stream), la versión para Web Video Caster y si ya se copió. */
+	let doneUrl = $state('');
+	let wvcCopied = $state(false);
+	/** Link de descarga dentro de /play.html (un <video> que Web Video Caster detecta); el link va después del #. */
+	const wvcUrl = $derived(/\.tb-cdn\./.test(doneUrl) && !/\.m3u8/.test(doneUrl) ? `${location.origin}/play.html#${encodeURIComponent(doneUrl)}` : '');
 	let subsOpen = $state(false);
 	/** Hoja de "Link copiado": qué se copió (video o subtítulo) y su nombre. */
 	let copied = $state(/** @type {{kind: 'video' | 'sub', name: string} | null} */ (null));
@@ -388,6 +393,8 @@
 	/** Copia ya (Chrome deja unos segundos después del toque); si el navegador no deja, un toque más en la hoja.
 	 * @param {Torrent} t @param {string} url */
 	async function copyUrl(t, url) {
+		doneUrl = url;
+		wvcCopied = false;
 		if (copyNow(url)) return done(t, 'ok');
 		try {
 			await navigator.clipboard.writeText(url);
@@ -832,6 +839,11 @@
 			<p class="native"><Icon name="subs" size={18} />{k ? tr('No trae subtítulos en español.') : tr('No pude ver si trae subtítulos en español.')}</p>
 			<button id="see-subs" type="button" class="btn primary see-subs" onclick={() => linkDone && showSubs(linkDone)}><Icon name="search" size={16} />{tr('Ver subtítulos disponibles')}</button>
 		{/if}
+		{#if wvcUrl}
+			<button id="copy-wvc" type="button" class="btn wvc" onclick={() => (wvcCopied = copyNow(wvcUrl))}>
+				<Icon name={wvcCopied ? 'check' : 'cast'} size={16} />{wvcCopied ? tr('Copiado: pegalo en Web Video Caster') : tr('Copiar para Web Video Caster')}
+			</button>
+		{/if}
 		<button id="cast-line" type="button" class="cast-line" onclick={() => { linkDone = null; tutorialOpen = true; }}><Icon name="cast" size={15} /><span>{tr('¿Lo vas a ver en la tele?')} <u>{tr('Cómo mandarlo')}</u></span></button>
 	{/if}
 </Sheet>
@@ -1085,6 +1097,7 @@
 	.native.yes { background: color-mix(in srgb, var(--green) 12%, transparent); }
 	.native :global(svg) { flex: none; }
 	.see-subs { width: 100%; height: 48px; margin-top: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+	.wvc { width: 100%; height: 46px; margin-top: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 	.cast-line { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 14px; border: 0; background: none; color: var(--muted); font-size: 13px; }
 	.cast-line u { color: var(--accent-fg); text-underline-offset: 3px; }
 	.link-btn { flex-basis: 100%; min-height: 36px; border: 0; background: none; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }

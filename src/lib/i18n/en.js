@@ -320,6 +320,8 @@ export default {
 	'¿Lo vas a ver en la tele?': 'Watching on your TV?',
 	'Cómo mandarlo': 'How to send it',
 	'Sin confirmar': 'Unconfirmed',
+	'Copiar para Web Video Caster': 'Copy for Web Video Caster',
+	'Copiado: pegalo en Web Video Caster': 'Copied: paste it in Web Video Caster',
 	'Buscar subs ES': 'Find Spanish subs',
 	'Pistas de audio': 'Audio tracks',
 	'Ninguna dice latino ni España: se sabe escuchándolo.': 'None says LATAM or Spain: you can only tell by listening.',
