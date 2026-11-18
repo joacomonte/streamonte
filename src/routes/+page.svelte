@@ -32,13 +32,10 @@
 	);
 
 	onMount(() => {
-		fetch('/api/keys').then((r) => r.json()).then((k) => {
-			keys = k;
-			if (k.tmdb) {
-				loadGenres(kind.kind);
-				if (!cat.items.length && !cat.loading) loadMore();
-			}
-		});
+		// Catálogo y géneros salen de la caché al instante (si están); las keys solo deciden el aviso.
+		loadGenres(kind.kind);
+		if (!cat.items.length && !cat.loading) loadMore();
+		fetch('/api/keys').then((r) => r.json()).then((k) => (keys = k));
 	});
 
 	// Scroll infinito: pide la página siguiente cuando el final se acerca.

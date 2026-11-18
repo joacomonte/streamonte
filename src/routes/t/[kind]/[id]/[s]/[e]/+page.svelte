@@ -13,7 +13,7 @@
 
 <header class="topbar">
 	<div class="wrap row">
-		<a id="back" class="icon-btn" href="/t/tv/{t.id}" aria-label="Volver a los capítulos" onclick={(e) => { if (history.length > 1) { e.preventDefault(); history.back(); } }}><Icon name="back" /></a>
+		<a id="back" class="icon-btn" href="/t/tv/{t.id}?s={data.s}" aria-label="Volver a los capítulos" onclick={(e) => { if (history.length > 1) { e.preventDefault(); history.back(); } }}><Icon name="back" /></a>
 		<span class="top-title">{t.title}</span>
 	</div>
 </header>
@@ -23,7 +23,11 @@
 		{#if data.ep?.still}
 			<img class="still" src={data.ep.still} alt="" width="300" height="169" />
 		{/if}
-		<p class="code">{t.title} · {code}</p>
+		<nav class="crumbs" aria-label="Ruta">
+			<a id="crumb-show" href="/t/tv/{t.id}">{t.title}</a><span aria-hidden="true">›</span>
+			<a id="crumb-season" href="/t/tv/{t.id}?s={data.s}">Temporada {data.s}</a><span aria-hidden="true">›</span>
+			<span aria-current="page">Episodio {data.e}</span>
+		</nav>
 		<h1>{data.ep?.name ?? `Capítulo ${data.e}`}</h1>
 		{#if data.ep?.date}<p class="muted date">{fecha(data.ep.date)}</p>{/if}
 	</div>
@@ -41,7 +45,9 @@
 	.top-title { font-size: 16px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	main { padding: 14px 16px calc(32px + var(--safe-bottom)); }
 	.still { width: 100%; max-width: 560px; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-card); background: var(--surface-2); box-shadow: 0 6px 20px var(--shadow); }
-	.code { margin: 14px 0 2px; font-size: 13px; font-weight: 650; color: var(--accent-fg); }
+	.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: 10px 0 2px; font-size: 13px; font-weight: 650; color: var(--muted); }
+	.crumbs a { display: inline-flex; align-items: center; min-height: 32px; color: var(--accent-fg); text-decoration: none; }
+	.crumbs a:active { opacity: 0.6; }
 	h1 { margin: 0; font-size: 22px; line-height: 1.2; letter-spacing: -0.015em; text-wrap: balance; }
 	.date { margin: 4px 0 0; font-size: 13.5px; }
 	h2 { margin: 22px 0 4px; font-size: 17px; }

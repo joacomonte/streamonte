@@ -3,6 +3,7 @@
 	// alto relativo (la mejor llena la barra, la base es un punto debajo de la peor), color por nota, estado de la
 	// serie y si mejoró o decayó. Tocar una barra elige esa temporada.
 	import Icon from './Icon.svelte';
+	import * as saved from './saved.js';
 
 	/** @type {{imdb: string, status: string | null, next: {season: number, date: string} | null, current: number | null, onpick: (n: number) => void}} */
 	let { imdb, status, next, current, onpick } = $props();
@@ -15,10 +16,10 @@
 		scores = null;
 		failed = false;
 		let alive = true;
-		fetch(`/api/scores/${id}`)
-			.then(async (r) => {
+		saved.json(fetch, `/api/scores/${id}`, saved.DAY)
+			.then((r) => {
 				if (!alive) return;
-				if (r.ok) scores = await r.json();
+				if (r.ok) scores = r.data;
 				else failed = true;
 			})
 			.catch(() => alive && (failed = true));

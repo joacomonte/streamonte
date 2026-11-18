@@ -1,18 +1,23 @@
-<script module>
-	/** Temporada elegida por serie: al volver de un capítulo sigue en la misma. @type {Map<number, number>} */
-	const lastSeason = new Map();
-</script>
-
 <script>
 	import Icon from '#lib/Icon.svelte';
 	import SeasonChart from '#lib/SeasonChart.svelte';
 	import Torrents from '#lib/Torrents.svelte';
+	import * as saved from '#lib/saved.js';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	let { data } = $props();
 	const t = $derived(data.t);
 	const isTv = $derived(t.kind === 'tv');
 
-	let season = $state(/** @type {number | null} */ (null));
+	// Series en dos pasos: lista de temporadas y, al tocar una, sus episodios. La temporada va en la URL (`?s=2`):
+	// ← y el atrás del celu vuelven a la lista. Con una sola temporada se saltea la lista.
+	const only = $derived(t.seasons?.length === 1 ? t.seasons[0].n : null);
+	const season = $derived(Number(page.url.searchParams.get('s')) || only);
+	/** Hacia dónde anima el cambio de paso (también con el atrás del navegador): 1 entra a una temporada, -1 vuelve. */
+	const dir = $derived(season == null ? -1 : 1);
+	/** IMDb por temporada (la misma respuesta guardada que usa el gráfico: no suma pedidos). */
+	let scores = $state(/** @type {Record<number, number>} */ ({}));
 	/** @type {{n: number, name: string, date: string | null, still: string | null}[] | null} */
 	let episodes = $state(null);
 	let epError = $state('');
@@ -40,27 +45,48 @@
 		if (overviewEl && !more) clamped = overviewEl.scrollHeight > overviewEl.clientHeight + 1;
 	});
 
-	// Otro título (navegación entre fichas): arranca en la última temporada vista o en la primera.
 	$effect(() => {
-		season = lastSeason.get(t.id) ?? t.seasons[0]?.n ?? null;
+		t.id;
 		more = false;
 	});
+	$effect(() => {
+		if (!isTv || !t.imdb) return;
+		saved.json(fetch, `/api/scores/${t.imdb}`, saved.DAY).then((r) => {
+			if (r.ok) scores = Object.fromEntries(r.data.map((/** @type {{season: number, rating: number}} */ x) => [x.season, x.rating]));
+		}).catch(() => {});
+	});
+	/** Se entró a la temporada desde la lista de esta página: volver es ir atrás en el historial. */
+	let fromList = false;
 	/** @param {number} n */
 	function pickSeason(n) {
-		season = n;
-		lastSeason.set(t.id, n);
+		fromList = true;
+		goto(`?s=${n}`, { reset: false });
 	}
+	function backToSeasons() {
+		if (fromList) history.back();
+		else goto(`/t/tv/${t.id}`, { replace: true, reset: false });
+		fromList = false;
+	}
+	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+	/** Entra desde el lado hacia donde se avanza. @param {Element} _ @param {{dir: number}} p */
+	const slide = (_, { dir }) => ({
+		duration: still() ? 0 : 360,
+		css: (/** @type {number} */ x) => {
+			const e = 1 - Math.pow(1 - x, 4);
+			return `transform: translateX(${(1 - e) * dir * 24}px); opacity: ${e};`;
+		}
+	});
+	const seasonName = $derived(t.seasons?.find((/** @type {{n: number}} */ x) => x.n === season)?.name ?? `Temporada ${season}`);
 	$effect(() => {
 		if (!isTv || season == null) return;
 		const n = season;
 		episodes = null;
 		epError = '';
 		let alive = true;
-		fetch(`/api/season/${t.id}/${n}`).then(async (r) => {
-			const j = await r.json();
+		saved.json(fetch, `/api/season/${t.id}/${n}`, saved.DAY).then(({ ok, data }) => {
 			if (!alive) return;
-			if (!r.ok) epError = j.message;
-			else episodes = j;
+			if (!ok) epError = data.message;
+			else episodes = data;
 		});
 		return () => (alive = false);
 	});
@@ -118,38 +144,57 @@
 		<Torrents imdb={t.imdb} name={t.title} />
 	{:else}
 		<SeasonChart imdb={t.imdb} status={t.status} next={t.next} current={season} onpick={pickSeason} />
-		<div class="season-row">
-			<h2>Episodios</h2>
-			{#if t.seasons.length > 1}
-				<label class="chip pick">
-					{t.seasons.find((/** @type {{n: number}} */ x) => x.n === season)?.name}<Icon name="chev" size={14} />
-					<select id="season" aria-label="Temporada" value={season} onchange={(e) => pickSeason(Number(e.currentTarget.value))}>
-						{#each t.seasons as x (x.n)}<option value={x.n}>{x.name} ({x.count})</option>{/each}
-					</select>
-				</label>
-			{/if}
-		</div>
-		{#if epError}
-			<p class="error">{epError}</p>
-		{:else if !episodes}
-			{#each Array(4) as _, i (i)}<div class="ep-skel skel"></div>{/each}
-		{:else}
-			<ul class="eps">
-				{#each episodes as ep (ep.n)}
-					{@const future = ep.date && ep.date > today}
-					<li>
-						<a id="ep-{ep.n}" class="ep" class:future href="/t/tv/{t.id}/{season}/{ep.n}" data-sveltekit-preload-data="tap">
-							{#if ep.still}<img src={ep.still} alt="" loading="lazy" width="300" height="169" />{:else}<span class="still-empty"></span>{/if}
-							<span class="ep-text">
-								<span class="ep-name">{ep.n}. {ep.name}</span>
-								<span class="muted small">{ep.date ? (future ? `Sale el ${fecha(ep.date)}` : fecha(ep.date)) : ''}</span>
-							</span>
-							<span class="chev"><Icon name="next" size={18} /></span>
-						</a>
-					</li>
-				{/each}
-			</ul>
-		{/if}
+		{#key season}
+			<section class="step" in:slide={{ dir }}>
+				{#if season == null}
+					<h2>Temporadas</h2>
+					<ul class="seasons">
+						{#each t.seasons as x (x.n)}
+							<li>
+								<a id="season-{x.n}" class="season" href="?s={x.n}" onclick={(e) => { e.preventDefault(); pickSeason(x.n); }}>
+									<span class="s-num" aria-hidden="true">{x.n}</span>
+									<span class="s-text">
+										<span class="s-name">{x.name}</span>
+										<span class="muted small">{[`${x.count} episodio${x.count === 1 ? '' : 's'}`, x.year].filter(Boolean).join(' · ')}</span>
+									</span>
+									{#if scores[x.n]}<span class="s-score" title="Puntaje de IMDb de la temporada"><Icon name="star" size={13} />{scores[x.n].toFixed(1).replace('.', ',')}</span>{/if}
+									<span class="chev"><Icon name="next" size={18} /></span>
+								</a>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<nav class="crumbs" aria-label="Ruta">
+						{#if only == null}
+							<button id="crumb-seasons" type="button" class="crumb" onclick={backToSeasons}><Icon name="back" size={16} />Temporadas</button>
+							<span class="sep" aria-hidden="true">›</span>
+						{/if}
+						<h2 aria-current="page">{seasonName}</h2>
+					</nav>
+					{#if epError}
+						<p class="error">{epError}</p>
+					{:else if !episodes}
+						{#each Array(4) as _, i (i)}<div class="ep-skel skel"></div>{/each}
+					{:else}
+						<ul class="eps">
+							{#each episodes as ep (ep.n)}
+								{@const future = ep.date && ep.date > today}
+								<li>
+									<a id="ep-{ep.n}" class="ep" class:future href="/t/tv/{t.id}/{season}/{ep.n}" data-sveltekit-preload-data="tap">
+										{#if ep.still}<img src={ep.still} alt="" loading="lazy" width="300" height="169" />{:else}<span class="still-empty"></span>{/if}
+										<span class="ep-text">
+											<span class="ep-name">{ep.n}. {ep.name}</span>
+											<span class="muted small">{ep.date ? (future ? `Sale el ${fecha(ep.date)}` : fecha(ep.date)) : ''}</span>
+										</span>
+										<span class="chev"><Icon name="next" size={18} /></span>
+									</a>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				{/if}
+			</section>
+		{/key}
 	{/if}
 </main>
 
@@ -199,8 +244,33 @@
 	.ov-text.more { -webkit-line-clamp: unset; line-clamp: unset; }
 	.ov-more { display: inline-block; margin-top: 4px; font-weight: 650; color: var(--accent-fg); }
 	h2 { margin: 18px 0 4px; font-size: 17px; }
-	.season-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 18px; }
-	.season-row h2 { margin: 0; }
+	.step { margin-top: 18px; }
+	.step > h2 { margin: 0; }
+	.seasons { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+	.season {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		min-height: 64px;
+		padding: 10px 12px 10px 10px;
+		border: 1px solid var(--border);
+		border-radius: 14px;
+		background: var(--surface);
+		text-decoration: none;
+		transition: background 0.2s, transform 0.15s;
+	}
+	.season:active { transform: scale(0.985); background: var(--surface-2); }
+	.s-num { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 12px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent-fg); font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
+	.s-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+	.s-name { font-weight: 650; font-size: 15px; }
+	.s-score { display: inline-flex; align-items: center; gap: 3px; font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.s-score :global(svg) { color: #e6b54a; fill: currentColor; }
+	.crumbs { display: flex; align-items: center; gap: 4px; min-height: 44px; }
+	.crumbs h2 { margin: 0; }
+	.crumb { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; margin-left: -6px; padding: 0 6px; border: 0; border-radius: 8px; background: none; color: var(--accent-fg); font-size: 15px; font-weight: 650; }
+	.crumb:active { background: var(--surface-2); }
+	.sep { color: var(--muted); }
+	@media (hover: hover) { .season:hover { background: var(--surface-2); } }
 	.eps { list-style: none; margin: 10px 0 0; padding: 0; }
 	.eps li { border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 6px; }
 	.ep { display: flex; gap: 12px; align-items: center; width: 100%; padding: 6px 0; text-decoration: none; border-radius: 10px; }

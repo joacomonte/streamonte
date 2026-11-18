@@ -89,21 +89,12 @@
 		resetSubs();
 		match = null;
 		// Lista guardada 1 hora (saved.js): al volver al mismo video se ve al instante, sin pedidos.
-		const kept = saved.get(`torrents?${q}`);
-		if (kept) {
-			data = kept;
-			return;
-		}
 		let alive = true;
-		fetch(`/api/torrents?${q}`)
-			.then(async (r) => {
-				const j = await r.json();
+		saved.json(fetch, `/api/torrents?${q}`, saved.HOUR)
+			.then(({ ok, data: j }) => {
 				if (!alive) return;
-				if (!r.ok) error = j.message;
-				else {
-					data = j;
-					saved.put(`torrents?${q}`, j);
-				}
+				if (!ok) error = j.message;
+				else data = j;
 			})
 			.catch((err) => alive && (error = err.message));
 		return () => (alive = false);
@@ -455,20 +446,7 @@
 						{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
 						{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
 						{#if t.lat}<span class="tag lat">LATINO</span>{/if}
-						{#if sb}
-							<span class="tag {sb.on ? 'es' : 'nosub'}" title={sb.title} aria-label={sb.title}>{sb.text}</span>
-						{:else if subsEs[t.hash] === 'busy'}
-							<span class="probe busy" role="status" aria-label="Viendo si trae subtítulos en español"><span class="spin"></span>ES</span>
-						{:else}
-							<button
-								id="probe-{t.hash}"
-								type="button"
-								class="probe"
-								title={subsEs[t.hash] === 'err' ? 'No se pudo ver: tocá para reintentar' : 'Ver si trae subtítulos en español'}
-								aria-label={subsEs[t.hash] === 'err' ? 'No se pudo ver si trae subtítulos en español: reintentar' : 'Ver si trae subtítulos en español'}
-								onclick={() => probe(t)}
-							><Icon name="subs" size={14} />ES?</button>
-						{/if}
+						{#if sb}<span class="tag cc {sb.on ? 'es' : 'nosub'}" title={sb.title} aria-label={sb.title}><Icon name="subs" size={14} />ES</span>{/if}
 					</div>
 					<div class="quality" title={q ? `Calidad de imagen: ${q[0]}` : 'El nombre del torrent no dice de dónde salió el video'}>
 						<Icon name="monitor" size={15} />
@@ -482,6 +460,21 @@
 						{/if}
 					</div>
 					</div>
+					<div class="acts">
+					<!-- Sin dato de subs: píldora mínima al lado de copiar; un toque es un pedido y deja el badge. -->
+					{#if !sb && subsEs[t.hash] === 'busy'}
+						<span class="probe busy" role="status" aria-label="Viendo si trae subtítulos en español"><span class="spin"></span></span>
+					{:else if !sb}
+						<button
+							id="probe-{t.hash}"
+							type="button"
+							class="probe"
+							class:err={subsEs[t.hash] === 'err'}
+							title={subsEs[t.hash] === 'err' ? 'No se pudo ver: tocá para reintentar' : 'Ver si trae subtítulos en español'}
+							aria-label={subsEs[t.hash] === 'err' ? 'No se pudo ver si trae subtítulos en español: reintentar' : 'Ver si trae subtítulos en español'}
+							onclick={() => probe(t)}
+						><Icon name="subs" size={15} />?</button>
+					{/if}
 					<!-- Como ▶ del desktop: un botón redondo; lleno solo en la primera fila. -->
 					<button
 						id="copy-{t.hash}"
@@ -498,6 +491,7 @@
 						{:else if copy[t.hash] === 'ok'}<Icon name="check" size={20} />
 						{:else}<Icon name="link" size={20} />{/if}
 					</button>
+					</div>
 				</li>
 			{/each}
 		</ul>
@@ -744,28 +738,33 @@
 	}
 	.tag.res { color: var(--accent-fg); }
 	.tag.lat, .tag.es { color: var(--green); }
-	/* Chip punteado: todavía no se sabe; un toque lo consulta (un pedido). */
+	.acts { display: flex; align-items: center; gap: 8px; }
+	/* Badge de subs compacto (cc + ES): entra en la línea de los tags. (`.sub` ya es la fila de subtítulo.) */
+	.tag.cc { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px 2px 5px; }
+	/* Píldora punteada: todavía no se sabe si trae subs en español; un toque lo consulta. */
 	.probe {
 		display: inline-flex;
 		align-items: center;
-		gap: 4px;
-		min-height: 24px;
-		padding: 0 6px;
+		justify-content: center;
+		gap: 1px;
+		width: 44px;
+		height: 32px;
+		padding: 0;
 		border: 1.5px dashed var(--border-strong);
-		border-radius: 6px;
+		border-radius: 999px;
 		background: none;
 		color: var(--muted);
-		font-size: 11.5px;
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		white-space: nowrap;
+		font-size: 13px;
+		font-weight: 750;
 		position: relative;
+		transition: transform 0.15s var(--out), background 0.2s var(--ease);
 	}
-	/* Área táctil de 44 px sin agrandar el chip. */
-	button.probe::after { content: ''; position: absolute; inset: -10px -4px; }
-	button.probe:active { background: var(--surface-2); }
+	/* Área táctil de 44 px de alto sin agrandar la píldora. */
+	button.probe::after { content: ''; position: absolute; inset: -6px -2px; }
+	button.probe:active { transform: scale(0.94); background: var(--surface-2); }
+	.probe.err { border-color: var(--amber); color: var(--amber); }
 	.probe.busy { border-style: solid; }
-	.probe .spin { width: 10px; height: 10px; border-width: 1.5px; }
+	.probe .spin { width: 14px; height: 14px; border-width: 2px; }
 	.tag.nosub { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); background: color-mix(in srgb, var(--amber) 10%, transparent); }
 	.quality { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--muted); font-size: 15px; }
 	.stars { display: inline-flex; gap: 1px; color: color-mix(in srgb, var(--muted) 45%, transparent); }

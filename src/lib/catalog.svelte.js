@@ -1,4 +1,5 @@
 // Estado del catálogo a nivel módulo: al volver de una ficha la lista y el scroll siguen ahí.
+import * as cache from './saved.js';
 
 export const KINDS = [
 	{ v: 'movie', label: 'Películas', kind: 'movie', doc: false },
@@ -76,10 +77,10 @@ export async function loadMore() {
 		p.set('genres', cat.f.genres.join(','));
 	}
 	try {
-		const r = await fetch(`/api/catalog?${p}`);
-		const j = await r.json();
+		// Cada página queda guardada un día: al volver a entrar se ve al instante.
+		const { ok, data: j } = await cache.json(fetch, `/api/catalog?${p}`, cache.DAY);
 		if (gen !== cat.gen) return;
-		if (!r.ok) throw new Error(j.message);
+		if (!ok) throw new Error(j.message);
 		const seen = new Set(cat.items.map((i) => `${i.kind}${i.id}`));
 		cat.items.push(...j.items.filter((/** @type {any} */ i) => !seen.has(`${i.kind}${i.id}`)));
 		cat.page = j.page;
@@ -107,6 +108,6 @@ export function reset() {
 /** @param {string} kind */
 export async function loadGenres(kind) {
 	if (cat.genreList[kind]) return;
-	const r = await fetch(`/api/genres?kind=${kind}`);
-	if (r.ok) cat.genreList[kind] = await r.json();
+	const r = await cache.json(fetch, `/api/genres?kind=${kind}`, cache.DAY);
+	if (r.ok) cat.genreList[kind] = r.data;
 }

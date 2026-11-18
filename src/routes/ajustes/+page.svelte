@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
-	import { clear } from '#lib/saved.js';
+	import { wipe } from '#lib/saved.js';
 
 	/** @type {{tmdb: boolean, torbox: boolean, opensubtitles: boolean, opensubtitles_user: boolean, opensubtitles_pass: boolean} | null} */
 	let status = $state(null);
@@ -12,7 +12,7 @@
 	let osPass = $state('');
 	let saving = $state(false);
 	let msg = $state('');
-	let cleared = $state('');
+	let wiping = $state(false);
 
 	onMount(async () => {
 		status = await (await fetch('/api/keys')).json();
@@ -116,12 +116,22 @@
 	</form>
 
 	<section class="field saved">
-		<span class="lbl">Listas guardadas</span>
-		<p class="help-text">Las opciones de cada película o episodio quedan guardadas 1 hora en este navegador para abrir al instante.</p>
-		<button id="clear-saved" class="btn" type="button" onclick={() => { const n = clear(); cleared = n ? `Borré ${n} lista${n > 1 ? 's' : ''}.` : 'No había listas guardadas.'; }}>
-			Borrar listas guardadas
+		<span class="lbl">Caché</span>
+		<p class="help-text">Catálogo, fichas y opciones quedan guardados en este navegador para abrir al instante. Si algo se ve raro, borralos: la web queda como recién instalada, sin pedirte el código de nuevo.</p>
+		<button
+			id="wipe-cache"
+			class="btn"
+			type="button"
+			disabled={wiping}
+			onclick={async () => {
+				if (!confirm('Se borra todo lo que la web guardó en este navegador: catálogo, fichas, opciones, filtros elegidos y tutoriales vistos. El código de acceso y las keys quedan. ¿Borrar?')) return;
+				wiping = true;
+				await wipe();
+				location.reload();
+			}}
+		>
+			{#if wiping}<span class="spin"></span>{/if}Borrar caché
 		</button>
-		{#if cleared}<p class="msg" role="status">{cleared}</p>{/if}
 	</section>
 </main>
 

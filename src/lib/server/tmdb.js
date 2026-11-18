@@ -198,7 +198,7 @@ export async function title(kind, id) {
 		imdb,
 		seasons: (r.seasons ?? [])
 			.filter((/** @type {any} */ s) => s.season_number > 0 && s.episode_count > 0)
-			.map((/** @type {any} */ s) => ({ n: s.season_number, name: s.name, count: s.episode_count }))
+			.map((/** @type {any} */ s) => ({ n: s.season_number, name: s.name, count: s.episode_count, year: String(s.air_date ?? '').slice(0, 4) || null }))
 	};
 }
 
