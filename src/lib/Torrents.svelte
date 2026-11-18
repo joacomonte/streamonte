@@ -401,8 +401,12 @@
 		match = { hash: t.hash, release: t.release, natives, file, video };
 	}
 	/** Abre los subtítulos de `t` y busca afuera. @param {Torrent} t */
-	function showSubs(t) {
+	/** La lista de subs se abrió porque el video copiado no trae en español: arriba, por qué y qué hacer. */
+	let subsWhy = $state(false);
+	/** @param {Torrent} t @param {boolean} [why] */
+	function showSubs(t, why = false) {
 		if (match?.hash !== t.hash) subsFor(t);
+		subsWhy = why;
 		linkDone = null;
 		subsOpen = true;
 		if (!subs && !searching) searchSubs();
@@ -437,10 +441,20 @@
 			manual = { url, release: t.release, kind: 'video', t };
 		}
 	}
+	/** Copiado un video que no trae subs en español (ya leído): en vez de la hoja de "copiado", la lista de subs con
+	 * la explicación arriba. Si todavía se está leyendo, se decide cuando termina (efecto de abajo). @param {Torrent} t */
+	function noSubsCheck(t) {
+		const k = known(t);
+		if (linkDone?.hash === t.hash && k && !k.subs && !t.subFile) showSubs(t, true);
+	}
+	$effect(() => {
+		if (linkDone && typeof info[linkDone.hash] === 'object') untrack(() => linkDone && noSubsCheck(linkDone));
+	});
 	/** @param {Torrent} t @param {'ok' | 'err'} st */
 	function done(t, st) {
 		copy[t.hash] = st;
 		if (st === 'ok') linkDone = t;
+		noSubsCheck(t);
 		setTimeout(() => copy[t.hash] === st && delete copy[t.hash], 2500);
 	}
 	/** Botón Copiar de la hoja manual: dentro del toque, así iOS lo deja copiar. Si tampoco, queda el campo para mantener apretado. */
@@ -750,6 +764,21 @@
 		<p class="muted">{match ? `${epLabel} · ${groupOf(match.release) || tr('tu torrent')}` : tr('Copiá el link de un torrent.')}</p>
 		<button id="subs-tutorial" type="button" class="tut" onclick={() => (tutorialOpen = true)}><Icon name="help" size={15} />{tr('Cómo funciona')}</button>
 	</div>
+	{#if subsWhy}
+		<!-- Por qué hace falta un subtítulo aparte y qué hacer con él, según dónde se va a ver. -->
+		<div class="why">
+			<svg class="art why-art" viewBox="0 0 150 64" aria-hidden="true">
+				<rect class="tv" x="6" y="10" width="54" height="36" rx="5" />
+				<path class="play" d="M27 20v16l13-8z" />
+				<path class="plus" d="M72 28h12M78 22v12" />
+				<rect class="file" x="96" y="6" width="34" height="44" rx="5" />
+				<path class="file-cc" d="M104 22h18M104 30h12M104 38h16" />
+				<text class="file-tag" x="113" y="60" text-anchor="middle">.srt</text>
+			</svg>
+			<b>{tr('Este video no trae subtítulos en español')}</b>
+			<span>{doneWhere === 'wvc' ? tr('Elegí uno y copiá su link: en Web Video Caster, CC → pegar link.') : tr('Elegí uno y bajalo: abrilo junto al video en tu reproductor.')}</span>
+		</div>
+	{/if}
 	<ul class="subs">
 		<li class="grp">{tr('Vienen con el video')}</li>
 		{#if !match}
@@ -901,22 +930,49 @@
 	{#if linkDone}
 		{@const v = info[linkDone.hash]}
 		{@const k = known(linkDone)}
-		<div class="done-head">
-			<svg class="toast-mark" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="26" /><path d="M17 29l7.5 7.5L40 21" /></svg>
-			<span>{doneWhere === 'wvc' ? tr('Pegalo en el navegador de Web Video Caster.') : tr('Pegalo en tu reproductor.')}</span>
+		{@const subsN = k?.subs ?? 0}
+		<!-- Arriba, la idea en un dibujo: el link sale del celu y llega a donde se va a ver. -->
+		<div class="done-hero">
+			<svg class="art done-art" viewBox="0 0 160 84" aria-hidden="true">
+				<rect class="phone" x="10" y="20" width="26" height="46" rx="6" />
+				<path class="link-fly" d="M44 43h40" />
+				<path class="chain" d="M58 37a6 6 0 0 1 0 12h-4a6 6 0 0 1 0-12M66 49a6 6 0 0 1 0-12h4a6 6 0 0 1 0 12" />
+				{#if doneWhere === 'wvc'}
+					<rect class="tv" x="94" y="16" width="58" height="38" rx="6" />
+					<path class="tv" d="M114 64h18M123 54v10" />
+					<path class="play pop" d="M118 28v14l12-7z" />
+				{:else}
+					<rect class="phone big" x="104" y="8" width="34" height="66" rx="7" />
+					<path class="play pop" d="M115 32v16l13-8z" />
+				{/if}
+				<circle class="ok-dot" cx="146" cy="16" r="10" />
+				<path class="ok-tick" d="M141 16l3.5 3.5L151 12" />
+			</svg>
+			<p class="done-where">{doneWhere === 'wvc' ? tr('Pegalo en Web Video Caster') : tr('Pegalo en tu reproductor')}</p>
 		</div>
+
+		<!-- Subtítulos: si el video los trae, solo esa confirmación; si no, se abre la lista de subs (noSubsCheck). -->
 		{#if v === 'busy'}
-			<p class="native"><span class="spin"></span>{tr('Viendo si trae subtítulos en español…')}</p>
+			<p class="subs-line"><span class="spin"></span>{tr('Revisando subs…')}</p>
 		{:else if (k?.subs ?? 0) > 0 || linkDone.subFile}
-			<p class="native yes"><Icon name="subs" size={18} />{k?.subs ? tr(k.subs > 1 ? 'Trae {n} subtítulos en español: elegilos con CC en el reproductor.' : 'Trae {n} subtítulo en español: elegilo con CC en el reproductor.', { n: k.subs }) : tr('El torrent trae un archivo de subtítulo en español')}</p>
-		{:else}
-			<p class="native"><Icon name="subs" size={18} />{k ? tr('No trae subtítulos en español.') : tr('No pude ver si trae subtítulos en español.')}</p>
-			<button id="see-subs" type="button" class="btn primary see-subs" onclick={() => linkDone && showSubs(linkDone)}><Icon name="search" size={16} />{tr('Ver subtítulos disponibles')}</button>
+			<p class="subs-line yes"><Icon name="subs" size={16} />{tr('Con subtítulos incluidos')}</p>
+		{:else if !k}
+			<button id="see-subs" type="button" class="subs-line act" onclick={() => linkDone && showSubs(linkDone, true)}><Icon name="subs" size={16} />{tr('Ver subtítulos')}</button>
 		{/if}
-		{#if net && net.key !== NET[0].key}
-			<button id="lighter" type="button" class="link-btn" onclick={lighter}>{tr('¿Se cortó? Buscar una más liviana')}</button>
-		{/if}
-		<button id="cast-line" type="button" class="cast-line" onclick={() => { linkDone = null; tutorialOpen = true; }}><Icon name="cast" size={15} /><span>{tr('¿Lo vas a ver en la tele?')} <u>{tr('Cómo mandarlo')}</u></span></button>
+
+		<!-- Atajos: más liviana si se corta, y cómo mandarlo a la tele. -->
+		<div class="done-tiles" class:single={!net || net.key === NET[0].key}>
+			{#if net && net.key !== NET[0].key}
+				<button id="lighter" type="button" class="tile" onclick={lighter}>
+					<svg class="art tile-art" viewBox="0 0 48 32" aria-hidden="true"><path class="gauge" d="M8 26a16 16 0 0 1 32 0" /><path class="needle" d="M24 26l-8-9" /><circle class="hub" cx="24" cy="26" r="2.5" /></svg>
+					<b>{tr('¿Se cortó?')}</b><small>{tr('Una más liviana')}</small>
+				</button>
+			{/if}
+			<button id="cast-line" type="button" class="tile" onclick={() => { linkDone = null; tutorialOpen = true; }}>
+				<svg class="art tile-art" viewBox="0 0 48 32" aria-hidden="true"><rect class="tv" x="14" y="4" width="30" height="20" rx="3" /><path class="wave w1" d="M4 22a4 4 0 0 1 4 4" /><path class="wave w2" d="M4 16a10 10 0 0 1 10 10" /></svg>
+				<b>{tr('A la tele')}</b><small>{tr('Cómo mandarlo')}</small>
+			</button>
+		</div>
 	{/if}
 </Sheet>
 
@@ -1167,13 +1223,40 @@
 	.tut { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 600; }
 	.tut :global(svg) { color: var(--accent-fg); }
 	/* Hoja "¡Link copiado!" */
-	.done-head { display: flex; align-items: center; gap: 12px; }
-	.done-head span { font-size: 14px; color: var(--muted); }
-	.native { display: flex; align-items: center; gap: 10px; margin: 16px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); font-size: 14px; }
-	.native.yes { background: color-mix(in srgb, var(--green) 12%, transparent); }
-	.native :global(svg) { flex: none; }
-	.see-subs { width: 100%; height: 48px; margin-top: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 	/* "¿Dónde lo vas a ver?": dos tarjetas con dibujo animado y casi sin texto. */
+	/* Hoja "¡Link copiado!" (2026-11-18): un dibujo en vez de párrafos, los subs de un vistazo y dos atajos. */
+	.done-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0 2px; }
+	.done-art { max-width: 200px; }
+	.done-art .chain { stroke: var(--accent-fg); stroke-width: 3; }
+	.done-art .link-fly { stroke: color-mix(in srgb, var(--accent-fg) 35%, transparent); stroke-width: 3; stroke-dasharray: 4 6; animation: fly 1.2s linear infinite; }
+	@keyframes fly { to { stroke-dashoffset: -20; } }
+	.done-art .ok-dot { fill: var(--green); transform-box: fill-box; transform-origin: center; animation: ring 0.45s 0.15s var(--out) both; }
+	.done-art .ok-tick { stroke: #fff; stroke-width: 3; stroke-dasharray: 16; stroke-dashoffset: 16; animation: draw 0.3s 0.45s var(--out) forwards; }
+	.done-where { margin: 0; font-size: 16px; font-weight: 650; text-align: center; text-wrap: balance; }
+	.subs-line { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 10px 0 0; min-height: 36px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; }
+	.subs-line.yes { color: var(--green); font-weight: 600; }
+	.subs-line.act { color: var(--accent-fg); font-weight: 600; }
+	.why { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 2px 0 14px; padding: 14px 16px 16px; border-radius: 18px; background: var(--surface-2); text-align: center; animation: spot-in 0.4s var(--out) both; }
+	.why b { font-size: 15.5px; margin-top: 6px; text-wrap: balance; }
+	.why span { font-size: 13.5px; color: var(--muted); text-wrap: balance; }
+	.why-art { max-width: 190px; }
+	.why-art .plus { stroke: var(--muted); stroke-width: 3; }
+	.why-art .file { stroke: var(--accent-fg); stroke-width: 3; fill: color-mix(in srgb, var(--accent) 12%, transparent); animation: pop 2.2s var(--out) infinite; transform-box: fill-box; transform-origin: center; }
+	.why-art .file-cc { stroke: var(--accent-fg); stroke-width: 2.5; }
+	.why-art .file-tag { fill: var(--muted); stroke: none; font-size: 10px; font-weight: 700; }
+	@media (prefers-reduced-motion: reduce) { .why, .why-art .file { animation: none; } }
+	.done-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+	.done-tiles.single { grid-template-columns: 1fr; }
+	.tile { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 12px 8px; border: 1px solid var(--border); border-radius: 16px; background: none; color: var(--text); font: inherit; transition: transform 0.15s var(--out), border-color 0.2s var(--ease); }
+	.tile:active { transform: scale(0.97); border-color: var(--accent-fg); }
+	.tile b { font-size: 14px; margin-top: 4px; }
+	.tile small { font-size: 12px; color: var(--muted); }
+	.tile-art { max-width: 48px; }
+	.tile-art .gauge { stroke: var(--muted); stroke-width: 3; }
+	.tile-art .needle { stroke: var(--accent-fg); stroke-width: 3; transform-box: view-box; transform-origin: 24px 26px; animation: needle 2.4s var(--ease) infinite; }
+	.tile-art .hub { fill: var(--accent-fg); }
+	@keyframes needle { 0%, 100% { transform: rotate(40deg); } 50% { transform: rotate(0deg); } }
+	@media (prefers-reduced-motion: reduce) { .done-art .link-fly, .tile-art .needle { animation: none; } .done-art .ok-tick { stroke-dashoffset: 0; } }
 	.where { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 0 6px; }
 	.spot {
 		display: flex;
@@ -1207,8 +1290,6 @@
 	@keyframes pop { 0%, 60%, 100% { transform: scale(1); } 30% { transform: scale(1.18); } }
 	@media (hover: hover) { .spot:hover { border-color: var(--accent-fg); } }
 	@media (prefers-reduced-motion: reduce) { .spot, .art .wave, .art .pop { animation: none; } .art .wave { opacity: 1; } }
-	.cast-line { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 14px; border: 0; background: none; color: var(--muted); font-size: 13px; }
-	.cast-line u { color: var(--accent-fg); text-underline-offset: 3px; }
 	.link-btn { flex-basis: 100%; min-height: 36px; border: 0; background: none; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
 	.link-input { width: 100%; height: 44px; margin: 10px 0 0; padding: 0 10px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface-2); font-size: 16px; }
 </style>
