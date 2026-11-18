@@ -1,4 +1,5 @@
 <script>
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
 	import Sheet from '#lib/Sheet.svelte';
@@ -64,7 +65,26 @@
 		reset();
 		scrollTo({ top: 0 });
 	}
+	/** "Pegar magnet" (2026-11-18): un magnet pegado en el buscador va a su pantalla en vez de buscarse como texto.
+	 * btih en hex (40) o base32 (32, se pasa a hex). @param {string} text */
+	function magnetHash(text) {
+		const m = text.trim().match(/^magnet:\?.*?xt=urn:btih:([0-9a-z]{32,40})/i);
+		if (!m) return null;
+		const h = m[1];
+		if (/^[0-9a-f]{40}$/i.test(h)) return h.toLowerCase();
+		if (!/^[a-z2-7]{32}$/i.test(h)) return null;
+		let bits = '';
+		for (const ch of h.toUpperCase()) bits += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(ch).toString(2).padStart(5, '0');
+		return bits.match(/.{4}/g)?.map((b) => parseInt(b, 2).toString(16)).join('') ?? null;
+	}
 	function onSearch() {
+		const hash = magnetHash(cat.q);
+		if (hash) {
+			const dn = new URLSearchParams(cat.q.trim().split('?')[1] ?? '').get('dn') ?? '';
+			cat.q = '';
+			goto(`/m/${hash}${dn ? `?${new URLSearchParams({ dn })}` : ''}`);
+			return;
+		}
 		clearTimeout(typing);
 		typing = setTimeout(reset, 350);
 	}

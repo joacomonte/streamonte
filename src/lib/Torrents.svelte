@@ -14,8 +14,9 @@
 	import { audioOf, latBadge } from './audio.js';
 
 	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. `runtime`: duración en minutos (de la
-	 * ficha), para el bitrate. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null, runtime?: number | null}} */
-	let { imdb, s = null, e = null, name, orig = null, runtime = null } = $props();
+	 * ficha), para el bitrate. `given`: las opciones ya armadas ("Pegar magnet": los videos de ese torrent); sin pasos
+	 * ni búsqueda, directo a la lista. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null, runtime?: number | null, given?: any[] | null}} */
+	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null } = $props();
 
 	/** @typedef {{hash: string, release: string, file: string | null, res: string | null, hdr: string[], source: string | null, lat: boolean, multi: boolean, size: number | null, seeds: number, addons: string[], subFile: boolean, doubt?: boolean}} Torrent */
 	/** @typedef {{id: string, release: string, latino: boolean, format: string, downloads: number, exact?: boolean, fps?: number | null, last?: number | null, group?: string, premium?: boolean}} Sub */
@@ -117,9 +118,11 @@
 			showAll = false;
 			progress = { done: 0, total: 0, torbox: false };
 			// Lista guardada 1 hora (saved.js): se pinta en este mismo cuadro, sin pasar por la búsqueda.
-			data = hit;
+			data = given ? { list: given, found: given.length, sources: 1 } : hit;
+			// Torrent pegado: ya se sabe qué torrent es, no hay conexión ni audio para elegir.
+			if (given) { step = 'list'; showAll = true; }
 		});
-		if (!hit) search(url, ctrl.signal);
+		if (!hit && !given) search(url, ctrl.signal);
 		return () => {
 			ctrl.abort();
 			gen++;

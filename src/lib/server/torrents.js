@@ -74,6 +74,12 @@ function parse(s, addon) {
 
 /** @typedef {NonNullable<ReturnType<typeof parse>>} Torrent */
 
+/** Un archivo de video de un torrent pegado ("Pegar magnet", 2026-11-18) como una opción más: el nombre del archivo
+ * da resolución, fuente, HDR e idioma con las mismas reglas que las de los addons. @param {string} hash
+ * @param {string} name ruta del archivo en el torrent @param {number | null} bytes */
+export const fileTorrent = (hash, name, bytes) =>
+	/** @type {Torrent} */ (parse({ infoHash: hash, title: name.split('/').pop(), behaviorHints: { filename: name.split('/').pop(), videoSize: bytes ?? 0 } }, 'Magnet'));
+
 /** Más pesado primero (a igual tamaño, más resolución). @param {Torrent} a @param {Torrent} b */
 const bySize = (a, b) =>
 	(b.size ?? 0) - (a.size ?? 0) ||

@@ -125,6 +125,37 @@ function spanishSubs(subtitles) {
 		}));
 }
 
+/** Para "Pegar magnet": el torrent en la caché de TorBox con su nombre y archivos, o null. @param {string} hash
+ * @returns {Promise<{name: string, files: {name: string, size: number}[]} | null>} */
+export async function checkFiles(hash) {
+	const j = await tb(`/checkcached?hash=${hash}&format=object&list_files=true`);
+	const d = j.data;
+	const x = (Array.isArray(d) ? d : Object.values(d ?? {}))[0];
+	return x ? { name: String(x.name ?? ''), files: (x.files ?? []).map((/** @type {any} */ f) => ({ name: String(f.name ?? ''), size: Number(f.size) || 0 })) } : null;
+}
+/** Para "Pegar magnet": ese torrent en la cuenta (bajándose o bajado), con su avance, o null. @param {string} hash */
+export async function mine(hash) {
+	const j = await tb('/mylist?bypass_cache=true');
+	const x = (j.data ?? []).find((/** @type {any} */ t) => String(t.hash).toLowerCase() === hash);
+	if (!x) return null;
+	return {
+		name: String(x.name ?? ''),
+		finished: !!x.download_finished || x.download_state === 'cached' || x.download_state === 'completed' || x.download_state === 'uploading',
+		progress: Number(x.progress) || 0,
+		speed: Number(x.download_speed) || 0,
+		seeds: Number(x.seeds) || 0,
+		eta: Number(x.eta) || 0,
+		files: (x.files ?? []).map((/** @type {any} */ f) => ({ name: String(f.name ?? ''), size: Number(f.size) || 0 }))
+	};
+}
+/** Para "Pegar magnet": lo agrega a la cuenta aunque no esté en caché (TorBox lo baja). @param {string} magnet */
+export async function addMagnet(magnet) {
+	const fd = new FormData();
+	fd.set('magnet', magnet);
+	const created = await tb('/createtorrent', { method: 'POST', body: fd });
+	if (!created.data?.torrent_id && !created.data?.hash) throw new Fail(409, 'TorBox no lo agregó: {d}', { d: created.detail ?? 'sin id' });
+}
+
 /** Agrega el torrent a TorBox (solo si está en caché) y elige el archivo de video. @param {{hash: string, name: string, file: string | null, s: string | null, e: string | null}} t */
 async function added(t) {
 	const fd = new FormData();
