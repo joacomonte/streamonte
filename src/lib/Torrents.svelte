@@ -11,7 +11,7 @@
 	/** @typedef {{hash: string, release: string, file: string | null, res: string | null, hdr: string[], source: string | null, lat: boolean, multi: boolean, size: number | null, seeds: number, addons: string[]}} Torrent */
 	/** @typedef {{id: string, release: string, latino: boolean, format: string, downloads: number, exact?: boolean, fps?: number | null, last?: number | null, group?: string, premium?: boolean}} Sub */
 	/** @typedef {{label: string, kind: string, track: number, url: string}} Native */
-	/** @typedef {{hasKey: boolean, remaining: number | null, perDay: number | null, resetsAt: number | null}} Quota */
+	/** @typedef {{hasKey: boolean, remaining: number | null, perDay: number | null, resetsAt: number | null, login?: string | null}} Quota */
 
 	const RES = [
 		['2160p', '4K'],
@@ -309,6 +309,7 @@
 	}
 	const quotaText = $derived(
 		!quota ? 'viendo cuántas descargas quedan…'
+			: quota.login ? quota.login
 			: quota.remaining == null ? 'no sé cuántas descargas quedan hoy'
 				: quota.remaining === 0 ? `usaste las ${quota.perDay} de hoy${quota.resetsAt ? ` · vuelven ${new Date(quota.resetsAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : ''}`
 					: `quedan ${quota.remaining} de ${quota.perDay} descargas hoy`

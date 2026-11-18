@@ -13,7 +13,7 @@ async function fileKeys() {
 }
 
 /** Variables de entorno (Vercel) por encima de `keys.json`. */
-const ENV = { tmdb: 'TMDB_KEY', torbox: 'TORBOX_KEY', opensubtitles: 'OPENSUBTITLES_KEY' };
+const ENV = { tmdb: 'TMDB_KEY', torbox: 'TORBOX_KEY', opensubtitles: 'OPENSUBTITLES_KEY', opensubtitles_user: 'OPENSUBTITLES_USER', opensubtitles_pass: 'OPENSUBTITLES_PASS' };
 
 /** @returns {Promise<Record<string, string>>} */
 export async function keys() {

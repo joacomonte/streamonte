@@ -2,11 +2,13 @@
 	import { onMount } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
 
-	/** @type {{tmdb: boolean, torbox: boolean, opensubtitles: boolean} | null} */
+	/** @type {{tmdb: boolean, torbox: boolean, opensubtitles: boolean, opensubtitles_user: boolean, opensubtitles_pass: boolean} | null} */
 	let status = $state(null);
 	let tmdb = $state('');
 	let torbox = $state('');
 	let opensubtitles = $state('');
+	let osUser = $state('');
+	let osPass = $state('');
 	let saving = $state(false);
 	let msg = $state('');
 
@@ -20,11 +22,11 @@
 		saving = true;
 		msg = '';
 		try {
-			const r = await fetch('/api/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tmdb: tmdb || undefined, torbox: torbox || undefined, opensubtitles: opensubtitles || undefined }) });
+			const r = await fetch('/api/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tmdb: tmdb || undefined, torbox: torbox || undefined, opensubtitles: opensubtitles || undefined, opensubtitles_user: osUser || undefined, opensubtitles_pass: osPass || undefined }) });
 			const j = await r.json();
 			if (!r.ok) throw new Error(j.message);
 			status = j;
-			tmdb = torbox = opensubtitles = '';
+			tmdb = torbox = opensubtitles = osUser = osPass = '';
 			msg = 'Guardado.';
 		} catch (err) {
 			msg = /** @type {Error} */ (err).message;
@@ -32,11 +34,12 @@
 			saving = false;
 		}
 	}
-	const NAMES = { tmdb: 'TMDB', torbox: 'TorBox', opensubtitles: 'OpenSubtitles.com' };
-	/** @param {'tmdb' | 'torbox' | 'opensubtitles'} which */
+	const NAMES = { tmdb: 'la key de TMDB', torbox: 'la key de TorBox', opensubtitles: 'la key de OpenSubtitles.com', login: 'el usuario y la contraseña de OpenSubtitles.com' };
+	/** @param {'tmdb' | 'torbox' | 'opensubtitles' | 'login'} which */
 	async function remove(which) {
-		if (!confirm(`¿Borrar la key de ${NAMES[which]}?`)) return;
-		const r = await fetch('/api/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ [which]: '' }) });
+		if (!confirm(`¿Borrar ${NAMES[which]}?`)) return;
+		const body = which === 'login' ? { opensubtitles_user: '', opensubtitles_pass: '' } : { [which]: '' };
+		const r = await fetch('/api/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 		status = await r.json();
 	}
 </script>
@@ -90,7 +93,21 @@
 			</span>
 		</label>
 
-		<button id="keys-save" class="btn primary" type="submit" disabled={saving || (!tmdb && !torbox && !opensubtitles)}>
+		<label class="field" for="os-user">
+			<span class="lbl">
+				Cuenta de OpenSubtitles.com <small class="muted">opcional: muestra cuántas descargas te quedan desde el arranque</small>
+				{#if status?.opensubtitles_user && status?.opensubtitles_pass}<span class="badge lat">cargada</span>{/if}
+			</span>
+			<input id="os-user" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder={status?.opensubtitles_user ? 'Escribir otro para reemplazar' : 'Usuario'} bind:value={osUser} />
+		</label>
+		<label class="field" for="os-pass">
+			<input id="os-pass" type="password" autocomplete="off" placeholder={status?.opensubtitles_pass ? 'Escribir otra para reemplazar' : 'Contraseña'} bind:value={osPass} aria-label="Contraseña de OpenSubtitles.com" />
+			{#if status?.opensubtitles_user || status?.opensubtitles_pass}
+				<span class="help"><button id="del-os-login" type="button" class="link" onclick={() => remove('login')}>Borrar usuario y contraseña</button></span>
+			{/if}
+		</label>
+
+		<button id="keys-save" class="btn primary" type="submit" disabled={saving || (!tmdb && !torbox && !opensubtitles && !osUser && !osPass)}>
 			{#if saving}<span class="spin"></span>{/if}Guardar
 		</button>
 		{#if msg}<p class="msg" role="status">{msg}</p>{/if}

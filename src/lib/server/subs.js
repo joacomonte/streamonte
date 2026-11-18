@@ -118,10 +118,58 @@ async function osKey() {
 /** @param {string} key */
 const osHeaders = (key) => ({ 'api-key': key, 'user-agent': 'Streamonte v1', accept: 'application/json' });
 
-/** Cuota para mostrar: `remaining`/`perDay` null = no se sabe; `resetsAt` = ms. */
+/** Login con usuario y contraseña (opcional): da la cuota de la cuenta desde el arranque y las descargas van a su nombre.
+ * El token dura 24 h; se guarda solo en memoria. @type {{who: string, token: string, api: string, until: number} | null} */
+let account = null;
+/** Login rechazado: no se reintenta hasta que cambien las credenciales. @type {{who: string, message: string} | null} */
+let rejected = null;
+/** Cuándo se leyó la cuota de la cuenta (`/infos/user`), para no pedirla en cada apertura. */
+let quotaAt = 0;
+
+/** Token de la cuenta, o null si no hay usuario y contraseña cargados. */
+async function osSession() {
+	const k = await keys();
+	if (!k.opensubtitles_user || !k.opensubtitles_pass) return null;
+	const who = `${k.opensubtitles_user}\n${k.opensubtitles_pass}`;
+	if (account?.who === who && Date.now() < account.until) return account;
+	if (rejected?.who === who) throw new Fail(401, rejected.message);
+	const r = await get(`${OS_API}/login`, { method: 'POST', headers: { ...osHeaders(await osKey()), 'content-type': 'application/json' },
+		body: JSON.stringify({ username: k.opensubtitles_user, password: k.opensubtitles_pass }) }, 20_000).catch(() => null);
+	const j = await r?.json().catch(() => null);
+	if (!r?.ok || !j?.token) {
+		// Usuario o contraseña mal: no reintentar. Caída de la red o del servidor: se reintenta en el próximo toque.
+		if (r && r.status < 500) {
+			rejected = { who, message: 'opensubtitles.com rechazó el usuario o la contraseña: revisalos en Ajustes.' };
+			throw new Fail(401, rejected.message);
+		}
+		throw new Fail(502, 'No pude iniciar sesión en opensubtitles.com.');
+	}
+	account = { who, token: j.token, api: j.base_url ? `https://${j.base_url}/api/v1` : OS_API, until: Date.now() + 23 * 3600_000 };
+	return account;
+}
+
+/** Cuota para mostrar: `remaining`/`perDay` null = no se sabe; `resetsAt` = ms; `login`: error del login, si falló. */
 export async function premiumQuota() {
 	if (quota?.resetsAt && Date.now() >= quota.resetsAt) quota = null;
-	return { hasKey: Boolean((await keys()).opensubtitles), remaining: quota?.remaining ?? null, perDay: quota?.perDay ?? null, resetsAt: quota?.resetsAt ?? null };
+	const hasKey = Boolean((await keys()).opensubtitles);
+	let login = null;
+	if (hasKey && Date.now() - quotaAt > 60_000) {
+		try {
+			const s = await osSession();
+			if (s) {
+				const r = await get(`${s.api}/infos/user`, { headers: { ...osHeaders(await osKey()), authorization: `Bearer ${s.token}` } }, 15_000);
+				const d = (await r.json().catch(() => ({}))).data ?? {};
+				if (r.status === 401) account = null;
+				else if (Number.isFinite(d.remaining_downloads)) {
+					quota = { remaining: Math.max(0, d.remaining_downloads), perDay: Number(d.allowed_downloads) || 0, resetsAt: Date.parse(d.reset_time_utc ?? '') || null };
+					quotaAt = Date.now();
+				}
+			}
+		} catch (e) {
+			login = /** @type {Error} */ (e).message;
+		}
+	}
+	return { hasKey, remaining: quota?.remaining ?? null, perDay: quota?.perDay ?? null, resetsAt: quota?.resetsAt ?? null, login };
 }
 
 /** Busca en español (no gasta). Mismo formato que `search`, con `premium: true`.
@@ -159,7 +207,13 @@ async function fetchPremium(id) {
 	if (await premiumFile(id)) return premiumQuota();
 	if (quota?.remaining === 0 && (!quota.resetsAt || Date.now() < quota.resetsAt)) throw new Fail(429, 'No quedan descargas de Premium por hoy.');
 	const key = await osKey();
-	const r = await get(`${OS_API}/download`, { method: 'POST', headers: { ...osHeaders(key), 'content-type': 'application/json' }, body: JSON.stringify({ file_id: Number(id) }) }, 20_000);
+	// Con login, la descarga cuenta en la cuenta (y su cuota); si el login falla, sigue como antes, solo con la key.
+	const s = await osSession().catch(() => null);
+	/** @type {Record<string, string>} */
+	const auth = s ? { authorization: `Bearer ${s.token}` } : {};
+	const r = await get(`${s?.api ?? OS_API}/download`, { method: 'POST', headers: { ...osHeaders(key), ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ file_id: Number(id) }) }, 20_000);
+	if (r.status === 401 && s) account = null;
+	quotaAt = Date.now();
 	const j = await r.json().catch(() => ({}));
 	const used = Number(j.requests) || 0;
 	const resetsAt = Date.parse(j.reset_time_utc ?? '') || null;
