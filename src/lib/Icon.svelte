@@ -18,6 +18,7 @@
 		sliders: 'M4 7h9m4 0h3M4 17h3m4 0h9M15 5v4M9 15v4',
 		monitor: 'M3 5h18v11H3zM8 20h8M12 16v4',
 		list: 'M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01',
+		stop: 'M7 7h10v10H7z',
 		flag: 'M5 21V4h11l-1.5 4L16 12H5',
 		ban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM5.6 5.6l12.8 12.8',
 		'trend-up': 'M3 17l6-6 4 4 8-8M14 7h7v7',

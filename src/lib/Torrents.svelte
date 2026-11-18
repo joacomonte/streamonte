@@ -623,23 +623,43 @@
 						</button>
 					</div>
 				{:else if screen === 'search'}
-					<h3 class="ask">{wantLat ? tr('Buscando audio latino') : tr('Buscando subtítulos en español')}</h3>
-					<p class="status"><span class="spin"></span>{tr('Leyendo pistas · {a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })}<button id="search-stop" type="button" class="link-btn inline" onclick={stopSearch}>{tr('Detener')}</button></p>
-					<p class="muted latsum">{wantLat ? tr('De a una, de mejor a peor calidad: te muestro la primera que tenga audio latino.') : tr('De a una, de mejor a peor calidad: te muestro la primera que traiga subtítulos en español adentro.')}</p>
+					<!-- Buscando: una lupa recorre los videos de a uno (de mejor a peor); al primero que sirve, aparece el resultado. -->
+					<div class="hunt" role="status" aria-live="polite">
+						<svg class="art hunt-art" viewBox="0 0 180 96" aria-hidden="true">
+							{#each [0, 1, 2, 3] as i (i)}
+								<g class="reel" style="--i:{i}">
+									<rect x={14 + i * 40} y="22" width="32" height="44" rx="5" />
+									<path d="M{20 + i * 40} 30h20M{20 + i * 40} 58h20" />
+									<path class="mini-play" d="M{26 + i * 40} 38v12l9-6z" />
+								</g>
+							{/each}
+							<g class="lens">
+								<circle cx="30" cy="44" r="14" />
+								<path d="M40 54l10 10" />
+							</g>
+						</svg>
+						<b class="hunt-title">{wantLat ? tr('Buscando audio latino') : tr('Buscando subtítulos en español')}</b>
+						<span class="hunt-sub">{tr('De la mejor calidad para abajo')}</span>
+						<span class="hunt-bar"><i style:width="{Math.max(4, (scan.done / Math.max(1, scan.total)) * 100)}%"></i></span>
+						<span class="hunt-count">{tr('{a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })}</span>
+						<button id="search-stop" type="button" class="row-btn ghost" onclick={stopSearch}><Icon name="stop" size={15} />{tr('Detener')}</button>
+					</div>
 				{:else if screen === 'match'}
 					<!-- El resultado: solo los buenos matches; sin ninguno, las 3 de mejor calidad con el aviso. -->
 					{#if error}<p class="status error" role="alert">{error}</p>{/if}
 					{#if found.length}
-						<h3 class="ask">{tr('Mejor opción')}</h3>
-						<p class="match-why"><Icon name="check" size={15} />{wantLat ? tr('Audio latino confirmado') : tr('Trae subtítulos en español')}</p>
 						{@render options(found.map((h) => all.find((t) => t.hash === h)).filter((t) => !!t), true)}
 					{:else}
 						<h3 class="ask">{!byBest.length ? tr('Ninguna entra en tu conexión') : wantLat ? tr('Sin latino confirmado') : tr('Sin subtítulos en español adentro')}</h3>
 						<p class="muted latsum" role="status">{!byBest.length ? tr('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión.') : candidates.length ? tr('Búsqueda detenida: estas son las de mejor calidad.') : wantLat ? tr('No encontré latino confirmado.') : tr('Ninguna trae sub ES nativo: los subs se buscan afuera.')}</p>
 						{@render options(byBest.slice(0, 3), false)}
 					{/if}
-					{@render more()}
-					<button id="see-all" type="button" class="pill-btn" onclick={() => (showAll = true)}><Icon name="list" size={15} />{tr('Ver todas las opciones')}<span class="count">{everything.length}</span></button>
+					<div class="row-actions">
+						{@render more()}
+						<button id="see-all" type="button" class="row-btn" onclick={() => (showAll = true)}>
+							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{everything.length}</span>
+						</button>
+					</div>
 				{:else}
 					<div class="bar">
 						<div class="chips toggles" role="toolbar" aria-label={tr('Filtros de torrents')}>
@@ -661,11 +681,12 @@
 <!-- Al pie del resultado y de "todas": la búsqueda en curso (Detener), "Seguir buscando" o que no quedan más. -->
 {#snippet more()}
 	{#if reading}
-		<p class="status"><span class="spin"></span>{tr('Leyendo pistas · {a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })}<button id="more-stop" type="button" class="link-btn inline" onclick={stopSearch}>{tr('Detener')}</button></p>
+		<button id="more-stop" type="button" class="row-btn" onclick={stopSearch}>
+			<span class="spin"></span><span class="row-text"><b>{tr('Buscando…')}</b><small>{tr('{a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })}</small></span><span class="row-end">{tr('Detener')}</span>
+		</button>
 	{:else if candidates.length || nextMatch}
-		<button id="search-more" type="button" class="choice" onclick={findNext}>
-			<strong>{wantLat ? tr('Seguir buscando latino') : tr('Seguir buscando sub ES')}</strong>
-			{#if candidates.length}<span class="muted">{tr('{n} candidatas quedan · de a una', { n: candidates.length })}</span>{/if}
+		<button id="search-more" type="button" class="row-btn" onclick={findNext}>
+			<Icon name="search" size={18} /><span class="row-text"><b>{wantLat ? tr('Seguir buscando latino') : tr('Seguir buscando sub ES')}</b>{#if candidates.length}<small>{tr('{n} sin revisar', { n: candidates.length })}</small>{/if}</span>
 		</button>
 	{:else if found.length}
 		<p class="status muted">{tr('No hay más para buscar.')}</p>
@@ -1035,7 +1056,6 @@
 	.choice.off { opacity: 0.55; }
 	.slow { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 750; background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
 	.latsum { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
-	.match-why { display: flex; align-items: center; gap: 6px; margin: -4px 0 0; font-size: 13.5px; font-weight: 650; color: var(--green); }
 	.link-btn.inline { flex-basis: auto; min-height: 32px; margin-left: auto; color: var(--accent-fg); }
 	@media (hover: hover) { .choice:hover { background: var(--surface-2); } }
 	.toggle:not(.on) { border-style: dashed; background: transparent; color: var(--muted); }
@@ -1091,10 +1111,36 @@
 	}
 	.tag.res { color: var(--accent-fg); }
 	.tag.lat, .tag.es { color: var(--green); }
-	/* Acción secundaria al pie del resultado: botón, no link suelto. */
-	.pill-btn { display: inline-flex; align-items: center; gap: 8px; align-self: center; min-height: 44px; margin: 10px auto 0; padding: 0 18px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; }
-	.pill-btn:active { transform: scale(0.98); }
-	.pill-btn .count { padding: 1px 8px; border-radius: 999px; background: var(--surface-3, var(--border)); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+	/* Acciones al pie del resultado (2026-11-18): todas del mismo ancho y alto, ícono a la izquierda. */
+	.row-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+	.row-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; transition: transform 0.15s var(--out), border-color 0.2s var(--ease); }
+	.row-btn:active { transform: scale(0.98); border-color: var(--accent-fg); }
+	.row-btn :global(svg) { flex: none; color: var(--muted); }
+	.row-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+	.row-text b { font-size: 15px; font-weight: 650; }
+	.row-text small { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+	.row-end { font-size: 13.5px; font-weight: 600; color: var(--accent-fg); }
+	.row-btn .count { padding: 2px 9px; border-radius: 999px; background: var(--surface-3, var(--border)); color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+	.row-btn.ghost { width: auto; min-height: 44px; padding: 0 18px; border-radius: 999px; background: none; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; }
+	/* Buscando (2026-11-18): videos en fila, una lupa que los recorre y el avance real abajo. */
+	.hunt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0 8px; text-align: center; }
+	.hunt-art { max-width: 240px; margin-bottom: 6px; }
+	.hunt-art .reel rect { stroke: var(--muted); stroke-width: 2.5; fill: var(--surface-2); }
+	.hunt-art .reel path { stroke: var(--border-strong, var(--muted)); stroke-width: 2; }
+	.hunt-art .reel .mini-play { fill: var(--muted); stroke: none; }
+	.hunt-art .reel { animation: reel-lit 3.2s var(--ease) infinite; animation-delay: calc(var(--i) * 0.8s); }
+	@keyframes reel-lit { 0%, 30%, 100% { opacity: 0.55; } 10%, 20% { opacity: 1; } }
+	.hunt-art .lens { animation: lens 3.2s var(--ease) infinite; }
+	.hunt-art .lens circle { stroke: var(--accent-fg); stroke-width: 3.5; fill: color-mix(in srgb, var(--accent) 14%, transparent); }
+	.hunt-art .lens path { stroke: var(--accent-fg); stroke-width: 4.5; }
+	@keyframes lens { 0% { transform: translateX(0); } 25% { transform: translateX(40px); } 50% { transform: translateX(80px); } 75% { transform: translateX(120px); } 100% { transform: translateX(0); } }
+	.hunt-title { font-size: 17px; text-wrap: balance; }
+	.hunt-sub { font-size: 13.5px; color: var(--muted); }
+	.hunt-bar { width: min(240px, 80%); height: 6px; margin-top: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+	.hunt-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.4s var(--out); }
+	.hunt-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+	.hunt .row-btn { margin-top: 10px; }
+	@media (prefers-reduced-motion: reduce) { .hunt-art .reel, .hunt-art .lens { animation: none; } }
 	.tag.heavy { color: var(--amber, #b7791f); border-color: currentColor; }
 	/* Audio: LAT confirmado (verde), según el nombre (gris punteado), sin aclarar (ámbar, como "sin sub ES"). */
 	.tag.audio.lat { color: var(--green); }
