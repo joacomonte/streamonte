@@ -91,7 +91,6 @@
 		untrack(() => {
 			error = '';
 			copy = {};
-			autoStop = false;
 			resetSubs();
 			match = null;
 			// Lista guardada 1 hora (saved.js): se pinta en este mismo cuadro, sin pasar por la carga ni redibujar.
@@ -151,7 +150,7 @@
 	const gb = (b) => (b == null ? '—' : b >= 1024 ** 3 ? `${(b / 1024 ** 3).toLocaleString(loc(), { maximumFractionDigits: 1, minimumFractionDigits: 1 })} GB` : `${Math.round(b / 1024 ** 2)} MB`);
 
 	/** Link de TorBox recién pedido (uno nuevo en cada copia); `choices` si hay audio en inglés y en latino.
-	 * @param {Torrent} t @returns {Promise<{url: string, choices?: {key: string, label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number}>} */
+	 * @param {Torrent} t @returns {Promise<{url: string, choices?: {key: string, label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number, ids?: {tid: number, fid: number}}>} */
 	async function linkOf(t) {
 		const r = await fetch(`/api/link?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '', orig: orig ?? '' })}`);
 		const j = await r.json();
@@ -172,18 +171,13 @@
 		subsEs[hash] = n;
 		saved.remember(`subs:${hash}`, n);
 	}
-	/** El plan de TorBox no incluye streaming (403): no hay forma de leer las pistas, así que no se ofrece. */
-	let noStream = $state(false);
-	/** Un pedido (/api/tracks: agrega el torrent y lee sus pistas con un solo stream). false si falló. @param {Torrent} t */
-	async function probe(t) {
+	/** Solo a pedido (el botón "?" de la opción, o solo al copiar su link): lee el encabezado del video. Con `ids`
+	 * (del link recién copiado) es un pedido a TorBox; sin ellos, también agrega el torrent. false si falló.
+	 * @param {Torrent} t @param {{tid: number, fid: number}} [ids] */
+	async function probe(t, ids) {
 		subsEs[t.hash] = 'busy';
 		try {
-			const r = await fetch(`/api/tracks?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '' })}`);
-			if (r.status === 403) {
-				noStream = true;
-				subsEs[t.hash] = null;
-				return false;
-			}
+			const r = await fetch(`/api/tracks?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '', ...(ids ? { tid: String(ids.tid), fid: String(ids.fid) } : {}) })}`);
 			if (!r.ok) throw new Error();
 			knowSubs(t.hash, (await r.json()).subs.length);
 			return true;
@@ -192,26 +186,6 @@
 			return false;
 		}
 	}
-	/** Solo las 3 primeras de lo que se ve, de a una y sin repetir; ante un error se corta (quedan con el botón). */
-	let autoBusy = false;
-	let autoStop = false;
-	async function autoProbe() {
-		autoBusy = true;
-		try {
-			for (;;) {
-				const t = list.slice(0, 3).find((x) => subsEs[x.hash] == null && !x.subFile);
-				if (!t || !(await probe(t))) {
-					if (t) autoStop = true;
-					break;
-				}
-			}
-		} finally {
-			autoBusy = false;
-		}
-	}
-	$effect(() => {
-		if (data && !noStream && !autoBusy && !autoStop && list.slice(0, 3).some((x) => subsEs[x.hash] == null && !x.subFile)) autoProbe();
-	});
 	/** @param {Torrent} t */
 	const subBadge = (t) => {
 		const n = subsEs[t.hash];
@@ -233,6 +207,8 @@
 		}
 		delete copy[t.hash];
 		if (got.subsEs != null) knowSubs(t.hash, got.subsEs);
+		// Link de descarga (plan sin streaming): de paso se leen sus pistas, sin volver a agregar el torrent.
+		else if (got.ids && typeof subsEs[t.hash] !== 'number') probe(t, got.ids);
 		subsFor(t, got.file, got.natives, got.video);
 		if (got.choices?.length) audioFor = { t, choices: got.choices };
 		else copyUrl(t, got.url);
@@ -479,7 +455,7 @@
 					<!-- Sin dato de subs: píldora mínima al lado de copiar; un toque es un pedido y deja el badge. -->
 					{#if !sb && subsEs[t.hash] === 'busy'}
 						<span class="probe busy" role="status" aria-label={tr('Viendo si trae subtítulos en español')}><span class="spin"></span></span>
-					{:else if !sb && !noStream}
+					{:else if !sb}
 						<button
 							id="probe-{t.hash}"
 							type="button"

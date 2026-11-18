@@ -2,6 +2,7 @@
 import { Fail, get } from './http.js';
 import { keys } from './keys.js';
 import { lang, tx } from './lang.js';
+import { isSpanish, tracksOf } from './mkv.js';
 
 const ROOT = 'https://api.torbox.app';
 const VIDEO = /\.(mkv|mp4|avi|m4v|mov|webm)$/i;
@@ -76,24 +77,38 @@ export async function cached(hashes, s = null, e = null) {
  * subtítulo puesto (TorBox lo pone en la imagen). Vacío = no trae.
  * `video`: cuadros por segundo y duración en segundos, para ordenar los subtítulos por cuál calza.
  * `subsEs`: cuántos subtítulos en español trae el video adentro (sin dato si no hubo stream HLS).
- * @returns {Promise<{url: string, choices?: {key: string, label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number}>} */
+ * `ids`: torrent y archivo en TorBox cuando el link es de descarga (plan sin streaming): con eso `tracks` lee las
+ * pistas pidiendo un solo link nuevo, sin volver a agregar el torrent. (El link no se reusa: lleva la key adentro.)
+ * @returns {Promise<{url: string, choices?: {key: string, label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number, ids?: {tid: number, fid: number}}>} */
 export async function link(t) {
 	const { id, file } = await added(t);
-	return (await hls(id, file.id, t.name, t.orig ?? null)) ?? { url: await download(id, file) };
+	return (await hls(id, file.id, t.name, t.orig ?? null)) ?? { url: await download(id, file), ids: { tid: id, fid: file.id } };
 }
 
-/** Subtítulos en español y audios que trae el video adentro, con un solo createstream (sin pedir un stream por
- * subtítulo: eso queda para cuando se copia el link). El dato es del torrent y no cambia.
+/** Subtítulos en español y audios que trae el video adentro, leyendo el encabezado del archivo (primer MB) por el
+ * link de descarga: anda en cualquier plan de TorBox. Con `ids` (de un link ya copiado) es un solo pedido a TorBox;
+ * sin ellos, agrega el torrent primero. El dato es del torrent y no cambia.
  * @param {{hash: string, name: string, file: string | null, s: string | null, e: string | null}} t
+ * @param {{tid: number, fid: number} | null} [ids]
  * @returns {Promise<{subs: {label: string, kind: string, track: number}[], audios: {language: string, title: string}[]}>} */
-export async function tracks(t) {
-	const { id, file } = await added(t);
-	const meta = (await tbRoot(`/v1/api/stream/createstream?id=${id}&file_id=${file.id}&type=torrent`)).data?.metadata ?? {};
+export async function tracks(t, ids = null) {
+	const { id, file } = ids ? { id: ids.tid, file: { id: ids.fid, name: '' } } : await added(t);
+	const all = await tracksOf(await download(id, file));
+	if (!all) throw new Fail(422, 'No pude leer las pistas de este video.');
+	const subs = all.filter((x) => x.type === 17);
 	return {
-		subs: spanishSubs(meta.subtitles).map(({ label, kind, i }) => ({ label, kind, track: i + 1 })),
-		audios: (/** @type {any[]} */ (meta.audios ?? [])).map((a) => ({ language: String(a.language ?? ''), title: String(a.title ?? '') }))
+		subs: subs
+			.map((x, i) => ({ x, i }))
+			.filter(({ x }) => isSpanish(x))
+			.sort((a, b) => Number(a.x.forced) - Number(b.x.forced))
+			.map(({ x, i }) => ({ label: spanishVariant(x.name, x.lang), kind: x.forced ? 'forzados' : 'del video', track: i + 1 })),
+		audios: all.filter((x) => x.type === 2).map((x) => ({ language: x.lang, title: x.name }))
 	};
 }
+
+/** Latinoamérica, España o Español, por el nombre o el código de la pista. @param {string} name @param {string} lang */
+const spanishVariant = (name, lang) =>
+	/lat|419/i.test(name) || /^es-419/i.test(lang) ? 'Latinoamérica' : /spain|españa|castellano|es-es/i.test(name) || /^es-ES/.test(lang) ? 'España' : 'Español';
 
 /** Subtítulos en español de la metadata de createstream, los forzados al final; `i` es su posición entre todos.
  * @param {any[] | undefined} subtitles */
