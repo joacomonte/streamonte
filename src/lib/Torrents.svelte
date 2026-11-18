@@ -13,8 +13,9 @@
 	import { untrack } from 'svelte';
 	import { audioOf, latBadge } from './audio.js';
 
-	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null}} */
-	let { imdb, s = null, e = null, name, orig = null } = $props();
+	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. `runtime`: duración en minutos (de la
+	 * ficha), para el bitrate. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null, runtime?: number | null}} */
+	let { imdb, s = null, e = null, name, orig = null, runtime = null } = $props();
 
 	/** @typedef {{hash: string, release: string, file: string | null, res: string | null, hdr: string[], source: string | null, lat: boolean, multi: boolean, size: number | null, seeds: number, addons: string[], subFile: boolean, doubt?: boolean}} Torrent */
 	/** @typedef {{id: string, release: string, latino: boolean, format: string, downloads: number, exact?: boolean, fps?: number | null, last?: number | null, group?: string, premium?: boolean}} Sub */
@@ -109,7 +110,7 @@
 			copy = {};
 			resetSubs();
 			match = null;
-			goStep('audio');
+			goStep(net ? 'audio' : 'net');
 			wantLat = false;
 			found = [];
 			showAll = false;
@@ -154,8 +155,31 @@
 	}
 
 	// ── Pasos ────────────────────────────────────────────────────────────────────────────────────────────────
-	/** Paso actual: elegir el audio, o el resultado (buscando el primer buen match, ese match o, con `showAll`, todas). */
-	let step = $state(/** @type {'audio' | 'list'} */ ('audio'));
+	/** Conexión donde se va a ver (2026-11-18): la elige el usuario una vez (queda guardada) y pone el tope de bitrate
+	 * del buen match; "¿Se cortó?" baja un nivel. `mbps`: lo más que se le pide al video (el piso del rango). */
+	const NET = /** @type {const} */ ([
+		{ key: 'terrible', label: 'Muy baja', range: 'Menos de 8 Mbps o señal que se corta: busco una muy liviana', mbps: 4 },
+		{ key: 'low', label: 'Baja', range: '8 a 25 Mbps, o la tele en wifi 2.4 GHz', mbps: 10 },
+		{ key: 'normal', label: 'Normal', range: '25 a 100 Mbps', mbps: 25 },
+		{ key: 'high', label: 'Alta', range: 'Más de 100 Mbps, en wifi 5 GHz o por cable', mbps: Infinity }
+	]);
+	let net = $state(NET.find((n) => n.key === saved.recall('net')) ?? null);
+	/** @param {(typeof NET)[number]} n */
+	function chooseNet(n) {
+		net = n;
+		saved.remember('net', n.key);
+		goStep('audio');
+	}
+	/** Mbps típicos por resolución cuando no se sabe la duración (como el desktop, catalog-options.js `TYPICAL_MBPS`). */
+	const TYPICAL = /** @type {Record<string, number>} */ ({ '2160p': 25, '1080p': 8, '720p': 4, other: 3 });
+	/** Bitrate que pide el video, en Mbps: peso ÷ duración (la de la ficha); sin alguno de los dos, lo típico. @param {Torrent} t */
+	const mbpsOf = (t) => (t.size && runtime ? (t.size * 8) / (runtime * 60) / 1e6 : TYPICAL[resOf(t)]);
+	/** ¿Entra en la conexión elegida? @param {Torrent} t */
+	const fits = (t) => !net || mbpsOf(t) <= net.mbps;
+
+	/** Paso actual: la conexión (si no se eligió nunca), el audio, o el resultado (buscando el primer buen match, ese
+	 * match o, con `showAll`, todas). */
+	let step = $state(/** @type {'net' | 'audio' | 'list'} */ ('audio'));
 	let wantLat = $state(false);
 	/** Buenos matches que se muestran, en el orden en que aparecieron (hashes). */
 	let found = $state(/** @type {string[]} */ ([]));
@@ -163,7 +187,7 @@
 	let showAll = $state(false);
 	/** Cada cambio de paso (o de video) invalida lo que se estaba leyendo: los bucles miran este número. */
 	let gen = 0;
-	/** @param {'audio' | 'list'} to */
+	/** @param {'net' | 'audio' | 'list'} to */
 	function goStep(to) {
 		gen++;
 		reading = false;
@@ -190,11 +214,13 @@
 	const unread = (lat, t) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (t.lat || !!t.doubt) : !hasEs(t) && !known(t));
 	/** @param {Torrent} t */
 	const qualityRank = (t) => (t.source ? QUALITY[t.source]?.[1] : null) ?? 2.5;
-	/** De mejor a peor: resolución, después calidad de imagen y, a igual calidad, la más pesada (más bitrate).
-	 * @param {Torrent} a @param {Torrent} b */
-	const byQuality = (a, b) => RES.indexOf(resOf(a)) - RES.indexOf(resOf(b)) || qualityRank(b) - qualityRank(a) || (b.size ?? 0) - (a.size ?? 0);
-	/** Lo que entra con el audio elegido (latino: solo las con potencial), de mejor a peor calidad. */
-	const byBest = $derived((wantLat ? all.filter(potential) : [...all]).sort(byQuality));
+	/** De mejor a peor: más bitrate (más imagen por segundo; la resolución sola no dice cuánto se comprimió), y a igual
+	 * bitrate la de mejor calidad de imagen. @param {Torrent} a @param {Torrent} b */
+	const byQuality = (a, b) => mbpsOf(b) - mbpsOf(a) || qualityRank(b) - qualityRank(a);
+	/** Lo que entra con el audio elegido (latino: solo las con potencial), de mejor a peor. `byBest`: solo las que entran
+	 * en la conexión (de ahí sale el buen match); `everything`: todas, para "Ver todas". */
+	const everything = $derived((wantLat ? all.filter(potential) : [...all]).sort(byQuality));
+	const byBest = $derived(everything.filter(fits));
 	const candidates = $derived(byBest.filter((t) => unread(wantLat, t)));
 	/** El próximo buen match todavía no mostrado, si viene antes (en calidad) que la próxima candidata; si no, null. */
 	const nextMatch = $derived.by(() => {
@@ -237,9 +263,18 @@
 		reading = false;
 	}
 	/** "Ver todas las opciones": la lista completa, con los filtros. */
-	const list = $derived(byBest.filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
+	const list = $derived(everything.filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
+	/** "¿Se cortó?": baja un nivel de conexión y busca de nuevo con el tope nuevo. */
+	function lighter() {
+		const i = NET.findIndex((n) => n.key === net?.key);
+		if (i <= 0) return;
+		net = NET[i - 1];
+		saved.remember('net', net.key);
+		linkDone = null;
+		chooseAudio(wantLat);
+	}
 	/** Qué se ve en el paso de resultado: buscando el primer match, el resultado o todas. */
-	const screen = $derived(step === 'audio' ? 'audio' : showAll ? 'all' : reading && !found.length ? 'search' : 'match');
+	const screen = $derived(step === 'net' || step === 'audio' ? step : showAll ? 'all' : reading && !found.length ? 'search' : 'match');
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 	/** Entrada de cada paso: sube un poco y aparece. @param {Element} _ */
 	const stepIn = (_) => ({
@@ -533,17 +568,30 @@
 	{:else if data && !all.length}
 		<p class="status muted">{tr('No hay torrents en TorBox para esto.')}</p>
 	{:else if data}
-		{#if step !== 'audio'}
+		{#if step !== 'net' && net}
 			<nav class="crumbs" aria-label={tr('Ruta')}>
-				<button id="crumb-torbox" type="button" onclick={() => goStep('audio')}>TorBox</button>
-				<span aria-hidden="true">›</span>
-				<span aria-current="page">{wantLat ? tr('Audio latino') : tr('Audio original')}</span>
+				<button id="crumb-net" type="button" title={tr('Cambiar la conexión')} onclick={() => goStep('net')}>{tr('Conexión {c}', { c: tr(net.label).toLowerCase() })}</button>
+				{#if step === 'list'}
+					<span aria-hidden="true">›</span>
+					<button id="crumb-audio" type="button" onclick={() => goStep('audio')}>{wantLat ? tr('Audio latino') : tr('Audio original')}</button>
+				{/if}
 			</nav>
 		{/if}
 
 		{#key screen}
 			<div class="step" in:stepIn>
-				{#if screen === 'audio'}
+				{#if screen === 'net'}
+					<h3 class="ask">{tr('¿Cómo es tu internet donde lo vas a ver?')}</h3>
+					<div class="choices">
+						<!-- La más rápida arriba; NET queda de menor a mayor para que "¿Se cortó?" baje un nivel. -->
+						{#each [...NET].reverse() as n (n.key)}
+							<button id="net-{n.key}" type="button" class="choice" class:primary={net?.key === n.key} onclick={() => chooseNet(n)}>
+								<strong>{tr(n.label)}</strong>
+								<span class="muted">{tr(n.range)}</span>
+							</button>
+						{/each}
+					</div>
+				{:else if screen === 'audio'}
 					{@const named = all.filter((t) => t.lat).length}
 					{@const doubtful = all.filter((t) => t.doubt && !t.lat).length}
 					{@const toRead = all.filter((t) => unread(true, t)).length}
@@ -572,12 +620,12 @@
 						<p class="match-why"><Icon name="check" size={15} />{wantLat ? tr('Audio latino confirmado') : tr('Trae subtítulos en español')}</p>
 						{@render options(found.map((h) => all.find((t) => t.hash === h)).filter((t) => !!t), true)}
 					{:else}
-						<h3 class="ask">{wantLat ? tr('Sin latino confirmado') : tr('Sin subtítulos en español adentro')}</h3>
-						<p class="muted latsum" role="status">{candidates.length ? tr('Búsqueda detenida: estas son las de mejor calidad.') : wantLat ? tr('No encontré latino confirmado.') : tr('Ninguna trae sub ES nativo: los subs se buscan afuera.')}</p>
+						<h3 class="ask">{!byBest.length ? tr('Ninguna entra en tu conexión') : wantLat ? tr('Sin latino confirmado') : tr('Sin subtítulos en español adentro')}</h3>
+						<p class="muted latsum" role="status">{!byBest.length ? tr('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión.') : candidates.length ? tr('Búsqueda detenida: estas son las de mejor calidad.') : wantLat ? tr('No encontré latino confirmado.') : tr('Ninguna trae sub ES nativo: los subs se buscan afuera.')}</p>
 						{@render options(byBest.slice(0, 3), false)}
 					{/if}
 					{@render more()}
-					<button id="see-all" type="button" class="link-btn" onclick={() => (showAll = true)}>{tr('Ver todas las opciones ({n})', { n: byBest.length })}</button>
+					<button id="see-all" type="button" class="pill-btn" onclick={() => (showAll = true)}><Icon name="list" size={15} />{tr('Ver todas las opciones')}<span class="count">{everything.length}</span></button>
 				{:else}
 					<div class="bar">
 						<div class="chips toggles" role="toolbar" aria-label={tr('Filtros de torrents')}>
@@ -623,6 +671,7 @@
 				<div class="top">
 					<span class="size">{gb(t.size)}</span>
 					{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
+					{#if !fits(t)}<span class="tag heavy" title={tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) })}>{tr('Puede cortarse')}</span>{/if}
 					{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
 					{#if lb?.kind === 'es'}
 						<button id="audio-info-{t.hash}" type="button" class="tag act" title={tr(lb.title)} onclick={() => (tracksOf = t)}><Icon name="volume" size={13} />{tr(lb.text)}</button>
@@ -631,7 +680,6 @@
 					{:else if lb?.kind === 'doubt'}
 						<button id="audio-check-{t.hash}" type="button" class="tag act" title={tr(lb.title)} onclick={() => probe(t)}><Icon name="volume" size={13} />{tr(lb.text)}</button>
 					{:else if lb}<span class="tag audio {lb.kind}" title={tr(lb.title)}>{tr(lb.text)}</span>{/if}
-					<span class="tag tb" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>TorBox</span>
 					{#if sb?.on}<span class="tag cc es" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES</span>
 					{:else if sb}<button id="find-subs-{t.hash}" type="button" class="tag act" title={sb.title} onclick={() => showSubs(t)}><Icon name="subs" size={13} />{tr('Buscar subs ES')}</button>{/if}
 				</div>
@@ -865,6 +913,9 @@
 			<p class="native"><Icon name="subs" size={18} />{k ? tr('No trae subtítulos en español.') : tr('No pude ver si trae subtítulos en español.')}</p>
 			<button id="see-subs" type="button" class="btn primary see-subs" onclick={() => linkDone && showSubs(linkDone)}><Icon name="search" size={16} />{tr('Ver subtítulos disponibles')}</button>
 		{/if}
+		{#if net && net.key !== NET[0].key}
+			<button id="lighter" type="button" class="link-btn" onclick={lighter}>{tr('¿Se cortó? Buscar una más liviana')}</button>
+		{/if}
 		<button id="cast-line" type="button" class="cast-line" onclick={() => { linkDone = null; tutorialOpen = true; }}><Icon name="cast" size={15} /><span>{tr('¿Lo vas a ver en la tele?')} <u>{tr('Cómo mandarlo')}</u></span></button>
 	{/if}
 </Sheet>
@@ -984,6 +1035,11 @@
 	}
 	.tag.res { color: var(--accent-fg); }
 	.tag.lat, .tag.es { color: var(--green); }
+	/* Acción secundaria al pie del resultado: botón, no link suelto. */
+	.pill-btn { display: inline-flex; align-items: center; gap: 8px; align-self: center; min-height: 44px; margin: 10px auto 0; padding: 0 18px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; }
+	.pill-btn:active { transform: scale(0.98); }
+	.pill-btn .count { padding: 1px 8px; border-radius: 999px; background: var(--surface-3, var(--border)); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+	.tag.heavy { color: var(--amber, #b7791f); border-color: currentColor; }
 	/* Audio: LAT confirmado (verde), según el nombre (gris punteado), sin aclarar (ámbar, como "sin sub ES"). */
 	.tag.audio.lat { color: var(--green); }
 	.tag.audio.name { border-style: dashed; color: var(--muted); }
@@ -996,7 +1052,6 @@
 	.acts { display: flex; align-items: center; gap: 8px; }
 	/* Badge de subs compacto (cc + ES): entra en la línea de los tags. (`.sub` ya es la fila de subtítulo.) */
 	.tag.cc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px 1px 4px; }
-	.tag.tb { color: #3ecf8e; }
 	/* "Verificar subtítulos": texto chico debajo de la calidad; sin borde ni caja, solo el color del acento. */
 	.verify {
 		display: inline-flex;

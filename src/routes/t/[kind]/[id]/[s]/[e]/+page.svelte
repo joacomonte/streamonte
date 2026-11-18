@@ -37,7 +37,7 @@
 		<p class="error">{tr('TMDB no tiene el IMDb id de esta serie: no puedo buscar torrents.')}</p>
 	{:else}
 		<h2>{tr('Opciones en TorBox')}</h2>
-		<Torrents imdb={t.imdb} s={data.s} e={data.e} name={t.title} orig={t.origLang} />
+		<Torrents imdb={t.imdb} s={data.s} e={data.e} name={t.title} orig={t.origLang} runtime={t.runtime} />
 	{/if}
 </main>
 

@@ -142,7 +142,7 @@
 		<p class="error">{tr('TMDB no tiene el IMDb id de este título: no puedo buscar torrents.')}</p>
 	{:else if !isTv}
 		<h2>{tr('Opciones en TorBox')}</h2>
-		<Torrents imdb={t.imdb} name={t.title} orig={t.origLang} />
+		<Torrents imdb={t.imdb} name={t.title} orig={t.origLang} runtime={t.runtime} />
 	{:else}
 		<SeasonChart imdb={t.imdb} status={t.status} next={t.next} current={season} onpick={pickSeason} />
 		{#key season}
