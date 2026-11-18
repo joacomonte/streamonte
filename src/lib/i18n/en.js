@@ -107,7 +107,7 @@ export default {
 	'Idioma original': 'Original language',
 	'Idioma y HDR': 'Language and HDR',
 	'Inglés o español': 'English or Spanish',
-	'Ingresar código': 'Enter code',
+	'Introducí el código': 'Enter the code',
 	'Instalala en el celu': 'Install it on your phone',
 	'Ir a Ajustes': 'Go to Settings',
 	'Ir al paso {n}': 'Go to step {n}',
@@ -197,7 +197,6 @@ export default {
 	Terminada: 'Ended',
 	Tipo: 'Type',
 	'Tocá Copiar para llevarlo al portapapeles.': 'Tap Copy to put it on the clipboard.',
-	'Tocá para escribir': 'Tap to type',
 	'TorBox (torrents)': 'TorBox (torrents)',
 	'TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.':
 		'TorBox is a paid service that downloads torrents to its servers and streams them to you. These are already downloaded: the link plays instantly on your TV, no seeds needed.',
