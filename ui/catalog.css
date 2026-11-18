@@ -647,9 +647,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 
 /* Tarjeta cerrada: una sola acción a la derecha (2026-11-17). */
 .cat-res-go { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 650; color: var(--accent-fg); }
-.cat-res-go-text { display: grid; justify-items: end; gap: 1px; }
-.cat-res-go-label { display: inline-flex; align-items: center; gap: 4px; }
-.cat-res-eta { font-size: 11.5px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* El ícono `chev` apunta abajo: a la derecha, como "seguir". */
 .cat-res-arrow { display: inline-flex; transform: rotate(-90deg); transition: transform .15s var(--ease); }
 .cat-group-head:hover .cat-res-arrow { transform: rotate(-90deg) translateY(2px); }
@@ -678,16 +675,8 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-res-spin.big { width: 22px; height: 22px; border-width: 2.5px; }
 .cat-deep.stopping .cat-deep-title b { color: var(--muted); }
 
-/* Tarjeta cerrada: la acción principal (toda la tarjeta) y, a la derecha, "Ver lista" chico (2026-11-17). */
-.cat-group-row { display: flex; align-items: center; gap: 6px; padding-right: 12px; }
-.cat-group-row > .cat-group-head { flex: 1; min-width: 0; }
-.cat-group-row > .cat-group-head { padding-right: 6px; }
-.cat-res-quick { flex: none; display: grid; justify-items: center; gap: 1px; padding: 6px 12px; border: 0; border-radius: 12px; background: none; color: var(--text); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; transition: border-color .15s var(--ease), background .15s var(--ease); }
-.cat-res-quick small { font-size: 10.5px; font-weight: 500; color: var(--muted); }
-.cat-res-quick:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
 /* Las que siguen probándose de fondo, en una línea al pie de la lista. */
 .cat-probing { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 10px 0 2px; font-size: 12.5px; color: var(--muted); }
-.cat-res-quick:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 
 .cat-deep-bar > i { transition: width .5s var(--ease, ease); }
 /* Con la lista de la prueba rápida: ofrecer el análisis a fondo, sin gritar. */
@@ -696,3 +685,38 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-deep-offer-text { flex: 1; display: grid; gap: 2px; }
 .cat-deep-offer-text b { color: var(--accent-fg); font-size: 13.5px; }
 .cat-deep-offer-text span { font-size: 12px; color: var(--muted); }
+
+/* TorBox (2026-11-17): badge minimal junto a HDR y su filtro al lado de "Solo HDR". */
+.cat-tag.cat-torbox { border: 1px solid color-mix(in srgb, var(--green) 55%, var(--border)); color: color-mix(in srgb, var(--green) 80%, var(--text)); background: none; }
+.cat-list-filters { display: inline-flex; gap: 8px; }
+
+/* "Ver torrents" (2026-11-17): un solo botón por calidad y su menú. */
+.cat-res-arrow.down { transform: none; }
+.cat-group-head:hover .cat-res-arrow.down { transform: translateY(2px); }
+.cat-group.menu-open { position: relative; z-index: 4; border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+.cat-res-menu { display: grid; gap: 4px; padding: 6px 8px 10px; animation: cat-menu-in .2s var(--ease) both; }
+@keyframes cat-menu-in { from { opacity: 0; transform: translateY(-4px); } }
+.cat-menu-item { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: center; width: 100%; padding: 10px 12px; border: 0; border-radius: 12px; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: background .15s var(--ease); }
+.cat-menu-item:hover:not(:disabled), .cat-menu-item:focus-visible { background: color-mix(in srgb, var(--accent) 10%, transparent); outline: none; }
+.cat-menu-item:disabled { opacity: .45; cursor: not-allowed; }
+.cat-menu-ic { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--surface-3, var(--surface)); color: var(--muted); }
+.cat-menu-item.deep .cat-menu-ic { background: var(--accent); color: #fff; }
+.cat-menu-text { display: grid; gap: 2px; min-width: 0; }
+.cat-menu-text b { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+.cat-menu-text > span { font-size: 12px; color: var(--muted); }
+.cat-menu-badge { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--green) 18%, transparent); color: color-mix(in srgb, var(--green) 85%, var(--text)); font-size: 10.5px; font-weight: 800; letter-spacing: .03em; }
+.cat-menu-item.deep { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+@media (prefers-reduced-motion: reduce) { .cat-res-menu { animation: none; } }
+
+/* ▶ de una opción en TorBox (2026-11-17): verde y con un pulso suave, para que se note que es especial. */
+.cat-play.torbox { background: var(--green); box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); animation: cat-tb-pulse 1.8s ease-out infinite; }
+.cat-play.torbox:hover { filter: brightness(1.08); }
+@keyframes cat-tb-pulse { 70% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--green) 0%, transparent); } 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 0%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .cat-play.torbox { animation: none; } }
+
+/* Opción en TorBox: en lugar de salud y seeds, que ya está lista. */
+.cat-tb-ready { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: color-mix(in srgb, var(--green) 85%, var(--text)); }
+
+/* Grupo TorBox (2026-11-17): las que tiene en caché, de cualquier calidad. */
+#cat-group-torbox .cat-group-name { color: color-mix(in srgb, var(--green) 85%, var(--text)); }
+.cat-tag.cat-res-tag { color: var(--text); border-color: var(--border); }

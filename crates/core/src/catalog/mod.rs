@@ -13,6 +13,7 @@ pub mod protocol;
 pub mod seasons;
 pub mod tmdb;
 pub mod top;
+pub mod torbox;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -647,6 +648,32 @@ impl Catalog {
         if let Some(h) = self.streams_task.lock().expect("streams").take() {
             h.abort();
         }
+    }
+
+    /// Cuáles de esas opciones están en la caché de TorBox (`torbox::cached`).
+    pub async fn torbox_cached(
+        &self,
+        hashes: &[InfoHash],
+        timeout: Duration,
+    ) -> Option<Vec<InfoHash>> {
+        torbox::cached(&self.http, hashes, timeout)
+            .await
+            .map(|s| s.into_iter().collect())
+    }
+
+    /// Link directo de TorBox para esa opción de la lista vigente, y su nombre (2026-11-17).
+    pub async fn torbox_stream(
+        &self,
+        hash: InfoHash,
+        timeout: Duration,
+    ) -> Result<(String, String)> {
+        let magnet = self
+            .magnets_of(&[hash])
+            .into_iter()
+            .next()
+            .ok_or_else(|| CoreError::NotFound("esa opción ya no está en la lista".into()))?;
+        let url = torbox::stream_url(&self.http, &magnet.to_uri(), timeout).await?;
+        Ok((url, magnet.display_name.unwrap_or_else(|| hash.to_hex())))
     }
 
     /// Magnets (con sus trackers) de opciones de la lista vigente, para contar su enjambre.

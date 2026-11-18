@@ -31,7 +31,7 @@ futures-util = { version = "0.3", optional = true, default-features = false }
 
 # Subtítulos (FR-22–28): HTTP a proveedores (misma versión que ya trae librqbit → no suma peso),
 # decodificar subtítulos viejos en Latin-1/Windows-1252, y API keys en el almacén seguro del SO (NFR-16).
-reqwest = { version = "0.13", default-features = false, features = ["default-tls", "form", "query"] }
+reqwest = { version = "0.13", default-features = false, features = ["default-tls", "form", "query", "multipart"] }
 encoding_rs = "0.8"
 # OpenSubtitles.org entrega base64 de un gzip (ya venían en el árbol por rqbit/reqwest).
 base64 = "0.23"

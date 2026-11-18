@@ -188,7 +188,7 @@ export async function saveNetwork() {
 
 const SERVICE_NAMES = { wyzie: 'Wyzie', opensubtitles: 'OpenSubtitles', tmdb: 'TMDB' };
 /** Sección de cada key sin configurar (2026-11-17); configurada, baja a "Conectado". */
-const KEY_HOME = { tmdb: 'set-catalog', wyzie: 'set-subs', opensubtitles: 'set-subs' };
+const KEY_HOME = { tmdb: 'set-catalog', torbox: 'set-catalog', wyzie: 'set-subs', opensubtitles: 'set-subs' };
 
 /** Pone la fila de la key donde corresponde según si está configurada, con su estado. */
 function placeKey(service, configured) {
@@ -224,6 +224,7 @@ export async function saveKey(service) {
     await api.setApiKey(service, value);
     input.value = '';
     if (service === 'tmdb') document.dispatchEvent(new CustomEvent('streamonte:tmdb-key'));
+    if (service === 'torbox') document.dispatchEvent(new CustomEvent('streamonte:torbox-key'));
     if (!value) {
       placeKey(service, false);
       setStatus(`Key de ${SERVICE_NAMES[service]} borrada.`);

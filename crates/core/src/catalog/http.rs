@@ -103,6 +103,70 @@ impl Http {
         serde_json::from_slice(&bytes).map_err(|_| FetchError::NotJson)
     }
 
+    /// GET de JSON con `Authorization: Bearer` (TorBox, 2026-11-17).
+    pub async fn get_json_bearer<T: serde::de::DeserializeOwned>(
+        &self,
+        url: &str,
+        token: &str,
+        timeout: Duration,
+    ) -> Result<T, FetchError> {
+        let req = self
+            .client
+            .get(url)
+            .header("Accept", "application/json")
+            .bearer_auth(token);
+        let bytes = tokio::time::timeout(timeout, crate::http::get_bytes(req, LIMITS))
+            .await
+            .map_err(|_| FetchError::Timeout)??;
+        serde_json::from_slice(&bytes).map_err(|_| FetchError::NotJson)
+    }
+
+    /// POST `multipart/form-data` con `Authorization: Bearer`, respuesta JSON (TorBox `createtorrent`,
+    /// que según su OpenAPI solo acepta multipart). Sin reintento: el cuerpo no se puede clonar.
+    pub async fn post_multipart_bearer<T: serde::de::DeserializeOwned>(
+        &self,
+        url: &str,
+        token: &str,
+        fields: &[(&'static str, String)],
+        timeout: Duration,
+    ) -> Result<T, FetchError> {
+        let form = fields
+            .iter()
+            .fold(reqwest::multipart::Form::new(), |f, (k, v)| {
+                f.text(*k, v.clone())
+            });
+        let send = async {
+            let resp = self
+                .client
+                .post(url)
+                .header("Accept", "application/json")
+                .bearer_auth(token)
+                .multipart(form)
+                .send()
+                .await
+                .map_err(|e| FetchError::Network(e.to_string()))?;
+            let status = resp.status();
+            let bytes = resp
+                .bytes()
+                .await
+                .map_err(|e| FetchError::Network(e.to_string()))?;
+            if bytes.len() > 1024 * 1024 {
+                return Err(FetchError::TooLarge);
+            }
+            // TorBox contesta JSON también en los errores: se lee igual para ver su `detail`.
+            serde_json::from_slice(&bytes).map_err(|_| {
+                if status.is_success() {
+                    FetchError::NotJson
+                } else {
+                    FetchError::Status(status.as_u16())
+                }
+            })
+        };
+        tokio::time::timeout(timeout, send)
+            .await
+            .map_err(|_| FetchError::Timeout)?
+    }
+
     async fn get_bytes(&self, url: &str) -> Result<Vec<u8>, FetchError> {
         self.get_capped(url, LIMITS).await
     }

@@ -45,23 +45,23 @@ export async function loadSavedTests(video, cands) {
     setStatus(`No apareció ningún torrent en ${resLabel(intent.res)}: elegí otra calidad.`);
     return;
   }
-  startAnalysis(intent.res);
+  startAnalysis(intent.res, false, intent.quickOnly);
 }
 
 /** Tocar una resolución (2026-11-17): arranca su análisis. Mientras se buscan torrents queda anotado
  *  y arranca al terminar; tocar de nuevo lo anula. */
-export function requestGroup(res) {
+export function requestGroup(res, quickOnly = false) {
   const t = state.side.tests;
   if (!state.update?.done || !t.ready) {
     // Ya se muestra analizando (esperando la lista); arranca de verdad en `loadSavedTests`.
     stopTests();
-    t.intent = { res };
-    t.run = { res, best: false, stage: 'waiting', at: Date.now() };
+    t.intent = { res, quickOnly };
+    t.run = { res, best: false, quickOnly, stage: 'waiting', at: Date.now() };
     view.openRes = res;
     renderStreamsOnly();
     return;
   }
-  startAnalysis(res);
+  startAnalysis(res, false, quickOnly);
 }
 /** Arranca el análisis de una resolución. Nunca dos a la vez: corta el que haya en curso (de este
  *  video o uno dejado de fondo en otro) y empieza de nuevo en esta. */

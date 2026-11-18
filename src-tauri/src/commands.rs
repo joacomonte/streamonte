@@ -277,6 +277,19 @@ pub async fn catalog_swarm(
 ) -> CmdResult<std::collections::HashMap<InfoHash, SwarmCount>> {
     Ok(core.catalog_swarm(&hashes, depth).await)
 }
+/// Cuáles de esas opciones están en la caché de TorBox; null = sin key o no respondió.
+#[tauri::command]
+pub async fn catalog_torbox(
+    core: Core<'_>,
+    hashes: Vec<InfoHash>,
+) -> CmdResult<Option<Vec<InfoHash>>> {
+    Ok(core.catalog_torbox(&hashes).await)
+}
+/// ▶ desde TorBox: abre el reproductor con su link directo.
+#[tauri::command]
+pub async fn play_torbox(core: Core<'_>, video_id: String, hash: InfoHash) -> CmdResult<()> {
+    Ok(core.play_torbox(&video_id, hash).await?)
+}
 /// Tests de conexión de la última hora (datos guardados).
 #[tauri::command]
 pub fn catalog_swarm_saved(

@@ -61,6 +61,22 @@
           </div>
           <p class="key-done" role="status"></p>
         </div>
+        <!-- TorBox (2026-11-17): marca las opciones que ya están en su caché. -->
+        <div class="key-row" data-service="torbox">
+          <div class="key-head">
+            <label for="key-torbox">TorBox</label><span id="key-torbox-state" class="key-state"></span>
+            <button id="key-torbox-change" class="key-change" type="button">Cambiar</button>
+          </div>
+          <div class="key-edit">
+            <p class="hint">Con tu cuenta de TorBox, marca las opciones que ya tiene en su caché: se pueden ver al instante desde sus servidores, sin depender de los seeds.</p>
+            <div class="key-line">
+              <input id="key-torbox" type="password" placeholder="Pegá tu API key de TorBox" autocomplete="off">
+              <button id="key-torbox-save" class="primary" data-save-key="torbox">Guardar</button>
+            </div>
+            <button id="key-torbox-page" class="link" data-key-page="torbox">¿Dónde está? En tu cuenta de TorBox → Settings → API</button>
+          </div>
+          <p class="key-done" role="status"></p>
+        </div>
         <div class="set-line">
           <p class="hint">Fuentes de torrents: los addons que se consultan al abrir una película o episodio.</p>
           <button id="btn-sources">Ver y activar fuentes</button>

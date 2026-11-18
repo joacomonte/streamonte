@@ -56,6 +56,7 @@ export function onStreams(update) {
     // Censo DHT apenas están las fuentes y los trackers (2026-11-16): una vez por video, en paralelo.
     if (once(t, 'census')) runCensus(update.video_id, update.candidates);
     if (once(t, 'saved')) loadSavedTests(update.video_id, update.candidates);
+    if (once(t, 'torbox')) loadTorbox(update.video_id, update.candidates);
   }
   const ok = update.addons.filter((a) => a.state !== 'pending').length;
   setStatus(update.done
@@ -91,6 +92,11 @@ export const deepTested = () => state.side?.deep?.status === 'done' && state.sid
  *  todo va lo que se reproduce o baja. `best` = la primera que entra, no es de cine y anda fluida (la
  *  fila confirma que esté testeada). */
 export function sortOptions(cands) {
+  // "Solo TorBox" (2026-11-17): se ven desde sus servidores, así que seeds y salud no importan: de
+  // mejor a peor calidad de imagen, y a igual calidad la más pesada (menos comprimida).
+  if (view.onlyTorbox || view.openRes === 'torbox') {
+    return { list: [...cands].sort((a, b) => qualityRank(b) - qualityRank(a) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0)), best: null };
+  }
   const mode = deepTested() ? view.optSort : 'fast';
   const lvl = new Map(cands.map((c) => { const h = health(c); return [c, h ? h.shown + (h.probable ? 0.5 : 0) : 1.75]; }));
   const byConnection = (a, b) => lvl.get(a) - lvl.get(b) || (knownSeeds(b) ?? -1) - (knownSeeds(a) ?? -1) || (leechersOf(b) ?? -1) - (leechersOf(a) ?? -1);
@@ -143,7 +149,34 @@ export function leechersOf(c) {
 
 export function setOnlyHdr(v) { view.onlyHdr = v; safeSet('streamonte.catalog.onlyHdr', v ? '1' : '0'); }
 /** Lo que entra en un análisis: esa resolución (o todas, sin `res`) y, si se pidió, solo HDR. */
-export const inScope = (c, res) => (!res || resKey(c) === res) && (!view.onlyHdr || c.hdr.length);
+/** Opciones que están en la caché de TorBox (2026-11-17; vacío sin key). */
+export const inTorbox = new Set();
+/** Una vez por video, apenas está la lista: cuáles están en TorBox. Sin key no pregunta nada. */
+export async function loadTorbox(video, cands) {
+  const found = await api.catalogTorbox(cands.map((c) => c.info_hash)).catch(() => null);
+  view.torboxKey = found !== null; // null = sin key (o TorBox no respondió)
+  if (!found || state.side?.videoId !== video) { renderStreamsOnly(); return; }
+  found.forEach((h) => inTorbox.add(h));
+  if (found.length) renderStreamsOnly();
+}
+// Key de TorBox recién cargada en Ajustes: se marca enseguida lo del video abierto.
+document.addEventListener('streamonte:torbox-key', () => {
+  if (state.update?.done) loadTorbox(state.side.videoId, state.update.candidates);
+});
+/** ▶ de una opción que está en TorBox: le pide el link y abre el reproductor (2026-11-17). */
+async function playFromTorbox(hash) {
+  starting.set(hash, null);
+  renderStreamsOnly();
+  setStatus('Pidiéndole el video a TorBox…');
+  try {
+    await api.playTorbox(state.side.videoId, hash);
+    setStatus('Reproduciendo desde TorBox.');
+  } catch (e) { showError(e); } finally {
+    starting.delete(hash);
+    renderStreamsOnly();
+  }
+}
+export const inScope = (c, res) => (!res || resKey(c) === res) && (!view.onlyTorbox || inTorbox.has(c.info_hash)) && (!view.onlyHdr || c.hdr.length);
 
 /** Arriba de la lista: el panel de búsqueda y test, solo (2026-11-17: subtítulos y HDR van aparte). */
 export function optionsHead() {
@@ -170,7 +203,11 @@ export function sortRow() {
     title: view.onlyHdr ? 'Mostrando solo HDR / Dolby Vision: tocá para ver todas' : 'Mostrar solo las opciones con HDR / Dolby Vision (más rango de luz y color)',
     onclick: () => { setOnlyHdr(!view.onlyHdr); renderStreamsOnly(); },
   }, view.onlyHdr ? icon('check', 12) : null, 'Solo HDR');
-  const order = !deepTested() ? el('div', { class: 'cat-sort-row', id: 'cat-sort-info' },
+  const order = view.onlyTorbox || view.openRes === 'torbox' ? el('div', { class: 'cat-sort-row', id: 'cat-sort-info' },
+    el('span', { class: 'cat-sort-label' }, 'Ordenado por'),
+    el('span', { class: 'cat-sort-fixed', title: 'En TorBox se ven al instante desde sus servidores: los seeds no importan, manda la calidad' },
+      icon('monitor', 13), 'Mejor calidad'))
+    : !deepTested() ? el('div', { class: 'cat-sort-row', id: 'cat-sort-info' },
     el('span', { class: 'cat-sort-label' }, 'Ordenado por'),
     el('span', { class: 'cat-sort-fixed', title: 'Hasta testearlas, se ordenan por mejor conexión: más seeds. Después del test podés ordenar por mejor imagen.' },
       icon('gauge', 13), 'Mejor conexión'))
@@ -179,7 +216,13 @@ export function sortRow() {
       [['quality', 'Mejor imagen', 'Arriba las testeadas que andan fluidas, de mejor a peor calidad de imagen; después el resto por conexión'], ['fast', 'Arranca más rápido', 'Primero las de mejor conexión: las más fluidas y con más seeds']].map(([k, label, tip]) =>
         el('button', { id: `cat-sort-${k}`, 'aria-pressed': String(view.optSort === k), title: tip,
           onclick: () => { view.optSort = k; safeSet('streamonte.catalog.sort', k); renderStreamsOnly(); } }, label))));
-  return el('div', { class: 'cat-list-bar' }, order, hdr);
+  // "Solo TorBox" (2026-11-17): solo si alguna de la lista está en su caché (o el filtro ya está puesto).
+  const tb = inTorbox.size || view.onlyTorbox ? el('button', {
+    id: 'cat-only-torbox', class: 'cat-hdr-filter', 'aria-pressed': String(view.onlyTorbox),
+    title: view.onlyTorbox ? 'Mostrando solo las que están en TorBox: tocá para ver todas' : 'Mostrar solo las que ya están en la caché de TorBox',
+    onclick: () => { view.onlyTorbox = !view.onlyTorbox; renderStreamsOnly(); },
+  }, view.onlyTorbox ? icon('check', 12) : null, 'Solo TorBox') : null;
+  return el('div', { class: 'cat-list-bar' }, order, el('span', { class: 'cat-list-filters' }, tb, hdr));
 }
 
 /** Cada cuánto cambia la línea de avance aunque no lleguen resultados. */
@@ -644,11 +687,18 @@ export function optionRow(c, best = false) {
     confirmed ? el('span', { class: 'cat-best-tags' }, el('span', { class: 'cat-best-tag' }, 'Mejor opción')) : null,
     el('span', { class: 'cat-size-cell' },
       el('span', { class: 'cat-size-line' }, el('span', { class: 'cat-size' }, humanBytes(c.size_bytes)),
-        hdrTip ? el('span', { class: 'cat-tag cat-hdr', title: hdrTip }, 'HDR') : null),
+        // En el grupo TorBox se mezclan calidades: cada fila dice la suya.
+        view.openRes === 'torbox' ? el('span', { class: 'cat-tag cat-res-tag' }, resLabel(resKey(c))) : null,
+        hdrTip ? el('span', { class: 'cat-tag cat-hdr', title: hdrTip }, 'HDR') : null,
+        inTorbox.has(hash) ? el('span', { class: 'cat-tag cat-torbox', title: 'En TorBox: ya está en su caché, se puede ver al instante desde sus servidores' }, 'TorBox') : null),
       qualityLine(c),
       big ? el('span', { class: 'cat-nofit', title: `No entra en el disco: pesa ${humanBytes(fileBytes(c))} y en el disco de descargas quedan ${humanBytes(view.freeBytes)} libres. Se cortaría a mitad: liberá espacio o elegí una más liviana.` },
         icon('ban', 12), `No entra: te quedan ${humanBytes(view.freeBytes)}`) : null),
-    el('span', { class: 'cat-mid' }, main, people),
+    // En TorBox (2026-11-17): se ve desde sus servidores, así que salud, seeds y bajar de fondo no aplican.
+    inTorbox.has(hash) && !pbStatus
+      ? el('span', { class: 'cat-mid' }, el('span', { class: 'cat-tb-ready' }, icon('check', 14), 'Listo en TorBox'),
+        el('span', { class: 'cat-people' }, 'Se ve al instante desde sus servidores'))
+      : el('span', { class: 'cat-mid' }, main, people),
     el('span', { class: 'cat-opt-actions' }, playButtons(c)));
 }
 
@@ -661,12 +711,16 @@ export function playButtons(c) {
       onclick: (ev) => { ev.currentTarget.disabled = true; api.playbackAction(pb.id, 'stop').catch(showError); } }, icon('stop', 16), 'Detener');
   }
   return el('span', { class: 'cat-play-btns' },
-    el('button', { id: `cat-bg-${hash}`, class: `cat-bg-btn ${loading ? 'on' : ''}`, 'aria-pressed': String(loading),
+    inTorbox.has(hash) && !loading ? null : el('button', { id: `cat-bg-${hash}`, class: `cat-bg-btn ${loading ? 'on' : ''}`, 'aria-pressed': String(loading),
       title: loading ? 'Cancelar la descarga de fondo: lo bajado queda guardado' : 'Bajar de fondo: baja sin abrir el reproductor y dice si la velocidad alcanza',
       onclick: (ev) => toggleBg(hash, ev.currentTarget) }, icon(loading ? 'stop' : 'download', 15)),
-    el('button', { id: `cat-play-${hash}`, class: `cat-play ${busy ? 'busy' : ''}`, title: busy ? 'Preparando la reproducción…' : fits(c) ? 'Ver ahora' : 'No entra en el disco: se cortaría a mitad',
-      'aria-label': 'Ver ahora', 'aria-busy': busy ? 'true' : null, disabled: busy,
-      onclick: (ev) => playOption(hash, ev.currentTarget) }, icon('play', 18)));
+    // En TorBox (2026-11-17): ▶ verde que late, y reproduce desde sus servidores (al instante, sin P2P).
+    inTorbox.has(hash) ? el('button', { id: `cat-play-${hash}`, class: `cat-play torbox ${busy ? 'busy' : ''}`, 'aria-label': 'Ver ahora desde TorBox',
+      title: busy ? 'Pidiéndole el video a TorBox…' : 'Ver ahora desde TorBox: arranca al instante desde sus servidores, sin depender de los seeds',
+      'aria-busy': busy ? 'true' : null, disabled: busy, onclick: () => playFromTorbox(hash) }, icon('play', 18))
+      : el('button', { id: `cat-play-${hash}`, class: `cat-play ${busy ? 'busy' : ''}`, title: busy ? 'Preparando la reproducción…' : fits(c) ? 'Ver ahora' : 'No entra en el disco: se cortaría a mitad',
+        'aria-label': 'Ver ahora', 'aria-busy': busy ? 'true' : null, disabled: busy,
+        onclick: (ev) => playOption(hash, ev.currentTarget) }, icon('play', 18)));
 }
 
 /** Estado de la reproducción de una opción, en grande (2026-11-16): ícono (o barras que se mueven
@@ -798,9 +852,11 @@ export const fx = new Map();
 
 /** Opciones del video por resolución (respeta "Solo HDR"), en el orden de `RES_ORDER`. */
 export function groupsOf(u = state.update) {
-  const list = view.onlyHdr ? u.candidates.filter((c) => c.hdr.length) : u.candidates;
+  const list = u.candidates.filter((c) => (!view.onlyHdr || c.hdr.length) && (!view.onlyTorbox || inTorbox.has(c.info_hash)));
   const groups = new Map(RES_ORDER.map((r) => [r, []]));
   for (const c of list) groups.get(resKey(c)).push(c);
+  // TorBox (2026-11-17): todas las que tiene en caché, de cualquier calidad, como un grupo más.
+  groups.set('torbox', u.candidates.filter((c) => inTorbox.has(c.info_hash)));
   return groups;
 }
 /** La resolución más baja siguiente que tenga opciones ("Otras" no cuenta: SD o sin dato), o null. */
@@ -820,6 +876,38 @@ export function isSafeBest(c) {
   return counted.get(c.info_hash)?.reached === true && h?.level === 0 && !h.probable && fits(c) && c.source !== 'CAM';
 }
 
+/** Menú "Ver torrents" de una calidad (2026-11-17): el análisis a fondo (recomendado), el rápido
+ *  (~30 s) y, con la key de TorBox, los que ya tiene en su caché. Uno abierto a la vez. */
+function toggleMenu(r) {
+  view.menuRes = view.menuRes === r ? null : r;
+  renderStreamsOnly();
+  if (view.menuRes) document.getElementById(`cat-menu-${r}-deep`)?.focus({ preventScroll: true });
+}
+function resMenu(r, n, searching) {
+  const close = (fn) => () => { view.menuRes = null; fn(); };
+  const tbCount = searching ? 0 : (state.update?.candidates ?? []).filter((c) => resKey(c) === r && inTorbox.has(c.info_hash)).length;
+  const tbOff = !view.torboxKey ? 'Cargá tu key de TorBox en Ajustes para usarlo'
+    : searching ? 'Disponible apenas terminen de llegar los torrents' : !tbCount ? `Ninguno de ${resLabel(r)} está en TorBox` : null;
+  const item = (key, title, sub, onclick, extra = {}) => el('button', { id: `cat-menu-${r}-${key}`, class: `cat-menu-item ${key}`, role: 'menuitem',
+    disabled: extra.disabled || null, title: extra.tip ?? null, onclick: extra.disabled ? null : onclick },
+  el('span', { class: 'cat-menu-ic', 'aria-hidden': 'true' }, icon(extra.icon, 18)),
+  el('span', { class: 'cat-menu-text' }, el('b', {}, title, extra.badge ? el('span', { class: 'cat-menu-badge' }, extra.badge) : null), el('span', {}, sub)));
+  return el('div', { class: 'cat-res-menu', role: 'menu', 'aria-label': `Ver torrents de ${resLabel(r)}` },
+    item('deep', 'Análisis profundo', `Pruebo todas y verifico a fondo cuáles andan sin cortes · ${analysisEta(n)}`,
+      close(() => requestGroup(r)), { icon: 'radar', badge: 'Recomendado' }),
+    item('quick', 'Análisis rápido', 'La lista ordenada por seeds reales, sin verificar a fondo · ~30 s',
+      close(() => requestGroup(r, true)), { icon: 'gauge' }),
+    item('torbox', 'Disponibles en TorBox', tbOff ?? `${tbCount} ${tbCount === 1 ? 'opción lista' : 'opciones listas'} para ver al instante desde sus servidores`,
+      close(() => { view.onlyTorbox = true; openGroup(r); }), { icon: 'download', disabled: !!tbOff, tip: tbOff }));
+}
+// Clic afuera o Esc: cierra el menú.
+document.addEventListener('pointerdown', (ev) => {
+  if (view.menuRes && !ev.target.closest('.cat-res-menu, .cat-group.menu-open .cat-group-head')) { view.menuRes = null; renderStreamsOnly(); }
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && view.menuRes) { const r = view.menuRes; view.menuRes = null; renderStreamsOnly(); document.getElementById(`cat-res-${r}`)?.focus(); }
+});
+
 export function renderStreamsBody(box) {
   const u = state.update;
   const body = $('#cat-side');
@@ -836,7 +924,8 @@ export function renderStreamsBody(box) {
   const groups = u ? groupsOf(u) : new Map(RES_ORDER.map((r) => [r, []]));
   // Buscando (2026-11-17): las 4 de siempre, con lo encontrado hasta ahora; ya se puede elegir cuál
   // analizar y al terminar se abre sola y arranca su prueba (`loadSavedTests`).
-  const present = searching ? ['2160p', '1080p', '720p', 'other'] : RES_ORDER.filter((r) => groups.get(r).length);
+  const present = searching ? ['2160p', '1080p', '720p', 'other']
+    : [...RES_ORDER.filter((r) => groups.get(r).length), ...(groups.get('torbox').length ? ['torbox'] : [])];
   // Todas cerradas hasta que el usuario elige una: abrirla es lo que la pone a probar.
   if (!searching && (view.openRes === null || (view.openRes && !present.includes(view.openRes)))) view.openRes = '';
   const head = optionsHead();
@@ -850,51 +939,37 @@ export function renderStreamsBody(box) {
     const n = groups.get(r).length;
     const open = !searching && r === view.openRes;
     // Cerrada (o buscando todavía): a la derecha, testeo completo o bajar el mejor (2026-11-17).
-    // Cerrada (2026-11-17): una sola acción, toda la tarjeta. Buscando torrents todavía: queda anotada
-    // (✓) y arranca al terminar.
-    // Ya analizada (en esta sesión o en la última hora, datos guardados): se ve la lista, sin repetir.
-    const analyzed = !searching && groups.get(r).filter((c) => counted.has(c.info_hash)).length >= Math.min(5, n);
-    const start = el('span', { class: 'cat-res-go' },
-      el('span', { class: 'cat-res-go-text' },
-        el('span', { class: 'cat-res-go-label' }, analyzed ? 'Ver lista' : 'Buscar mejor torrent'),
-        analyzed ? null : el('span', { class: 'cat-res-eta' }, `Tiempo estimado ${analysisEta(n)}`)),
-      el('span', { class: 'cat-res-arrow' }, icon('chev', 16)));
+    // Cerrada (2026-11-17): un solo botón "Ver torrents" que despliega cómo verlos (`resMenu`).
+    // Ya analizada (en esta sesión o en la última hora, datos guardados): abre la lista directo.
+    // TorBox no se analiza: se ve al instante, abre la lista directo.
+    const analyzed = r === 'torbox' || (!searching && groups.get(r).filter((c) => counted.has(c.info_hash)).length >= Math.min(5, n));
+    const menuOpen = view.menuRes === r;
+    const head = (count) => el('button', { id: `cat-res-${r}`, class: 'cat-group-head', 'aria-haspopup': analyzed ? null : 'menu',
+      'aria-expanded': analyzed ? null : String(menuOpen), title: analyzed ? 'Ya analizada: ver la lista ordenada' : null,
+      onclick: () => (analyzed ? openGroup(r) : toggleMenu(r)) },
+    el('span', { class: 'cat-group-name' }, resLabel(r)), count,
+    el('span', { class: 'cat-res-go' }, analyzed ? 'Ver lista' : 'Ver torrents',
+      el('span', { class: `cat-res-arrow ${analyzed ? '' : 'down'}` }, icon('chev', 16))));
+    const counter = searching ? el('span', { class: 'cat-res-count' }, el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }), 'Buscando torrents…')
+      : el('span', { class: 'cat-res-count' }, r === 'torbox' ? `${n} ${n === 1 ? 'lista' : 'listas'} para ver al instante` : `${n} ${n === 1 ? 'opción' : 'opciones'}`);
     // Elegida mientras se buscan torrents (2026-11-17): ya se ve como analizando, esperando la lista.
     if (searching && state.side.tests.run?.res === r) {
       return el('section', { class: 'cat-group open searching', id: `cat-group-${r}` },
-        el('div', { class: 'cat-group-head' },
-          el('span', { class: 'cat-group-name' }, resLabel(r)),
-          el('span', { class: 'cat-res-count' }, el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }), 'Buscando torrents…')),
-        groupPanel(r));
+        el('div', { class: 'cat-group-head' }, el('span', { class: 'cat-group-name' }, resLabel(r)), counter), groupPanel(r));
     }
-    if (searching) {
-      return el('section', { class: 'cat-group searching', id: `cat-group-${r}` },
-        el('button', { id: `cat-res-${r}`, class: 'cat-group-head', onclick: () => requestGroup(r),
-          title: 'Buscar el mejor torrent de esta calidad: arranca apenas terminen de llegar los torrents' },
-          el('span', { class: 'cat-group-name' }, resLabel(r)),
-          el('span', { class: 'cat-res-count' }, el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }), 'Buscando torrents…'),
-          start));
+    if (!open) {
+      return el('section', { class: `cat-group ${searching ? 'searching' : ''} ${menuOpen ? 'menu-open' : ''}`, id: `cat-group-${r}` },
+        head(counter), menuOpen ? resMenu(r, n, searching) : null);
     }
     // Mientras corre el análisis profundo, el borde del grupo abierto gira (2026-11-16).
-    const analyzing = open && state.side.deep?.status === 'run';
-    return el('section', { class: `cat-group ${open ? 'open' : ''} ${analyzing ? 'analyzing' : ''}`, id: `cat-group-${r}`, 'aria-busy': analyzing ? 'true' : null,
+    const analyzing = state.side.deep?.status === 'run';
+    return el('section', { class: `cat-group open ${analyzing ? 'analyzing' : ''}`, id: `cat-group-${r}`, 'aria-busy': analyzing ? 'true' : null,
       style: analyzing ? `--group-phase:-${Date.now() % 4000}ms` : null },
-      // Cerrada: toda la tarjeta arranca su análisis. Abierta: el encabezado la cierra.
-      open ? el('button', { id: `cat-res-${r}`, class: 'cat-group-head', 'aria-expanded': 'true', onclick: () => openGroup(''), title: 'Cerrar' },
+      // Abierta: el encabezado la cierra.
+      el('button', { id: `cat-res-${r}`, class: 'cat-group-head', 'aria-expanded': 'true', onclick: () => openGroup(''), title: 'Cerrar' },
         el('span', { class: 'cat-group-name' }, resLabel(r)),
         el('span', { class: 'cat-res-count' }, `${n} ${n === 1 ? 'opción' : 'opciones'}`),
-        el('span', { class: 'cat-chev' }, icon('chev', 18)))
-        : el('div', { class: 'cat-group-row' },
-          el('button', { id: `cat-res-${r}`, class: 'cat-group-head', onclick: () => (analyzed ? openGroup(r) : requestGroup(r)),
-            title: analyzed ? 'Ya analizada: ver la lista ordenada'
-              : `Buscar el mejor torrent en ${resLabel(r)}: pruebo todas y verifico a fondo las ${TOP} mejores (${analysisEta(n)}, según lo que tardaron los anteriores)` },
-            el('span', { class: 'cat-group-name' }, resLabel(r)),
-            el('span', { class: 'cat-res-count' }, `${n} ${n === 1 ? 'opción' : 'opciones'}`),
-            start),
-          // Para el apurado (2026-11-17): solo la prueba rápida (~30 s) y la lista, sin el análisis a fondo.
-          analyzed ? null : el('button', { id: `cat-res-quick-${r}`, class: 'cat-res-quick', onclick: () => startAnalysis(r, false, true),
-            title: 'Ver la lista ya: pruebo rápido cuántos seeds reales tiene cada una y te la ordeno. Sin verificar a fondo si va a andar sin cortes.' },
-          el('span', {}, 'Ver lista'), el('small', {}, 'estimado ~30 s'))),
+        el('span', { class: 'cat-chev' }, icon('chev', 18))),
       open ? (() => {
         // Analizando (2026-11-17): solo el panel con su avance y "Detener"; sin filas (eran decenas de
         // animaciones a la vez). Al terminar, el resultado y la lista ya ordenada.
@@ -922,6 +997,7 @@ export function renderStreamsBody(box) {
 /** Al final de la lista (2026-11-17, antes en el panel de arriba): con el test de esa resolución
  *  terminado y ninguna fluida, ofrece la siguiente más baja que tenga opciones. */
 export function lowerSuggestion(res, groups) {
+  if (res === 'torbox') return null;
   const d = state.side.deep;
   if (d?.status !== 'done' || d.res !== res) return null;
   if (groups.get(res).some((c) => counted.get(c.info_hash)?.reached && health(c)?.level === 0)) return null;
@@ -942,7 +1018,7 @@ export function lowerSuggestion(res, groups) {
 /** Grupos de resolución (2026-11-15): 4K, 1440p (2026-11-16), 1080p, 720p y "Otras" (SD y sin dato). */
 export const RES_ORDER = ['2160p', '1440p', '1080p', '720p', 'other'];
 export const resKey = (c) => (RES_ORDER.includes(c.resolution) ? c.resolution : 'other');
-export const resLabel = (r) => ({ '2160p': '4K', '1440p': '2K', other: 'Otras' }[r] ?? r);
+export const resLabel = (r) => ({ '2160p': '4K', '1440p': '2K', other: 'Otras', torbox: 'TorBox' }[r] ?? r);
 /** Reproducir: lo agrega a la biblioteca y lo abre (elige el audio si hay
  *  varios). Se queda en el catálogo (pedido 2026-11-15). */
 export async function playOption(hash, btn) {

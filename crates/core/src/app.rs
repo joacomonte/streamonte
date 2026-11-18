@@ -565,6 +565,7 @@ impl AppCore {
     pub fn set_api_key(&self, service: &str, key: &str) -> Result<()> {
         match service {
             crate::catalog::tmdb::TMDB => crate::catalog::tmdb::set_key(key),
+            crate::catalog::torbox::TORBOX => crate::catalog::torbox::set_key(key),
             provider => crate::subtitles::secrets::set_api_key(provider, key),
         }
     }
@@ -577,16 +578,23 @@ impl AppCore {
                 configured: crate::subtitles::secrets::has_api_key(p),
             });
         subtitles
-            .chain(std::iter::once(ApiKeyStatus {
-                service: crate::catalog::tmdb::TMDB.to_string(),
-                configured: crate::catalog::tmdb::has_key(),
-            }))
+            .chain([
+                ApiKeyStatus {
+                    service: crate::catalog::tmdb::TMDB.to_string(),
+                    configured: crate::catalog::tmdb::has_key(),
+                },
+                ApiKeyStatus {
+                    service: crate::catalog::torbox::TORBOX.to_string(),
+                    configured: crate::catalog::torbox::has_key(),
+                },
+            ])
             .collect()
     }
     /// Abre en el navegador la página para pedir la key de un servicio (solo URLs fijas, NFR-16).
     pub fn open_key_page(&self, service: &str) -> Result<()> {
         let url = match service {
             crate::catalog::tmdb::TMDB => Some(crate::catalog::tmdb::KEY_PAGE),
+            crate::catalog::torbox::TORBOX => Some(crate::catalog::torbox::KEY_PAGE),
             provider => crate::subtitles::secrets::key_page(provider),
         }
         .ok_or_else(|| CoreError::NotFound(format!("servicio {service}")))?;
@@ -601,6 +609,47 @@ impl AppCore {
         }
         crate::external::open_external(format!("https://www.imdb.com/title/{imdb_id}/"))
             .map_err(|_| CoreError::Unsupported("abrir el navegador"))
+    }
+
+    /// Cuáles de esas opciones (de la lista vigente) ya están en la caché de TorBox (2026-11-17).
+    /// `None` = sin key de TorBox o no respondió.
+    pub async fn catalog_torbox(&self, hashes: &[InfoHash]) -> Option<Vec<InfoHash>> {
+        let timeout = self.catalog_timeout().await;
+        self.catalog.torbox_cached(hashes, timeout).await
+    }
+
+    /// ▶ desde TorBox (2026-11-17): abre el reproductor con el link directo de TorBox (sin P2P ni
+    /// motor). No queda en "Descargas": es un video en línea.
+    pub async fn play_torbox(&self, video_id: &str, hash: InfoHash) -> Result<()> {
+        let timeout = self
+            .catalog_timeout()
+            .await
+            .max(std::time::Duration::from_secs(20));
+        let (url, title) = self.catalog.torbox_stream(hash, timeout).await?;
+        // Los mismos subtítulos que baja el módulo de subs (casi siempre ya en caché): mejor primero.
+        let language = self.config.read().await.subtitles.language;
+        let log: crate::subtitles::session::LogFn =
+            Arc::new(|line| tracing::info!(target: "streamonte_core::subtitles", "{line}"));
+        let subtitle_files = self
+            .subtitle_files(video_id, &hash, language, log)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(_, path)| path)
+            .collect();
+        let player = self.config.read().await.player.clone();
+        let kind = crate::player::resolve_player(player.default_player, &player);
+        crate::player::PlayerLauncher::new(self.paths.clone(), player)
+            .launch(crate::player::LaunchRequest {
+                kind,
+                url,
+                title,
+                subtitle_files,
+                log_file: None,
+                extra_args: Vec::new(),
+            })
+            .await
+            .map(drop)
     }
 
     /// Reproductores de este equipo (Ajustes → Reproductor, 2026-11-17).
@@ -742,30 +791,6 @@ impl AppCore {
         hash: &InfoHash,
         language: crate::config::SubtitleLanguage,
     ) -> Result<Vec<SubtitleFound>> {
-        let video = VideoId::parse(video_id)?;
-        let c = self
-            .catalog
-            .candidate(&video, hash)
-            .ok_or_else(|| CoreError::Catalog {
-                user: "Esa opción ya no está en la lista: actualizá las opciones.".into(),
-                detail: format!("candidato {hash} no encontrado"),
-            })?;
-        let file = c
-            .file_name
-            .clone()
-            .unwrap_or_else(|| c.release_name.clone());
-        let mut identity = crate::subtitles::VideoIdentity::for_file(
-            &file,
-            &c.release_name,
-            *hash,
-            c.size_bytes.unwrap_or(0),
-        );
-        identity.imdb_id = Some(video.imdb_id().to_string());
-        if let Some((s, e)) = video.episode() {
-            identity.season = u16::try_from(s).ok();
-            identity.episode = u16::try_from(e).ok();
-        }
-        let id = identity.video_id();
         // El log de la búsqueda también es el progreso que ve la UI ("bajando N", "bajado …").
         let progress = Arc::new(std::sync::Mutex::new((false, 0usize, 0usize)));
         let (events, vid) = (self.events.clone(), video_id.to_string());
@@ -801,18 +826,7 @@ impl AppCore {
                 emit();
             }
         });
-        let got = crate::subtitles::session::fetch(crate::subtitles::session::Fetch {
-            video: identity,
-            video_url: None,
-            torrent_files: Vec::new(),
-            language,
-            cache_dir: self.paths.pending_subtitles_dir(&id),
-            remembered: None,
-            // Lo pidió el usuario: OpenSubtitles completa si hace falta (respeta su cuota diaria).
-            opensubtitles: true,
-            log,
-        })
-        .await;
+        let got = self.subtitle_files(video_id, hash, language, log).await?;
         Ok(got
             .into_iter()
             .map(|(cand, _)| SubtitleFound {
@@ -822,6 +836,55 @@ impl AppCore {
                 downloads: cand.downloads,
             })
             .collect())
+    }
+
+    /// Subtítulos de esa opción de la lista (2026-11-17, compartido por "Bajar subtítulos" y el ▶ de
+    /// TorBox): los busca y baja (lo ya bajado sale de la caché de cada proveedor), mejor primero.
+    async fn subtitle_files(
+        &self,
+        video_id: &str,
+        hash: &InfoHash,
+        language: crate::config::SubtitleLanguage,
+        log: crate::subtitles::session::LogFn,
+    ) -> Result<Vec<(crate::subtitles::SubtitleCandidate, std::path::PathBuf)>> {
+        let video = VideoId::parse(video_id)?;
+        let c = self
+            .catalog
+            .candidate(&video, hash)
+            .ok_or_else(|| CoreError::Catalog {
+                user: "Esa opción ya no está en la lista: actualizá las opciones.".into(),
+                detail: format!("candidato {hash} no encontrado"),
+            })?;
+        let file = c
+            .file_name
+            .clone()
+            .unwrap_or_else(|| c.release_name.clone());
+        let mut identity = crate::subtitles::VideoIdentity::for_file(
+            &file,
+            &c.release_name,
+            *hash,
+            c.size_bytes.unwrap_or(0),
+        );
+        identity.imdb_id = Some(video.imdb_id().to_string());
+        if let Some((s, e)) = video.episode() {
+            identity.season = u16::try_from(s).ok();
+            identity.episode = u16::try_from(e).ok();
+        }
+        let id = identity.video_id();
+        Ok(
+            crate::subtitles::session::fetch(crate::subtitles::session::Fetch {
+                video: identity,
+                video_url: None,
+                torrent_files: Vec::new(),
+                language,
+                cache_dir: self.paths.pending_subtitles_dir(&id),
+                remembered: None,
+                // Lo pidió el usuario: OpenSubtitles completa si hace falta (respeta su cuota diaria).
+                opensubtitles: true,
+                log,
+            })
+            .await,
+        )
     }
 
     // ----- Catálogo y addons (F4b, spec 09) -----

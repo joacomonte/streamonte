@@ -85,6 +85,8 @@ pub fn run() {
             commands::config_set_network,
             commands::config_set_equalizer,
             commands::players_status,
+            commands::catalog_torbox,
+            commands::play_torbox,
             commands::config_set_player,
             commands::install_mpv,
             commands::api_key_set,

@@ -42,6 +42,12 @@ export const view = {
   renderOnShow: false,
   /** Filas dibujadas del grupo abierto (de a `PAGE_ROWS`, "Mostrar más"). */
   shownRows: 25,
+  /** Filtro "Solo TorBox" (2026-11-17), como "Solo HDR". */
+  onlyTorbox: false,
+  /** Hay key de TorBox (se sabe al consultar el primer video). */
+  torboxKey: false,
+  /** Calidad con el menú "Ver torrents" abierto (uno a la vez). */
+  menuRes: null,
   /** Grupo de resolución abierto: null = nunca se eligió, '' = todos cerrados. */
   openRes: null,
 };

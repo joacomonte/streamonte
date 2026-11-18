@@ -52,6 +52,10 @@ export const api = {
   /** Póster de TMDB para un título sin imagen en Cinemeta (null sin key o si no lo tiene). */
   catalogPoster: (imdbId) => invoke('catalog_poster', { imdbId }),
   /** "Contar seeders reales": se conecta a cada enjambre (~50 s por tanda). {hash: {seeds, peers}}; falta = no se pudo. */
+  /** Hashes que están en la caché de TorBox; null = sin key o no respondió. */
+  catalogTorbox: (hashes) => invoke('catalog_torbox', { hashes }),
+  /** ▶ desde TorBox (link directo, sin P2P). */
+  playTorbox: (videoId, hash) => invoke('play_torbox', { videoId, hash }),
   catalogSwarm: (hashes, depth = 'deep') => invoke('catalog_swarm', { hashes, depth }),
   /** Censo DHT sin conectarse (~12 s): {hash: direcciones}; falta = 0. */
   catalogCensus: (hashes) => invoke('catalog_census', { hashes }),
