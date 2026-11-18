@@ -311,7 +311,12 @@ export default {
 	'Trae audio en español sin decir si es latino o de España': 'Has Spanish audio without saying if it’s LATAM or Spain',
 	'Latino según el nombre del torrent: si el nombre miente, no lo trae': 'LATAM according to the torrent name: if the name lies, it doesn’t have it',
 	'MULTI / Dual sin aclarar: validar audio latino': 'Unclear MULTI / Dual: check LATAM audio',
-	'ES ¿LAT?': 'ES LATAM?',
-	'¿LAT?': 'LATAM?',
+	'Audio ES · validar latino': 'Spanish audio · check LATAM',
+	'¿Trae latino? Revisar': 'LATAM audio? Check',
+	'Leyendo audios…': 'Reading audio…',
+	'Buscar subs ES': 'Find Spanish subs',
+	'Pistas de audio': 'Audio tracks',
+	'Ninguna dice latino ni España: se sabe escuchándolo.': 'None says LATAM or Spain: you can only tell by listening.',
+	'No guardé el detalle de sus pistas: verificalo de nuevo para verlo.': 'Track details weren’t saved: check it again to see them.',
 	'Tu plan de TorBox no incluye streaming: no se pueden leer las pistas del video.': 'Your TorBox plan doesn’t include streaming: the video tracks can’t be read.'
 };

@@ -3,7 +3,8 @@
 
 /** Lo leído de un torrent: cuántos subs en español trae y su mejor audio en español.
  * `audio`: 'lat' confirmado · 'es' español sin decir cuál · 'spain' castellano · 'none' sin español · null sin leer.
- * @typedef {{subs: number, audio: 'lat' | 'es' | 'spain' | 'none' | null}} Tracks */
+ * `audios`: las pistas tal como vienen (para mostrar qué dicen); falta en lo guardado antes de tenerlas.
+ * @typedef {{subs: number, audio: 'lat' | 'es' | 'spain' | 'none' | null, audios?: {language: string, title: string}[]}} Tracks */
 
 const SPANISH = /^(spa|es)(\b|-|_)/i;
 
@@ -27,15 +28,16 @@ console.assert(
  * @param {{lat: boolean}} t @param {Tracks | null | undefined} info */
 export const isLatino = (t, info) => (info?.audio ? info.audio === 'lat' : t.lat);
 
-/** Badge de audio: LAT confirmado (verde), LAT según el nombre (gris punteado), "ES ¿LAT?" (español sin variante) o
- * "¿LAT?" (MULTI / Dual sin aclarar). null si no hay nada que decir.
+/** Badge de audio: LAT confirmado (verde) y LAT según el nombre (gris punteado) informan; "Audio ES · validar latino"
+ * (español sin variante: muestra sus pistas) y "¿Trae latino? Revisar" (MULTI / Dual sin leer: las lee) se tocan.
+ * null si no hay nada que decir.
  * @param {{lat: boolean, doubt?: boolean}} t @param {Tracks | null | undefined} info
  * @returns {{kind: 'lat' | 'name' | 'es' | 'doubt', text: string, title: string} | null} */
 export function latBadge(t, info) {
 	if (info?.audio === 'lat') return { kind: 'lat', text: 'LAT', title: 'Audio latino confirmado en las pistas del video' };
-	if (info?.audio === 'es') return { kind: 'es', text: 'ES ¿LAT?', title: 'Trae audio en español sin decir si es latino o de España' };
+	if (info?.audio === 'es') return { kind: 'es', text: 'Audio ES · validar latino', title: 'Trae audio en español sin decir si es latino o de España' };
 	if (info?.audio) return null;
 	if (t.lat) return { kind: 'name', text: 'LAT', title: 'Latino según el nombre del torrent: si el nombre miente, no lo trae' };
-	if (t.doubt) return { kind: 'doubt', text: '¿LAT?', title: 'MULTI / Dual sin aclarar: validar audio latino' };
+	if (t.doubt) return { kind: 'doubt', text: '¿Trae latino? Revisar', title: 'MULTI / Dual sin aclarar: validar audio latino' };
 	return null;
 }

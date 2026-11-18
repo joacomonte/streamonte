@@ -292,6 +292,8 @@
 		return j;
 	}
 	/** Elegir audio: el toque en la opción es el que copia (por http hace falta un toque para copiar). */
+	/** Opción cuyas pistas de audio se muestran (Audio ES · validar latino). */
+	let tracksOf = $state(/** @type {Torrent | null} */ (null));
 	let audioFor = $state(/** @type {{t: Torrent, choices: {key: string, label: string, url: string}[]} | null} */ (null));
 
 	/** Lo leído de cada torrent (subs en español y audio, ver audio.js), 'busy' mientras se lee o 'err' si falló.
@@ -313,7 +315,7 @@
 			const r = await fetch(`/api/tracks?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '', ...(ids ? { tid: String(ids.tid), fid: String(ids.fid) } : {}) })}`);
 			if (!r.ok) throw new Error();
 			const j = await r.json();
-			know(t.hash, { subs: j.subs.length, audio: audioOf(j.audios) });
+			know(t.hash, { subs: j.subs.length, audio: audioOf(j.audios), audios: j.audios });
 			return true;
 		} catch {
 			info[t.hash] = 'err';
@@ -623,9 +625,16 @@
 					<span class="size">{gb(t.size)}</span>
 					{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
 					{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
-					{#if lb}<span class="tag audio {lb.kind}" title={tr(lb.title)}>{tr(lb.text)}</span>{/if}
+					{#if lb?.kind === 'es'}
+						<button id="audio-info-{t.hash}" type="button" class="tag act" title={tr(lb.title)} onclick={() => (tracksOf = t)}><Icon name="volume" size={13} />{tr(lb.text)}</button>
+					{:else if lb?.kind === 'doubt' && info[t.hash] === 'busy'}
+						<span class="tag act busy" role="status"><span class="spin"></span>{tr('Leyendo audios…')}</span>
+					{:else if lb?.kind === 'doubt'}
+						<button id="audio-check-{t.hash}" type="button" class="tag act" title={tr(lb.title)} onclick={() => probe(t)}><Icon name="volume" size={13} />{tr(lb.text)}</button>
+					{:else if lb}<span class="tag audio {lb.kind}" title={tr(lb.title)}>{tr(lb.text)}</span>{/if}
 					<span class="tag tb" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>TorBox</span>
-					{#if sb}<span class="tag cc {sb.on ? 'es' : 'nosub'}" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES</span>{/if}
+					{#if sb?.on}<span class="tag cc es" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES</span>
+					{:else if sb}<button id="find-subs-{t.hash}" type="button" class="tag act" title={sb.title} onclick={() => { subsFor(t, undefined, [], undefined); subsOpen = true; }}><Icon name="subs" size={13} />{tr('Buscar subs ES')}</button>{/if}
 				</div>
 				<div class="quality" title={q ? tr('Calidad de imagen: {q}', { q: tr(q[0]) }) : tr('El nombre del torrent no dice de dónde salió el video')}>
 					<Icon name="monitor" size={14} />
@@ -780,6 +789,21 @@
 	</ul>
 </Sheet>
 
+<!-- Pistas de audio de una opción con español sin variante: qué dicen, y que latino o España se sabe escuchándolo. -->
+<Sheet id="tracks-sheet" title={tr('Pistas de audio')} open={!!tracksOf} onclose={() => (tracksOf = null)}>
+	{#if tracksOf}
+		{@const a = known(tracksOf)?.audios}
+		<p class="muted audio-hint">{tr('Ninguna dice latino ni España: se sabe escuchándolo.')}</p>
+		{#if a?.length}
+			<ul class="tracks">
+				{#each a as x, i (i)}<li><b>{x.language}</b><span>{x.title || '—'}</span></li>{/each}
+			</ul>
+		{:else}
+			<p class="muted small">{tr('No guardé el detalle de sus pistas: verificalo de nuevo para verlo.')}</p>
+		{/if}
+	{/if}
+</Sheet>
+
 <Sheet id="audio-sheet" title={tr('¿En qué audio?')} open={!!audioFor} onclose={() => (audioFor = null)}>
 	{#if audioFor}
 		<p class="muted audio-hint">{tr('Este video trae los dos. Elegí uno y se copia el link.')}</p>
@@ -920,7 +944,12 @@
 	/* Audio: LAT confirmado (verde), según el nombre (gris punteado), sin aclarar (ámbar, como "sin sub ES"). */
 	.tag.audio.lat { color: var(--green); }
 	.tag.audio.name { border-style: dashed; color: var(--muted); }
-	.tag.audio.es, .tag.audio.doubt { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); background: color-mix(in srgb, var(--amber) 10%, transparent); }
+	/* Etiquetas que se tocan (Buscar subs ES, validar latino, revisar): grises, mismo tamaño que un badge. */
+	.tag.act { display: inline-flex; align-items: center; gap: 4px; background: none; border-color: var(--border-strong); color: var(--muted); font-family: inherit; cursor: pointer; transition: color 0.15s var(--ease), border-color 0.15s var(--ease); }
+	.tag.act:active { opacity: 0.7; }
+	.tag.act.busy { cursor: default; }
+	.tag.act .spin { width: 10px; height: 10px; border-width: 1.5px; }
+	@media (hover: hover) { button.tag.act:hover { color: var(--text); border-color: var(--accent-fg); } }
 	.acts { display: flex; align-items: center; gap: 8px; }
 	/* Badge de subs compacto (cc + ES): entra en la línea de los tags. (`.sub` ya es la fila de subtítulo.) */
 	.tag.cc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px 1px 4px; }
@@ -943,7 +972,6 @@
 	.verify.err { color: var(--amber); }
 	.verify.busy { color: var(--muted); }
 	.verify .spin { width: 12px; height: 12px; border-width: 2px; }
-	.tag.nosub { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); background: color-mix(in srgb, var(--amber) 10%, transparent); }
 	.quality { display: flex; align-items: center; gap: 5px; margin-top: 5px; color: var(--muted); font-size: 13.5px; }
 	.stars { display: inline-flex; gap: 1px; color: color-mix(in srgb, var(--muted) 45%, transparent); }
 	.stars :global(svg) { fill: currentColor; stroke-width: 1.5; }
@@ -951,6 +979,9 @@
 	.qname { font-weight: 600; color: var(--text); }
 	.qname.unknown { font-weight: 500; color: var(--muted); font-size: 13.5px; }
 	.audio-hint { margin: 0 0 14px; font-size: 14px; }
+	.tracks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+	.tracks li { display: flex; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); font-size: 13.5px; }
+	.tracks b { min-width: 44px; font-variant-numeric: tabular-nums; }
 	.audio-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 	.audio-opt {
 		min-height: 64px;
