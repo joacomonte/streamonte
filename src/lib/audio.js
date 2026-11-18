@@ -1,5 +1,5 @@
 // Audio latino de una opción: lo que dicen sus pistas (si se leyeron) y, si no, lo que dice el nombre.
-// Una regla, un lugar: lo usan los badges, la búsqueda por escalones y los conteos por calidad.
+// Una regla, un lugar: lo usan los badges y la búsqueda del primer buen match (Torrents.svelte).
 
 /** Lo leído de un torrent: cuántos subs en español trae y su mejor audio en español.
  * `audio`: 'lat' confirmado · 'es' español sin decir cuál · 'spain' castellano · 'none' sin español · null sin leer.
@@ -24,9 +24,6 @@ console.assert(
 	'audioOf'
 );
 
-/** ¿Cuenta como latino? Confirmado por pistas, o según el nombre si todavía no se leyeron (o no se pudo).
- * @param {{lat: boolean}} t @param {Tracks | null | undefined} info */
-export const isLatino = (t, info) => (info?.audio ? info.audio === 'lat' : t.lat);
 
 /** Badge de audio: LAT confirmado (verde) y LAT según el nombre (gris punteado) informan; "Audio ES · validar latino"
  * (español sin variante: muestra sus pistas) y "¿Trae latino? Revisar" (MULTI / Dual sin leer: las lee) se tocan.

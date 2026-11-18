@@ -31,8 +31,11 @@ const card = (r, kind) => ({
 	title: r.title ?? r.name,
 	year: (r.release_date ?? r.first_air_date ?? '').slice(0, 4),
 	poster: r.poster_path ? `${IMG}w342${r.poster_path}` : null,
-	rating: r.vote_count ? Number(r.vote_average).toFixed(1) : null
+	rating: null
 });
+
+/** Card con el puntaje de IMDb (mismo criterio en explorar y búsqueda). `r` es null si IMDb no lo tiene. @param {any} c @param {'movie' | 'tv'} kind @param {{rating: number} | null} r */
+const scored = (c, kind, r) => ({ ...card(c, kind), rating: r ? r.rating.toFixed(1) : null });
 /** Géneros de series de TMDB que juntan dos, como `GENRES` del desktop (streamonte/crates/core/src/catalog/top.rs). @type {Record<number, string[]>} */
 const TV_GENRES = { 10759: ['Acción', 'Aventura'], 10765: ['Ciencia ficción', 'Fantasía'], 10768: ['Bélica'] };
 
@@ -133,7 +136,7 @@ async function build(f) {
 		const r = d?.imdb ? imdbOf(d.imdb, table) : null;
 		if (!d || !r || d.excluded || r.votes < f.votes || (langs.length && !langs.includes(d.lang ?? '')) || seen.has(d.imdb)) continue;
 		seen.add(d.imdb);
-		hits.push({ ...card(c, f.kind), rating: r.rating.toFixed(1), votes: r.votes, pop: c.popularity ?? 0 });
+		hits.push({ ...scored(c, f.kind, r), votes: r.votes, pop: c.popularity ?? 0 });
 	}
 	hits.sort(f.sort === 'rating' ? (a, b) => Number(b.rating) - Number(a.rating) || b.votes - a.votes : (a, b) => b.pop - a.pop);
 	return hits.map(({ votes, pop, ...h }) => h);
@@ -158,9 +161,18 @@ export async function discover(f) {
 /** @param {string} q @param {number} page */
 export async function search(q, page) {
 	const j = await tmdb('/search/multi', { query: q, page, include_adult: false });
-	const items = j.results
-		.filter((/** @type {any} */ r) => (r.media_type === 'movie' || r.media_type === 'tv') && keep(r))
-		.map((/** @type {any} */ r) => card(r, r.media_type));
+	/** @type {any[]} */
+	const found = j.results.filter((/** @type {any} */ r) => (r.media_type === 'movie' || r.media_type === 'tv') && keep(r));
+	const [table, movies, shows] = await Promise.all([
+		ratings(),
+		fillDetails('movie', found.filter((r) => r.media_type === 'movie').map((r) => r.id)),
+		fillDetails('tv', found.filter((r) => r.media_type === 'tv').map((r) => r.id))
+	]);
+	// Sin piso de votos: quien busca quiere ver el título; si IMDb no lo tiene, queda sin puntaje.
+	const items = found.map((r) => {
+		const d = (r.media_type === 'movie' ? movies : shows)[`${r.media_type}:${r.id}`];
+		return scored(r, r.media_type, d?.imdb ? imdbOf(d.imdb, table) : null);
+	});
 	return { items, page: j.page, pages: j.total_pages };
 }
 

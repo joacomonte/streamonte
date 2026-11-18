@@ -1,6 +1,7 @@
 <script>
 	// Torrents de un video que TorBox tiene en caché, en pasos (como el desktop): buscando (fuente por fuente) →
-	// ¿audio latino? (búsqueda por escalones) → calidad → lista, con migas para volver. Por fila: peso, calidad de
+	// ¿audio latino? → el PRIMER BUEN MATCH (`isMatch`), leyendo pistas de a una de mejor a peor calidad, con "Seguir
+	// buscando" y "Ver todas las opciones"; migas para volver. Por fila: peso, calidad de
 	// imagen, audio y subs en español, y copiar el link https de TorBox. Los subtítulos son de cada torrent: aparecen
 	// al copiar su link (nativos primero; si no trae, se buscan afuera; Premium plegado al final).
 	import Icon from './Icon.svelte';
@@ -10,7 +11,7 @@
 	import * as saved from './saved.js';
 	import { loc, t as tr } from './i18n.svelte.js';
 	import { untrack } from 'svelte';
-	import { audioOf, isLatino, latBadge } from './audio.js';
+	import { audioOf, latBadge } from './audio.js';
 
 	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null}} */
 	let { imdb, s = null, e = null, name, orig = null } = $props();
@@ -20,13 +21,8 @@
 	/** @typedef {{label: string, kind: string, track: number, url: string}} Native */
 	/** @typedef {{hasKey: boolean, remaining: number | null, perDay: number | null, resetsAt: number | null, login?: string | null}} Quota */
 
-	/** Calidades del paso 3, en orden; `other` junta lo que no es 4K/1080p/720p (o no lo dice). */
-	const RES = /** @type {const} */ ([
-		['2160p', '4K'],
-		['1080p', '1080p'],
-		['720p', '720p'],
-		['other', 'Otras']
-	]);
+	/** Resoluciones de mejor a peor; `other` junta lo que no es 4K/1080p/720p (o no lo dice). */
+	const RES = ['2160p', '1080p', '720p', 'other'];
 	/** @param {Torrent} t */
 	const resOf = (t) => (t.res === '2160p' || t.res === '1080p' || t.res === '720p' ? t.res : 'other');
 	/** Calidad de imagen por la fuente del release, como el desktop (streamonte/ui/src/catalog-options.js): [nombre, estrellas de 4]. */
@@ -115,7 +111,8 @@
 			match = null;
 			goStep('audio');
 			wantLat = false;
-			autoReads = 0;
+			found = [];
+			showAll = false;
 			progress = { done: 0, total: 0, torbox: false };
 			// Lista guardada 1 hora (saved.js): se pinta en este mismo cuadro, sin pasar por la búsqueda.
 			data = hit;
@@ -157,13 +154,16 @@
 	}
 
 	// ── Pasos ────────────────────────────────────────────────────────────────────────────────────────────────
-	/** Paso actual. `latin`: búsqueda de audio latino por escalones; `list`: opciones de la calidad elegida. */
-	let step = $state(/** @type {'audio' | 'latin' | 'quality' | 'list'} */ ('audio'));
+	/** Paso actual: elegir el audio, o el resultado (buscando el primer buen match, ese match o, con `showAll`, todas). */
+	let step = $state(/** @type {'audio' | 'list'} */ ('audio'));
 	let wantLat = $state(false);
-	let quality = $state(/** @type {(typeof RES)[number][0]} */ ('2160p'));
+	/** Buenos matches que se muestran, en el orden en que aparecieron (hashes). */
+	let found = $state(/** @type {string[]} */ ([]));
+	/** Pidió "Ver todas las opciones". */
+	let showAll = $state(false);
 	/** Cada cambio de paso (o de video) invalida lo que se estaba leyendo: los bucles miran este número. */
 	let gen = 0;
-	/** @param {'audio' | 'latin' | 'quality' | 'list'} to */
+	/** @param {'audio' | 'list'} to */
 	function goStep(to) {
 		gen++;
 		reading = false;
@@ -172,87 +172,74 @@
 
 	const all = $derived(data?.list ?? []);
 	/** @param {Torrent} t */
-	const latOf = (t) => isLatino(t, known(t));
-	/** @param {Torrent} t */
 	const known = (t) => {
 		const v = info[t.hash];
 		return v && typeof v === 'object' ? v : null;
 	};
-	/** Dudosos (MULTI / Dual / español sin aclarar): se confirman leyendo pistas, hasta 10. */
-	const doubts = $derived(all.filter((t) => t.doubt && !t.lat).slice(0, 10));
-	/** "Seguir buscando": las demás (menos probables), de a 5 y hasta 10. */
-	const rest = $derived(all.filter((t) => !t.lat && !t.doubt && !known(t)?.audio));
-	let extraRead = $state(0);
-	const latin = $derived({
-		confirmed: all.filter((t) => known(t)?.audio === 'lat').length,
-		byName: all.filter((t) => t.lat && !known(t)?.audio).length,
-		unsure: all.filter((t) => known(t)?.audio === 'es').length
+	/** Con potencial de latino (única regla): leídas, latino o español sin variante; sin leer, que el nombre diga
+	 * LATINO o MULTI / Dual / español sin aclarar. Las que no dicen nada de idioma no cuentan. @param {Torrent} t */
+	const potential = (t) => (known(t)?.audio ? known(t)?.audio === 'lat' || known(t)?.audio === 'es' : t.lat || !!t.doubt);
+	/** @param {Torrent} t */
+	const hasEs = (t) => t.subFile || (known(t)?.subs ?? 0) > 0;
+	/** Única regla de "buen match": pidiendo latino, latino confirmado en sus pistas (los subs no importan); con audio
+	 * original, sub ES nativo (dentro del video o .srt en el torrent). @param {Torrent} t */
+	const isMatch = (t) => (wantLat ? known(t)?.audio === 'lat' : hasEs(t));
+	/** Única regla de "candidata a leer": sin leer (ni leyéndose ni con error) y que pueda ser lo pedido. Latino: el
+	 * nombre dice LATINO o MULTI / Dual / español sin aclarar (las que no dicen nada de idioma no se leen); audio
+	 * original: sin saber si trae sub ES. @param {boolean} lat @param {Torrent} t */
+	const unread = (lat, t) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (t.lat || !!t.doubt) : !hasEs(t) && !known(t));
+	/** @param {Torrent} t */
+	const qualityRank = (t) => (t.source ? QUALITY[t.source]?.[1] : null) ?? 2.5;
+	/** De mejor a peor: resolución, después calidad de imagen y, a igual calidad, la más pesada (más bitrate).
+	 * @param {Torrent} a @param {Torrent} b */
+	const byQuality = (a, b) => RES.indexOf(resOf(a)) - RES.indexOf(resOf(b)) || qualityRank(b) - qualityRank(a) || (b.size ?? 0) - (a.size ?? 0);
+	/** Lo que entra con el audio elegido (latino: solo las con potencial), de mejor a peor calidad. */
+	const byBest = $derived((wantLat ? all.filter(potential) : [...all]).sort(byQuality));
+	const candidates = $derived(byBest.filter((t) => unread(wantLat, t)));
+	/** El próximo buen match todavía no mostrado, si viene antes (en calidad) que la próxima candidata; si no, null. */
+	const nextMatch = $derived.by(() => {
+		const first = byBest.find((t) => unread(wantLat, t) || (isMatch(t) && !found.includes(t.hash)));
+		return first && !unread(wantLat, first) ? first : null;
 	});
-	/** Mientras se leen pistas (búsqueda de latino o subs automáticos): muestra Detener. */
+	/** Mientras se leen pistas: muestra Detener. `scan`: avance de la búsqueda en curso. */
 	let reading = $state(false);
+	let scan = $state({ done: 0, total: 0 });
 
-	/** Lee las pistas de `items` de a una (las que todavía no se leyeron). Se corta si cambia el paso o el video, o
-	 * cuando `enough` dice que alcanza. @param {Torrent[]} items @param {(t: Torrent) => boolean} [enough] */
-	async function readAll(items, enough = () => false) {
-		const my = ++gen;
-		reading = true;
-		for (const t of items) {
-			if (my !== gen) return;
-			if (known(t)?.audio) {
-				if (enough(t)) break;
-				continue;
-			}
-			await probe(t);
-			if (my !== gen) return;
-			if (enough(t)) break;
-		}
-		if (my === gen) reading = false;
-	}
 	/** @param {boolean} lat */
 	function chooseAudio(lat) {
 		wantLat = lat;
-		extraRead = 0;
-		if (!lat) return goStep('quality');
-		goStep('latin');
-		readAll(doubts);
-	}
-	function searchMore() {
-		const next = rest.slice(0, Math.min(5, 10 - extraRead));
-		extraRead += next.length;
-		readAll(next);
-	}
-
-	/** Paso 3: por calidad, cuántas hay y (con latino) cuántas lo traen. */
-	const qualities = $derived(
-		RES.map(([v, l]) => {
-			const items = all.filter((t) => resOf(t) === v);
-			return { v, l, total: items.length, lat: items.filter(latOf).length, sure: items.filter((t) => known(t)?.audio === 'lat').length };
-		}).filter((q) => q.total)
-	);
-	/** Con latino pedido y ninguna en esa calidad: se muestran todas, avisando. */
-	const noLatHere = $derived(wantLat && !all.some((t) => resOf(t) === quality && latOf(t)));
-	/** @param {(typeof RES)[number][0]} v */
-	function chooseQuality(v) {
-		quality = v;
+		found = [];
+		showAll = false;
 		goStep('list');
-		autoSubs();
+		findNext();
 	}
-	const list = $derived(
-		all.filter((t) => resOf(t) === quality && (!wantLat || noLatHere || latOf(t)) && (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t)))
-	);
-	/** Lecturas automáticas por video (tope 5): en el orden de la lista, hasta dar con una con sub ES (y latino
-	 * confirmado si se pidió). El resto queda con "Verificar subtítulos". */
-	let autoReads = 0;
-	function autoSubs() {
-		const good = (/** @type {Torrent} */ t) => (known(t)?.subs ?? 0) > 0 && (!wantLat || known(t)?.audio === 'lat');
-		if (list.some(good)) return;
-		const left = Math.max(0, 5 - autoReads);
-		const items = list.filter((t) => !known(t)?.audio).slice(0, left);
-		autoReads += items.length;
-		if (items.length) readAll(items, good);
+	/** Lee las candidatas de a una, de mejor a peor calidad, hasta el próximo buen match (lo suma a `found`) o hasta
+	 * agotarlas. Se corta con Detener o si cambia el paso o el video. */
+	async function findNext() {
+		const my = ++gen;
+		reading = true;
+		scan = { done: 0, total: candidates.length };
+		for (;;) {
+			if (nextMatch) {
+				found = [...found, nextMatch.hash];
+				break;
+			}
+			const t = candidates[0];
+			if (!t) break;
+			await probe(t);
+			if (my !== gen) return;
+			scan.done++;
+		}
+		reading = false;
 	}
-	/** @param {Torrent} t */
-	const hasEs = (t) => t.subFile || (known(t)?.subs ?? 0) > 0;
+	function stopSearch() {
+		gen++;
+		reading = false;
+	}
+	/** "Ver todas las opciones": la lista completa, con los filtros. */
+	const list = $derived(byBest.filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
+	/** Qué se ve en el paso de resultado: buscando el primer match, el resultado o todas. */
+	const screen = $derived(step === 'audio' ? 'audio' : showAll ? 'all' : reading && !found.length ? 'search' : 'match');
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 	/** Entrada de cada paso: sube un poco y aparece. @param {Element} _ */
 	const stepIn = (_) => ({
@@ -550,92 +537,88 @@
 			<nav class="crumbs" aria-label={tr('Ruta')}>
 				<button id="crumb-torbox" type="button" onclick={() => goStep('audio')}>TorBox</button>
 				<span aria-hidden="true">›</span>
-				{#if step === 'latin'}
-					<span aria-current="page">{tr('Audio latino')}</span>
-				{:else}
-					<button id="crumb-audio" type="button" onclick={() => goStep(wantLat ? 'latin' : 'audio')}>{wantLat ? tr('Audio latino') : tr('Audio original')}</button>
-					<span aria-hidden="true">›</span>
-					{#if step === 'quality'}
-						<span aria-current="page">{tr('Calidad')}</span>
-					{:else}
-						<button id="crumb-quality" type="button" onclick={() => goStep('quality')}>{tr(RES.find(([v]) => v === quality)?.[1] ?? '')}</button>
-					{/if}
-				{/if}
+				<span aria-current="page">{wantLat ? tr('Audio latino') : tr('Audio original')}</span>
 			</nav>
 		{/if}
 
-		{#key step}
+		{#key screen}
 			<div class="step" in:stepIn>
-				{#if step === 'audio'}
+				{#if screen === 'audio'}
+					{@const named = all.filter((t) => t.lat).length}
+					{@const doubtful = all.filter((t) => t.doubt && !t.lat).length}
+					{@const toRead = all.filter((t) => unread(true, t)).length}
 					<h3 class="ask">{tr('¿Necesitás audio latino?')}</h3>
 					<div class="choices">
 						<button id="audio-any" type="button" class="choice" onclick={() => chooseAudio(false)}>
 							<strong>{tr('Audio original')}</strong>
-							<span class="muted">{tr('{n} opciones en TorBox', { n: all.length })}</span>
+							<span class="muted">{tr('{n} opciones en TorBox', { n: all.length })} · {tr('busco la primera que traiga subtítulos en español adentro')}</span>
 						</button>
-						<button id="audio-lat" type="button" class="choice" onclick={() => chooseAudio(true)}>
-							<strong>{tr('Solo audio latino')}{#if doubts.length}<span class="slow">{tr('Demora más')}</span>{/if}</strong>
-							<span class="muted">{[tr('{n} lo dicen en el nombre', { n: all.filter((t) => t.lat).length }), doubts.length ? tr('reviso los audios de {n} dudosos (MULTI / Dual)', { n: doubts.length }) : '', doubts.length ? `~${doubts.length * 3} s` : ''].filter(Boolean).join(' · ')}</span>
+						<button id="audio-lat" type="button" class="choice" class:off={!all.some(potential)} disabled={!all.some(potential)} onclick={() => chooseAudio(true)}>
+							<strong>{tr('Solo audio latino')}{#if toRead}<span class="slow">{tr('Demora más')}</span>{/if}</strong>
+							<span class="muted">{all.some(potential)
+								? [named ? tr('{n} lo dicen en el nombre', { n: named }) : '', doubtful ? tr('{n} dudosas (MULTI / Dual)', { n: doubtful }) : '', toRead ? tr('reviso de a una, de mejor a peor calidad, hasta encontrar latino') : ''].filter(Boolean).join(' · ')
+								: tr('No hay torrents con audio latino')}</span>
 						</button>
 					</div>
-				{:else if step === 'latin'}
-					<h3 class="ask">{tr('Audio latino')}</h3>
-					<p class="latsum">{tr('{a} con latino confirmado · {b} según el nombre · {c} en español sin aclarar', { a: latin.confirmed, b: latin.byName, c: latin.unsure })}</p>
-					{#if reading}
-						<p class="status"><span class="spin"></span>{tr('Revisando audios…')}<button id="latin-stop" type="button" class="link-btn inline" onclick={() => goStep('latin')}>{tr('Detener')}</button></p>
+				{:else if screen === 'search'}
+					<h3 class="ask">{wantLat ? tr('Buscando audio latino') : tr('Buscando subtítulos en español')}</h3>
+					<p class="status"><span class="spin"></span>{tr('Leyendo pistas · {a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })}<button id="search-stop" type="button" class="link-btn inline" onclick={stopSearch}>{tr('Detener')}</button></p>
+					<p class="muted latsum">{wantLat ? tr('De a una, de mejor a peor calidad: te muestro la primera que tenga audio latino.') : tr('De a una, de mejor a peor calidad: te muestro la primera que traiga subtítulos en español adentro.')}</p>
+				{:else if screen === 'match'}
+					<!-- El resultado: solo los buenos matches; sin ninguno, las 3 de mejor calidad con el aviso. -->
+					{#if error}<p class="status error" role="alert">{error}</p>{/if}
+					{#if found.length}
+						<h3 class="ask">{tr('Mejor opción')}</h3>
+						<p class="match-why"><Icon name="check" size={15} />{wantLat ? tr('Audio latino confirmado') : tr('Trae subtítulos en español')}</p>
+						{@render options(found.map((h) => all.find((t) => t.hash === h)).filter((t) => !!t), true)}
+					{:else}
+						<h3 class="ask">{wantLat ? tr('Sin latino confirmado') : tr('Sin subtítulos en español adentro')}</h3>
+						<p class="muted latsum" role="status">{candidates.length ? tr('Búsqueda detenida: estas son las de mejor calidad.') : wantLat ? tr('No encontré latino confirmado.') : tr('Ninguna trae sub ES nativo: los subs se buscan afuera.')}</p>
+						{@render options(byBest.slice(0, 3), false)}
 					{/if}
-					<div class="choices">
-						<button id="latin-quality" type="button" class="choice primary" onclick={() => goStep('quality')}><strong>{tr('Elegir la calidad')}</strong></button>
-						{#if !reading && rest.length && extraRead < 10}
-							<button id="latin-more" type="button" class="choice" onclick={searchMore}>
-								<strong>{tr('Seguir buscando · {n} más', { n: Math.min(5, rest.length, 10 - extraRead) })}</strong>
-								<span class="muted">{tr('Menos probables: no dicen idioma en el nombre')}</span>
-							</button>
-						{/if}
-					</div>
-				{:else if step === 'quality'}
-					<h3 class="ask">{tr('¿Qué calidad?')}</h3>
-					<div class="choices grid">
-						{#each qualities as q (q.v)}
-							{@const off = wantLat && !q.lat}
-							<button id="quality-{q.v}" type="button" class="choice" class:off onclick={() => chooseQuality(q.v)}>
-								<strong>{tr(q.l)}</strong>
-								<span class="muted">
-									{#if !wantLat}{tr('{n} opciones', { n: q.total })}
-									{:else if off}{tr('Ninguna con latino · ver las {n} igual', { n: q.total })}
-									{:else}{tr('{n} con latino ({m} confirmados) de {t}', { n: q.lat, m: q.sure, t: q.total })}{/if}
-								</span>
-							</button>
-						{/each}
-					</div>
+					{@render more()}
+					<button id="see-all" type="button" class="link-btn" onclick={() => (showAll = true)}>{tr('Ver todas las opciones ({n})', { n: byBest.length })}</button>
 				{:else}
 					<div class="bar">
 						<div class="chips toggles" role="toolbar" aria-label={tr('Filtros de torrents')}>
 							<button id="only-hdr" type="button" class="chip toggle" class:on={onlyHdr} aria-pressed={onlyHdr} onclick={() => (onlyHdr = !onlyHdr)}>HDR</button>
 							<button id="only-es" type="button" class="chip toggle" class:on={onlyEs} aria-pressed={onlyEs} title={tr('Solo las verificadas que traen subtítulos en español')} onclick={() => (onlyEs = !onlyEs)}><Icon name="subs" size={14} />{tr('Subs ES')}</button>
 						</div>
-						<p class="summary" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>{tr('{n} de {f} en TorBox · por tamaño', { n: list.length, f: all.filter((t) => resOf(t) === quality).length })}</p>
+						<p class="summary" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>{wantLat ? tr('{n} con latino o dudosas de {f} en TorBox', { n: list.length, f: all.length }) : tr('{n} de {f} en TorBox · de mejor a peor calidad', { n: list.length, f: all.length })}</p>
 					</div>
-					{#if noLatHere}<p class="status muted">{tr('Ninguna de esta calidad trae latino: se muestran todas.')}</p>{/if}
-					{#if reading}<p class="status"><span class="spin"></span>{tr('Viendo cuál trae subtítulos en español…')}<button id="list-stop" type="button" class="link-btn inline" onclick={() => goStep('list')}>{tr('Detener')}</button></p>{/if}
 					{#if error}<p class="status error" role="alert">{error}</p>{/if}
 					{#if !list.length}<p class="status muted">{tr('No hay opciones con estos filtros.')}</p>{/if}
-					{@render options()}
+					{@render options(list, false)}
+					{@render more()}
 				{/if}
 			</div>
 		{/key}
 	{/if}
 </section>
 
-<!-- Las opciones de la calidad elegida (último paso). -->
-{#snippet options()}
+<!-- Al pie del resultado y de "todas": la búsqueda en curso (Detener), "Seguir buscando" o que no quedan más. -->
+{#snippet more()}
+	{#if reading}
+		<p class="status"><span class="spin"></span>{tr('Leyendo pistas · {a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })}<button id="more-stop" type="button" class="link-btn inline" onclick={stopSearch}>{tr('Detener')}</button></p>
+	{:else if candidates.length || nextMatch}
+		<button id="search-more" type="button" class="choice" onclick={findNext}>
+			<strong>{wantLat ? tr('Seguir buscando latino') : tr('Seguir buscando sub ES')}</strong>
+			{#if candidates.length}<span class="muted">{tr('{n} candidatas quedan · de a una', { n: candidates.length })}</span>{/if}
+		</button>
+	{:else if found.length}
+		<p class="status muted">{tr('No hay más para buscar.')}</p>
+	{/if}
+{/snippet}
+
+<!-- Opciones: `best` = buenos matches (destacados, con el botón de copiar lleno). -->
+{#snippet options(/** @type {Torrent[]} */ items, /** @type {boolean} */ best)}
 	<ul>
-		{#each list as t, i (t.hash)}
+		{#each items as t (t.hash)}
 			{@const q = t.source ? QUALITY[t.source] : null}
 			{@const sb = subBadge(t)}
 			{@const lb = latBadge(t, known(t))}
-			<li class="opt" class:best={i === 0}>
-				{#if i === 0}<span class="best-tag">{tr('Más pesada')}</span>{/if}
+			<li class="opt" class:best>
+				{#if best}<span class="best-tag">{tr('Mejor opción')}</span>{/if}
 				<div class="info">
 				<div class="top">
 					<span class="size">{gb(t.size)}</span>
@@ -678,19 +661,19 @@
 				{/if}
 				</div>
 				<div class="acts">
-				<!-- Como ▶ del desktop: un botón redondo; lleno solo en la primera fila. -->
+				<!-- Como ▶ del desktop: un botón redondo; lleno en los buenos matches. -->
 				<button
 					id="copy-{t.hash}"
 					type="button"
 					class="copy"
-					class:primary={i === 0}
+					class:primary={best}
 					class:ok={copy[t.hash] === 'ok'}
 					class:err={copy[t.hash] === 'err'}
 					aria-label={copy[t.hash] === 'err' ? tr('Reintentar copiar el link') : tr('Copiar link de TorBox')}
 					disabled={copy[t.hash] === 'busy'}
 					onclick={() => copyLink(t)}
 				>
-					{#if copy[t.hash] === 'busy'}<span class="spin" class:light={i === 0}></span>
+					{#if copy[t.hash] === 'busy'}<span class="spin" class:light={best}></span>
 					{:else if copy[t.hash] === 'ok'}<Icon name="check" size={18} />
 					{:else}<Icon name="link" size={18} />{/if}
 				</button>
@@ -937,7 +920,6 @@
 	.crumbs button:active { opacity: 0.6; }
 	.ask { margin: 10px 0 10px; font-size: 16px; }
 	.choices { display: flex; flex-direction: column; gap: 8px; }
-	.choices.grid { display: grid; grid-template-columns: 1fr 1fr; }
 	.choice { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 64px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); text-align: left; transition: background 0.2s var(--ease), transform 0.15s var(--out); }
 	.choice strong { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; }
 	.choice .muted { font-size: 12.5px; line-height: 1.35; }
@@ -946,6 +928,7 @@
 	.choice.off { opacity: 0.55; }
 	.slow { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 750; background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
 	.latsum { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
+	.match-why { display: flex; align-items: center; gap: 6px; margin: -4px 0 0; font-size: 13.5px; font-weight: 650; color: var(--green); }
 	.link-btn.inline { flex-basis: auto; min-height: 32px; margin-left: auto; color: var(--accent-fg); }
 	@media (hover: hover) { .choice:hover { background: var(--surface-2); } }
 	.toggle:not(.on) { border-style: dashed; background: transparent; color: var(--muted); }
@@ -965,7 +948,7 @@
 		border: 1px solid var(--border);
 	}
 	.info { min-width: 0; }
-	/* La primera fila, como la mejor opción del desktop: tinte verde y etiqueta arriba. */
+	/* Los buenos matches, como la mejor opción del desktop: tinte verde y etiqueta arriba. */
 	.opt.best { margin-top: 18px; border-color: color-mix(in srgb, var(--green) 55%, var(--border)); background: color-mix(in srgb, var(--green) 6%, var(--bg)); }
 	.best-tag { position: absolute; top: -9px; left: 14px; padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; background: var(--green); color: var(--bg); }
 	.copy {
