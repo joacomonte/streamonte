@@ -3,6 +3,7 @@
 	import Icon from '#lib/Icon.svelte';
 	import { wipe } from '#lib/saved.js';
 	import { t } from '#lib/i18n.svelte.js';
+	import LangPicker from '#lib/LangPicker.svelte';
 
 	/** @type {{tmdb: boolean, torbox: boolean, opensubtitles: boolean, opensubtitles_user: boolean, opensubtitles_pass: boolean} | null} */
 	let status = $state(null);
@@ -115,6 +116,11 @@
 		</button>
 		{#if msg}<p class="msg" role="status">{msg}</p>{/if}
 	</form>
+
+	<section class="field saved">
+		<span class="lbl">{t('Idioma')}</span>
+		<LangPicker id="settings-lang" />
+	</section>
 
 	<section class="field saved">
 		<span class="lbl">{t('Caché')}</span>

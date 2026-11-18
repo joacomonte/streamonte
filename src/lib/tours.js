@@ -3,7 +3,7 @@
 import { t } from './i18n.svelte.js';
 
 /** @typedef {{label: string, store: string, href: string}} StoreLink */
-/** @typedef {{icon: 'play' | 'phone' | 'cast' | 'wifi' | 'link' | 'subs', title: string, body: string, links?: StoreLink[]}} Step */
+/** `picker`: el paso muestra el selector de idiomas (LangPicker). @typedef {{icon: 'play' | 'phone' | 'cast' | 'wifi' | 'link' | 'subs' | 'globe', title: string, body: string, links?: StoreLink[], picker?: boolean}} Step */
 
 const JUST_PLAYER = { label: 'Just Player', store: 'Google Play', href: 'https://play.google.com/store/apps/details?id=com.brouken.player' };
 const SENPLAYER = { label: 'SenPlayer', store: 'App Store', href: 'https://apps.apple.com/app/id6443975850' };
@@ -32,6 +32,7 @@ export function welcomeSteps(d) {
 				? { title: t('En el celu, Just Player'), body: t('Gratis y sin publicidad. Abrís el link copiado y elegís el audio y los subtítulos.'), links: [JUST_PLAYER] }
 				: { title: t('Para verlo en el celu'), body: t('En iPhone, SenPlayer; en Android, Just Player. Abrís el link copiado y elegís el audio y los subtítulos.'), links: [SENPLAYER, JUST_PLAYER] };
 	return [
+		{ icon: 'globe', title: t('Elegí tus idiomas'), body: t('La app y los títulos pueden ir en idiomas distintos. Lo cambiás cuando quieras en Ajustes.'), picker: true },
 		{ icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.') },
 		{ icon: 'phone', ...player },
 		{

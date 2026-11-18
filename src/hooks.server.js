@@ -1,4 +1,4 @@
-import { pickLang } from '#lib/i18n/translate.js';
+import { pickLangs } from '#lib/i18n/translate.js';
 import { langStore, tx } from '#lib/server/lang.js';
 
 // Candado rústico: si hay APP_PASSWORD (en Vercel), pide un código de 3 dígitos y lo guarda en una cookie.
@@ -60,10 +60,11 @@ const GATE = `<!doctype html><html lang="es"><head><meta charset="utf-8">
 
 /** @type {import('@sveltejs/kit/hooks').Handle} */
 export const handle = async ({ event, resolve }) => {
-	// Idioma del pedido (cookie `lang` o el del navegador): TMDB, errores y el primer render salen en ese idioma.
-	const lang = pickLang(event.cookies.get('lang'), event.request.headers.get('accept-language'));
-	event.locals.lang = lang;
-	return langStore.run(lang, async () => {
+	// Idiomas del pedido (cookies o el del navegador): la app y los errores en `ui`; lo de TMDB en `titles`/`info`.
+	const langs = pickLangs((n) => event.cookies.get(n), event.request.headers.get('accept-language'));
+	const lang = langs.ui;
+	event.locals.langs = langs;
+	return langStore.run(langs, async () => {
 		const pass = process.env.APP_PASSWORD;
 		if (!pass || event.cookies.get('code') === pass) return resolve(event, { transformPageChunk: ({ html }) => html.replace('<html lang="es">', `<html lang="${lang}">`) });
 		if (event.url.pathname.startsWith('/api/')) return new Response(tx('Falta el código.'), { status: 401 });

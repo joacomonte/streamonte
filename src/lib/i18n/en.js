@@ -274,5 +274,13 @@ export default {
 	'¿En qué audio?': 'Which audio?',
 	'¿Lo querés ver en la tele?': 'Want to watch it on your TV?',
 	'¿Ninguno anduvo? Buscá en Premium': 'None worked? Search Premium',
-	'Último recurso · {q}': 'Last resort · {q}'
+	'Último recurso · {q}': 'Last resort · {q}',
+	'Elegí tus idiomas': 'Choose your languages',
+	'La app y los títulos pueden ir en idiomas distintos. Lo cambiás cuando quieras en Ajustes.': 'The app and the titles can be in different languages. Change it anytime in Settings.',
+	'Idioma de la app': 'App language',
+	'Títulos de pelis, series y capítulos': 'Movie, show and episode titles',
+	'Sinopsis y géneros': 'Synopsis and genres',
+	'Como los títulos': 'Same as titles',
+	'Como la app': 'Same as app',
+	'Tu plan de TorBox no incluye streaming: no se pueden leer las pistas del video.': 'Your TorBox plan doesn’t include streaming: the video tracks can’t be read.'
 };

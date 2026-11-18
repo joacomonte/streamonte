@@ -7,7 +7,7 @@
 	import Tour from './Tour.svelte';
 	import { castSteps, device, markSeen, seen } from './tours.js';
 	import * as saved from './saved.js';
-	import { i18n, loc, t as tr } from './i18n.svelte.js';
+	import { loc, t as tr } from './i18n.svelte.js';
 	import { untrack } from 'svelte';
 
 	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null}} */
@@ -82,11 +82,10 @@
 	let prem = $state(/** @type {{open: boolean, status: 'idle' | 'loading' | 'ready' | 'empty' | 'error', results: Sub[], busy: string | null}} */ ({ open: false, status: 'idle', results: [], busy: null }));
 	let quota = $state(/** @type {Quota | null} */ (null));
 
-	// Solo depende del video (`qs`) y del idioma (la clave de la caché): lo demás va en `untrack`, así nada que llegue
+	// Solo depende del video (`qs`): lo demás va en `untrack`, así nada que llegue
 	// después (subs, cuota, copias) vuelve a disparar el pedido ni vacía la lista que ya se ve.
 	$effect(() => {
 		const url = `/api/torrents?${qs}`;
-		i18n.lang;
 		let alive = true;
 		const hit = saved.peek(url);
 		untrack(() => {
@@ -173,11 +172,18 @@
 		subsEs[hash] = n;
 		saved.remember(`subs:${hash}`, n);
 	}
+	/** El plan de TorBox no incluye streaming (403): no hay forma de leer las pistas, así que no se ofrece. */
+	let noStream = $state(false);
 	/** Un pedido (/api/tracks: agrega el torrent y lee sus pistas con un solo stream). false si falló. @param {Torrent} t */
 	async function probe(t) {
 		subsEs[t.hash] = 'busy';
 		try {
 			const r = await fetch(`/api/tracks?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '' })}`);
+			if (r.status === 403) {
+				noStream = true;
+				subsEs[t.hash] = null;
+				return false;
+			}
 			if (!r.ok) throw new Error();
 			knowSubs(t.hash, (await r.json()).subs.length);
 			return true;
@@ -204,7 +210,7 @@
 		}
 	}
 	$effect(() => {
-		if (data && !autoBusy && !autoStop && list.slice(0, 3).some((x) => subsEs[x.hash] == null && !x.subFile)) autoProbe();
+		if (data && !noStream && !autoBusy && !autoStop && list.slice(0, 3).some((x) => subsEs[x.hash] == null && !x.subFile)) autoProbe();
 	});
 	/** @param {Torrent} t */
 	const subBadge = (t) => {
@@ -455,13 +461,13 @@
 						{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
 						{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
 						{#if t.lat}<span class="tag lat">{tr('LATINO')}</span>{/if}
-						{#if sb}<span class="tag cc {sb.on ? 'es' : 'nosub'}" title={sb.title} aria-label={sb.title}><Icon name="subs" size={14} />ES</span>{/if}
+						{#if sb}<span class="tag cc {sb.on ? 'es' : 'nosub'}" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES</span>{/if}
 					</div>
 					<div class="quality" title={q ? tr('Calidad de imagen: {q}', { q: tr(q[0]) }) : tr('El nombre del torrent no dice de dónde salió el video')}>
-						<Icon name="monitor" size={15} />
+						<Icon name="monitor" size={14} />
 						{#if q}
 							<span class="stars" role="img" aria-label={tr('{n} de 4', { n: q[1] })}>
-								{#each [1, 2, 3, 4] as n (n)}<span class:on={n <= q[1]}><Icon name="star" size={15} /></span>{/each}
+								{#each [1, 2, 3, 4] as n (n)}<span class:on={n <= q[1]}><Icon name="star" size={13} /></span>{/each}
 							</span>
 							<span class="qname">{tr(q[0])}</span>
 						{:else}
@@ -473,7 +479,7 @@
 					<!-- Sin dato de subs: píldora mínima al lado de copiar; un toque es un pedido y deja el badge. -->
 					{#if !sb && subsEs[t.hash] === 'busy'}
 						<span class="probe busy" role="status" aria-label={tr('Viendo si trae subtítulos en español')}><span class="spin"></span></span>
-					{:else if !sb}
+					{:else if !sb && !noStream}
 						<button
 							id="probe-{t.hash}"
 							type="button"
@@ -497,8 +503,8 @@
 						onclick={() => copyLink(t)}
 					>
 						{#if copy[t.hash] === 'busy'}<span class="spin" class:light={i === 0}></span>
-						{:else if copy[t.hash] === 'ok'}<Icon name="check" size={20} />
-						{:else}<Icon name="link" size={20} />{/if}
+						{:else if copy[t.hash] === 'ok'}<Icon name="check" size={18} />
+						{:else}<Icon name="link" size={18} />{/if}
 					</button>
 					</div>
 				</li>
@@ -703,9 +709,9 @@
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 12px 12px 16px;
-		margin-top: 10px;
+		gap: 10px;
+		padding: 10px 10px 10px 14px;
+		margin-top: 8px;
 		border-radius: 14px;
 		background: var(--bg);
 		border: 1px solid var(--border);
@@ -718,8 +724,8 @@
 		position: relative;
 		display: grid;
 		place-items: center;
-		width: 48px;
-		height: 48px;
+		width: 44px;
+		height: 44px;
 		padding: 0;
 		border-radius: 50%;
 		border: 1px solid var(--border-strong);
@@ -733,15 +739,15 @@
 	.copy.err { border-color: var(--red); color: var(--red); }
 	.copy:disabled { cursor: default; }
 	.spin.light { border-color: rgb(255 255 255 / 0.35); border-top-color: #fff; }
-	.top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
-	.size { font-size: 20px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-right: 2px; }
+	.top { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 6px; }
+	.size { font-size: 17.5px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-right: 2px; }
 	.tag {
-		padding: 2px 7px;
+		padding: 1px 6px;
 		border-radius: 6px;
 		border: 1.5px solid currentColor;
-		font-size: 11.5px;
+		font-size: 10.5px;
 		font-weight: 750;
-		letter-spacing: 0.06em;
+		letter-spacing: 0.05em;
 		color: var(--muted);
 		white-space: nowrap;
 	}
@@ -749,15 +755,15 @@
 	.tag.lat, .tag.es { color: var(--green); }
 	.acts { display: flex; align-items: center; gap: 8px; }
 	/* Badge de subs compacto (cc + ES): entra en la línea de los tags. (`.sub` ya es la fila de subtítulo.) */
-	.tag.cc { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px 2px 5px; }
+	.tag.cc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px 1px 4px; }
 	/* Píldora punteada: todavía no se sabe si trae subs en español; un toque lo consulta. */
 	.probe {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		gap: 1px;
-		width: 44px;
-		height: 32px;
+		width: 40px;
+		height: 30px;
 		padding: 0;
 		border: 1.5px dashed var(--border-strong);
 		border-radius: 999px;
@@ -775,7 +781,7 @@
 	.probe.busy { border-style: solid; }
 	.probe .spin { width: 14px; height: 14px; border-width: 2px; }
 	.tag.nosub { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); background: color-mix(in srgb, var(--amber) 10%, transparent); }
-	.quality { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--muted); font-size: 15px; }
+	.quality { display: flex; align-items: center; gap: 5px; margin-top: 5px; color: var(--muted); font-size: 13.5px; }
 	.stars { display: inline-flex; gap: 1px; color: color-mix(in srgb, var(--muted) 45%, transparent); }
 	.stars :global(svg) { fill: currentColor; stroke-width: 1.5; }
 	.stars .on { color: #e6b54a; }

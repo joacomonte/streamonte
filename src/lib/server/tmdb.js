@@ -4,18 +4,19 @@ import { Fail, get } from './http.js';
 import { keys } from './keys.js';
 import { imdbOf, ratings } from './imdb.js';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { lang, tx } from './lang.js';
+import { infoLang, lang, titlesLang } from './lang.js';
+import { translate } from '../i18n/translate.js';
 
 const API = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p/';
 
-/** @param {string} path @param {Record<string, unknown>} [params] */
-async function tmdb(path, params = {}) {
+/** @param {string} path @param {Record<string, unknown>} [params] @param {'es' | 'en'} [language] por defecto, el de los títulos */
+async function tmdb(path, params = {}, language = titlesLang()) {
 	const key = (await keys()).tmdb;
 	if (!key) throw new Fail(428, 'Falta la key de TMDB: cargala en Ajustes.');
 	const url = new URL(API + path);
 	url.searchParams.set('api_key', key);
-	url.searchParams.set('language', lang() === 'en' ? 'en-US' : 'es-MX');
+	url.searchParams.set('language', language === 'en' ? 'en-US' : 'es-MX');
 	for (const [k, v] of Object.entries(params)) if (v != null && v !== '') url.searchParams.set(k, String(v));
 	const r = await get(url);
 	if (r.status === 401) throw new Fail(401, 'TMDB rechazó la key: revisala en Ajustes.');
@@ -143,7 +144,7 @@ async function build(f) {
 /** @param {Filters} f */
 export async function discover(f) {
 	const { page, ...rest } = f;
-	const key = JSON.stringify({ ...rest, ui: lang() }); // los títulos vienen en el idioma del pedido
+	const key = JSON.stringify({ ...rest, titles: titlesLang() }); // los títulos vienen en ese idioma
 	let hit = lists.get(key);
 	if (!hit || hit.at < Date.now() - LIST_TTL) {
 		hit = { at: Date.now(), list: build(f) };
@@ -165,13 +166,18 @@ export async function search(q, page) {
 
 /** @param {'movie' | 'tv'} kind */
 export async function genres(kind) {
-	const j = await tmdb(`/genre/${kind}/list`);
+	const j = await tmdb(`/genre/${kind}/list`, {}, infoLang());
 	return j.genres.map((/** @type {any} */ g) => ({ id: String(g.id), name: g.name }));
 }
 
 /** Ficha: datos, IMDb id (para los torrents) y temporadas. @param {'movie' | 'tv'} kind @param {string} id */
 export async function title(kind, id) {
-	const r = await tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits' });
+	// Sinopsis y géneros en otro idioma que los títulos (si el usuario lo eligió): un pedido más, en paralelo.
+	const [r, info] = await Promise.all([
+		tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits' }),
+		infoLang() !== titlesLang() ? tmdb(`/${kind}/${id}`, {}, infoLang()) : null
+	]);
+	const about = info ?? r;
 	// Dónde verla en Argentina (TMDB/JustWatch): suscripción primero, después con avisos o gratis.
 	const ar = r['watch/providers']?.results?.AR ?? {};
 	const seen = new Set();
@@ -186,10 +192,10 @@ export async function title(kind, id) {
 		...card(r, kind),
 		...(real ? { rating: real.rating.toFixed(1) } : {}),
 		backdrop: r.backdrop_path ? `${IMG}w1280${r.backdrop_path}` : null,
-		overview: r.overview,
+		overview: about.overview,
 		runtime: r.runtime ?? r.episode_run_time?.[0] ?? null,
 		// Los de series que juntan dos (y TMDB devuelve en inglés) se parten como en el desktop.
-		genres: [...new Set((r.genres ?? []).flatMap((/** @type {any} */ g) => TV_GENRES[g.id]?.map((x) => tx(x)) ?? [g.name]))],
+		genres: [...new Set((about.genres ?? []).flatMap((/** @type {any} */ g) => TV_GENRES[g.id]?.map((x) => translate(infoLang(), x)) ?? [g.name]))],
 		providers,
 		cast: (r.credits?.cast ?? []).slice(0, 3).map((/** @type {any} */ c) => c.name),
 		lang: langName ? langName[0].toUpperCase() + langName.slice(1) : null,

@@ -4,7 +4,7 @@ declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			lang: 'es' | 'en';
+			langs: import('$lib/i18n/translate.js').Langs;
 		}
 		// interface PageData {}
 		// interface PageState {}

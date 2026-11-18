@@ -1,6 +1,7 @@
 // Estado del catálogo a nivel módulo: al volver de una ficha la lista y el scroll siguen ahí.
 import * as cache from './saved.js';
 import { t, loc } from './i18n.svelte.js';
+import { invalidateAll } from '$app/navigation';
 
 export const KINDS = [
 	{ v: 'movie', label: 'Películas', kind: 'movie', doc: false },
@@ -104,6 +105,15 @@ export function reset() {
 	}
 	Object.assign(cat, { items: [], page: 0, done: false, error: null, loading: false, gen: cat.gen + 1 });
 	loadMore();
+}
+
+/** Cambió un idioma (app, títulos o sinopsis): catálogo, géneros y la página abierta se vuelven a pedir (la caché
+ * es por idioma, así que lo ya visto en ese idioma sale al instante). */
+export function relang() {
+	cat.genreList = {};
+	loadGenres((KINDS.find((k) => k.v === cat.f.kind) ?? KINDS[0]).kind);
+	reset();
+	invalidateAll();
 }
 
 /** @param {string} kind */

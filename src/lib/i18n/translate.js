@@ -13,5 +13,15 @@ export function translate(lang, s, vars) {
 /** Idioma de un pedido: la cookie `lang` y, si no hay, el del navegador. @param {string | undefined} cookie @param {string | null} accept @returns {Lang} */
 export const pickLang = (cookie, accept) => (cookie === 'es' || cookie === 'en' ? cookie : /^es\b/i.test(accept ?? '') ? 'es' : accept ? 'en' : 'es');
 
+/** @typedef {{ui: Lang, titles: Lang, info: Lang}} Langs */
+/** Las tres preferencias a partir de sus cookies (`lang`, `titles`, `info` = 'titles' | 'app'). Sin elegir, todo
+ * va en el idioma de la app. @param {(name: string) => string | undefined} cookie @param {string | null} accept @returns {Langs} */
+export function pickLangs(cookie, accept) {
+	const ui = pickLang(cookie('lang'), accept);
+	const t = cookie('titles');
+	const titles = t === 'es' || t === 'en' ? t : ui;
+	return { ui, titles, info: cookie('info') === 'app' ? ui : titles };
+}
+
 /** Locale para fechas y números. @param {Lang} lang */
 export const locale = (lang) => (lang === 'en' ? 'en-US' : 'es-AR');

@@ -5,17 +5,19 @@
 	import { device, markSeen, seen, welcomeSteps } from '#lib/tours.js';
 	import { i18n, t } from '#lib/i18n.svelte.js';
 
-	/** @type {{data: {lang: 'es' | 'en'}, children: import('svelte').Snippet}} */
+	/** @type {{data: {langs: import('#lib/i18n/translate.js').Langs, info: 'titles' | 'app'}, children: import('svelte').Snippet}} */
 	let { data, children } = $props();
 	// El idioma que decidió el servidor (cookie o navegador), antes del primer render (también en el servidor, donde
 	// no corren los efectos); después lo cambia el toggle.
-	(() => (i18n.lang = data.lang))();
+	(() => Object.assign(i18n, { lang: data.langs.ui, titles: data.langs.titles, info: data.info }))();
 
 	// Bienvenida: una sola vez, al entrar por primera vez (después del código de acceso). Vista o salteada, no vuelve.
-	let welcome = $state(/** @type {import('#lib/tours.js').Step[] | null} */ (null));
+	let welcomeOpen = $state(false);
 	$effect(() => {
-		if (!seen('welcome')) welcome = welcomeSteps(device());
+		if (!seen('welcome')) welcomeOpen = true;
 	});
+	// Se rearma al cambiar el idioma en el primer paso: el resto del tutorial ya sale en el elegido.
+	const welcome = $derived(welcomeOpen ? welcomeSteps(device()) : null);
 
 	// Solo en desarrollo. Al cambiar de app el celu corta la conexión con Vite, y al volver Vite recarga la página
 	// siempre. Se frena esa recarga (el listener no termina nunca) y, cada vez que la app vuelve a verse, se recarga
@@ -46,5 +48,5 @@
 {@render children()}
 
 {#if welcome}
-	<Tour id="welcome" label={t('Bienvenida')} open steps={welcome} onclose={() => { markSeen('welcome'); welcome = null; }} />
+	<Tour id="welcome" label={t('Bienvenida')} open steps={welcome} onclose={() => { markSeen('welcome'); welcomeOpen = false; }} />
 {/if}

@@ -1,9 +1,16 @@
-// Idioma del pedido en curso (lo fija hooks.server.js): TMDB y los mensajes de error lo usan sin pasarlo a mano.
+// Idiomas del pedido en curso (los fija hooks.server.js), así nadie los pasa a mano:
+// - `ui`: textos de la app y errores.
+// - `titles`: títulos de películas, series y capítulos (lo que se le pide a TMDB).
+// - `info`: sinopsis y géneros; el usuario elige si van como los títulos o como la app.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { translate } from '../i18n/translate.js';
 
-/** @type {AsyncLocalStorage<import('../i18n/translate.js').Lang>} */
+/** @typedef {import('../i18n/translate.js').Langs} Langs */
+/** @type {AsyncLocalStorage<Langs>} */
 export const langStore = new AsyncLocalStorage();
-export const lang = () => langStore.getStore() ?? 'es';
+const now = () => langStore.getStore() ?? { ui: 'es', titles: 'es', info: 'es' };
+export const lang = () => now().ui;
+export const titlesLang = () => now().titles;
+export const infoLang = () => now().info;
 /** @param {string} s @param {Record<string, string | number>} [vars] */
 export const tx = (s, vars) => translate(lang(), s, vars);

@@ -29,8 +29,10 @@ const tb = (path, init = {}) => tbRoot(`/v1/api/torrents${path}`, init);
 /** @param {string} path ruta desde `/v1/api` (incluida) @param {RequestInit} [init] */
 async function tbRoot(path, init = {}) {
 	const r = await get(ROOT + path, { ...init, headers: { authorization: `Bearer ${await key()}` } }, 20_000);
-	if (r.status === 401 || r.status === 403) throw new Fail(401, 'TorBox rechazó la key: revisala en Ajustes.');
 	const j = await r.json().catch(() => ({}));
+	// 403 también es "tu plan no incluye esto" (el streaming): no es la key.
+	if (j.error === 'PLAN_RESTRICTED_FEATURE') throw new Fail(403, 'Tu plan de TorBox no incluye streaming: no se pueden leer las pistas del video.');
+	if (r.status === 401 || r.status === 403) throw new Fail(401, 'TorBox rechazó la key: revisala en Ajustes.');
 	if (!r.ok) throw new Fail(502, 'TorBox: {d}', { d: j.detail ?? r.status });
 	return j;
 }
@@ -186,6 +188,7 @@ async function hls(id, fileId, release, orig) {
 		const url = await at(Math.max(main, 0));
 		return url.startsWith('https://') ? { url, file, natives, video, subsEs } : null;
 	} catch (e) {
+		// La key mal sí corta; sin streaming en el plan (403), queda el link de descarga.
 		if (e instanceof Fail && e.status === 401) throw e;
 		return null;
 	}

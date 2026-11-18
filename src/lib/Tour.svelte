@@ -3,6 +3,7 @@
 	// nativo: foco, Esc y fondo. Flechas del teclado y botones para moverse; Saltar o Esc lo cierran.
 	import Icon from './Icon.svelte';
 	import { t } from './i18n.svelte.js';
+	import LangPicker from './LangPicker.svelte';
 
 	/** @type {{id: string, label: string, open: boolean, steps: import('./tours.js').Step[], onclose: () => void}} */
 	let { id, label, open, steps, onclose } = $props();
@@ -68,6 +69,9 @@
 		</div>
 		<h2 id={live ? `${id}-title` : undefined}>{st.title}</h2>
 		<p>{st.body}</p>
+		{#if st.picker}
+			<div class="picker">{#if live}<LangPicker id="{id}-lang" />{:else}<div class="picker-size"></div>{/if}</div>
+		{/if}
 		{#if st.links?.length}
 			<ul class="stores">
 				{#each st.links as l (l.href)}
@@ -171,6 +175,9 @@
 	h2 { margin: 0 0 8px; font-size: 24px; line-height: 1.2; letter-spacing: -0.02em; text-wrap: balance; }
 	p { margin: 0; font-size: 16px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
 
+	.picker { margin-top: 20px; }
+	/* Alto del selector en el paso invisible que fija la altura de la hoja (3 filas). */
+	.picker-size { height: 240px; }
 	.stores { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 	.stores a {
 		display: flex;

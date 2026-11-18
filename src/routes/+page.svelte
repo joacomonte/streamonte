@@ -2,9 +2,8 @@
 	import { onMount } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
 	import Sheet from '#lib/Sheet.svelte';
-	import { BACK, DEFAULTS, KINDS, LANGS, SORTS, VOTES, backLabel, cat, loadGenres, loadMore, reset, votesLabel } from '#lib/catalog.svelte.js';
+	import { BACK, DEFAULTS, KINDS, LANGS, SORTS, VOTES, backLabel, cat, loadGenres, loadMore, relang, reset, votesLabel } from '#lib/catalog.svelte.js';
 	import { i18n, setLang, t } from '#lib/i18n.svelte.js';
-	import { invalidateAll } from '$app/navigation';
 
 	/** @type {{tmdb: boolean, torbox: boolean} | null} */
 	let keys = $state(null);
@@ -76,14 +75,11 @@
 	}
 	/** @type {('es' | 'en')[]} */
 	const UI_LANGS = ['es', 'en'];
-	/** ES / EN: guarda el idioma y vuelve a pedir el catálogo y los géneros en ese idioma (la caché es por idioma). @param {'es' | 'en'} l */
+	/** ES / EN de la app (los títulos tienen su propio idioma, en Ajustes): con sinopsis "como la app" también cambian. @param {'es' | 'en'} l */
 	function switchLang(l) {
 		if (l === i18n.lang) return;
 		setLang(l);
-		cat.genreList = {};
-		loadGenres(kind.kind);
-		reset();
-		invalidateAll();
+		relang();
 	}
 	function resetFilters() {
 		setF({ from: DEFAULTS.from, to: DEFAULTS.to, votes: DEFAULTS.votes, lang: DEFAULTS.lang, genres: [] });
