@@ -48,6 +48,9 @@ export function put(key, data, ttl) {
  * intermedio. null si no hay. @param {string} url @returns {any} */
 export const peek = (url) => get(keyOf(url));
 
+/** Guarda la respuesta de una URL de la API (la que se armó leyendo un stream). @param {string} url @param {unknown} data @param {number} ttl */
+export const store = (url, data, ttl) => put(keyOf(url), data, ttl);
+
 /** GET a la API con caché: si hay una respuesta vigente la devuelve sin pedir; si no, pide y guarda solo las ok.
  * @param {typeof fetch} f el `fetch` de SvelteKit en un `load`, o el global @param {string} url @param {number} ttl
  * @returns {Promise<{ok: boolean, status: number, data: any}>} */

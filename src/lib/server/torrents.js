@@ -61,6 +61,11 @@ function parse(s, addon) {
 		atmos: has(['atmos']),
 		lat: has(['latino', 'lat', 'latam']) || lower.includes('es-la') || lower.includes('es-419') || LAT_FLAGS.some((f) => text.includes(f)),
 		multi: has(['multi', 'multiaudio', 'dual']),
+		// Dudoso para latino: MULTI / Dual o "español" sin decir cuál, y sin castellano. Se confirma leyendo sus pistas.
+		doubt:
+			!(has(['latino', 'lat', 'latam']) || lower.includes('es-la') || lower.includes('es-419')) &&
+			has(['multi', 'multiaudio', 'dual', 'spanish', 'español', 'espanol', 'spa', 'esp']) &&
+			!has(['cast', 'castellano', 'spain', 'españa']),
 		size: hints.videoSize > 0 ? hints.videoSize : size(after(body, '💾')),
 		seeds,
 		addons: [addon]
@@ -74,14 +79,24 @@ const bySize = (a, b) =>
 	(b.size ?? 0) - (a.size ?? 0) ||
 	(RES_RANK[/** @type {keyof RES_RANK} */ (b.res)] ?? 0) - (RES_RANK[/** @type {keyof RES_RANK} */ (a.res)] ?? 0);
 
-/** @param {string} imdb @param {string | null} s @param {string | null} e */
-export async function torrents(imdb, s, e) {
+/** @typedef {{stage: 'sources', done: number, total: number} | {stage: 'torbox'}} Progress */
+
+/** Torrents de todas las fuentes que TorBox tiene en caché. `onProgress` avisa cada fuente que termina y el chequeo
+ * de TorBox (para el "Buscando torrents… 2 de 4 fuentes" de la web).
+ * @param {string} imdb @param {string | null} s @param {string | null} e @param {(p: Progress) => void} [onProgress] */
+export async function torrents(imdb, s, e, onProgress = () => {}) {
 	const type = s ? 'series' : 'movie';
 	const vid = s ? `${imdb}:${s}:${e}` : imdb;
+	let done = 0;
+	onProgress({ stage: 'sources', done, total: ADDONS.length });
 	const lists = await Promise.allSettled(
 		ADDONS.map(async ([name, base]) => {
-			const r = await get(`${base}/stream/${type}/${vid}.json`, { headers: { 'user-agent': 'Mozilla/5.0' } }, 15_000);
-			return r.ok ? (await r.json()).streams?.map((/** @type {any} */ x) => parse(x, name)) ?? [] : [];
+			try {
+				const r = await get(`${base}/stream/${type}/${vid}.json`, { headers: { 'user-agent': 'Mozilla/5.0' } }, 15_000);
+				return r.ok ? (await r.json()).streams?.map((/** @type {any} */ x) => parse(x, name)) ?? [] : [];
+			} finally {
+				onProgress({ stage: 'sources', done: ++done, total: ADDONS.length });
+			}
 		})
 	);
 	/** @type {Map<string, Torrent>} */
@@ -97,11 +112,13 @@ export async function torrents(imdb, s, e) {
 				old.size ??= t.size;
 				old.file ??= t.file;
 				old.lat ||= t.lat;
+				old.doubt = (old.doubt || t.doubt) && !old.lat;
 				if (!old.addons.includes(t.addons[0])) old.addons.push(t.addons[0]);
 			}
 		}
 	}
 	const found = byHash.size;
+	onProgress({ stage: 'torbox' });
 	const inTorbox = await cached([...byHash.keys()], s, e);
 	// subFile: trae un archivo de subtítulo en español (sale del mismo checkcached, sin pedidos nuevos).
 	const list = [...byHash.values()].filter((t) => inTorbox.has(t.hash)).map((t) => ({ ...t, subFile: inTorbox.get(t.hash) ?? false })).sort(bySize);

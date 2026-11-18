@@ -1,0 +1,41 @@
+// Audio latino de una opción: lo que dicen sus pistas (si se leyeron) y, si no, lo que dice el nombre.
+// Una regla, un lugar: lo usan los badges, la búsqueda por escalones y los conteos por calidad.
+
+/** Lo leído de un torrent: cuántos subs en español trae y su mejor audio en español.
+ * `audio`: 'lat' confirmado · 'es' español sin decir cuál · 'spain' castellano · 'none' sin español · null sin leer.
+ * @typedef {{subs: number, audio: 'lat' | 'es' | 'spain' | 'none' | null}} Tracks */
+
+const SPANISH = /^(spa|es)(\b|-|_)/i;
+
+/** El mejor audio en español de las pistas (`language` ISO, `title` libre). @param {{language: string, title: string}[]} audios @returns {Tracks['audio']} */
+export function audioOf(audios) {
+	const kinds = audios
+		.filter((a) => SPANISH.test(a.language))
+		.map((a) => (/^es-419/i.test(a.language) || /lat|latino|latam|419|mex/i.test(a.title) ? 'lat' : /^es-es/i.test(a.language) || /cast|españa|espana|spain|europe/i.test(a.title) ? 'spain' : 'es'));
+	return kinds.includes('lat') ? 'lat' : kinds.includes('es') ? 'es' : kinds.includes('spain') ? 'spain' : 'none';
+}
+console.assert(
+	audioOf([{ language: 'spa', title: 'Latino DD 5.1' }]) === 'lat' &&
+		audioOf([{ language: 'es-419', title: '' }]) === 'lat' &&
+		audioOf([{ language: 'spa', title: 'Castellano' }]) === 'spain' &&
+		audioOf([{ language: 'spa', title: 'AC3 5.1' }]) === 'es' &&
+		audioOf([{ language: 'eng', title: '' }]) === 'none',
+	'audioOf'
+);
+
+/** ¿Cuenta como latino? Confirmado por pistas, o según el nombre si todavía no se leyeron (o no se pudo).
+ * @param {{lat: boolean}} t @param {Tracks | null | undefined} info */
+export const isLatino = (t, info) => (info?.audio ? info.audio === 'lat' : t.lat);
+
+/** Badge de audio: LAT confirmado (verde), LAT según el nombre (gris punteado), "ES ¿LAT?" (español sin variante) o
+ * "¿LAT?" (MULTI / Dual sin aclarar). null si no hay nada que decir.
+ * @param {{lat: boolean, doubt?: boolean}} t @param {Tracks | null | undefined} info
+ * @returns {{kind: 'lat' | 'name' | 'es' | 'doubt', text: string, title: string} | null} */
+export function latBadge(t, info) {
+	if (info?.audio === 'lat') return { kind: 'lat', text: 'LAT', title: 'Audio latino confirmado en las pistas del video' };
+	if (info?.audio === 'es') return { kind: 'es', text: 'ES ¿LAT?', title: 'Trae audio en español sin decir si es latino o de España' };
+	if (info?.audio) return null;
+	if (t.lat) return { kind: 'name', text: 'LAT', title: 'Latino según el nombre del torrent: si el nombre miente, no lo trae' };
+	if (t.doubt) return { kind: 'doubt', text: '¿LAT?', title: 'MULTI / Dual sin aclarar: validar audio latino' };
+	return null;
+}
