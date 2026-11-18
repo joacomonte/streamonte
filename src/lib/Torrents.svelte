@@ -175,8 +175,8 @@
 	const TYPICAL = /** @type {Record<string, number>} */ ({ '2160p': 25, '1080p': 8, '720p': 4, other: 3 });
 	/** Bitrate que pide el video, en Mbps: peso ÷ duración (la de la ficha); sin alguno de los dos, lo típico. @param {Torrent} t */
 	const mbpsOf = (t) => (t.size && runtime ? (t.size * 8) / (runtime * 60) / 1e6 : TYPICAL[resOf(t)]);
-	/** ¿Entra en la conexión elegida? @param {Torrent} t */
-	const fits = (t) => !net || mbpsOf(t) <= net.mbps;
+	/** ¿Entra en la conexión elegida? Sin peso no se sabe cuánto pide: no entra (no puede ser el buen match). @param {Torrent} t */
+	const fits = (t) => !!t.size && (!net || mbpsOf(t) <= net.mbps);
 
 	/** Paso actual: la conexión (si no se eligió nunca), el audio, o el resultado (buscando el primer buen match, ese
 	 * match o, con `showAll`, todas). */
@@ -217,7 +217,7 @@
 	const qualityRank = (t) => (t.source ? QUALITY[t.source]?.[1] : null) ?? 2.5;
 	/** De mejor a peor: más bitrate (más imagen por segundo; la resolución sola no dice cuánto se comprimió), y a igual
 	 * bitrate la de mejor calidad de imagen. @param {Torrent} a @param {Torrent} b */
-	const byQuality = (a, b) => mbpsOf(b) - mbpsOf(a) || qualityRank(b) - qualityRank(a);
+	const byQuality = (a, b) => Number(!a.size) - Number(!b.size) || mbpsOf(b) - mbpsOf(a) || qualityRank(b) - qualityRank(a);
 	/** Lo que entra con el audio elegido (latino: solo las con potencial), de mejor a peor. `byBest`: solo las que entran
 	 * en la conexión (de ahí sale el buen match); `everything`: todas, para "Ver todas". */
 	const everything = $derived((wantLat ? all.filter(potential) : [...all]).sort(byQuality));
@@ -671,7 +671,7 @@
 				<div class="top">
 					<span class="size">{gb(t.size)}</span>
 					{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
-					{#if !fits(t)}<span class="tag heavy" title={tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) })}>{tr('Puede cortarse')}</span>{/if}
+					{#if t.size && !fits(t)}<span class="tag heavy" title={tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) })}>{tr('Puede cortarse')}</span>{/if}
 					{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
 					{#if lb?.kind === 'es'}
 						<button id="audio-info-{t.hash}" type="button" class="tag act" title={tr(lb.title)} onclick={() => (tracksOf = t)}><Icon name="volume" size={13} />{tr(lb.text)}</button>
