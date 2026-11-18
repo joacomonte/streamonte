@@ -4,6 +4,7 @@
 	// serie y si mejoró o decayó. Tocar una barra elige esa temporada.
 	import Icon from './Icon.svelte';
 	import * as saved from './saved.js';
+	import { loc, t } from './i18n.svelte.js';
 
 	/** @type {{imdb: string, status: string | null, next: {season: number, date: string} | null, current: number | null, onpick: (n: number) => void}} */
 	let { imdb, status, next, current, onpick } = $props();
@@ -30,7 +31,7 @@
 	/** @param {number} x */
 	const tone = (x) => (x >= 8.5 ? 'great' : x >= 7.5 ? 'good' : x >= 6.5 ? 'meh' : 'bad');
 	/** @param {number} x */
-	const fmt = (x) => x.toFixed(1).replace('.', ',');
+	const fmt = (x) => x.toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 	const v = $derived(scores?.map((x) => x.rating) ?? []);
 	const top = $derived(Math.max(...v));
@@ -43,29 +44,29 @@
 		const last = scores?.at(-1)?.season ?? 0;
 		if (!scores?.length || ended || !status) return null;
 		if (next && next.season > last && new Date(`${next.date}T12:00`) > new Date())
-			return { season: next.season, label: new Date(`${next.date}T12:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }).replace('.', ''), go: true };
+			return { season: next.season, label: new Date(`${next.date}T12:00`).toLocaleDateString(loc(), { day: 'numeric', month: 'short' }).replace('.', ''), go: true };
 		return { season: last + 1, label: '?', go: false };
 	});
 	/** Primera contra última temporada. */
 	const trend = $derived.by(() => {
 		if (v.length < 2) return null;
 		const d = /** @type {number} */ (v.at(-1)) - v[0];
-		if (Math.abs(d) < 0.3) return { text: 'Estable', icon: /** @type {const} */ ('trend-flat'), cls: 'flat' };
-		return d > 0 ? { text: `Mejoró +${fmt(d)}`, icon: /** @type {const} */ ('trend-up'), cls: 'up' } : { text: `Decayó −${fmt(-d)}`, icon: /** @type {const} */ ('trend-down'), cls: 'down' };
+		if (Math.abs(d) < 0.3) return { text: t('Estable'), icon: /** @type {const} */ ('trend-flat'), cls: 'flat' };
+		return d > 0 ? { text: t('Mejoró +{d}', { d: fmt(d) }), icon: /** @type {const} */ ('trend-up'), cls: 'up' } : { text: t('Decayó −{d}', { d: fmt(-d) }), icon: /** @type {const} */ ('trend-down'), cls: 'down' };
 	});
 </script>
 
 {#if !scores && !failed}
 	<div class="chart" aria-busy="true"><div class="skel chart-skel"></div></div>
 {:else if scores && (scores.length >= 2 || (scores.length && upcoming))}
-	<section class="chart" aria-label="Puntaje por temporada">
+	<section class="chart" aria-label={t('Puntaje por temporada')}>
 		<div class="head">
-			<h2>Puntaje por temporada</h2>
+			<h2>{t('Puntaje por temporada')}</h2>
 			<span class="src">IMDb</span>
 		</div>
 		{#if ended || trend}
 			<div class="meta">
-				{#if ended && status}<span class="pill end" class:stop={status === 'canceled'}><Icon name={status === 'ended' ? 'flag' : 'ban'} size={13} />{STATES[status]}</span>{/if}
+				{#if ended && status}<span class="pill end" class:stop={status === 'canceled'}><Icon name={status === 'ended' ? 'flag' : 'ban'} size={13} />{t(STATES[status])}</span>{/if}
 				{#if trend}<span class="pill {trend.cls}"><Icon name={trend.icon} size={14} />{trend.text}</span>{/if}
 			</div>
 		{/if}
@@ -77,19 +78,19 @@
 					class="bar {tone(x.rating)}"
 					class:best={x.rating === top}
 					class:current={x.season === current}
-					aria-label="Temporada {x.season}: {fmt(x.rating)} ({x.episodes} episodios con puntaje)"
+					aria-label={t('Temporada {s}: {r} ({n} episodios con puntaje)', { s: x.season, r: fmt(x.rating), n: x.episodes })}
 					onclick={() => onpick(x.season)}
 				>
 					<span class="val">{fmt(x.rating)}</span>
 					<span class="track"><i style:height={height(x.rating)}></i></span>
-					<span class="n">T{x.season}</span>
+					<span class="n">{t('T{n}', { n: x.season })}</span>
 				</button>
 			{/each}
 			{#if upcoming}
-				<span class="bar ghost" class:go={upcoming.go} title="Temporada {upcoming.season}: {upcoming.go ? upcoming.label : `${STATES[status ?? ''] ?? ''}, sin fecha anunciada`}">
+				<span class="bar ghost" class:go={upcoming.go} title={t('Temporada {n}', { n: upcoming.season }) + ': ' + (upcoming.go ? upcoming.label : t('{s}, sin fecha anunciada', { s: t(STATES[status ?? ''] ?? '') }))}>
 					<span class="val">{upcoming.label}</span>
 					<span class="track"><i style:height={height(/** @type {number} */ (v.at(-1)))}></i></span>
-					<span class="n">T{upcoming.season}</span>
+					<span class="n">{t('T{n}', { n: upcoming.season })}</span>
 				</span>
 			{/if}
 		</div>

@@ -1,6 +1,7 @@
 // TorBox, como crates/core/src/catalog/torbox.rs: qué hashes están en caché y el link https de uno.
 import { Fail, get } from './http.js';
 import { keys } from './keys.js';
+import { lang, tx } from './lang.js';
 
 const ROOT = 'https://api.torbox.app';
 const VIDEO = /\.(mkv|mp4|avi|m4v|mov|webm)$/i;
@@ -30,7 +31,7 @@ async function tbRoot(path, init = {}) {
 	const r = await get(ROOT + path, { ...init, headers: { authorization: `Bearer ${await key()}` } }, 20_000);
 	if (r.status === 401 || r.status === 403) throw new Fail(401, 'TorBox rechazó la key: revisala en Ajustes.');
 	const j = await r.json().catch(() => ({}));
-	if (!r.ok) throw new Fail(502, `TorBox: ${j.detail ?? r.status}`);
+	if (!r.ok) throw new Fail(502, 'TorBox: {d}', { d: j.detail ?? r.status });
 	return j;
 }
 
@@ -64,18 +65,19 @@ export async function cached(hashes, s = null, e = null) {
 	return out;
 }
 
-/** Link https del video: agrega el torrent (solo si está en caché) y pide el link del archivo. Si el video trae audio
- * en inglés y en latino, `choices` trae un link por cada uno para que el usuario elija; si no, `url` va en inglés.
- * @param {{hash: string, name: string, file: string | null, s: string | null, e: string | null}} t
+/** Link https del video: agrega el torrent (solo si está en caché) y pide el link del archivo. Audio por defecto: el
+ * idioma original del título (`orig`, ISO 639-1 de TMDB); si no está, inglés. Si además trae latino, `choices` trae
+ * los dos (Original y Latino) para que el usuario elija.
+ * @param {{hash: string, name: string, file: string | null, s: string | null, e: string | null, orig?: string | null}} t
  * `file`: hash de OpenSubtitles y tamaño del archivo, para buscar subtítulos hechos para ese archivo.
  * `natives`: subtítulos en español que trae el video; cada uno con su link: el mismo stream (audio en inglés) con ese
  * subtítulo puesto (TorBox lo pone en la imagen). Vacío = no trae.
  * `video`: cuadros por segundo y duración en segundos, para ordenar los subtítulos por cuál calza.
  * `subsEs`: cuántos subtítulos en español trae el video adentro (sin dato si no hubo stream HLS).
- * @returns {Promise<{url: string, choices?: {label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number}>} */
+ * @returns {Promise<{url: string, choices?: {key: string, label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number}>} */
 export async function link(t) {
 	const { id, file } = await added(t);
-	return (await hls(id, file.id, t.name)) ?? { url: await download(id, file) };
+	return (await hls(id, file.id, t.name, t.orig ?? null)) ?? { url: await download(id, file) };
 }
 
 /** Subtítulos en español y audios que trae el video adentro, con un solo createstream (sin pedir un stream por
@@ -113,7 +115,7 @@ async function added(t) {
 	fd.set('add_only_if_cached', 'true');
 	const created = await tb('/createtorrent', { method: 'POST', body: fd });
 	const id = created.data?.torrent_id;
-	if (!id) throw new Fail(409, `TorBox no lo agregó: ${created.detail ?? 'sin id'}`);
+	if (!id) throw new Fail(409, 'TorBox no lo agregó: {d}', { d: created.detail ?? 'sin id' });
 	// Recién agregado, TorBox a veces todavía no lista los archivos: hasta 3 intentos, 1 s entre cada uno.
 	/** @type {any[]} */
 	let files = [];
@@ -129,11 +131,20 @@ async function added(t) {
 
 /** @typedef {{label: string, kind: string, track: number, url: string}} Native */
 
+/** ISO 639-1 (TMDB) → códigos de 3 letras que traen las pistas de audio (bibliográfico y terminológico). */
+const ISO3 = /** @type {Record<string, string[]>} */ ({
+	en: ['eng'], es: ['spa'], fr: ['fre', 'fra'], de: ['ger', 'deu'], it: ['ita'], ja: ['jpn'], ko: ['kor'], pt: ['por'],
+	ru: ['rus'], zh: ['chi', 'zho'], hi: ['hin'], tr: ['tur'], pl: ['pol'], nl: ['dut', 'nld'], sv: ['swe'], da: ['dan'],
+	no: ['nor', 'nob'], fi: ['fin'], ar: ['ara'], he: ['heb'], th: ['tha'], cs: ['cze', 'ces'], hu: ['hun'], el: ['gre', 'ell'],
+	id: ['ind'], uk: ['ukr'], fa: ['per', 'fas'], cn: ['chi', 'zho'], is: ['ice', 'isl'], ro: ['rum', 'ron']
+});
+
 /** Stream HLS de TorBox (`.m3u8`): Web Video Caster lo detecta como video (el link de descarga va como
  * `application/octet-stream` y lo abría como texto) y llega en segmentos que la tele reproduce.
- * Audio: inglés por defecto (muchos releases traen primero un doblaje ruso); si además hay latino, los dos para elegir.
- * null si no se pudo. @param {number} id @param {number} fileId @param {string} release */
-async function hls(id, fileId, release) {
+ * Audio: el idioma original por defecto (muchos releases traen primero un doblaje ruso); si no está, inglés; si además
+ * hay latino, los dos para elegir. null si no se pudo.
+ * @param {number} id @param {number} fileId @param {string} release @param {string | null} orig ISO 639-1 */
+async function hls(id, fileId, release, orig) {
 	try {
 		const base = `/v1/api/stream/createstream?id=${id}&file_id=${fileId}&type=torrent`;
 		const first = await tbRoot(base);
@@ -150,22 +161,29 @@ async function hls(id, fileId, release) {
 		const v = d.metadata?.video ?? {};
 		const dur = String(v.duration ?? '').match(/^(\d+):(\d+):(\d+)/);
 		const video = { fps: Number(v.frame_rate) || null, duration: dur ? Number(dur[1]) * 3600 + Number(dur[2]) * 60 + Number(dur[3]) : null };
-		const eng = audios.findIndex((a) => a.language === 'eng');
+		const codes = ISO3[orig ?? ''] ?? [];
+		const byOrig = audios.findIndex((a) => codes.includes(a.language));
+		const main = byOrig >= 0 ? byOrig : audios.findIndex((a) => a.language === 'eng');
 		// shortcut: hasta 4 (un stream por subtítulo, todos se piden ya); si un video trae más, sumar un pedido a demanda.
 		/** @type {Native[]} */
 		const natives = (await Promise.all(spaSubs.slice(0, 4).map(async ({ i, label, kind }) => ({
 			label,
 			kind,
 			track: i + 1,
-			url: await at(eng, i).catch(() => '')
+			url: await at(main, i).catch(() => '')
 		})))).filter((n) => n.url.startsWith('https://'));
 		const spa = audios.map((a, i) => ({ a, i })).filter(({ a }) => a.language === 'spa');
 		const lat = spa.find(({ a }) => /lat|419|mex/i.test(a.title ?? '')) ?? latinoByName(spa, release);
-		if (eng >= 0 && lat) {
-			const [en, la] = await Promise.all([at(eng), at(lat.i)]);
-			if (en.startsWith('https://') && la.startsWith('https://')) return { url: en, choices: [{ label: 'Inglés', url: en }, { label: 'Latino', url: la }], file, natives, video, subsEs };
+		if (main >= 0 && lat && lat.i !== main) {
+			const [o, la] = await Promise.all([at(main), at(lat.i)]);
+			const name = new Intl.DisplayNames([lang()], { type: 'language' }).of(byOrig >= 0 && orig ? orig : 'en') ?? '';
+			const choices = [
+				{ key: 'orig', label: tx('Original ({l})', { l: name[0]?.toUpperCase() + name.slice(1) }), url: o },
+				{ key: 'lat', label: tx('Latino'), url: la }
+			];
+			if (o.startsWith('https://') && la.startsWith('https://')) return { url: o, choices, file, natives, video, subsEs };
 		}
-		const url = await at(Math.max(eng, 0));
+		const url = await at(Math.max(main, 0));
 		return url.startsWith('https://') ? { url, file, natives, video, subsEs } : null;
 	} catch (e) {
 		if (e instanceof Fail && e.status === 401) throw e;

@@ -2,6 +2,7 @@
 	// Tutorial por pasos: hoja inferior en mobile, diálogo centrado en pantallas grandes (como Sheet). `<dialog>`
 	// nativo: foco, Esc y fondo. Flechas del teclado y botones para moverse; Saltar o Esc lo cierran.
 	import Icon from './Icon.svelte';
+	import { t } from './i18n.svelte.js';
 
 	/** @type {{id: string, label: string, open: boolean, steps: import('./tours.js').Step[], onclose: () => void}} */
 	let { id, label, open, steps, onclose } = $props();
@@ -50,13 +51,13 @@
 	}}
 >
 	<header>
-		<div class="progress" role="progressbar" aria-label="Paso {i + 1} de {steps.length}" aria-valuemin="1" aria-valuemax={steps.length} aria-valuenow={i + 1}>
+		<div class="progress" role="progressbar" aria-label={t('Paso {n} de {d}', { n: i + 1, d: steps.length })} aria-valuemin="1" aria-valuemax={steps.length} aria-valuenow={i + 1}>
 			{#each steps as s, n (s.title)}
-				<button id="{id}-dot-{n}" type="button" class="seg" class:done={n <= i} aria-label="Ir al paso {n + 1}" onclick={() => go(n)}><span></span></button>
+				<button id="{id}-dot-{n}" type="button" class="seg" class:done={n <= i} aria-label={t('Ir al paso {n}', { n: n + 1 })} onclick={() => go(n)}><span></span></button>
 			{/each}
 		</div>
 		{#if !last}
-			<button id="{id}-skip" type="button" class="skip" onclick={() => dlg?.close()}>Saltar</button>
+			<button id="{id}-skip" type="button" class="skip" onclick={() => dlg?.close()}>{t('Saltar')}</button>
 		{/if}
 	</header>
 
@@ -92,10 +93,10 @@
 
 	<footer>
 		{#if i > 0}
-			<button id="{id}-back" type="button" class="btn ghost" onclick={() => go(i - 1)}>Atrás</button>
+			<button id="{id}-back" type="button" class="btn ghost" onclick={() => go(i - 1)}>{t('Atrás')}</button>
 		{/if}
 		<button id="{id}-next" type="button" class="btn primary" onclick={() => (last ? dlg?.close() : go(i + 1))}>
-			{last ? 'Listo' : 'Siguiente'}
+			{last ? t('Listo') : t('Siguiente')}
 			{#if !last}<Icon name="next" size={18} />{/if}
 		</button>
 	</footer>

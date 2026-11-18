@@ -7,5 +7,5 @@ export const GET = route(async ({ url }) => {
 	const hash = p.get('hash')?.toLowerCase() ?? '';
 	if (!/^[0-9a-f]{40}$/.test(hash)) throw new Fail(400, 'Hash inválido.');
 	const { s, e } = episode(url);
-	return link({ hash, name: p.get('name') ?? '', file: p.get('file') || null, s, e });
+	return link({ hash, name: p.get('name') ?? '', file: p.get('file') || null, s, e, orig: p.get('orig') || null });
 });

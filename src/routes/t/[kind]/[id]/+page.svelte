@@ -3,6 +3,7 @@
 	import SeasonChart from '#lib/SeasonChart.svelte';
 	import Torrents from '#lib/Torrents.svelte';
 	import * as saved from '#lib/saved.js';
+	import { loc, t as tr } from '#lib/i18n.svelte.js';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
@@ -24,7 +25,7 @@
 	let more = $state(false);
 	const today = new Date().toISOString().slice(0, 10);
 	/** @param {string} d ISO (AAAA-MM-DD) */
-	const fecha = (d) => new Date(`${d}T00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
+	const fecha = (d) => new Date(`${d}T00:00`).toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric' });
 	/** @type {HTMLElement | undefined} */
 	let heroTitle = $state();
 	/** El título pasa a la barra cuando el del hero queda tapado. */
@@ -76,7 +77,7 @@
 			return `transform: translateX(${(1 - e) * dir * 24}px); opacity: ${e};`;
 		}
 	});
-	const seasonName = $derived(t.seasons?.find((/** @type {{n: number}} */ x) => x.n === season)?.name ?? `Temporada ${season}`);
+	const seasonName = $derived(t.seasons?.find((/** @type {{n: number}} */ x) => x.n === season)?.name ?? tr('Temporada {n}', { n: season ?? '' }));
 	$effect(() => {
 		if (!isTv || season == null) return;
 		const n = season;
@@ -96,7 +97,7 @@
 
 <header class="topbar">
 	<div class="wrap row">
-		<a id="back" class="icon-btn" href="/" aria-label="Volver al catálogo" onclick={(e) => { if (history.length > 1) { e.preventDefault(); history.back(); } }}><Icon name="back" /></a>
+		<a id="back" class="icon-btn" href="/" aria-label={tr('Volver al catálogo')} onclick={(e) => { if (history.length > 1) { e.preventDefault(); history.back(); } }}><Icon name="back" /></a>
 		<span class="top-title" class:up={titleUp} aria-hidden="true">{t.title}</span>
 	</div>
 </header>
@@ -107,7 +108,7 @@
 		<div class="facts">
 			<h1 class="name" bind:this={heroTitle}>{t.title}</h1>
 			<p class="muted line">
-				{[t.year, t.runtime ? `${t.runtime} min` : '', isTv ? `${t.seasons.length} temporada${t.seasons.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')}
+				{[t.year, t.runtime ? `${t.runtime} min` : '', isTv ? tr(t.seasons.length === 1 ? '{n} temporada' : '{n} temporadas', { n: t.seasons.length }) : ''].filter(Boolean).join(' · ')}
 				{#if t.rating}<span class="rate"><Icon name="star" size={13} />{t.rating}</span>{/if}
 			</p>
 		</div>
@@ -115,9 +116,9 @@
 </div>
 
 {#if t.providers.length || t.genres.length}
-	<div class="wrap tags" aria-label="Dónde verla y géneros">
+	<div class="wrap tags" aria-label={tr('Dónde verla y géneros')}>
 		{#each t.providers as p (p.name)}
-			<span class="tag provider" title="Para ver en Argentina">{#if p.logo}<img src={p.logo} alt="" width="20" height="20" />{/if}{p.name}</span>
+			<span class="tag provider" title={tr('Para ver en Argentina')}>{#if p.logo}<img src={p.logo} alt="" width="20" height="20" />{/if}{p.name}</span>
 		{/each}
 		{#each t.genres as g (g)}<span class="tag">{g}</span>{/each}
 	</div>
@@ -127,27 +128,27 @@
 	{#if t.overview}
 		<button id="overview" type="button" class="overview" onclick={() => (more = !more)} aria-expanded={more} disabled={!clamped && !more}>
 			<span class="ov-text" class:more bind:this={overviewEl}>{t.overview}</span>
-			{#if clamped || more}<span class="ov-more">{more ? 'Ver menos' : 'Ver más'}</span>{/if}
+			{#if clamped || more}<span class="ov-more">{more ? tr('Ver menos') : tr('Ver más')}</span>{/if}
 		</button>
 	{/if}
 	{#if t.cast.length || t.lang}
 		<dl class="info">
-			{#if t.cast.length}<dt>Reparto</dt><dd>{t.cast.join(', ')}</dd>{/if}
-			{#if t.lang}<dt>Idioma original</dt><dd>{t.lang}</dd>{/if}
+			{#if t.cast.length}<dt>{tr('Reparto')}</dt><dd>{t.cast.join(', ')}</dd>{/if}
+			{#if t.lang}<dt>{tr('Idioma original')}</dt><dd>{t.lang}</dd>{/if}
 		</dl>
 	{/if}
 
 	{#if !t.imdb}
-		<p class="error">TMDB no tiene el IMDb id de este título: no puedo buscar torrents.</p>
+		<p class="error">{tr('TMDB no tiene el IMDb id de este título: no puedo buscar torrents.')}</p>
 	{:else if !isTv}
-		<h2>Opciones en TorBox</h2>
-		<Torrents imdb={t.imdb} name={t.title} />
+		<h2>{tr('Opciones en TorBox')}</h2>
+		<Torrents imdb={t.imdb} name={t.title} orig={t.origLang} />
 	{:else}
 		<SeasonChart imdb={t.imdb} status={t.status} next={t.next} current={season} onpick={pickSeason} />
 		{#key season}
 			<section class="step" in:slide={{ dir }}>
 				{#if season == null}
-					<h2>Temporadas</h2>
+					<h2>{tr('Temporadas')}</h2>
 					<ul class="seasons">
 						{#each t.seasons as x (x.n)}
 							<li>
@@ -155,18 +156,18 @@
 									<span class="s-num" aria-hidden="true">{x.n}</span>
 									<span class="s-text">
 										<span class="s-name">{x.name}</span>
-										<span class="muted small">{[`${x.count} episodio${x.count === 1 ? '' : 's'}`, x.year].filter(Boolean).join(' · ')}</span>
+										<span class="muted small">{[tr(x.count === 1 ? '{n} episodio' : '{n} episodios', { n: x.count }), x.year].filter(Boolean).join(' · ')}</span>
 									</span>
-									{#if scores[x.n]}<span class="s-score" title="Puntaje de IMDb de la temporada"><Icon name="star" size={13} />{scores[x.n].toFixed(1).replace('.', ',')}</span>{/if}
+									{#if scores[x.n]}<span class="s-score" title={tr('Puntaje de IMDb de la temporada')}><Icon name="star" size={13} />{scores[x.n].toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>{/if}
 									<span class="chev"><Icon name="next" size={18} /></span>
 								</a>
 							</li>
 						{/each}
 					</ul>
 				{:else}
-					<nav class="crumbs" aria-label="Ruta">
+					<nav class="crumbs" aria-label={tr('Ruta')}>
 						{#if only == null}
-							<button id="crumb-seasons" type="button" class="crumb" onclick={backToSeasons}><Icon name="back" size={16} />Temporadas</button>
+							<button id="crumb-seasons" type="button" class="crumb" onclick={backToSeasons}><Icon name="back" size={16} />{tr('Temporadas')}</button>
 							<span class="sep" aria-hidden="true">›</span>
 						{/if}
 						<h2 aria-current="page">{seasonName}</h2>
@@ -184,7 +185,7 @@
 										{#if ep.still}<img src={ep.still} alt="" loading="lazy" width="300" height="169" />{:else}<span class="still-empty"></span>{/if}
 										<span class="ep-text">
 											<span class="ep-name">{ep.n}. {ep.name}</span>
-											<span class="muted small">{ep.date ? (future ? `Sale el ${fecha(ep.date)}` : fecha(ep.date)) : ''}</span>
+											<span class="muted small">{ep.date ? (future ? tr('Sale el {d}', { d: fecha(ep.date) }) : fecha(ep.date)) : ''}</span>
 										</span>
 										<span class="chev"><Icon name="next" size={18} /></span>
 									</a>

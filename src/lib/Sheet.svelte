@@ -1,6 +1,7 @@
 <script>
 	// Hoja inferior en mobile, diálogo centrado en pantallas grandes. `<dialog>` nativo: foco, Esc y fondo gratis.
 	import Icon from './Icon.svelte';
+	import { t } from './i18n.svelte.js';
 
 	/** @type {{id: string, title: string, open: boolean, onclose: () => void, children: import('svelte').Snippet}} */
 	let { id, title, open, onclose, children } = $props();
@@ -23,7 +24,7 @@
 >
 	<header>
 		<h2 id="{id}-title">{title}</h2>
-		<button id="{id}-close" class="icon-btn" type="button" aria-label="Cerrar" onclick={() => dlg?.close()}>
+		<button id="{id}-close" class="icon-btn" type="button" aria-label={t('Cerrar')} onclick={() => dlg?.close()}>
 			<Icon name="close" />
 		</button>
 	</header>

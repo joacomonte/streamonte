@@ -7,9 +7,11 @@
 	import Tour from './Tour.svelte';
 	import { castSteps, device, markSeen, seen } from './tours.js';
 	import * as saved from './saved.js';
+	import { i18n, loc, t as tr } from './i18n.svelte.js';
+	import { untrack } from 'svelte';
 
-	/** @type {{imdb: string, s?: number | null, e?: number | null, name: string}} */
-	let { imdb, s = null, e = null, name } = $props();
+	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null}} */
+	let { imdb, s = null, e = null, name, orig = null } = $props();
 
 	/** @typedef {{hash: string, release: string, file: string | null, res: string | null, hdr: string[], source: string | null, lat: boolean, multi: boolean, size: number | null, seeds: number, addons: string[], subFile: boolean}} Torrent */
 	/** @typedef {{id: string, release: string, latino: boolean, format: string, downloads: number, exact?: boolean, fps?: number | null, last?: number | null, group?: string, premium?: boolean}} Sub */
@@ -80,17 +82,24 @@
 	let prem = $state(/** @type {{open: boolean, status: 'idle' | 'loading' | 'ready' | 'empty' | 'error', results: Sub[], busy: string | null}} */ ({ open: false, status: 'idle', results: [], busy: null }));
 	let quota = $state(/** @type {Quota | null} */ (null));
 
+	// Solo depende del video (`qs`) y del idioma (la clave de la caché): lo demás va en `untrack`, así nada que llegue
+	// después (subs, cuota, copias) vuelve a disparar el pedido ni vacía la lista que ya se ve.
 	$effect(() => {
-		const q = qs;
-		data = null;
-		error = '';
-		copy = {};
-		autoStop = false;
-		resetSubs();
-		match = null;
-		// Lista guardada 1 hora (saved.js): al volver al mismo video se ve al instante, sin pedidos.
+		const url = `/api/torrents?${qs}`;
+		i18n.lang;
 		let alive = true;
-		saved.json(fetch, `/api/torrents?${q}`, saved.HOUR)
+		const hit = saved.peek(url);
+		untrack(() => {
+			error = '';
+			copy = {};
+			autoStop = false;
+			resetSubs();
+			match = null;
+			// Lista guardada 1 hora (saved.js): se pinta en este mismo cuadro, sin pasar por la carga ni redibujar.
+			data = hit;
+		});
+		if (hit) return;
+		saved.json(fetch, url, saved.HOUR)
 			.then(({ ok, data: j }) => {
 				if (!alive) return;
 				if (!ok) error = j.message;
@@ -126,8 +135,8 @@
 	}
 	console.assert((() => { const s = { id: '', latino: false, format: '', downloads: 0 }; const old = match; match = { release: 'X.WEB-DL-NTb', video: { fps: 23.976, duration: 3000 } };
 		const r = level({ ...s, release: 'X.1080p.WEB-DL-NTb' }) === 2 && level({ ...s, release: 'X.BluRay-NTb' }) === 0 && level({ ...s, release: 'X.BluRay-DEMAND', fps: 23.976, last: 2900 }) === 1; match = old; return r; })());
-	const LEVEL = ['', 'probable', 'muy probable', 'perfecto'];
-	const WHY = ['', 'Mismos fps y misma duración que el video', 'Mismo release: mismo grupo y fuente', 'Hecho para este mismo archivo'];
+	const LEVEL = ['', 'probable', 'muy probable', 'perfecto'].map((x) => () => tr(x));
+	const WHY = ['', 'Mismos fps y misma duración que el video', 'Mismo release: mismo grupo y fuente', 'Hecho para este mismo archivo'].map((x) => () => tr(x));
 	/** Exacto → mismo release → mismos fps y duración → resto; adentro, latinos y más bajados. @param {Sub[]} list */
 	const rank = (list) => list.map((sub) => ({ ...sub, level: level(sub) }))
 		.sort((a, b) => b.level - a.level || Number(b.latino) - Number(a.latino) || b.downloads - a.downloads);
@@ -137,21 +146,21 @@
 	/** Encabezado de la fila: grupo del release y "fuente resolución". @param {Sub} sub */
 	const headOf = (sub) => sub.group || groupOf(sub.release) || (sub.premium ? 'OpenSubtitles' : 'OpenSubtitles.org');
 	/** @param {Sub} sub */
-	const specOf = (sub) => [sourceOf(sub.release), sub.release.match(/\b(2160p|1080p|720p|480p)\b/i)?.[1]].filter(Boolean).join(' ') || 'sin release';
+	const specOf = (sub) => [sourceOf(sub.release), sub.release.match(/\b(2160p|1080p|720p|480p)\b/i)?.[1]].filter(Boolean).join(' ') || tr('sin release');
 
 	/** @param {number | null} b */
-	const gb = (b) => (b == null ? '—' : b >= 1024 ** 3 ? `${(b / 1024 ** 3).toLocaleString('es-AR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} GB` : `${Math.round(b / 1024 ** 2)} MB`);
+	const gb = (b) => (b == null ? '—' : b >= 1024 ** 3 ? `${(b / 1024 ** 3).toLocaleString(loc(), { maximumFractionDigits: 1, minimumFractionDigits: 1 })} GB` : `${Math.round(b / 1024 ** 2)} MB`);
 
 	/** Link de TorBox recién pedido (uno nuevo en cada copia); `choices` si hay audio en inglés y en latino.
-	 * @param {Torrent} t @returns {Promise<{url: string, choices?: {label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number}>} */
+	 * @param {Torrent} t @returns {Promise<{url: string, choices?: {key: string, label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number}>} */
 	async function linkOf(t) {
-		const r = await fetch(`/api/link?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '' })}`);
+		const r = await fetch(`/api/link?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '', orig: orig ?? '' })}`);
 		const j = await r.json();
 		if (!r.ok) throw new Error(j.message);
 		return j;
 	}
 	/** Elegir audio: el toque en la opción es el que copia (por http hace falta un toque para copiar). */
-	let audioFor = $state(/** @type {{t: Torrent, choices: {label: string, url: string}[]} | null} */ (null));
+	let audioFor = $state(/** @type {{t: Torrent, choices: {key: string, label: string, url: string}[]} | null} */ (null));
 
 	/** Subs en español que trae el video adentro, por hash: cuántos (0 = ninguno), 'busy' mientras se consulta o
 	 * 'err' si falló. Es del torrent y no cambia: se guarda para siempre (saved.remember). */
@@ -200,9 +209,9 @@
 	/** @param {Torrent} t */
 	const subBadge = (t) => {
 		const n = subsEs[t.hash];
-		if (typeof n === 'number' && n > 0) return { on: true, text: 'Sub ES', title: `El video trae ${n} subtítulo${n > 1 ? 's' : ''} en español adentro` };
-		if (t.subFile) return { on: true, text: 'Sub ES', title: 'El torrent trae un archivo de subtítulo en español' };
-		if (n === 0) return { on: false, text: 'Sin sub ES', title: 'El video no trae subtítulos en español: hay que buscarlos afuera' };
+		if (typeof n === 'number' && n > 0) return { on: true, text: 'Sub ES', title: tr(n > 1 ? 'El video trae {n} subtítulos en español adentro' : 'El video trae {n} subtítulo en español adentro', { n }) };
+		if (t.subFile) return { on: true, text: 'Sub ES', title: tr('El torrent trae un archivo de subtítulo en español') };
+		if (n === 0) return { on: false, text: 'Sin sub ES', title: tr('El video no trae subtítulos en español: hay que buscarlos afuera') };
 		return null;
 	};
 
@@ -321,7 +330,7 @@
 	async function copySub(sub) {
 		pick(`o${sub.id}`);
 		const url = subUrl(sub);
-		const name = sub.release || 'Subtítulo';
+		const name = sub.release || tr('Subtítulo');
 		if (copyNow(url)) return void (copied = { kind: 'sub', name });
 		try {
 			await navigator.clipboard.writeText(url);
@@ -334,8 +343,8 @@
 	/** Copia un nativo: el video con ese subtítulo puesto. @param {Native} n */
 	function copyNative(n) {
 		pick(`n${n.track}`);
-		if (copyNow(n.url)) copied = { kind: 'video', name: 'Subtítulos del video' };
-		else manual = { url: n.url, release: 'Subtítulos del video', kind: 'video' };
+		if (copyNow(n.url)) copied = { kind: 'video', name: tr('Subtítulos del video') };
+		else manual = { url: n.url, release: tr('Subtítulos del video'), kind: 'video' };
 	}
 
 	async function loadQuota() {
@@ -365,7 +374,7 @@
 			quota = j;
 			pick(`p${sub.id}`);
 			const url = `${location.origin}/api/premium/${sub.id}/${encodeURIComponent(fileName.replace(/[^\p{L}\p{N}]+/gu, '.'))}.es.srt`;
-			const name = sub.release || 'Subtítulo';
+			const name = sub.release || tr('Subtítulo');
 			if (copyNow(url)) copied = { kind: 'sub', name };
 			else manual = { url, release: name, kind: 'sub' };
 		} catch (err) {
@@ -376,20 +385,20 @@
 		}
 	}
 	const quotaText = $derived(
-		!quota ? 'viendo cuántas descargas quedan…'
+		!quota ? tr('viendo cuántas descargas quedan…')
 			: quota.login ? quota.login
-			: quota.remaining == null ? 'no sé cuántas descargas quedan hoy'
-				: quota.remaining === 0 ? `usaste las ${quota.perDay} de hoy${quota.resetsAt ? ` · vuelven ${new Date(quota.resetsAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : ''}`
-					: `quedan ${quota.remaining} de ${quota.perDay} descargas hoy`
+			: quota.remaining == null ? tr('no sé cuántas descargas quedan hoy')
+				: quota.remaining === 0 ? tr('usaste las {n} de hoy', { n: quota.perDay ?? '' }) + (quota.resetsAt ? tr(' · vuelven {h}', { h: new Date(quota.resetsAt).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) }) : '')
+					: tr('quedan {n} de {d} descargas hoy', { n: quota.remaining, d: quota.perDay ?? '' })
 	);
-	const epLabel = $derived(s && e ? `S${String(s).padStart(2, '0')}E${String(e).padStart(2, '0')}` : 'esta película');
+	const epLabel = $derived(s && e ? `S${String(s).padStart(2, '0')}E${String(e).padStart(2, '0')}` : tr('esta película'));
 
 	const fileName = $derived(name + (s && e ? ` S${String(s).padStart(2, '0')}E${String(e).padStart(2, '0')}` : ''));
 </script>
 
-<section class="torrents" aria-label="Torrents en TorBox" aria-busy={!data && !error}>
+<section class="torrents" aria-label={tr('Torrents en TorBox')} aria-busy={!data && !error}>
 	{#if !data && !error}
-		<p class="status"><span class="spin"></span>Buscando torrents y viendo cuáles tiene TorBox…</p>
+		<p class="status"><span class="spin"></span>{tr('Buscando torrents y viendo cuáles tiene TorBox…')}</p>
 		{#each Array(4) as _, i (i)}<div class="row-skel skel"></div>{/each}
 	{:else if error && !data}
 		<p class="status error" role="alert">{error}</p>
@@ -397,21 +406,21 @@
 		<button id="open-subs" type="button" class="subs-btn" disabled={!match} onclick={() => (subsOpen = true)}>
 			<Icon name="subs" size={18} />
 			<span class="subs-text">
-				<strong>Subtítulos en español</strong>
+				<strong>{tr('Subtítulos en español')}</strong>
 				<span class="muted">
-					{#if !match}Copiá el link de un torrent y aparecen los suyos
-					{:else if match.natives?.length}El video trae subtítulos en español
-					{:else if searching}Buscando en OpenSubtitles.org…
-					{:else if subsError}No se pudieron buscar
-					{:else if !subs?.length}No hay para este video · probá Premium
-					{:else}{#if exactCount}{exactCount} exactos para tu video · {/if}{subs.length} encontrados{/if}
+					{#if !match}{tr('Copiá el link de un torrent y aparecen los suyos')}
+					{:else if match.natives?.length}{tr('El video trae subtítulos en español')}
+					{:else if searching}{tr('Buscando en OpenSubtitles.org…')}
+					{:else if subsError}{tr('No se pudieron buscar')}
+					{:else if !subs?.length}{tr('No hay para este video · probá Premium')}
+					{:else}{#if exactCount}{tr('{n} exactos para tu video · ', { n: exactCount })}{/if}{tr('{n} encontrados', { n: subs.length })}{/if}
 				</span>
 			</span>
 			{#if searching}<span class="spin"></span>{:else if match}<Icon name="chev" size={18} />{/if}
 		</button>
 
 		<div class="bar">
-			<div class="chips" role="toolbar" aria-label="Filtros de torrents">
+			<div class="chips" role="toolbar" aria-label={tr('Filtros de torrents')}>
 				{#each RES as [v, l] (v)}
 					{#if count(v)}
 						<button id="res-{v}" type="button" class="chip" class:on={shown === v} aria-pressed={shown === v} onclick={() => (res = v)}>
@@ -420,18 +429,18 @@
 					{/if}
 				{/each}
 			</div>
-			<div class="chips toggles" role="toolbar" aria-label="Idioma y HDR">
-				<button id="only-lat" type="button" class="chip toggle" class:on={onlyLat} aria-pressed={onlyLat} onclick={() => (onlyLat = !onlyLat)}>Solo Latino</button>
-				<button id="only-hdr" type="button" class="chip toggle" class:on={onlyHdr} aria-pressed={onlyHdr} onclick={() => (onlyHdr = !onlyHdr)}>Solo HDR</button>
+			<div class="chips toggles" role="toolbar" aria-label={tr('Idioma y HDR')}>
+				<button id="only-lat" type="button" class="chip toggle" class:on={onlyLat} aria-pressed={onlyLat} onclick={() => (onlyLat = !onlyLat)}>{tr('Solo Latino')}</button>
+				<button id="only-hdr" type="button" class="chip toggle" class:on={onlyHdr} aria-pressed={onlyHdr} onclick={() => (onlyHdr = !onlyHdr)}>{tr('Solo HDR')}</button>
 			</div>
-			<p class="summary" title="TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.">{data.list.length} de {data.found} en TorBox · por tamaño</p>
+			<p class="summary" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>{tr('{n} de {f} en TorBox · por tamaño', { n: data.list.length, f: data.found })}</p>
 		</div>
 		{#if error}<p class="status error" role="alert">{error}</p>{/if}
 
 		{#if !data.list.length}
-			<p class="status muted">TorBox no tiene en caché ninguno de los {data.found} torrents encontrados.</p>
+			<p class="status muted">{tr('TorBox no tiene en caché ninguno de los {n} torrents encontrados.', { n: data.found })}</p>
 		{:else if !list.length}
-			<p class="status muted">No hay opciones con estos filtros.</p>
+			<p class="status muted">{tr('No hay opciones con estos filtros.')}</p>
 		{/if}
 
 		<ul>
@@ -439,39 +448,39 @@
 				{@const q = t.source ? QUALITY[t.source] : null}
 				{@const sb = subBadge(t)}
 				<li class="opt" class:best={i === 0}>
-					{#if i === 0}<span class="best-tag">Más pesada</span>{/if}
+					{#if i === 0}<span class="best-tag">{tr('Más pesada')}</span>{/if}
 					<div class="info">
 					<div class="top">
 						<span class="size">{gb(t.size)}</span>
 						{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
 						{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
-						{#if t.lat}<span class="tag lat">LATINO</span>{/if}
+						{#if t.lat}<span class="tag lat">{tr('LATINO')}</span>{/if}
 						{#if sb}<span class="tag cc {sb.on ? 'es' : 'nosub'}" title={sb.title} aria-label={sb.title}><Icon name="subs" size={14} />ES</span>{/if}
 					</div>
-					<div class="quality" title={q ? `Calidad de imagen: ${q[0]}` : 'El nombre del torrent no dice de dónde salió el video'}>
+					<div class="quality" title={q ? tr('Calidad de imagen: {q}', { q: tr(q[0]) }) : tr('El nombre del torrent no dice de dónde salió el video')}>
 						<Icon name="monitor" size={15} />
 						{#if q}
-							<span class="stars" role="img" aria-label="{q[1]} de 4">
+							<span class="stars" role="img" aria-label={tr('{n} de 4', { n: q[1] })}>
 								{#each [1, 2, 3, 4] as n (n)}<span class:on={n <= q[1]}><Icon name="star" size={15} /></span>{/each}
 							</span>
-							<span class="qname">{q[0]}</span>
+							<span class="qname">{tr(q[0])}</span>
 						{:else}
-							<span class="qname unknown">Calidad sin dato</span>
+							<span class="qname unknown">{tr('Calidad sin dato')}</span>
 						{/if}
 					</div>
 					</div>
 					<div class="acts">
 					<!-- Sin dato de subs: píldora mínima al lado de copiar; un toque es un pedido y deja el badge. -->
 					{#if !sb && subsEs[t.hash] === 'busy'}
-						<span class="probe busy" role="status" aria-label="Viendo si trae subtítulos en español"><span class="spin"></span></span>
+						<span class="probe busy" role="status" aria-label={tr('Viendo si trae subtítulos en español')}><span class="spin"></span></span>
 					{:else if !sb}
 						<button
 							id="probe-{t.hash}"
 							type="button"
 							class="probe"
 							class:err={subsEs[t.hash] === 'err'}
-							title={subsEs[t.hash] === 'err' ? 'No se pudo ver: tocá para reintentar' : 'Ver si trae subtítulos en español'}
-							aria-label={subsEs[t.hash] === 'err' ? 'No se pudo ver si trae subtítulos en español: reintentar' : 'Ver si trae subtítulos en español'}
+							title={subsEs[t.hash] === 'err' ? tr('No se pudo ver: tocá para reintentar') : tr('Ver si trae subtítulos en español')}
+							aria-label={subsEs[t.hash] === 'err' ? tr('No se pudo ver si trae subtítulos en español: reintentar') : tr('Ver si trae subtítulos en español')}
 							onclick={() => probe(t)}
 						><Icon name="subs" size={15} />?</button>
 					{/if}
@@ -483,7 +492,7 @@
 						class:primary={i === 0}
 						class:ok={copy[t.hash] === 'ok'}
 						class:err={copy[t.hash] === 'err'}
-						aria-label={copy[t.hash] === 'err' ? 'Reintentar copiar el link' : 'Copiar link de TorBox'}
+						aria-label={copy[t.hash] === 'err' ? tr('Reintentar copiar el link') : tr('Copiar link de TorBox')}
 						disabled={copy[t.hash] === 'busy'}
 						onclick={() => copyLink(t)}
 					>
@@ -502,66 +511,66 @@
 {#snippet row(/** @type {{key: string, head: string, spec: string, latino?: boolean, lvl?: number, title?: string}} */ it, /** @type {import('svelte').Snippet} */ actions)}
 	{@const on = picked === it.key}
 	{@const was = !on && tried.includes(it.key)}
-	<li class="sub" class:on class:tried={was} title={was ? 'Probado · no sincronizó' : it.title}>
+	<li class="sub" class:on class:tried={was} title={was ? tr('Probado · no sincronizó') : it.title}>
 		<span class="mark">{#if on}<Icon name="check" size={16} />{/if}</span>
 		<span class="sub-text">
-			<span class="l1"><b>{it.head}</b><span class="spec">{it.spec}</span>{#if it.latino}<span class="lat">LAT</span>{/if}{#if was}<span class="why">probado</span>{/if}</span>
-			{#if it.lvl}<span class="fit l{it.lvl}" title={WHY[it.lvl]}>{LEVEL[it.lvl]}</span>{/if}
+			<span class="l1"><b>{it.head}</b><span class="spec">{it.spec}</span>{#if it.latino}<span class="lat">LAT</span>{/if}{#if was}<span class="why">{tr('probado')}</span>{/if}</span>
+			{#if it.lvl}<span class="fit l{it.lvl}" title={WHY[it.lvl]()}>{LEVEL[it.lvl]()}</span>{/if}
 		</span>
 		{@render actions()}
 	</li>
 {/snippet}
 
-<Sheet id="subs-sheet" title="Subtítulos" open={subsOpen} onclose={() => (subsOpen = false)}>
+<Sheet id="subs-sheet" title={tr('Subtítulos')} open={subsOpen} onclose={() => (subsOpen = false)}>
 	{#if castOffer}
 		<div class="offer" role="region" aria-labelledby="cast-offer-title">
 			<span class="offer-icon" aria-hidden="true"><Icon name="cast" size={22} /></span>
 			<div class="offer-text">
-				<strong id="cast-offer-title">¿Lo querés ver en la tele?</strong>
-				<span>Te mostramos cómo mandar el link con Web Video Caster.</span>
+				<strong id="cast-offer-title">{tr('¿Lo querés ver en la tele?')}</strong>
+				<span>{tr('Te mostramos cómo mandar el link con Web Video Caster.')}</span>
 			</div>
 			<div class="offer-actions">
-				<button id="cast-offer-show" type="button" class="btn primary" onclick={() => answerOffer('show')}>Ver tutorial</button>
-				<button id="cast-offer-later" type="button" class="btn" onclick={() => answerOffer('later')}>Ahora no</button>
-				<button id="cast-offer-never" type="button" class="link-btn" onclick={() => answerOffer('never')}>No mostrar más</button>
+				<button id="cast-offer-show" type="button" class="btn primary" onclick={() => answerOffer('show')}>{tr('Ver tutorial')}</button>
+				<button id="cast-offer-later" type="button" class="btn" onclick={() => answerOffer('later')}>{tr('Ahora no')}</button>
+				<button id="cast-offer-never" type="button" class="link-btn" onclick={() => answerOffer('never')}>{tr('No mostrar más')}</button>
 			</div>
 		</div>
 	{/if}
 	<div class="subs-head">
-		<p class="muted">{match ? `${epLabel} · ${groupOf(match.release) || 'tu torrent'}` : 'Copiá el link de un torrent.'}</p>
-		<button id="subs-tutorial" type="button" class="tut" onclick={() => (tutorialOpen = true)}><Icon name="help" size={15} />Cómo funciona</button>
+		<p class="muted">{match ? `${epLabel} · ${groupOf(match.release) || tr('tu torrent')}` : tr('Copiá el link de un torrent.')}</p>
+		<button id="subs-tutorial" type="button" class="tut" onclick={() => (tutorialOpen = true)}><Icon name="help" size={15} />{tr('Cómo funciona')}</button>
 	</div>
 	<ul class="subs">
-		<li class="grp">Vienen con el video</li>
+		<li class="grp">{tr('Vienen con el video')}</li>
 		{#if !match}
-			<li class="none">Sin confirmar · copiá un link</li>
+			<li class="none">{tr('Sin confirmar · copiá un link')}</li>
 		{:else if match.natives?.length}
 			{#each match.natives as n (n.track)}
 				{#snippet nativeActions()}
-					<button id="sub-copy-native-{n.track}" type="button" class="iconbtn copy" aria-label="Copiar el video con este subtítulo" onclick={() => copyNative(n)}><Icon name="copy" size={18} /></button>
+					<button id="sub-copy-native-{n.track}" type="button" class="iconbtn copy" aria-label={tr('Copiar el video con este subtítulo')} onclick={() => copyNative(n)}><Icon name="copy" size={18} /></button>
 				{/snippet}
-				{@render row({ key: `n${n.track}`, head: n.label, spec: `${n.kind} · pista ${n.track}` }, nativeActions)}
+				{@render row({ key: `n${n.track}`, head: tr(n.label), spec: tr('{k} · pista {n}', { k: tr(n.kind), n: n.track }) }, nativeActions)}
 			{/each}
 		{:else}
-			<li class="none">Este video no trae en español</li>
+			<li class="none">{tr('Este video no trae en español')}</li>
 		{/if}
 
 		{#if match && !subs && !searching && !subsError}
 			<li>
 				<button id="subs-search-more" type="button" class="more" onclick={searchSubs}>
-					<Icon name="search" size={16} /><span><b>Buscar más subtítulos</b><span>Por si los del video no te sirven</span></span>
+					<Icon name="search" size={16} /><span><b>{tr('Buscar más subtítulos')}</b><span>{tr('Por si los del video no te sirven')}</span></span>
 				</button>
 			</li>
 		{:else if searching}
-			<li class="grp">Encontrados para vos</li>
-			<li class="msg"><span class="spin"></span>Buscando en OpenSubtitles.org…</li>
+			<li class="grp">{tr('Encontrados para vos')}</li>
+			<li class="msg"><span class="spin"></span>{tr('Buscando en OpenSubtitles.org…')}</li>
 		{:else if subs || subsError}
-			<li class="grp">Encontrados para vos</li>
-			{#if subsError && !subs}<li class="msg err">{subsError}</li>{:else if !ranked.length}<li class="none">No encontré en OpenSubtitles.org</li>{/if}
+			<li class="grp">{tr('Encontrados para vos')}</li>
+			{#if subsError && !subs}<li class="msg err">{subsError}</li>{:else if !ranked.length}<li class="none">{tr('No encontré en OpenSubtitles.org')}</li>{/if}
 			{#each ranked as sub (sub.id)}
 				{#snippet foundActions()}
-					<a id="sub-{sub.id}" class="iconbtn dl" href="/api/subs/{sub.id}?{new URLSearchParams({ name: fileName, ext: sub.format })}" download aria-label="Bajar el .{sub.format}"><Icon name="download" size={16} /></a>
-					<button id="sub-copy-{sub.id}" type="button" class="iconbtn copy" aria-label="Copiar link" onclick={() => copySub(sub)}><Icon name="copy" size={18} /></button>
+					<a id="sub-{sub.id}" class="iconbtn dl" href="/api/subs/{sub.id}?{new URLSearchParams({ name: fileName, ext: sub.format })}" download aria-label={tr('Bajar el .{f}', { f: sub.format })}><Icon name="download" size={16} /></a>
+					<button id="sub-copy-{sub.id}" type="button" class="iconbtn copy" aria-label={tr('Copiar link')} onclick={() => copySub(sub)}><Icon name="copy" size={18} /></button>
 				{/snippet}
 				{@render row({ key: `o${sub.id}`, head: headOf(sub), spec: specOf(sub), latino: sub.latino, lvl: sub.level, title: sub.release }, foundActions)}
 			{/each}
@@ -573,26 +582,26 @@
 				<button id="prem-gate" type="button" class="gate" class:hot aria-expanded={prem.open} onclick={async () => { if (!quota) await loadQuota(); togglePremium(); }}>
 					<span class="gi"><Icon name="lock" size={16} /></span>
 					<span>
-						<b>{hot ? '¿Ninguno anduvo? Buscá en Premium' : 'Buscar en Premium'}</b>
-						<span class="gs">{quota && !quota.hasKey ? 'Necesita tu API key de opensubtitles.com' : hot ? `Probaste ${tried.length} y no sincronizaron · ${quotaText}` : `Último recurso · ${quotaText}`}</span>
+						<b>{hot ? tr('¿Ninguno anduvo? Buscá en Premium') : tr('Buscar en Premium')}</b>
+						<span class="gs">{quota && !quota.hasKey ? tr('Necesita tu API key de opensubtitles.com') : hot ? tr('Probaste {n} y no sincronizaron · {q}', { n: tried.length, q: quotaText }) : tr('Último recurso · {q}', { q: quotaText })}</span>
 					</span>
 					<span class="chev" class:up={prem.open}><Icon name="chev" size={16} /></span>
 				</button>
 			</li>
 			{#if prem.open}
 				{#if quota && !quota.hasKey}
-					<li class="msg"><Icon name="lock" size={15} /><span>Necesita tu API key de opensubtitles.com.</span><a id="prem-key" class="btn small-btn" href="/ajustes">Ajustes</a></li>
+					<li class="msg"><Icon name="lock" size={15} /><span>{tr('Necesita tu API key de opensubtitles.com.')}</span><a id="prem-key" class="btn small-btn" href="/ajustes">{tr('Ajustes')}</a></li>
 				{:else if prem.status === 'loading' || prem.status === 'idle'}
-					<li class="msg"><span class="spin"></span>Buscando en opensubtitles.com…</li>
+					<li class="msg"><span class="spin"></span>{tr('Buscando en opensubtitles.com…')}</li>
 				{:else if prem.status === 'error'}
-					<li class="msg err"><span>opensubtitles.com no respondió. No se gastó ninguna descarga.</span><button id="prem-retry" type="button" class="btn small-btn" onclick={premiumSearch}>Reintentar</button></li>
+					<li class="msg err"><span>{tr('opensubtitles.com no respondió. No se gastó ninguna descarga.')}</span><button id="prem-retry" type="button" class="btn small-btn" onclick={premiumSearch}>{tr('Reintentar')}</button></li>
 				{:else if prem.status === 'empty'}
-					<li class="msg"><span>Tampoco hay en español para {epLabel}. No se gastó ninguna descarga.</span></li>
+					<li class="msg"><span>{tr('Tampoco hay en español para {x}. No se gastó ninguna descarga.', { x: epLabel })}</span></li>
 				{:else}
 					{#each premRanked as sub (sub.id)}
 						{#snippet premActions()}
 							<button id="prem-copy-{sub.id}" type="button" class="btn small-btn cost-btn" aria-disabled={quota?.remaining === 0} onclick={() => copyPremium(sub)}>
-								{#if prem.busy === sub.id}<span class="spin"></span>{:else}<Icon name="copy" size={14} />Copiar <span class="cost">· 1</span>{/if}
+								{#if prem.busy === sub.id}<span class="spin"></span>{:else}<Icon name="copy" size={14} />{tr('Copiar')} <span class="cost">· 1</span>{/if}
 							</button>
 						{/snippet}
 						{@render row({ key: `p${sub.id}`, head: headOf(sub), spec: specOf(sub), latino: sub.latino, lvl: sub.level, title: sub.release }, premActions)}
@@ -603,13 +612,13 @@
 	</ul>
 </Sheet>
 
-<Sheet id="audio-sheet" title="¿En qué audio?" open={!!audioFor} onclose={() => (audioFor = null)}>
+<Sheet id="audio-sheet" title={tr('¿En qué audio?')} open={!!audioFor} onclose={() => (audioFor = null)}>
 	{#if audioFor}
-		<p class="muted audio-hint">Este video trae los dos. Elegí uno y se copia el link.</p>
+		<p class="muted audio-hint">{tr('Este video trae los dos. Elegí uno y se copia el link.')}</p>
 		<div class="audio-opts">
 			{#each audioFor.choices as c (c.label)}
 				<button
-					id="audio-{c.label.toLowerCase()}"
+					id="audio-{c.key}"
 					type="button"
 					class="audio-opt"
 					onclick={() => {
@@ -634,25 +643,25 @@
 		</svg>
 	{/key}
 	<span class="toast-text">
-		<strong>Link copiado</strong>
-		<span>{copied?.kind === 'sub' ? 'Pegalo en Web Video Caster: CC → link' : 'Pegalo en Web Video Caster'}</span>
+		<strong>{tr('Link copiado')}</strong>
+		<span>{copied?.kind === 'sub' ? tr('Pegalo en Web Video Caster: CC → link') : tr('Pegalo en Web Video Caster')}</span>
 	</span>
-	<button id="toast-tutorial" type="button" class="toast-btn" onclick={() => { copied = null; tutorialOpen = true; }}>Tutorial</button>
+	<button id="toast-tutorial" type="button" class="toast-btn" onclick={() => { copied = null; tutorialOpen = true; }}>{tr('Tutorial')}</button>
 </div>
 
 {#if tutorialOpen}
-	<Tour id="cast-tour" label="Cómo verlo en la tele" open steps={castSteps(device())} onclose={() => (tutorialOpen = false)} />
+	<Tour id="cast-tour" label={tr('Cómo verlo en la tele')} open steps={castSteps(device())} onclose={() => (tutorialOpen = false)} />
 {/if}
 
-<Sheet id="link-sheet" title="Link listo" open={!!manual} onclose={() => (manual = null)}>
+<Sheet id="link-sheet" title={tr('Link listo')} open={!!manual} onclose={() => (manual = null)}>
 	{#if manual}
-		<p class="muted small">Tocá Copiar para llevarlo al portapapeles.</p>
+		<p class="muted small">{tr('Tocá Copiar para llevarlo al portapapeles.')}</p>
 		<input id="link-input" class="link-input" readonly value={manual.url} onfocus={(ev) => ev.currentTarget.select()} />
 		<div class="actions">
 			<button id="link-copy" type="button" class="btn primary" onclick={copyManual}>
-				<Icon name="copy" size={16} />Copiar
+				<Icon name="copy" size={16} />{tr('Copiar')}
 			</button>
-			{#if manual.kind === 'video'}<a id="link-open" class="btn" href={manual.url} target="_blank" rel="noreferrer">Abrir</a>{/if}
+			{#if manual.kind === 'video'}<a id="link-open" class="btn" href={manual.url} target="_blank" rel="noreferrer">{tr('Abrir')}</a>{/if}
 		</div>
 	{/if}
 </Sheet>

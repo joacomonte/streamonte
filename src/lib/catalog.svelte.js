@@ -1,5 +1,6 @@
 // Estado del catálogo a nivel módulo: al volver de una ficha la lista y el scroll siguen ahí.
 import * as cache from './saved.js';
+import { t, loc } from './i18n.svelte.js';
 
 export const KINDS = [
 	{ v: 'movie', label: 'Películas', kind: 'movie', doc: false },
@@ -13,11 +14,11 @@ export const SORTS = [
 /** Meses hacia atrás (como la ruedita del desktop): hoy, 1–11 meses y de a un año hasta 1950. */
 export const BACK = [...Array.from({ length: 12 }, (_, i) => i), ...Array.from({ length: new Date().getFullYear() - 1950 }, (_, i) => (i + 1) * 12)];
 /** @param {number} m */
-export const backLabel = (m) => (m === 0 ? 'hoy' : m < 12 ? `hace ${m} ${m === 1 ? 'mes' : 'meses'}` : `hace ${m / 12} ${m === 12 ? 'año' : 'años'}`);
+export const backLabel = (m) => (m === 0 ? t('hoy') : m < 12 ? t(m === 1 ? 'hace {n} mes' : 'hace {n} meses', { n: m }) : t(m === 12 ? 'hace {n} año' : 'hace {n} años', { n: m / 12 }));
 /** Votos de IMDb (los del desktop). */
 export const VOTES = [0, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
 /** @param {number} v */
-export const votesLabel = (v) => (v ? `${v.toLocaleString('es-AR')}+ votos` : 'Cualquier cantidad de votos');
+export const votesLabel = (v) => (v ? t('{n}+ votos', { n: v.toLocaleString(loc()) }) : t('Cualquier cantidad de votos'));
 export const LANGS = [
 	['en,es', 'Inglés o español'],
 	['', 'Cualquier idioma']

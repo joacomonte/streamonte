@@ -4,6 +4,7 @@ import { Fail, get } from './http.js';
 import { keys } from './keys.js';
 import { imdbOf, ratings } from './imdb.js';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { lang, tx } from './lang.js';
 
 const API = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p/';
@@ -14,11 +15,11 @@ async function tmdb(path, params = {}) {
 	if (!key) throw new Fail(428, 'Falta la key de TMDB: cargala en Ajustes.');
 	const url = new URL(API + path);
 	url.searchParams.set('api_key', key);
-	url.searchParams.set('language', 'es-MX');
+	url.searchParams.set('language', lang() === 'en' ? 'en-US' : 'es-MX');
 	for (const [k, v] of Object.entries(params)) if (v != null && v !== '') url.searchParams.set(k, String(v));
 	const r = await get(url);
 	if (r.status === 401) throw new Fail(401, 'TMDB rechazó la key: revisala en Ajustes.');
-	if (!r.ok) throw new Fail(502, `TMDB respondió ${r.status}.`);
+	if (!r.ok) throw new Fail(502, 'TMDB respondió {s}.', { s: r.status });
 	return r.json();
 }
 
@@ -142,7 +143,7 @@ async function build(f) {
 /** @param {Filters} f */
 export async function discover(f) {
 	const { page, ...rest } = f;
-	const key = JSON.stringify(rest);
+	const key = JSON.stringify({ ...rest, ui: lang() }); // los títulos vienen en el idioma del pedido
 	let hit = lists.get(key);
 	if (!hit || hit.at < Date.now() - LIST_TTL) {
 		hit = { at: Date.now(), list: build(f) };
@@ -178,7 +179,7 @@ export async function title(kind, id) {
 		.filter((/** @type {any} */ p) => !seen.has(p.provider_id) && seen.add(p.provider_id))
 		.sort((/** @type {any} */ a, /** @type {any} */ b) => a.display_priority - b.display_priority)
 		.map((/** @type {any} */ p) => ({ name: p.provider_name, logo: p.logo_path ? `${IMG}w92${p.logo_path}` : null }));
-	const lang = r.original_language ? new Intl.DisplayNames(['es'], { type: 'language' }).of(r.original_language) : null;
+	const langName = r.original_language ? new Intl.DisplayNames([lang()], { type: 'language' }).of(r.original_language) : null;
 	const imdb = r.imdb_id ?? r.external_ids?.imdb_id ?? null;
 	const real = imdbOf(imdb);
 	return {
@@ -188,10 +189,12 @@ export async function title(kind, id) {
 		overview: r.overview,
 		runtime: r.runtime ?? r.episode_run_time?.[0] ?? null,
 		// Los de series que juntan dos (y TMDB devuelve en inglés) se parten como en el desktop.
-		genres: [...new Set((r.genres ?? []).flatMap((/** @type {any} */ g) => TV_GENRES[g.id] ?? [g.name]))],
+		genres: [...new Set((r.genres ?? []).flatMap((/** @type {any} */ g) => TV_GENRES[g.id]?.map((x) => tx(x)) ?? [g.name]))],
 		providers,
 		cast: (r.credits?.cast ?? []).slice(0, 3).map((/** @type {any} */ c) => c.name),
-		lang: lang ? lang[0].toUpperCase() + lang.slice(1) : null,
+		lang: langName ? langName[0].toUpperCase() + langName.slice(1) : null,
+		// Código ISO 639-1 del idioma original (`en`, `ja`…): el audio por defecto del video.
+		origLang: r.original_language ?? null,
 		// Estado de la serie, como `tmdb_status` del desktop.
 		status: { 'Returning Series': 'returning', 'In Production': 'in-production', Pilot: 'in-production', Planned: 'planned', Ended: 'ended', Canceled: 'canceled', Cancelled: 'canceled' }[/** @type {string} */ (r.status)] ?? null,
 		next: r.next_episode_to_air?.air_date ? { season: r.next_episode_to_air.season_number, episode: r.next_episode_to_air.episode_number, date: r.next_episode_to_air.air_date } : null,

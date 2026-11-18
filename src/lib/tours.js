@@ -1,4 +1,6 @@
 // Contenido de los tutoriales (bienvenida y cómo mandarlo a la tele) y qué ya vio el usuario en este navegador.
+// Los textos se arman al abrir el tutorial, en el idioma elegido.
+import { t } from './i18n.svelte.js';
 
 /** @typedef {{label: string, store: string, href: string}} StoreLink */
 /** @typedef {{icon: 'play' | 'phone' | 'cast' | 'wifi' | 'link' | 'subs', title: string, body: string, links?: StoreLink[]}} Step */
@@ -25,17 +27,17 @@ const casterFor = (d) => (d === 'ios' ? [WVC_IOS] : d === 'android' ? [WVC_ANDRO
 export function welcomeSteps(d) {
 	const player =
 		d === 'ios'
-			? { title: 'En el iPhone, SenPlayer', body: 'Abrís el link copiado y lo ves en 4K y HDR, con el audio y los subtítulos que elijas.', links: [SENPLAYER] }
+			? { title: t('En el iPhone, SenPlayer'), body: t('Abrís el link copiado y lo ves en 4K y HDR, con el audio y los subtítulos que elijas.'), links: [SENPLAYER] }
 			: d === 'android'
-				? { title: 'En el celu, Just Player', body: 'Gratis y sin publicidad. Abrís el link copiado y elegís el audio y los subtítulos.', links: [JUST_PLAYER] }
-				: { title: 'Para verlo en el celu', body: 'En iPhone, SenPlayer; en Android, Just Player. Abrís el link copiado y elegís el audio y los subtítulos.', links: [SENPLAYER, JUST_PLAYER] };
+				? { title: t('En el celu, Just Player'), body: t('Gratis y sin publicidad. Abrís el link copiado y elegís el audio y los subtítulos.'), links: [JUST_PLAYER] }
+				: { title: t('Para verlo en el celu'), body: t('En iPhone, SenPlayer; en Android, Just Player. Abrís el link copiado y elegís el audio y los subtítulos.'), links: [SENPLAYER, JUST_PLAYER] };
 	return [
-		{ icon: 'play', title: 'Bienvenido a Streamonte', body: 'Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.' },
+		{ icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.') },
 		{ icon: 'phone', ...player },
 		{
 			icon: 'cast',
-			title: '¿En la tele? Web Video Caster',
-			body: 'Va en el celu y en la tele: el celu le manda el video. Chromecast, Samsung y LG la encuentran solas; en Android TV o Fire TV instalá el Receiver.',
+			title: t('¿En la tele? Web Video Caster'),
+			body: t('Va en el celu y en la tele: el celu le manda el video. Chromecast, Samsung y LG la encuentran solas; en Android TV o Fire TV instalá el Receiver.'),
 			links: [...casterFor(d), WVC_RECEIVER]
 		}
 	];
@@ -44,19 +46,19 @@ export function welcomeSteps(d) {
 /** Cómo mandar el link a la tele con Web Video Caster. @param {ReturnType<typeof device>} d @returns {Step[]} */
 export function castSteps(d) {
 	return [
-		{ icon: 'phone', title: 'Instalala en el celu', body: 'Web Video Caster es gratis y manda el link del celu a la tele, sin bajar nada.', links: casterFor(d) },
+		{ icon: 'phone', title: t('Instalala en el celu'), body: t('Web Video Caster es gratis y manda el link del celu a la tele, sin bajar nada.'), links: casterFor(d) },
 		{
 			icon: 'cast',
-			title: 'Preparala en la tele',
-			body: 'En Android TV o Fire TV instalá Web Video Caster Receiver. Chromecast, Roku y las Samsung o LG la encuentran sin instalar nada.',
+			title: t('Preparala en la tele'),
+			body: t('En Android TV o Fire TV instalá Web Video Caster Receiver. Chromecast, Roku y las Samsung o LG la encuentran sin instalar nada.'),
 			links: [WVC_RECEIVER]
 		},
-		{ icon: 'wifi', title: 'Conectá', body: 'Celu y tele en el mismo Wi-Fi. En la app tocá el ícono de transmitir y elegí la tele.' },
-		{ icon: 'link', title: 'Pegá el link', body: 'Pegalo en la barra de direcciones del navegador de la app: detecta el video y tocás Reproducir.' },
+		{ icon: 'wifi', title: t('Conectá'), body: t('Celu y tele en el mismo Wi-Fi. En la app tocá el ícono de transmitir y elegí la tele.') },
+		{ icon: 'link', title: t('Pegá el link'), body: t('Pegalo en la barra de direcciones del navegador de la app: detecta el video y tocás Reproducir.') },
 		{
 			icon: 'subs',
-			title: 'Subtítulos en español',
-			body: 'Copiá uno desde Subtítulos en español. Mientras se reproduce, tocá CC → agregar por link y pegalo. Si no coincide, probá el siguiente.'
+			title: t('Subtítulos en español'),
+			body: t('Copiá uno desde Subtítulos en español. Mientras se reproduce, tocá CC → agregar por link y pegalo. Si no coincide, probá el siguiente.')
 		}
 	];
 }

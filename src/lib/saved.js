@@ -1,17 +1,20 @@
 // Caché del navegador (localStorage), una sola regla para toda la web. Sobrevive a deploys: el prefijo es fijo y
 // no depende del build; si cambia el formato de un dato, se sube su versión en `V` y solo ese se descarta.
 // Sin storage (privado, bloqueado, servidor) todo sigue andando: `get` da null y `put` no hace nada.
+import { i18n } from './i18n.svelte.js';
+
 const PREFIX = 'saved:';
 const KEEP = 'keep:';
 export const HOUR = 60 * 60 * 1000;
 export const DAY = 24 * HOUR;
 /** Versión del formato de cada respuesta, por ruta de la API. */
-const V = { catalog: 1, genres: 1, title: 2, season: 1, scores: 1, torrents: 1 };
+const V = { catalog: 1, genres: 1, title: 3, season: 1, scores: 1, torrents: 1 };
 
-/** Clave de una URL de la API: `/api/catalog?…` → `catalog@1/api/catalog?…`. @param {string} url */
+/** Clave de una URL de la API, con su versión y el idioma (TMDB responde en el idioma elegido):
+ * `/api/catalog?…` → `catalog@1:es/api/catalog?…`. @param {string} url */
 const keyOf = (url) => {
 	const kind = /** @type {keyof typeof V} */ (url.split('/')[2]?.split('?')[0] ?? '');
-	return `${kind}@${V[kind] ?? 0}${url}`;
+	return `${kind}@${V[kind] ?? 0}:${i18n.lang}${url}`;
 };
 
 /** Lo guardado si todavía está vigente; si no, null. @param {string} key @returns {any} */
@@ -40,6 +43,10 @@ export function put(key, data, ttl) {
 		// Lleno o bloqueado: queda sin guardar.
 	}
 }
+
+/** La respuesta guardada y vigente de una URL de la API, ya (sin esperar): para pintar sin un cuadro de carga
+ * intermedio. null si no hay. @param {string} url @returns {any} */
+export const peek = (url) => get(keyOf(url));
 
 /** GET a la API con caché: si hay una respuesta vigente la devuelve sin pedir; si no, pide y guarda solo las ok.
  * @param {typeof fetch} f el `fetch` de SvelteKit en un `load`, o el global @param {string} url @param {number} ttl

@@ -41,7 +41,7 @@ async function dataset(url, file, what) {
 		return file;
 	} catch (e) {
 		if (age < Infinity) return file;
-		throw new Fail(502, `No pude bajar ${what} de IMDb: ${/** @type {Error} */ (e).message}`);
+		throw new Fail(502, 'No pude bajar {what} de IMDb: {m}', { what, m: /** @type {Error} */ (e).message });
 	}
 }
 

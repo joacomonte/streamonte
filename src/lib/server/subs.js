@@ -22,7 +22,7 @@ const member = (name, value) => `<member><name>${name}</name><value>${value}</va
 async function rpc(method, params) {
 	const body = `<?xml version="1.0"?><methodCall><methodName>${method}</methodName><params>${params.map((p) => `<param><value>${p}</value></param>`).join('')}</params></methodCall>`;
 	const r = await get(ENDPOINT, { method: 'POST', headers: { 'content-type': 'text/xml', 'user-agent': UA }, body }, 20_000);
-	if (!r.ok) throw new Fail(502, `OpenSubtitles respondió ${r.status}.`);
+	if (!r.ok) throw new Fail(502, 'OpenSubtitles respondió {s}.', { s: r.status });
 	return r.text();
 }
 

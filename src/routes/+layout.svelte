@@ -3,9 +3,13 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import Tour from '#lib/Tour.svelte';
 	import { device, markSeen, seen, welcomeSteps } from '#lib/tours.js';
+	import { i18n, t } from '#lib/i18n.svelte.js';
 
-	/** @type {{children: import('svelte').Snippet}} */
-	let { children } = $props();
+	/** @type {{data: {lang: 'es' | 'en'}, children: import('svelte').Snippet}} */
+	let { data, children } = $props();
+	// El idioma que decidió el servidor (cookie o navegador), antes del primer render (también en el servidor, donde
+	// no corren los efectos); después lo cambia el toggle.
+	(() => (i18n.lang = data.lang))();
 
 	// Bienvenida: una sola vez, al entrar por primera vez (después del código de acceso). Vista o salteada, no vuelve.
 	let welcome = $state(/** @type {import('#lib/tours.js').Step[] | null} */ (null));
@@ -42,5 +46,5 @@
 {@render children()}
 
 {#if welcome}
-	<Tour id="welcome" label="Bienvenida" open steps={welcome} onclose={() => { markSeen('welcome'); welcome = null; }} />
+	<Tour id="welcome" label={t('Bienvenida')} open steps={welcome} onclose={() => { markSeen('welcome'); welcome = null; }} />
 {/if}

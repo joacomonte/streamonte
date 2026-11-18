@@ -1,11 +1,14 @@
 import { json } from '@sveltejs/kit';
+import { tx } from './lang.js';
 
-/** Error con texto para mostrar al usuario. */
+/** Error con texto para mostrar al usuario: el texto en español es la clave del diccionario (i18n/en.js) y
+ * `vars` completa sus `{x}`; se traduce al idioma del pedido al responder. */
 export class Fail extends Error {
-	/** @param {number} status @param {string} message */
-	constructor(status, message) {
+	/** @param {number} status @param {string} message @param {Record<string, string | number>} [vars] */
+	constructor(status, message, vars) {
 		super(message);
 		this.status = status;
+		this.vars = vars;
 	}
 }
 
@@ -18,7 +21,7 @@ export const route = (fn) => async (/** @type {any} */ event) => {
 	} catch (e) {
 		const fail = e instanceof Fail;
 		if (!fail) console.error(e);
-		const msg = fail ? e.message : `Falló: ${/** @type {Error} */ (e)?.message ?? e}`;
+		const msg = fail ? tx(e.message, e.vars) : tx('Falló: {m}', { m: String(/** @type {Error} */ (e)?.message ?? e) });
 		return json({ message: msg }, { status: fail ? e.status : 500 });
 	}
 };

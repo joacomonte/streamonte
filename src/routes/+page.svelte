@@ -3,6 +3,8 @@
 	import Icon from '#lib/Icon.svelte';
 	import Sheet from '#lib/Sheet.svelte';
 	import { BACK, DEFAULTS, KINDS, LANGS, SORTS, VOTES, backLabel, cat, loadGenres, loadMore, reset, votesLabel } from '#lib/catalog.svelte.js';
+	import { i18n, setLang, t } from '#lib/i18n.svelte.js';
+	import { invalidateAll } from '$app/navigation';
 
 	/** @type {{tmdb: boolean, torbox: boolean} | null} */
 	let keys = $state(null);
@@ -72,6 +74,17 @@
 		cat.f.genres = cat.f.genres.includes(id) ? cat.f.genres.filter((/** @type {string} */ g) => g !== id) : [...cat.f.genres, id];
 		reset();
 	}
+	/** @type {('es' | 'en')[]} */
+	const UI_LANGS = ['es', 'en'];
+	/** ES / EN: guarda el idioma y vuelve a pedir el catálogo y los géneros en ese idioma (la caché es por idioma). @param {'es' | 'en'} l */
+	function switchLang(l) {
+		if (l === i18n.lang) return;
+		setLang(l);
+		cat.genreList = {};
+		loadGenres(kind.kind);
+		reset();
+		invalidateAll();
+	}
 	function resetFilters() {
 		setF({ from: DEFAULTS.from, to: DEFAULTS.to, votes: DEFAULTS.votes, lang: DEFAULTS.lang, genres: [] });
 	}
@@ -82,39 +95,46 @@
 		<div class="head-top" bind:clientHeight={topH}>
 			<div class="row">
 				<h1 class="brand">Streamonte</h1>
-				<a id="go-settings" class="icon-btn" href="/ajustes" aria-label="Ajustes"><Icon name="gear" /></a>
+				<div class="top-actions">
+					<div class="lang" role="radiogroup" aria-label={t('Idioma')}>
+						{#each UI_LANGS as l (l)}
+							<button id="lang-{l}" type="button" role="radio" aria-checked={i18n.lang === l} onclick={() => switchLang(l)}>{l.toUpperCase()}</button>
+						{/each}
+					</div>
+					<a id="go-settings" class="icon-btn" href="/ajustes" aria-label={t('Ajustes')}><Icon name="gear" /></a>
+				</div>
 			</div>
 			<label class="search">
 				<Icon name="search" size={18} />
-				<input id="cat-q" type="search" placeholder="Buscar película o serie" autocomplete="off" enterkeyhint="search" bind:value={cat.q} oninput={onSearch} onkeydown={(e) => e.key === 'Escape' && cat.q && clearSearch()} />
+				<input id="cat-q" type="search" placeholder={t('Buscar película o serie')} autocomplete="off" enterkeyhint="search" bind:value={cat.q} oninput={onSearch} onkeydown={(e) => e.key === 'Escape' && cat.q && clearSearch()} />
 				{#if cat.q}
-					<button id="cat-q-clear" type="button" class="clear-q" aria-label="Limpiar búsqueda" onclick={clearSearch}><Icon name="close" size={14} /></button>
+					<button id="cat-q-clear" type="button" class="clear-q" aria-label={t('Limpiar búsqueda')} onclick={clearSearch}><Icon name="close" size={14} /></button>
 				{/if}
 			</label>
 			{#if !searching}
-				<div class="seg" role="radiogroup" aria-label="Tipo" style:--i={kindIdx}>
+				<div class="seg" role="radiogroup" aria-label={t('Tipo')} style:--i={kindIdx}>
 					<span class="seg-thumb" aria-hidden="true"></span>
 					{#each KINDS as k (k.v)}
 						<button id="kind-{k.v}" type="button" role="radio" aria-checked={cat.f.kind === k.v} onclick={() => cat.f.kind !== k.v && setF({ kind: k.v })}>
-							{k.v === 'doc' ? 'Docs' : k.label}
+							{k.v === 'doc' ? t('Docs') : t(k.label)}
 						</button>
 					{/each}
 				</div>
 			{/if}
 		</div>
 		{#if !searching}
-			<div class="filters" role="toolbar" aria-label="Filtros">
+			<div class="filters" role="toolbar" aria-label={t('Filtros')}>
 				<button id="open-filters" type="button" class="chip" class:on={changed} onclick={() => (filtersOpen = true)}>
-					<Icon name="sliders" size={15} />Filtros{#if changed}<span class="n">{changed}</span>{/if}
+					<Icon name="sliders" size={15} />{t('Filtros')}{#if changed}<span class="n">{changed}</span>{/if}
 				</button>
 				<label class="chip pick">
-					{SORTS.find(([v]) => v === cat.f.sort)?.[1]}<Icon name="chev" size={14} />
-					<select id="f-sort" aria-label="Orden" value={cat.f.sort} onchange={(e) => setF({ sort: e.currentTarget.value })}>
-						{#each SORTS as [v, l] (v)}<option value={v}>{l}</option>{/each}
+					{t(SORTS.find(([v]) => v === cat.f.sort)?.[1] ?? '')}<Icon name="chev" size={14} />
+					<select id="f-sort" aria-label={t('Orden')} value={cat.f.sort} onchange={(e) => setF({ sort: e.currentTarget.value })}>
+						{#each SORTS as [v, l] (v)}<option value={v}>{t(l)}</option>{/each}
 					</select>
 				</label>
 			</div>
-			<button id="filters-summary" type="button" class="summary" onclick={() => (filtersOpen = true)} aria-label="Filtros aplicados: {summary.join(', ')}. Cambiar">
+			<button id="filters-summary" type="button" class="summary" onclick={() => (filtersOpen = true)} aria-label={t('Filtros aplicados: {f}. Cambiar', { f: summary.join(', ') })}>
 				{#each summary as part, i (i)}{#if i}<span class="sep" aria-hidden="true"></span>{/if}<span>{part}</span>{/each}
 			</button>
 		{/if}
@@ -124,8 +144,8 @@
 <main class="wrap">
 	{#if keys && (!keys.tmdb || !keys.torbox)}
 		<a id="keys-cta" class="cta" href="/ajustes">
-			<strong>Faltan keys</strong>
-			<span>{!keys.tmdb ? 'TMDB (catálogo)' : ''}{!keys.tmdb && !keys.torbox ? ' y ' : ''}{!keys.torbox ? 'TorBox (torrents)' : ''}: cargalas en Ajustes.</span>
+			<strong>{t('Faltan keys')}</strong>
+			<span>{!keys.tmdb ? t('TMDB (catálogo)') : ''}{!keys.tmdb && !keys.torbox ? t(' y ') : ''}{!keys.torbox ? t('TorBox (torrents)') : ''}{t(': cargalas en Ajustes.')}</span>
 		</a>
 	{/if}
 
@@ -158,48 +178,48 @@
 		<div class="state">
 			<p class="error" role="alert">{cat.error}</p>
 			<div class="state-actions">
-				<button id="cat-retry" type="button" class="btn" onclick={reset}>Reintentar</button>
-				<a id="cat-settings" class="btn" href="/ajustes">Ir a Ajustes</a>
+				<button id="cat-retry" type="button" class="btn" onclick={reset}>{t('Reintentar')}</button>
+				<a id="cat-settings" class="btn" href="/ajustes">{t('Ir a Ajustes')}</a>
 			</div>
 		</div>
 	{:else if cat.done && !cat.items.length}
 		<div class="state">
-			<p class="muted">No hay títulos con estos filtros.</p>
-			{#if changed}<button id="empty-reset" type="button" class="btn" onclick={resetFilters}>Restablecer filtros</button>{/if}
+			<p class="muted">{t('No hay títulos con estos filtros.')}</p>
+			{#if changed}<button id="empty-reset" type="button" class="btn" onclick={resetFilters}>{t('Restablecer filtros')}</button>{/if}
 		</div>
 	{/if}
 	<div bind:this={sentinel} class="sentinel"></div>
 </main>
 
-<Sheet id="filters-sheet" title="Filtros" open={filtersOpen} onclose={() => (filtersOpen = false)}>
+<Sheet id="filters-sheet" title={t('Filtros')} open={filtersOpen} onclose={() => (filtersOpen = false)}>
 	<div class="group">
 		<label class="frow">
-			<span>Desde</span><span class="val">{backLabel(cat.f.from)}<Icon name="chev" size={16} /></span>
+			<span>{t('Desde')}</span><span class="val">{backLabel(cat.f.from)}<Icon name="chev" size={16} /></span>
 			<select id="f-from" value={cat.f.from} onchange={(e) => { const v = Number(e.currentTarget.value); setF({ from: v, to: Math.min(cat.f.to, v - 1) }); }}>
 				{#each BACK.slice(1) as m (m)}<option value={m}>{backLabel(m)}</option>{/each}
 			</select>
 		</label>
 		<label class="frow">
-			<span>Hasta</span><span class="val">{backLabel(cat.f.to)}<Icon name="chev" size={16} /></span>
+			<span>{t('Hasta')}</span><span class="val">{backLabel(cat.f.to)}<Icon name="chev" size={16} /></span>
 			<select id="f-to" value={cat.f.to} onchange={(e) => { const v = Number(e.currentTarget.value); setF({ to: v, from: Math.max(cat.f.from, v + 1) }); }}>
 				{#each BACK.slice(0, -1) as m (m)}<option value={m}>{backLabel(m)}</option>{/each}
 			</select>
 		</label>
 		<label class="frow">
-			<span>Votos</span><span class="val">{cat.f.votes ? votesLabel(cat.f.votes) : 'Cualquiera'}<Icon name="chev" size={16} /></span>
+			<span>{t('Votos')}</span><span class="val">{cat.f.votes ? votesLabel(cat.f.votes) : t('Cualquiera')}<Icon name="chev" size={16} /></span>
 			<select id="f-votes" value={cat.f.votes} onchange={(e) => setF({ votes: Number(e.currentTarget.value) })}>
 				{#each VOTES as v (v)}<option value={v}>{votesLabel(v)}</option>{/each}
 			</select>
 		</label>
 		<label class="frow">
-			<span>Idioma original</span><span class="val">{LANGS.find(([v]) => v === cat.f.lang)?.[1]}<Icon name="chev" size={16} /></span>
+			<span>{t('Idioma original')}</span><span class="val">{t(LANGS.find(([v]) => v === cat.f.lang)?.[1] ?? '')}<Icon name="chev" size={16} /></span>
 			<select id="f-lang" value={cat.f.lang} onchange={(e) => setF({ lang: e.currentTarget.value })}>
-				{#each LANGS as [v, l] (v)}<option value={v}>{l}</option>{/each}
+				{#each LANGS as [v, l] (v)}<option value={v}>{t(l)}</option>{/each}
 			</select>
 		</label>
 	</div>
 
-	<h3 class="gh">Géneros</h3>
+	<h3 class="gh">{t('Géneros')}</h3>
 	<div class="genre-chips">
 		{#each genres as g (g.id)}
 			<button id="genre-{g.id}" type="button" class="chip" class:on={cat.f.genres.includes(g.id)} aria-pressed={cat.f.genres.includes(g.id)} onclick={() => toggleGenre(g.id)}>{g.name}</button>
@@ -207,8 +227,8 @@
 	</div>
 
 	<div class="sheet-actions">
-		<button id="filters-reset" type="button" class="btn" disabled={!changed} onclick={resetFilters}>Restablecer</button>
-		<button id="filters-done" type="button" class="btn primary" onclick={() => (filtersOpen = false)}>Ver resultados</button>
+		<button id="filters-reset" type="button" class="btn" disabled={!changed} onclick={resetFilters}>{t('Restablecer')}</button>
+		<button id="filters-done" type="button" class="btn primary" onclick={() => (filtersOpen = false)}>{t('Ver resultados')}</button>
 	</div>
 </Sheet>
 
@@ -226,6 +246,12 @@
 	}
 	.head-top { padding-bottom: 2px; }
 	.row { display: flex; align-items: center; justify-content: space-between; margin-right: -10px; }
+	.top-actions { display: flex; align-items: center; gap: 4px; }
+	/* ES / EN: dos letras, la elegida resaltada; sin ocupar más que un ícono y medio. */
+	.lang { display: inline-flex; padding: 2px; border-radius: 999px; background: var(--surface-2); }
+	.lang button { position: relative; min-width: 34px; height: 28px; padding: 0 8px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: 0.04em; transition: background 0.2s var(--ease), color 0.2s var(--ease); }
+	.lang button::after { content: ''; position: absolute; inset: -8px -2px; }
+	.lang button[aria-checked='true'] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px var(--shadow); }
 	.brand { margin: 0; font-size: 28px; font-weight: 750; letter-spacing: -0.025em; }
 	.search {
 		display: flex;
