@@ -469,7 +469,7 @@
 			{@const hot = tried.length >= 2 && quota?.hasKey}
 			<li class="sep"></li>
 			<li>
-				<button id="prem-gate" type="button" class="gate" class:hot aria-expanded={prem.open} onclick={() => { if (!quota) loadQuota(); togglePremium(); }}>
+				<button id="prem-gate" type="button" class="gate" class:hot aria-expanded={prem.open} onclick={async () => { if (!quota) await loadQuota(); togglePremium(); }}>
 					<span class="gi"><Icon name="lock" size={16} /></span>
 					<span>
 						<b>{hot ? '¿Ninguno anduvo? Buscá en Premium' : 'Buscar en Premium'}</b>

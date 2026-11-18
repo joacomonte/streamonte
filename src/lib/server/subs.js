@@ -104,7 +104,8 @@ export async function download(id) {
 // que la tele lo pida varias veces no vuelve a gastar. Como crates/core/src/subtitles/providers/opensubtitles.rs.
 
 const OS_API = 'https://api.opensubtitles.com/api/v1';
-const PREMIUM_DIR = '.data/premium';
+// En Vercel solo se puede escribir en /tmp (se borra al reciclar la función: volver a copiar gasta 1 de nuevo).
+const PREMIUM_DIR = process.env.VERCEL ? '/tmp/premium' : '.data/premium';
 /** Cuota según la última descarga (null = no se sabe desde que arrancó el servidor).
  * @type {{remaining: number, perDay: number, resetsAt: number | null} | null} */
 let quota = null;
