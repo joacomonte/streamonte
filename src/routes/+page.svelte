@@ -1013,6 +1013,8 @@
 		pointer-events: none;
 		z-index: 5;
 	}
+	/* Safari de iOS: el fixed termina arriba de su barra flotante y deja un corte duro; la barra ya difumina sola. */
+	@supports (-webkit-touch-callout: none) { .grid::after { display: none; } }
 	.rate :global(svg) { animation: star-in 0.8s var(--ease) calc(var(--t) + 500ms) backwards var(--play, paused); }
 	.num { display: inline-block; animation: num-pop 0.45s var(--ease) calc(var(--t) + 1200ms) var(--play, paused); }
 	.rate::before {
