@@ -73,8 +73,8 @@ img { display: block; }
 	z-index: 20;
 	padding: calc(var(--safe-top) + 10px) 16px 10px;
 	background: color-mix(in srgb, var(--bg) 82%, transparent);
-	backdrop-filter: saturate(1.6) blur(16px);
-	-webkit-backdrop-filter: saturate(1.6) blur(16px);
+	backdrop-filter: saturate(1.4) blur(10px);
+	-webkit-backdrop-filter: saturate(1.4) blur(10px);
 	border-bottom: 1px solid var(--border);
 }
 .wrap { max-width: 1200px; margin: 0 auto; }

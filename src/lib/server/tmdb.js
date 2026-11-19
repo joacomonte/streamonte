@@ -4,7 +4,7 @@ import { Fail, get } from './http.js';
 import { keys } from './keys.js';
 import { imdbOf, ratings } from './imdb.js';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { infoLang, lang, titlesLang } from './lang.js';
+import { lang, titlesLang } from './lang.js';
 import { translate } from '../i18n/translate.js';
 
 const API = 'https://api.themoviedb.org/3';
@@ -112,7 +112,7 @@ async function candidates(f) {
 			[`${date}.lte`]: f.to,
 			'vote_count.gte': Math.max(Math.floor(f.votes / TMDB_VOTE_RATIO), 20),
 			with_original_language: f.lang.split(',').filter(Boolean).join('|'),
-			with_genres: f.doc ? ['99', genres].filter(Boolean).join(',') : genres,
+			with_genres: genres,
 			page
 		});
 	const first = await page(1);
@@ -142,7 +142,7 @@ async function build(f) {
 	return hits.map(({ votes, pop, ...h }) => h);
 }
 
-/** @typedef {{kind: 'movie' | 'tv', doc: boolean, sort: string, from: string, to: string, votes: number, lang: string, genres: string[], page: number}} Filters */
+/** @typedef {{kind: 'movie' | 'tv', sort: string, from: string, to: string, votes: number, lang: string, genres: string[], page: number}} Filters */
 
 /** @param {Filters} f */
 export async function discover(f) {
@@ -178,16 +178,16 @@ export async function search(q, page) {
 
 /** @param {'movie' | 'tv'} kind */
 export async function genres(kind) {
-	const j = await tmdb(`/genre/${kind}/list`, {}, infoLang());
+	const j = await tmdb(`/genre/${kind}/list`, {}, lang());
 	return j.genres.map((/** @type {any} */ g) => ({ id: String(g.id), name: g.name }));
 }
 
 /** Ficha: datos, IMDb id (para los torrents) y temporadas. @param {'movie' | 'tv'} kind @param {string} id */
 export async function title(kind, id) {
-	// Sinopsis y géneros en otro idioma que los títulos (si el usuario lo eligió): un pedido más, en paralelo.
+	// Sinopsis y géneros siempre en el idioma de la app: un pedido más (si difiere de los títulos), en paralelo.
 	const [r, info] = await Promise.all([
 		tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits' }),
-		infoLang() !== titlesLang() ? tmdb(`/${kind}/${id}`, {}, infoLang()) : null
+		lang() !== titlesLang() ? tmdb(`/${kind}/${id}`, {}, lang()) : null
 	]);
 	const about = info ?? r;
 	// Dónde verla en Argentina (TMDB/JustWatch): suscripción primero, después con avisos o gratis.
@@ -207,7 +207,7 @@ export async function title(kind, id) {
 		overview: about.overview,
 		runtime: r.runtime ?? r.episode_run_time?.[0] ?? null,
 		// Los de series que juntan dos (y TMDB devuelve en inglés) se parten como en el desktop.
-		genres: [...new Set((about.genres ?? []).flatMap((/** @type {any} */ g) => TV_GENRES[g.id]?.map((x) => translate(infoLang(), x)) ?? [g.name]))],
+		genres: [...new Set((about.genres ?? []).flatMap((/** @type {any} */ g) => TV_GENRES[g.id]?.map((x) => translate(lang(), x)) ?? [g.name]))],
 		providers,
 		cast: (r.credits?.cast ?? []).slice(0, 3).map((/** @type {any} */ c) => c.name),
 		lang: langName ? langName[0].toUpperCase() + langName.slice(1) : null,

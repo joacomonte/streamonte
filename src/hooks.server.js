@@ -55,7 +55,7 @@ const GATE = `<!doctype html><html lang="es"><head><meta charset="utf-8">
 
 /** @type {import('@sveltejs/kit/hooks').Handle} */
 export const handle = async ({ event, resolve }) => {
-	// Idiomas del pedido (cookies o el del navegador): la app y los errores en `ui`; lo de TMDB en `titles`/`info`.
+	// Idiomas del pedido (cookies o el del navegador): la app y los errores en `ui`; los títulos de TMDB en `titles`.
 	const langs = pickLangs((n) => event.cookies.get(n), event.request.headers.get('accept-language'));
 	const lang = langs.ui;
 	event.locals.langs = langs;

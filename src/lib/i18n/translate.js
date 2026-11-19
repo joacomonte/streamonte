@@ -10,17 +10,17 @@ export function translate(lang, s, vars) {
 	return vars ? out.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '')) : out;
 }
 
-/** Idioma de un pedido: la cookie `lang` y, si no hay, el del navegador. @param {string | undefined} cookie @param {string | null} accept @returns {Lang} */
-export const pickLang = (cookie, accept) => (cookie === 'es' || cookie === 'en' ? cookie : /^es\b/i.test(accept ?? '') ? 'es' : accept ? 'en' : 'es');
+/** Idioma de un pedido: la cookie `lang` y, si no hay, español (sin mirar el navegador). @param {string | undefined} cookie @param {string | null} _accept @returns {Lang} */
+export const pickLang = (cookie, _accept) => (cookie === 'en' ? 'en' : 'es');
 
-/** @typedef {{ui: Lang, titles: Lang, info: Lang}} Langs */
-/** Las tres preferencias a partir de sus cookies (`lang`, `titles`, `info` = 'titles' | 'app'). Sin elegir, todo
+/** @typedef {{ui: Lang, titles: Lang}} Langs */
+/** Las dos preferencias a partir de sus cookies (`lang`, `titles`). Sin elegir, todo
  * va en el idioma de la app. @param {(name: string) => string | undefined} cookie @param {string | null} accept @returns {Langs} */
 export function pickLangs(cookie, accept) {
 	const ui = pickLang(cookie('lang'), accept);
 	const t = cookie('titles');
 	const titles = t === 'es' || t === 'en' ? t : ui;
-	return { ui, titles, info: cookie('info') === 'app' ? ui : titles };
+	return { ui, titles };
 }
 
 /** Locale para fechas y números. @param {Lang} lang */

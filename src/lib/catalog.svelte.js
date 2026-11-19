@@ -4,13 +4,12 @@ import { t, loc } from './i18n.svelte.js';
 import { invalidateAll } from '$app/navigation';
 
 export const KINDS = [
-	{ v: 'movie', label: 'Películas', kind: 'movie', doc: false },
-	{ v: 'tv', label: 'Series', kind: 'tv', doc: false },
-	{ v: 'doc', label: 'Documentales', kind: 'movie', doc: true }
+	{ v: 'movie', label: 'Películas', kind: 'movie', icon: /** @type {const} */ ('film') },
+	{ v: 'tv', label: 'Series', kind: 'tv', icon: /** @type {const} */ ('tv') }
 ];
 export const SORTS = [
-	['popular', 'Más populares'],
-	['rating', 'Mejor puntaje']
+	['rating', 'Mejor puntaje'],
+	['popular', 'Más populares']
 ];
 /** Meses hacia atrás (como la ruedita del desktop): hoy, 1–11 meses y de a un año hasta 1950. */
 export const BACK = [...Array.from({ length: 12 }, (_, i) => i), ...Array.from({ length: new Date().getFullYear() - 1950 }, (_, i) => (i + 1) * 12)];
@@ -26,13 +25,15 @@ export const LANGS = [
 ];
 
 const SAVED = 'sw.filters';
-export const DEFAULTS = { kind: 'movie', sort: 'popular', from: 12, to: 0, votes: 50000, lang: 'en,es', genres: /** @type {string[]} */ ([]) };
+export const DEFAULTS = { kind: 'movie', sort: 'rating', from: 12, to: 0, votes: 10000, lang: 'en,es', genres: /** @type {string[]} */ ([]) };
 
 function saved() {
 	try {
 		const f = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SAVED) ?? '{}') };
 		// Guardado con la escala vieja (votos de TMDB): vuelve al de por defecto.
 		if (!VOTES.includes(f.votes)) f.votes = DEFAULTS.votes;
+		// Tipo que ya no existe (p. ej. 'doc'): vuelve a películas.
+		if (!KINDS.some((k) => k.v === f.kind)) f.kind = DEFAULTS.kind;
 		return f;
 	} catch {
 		return { ...DEFAULTS };
@@ -70,7 +71,6 @@ export async function loadMore() {
 	if (cat.q.trim()) p.set('q', cat.q.trim());
 	else {
 		p.set('kind', k.kind);
-		if (k.doc) p.set('doc', '1');
 		p.set('sort', cat.f.sort);
 		p.set('from', isoMonthsAgo(cat.f.from));
 		if (cat.f.to) p.set('to', isoMonthsAgo(cat.f.to));
@@ -107,7 +107,7 @@ export function reset() {
 	loadMore();
 }
 
-/** Cambió un idioma (app, títulos o sinopsis): catálogo, géneros y la página abierta se vuelven a pedir (la caché
+/** Cambió un idioma (app o títulos): catálogo, géneros y la página abierta se vuelven a pedir (la caché
  * es por idioma, así que lo ya visto en ese idioma sale al instante). */
 export function relang() {
 	cat.genreList = {};

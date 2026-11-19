@@ -10,7 +10,7 @@ export const DAY = 24 * HOUR;
 /** Versión del formato de cada respuesta, por ruta de la API. */
 const V = { catalog: 1, genres: 1, title: 3, season: 1, scores: 1, torrents: 1 };
 
-/** Clave de una URL de la API, con su versión y los idiomas de TMDB (títulos.sinopsis):
+/** Clave de una URL de la API, con su versión y los idiomas de TMDB (títulos.app):
  * `/api/catalog?…` → `catalog@1:es.es/api/catalog?…`. @param {string} url */
 const keyOf = (url) => {
 	const kind = /** @type {keyof typeof V} */ (url.split('/')[2]?.split('?')[0] ?? '');

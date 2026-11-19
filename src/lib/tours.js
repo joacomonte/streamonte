@@ -2,14 +2,18 @@
 // Los textos se arman al abrir el tutorial, en el idioma elegido.
 import { t } from './i18n.svelte.js';
 
-/** @typedef {{label: string, store: string, href: string}} StoreLink */
-/** `picker`: el paso muestra el selector de idiomas (LangPicker). @typedef {{icon: 'play' | 'phone' | 'cast' | 'wifi' | 'link' | 'subs' | 'globe', title: string, body: string, links?: StoreLink[], picker?: boolean}} Step */
+/** `icon`: el ícono oficial de la tienda (hotlink; si no carga, Tour muestra un mosaico propio). Sin `href` no hay
+ * botón de descarga: se instala desde otro lado (el Receiver, desde la tele) y `store` lo explica.
+ * @typedef {{label: string, store: string, href?: string, icon: string}} StoreLink */
+/** `picker`: el paso muestra ese grupo del selector de idiomas (LangPicker). @typedef {{icon: 'play' | 'phone' | 'cast' | 'wifi' | 'link' | 'subs' | 'globe' | 'film', title: string, body: string, links?: StoreLink[], picker?: 'app' | 'titles'}} Step */
 
-const JUST_PLAYER = { label: 'Just Player', store: 'Google Play', href: 'https://play.google.com/store/apps/details?id=com.brouken.player' };
-const SENPLAYER = { label: 'SenPlayer', store: 'App Store', href: 'https://apps.apple.com/app/id6443975850' };
-const WVC_IOS = { label: 'Web Video Caster', store: 'App Store', href: 'https://apps.apple.com/app/id1400866497' };
-const WVC_ANDROID = { label: 'Web Video Caster', store: 'Google Play', href: 'https://play.google.com/store/apps/details?id=com.instantbits.cast.webvideo' };
-const WVC_RECEIVER = { label: 'Web Video Caster Receiver', store: 'Android TV · Google Play', href: 'https://play.google.com/store/apps/details?id=com.instantbits.cast.receiver' };
+// Íconos: artworkUrl512 de itunes.apple.com/lookup (iOS) y og:image de la ficha de Google Play (tamaño =s256).
+const JUST_PLAYER = { label: 'Just Player', store: 'Google Play', href: 'https://play.google.com/store/apps/details?id=com.brouken.player', icon: 'https://play-lh.googleusercontent.com/1du5nvD4DXIf1h4S_ip5MuRZHHfpPlJl0EEzJ915TAGJws1H8E9Hi-NRPSw0gUfhOn-SRzqQsoQ4Yz-7kbQflQ=s256' };
+const SENPLAYER = { label: 'SenPlayer', store: 'App Store', href: 'https://apps.apple.com/app/id6443975850', icon: 'https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/84/60/3f/84603fd5-c264-8712-6d6c-3d8bf92680ab/AppIcon-0-0-1x_U007epad-0-1-0-85-220.png/256x256bb.jpg' };
+const WVC_IOS = { label: 'Web Video Caster', store: 'App Store', href: 'https://apps.apple.com/app/id1400866497', icon: 'https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/00/e3/12/00e31239-6d9d-5ed1-647f-3cdea788246f/AppIcon-0-0-1x_U007epad-0-0-0-11-0-0-85-220.png/256x256bb.jpg' };
+const WVC_ANDROID = { label: 'Web Video Caster', store: 'Google Play', href: 'https://play.google.com/store/apps/details?id=com.instantbits.cast.webvideo', icon: 'https://play-lh.googleusercontent.com/WJ8t0dcoBL8_6BonyM6196e1MI7xZ0t6iE61HOqRdWmEoVWaOsgzP3eFfjLfH3MUJ4muEt2kDI7IbyGC8aCsVQ=s256' };
+// Se instala desde la tienda del televisor, no desde el celu: sin link. Función porque el texto se traduce al abrir.
+const wvcReceiver = () => ({ label: 'Web Video Caster Receiver', store: t('En la tele: buscalo en la tienda de apps del televisor (Android TV o Fire TV)'), icon: 'https://play-lh.googleusercontent.com/I74WHG4_Nr6PJXn-501CD7pw19t9DTDL2dfdjDYigT0byoBpbHOEiuWZ4uWPYM0W90rsB0OL_-jGJ1Zqmpe7Ow=s256' });
 
 /** @returns {'ios' | 'android' | 'desktop'} */
 export function device() {
@@ -27,19 +31,20 @@ const casterFor = (d) => (d === 'ios' ? [WVC_IOS] : d === 'android' ? [WVC_ANDRO
 export function welcomeSteps(d) {
 	const player =
 		d === 'ios'
-			? { title: t('En el iPhone, SenPlayer'), body: t('Abrís el link copiado y lo ves en 4K y HDR, con el audio y los subtítulos que elijas.'), links: [SENPLAYER] }
+			? { title: t('Para verlo en el celular vas a necesitar bajar {app}', { app: 'SenPlayer' }), body: t('Abrís el link copiado y lo ves en 4K y HDR, con el audio y los subtítulos que elijas.'), links: [SENPLAYER] }
 			: d === 'android'
-				? { title: t('En el celu, Just Player'), body: t('Gratis y sin publicidad. Abrís el link copiado y elegís el audio y los subtítulos.'), links: [JUST_PLAYER] }
-				: { title: t('Para verlo en el celu'), body: t('En iPhone, SenPlayer; en Android, Just Player. Abrís el link copiado y elegís el audio y los subtítulos.'), links: [SENPLAYER, JUST_PLAYER] };
+				? { title: t('Para verlo en el celular vas a necesitar bajar {app}', { app: 'Just Player' }), body: t('Gratis y sin publicidad. Abrís el link copiado y elegís el audio y los subtítulos.'), links: [JUST_PLAYER] }
+				: { title: t('Para verlo en el celular vas a necesitar bajar SenPlayer (iPhone) o Just Player (Android)'), body: t('Abrís el link copiado y elegís el audio y los subtítulos.'), links: [SENPLAYER, JUST_PLAYER] };
 	return [
-		{ icon: 'globe', title: t('Elegí tus idiomas'), body: t('La app y los títulos pueden ir en idiomas distintos. Lo cambiás cuando quieras en Ajustes.'), picker: true },
+		{ icon: 'globe', title: t('¿En qué idioma querés la app?'), body: t('Menús, botones y sinopsis. Lo cambiás cuando quieras en Ajustes.'), picker: 'app' },
+		{ icon: 'film', title: t('¿En qué idioma querés ver los títulos de pelis y series?'), body: t('Puede ser distinto del de la app. También lo cambiás en Ajustes.'), picker: 'titles' },
 		{ icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.') },
 		{ icon: 'phone', ...player },
 		{
 			icon: 'cast',
-			title: t('¿En la tele? Web Video Caster'),
+			title: t('Para verlo en la tele tenés que bajar Web Video Caster'),
 			body: t('Va en el celu y en la tele: el celu le manda el video. Chromecast, Samsung y LG la encuentran solas; en Android TV o Fire TV instalá el Receiver.'),
-			links: [...casterFor(d), WVC_RECEIVER]
+			links: [...casterFor(d), wvcReceiver()]
 		}
 	];
 }
@@ -52,7 +57,7 @@ export function castSteps(d) {
 			icon: 'cast',
 			title: t('Preparala en la tele'),
 			body: t('En Android TV o Fire TV instalá Web Video Caster Receiver. Chromecast, Roku y las Samsung o LG la encuentran sin instalar nada.'),
-			links: [WVC_RECEIVER]
+			links: [wvcReceiver()]
 		},
 		{ icon: 'wifi', title: t('Conectá'), body: t('Celu y tele en el mismo Wi-Fi. En la app tocá el ícono de transmitir y elegí la tele.') },
 		{ icon: 'link', title: t('Pegá el link'), body: t('Pegalo en la barra de direcciones del navegador de la app: detecta el video y tocás Reproducir.') },

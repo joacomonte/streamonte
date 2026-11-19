@@ -54,8 +54,8 @@
 	 * muestra como texto; para él va dentro de /play.html (un <video> que detecta; el link después del #). El toque en
 	 * la opción es el que copia (iOS). */
 	let whereFor = $state(/** @type {{t: Torrent, url: string} | null} */ (null));
-	/** A dónde se copió el último video: cambia el texto de la hoja "¡Link copiado!". */
-	let doneWhere = $state(/** @type {'wvc' | 'app'} */ ('app'));
+	/** A dónde se copió el último video (null = no se preguntó): con 'app' no hay hoja "¡Link copiado!", solo el festejo. */
+	let doneWhere = $state(/** @type {'wvc' | 'app' | null} */ (null));
 	/** El stream (.m3u8) anda igual en todos: se copia directo; el de descarga pregunta. @param {Torrent} t @param {string} url */
 	function askWhere(t, url) {
 		if (/\.tb-cdn\./.test(url) && !/\.m3u8/.test(url)) whereFor = { t, url };
@@ -66,6 +66,7 @@
 		if (!whereFor) return;
 		const { t, url } = whereFor;
 		whereFor = null;
+		linkDone = null;
 		doneWhere = where;
 		copyUrl(t, where === 'wvc' ? `${location.origin}/play.html#${encodeURIComponent(url)}` : url);
 	}
@@ -86,6 +87,22 @@
 		const id = setTimeout(() => (copied = null), 2800);
 		return () => clearTimeout(id);
 	});
+	/** Festejo grande de "¡Link copiado!" sobre todo (popover), antes de la hoja. @type {HTMLElement | undefined} */
+	let burstEl = $state();
+	let burstN = $state(0);
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
+	let burstT;
+	function burst() {
+		if (!burstEl) return;
+		burstN++;
+		// Después de que se abra la hoja: en la capa de arriba gana el último en abrirse.
+		requestAnimationFrame(() => {
+			if (burstEl?.matches(':popover-open')) burstEl.hidePopover();
+			burstEl?.showPopover();
+		});
+		clearTimeout(burstT);
+		burstT = setTimeout(() => burstEl?.hidePopover(), 1500);
+	}
 	let tutorialOpen = $state(false);
 	/** Los encontrados afuera para el torrent copiado (null = no se buscó). */
 	let subs = $state(/** @type {Sub[] | null} */ (null));
@@ -162,17 +179,27 @@
 	/** Conexión donde se va a ver (2026-11-18): la elige el usuario en cada video y pone el tope de bitrate
 	 * del buen match; "¿Se cortó?" baja un nivel. `mbps`: lo más que se le pide al video (el piso del rango). */
 	const NET = /** @type {const} */ ([
-		{ key: 'terrible', label: 'Muy baja', range: 'Menos de 8 Mbps o señal que se corta: busco una muy liviana', mbps: 4 },
-		{ key: 'low', label: 'Baja', range: '8 a 25 Mbps, o la tele en wifi 2.4 GHz', mbps: 10 },
-		{ key: 'normal', label: 'Normal', range: '25 a 100 Mbps', mbps: 25 },
-		{ key: 'high', label: 'Alta', range: 'Más de 100 Mbps, en wifi 5 GHz o por cable', mbps: Infinity }
+		{ key: 'terrible', label: 'Muy baja', range: 'Menos de 8 Mbps o señal que se corta: busco una muy liviana', mbps: 4, tone: 'red' },
+		{ key: 'low', label: 'Baja', range: '8 a 25 Mbps, o la tele en wifi 2.4 GHz', mbps: 10, tone: 'amber' },
+		{ key: 'normal', label: 'Normal', range: '25 a 100 Mbps', mbps: 25, tone: 'accent-fg' },
+		{ key: 'high', label: 'Alta', range: 'Más de 100 Mbps, en wifi 5 GHz o por cable', mbps: Infinity, tone: 'green' }
 	]);
 	/** La conexión elegida para este video: se pregunta siempre (cambia según dónde se vea). */
 	let net = $state(/** @type {(typeof NET)[number] | null} */ (null));
+	/** La que se acaba de tocar: su ícono se llena del color del nivel antes de pasar al audio. */
+	let netPick = $state(/** @type {string | null} */ (null));
 	/** @param {(typeof NET)[number]} n */
 	function chooseNet(n) {
+		if (netPick) return;
 		net = n;
-		goStep('audio');
+		if (still()) return goStep('audio');
+		netPick = n.key;
+		const g = gen;
+		// Confirmación breve (≤220 ms); si en el medio cambió el video o el paso, no se pisa.
+		setTimeout(() => {
+			netPick = null;
+			if (g === gen) goStep('audio');
+		}, 220);
 	}
 	/** Mbps típicos por resolución cuando no se sabe la duración (como el desktop, catalog-options.js `TYPICAL_MBPS`). */
 	const TYPICAL = /** @type {Record<string, number>} */ ({ '2160p': 25, '1080p': 8, '720p': 4, other: 3 });
@@ -305,8 +332,8 @@
 	}
 	console.assert((() => { const s = { id: '', latino: false, format: '', downloads: 0 }; const old = match; match = { hash: '', release: 'X.WEB-DL-NTb', video: { fps: 23.976, duration: 3000 } };
 		const r = level({ ...s, release: 'X.1080p.WEB-DL-NTb' }) === 2 && level({ ...s, release: 'X.BluRay-NTb' }) === 0 && level({ ...s, release: 'X.BluRay-DEMAND', fps: 23.976, last: 2900 }) === 1; match = old; return r; })());
-	const LEVEL = ['', 'probable', 'muy probable', 'perfecto'].map((x) => () => tr(x));
-	const WHY = ['', 'Mismos fps y misma duración que el video', 'Mismo release: mismo grupo y fuente', 'Hecho para este mismo archivo'].map((x) => () => tr(x));
+	const LEVEL = ['puede desfasar', 'probable', 'muy probable', 'perfecto'].map((x) => () => tr(x));
+	const WHY = ['Otro release: puede ir adelantado o atrasado', 'Mismos fps y misma duración que el video', 'Mismo release: mismo grupo y fuente', 'Hecho para este mismo archivo'].map((x) => () => tr(x));
 	/** Exacto → mismo release → mismos fps y duración → resto; adentro, latinos y más bajados. @param {Sub[]} list */
 	const rank = (list) => list.map((sub) => ({ ...sub, level: level(sub) }))
 		.sort((a, b) => b.level - a.level || Number(b.latino) - Number(a.latino) || b.downloads - a.downloads);
@@ -329,8 +356,29 @@
 		return j;
 	}
 	/** Elegir audio: el toque en la opción es el que copia (por http hace falta un toque para copiar). */
-	/** Opción cuyas pistas de audio se muestran (Audio ES · validar latino). */
-	let tracksOf = $state(/** @type {Torrent | null} */ (null));
+	/** Badges que ya se explicaron en este video: la primera vez que aparece cada tipo (el de más arriba), un globito
+	 * cuenta qué significa; si aparecen varios tipos, de a uno. */
+	const explained = new Set();
+	/** @param {HTMLElement} node @param {string} kind */
+	function explain(node, kind) {
+		if (explained.has(kind) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		node.style.setProperty('--d', `${0.4 + explained.size * 2.2}s`);
+		explained.add(kind);
+		node.classList.add('explaining');
+	}
+	/** Recién leídos en esta pantalla: sus badges naranjas explican qué significan con un globito. @type {Record<string, boolean>} */
+	let fresh = $state({});
+	/** Globito rápido del badge ES ("Gallego") al tocarlo. */
+	let tipFor = $state('');
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
+	let tipT;
+	/** @param {string} hash */
+	function quickTip(hash) {
+		tipFor = '';
+		requestAnimationFrame(() => (tipFor = hash));
+		clearTimeout(tipT);
+		tipT = setTimeout(() => (tipFor = ''), 2400);
+	}
 	let audioFor = $state(/** @type {{t: Torrent, choices: {key: string, label: string, url: string}[]} | null} */ (null));
 
 	/** Lo leído de cada torrent (subs en español y audio, ver audio.js), 'busy' mientras se lee o 'err' si falló.
@@ -348,11 +396,13 @@
 	 * ellos, también agrega el torrent. false si falló. @param {Torrent} t @param {{tid: number, fid: number}} [ids] */
 	async function probe(t, ids) {
 		info[t.hash] = 'busy';
+		fresh[t.hash] = false;
 		try {
 			const r = await fetch(`/api/tracks?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '', ...(ids ? { tid: String(ids.tid), fid: String(ids.fid) } : {}) })}`);
 			if (!r.ok) throw new Error();
 			const j = await r.json();
 			know(t.hash, { subs: j.subs.length, audio: audioOf(j.audios), audios: j.audios });
+			fresh[t.hash] = true;
 			return true;
 		} catch {
 			info[t.hash] = 'err';
@@ -404,18 +454,16 @@
 		match = { hash: t.hash, release: t.release, natives, file, video };
 	}
 	/** Abre los subtítulos de `t` y busca afuera. @param {Torrent} t */
-	/** La lista de subs se abrió porque el video copiado no trae en español: arriba, por qué y qué hacer. */
-	let subsWhy = $state(false);
-	/** @param {Torrent} t @param {boolean} [why] */
-	function showSubs(t, why = false) {
+	function showSubs(t) {
 		if (match?.hash !== t.hash) subsFor(t);
-		subsWhy = why;
 		linkDone = null;
 		subsOpen = true;
 		if (!subs && !searching) searchSubs();
 	}
 	/** Subs en español del video que tiene abierto el panel (de `info`). */
 	const matchInfo = $derived(match ? info[match.hash] : null);
+	/** Cuántos subs en español trae el video del panel (nativos con link o, si no, lo leído). */
+	const esN = $derived(match?.natives?.length || (matchInfo && typeof matchInfo === 'object' ? matchInfo.subs : 0));
 	/** Afuera (OpenSubtitles.org): con el hash del archivo suma los hechos para ese archivo exacto. */
 	async function searchSubs() {
 		const q = qs;
@@ -448,7 +496,7 @@
 	 * la explicación arriba. Si todavía se está leyendo, se decide cuando termina (efecto de abajo). @param {Torrent} t */
 	function noSubsCheck(t) {
 		const k = known(t);
-		if (linkDone?.hash === t.hash && k && !k.subs && !t.subFile) showSubs(t, true);
+		if (linkDone?.hash === t.hash && k && !k.subs && !t.subFile) showSubs(t);
 	}
 	$effect(() => {
 		if (linkDone && typeof info[linkDone.hash] === 'object') untrack(() => linkDone && noSubsCheck(linkDone));
@@ -456,14 +504,20 @@
 	/** @param {Torrent} t @param {'ok' | 'err'} st */
 	function done(t, st) {
 		copy[t.hash] = st;
-		if (st === 'ok') linkDone = t;
+		if (st === 'ok') {
+			linkDone = t;
+			burst();
+		}
 		noSubsCheck(t);
 		setTimeout(() => copy[t.hash] === st && delete copy[t.hash], 2500);
 	}
 	/** Botón Copiar de la hoja manual: dentro del toque, así iOS lo deja copiar. Si tampoco, queda el campo para mantener apretado. */
 	function copyManual() {
 		if (manual && copyNow(manual.url)) {
-			if (manual.t) linkDone = manual.t;
+			if (manual.t) {
+				linkDone = manual.t;
+				burst();
+			}
 			else copied = { kind: manual.kind, name: manual.release };
 			manual = null;
 		}
@@ -601,28 +655,58 @@
 					<h3 class="ask">{tr('¿Cómo es tu internet donde lo vas a ver?')}</h3>
 					<div class="choices">
 						<!-- La más rápida arriba; NET queda de menor a mayor para que "¿Se cortó?" baje un nivel. -->
-						{#each [...NET].reverse() as n (n.key)}
-							<button id="net-{n.key}" type="button" class="choice" class:primary={net?.key === n.key} onclick={() => chooseNet(n)}>
-								<strong>{tr(n.label)}</strong>
-								<span class="muted">{tr(n.range)}</span>
+						{#each [...NET].reverse() as n, i (n.key)}
+							{@const lit = NET.indexOf(n) + 1}
+							<button id="net-{n.key}" type="button" class="choice net" class:primary={net?.key === n.key} class:picked={netPick === n.key} class:max={lit === 4} style="--lvl: var(--{n.tone}); --i: {i}" onclick={() => chooseNet(n)}>
+								<span class="tile">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+										{#each [16, 12.5, 9, 5.5] as y1, b (b)}
+											<line class="bar" class:lit={b < lit} style="--b: {b}" x1={5 + b * 4.7} x2={5 + b * 4.7} y1={y1} y2="19" />
+										{/each}
+									</svg>
+								</span>
+								<span class="txt">
+									<strong>{tr(n.label)}</strong>
+									<span class="muted">{tr(n.range)}</span>
+								</span>
 							</button>
 						{/each}
 					</div>
 				{:else if screen === 'audio'}
 					{@const named = all.filter((t) => t.lat).length}
-					{@const doubtful = all.filter((t) => t.doubt && !t.lat).length}
 					{@const toRead = all.filter((t) => unread(true, t)).length}
+					{@const maybe = all.filter(potential).length}
 					<h3 class="ask">{tr('¿Necesitás audio latino?')}</h3>
-					<div class="choices">
-						<button id="audio-any" type="button" class="choice" onclick={() => chooseAudio(false)}>
-							<strong>{tr('Audio original')}</strong>
-							<span class="muted">{tr('{n} opciones en TorBox', { n: all.length })} · {tr('busco la primera que traiga subtítulos en español adentro')}</span>
+					<div class="choices even">
+						<!-- Mismas tarjetas con ícono que la conexión: el parlante late, el latino entra con un saludo. -->
+						<button id="audio-any" type="button" class="choice net" style="--lvl: var(--accent-fg); --i: 0" onclick={() => chooseAudio(false)}>
+							<span class="tile wave" aria-hidden="true">
+								<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" fill="currentColor" fill-opacity="0.25" />
+									<path class="w1" d="M15.5 9.5a3.5 3.5 0 0 1 0 5" />
+									<path class="w2" d="M18 7a7 7 0 0 1 0 10" />
+								</svg>
+							</span>
+							<span class="txt">
+								<strong>{tr('Audio original')}</strong>
+								<span class="muted">{tr('{n} opciones · busco una con subtítulos en español', { n: all.length })}</span>
+							</span>
 						</button>
-						<button id="audio-lat" type="button" class="choice" class:off={!all.some(potential)} disabled={!all.some(potential)} onclick={() => chooseAudio(true)}>
-							<strong>{tr('Solo audio latino')}{#if toRead}<span class="slow">{tr('Demora más')}</span>{/if}</strong>
-							<span class="muted">{all.some(potential)
-								? [named ? tr('{n} lo dicen en el nombre', { n: named }) : '', doubtful ? tr('{n} dudosas (MULTI / Dual)', { n: doubtful }) : '', toRead ? tr('reviso de a una, de mejor a peor calidad, hasta encontrar latino') : ''].filter(Boolean).join(' · ')
-								: tr('No hay torrents con audio latino')}</span>
+						<button id="audio-lat" type="button" class="choice net" class:off={!maybe} disabled={!maybe} style="--lvl: var(--green); --i: 1" onclick={() => chooseAudio(true)}>
+							<span class="tile lat-tile" aria-hidden="true">
+								<svg width="28" height="28" viewBox="0 0.75 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+									<path d="M4 5.5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9l-4.5 3.5v-3.5H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z" fill="currentColor" fill-opacity="0.18" />
+									<text x="12" y="13.9" text-anchor="middle" font-size="7" font-weight="800" fill="currentColor" stroke="none" letter-spacing="0.3">LAT</text>
+								</svg>
+							</span>
+							<span class="txt">
+								<strong>{tr('Solo audio latino')}{#if toRead}<span class="slow">{tr('Demora más')}</span>{/if}</strong>
+								<span class="muted">{!maybe
+									? tr('No hay torrents con audio latino')
+									: !toRead
+										? tr(named === 1 ? '1 opción lo tiene seguro' : '{n} opciones lo tienen seguro', { n: named })
+										: tr(maybe === 1 ? '1 opción podría tenerlo · la reviso por vos' : 'Hasta {n} opciones podrían tenerlo · las reviso por vos', { n: maybe })}</span>
+							</span>
 						</button>
 					</div>
 				{:else if screen === 'search'}
@@ -711,15 +795,18 @@
 					{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
 					{#if t.size && !fits(t)}<span class="tag heavy" title={tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) })}>{tr('Puede cortarse')}</span>{/if}
 					{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
-					{#if lb?.kind === 'es'}
-						<button id="audio-info-{t.hash}" type="button" class="tag act" title={tr(lb.title)} onclick={() => (tracksOf = t)}><Icon name="volume" size={13} />{tr(lb.text)}</button>
-					{:else if lb?.kind === 'doubt' && info[t.hash] === 'busy'}
-						<span class="tag act busy" role="status"><span class="spin"></span>{tr('Leyendo audios…')}</span>
-					{:else if lb?.kind === 'doubt'}
-						<button id="audio-check-{t.hash}" type="button" class="tag act" title={tr(lb.title)} onclick={() => probe(t)}><Icon name="volume" size={13} />{tr(lb.text)}</button>
-					{:else if lb}<span class="tag audio {lb.kind}" title={tr(lb.title)}>{tr(lb.text)}</span>{/if}
-					{#if sb?.on}<span class="tag cc es" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES</span>
-					{:else if sb}<button id="find-subs-{t.hash}" type="button" class="tag act" title={sb.title} onclick={() => showSubs(t)}><Icon name="subs" size={13} />{tr('Buscar subs ES')}</button>{/if}
+					<!-- ES sin variante solo si la peli es hablada en español; en las de otro idioma solo cuenta el LAT. -->
+					{#if lb?.kind === 'es' && orig === 'es'}
+						<button id="audio-info-{t.hash}" type="button" class="tag es-audio" title={tr(lb.title)} aria-label={tr(lb.title)} onclick={() => quickTip(t.hash)}><Icon name="volume" size={13} />{tr(lb.text)}<span class="tip" class:now={tipFor === t.hash} class:auto={best} aria-hidden="true">{tr('Gallego')}</span></button>
+					<!-- Con audio original elegido, el LAT solo aparece confirmado; el resto de sus estados va en el modo latino. -->
+					{:else if lb?.kind === 'lat' || (wantLat && lb?.kind === 'name')}<span class="tag audio {lb.kind}" title={tr(lb.title)}>{tr(lb.text)}{#if best && lb.kind === 'lat'}<span class="tip" aria-hidden="true">{tr('Tiene audio latino')}</span>{/if}</span>
+					<!-- Leído y sin latino: LAT tachado. Sin leer: LAT? gris punteado, sin globito (al lado está "Analizar"). -->
+					{:else if wantLat && known(t)}<span class="tag no-lat" title={tr('Leído: no trae audio latino')} use:explain={'nolat'}><s>LAT</s><span class="tip explain" class:now={fresh[t.hash]} aria-hidden="true">{tr('No trae audio latino')}</span></span>
+					{:else if wantLat}<span class="tag unk" title={tr('Sin analizar: no se sabe si trae audio latino')}>LAT?</span>{/if}
+					{#if sb?.on}<span class="tag cc es" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES{#if best}<span class="tip second" aria-hidden="true">{tr('Subtítulos en español incluidos')}</span>{/if}</span>
+					<!-- Leído sin subs adentro: ES en gris = se pueden buscar y bajar aparte. Sin leer: ES? gris punteado. -->
+					{:else if sb}<span class="tag cc es-dl" title={sb.title} aria-label={sb.title} use:explain={'esdl'}><Icon name="subs" size={13} />ES<span class="tip explain" class:now={fresh[t.hash]} aria-hidden="true">{tr('No vienen incluidos: se bajan aparte')}</span></span>
+					{:else}<span class="tag cc unk" title={tr('Sin analizar: no se sabe si trae subtítulos en español')}><Icon name="subs" size={13} />ES?</span>{/if}
 				</div>
 				<div class="quality" title={q ? tr('Calidad de imagen: {q}', { q: tr(q[0]) }) : tr('El nombre del torrent no dice de dónde salió el video')}>
 					<Icon name="monitor" size={14} />
@@ -732,21 +819,14 @@
 						<span class="qname unknown">{tr('Calidad sin dato')}</span>
 					{/if}
 				</div>
-				<!-- Sin dato de subs: un texto chico; un toque es un pedido y deja el badge arriba. -->
-				{#if !sb && info[t.hash] === 'busy'}
-					<span class="verify busy" role="status"><span class="spin"></span>{tr('Verificando…')}</span>
-				{:else if !sb}
-					<button
-						id="probe-{t.hash}"
-						type="button"
-						class="verify"
-						class:err={info[t.hash] === 'err'}
-						title={info[t.hash] === 'err' ? tr('No se pudo ver: tocá para reintentar') : tr('Ver si trae subtítulos en español')}
-						onclick={() => probe(t)}
-					><Icon name="subs" size={14} />{info[t.hash] === 'err' ? tr('Reintentar') : tr('Verificar subtítulos')}</button>
-				{/if}
 				</div>
 				<div class="acts">
+				<!-- Sin leer todavía: un botón chico para leerlo (audio latino y subs incluidos). -->
+				{#if info[t.hash] === 'busy'}
+					<span class="scan busy" role="status"><span class="spin"></span>{tr('Analizando…')}</span>
+				{:else if !known(t)}
+					<button id="scan-{t.hash}" type="button" class="scan" title={tr('Analizar torrent: audio latino y subtítulos incluidos')} onclick={() => probe(t)}>{tr('Analizar audio y subs')}</button>
+				{/if}
 				<!-- Como ▶ del desktop: un botón redondo; lleno en los buenos matches. -->
 				<button
 					id="copy-{t.hash}"
@@ -777,51 +857,39 @@
 		<span class="mark">{#if on}<Icon name="check" size={16} />{/if}</span>
 		<span class="sub-text">
 			<span class="l1"><b>{it.head}</b><span class="spec">{it.spec}</span>{#if it.latino}<span class="lat">LAT</span>{/if}{#if was}<span class="why">{tr('probado')}</span>{/if}</span>
-			{#if it.lvl}<span class="fit l{it.lvl}" title={WHY[it.lvl]()}>{LEVEL[it.lvl]()}</span>{/if}
+			{#if it.lvl != null}<span class="fit l{it.lvl}" title={WHY[it.lvl]()}><span class="dots" aria-hidden="true">{#each [1, 2, 3] as n (n)}<i class:on={n <= it.lvl}></i>{/each}</span>{LEVEL[it.lvl]()}</span>{/if}
 		</span>
 		{@render actions()}
 	</li>
 {/snippet}
 
 <Sheet id="subs-sheet" title={tr('Subtítulos')} open={subsOpen} onclose={() => (subsOpen = false)}>
+	<!-- Una línea de estado con un dibujo chico (video + subtítulo que se le suma) y, abajo, solo la lista. -->
 	<div class="subs-head">
-		<p class="muted">{match ? `${epLabel} · ${groupOf(match.release) || tr('tu torrent')}` : tr('Copiá el link de un torrent.')}</p>
-		<button id="subs-tutorial" type="button" class="tut" onclick={() => (tutorialOpen = true)}><Icon name="help" size={15} />{tr('Cómo funciona')}</button>
+		<svg class="art subs-art" viewBox="0 0 64 36" aria-hidden="true">
+			<rect class="tv" x="2" y="4" width="34" height="26" rx="4" />
+			<path class="play" d="M16 12v10l8-5z" />
+			<g class="sfile"><rect x="42" y="2" width="20" height="26" rx="3" /><path d="M46 12h12M46 18h8" /></g>
+		</svg>
+		<p role="status">
+			{#if !match}{tr('Copiá el link de un torrent.')}
+			{:else if esN > 0}{tr(esN > 1 ? 'Trae {n} subtítulos en español: elegilos con CC en el reproductor.' : 'Trae {n} subtítulo en español: elegilo con CC en el reproductor.', { n: esN })}
+			{:else if matchInfo === 'busy'}<span class="spin"></span>{tr('Viendo si trae subtítulos en español…')}
+			{:else if matchInfo && typeof matchInfo === 'object'}{tr('El video no incluye subtítulos en español')}
+			{:else}{tr('Elegí un subtítulo')}{/if}
+		</p>
+		<button id="subs-tutorial" type="button" class="iconbtn tut" aria-label={tr('Cómo funciona')} title={tr('Cómo funciona')} onclick={() => (tutorialOpen = true)}><Icon name="help" size={20} /></button>
 	</div>
-	{#if subsWhy}
-		<!-- Por qué hace falta un subtítulo aparte y qué hacer con él, según dónde se va a ver. -->
-		<div class="why">
-			<svg class="art why-art" viewBox="0 0 150 64" aria-hidden="true">
-				<rect class="tv" x="6" y="10" width="54" height="36" rx="5" />
-				<path class="play" d="M27 20v16l13-8z" />
-				<path class="plus" d="M72 28h12M78 22v12" />
-				<rect class="file" x="96" y="6" width="34" height="44" rx="5" />
-				<path class="file-cc" d="M104 22h18M104 30h12M104 38h16" />
-				<text class="file-tag" x="113" y="60" text-anchor="middle">.srt</text>
-			</svg>
-			<b>{tr('Este video no trae subtítulos en español')}</b>
-			<span>{doneWhere === 'wvc' ? tr('Elegí uno y copiá su link: en Web Video Caster, CC → pegar link.') : tr('Elegí uno y bajalo: abrilo junto al video en tu reproductor.')}</span>
-		</div>
-	{/if}
+	<p class="paste-note"><Icon name="link" size={14} />{tr('SenPlayer y Web Video Caster aceptan pegar el link del subtítulo')}</p>
 	<ul class="subs">
-		<li class="grp">{tr('Vienen con el video')}</li>
-		{#if !match}
-			<li class="none">{tr('Sin confirmar · copiá un link')}</li>
-		{:else if match.natives?.length}
+		{#if match?.natives?.length}
+			<li class="grp">{tr('Vienen con el video')}</li>
 			{#each match.natives as n (n.track)}
 				{#snippet nativeActions()}
 					<button id="sub-copy-native-{n.track}" type="button" class="iconbtn copy" aria-label={tr('Copiar el video con este subtítulo')} onclick={() => copyNative(n)}><Icon name="copy" size={18} /></button>
 				{/snippet}
 				{@render row({ key: `n${n.track}`, head: tr(n.label), spec: tr('{k} · pista {n}', { k: tr(n.kind), n: n.track }) }, nativeActions)}
 			{/each}
-		{:else if matchInfo === 'busy'}
-			<li class="msg"><span class="spin"></span>{tr('Viendo si trae subtítulos en español…')}</li>
-		{:else if matchInfo && typeof matchInfo === 'object' && matchInfo.subs > 0}
-			<li class="msg">{tr(matchInfo.subs > 1 ? 'Trae {n} subtítulos en español: elegilos con CC en el reproductor.' : 'Trae {n} subtítulo en español: elegilo con CC en el reproductor.', { n: matchInfo.subs })}</li>
-		{:else if matchInfo && typeof matchInfo === 'object'}
-			<li class="none">{tr('Este video no trae en español')}</li>
-		{:else}
-			<li class="none">{tr('Sin confirmar')}</li>
 		{/if}
 
 		{#if match && !subs && !searching && !subsError}
@@ -831,15 +899,15 @@
 				</button>
 			</li>
 		{:else if searching}
-			<li class="grp">{tr('Encontrados para vos')}</li>
 			<li class="msg"><span class="spin"></span>{tr('Buscando en OpenSubtitles.org…')}</li>
 		{:else if subs || subsError}
-			<li class="grp">{tr('Encontrados para vos')}</li>
-			{#if subsError && !subs}<li class="msg err">{subsError}</li>{:else if !ranked.length}<li class="none">{tr('No encontré en OpenSubtitles.org')}</li>{/if}
+			{#if match?.natives?.length}<li class="grp">{tr('Encontrados para vos')}</li>{/if}
+			{#if subsError && !subs}<li class="msg err">{subsError}</li>{:else if !ranked.length}<li class="msg">{tr('No encontré en OpenSubtitles.org')}</li>{/if}
 			{#each ranked as sub (sub.id)}
 				{#snippet foundActions()}
-					<a id="sub-{sub.id}" class="iconbtn dl" href="/api/subs/{sub.id}?{new URLSearchParams({ name: fileName, ext: sub.format })}" download aria-label={tr('Bajar el .{f}', { f: sub.format })}><Icon name="download" size={16} /></a>
-					<button id="sub-copy-{sub.id}" type="button" class="iconbtn copy" aria-label={tr('Copiar link')} onclick={() => copySub(sub)}><Icon name="copy" size={18} /></button>
+					<!-- Dos íconos en la misma fila; lleno el que va con donde se ve (Web Video Caster: pegar el link). -->
+					<button id="sub-copy-{sub.id}" type="button" class="iconbtn sa" class:rec={doneWhere === 'wvc'} aria-label={tr('Copiar link')} title={tr('Copiar link')} onclick={() => copySub(sub)}><Icon name="link" size={18} /></button>
+					<a id="sub-{sub.id}" class="iconbtn sa" class:rec={doneWhere !== 'wvc'} aria-label={tr('Descargar')} title={tr('Descargar')} href="/api/subs/{sub.id}?{new URLSearchParams({ name: fileName, ext: sub.format })}" download><Icon name="download" size={18} /></a>
 				{/snippet}
 				{@render row({ key: `o${sub.id}`, head: headOf(sub), spec: specOf(sub), latino: sub.latino, lvl: sub.level, title: sub.release }, foundActions)}
 			{/each}
@@ -879,21 +947,6 @@
 			{/if}
 		{/if}
 	</ul>
-</Sheet>
-
-<!-- Pistas de audio de una opción con español sin variante: qué dicen, y que latino o España se sabe escuchándolo. -->
-<Sheet id="tracks-sheet" title={tr('Pistas de audio')} open={!!tracksOf} onclose={() => (tracksOf = null)}>
-	{#if tracksOf}
-		{@const a = known(tracksOf)?.audios}
-		<p class="muted audio-hint">{tr('Ninguna dice latino ni España: se sabe escuchándolo.')}</p>
-		{#if a?.length}
-			<ul class="tracks">
-				{#each a as x, i (i)}<li><b>{x.language}</b><span>{x.title || '—'}</span></li>{/each}
-			</ul>
-		{:else}
-			<p class="muted small">{tr('No guardé el detalle de sus pistas: verificalo de nuevo para verlo.')}</p>
-		{/if}
-	{/if}
 </Sheet>
 
 <Sheet id="audio-sheet" title={tr('¿En qué audio?')} open={!!audioFor} onclose={() => (audioFor = null)}>
@@ -943,14 +996,15 @@
 				<path class="play pop" d="M55 29v16l13-8z" />
 				<path class="bar" d="M50 66h20" />
 			</svg>
-			<b>{tr('En otra app')}</b>
+			<b>{tr('En este dispositivo')}</b>
 			<small>SenPlayer · VLC</small>
 		</button>
 	</div>
 </Sheet>
 
 <!-- Al copiar el link de un video: confirmación, si trae subs en español (de `info`) y, abajo, el tutorial. -->
-<Sheet id="copied-sheet" title={tr('¡Link copiado!')} open={!!linkDone} onclose={() => (linkDone = null)}>
+<!-- "En este dispositivo" no la abre: alcanza con el festejo (y, sin subs, la lista de subs). -->
+<Sheet id="copied-sheet" title={tr('¡Link copiado!')} open={!!linkDone && doneWhere !== 'app'} onclose={() => (linkDone = null)}>
 	{#if linkDone}
 		{@const v = info[linkDone.hash]}
 		{@const k = known(linkDone)}
@@ -981,7 +1035,7 @@
 		{:else if (k?.subs ?? 0) > 0 || linkDone.subFile}
 			<p class="subs-line yes"><Icon name="subs" size={16} />{tr('Con subtítulos incluidos')}</p>
 		{:else if !k}
-			<button id="see-subs" type="button" class="subs-line act" onclick={() => linkDone && showSubs(linkDone, true)}><Icon name="subs" size={16} />{tr('Ver subtítulos')}</button>
+			<button id="see-subs" type="button" class="subs-line act" onclick={() => linkDone && showSubs(linkDone)}><Icon name="subs" size={16} />{tr('Ver subtítulos')}</button>
 		{/if}
 
 		<!-- Atajos: más liviana si se corta, y cómo mandarlo a la tele. -->
@@ -999,6 +1053,23 @@
 		</div>
 	{/if}
 </Sheet>
+
+<!-- Festejo: aro que se dibuja, la cadena del link que salta y papelitos que salen disparados. -->
+<div id="copied-burst" class="burst" popover="manual" bind:this={burstEl} aria-hidden="true">
+	{#key burstN}
+		<div class="burst-in">
+			<div class="burst-mark">
+				{#each Array(12) as _, i (i)}<span class="conf" style="--a: {i * 30}deg; --d: {i % 3}"></span>{/each}
+				<svg viewBox="0 0 120 120">
+					<circle class="burst-ring" cx="60" cy="60" r="50" />
+					<g class="burst-chain"><path d="M52 66a12 12 0 0 1 0-17l7-7a12 12 0 0 1 17 17l-3 3M68 54a12 12 0 0 1 0 17l-7 7a12 12 0 0 1-17-17l3-3" /></g>
+				</svg>
+			</div>
+			<b>{tr('¡Link copiado!')}</b>
+			{#if linkDone && ((known(linkDone)?.subs ?? 0) > 0 || linkDone.subFile)}<span class="burst-subs"><Icon name="subs" size={18} />{tr('Con subtítulos incluidos')}</span>{/if}
+		</div>
+	{/key}
+</div>
 
 <!-- Toast: `popover` va a la capa de arriba, así se ve también sobre la hoja de subtítulos. -->
 <div id="copied-toast" class="toast" popover="manual" bind:this={toastEl} role="status">
@@ -1051,12 +1122,40 @@
 	.crumbs button:active { opacity: 0.6; }
 	.ask { margin: 10px 0 10px; font-size: 16px; }
 	.choices { display: flex; flex-direction: column; gap: 8px; }
+	.choices.even { display: grid; grid-auto-rows: 1fr; }
 	.choice { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 64px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); text-align: left; transition: background 0.2s var(--ease), transform 0.15s var(--out); }
 	.choice strong { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; }
 	.choice .muted { font-size: 12.5px; line-height: 1.35; }
 	.choice:active { transform: scale(0.985); background: var(--surface-2); }
 	.choice.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); align-items: center; }
 	.choice.off { opacity: 0.55; }
+	/* Conexión: ícono de señal con 4/3/2/1 barras en el color del nivel (`--lvl`), entrada escalonada (`--i`). */
+	.net { flex-direction: row; align-items: center; gap: 12px; animation: net-rise 0.36s var(--out) both; animation-delay: calc(var(--i) * 50ms); }
+	/* Parlante: las dos ondas se encienden una tras otra, en loop. Globo latino: entra con un saludo y cada tanto se mueve. */
+	/* Centro óptico: el globo pesa abajo (la colita), por eso su viewBox va corrido. */
+	.wave svg, .lat-tile svg { display: block; }
+	.wave .w1, .wave .w2 { animation: wave 1.6s ease-in-out infinite; }
+	.wave .w2 { animation-delay: 0.2s; }
+	@keyframes wave { 0%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+	.lat-tile svg { transform-origin: 30% 90%; animation: lat-in 0.6s var(--out) 0.15s both, lat-talk 3.2s ease-in-out 1.2s infinite; }
+	@keyframes lat-in { from { transform: scale(0.4) rotate(-16deg); opacity: 0; } 60% { transform: scale(1.12) rotate(5deg); opacity: 1; } }
+	@keyframes lat-talk { 0%, 82%, 100% { transform: none; } 88% { transform: rotate(-7deg) scale(1.05); } 94% { transform: rotate(5deg); } }
+	.net .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+	/* padding/borde en 0: la regla `.tile` de la hoja de copiado también matchea este span y lo descentraba. */
+	.net .tile { flex: none; display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 0; border-radius: 12px; background: color-mix(in srgb, var(--lvl) 14%, transparent); color: var(--lvl); transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.15s var(--out); }
+	.net.primary .tile { background: color-mix(in srgb, var(--accent-text) 18%, transparent); color: var(--accent-text); }
+	.net .bar { opacity: 0.25; transform-box: fill-box; transform-origin: bottom; }
+	.net .bar.lit { opacity: 1; animation: bar-up 0.3s var(--out) both; animation-delay: calc(var(--i) * 50ms + 140ms + var(--b) * 70ms); }
+	.net.max .bar.lit:nth-child(4) { animation: bar-up 0.3s var(--out) both, bar-pulse 2.4s ease-in-out infinite; animation-delay: calc(var(--i) * 50ms + 350ms), 1.2s; }
+	.net:active { transform: scale(0.97); }
+	.net:active .tile { transform: scale(0.92); background: color-mix(in srgb, var(--lvl) 26%, transparent); }
+	.net.picked .tile { background: var(--lvl); color: var(--bg); transform: scale(1.06); }
+	.net.picked .bar.lit { animation: bar-flash 0.22s var(--ease); }
+	@keyframes net-rise { from { opacity: 0; transform: translateY(8px); } }
+	@keyframes bar-up { from { transform: scaleY(0); } }
+	@keyframes bar-pulse { 50% { opacity: 0.45; } }
+	@keyframes bar-flash { 40% { transform: scaleY(0.55); } }
+	@media (prefers-reduced-motion: reduce) { .lat-tile svg, .wave .w1, .wave .w2, .net, .net .bar.lit, .net.max .bar.lit:nth-child(4), .net.picked .bar.lit { animation: none; } .net:active, .net .tile { transform: none; } }
 	.slow { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 750; background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
 	.latsum { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
 	.link-btn.inline { flex-basis: auto; min-height: 32px; margin-left: auto; color: var(--accent-fg); }
@@ -1112,7 +1211,46 @@
 		color: var(--muted);
 		white-space: nowrap;
 	}
-	.tag.res { color: var(--accent-fg); }
+	/* En la mejor opción, un globito explica cada badge al aparecer: primero el audio, después los subs. */
+	.tag { position: relative; }
+	.tip {
+		position: absolute;
+		bottom: calc(100% + 8px);
+		left: 50%;
+		z-index: 3;
+		padding: 5px 9px;
+		border-radius: 8px;
+		background: var(--text);
+		color: var(--bg);
+		font-size: 11.5px;
+		font-weight: 650;
+		letter-spacing: 0;
+		white-space: nowrap;
+		pointer-events: none;
+		box-shadow: 0 6px 18px var(--shadow-lg);
+		translate: -50% 0;
+		opacity: 0;
+		animation: tip 3s var(--out) 0.5s;
+	}
+	.tip::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--text); }
+	.tip.second { animation-delay: 3.6s; }
+	/* El del badge ES: solo en la mejor opción sale solo; en cualquiera, al tocarlo. */
+	.tip.explain { animation: none; }
+	.tip.explain.now { animation: tip 3s var(--out) 0.3s; }
+	.tag:global(.explaining) > .tip.explain { animation: tip 3s var(--out) var(--d); }
+	.es-audio .tip { animation: none; }
+	.es-audio .tip.auto { animation: tip 3s var(--out) 0.5s; }
+	.es-audio .tip.now { animation: tip 2.4s var(--out); }
+	.tag.es-audio { display: inline-flex; align-items: center; gap: 3px; background: none; font-family: inherit; color: var(--text); cursor: pointer; }
+	@keyframes tip {
+		0% { opacity: 0; transform: translateY(6px) scale(0.7); }
+		12% { opacity: 1; transform: translateY(-2px) scale(1.06); }
+		20% { transform: none; }
+		85% { opacity: 1; transform: none; }
+		100% { opacity: 0; transform: translateY(-4px) scale(0.96); }
+	}
+	@media (prefers-reduced-motion: reduce) { .tip { display: none; } }
+	.tag.res, .tag.hdr { color: var(--text); }
 	.tag.lat, .tag.es { color: var(--green); }
 	/* Acciones al pie del resultado (2026-11-18): todas del mismo ancho y alto, ícono a la izquierda. */
 	.row-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
@@ -1148,33 +1286,20 @@
 	/* Audio: LAT confirmado (verde), según el nombre (gris punteado), sin aclarar (ámbar, como "sin sub ES"). */
 	.tag.audio.lat { color: var(--green); }
 	.tag.audio.name { border-style: dashed; color: var(--muted); }
-	/* Etiquetas que se tocan (Buscar subs ES, validar latino, revisar): grises, mismo tamaño que un badge. */
-	.tag.act { display: inline-flex; align-items: center; gap: 4px; background: none; border-color: var(--border-strong); color: var(--muted); font-family: inherit; cursor: pointer; transition: color 0.15s var(--ease), border-color 0.15s var(--ease); }
-	.tag.act:active { opacity: 0.7; }
-	.tag.act.busy { cursor: default; }
-	.tag.act .spin { width: 10px; height: 10px; border-width: 1.5px; }
-	@media (hover: hover) { button.tag.act:hover { color: var(--text); border-color: var(--accent-fg); } }
+	/* Badge de audio en español que se toca (ver pistas): gris, mismo tamaño que un badge. */
 	.acts { display: flex; align-items: center; gap: 8px; }
+	/* Analizar: texto chico en acento, en dos renglones si hace falta; se toca en 44 px sin agrandar la fila. */
+	.scan { position: relative; display: inline-flex; align-items: center; gap: 5px; max-width: 84px; padding: 0; border: 0; background: none; color: var(--accent-fg); font: inherit; font-size: 12px; font-weight: 650; line-height: 1.2; text-align: right; }
+	button.scan::after { content: ''; position: absolute; inset: -10px -6px; }
+	button.scan:active { opacity: 0.6; }
+	.scan.busy { color: var(--muted); }
+	.scan .spin { flex: none; width: 12px; height: 12px; border-width: 2px; }
+	/* Estados: LAT tachado = leído y sin latino; ES gris = subs para bajar aparte; gris punteado = sin leer. */
+	.tag.no-lat, .tag.es-dl { color: var(--muted); }
+	.tag.no-lat s { text-decoration-thickness: 1.5px; }
+	.tag.unk { border-style: dotted; color: color-mix(in srgb, var(--muted) 70%, transparent); }
 	/* Badge de subs compacto (cc + ES): entra en la línea de los tags. (`.sub` ya es la fila de subtítulo.) */
 	.tag.cc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px 1px 4px; }
-	/* "Verificar subtítulos": texto chico debajo de la calidad; sin borde ni caja, solo el color del acento. */
-	.verify {
-		display: inline-flex;
-		align-items: center;
-		gap: 5px;
-		min-height: 32px;
-		margin: 2px 0 -6px;
-		padding: 0;
-		border: 0;
-		background: none;
-		color: var(--accent-fg);
-		font-size: 12.5px;
-		font-weight: 650;
-	}
-	button.verify:active { opacity: 0.6; }
-	.verify.err { color: var(--amber); }
-	.verify.busy { color: var(--muted); }
-	.verify .spin { width: 12px; height: 12px; border-width: 2px; }
 	.quality { display: flex; align-items: center; gap: 5px; margin-top: 5px; color: var(--muted); font-size: 13.5px; }
 	.stars { display: inline-flex; gap: 1px; color: color-mix(in srgb, var(--muted) 45%, transparent); }
 	.stars :global(svg) { fill: currentColor; stroke-width: 1.5; }
@@ -1182,9 +1307,6 @@
 	.qname { font-weight: 600; color: var(--text); }
 	.qname.unknown { font-weight: 500; color: var(--muted); font-size: 13.5px; }
 	.audio-hint { margin: 0 0 14px; font-size: 14px; }
-	.tracks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-	.tracks li { display: flex; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); font-size: 13.5px; }
-	.tracks b { min-width: 44px; font-variant-numeric: tabular-nums; }
 	.audio-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 	.audio-opt {
 		min-height: 64px;
@@ -1227,13 +1349,22 @@
 	.toast-btn::after { content: ''; position: absolute; inset: -4px 0; }
 	.small { font-size: 12.5px; margin: 6px 0 0; }
 	.actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
-	.subs-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
-	.subs-head p { margin: 0; font-size: 13px; }
+	/* Hoja de subtítulos (2026-11-19): una línea de estado con dibujo, una nota y la lista. */
+	.subs-head { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+	.subs-head p { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14.5px; font-weight: 600; text-wrap: balance; }
+	.subs-art .sfile { stroke: var(--accent-fg); stroke-width: 2.5; fill: color-mix(in srgb, var(--accent) 14%, transparent); animation: sfile 2.6s var(--out) 3; }
+	/* El subtítulo aparece y se mete en el video (3 vueltas; al terminar queda quieto al lado). */
+	@keyframes sfile { 0% { opacity: 0; } 15%, 50% { transform: translateX(0); opacity: 1; } 85%, 100% { transform: translateX(-22px); opacity: 0; } }
+	@media (prefers-reduced-motion: reduce) { .subs-art .sfile { animation: none; } }
+	.paste-note { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+	.paste-note :global(svg) { flex: none; color: var(--accent-fg); }
+	/* Copiar link / Descargar de un subtítulo: íconos de 40 px en la fila; lleno el recomendado. */
+	.iconbtn.sa { border: 1px solid var(--border-strong); color: var(--text); }
+	.iconbtn.sa.rec { border-color: transparent; background: var(--accent); color: var(--accent-text); }
 	.small-btn { min-height: 36px; padding: 0 12px; font-size: 13px; position: relative; }
 	.small-btn::after { content: ''; position: absolute; inset: -4px 0; }
 	.subs { margin-top: 4px; }
 	.grp { padding: 14px 0 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim, var(--muted)); }
-	.none { padding: 2px 0 8px 28px; font-size: 12.5px; color: var(--muted); font-style: italic; }
 	.msg { display: flex; align-items: center; gap: 8px; padding: 10px 0; font-size: 13px; color: var(--muted); }
 	.msg .btn { margin-left: auto; }
 	.msg.err { color: var(--red); }
@@ -1245,16 +1376,20 @@
 	.l1 { display: flex; align-items: baseline; gap: 7px; min-width: 0; white-space: nowrap; overflow: hidden; }
 	.l1 b { font-size: 14px; font-weight: 650; }
 	.spec { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
-	.lat { align-self: center; padding: 0 4px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); }
-	.why { font-size: 11px; color: var(--muted); }
+	/* Solo el LAT de la lista de subs: sin acotarlo pisaba el badge `.tag.audio.lat` de las opciones. */
+	.l1 .lat { align-self: center; padding: 0 4px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); }
+	.l1 .why { font-size: 11px; color: var(--muted); }
 	.sub.tried b, .sub.tried .spec { color: var(--muted); text-decoration: line-through; }
 	/* Nivel de match (ELEGIDA): palabra con color; el ámbar queda para lo que cuesta cuota. */
-	.fit { font-size: 11px; font-weight: 500; }
+	.fit { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--muted); }
+	/* Medidor de 3 puntos: cuántos calzan (perfecto = 3, puede desfasar = 0). */
+	.dots { display: inline-flex; gap: 2px; }
+	.dots i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.25; }
+	.dots i.on { opacity: 1; }
 	.fit.l3 { color: light-dark(#12733a, #4ade80); font-weight: 600; }
 	.fit.l2 { color: light-dark(#3d7a55, #b5d86a); }
 	.fit.l1 { color: light-dark(#76681c, #d9a85b); }
 	.iconbtn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 10px; background: none; color: var(--muted); }
-	.iconbtn.dl { width: 34px; }
 	.iconbtn.copy { color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 	.cost { color: light-dark(#9a5b00, #f5b041); font-weight: 700; }
 	.cost-btn { grid-column: span 2; display: inline-flex; align-items: center; gap: 6px; }
@@ -1264,13 +1399,34 @@
 	.more :global(svg) { justify-self: center; color: var(--accent-fg); }
 	.more b, .gate b { display: block; font-size: 14px; }
 	.more span span, .gs { font-size: 12px; color: var(--muted); }
-	.gate { grid-template-columns: 30px minmax(0, 1fr) auto; border: 1px solid var(--border); background: var(--surface); }
+	/* Premium, último recurso: sin caja; solo se marca cuando ya probaste varios. */
+	.gate { grid-template-columns: 30px minmax(0, 1fr) auto; border: 1px solid transparent; background: none; }
+	.gate:not(.hot) b { font-weight: 600; color: var(--muted); }
 	.gate.hot { border-color: color-mix(in srgb, light-dark(#9a5b00, #f5b041) 70%, var(--border)); background: color-mix(in srgb, light-dark(#9a5b00, #f5b041) 7%, var(--surface)); }
-	.gi { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--surface-3); color: light-dark(#9a5b00, #f5b041); }
+	.gi { display: grid; place-items: center; width: 30px; height: 30px; color: var(--muted); }
 	.chev { display: inline-flex; color: var(--muted); transition: transform 0.2s var(--ease); }
 	.chev.up { transform: rotate(180deg); }
-	.tut { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 600; }
-	.tut :global(svg) { color: var(--accent-fg); }
+	.tut { width: 44px; height: 44px; }
+	/* Festejo "¡Link copiado!": tapa la pantalla 1,5 s y se va solo. */
+	.burst { inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: rgb(0 0 0 / 0.7); display: none; place-items: center; pointer-events: none; }
+	.burst:popover-open { display: grid; animation: burst-bg 1.5s ease both; }
+	.burst-in { display: grid; justify-items: center; gap: 14px; color: #fff; }
+	.burst-in b { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; animation: burst-text 0.5s var(--out) 0.25s both; }
+	.burst-mark { position: relative; width: 132px; height: 132px; }
+	.burst-mark svg { position: relative; width: 100%; height: 100%; fill: none; stroke-linecap: round; }
+	.burst-ring { fill: var(--green); transform-box: fill-box; transform-origin: center; animation: burst-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+	.burst-chain { stroke: #fff; stroke-width: 7; transform-box: fill-box; transform-origin: center; animation: burst-chain 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s both; }
+	.conf { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px; border-radius: 3px; background: var(--accent); rotate: var(--a); animation: conf 0.9s var(--out) 0.12s both; }
+	.conf[style*='--d: 1'] { background: var(--yellow); border-radius: 50%; }
+	.conf[style*='--d: 2'] { background: var(--green); width: 6px; height: 14px; }
+	.burst-subs { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 650; color: var(--green); animation: burst-text 0.5s var(--out) 0.4s both; }
+	@media (prefers-reduced-motion: reduce) { .burst:popover-open, .burst-in *, .burst-in b { animation: none; } .conf { display: none; } }
+	@keyframes burst-bg { 0% { opacity: 0; } 12%, 80% { opacity: 1; } 100% { opacity: 0; } }
+	@keyframes burst-pop { from { transform: scale(0); } }
+	@keyframes burst-chain { from { transform: scale(0.2) rotate(-90deg); opacity: 0; } }
+	@keyframes burst-text { from { transform: translateY(14px) scale(0.9); opacity: 0; } }
+	@keyframes conf { from { transform: translateY(0) scale(0.3); opacity: 1; } 70% { opacity: 1; } to { transform: translateY(-110px) scale(1) rotate(200deg); opacity: 0; } }
+
 	/* Hoja "¡Link copiado!" */
 	/* "¿Dónde lo vas a ver?": dos tarjetas con dibujo animado y casi sin texto. */
 	/* Hoja "¡Link copiado!" (2026-11-18): un dibujo en vez de párrafos, los subs de un vistazo y dos atajos. */
@@ -1285,15 +1441,6 @@
 	.subs-line { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 10px 0 0; min-height: 36px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; }
 	.subs-line.yes { color: var(--green); font-weight: 600; }
 	.subs-line.act { color: var(--accent-fg); font-weight: 600; }
-	.why { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 2px 0 14px; padding: 14px 16px 16px; border-radius: 18px; background: var(--surface-2); text-align: center; animation: spot-in 0.4s var(--out) both; }
-	.why b { font-size: 15.5px; margin-top: 6px; text-wrap: balance; }
-	.why span { font-size: 13.5px; color: var(--muted); text-wrap: balance; }
-	.why-art { max-width: 190px; }
-	.why-art .plus { stroke: var(--muted); stroke-width: 3; }
-	.why-art .file { stroke: var(--accent-fg); stroke-width: 3; fill: color-mix(in srgb, var(--accent) 12%, transparent); animation: pop 2.2s var(--out) infinite; transform-box: fill-box; transform-origin: center; }
-	.why-art .file-cc { stroke: var(--accent-fg); stroke-width: 2.5; }
-	.why-art .file-tag { fill: var(--muted); stroke: none; font-size: 10px; font-weight: 700; }
-	@media (prefers-reduced-motion: reduce) { .why, .why-art .file { animation: none; } }
 	.done-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 	.done-tiles.single { grid-template-columns: 1fr; }
 	.tile { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 12px 8px; border: 1px solid var(--border); border-radius: 16px; background: none; color: var(--text); font: inherit; transition: transform 0.15s var(--out), border-color 0.2s var(--ease); }

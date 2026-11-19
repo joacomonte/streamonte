@@ -48,9 +48,18 @@
 		padding-bottom: var(--safe-bottom);
 	}
 	.sheet:not([open]) { display: none; }
-	.sheet[open] { animation: up 0.28s var(--out); }
-	.sheet::backdrop { background: rgb(0 0 0 / 0.45); }
-	@keyframes up { from { transform: translateY(40%); opacity: 0; } }
+	/* Sube con un resorte, el fondo se oscurece y desenfoca, y el contenido entra escalonado. */
+	.sheet[open] { animation: up 0.55s cubic-bezier(0.32, 1.35, 0.5, 1); }
+	/* Sin blur en el fondo: animarlo traba en el celu; alcanza con oscurecer. */
+	.sheet::backdrop { background: rgb(0 0 0 / 0.5); animation: dim 0.3s ease-out; }
+	@keyframes up { from { transform: translateY(100%); } }
+	@keyframes dim { from { opacity: 0; } }
+	.sheet[open] .body > :global(*) { animation: rise 0.5s var(--out) backwards; }
+	.sheet[open] .body > :global(:nth-child(2)) { animation-delay: 0.06s; }
+	.sheet[open] .body > :global(:nth-child(3)) { animation-delay: 0.12s; }
+	.sheet[open] .body > :global(:nth-child(4)) { animation-delay: 0.18s; }
+	.sheet[open] .body > :global(:nth-child(n + 5)) { animation-delay: 0.24s; }
+	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 	@media (min-width: 720px) {
 		.sheet { margin: auto; border-radius: 16px; }
 		.sheet[open] { animation-name: pop; }

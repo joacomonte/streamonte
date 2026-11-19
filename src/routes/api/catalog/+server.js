@@ -8,7 +8,6 @@ export const GET = route(async ({ url }) => {
 	if (q) return search(q, page);
 	return discover({
 		kind: p.get('kind') === 'tv' ? 'tv' : 'movie',
-		doc: p.get('doc') === '1',
 		sort: p.get('sort') ?? 'popular',
 		from: p.get('from') ?? '',
 		to: p.get('to') ?? '',

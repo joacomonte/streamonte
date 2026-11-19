@@ -25,14 +25,14 @@ console.assert(
 );
 
 
-/** Badge de audio: LAT confirmado (verde) y LAT según el nombre (gris punteado) informan; "Audio ES · validar latino"
- * (español sin variante: muestra sus pistas) y "¿Trae latino? Revisar" (MULTI / Dual sin leer: las lee) se tocan.
+/** Badge de audio: LAT confirmado (verde) y LAT según el nombre (gris punteado) informan; "ES" (español de España:
+ * al tocarlo dice "Gallego") y "¿Trae latino? Revisar" (MULTI / Dual sin leer).
  * null si no hay nada que decir.
  * @param {{lat: boolean, doubt?: boolean}} t @param {Tracks | null | undefined} info
  * @returns {{kind: 'lat' | 'name' | 'es' | 'doubt', text: string, title: string} | null} */
 export function latBadge(t, info) {
 	if (info?.audio === 'lat') return { kind: 'lat', text: 'LAT', title: 'Audio latino confirmado en las pistas del video' };
-	if (info?.audio === 'es') return { kind: 'es', text: 'Audio ES · validar latino', title: 'Trae audio en español sin decir si es latino o de España' };
+	if (info?.audio === 'es') return { kind: 'es', text: 'ES', title: 'Gallego: español de España, no latino' };
 	if (info?.audio) return null;
 	if (t.lat) return { kind: 'name', text: 'LAT', title: 'Latino según el nombre del torrent: si el nombre miente, no lo trae' };
 	if (t.doubt) return { kind: 'doubt', text: '¿Trae latino? Revisar', title: 'MULTI / Dual sin aclarar: validar audio latino' };

@@ -104,7 +104,7 @@
 
 <div class="hero" style:--bd={t.backdrop ? `url(${t.backdrop})` : 'none'}>
 	<div class="wrap hero-in">
-		{#if t.poster}<img class="poster" src={t.poster} alt="" width="342" height="513" />{/if}
+		{#if t.poster}<img id="poster" class="poster" src={t.poster} alt="" width="342" height="513" />{/if}
 		<div class="facts">
 			<h1 class="name" bind:this={heroTitle}>{t.title}</h1>
 			<p class="muted line">
@@ -290,4 +290,16 @@
 	.info dt { color: var(--muted); }
 	.info dd { margin: 0; }
 	.ep-skel { height: 68px; border-radius: 8px; margin-top: 10px; }
+	/* Entrada: el fondo se enfoca desde un zoom y el texto sube en cascada mientras el póster llega volando. */
+	.hero::before { animation: backdrop-in 0.9s var(--out) backwards; will-change: transform; }
+	.name, .line, .tags, main { animation: rise 0.7s var(--out) backwards; }
+	.name { animation-delay: 0.12s; }
+	.line { animation-delay: 0.2s; }
+	.tags { animation-delay: 0.28s; }
+	main { animation-delay: 0.36s; }
+	@keyframes backdrop-in { from { opacity: 0; transform: scale(1.18); } }
+	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+	@media (prefers-reduced-motion: reduce) {
+		.hero::before, .name, .line, .tags, main { animation: none; }
+	}
 </style>
