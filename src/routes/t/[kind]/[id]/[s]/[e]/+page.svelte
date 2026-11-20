@@ -36,7 +36,6 @@
 	{#if !t.imdb}
 		<p class="error">{tr('TMDB no tiene el IMDb id de esta serie: no puedo buscar torrents.')}</p>
 	{:else}
-		<h2>{tr('Opciones en TorBox')}</h2>
 		<Torrents imdb={t.imdb} s={data.s} e={data.e} name={t.title} orig={t.origLang} runtime={t.runtime} />
 	{/if}
 </main>
@@ -51,5 +50,5 @@
 	.crumbs a:active { opacity: 0.6; }
 	h1 { margin: 0; font-size: 22px; line-height: 1.2; letter-spacing: -0.015em; text-wrap: balance; }
 	.date { margin: 4px 0 0; font-size: 13.5px; }
-	h2 { margin: 22px 0 4px; font-size: 17px; }
+	main :global(.torrents) { margin-top: 22px; }
 </style>

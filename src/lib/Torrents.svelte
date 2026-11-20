@@ -303,8 +303,8 @@
 	}
 	/** Leídas con audio en español que no es latino (sin variante o de España), de mejor a peor. */
 	const spanish = $derived(all.filter((t) => known(t)?.audio === 'es' || known(t)?.audio === 'spain').sort(byQuality));
-	/** "Ver todas las opciones": la lista completa, con los filtros. */
-	const list = $derived(everything.filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
+	/** "Ver todas las opciones": todas, sin el filtro de audio, de mejor a peor (solo los chips HDR / Subs ES). */
+	const list = $derived([...all].sort(byQuality).filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
 	/** "¿Se cortó?": baja un nivel de conexión y busca de nuevo con el tope nuevo. */
 	function lighter() {
 		track('se cortó', 'pide una más liviana');
@@ -753,27 +753,61 @@
 					{#if error}<p class="status error" role="alert">{error}</p>{/if}
 					{#if found.length}
 						{@render options(found.map((h) => all.find((t) => t.hash === h)).filter((t) => !!t), true)}
+					{:else if wantLat && byBest.length}
+						<!-- Sin latino: cómo seguir, con las mismas tarjetas que el paso de audio (sin lista, los botones ya lo dicen). -->
+						<div class="choices even">
+							<button id="fallback-original" type="button" class="choice net" style="--lvl: var(--accent-fg); --i: 0" onclick={() => chooseAudio(false)}>
+								<span class="tile wave" aria-hidden="true">
+									<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" fill="currentColor" fill-opacity="0.25" />
+										<path class="w1" d="M15.5 9.5a3.5 3.5 0 0 1 0 5" />
+										<path class="w2" d="M18 7a7 7 0 0 1 0 10" />
+									</svg>
+								</span>
+								<span class="txt">
+									<strong>{tr('Buscar con audio original')}</strong>
+									<span class="muted">{tr('No encontré latino · busco una con subtítulos en español')}</span>
+								</span>
+							</button>
+							<button id="see-spain" type="button" class="choice net" class:off={!spanish.length} disabled={!spanish.length} style="--lvl: var(--amber, #f5a524); --i: 1" onclick={() => (showSpain = true)}>
+								<span class="tile lat-tile" aria-hidden="true">
+									<svg width="28" height="28" viewBox="0 0.75 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+										<path d="M4 5.5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9l-4.5 3.5v-3.5H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z" fill="currentColor" fill-opacity="0.18" />
+										<text x="12" y="13.9" text-anchor="middle" font-size="7" font-weight="800" fill="currentColor" stroke="none" letter-spacing="0.3">ES</text>
+									</svg>
+								</span>
+								<span class="txt">
+									<strong>{tr('Español de España')}</strong>
+									<span class="muted">{spanish.length ? tr(spanish.length === 1 ? '1 opción con español que casi seguro no es latino' : '{n} opciones con español que casi seguro no es latino', { n: spanish.length }) : tr('Ninguna con español de España')}</span>
+								</span>
+							</button>
+							<button id="see-all" type="button" class="choice net" style="--lvl: var(--muted); --i: 2" onclick={() => (showAll = true)}>
+								<span class="tile list-tile" aria-hidden="true">
+									<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+										<path class="l1" d="M9 6h11" /><path class="l2" d="M9 12h11" /><path class="l3" d="M9 18h11" />
+										<path class="l1" d="M4 6h.01" /><path class="l2" d="M4 12h.01" /><path class="l3" d="M4 18h.01" />
+									</svg>
+								</span>
+								<span class="txt">
+									<strong>{tr('Ver todas las opciones')}</strong>
+									<span class="muted">{tr('{n} opciones, sin filtros · de mejor a peor calidad', { n: all.length })}</span>
+								</span>
+							</button>
+						</div>
+						{#if candidates.length || reading}<div class="row-actions">{@render more()}</div>{/if}
 					{:else}
-						<h3 class="ask">{!byBest.length ? tr('Ninguna entra en tu conexión') : wantLat ? tr('Sin latino confirmado') : tr('Sin subtítulos en español adentro')}</h3>
-						<p class="muted latsum" role="status">{!byBest.length ? tr('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión.') : candidates.length ? tr('Búsqueda detenida: estas son las de mejor calidad.') : wantLat ? tr('No encontré latino confirmado.') : tr('Ninguna trae sub ES nativo: los subs se buscan afuera.')}</p>
+						<h3 class="ask">{!byBest.length ? tr('Ninguna entra en tu conexión') : tr('Sin subtítulos en español adentro')}</h3>
+						<p class="muted latsum" role="status">{!byBest.length ? tr('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión.') : candidates.length ? tr('Búsqueda detenida: estas son las de mejor calidad.') : tr('Ninguna trae sub ES nativo: los subs se buscan afuera.')}</p>
 						{@render options(byBest.slice(0, 3), false)}
 					{/if}
+					{#if found.length || !wantLat || !byBest.length}
 					<div class="row-actions">
-						{#if wantLat && !found.length && spanish.length}
-							<button id="see-spain" type="button" class="row-btn" onclick={() => (showSpain = true)}>
-								<Icon name="volume" size={18} /><span class="row-text"><b>{tr('Con español, casi seguro de España')}</b><small>{tr('Alta probabilidad de que no sea latino · Ver la lista')}</small></span><span class="count">{spanish.length}</span>
-							</button>
-						{/if}
 						{@render more()}
-						{#if wantLat && !found.length && !reading}
-							<button id="fallback-original" type="button" class="row-btn" onclick={() => chooseAudio(false)}>
-								<Icon name="volume" size={18} /><span class="row-text"><b>{tr('Buscar con audio original')}</b><small>{tr('Con subtítulos en español')}</small></span>
-							</button>
-						{/if}
-						<button id="see-all" type="button" class="row-btn" onclick={() => (showAll = true)}>
-							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{everything.length}</span>
+						<button id="see-all-rest" type="button" class="row-btn" onclick={() => (showAll = true)}>
+							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{all.length}</span>
 						</button>
 					</div>
+					{/if}
 				{:else if screen === 'spain'}
 					<h3 class="ask">{tr('Probablemente español de España')}</h3>
 					<p class="muted latsum">{tr('Traen audio en español sin decir que es latino (o marcado de España): casi seguro es castellano.')}</p>
@@ -784,7 +818,7 @@
 							<Icon name="volume" size={18} /><span class="row-text"><b>{tr('Buscar con audio original')}</b><small>{tr('Con subtítulos en español')}</small></span>
 						</button>
 						<button id="see-all-spain" type="button" class="row-btn" onclick={() => { showSpain = false; showAll = true; }}>
-							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{everything.length}</span>
+							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{all.length}</span>
 						</button>
 					</div>
 				{:else}
@@ -793,7 +827,7 @@
 							<button id="only-hdr" type="button" class="chip toggle" class:on={onlyHdr} aria-pressed={onlyHdr} onclick={() => (onlyHdr = !onlyHdr)}>HDR</button>
 							<button id="only-es" type="button" class="chip toggle" class:on={onlyEs} aria-pressed={onlyEs} title={tr('Solo las verificadas que traen subtítulos en español')} onclick={() => (onlyEs = !onlyEs)}><Icon name="subs" size={14} />{tr('Subs ES')}</button>
 						</div>
-						<p class="summary" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>{wantLat ? tr('{n} con latino o dudosas de {f} en TorBox', { n: list.length, f: all.length }) : tr('{n} de {f} en TorBox · de mejor a peor calidad', { n: list.length, f: all.length })}</p>
+						<p class="summary" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>{tr('{n} de {f} en TorBox · de mejor a peor calidad', { n: list.length, f: all.length })}</p>
 					</div>
 					{#if error}<p class="status error" role="alert">{error}</p>{/if}
 					{#if !list.length}<p class="status muted">{tr('No hay opciones con estos filtros.')}</p>{/if}
@@ -1181,6 +1215,10 @@
 	.wave .w1, .wave .w2 { animation: wave 1.6s ease-in-out infinite; }
 	.wave .w2 { animation-delay: 0.2s; }
 	@keyframes wave { 0%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+	.list-tile .l1, .list-tile .l2, .list-tile .l3 { animation: list-in 2.4s var(--out) infinite; }
+	.list-tile .l2 { animation-delay: 0.15s; }
+	.list-tile .l3 { animation-delay: 0.3s; }
+	@keyframes list-in { 0%, 60%, 100% { opacity: 1; transform: none; } 10% { opacity: 0.2; transform: translateX(-3px); } }
 	.lat-tile svg { transform-origin: 30% 90%; animation: lat-in 0.6s var(--out) 0.15s both, lat-talk 3.2s ease-in-out 1.2s infinite; }
 	@keyframes lat-in { from { transform: scale(0.4) rotate(-16deg); opacity: 0; } 60% { transform: scale(1.12) rotate(5deg); opacity: 1; } }
 	@keyframes lat-talk { 0%, 82%, 100% { transform: none; } 88% { transform: rotate(-7deg) scale(1.05); } 94% { transform: rotate(5deg); } }
@@ -1199,7 +1237,7 @@
 	@keyframes bar-up { from { transform: scaleY(0); } }
 	@keyframes bar-pulse { 50% { opacity: 0.45; } }
 	@keyframes bar-flash { 40% { transform: scaleY(0.55); } }
-	@media (prefers-reduced-motion: reduce) { .lat-tile svg, .wave .w1, .wave .w2, .net, .net .bar.lit, .net.max .bar.lit:nth-child(4), .net.picked .bar.lit { animation: none; } .net:active, .net .tile { transform: none; } }
+	@media (prefers-reduced-motion: reduce) { .lat-tile svg, .wave .w1, .wave .w2, .list-tile path, .net, .net .bar.lit, .net.max .bar.lit:nth-child(4), .net.picked .bar.lit { animation: none; } .net:active, .net .tile { transform: none; } }
 	.slow { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 750; background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
 	.latsum { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
 	.link-btn.inline { flex-basis: auto; min-height: 32px; margin-left: auto; color: var(--accent-fg); }

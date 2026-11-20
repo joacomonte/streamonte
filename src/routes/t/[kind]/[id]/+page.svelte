@@ -154,7 +154,6 @@
 	{#if !t.imdb}
 		<p class="error">{tr('TMDB no tiene el IMDb id de este título: no puedo buscar torrents.')}</p>
 	{:else if !isTv}
-		<h2>{tr('Opciones en TorBox')}</h2>
 		<Torrents imdb={t.imdb} name={t.title} orig={t.origLang} runtime={t.runtime} />
 	{:else}
 		<SeasonChart imdb={t.imdb} status={t.status} next={t.next} current={season} onpick={pickSeason} />
@@ -267,6 +266,7 @@
 	.ov-text.more { -webkit-line-clamp: unset; line-clamp: unset; }
 	.ov-more { display: inline-block; margin-top: 4px; font-weight: 650; color: var(--accent-fg); }
 	h2 { margin: 18px 0 4px; font-size: 17px; }
+	main > :global(.torrents) { margin-top: 18px; }
 	.step { margin-top: 18px; }
 	.step > h2 { margin: 0; }
 	.seasons { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
