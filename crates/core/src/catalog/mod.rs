@@ -708,7 +708,8 @@ impl Catalog {
         hashes: &[InfoHash],
         timeout: Duration,
     ) -> Option<torbox::Cached> {
-        let key = recent_key("torbox", video_id);
+        // "torbox2": desde el 2026-11-20 solo las que traen un video de verdad (las guardadas antes no filtraban).
+        let key = recent_key("torbox2", video_id);
         if let Some((saved, _)) = self
             .data
             .get::<torbox::Cached>(&key)

@@ -9,7 +9,7 @@ import { ago, humanBytes, mbps, nf, nf1, playbackText } from './format.js';
 import { healthCalibration, MIN_SECS, notePrediction, predict, shownLevel, speedOf, TRACKER_MIN, trackPlayback } from './health-calib.js';
 import { state as lib } from './state.js';
 import { renderSide } from './catalog-side.js';
-import { safeSet, showError, state, view } from './catalog-state.js';
+import { safeGet, safeSet, showError, state, view } from './catalog-state.js';
 import { isReading, openSubs, readError, readSubsNow, readTracks, readUntil, stopReading, subsScan, subsStep, toggleSubsScan } from './catalog-subs.js';
 import { analysisEta, census, counted, counting, deepDone, liveCount, loadSavedTests, newVideoTests, once, phaseAt, quick, QUICK_ENOUGH, QUICK_LATE_MS, quickGroup, quickLive, quickPending, quickRunning, reanalyze, runCensus, runDeep, skipped, startAnalysis, stopTests, testedAt, toggleBest, TOP, unlikely } from './catalog-tests.js';
 import { crumbs, fitsNet, flowFilter, flowStep, hasResStep, isMatch, moreRow, newFlow } from './catalog-flow.js';
@@ -266,6 +266,15 @@ export function leechersOf(c) {
 export const inTorbox = new Set();
 /** De esas, las que traen un subtítulo en español como archivo suelto (sale del mismo pedido). */
 const torboxSpanishSubs = new Set();
+/** Opciones que fallaron al reproducirse (sin video, archivo roto, el reproductor no abrió): quedan recordadas en esta
+ *  compu, van al final y nunca son "buen match" (2026-11-20). Las últimas 500. */
+const FAILED = 'streamonte.failed';
+export const failedBefore = new Set((() => { try { return JSON.parse(safeGet(FAILED) ?? '[]'); } catch { return []; } })());
+export function markFailed(hash) {
+  failedBefore.delete(hash);
+  failedBefore.add(hash);
+  safeSet(FAILED, JSON.stringify([...failedBefore].slice(-500)));
+}
 /** Una vez por video, apenas está la lista: cuáles están en TorBox. Sin key no pregunta nada. */
 export async function loadTorbox(video, cands) {
   if (!view.torboxKey) return;
@@ -276,6 +285,13 @@ export async function loadTorbox(video, cands) {
   state.side.torbox = found ? 'done' : 'error';
   found?.hashes.forEach((h) => inTorbox.add(h));
   found?.spanish_subs.forEach((h) => torboxSpanishSubs.add(h));
+  // Calidad del archivo de video cuando el nombre del torrent no la dice (sale del mismo pedido).
+  for (const v of found?.videos ?? []) {
+    const c = cands.find((x) => x.info_hash === v.hash);
+    if (!c) continue;
+    c.resolution ??= v.resolution;
+    c.source ??= v.source;
+  }
   renderStreamsOnly();
 }
 api.apiKeys().then((ks) => {
@@ -853,6 +869,7 @@ export function optionRow(c, best = false) {
         hasResStep() ? null : el('span', { class: 'cat-tag cat-res', title: tr('Resolución') }, resLabel(resKey(c))),
         hasResStep() || fitsNet(c) || c.size_bytes == null ? null : el('span', { class: 'cat-tag cat-heavy', title: tr('Pide ~{a} Mbps: más de lo que da tu conexión', { a: Math.round(mbpsOf(c)) }) }, tr('Puede cortarse')),
         // Por TorBox ya se eligió en los pasos: el badge solo informa por torrent (2026-11-18).
+        failedBefore.has(hash) && !pbStatus ? el('span', { class: 'cat-tag cat-failed-before', title: tr('Esta opción ya falló al reproducirse en esta compu (sin video, archivo roto o el reproductor no la abrió). Va al final de la lista.') }, tr('Falló antes')) : null,
         inTorbox.has(hash) && state.side?.flow?.mode !== 'torbox' ? el('span', { class: 'cat-tag cat-torbox', title: tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Este ya lo tiene bajado: se ve al instante y sin depender de los seeds, sin bajar nada a tu Mac.') }, 'TorBox') : null,
         langTags(c, confirmed)),
       qualityLine(c),

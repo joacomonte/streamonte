@@ -12,7 +12,7 @@ import { api } from './api.js';
 import { el, icon } from './dom.js';
 import { t as tr } from './i18n.js';
 import { state, view } from './catalog-state.js';
-import { flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, mbpsOf, openGroup, optionRow, renderStreamsOnly, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.js';
+import { failedBefore, flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, mbpsOf, openGroup, optionRow, renderStreamsOnly, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.js';
 import { readTracks } from './catalog-subs.js';
 import { quickAnalyze, startAnalysis, stopTests, unlikely } from './catalog-tests.js';
 
@@ -53,7 +53,10 @@ function ready() {
   return !view.torboxKey || state.side.torbox === 'done' || state.side.torbox === 'error';
 }
 /** Lo que entra según el modo elegido (TorBox: solo las que tiene listas). */
-const pool = () => (state.update?.candidates ?? []).filter((c) => flow()?.mode !== 'torbox' || inTorbox.has(c.info_hash));
+const pool = () => (state.update?.candidates ?? [])
+  .filter((c) => flow()?.mode !== 'torbox' || inTorbox.has(c.info_hash))
+  // Las que ya fallaron al reproducirse van al final (orden estable: el resto queda igual).
+  .sort((a, b) => failedBefore.has(a.info_hash) - failedBefore.has(b.info_hash));
 /** Donde se busca latino: el modo y, con paso de resolución, la calidad abierta. */
 const scope = () => pool().filter((c) => !hasResStep() || !view.openRes || resKey(c) === view.openRes);
 /** Única regla de "potencial de latino": confirmado ('real'), dice LATINO ('name'), dudosa ('maybe': MULTI / Dual /
@@ -61,7 +64,7 @@ const scope = () => pool().filter((c) => !hasResStep() || !view.openRes || resKe
 const hasPotential = (c) => latOf(c) != null;
 /** Única regla de "buen match" en TorBox: pidiendo latino, latino confirmado en sus pistas (los subs no importan); con
  *  audio original, subtítulos en español nativos (dentro del video o .srt en la lista de TorBox). De cine, nunca. */
-export const isMatch = (c) => c.source !== 'CAM' && (flow()?.lat ? latOf(c) === 'real' : hasSpanishSubs(c.info_hash) === true);
+export const isMatch = (c) => c.source !== 'CAM' && !failedBefore.has(c.info_hash) && (flow()?.lat ? latOf(c) === 'real' : hasSpanishSubs(c.info_hash) === true);
 /** Filtro de la lista por el flujo (lo usa `passesFilters`): modo y, si pidió latino, solo las con potencial. */
 export function flowFilter(c) {
   const f = flow();

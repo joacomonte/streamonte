@@ -17,6 +17,17 @@ use crate::magnet::InfoHash;
 use crate::trackers::ScrapeResult;
 
 const FLUSH_EVERY: Duration = Duration::from_millis(250);
+/// Plazo para traer de TMDB los títulos de la película (corre mientras los addons responden).
+const NAMES_TIMEOUT: Duration = Duration::from_secs(4);
+
+/// Títulos (original, inglés, español) y año de la película pedida, para descartar torrents de
+/// otra película con nombre parecido: algunos addons buscan por nombre, no por IMDb id (2026-11-20:
+/// "Los Juegos del Hambre: Amanecer en la cosecha" traía "The Reaping" y "Sinsajo Parte 2").
+#[derive(Debug, Clone)]
+pub struct Want {
+    pub titles: Vec<String>,
+    pub year: Option<u16>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -57,6 +68,7 @@ pub struct Merged {
     map: HashMap<InfoHash, StreamCandidate>,
     audio_order: Vec<String>,
     exclude_cam: bool,
+    want: Option<Want>,
 }
 
 impl Merged {
@@ -65,7 +77,13 @@ impl Merged {
             map: HashMap::new(),
             audio_order,
             exclude_cam,
+            want: None,
         }
+    }
+
+    /// Película pedida: a partir de acá, `sorted` deja afuera los torrents de otra.
+    pub fn set_want(&mut self, want: Option<Want>) {
+        self.want = want;
     }
 
     /// FR-44: mismo hash (sin importar mayúsculas: ya viene normalizado) = una sola fila.
@@ -105,6 +123,12 @@ impl Merged {
             .map
             .values()
             .filter(|c| !(self.exclude_cam && is_cam(c)))
+            .filter(|c| {
+                !self
+                    .want
+                    .as_ref()
+                    .is_some_and(|w| other_film(&c.release_name, w))
+            })
             .cloned()
             .map(|mut c| {
                 c.lang_group = lang_group(&c.audio, &self.audio_order);
@@ -127,6 +151,58 @@ impl Merged {
 
 fn is_cam(c: &StreamCandidate) -> bool {
     c.source.as_deref() == Some("CAM")
+}
+
+/// Palabras de 3+ letras, sin tildes ni conectores.
+fn words(s: &str) -> Vec<String> {
+    const STOP: &[&str] = &[
+        "the", "and", "los", "las", "del", "una", "uno", "con", "por", "para",
+    ];
+    let folded: String = s
+        .to_lowercase()
+        .chars()
+        .map(|c| match c {
+            'á' | 'à' | 'ä' | 'â' => 'a',
+            'é' | 'è' | 'ë' | 'ê' => 'e',
+            'í' | 'ì' | 'ï' | 'î' => 'i',
+            'ó' | 'ò' | 'ö' | 'ô' => 'o',
+            'ú' | 'ù' | 'ü' | 'û' => 'u',
+            'ñ' => 'n',
+            c => c,
+        })
+        .collect();
+    folded
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| w.chars().count() >= 3 && !STOP.contains(w))
+        .map(String::from)
+        .collect()
+}
+
+/// Torrent de otra película: trae un año que no es el de la pedida (±1), o no tiene al menos la
+/// mitad de las palabras de alguno de sus títulos. Sin año y con el mismo título no se distingue.
+fn other_film(release: &str, want: &Want) -> bool {
+    let rel = words(release);
+    let years: Vec<u16> = rel
+        .iter()
+        .filter(|w| w.len() == 4)
+        .filter_map(|w| w.parse().ok())
+        .filter(|y| (1900..=2099).contains(y))
+        .collect();
+    if let Some(year) = want.year {
+        if !years.is_empty() && !years.iter().any(|y| y.abs_diff(year) <= 1) {
+            return true;
+        }
+    }
+    let titles: Vec<Vec<String>> = want
+        .titles
+        .iter()
+        .map(|t| words(t))
+        .filter(|w| !w.is_empty())
+        .collect();
+    !titles.is_empty()
+        && !titles
+            .iter()
+            .any(|w| w.iter().filter(|x| rel.contains(x)).count() >= w.len().div_ceil(2))
 }
 
 /// `b` gana si viene del addon de mayor prioridad (menor `addon_rank`); si no, solo completa.
@@ -241,6 +317,7 @@ enum Msg {
         ms: u64,
     },
     Scrape(HashMap<InfoHash, ScrapeResult>),
+    Names(Option<Want>),
 }
 
 /// Fan-out progresivo (FR-42): una tarea por addon con su propio plazo; un único agregador dueño
@@ -275,6 +352,17 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
             }
         });
         addon_of.insert(handle.id(), idx);
+    }
+
+    // Películas: títulos y año de TMDB en paralelo con los addons (no demora los primeros
+    // resultados); cuando llegan, la lista se rearma sin los de otra película.
+    if let VideoId::Movie(imdb) = &ctx.video {
+        if imdb.starts_with("tt") {
+            let (http, imdb) = (ctx.http.clone(), imdb.clone());
+            tasks.spawn(async move {
+                Msg::Names(super::tmdb::names(&http, &imdb, NAMES_TIMEOUT).await)
+            });
+        }
     }
 
     let mut merged = Merged::new(ctx.audio_order.clone(), ctx.exclude_cam);
@@ -313,7 +401,7 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
                             ms: 0,
                         },
                         None => {
-                            tracing::warn!("scrape de seeders: {e}");
+                            tracing::warn!("scrape de seeders o títulos de TMDB: {e}");
                             continue;
                         }
                     },
@@ -347,6 +435,7 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
                             merged.set_scrape(h, s);
                         }
                     }
+                    Msg::Names(want) => merged.set_want(want),
                 }
             }
             _ = tick.tick() => {
@@ -377,6 +466,43 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn descarta_torrents_de_otra_pelicula() {
+        let hunger = Want {
+            titles: vec![
+                "The Hunger Games: Sunrise on the Reaping".into(),
+                "Los Juegos del Hambre: Amanecer en la cosecha".into(),
+            ],
+            year: Some(2026),
+        };
+        assert!(other_film(
+            "The.Hunger.Games.Mockingjay.Part.2.2015.1080p.BluRay",
+            &hunger
+        ));
+        assert!(other_film("Жатва / The Reaping REMUX", &hunger));
+        assert!(!other_film(
+            "The Hunger Games Sunrise on the Reaping 2026 1080p WEB-DL",
+            &hunger
+        ));
+        assert!(!other_film(
+            "Los Juegos del Hambre Amanecer en la cosecha (2026) Latino",
+            &hunger
+        ));
+        let bank = Want {
+            titles: vec!["How to Rob a Bank".into(), "Cómo robar un banco".into()],
+            year: Some(2026),
+        };
+        assert!(other_film("How.to.Rob.a.Bank.2007.720p.BluRay", &bank));
+        assert!(!other_film("Como Robar Un Banco 1080p WEB-DL", &bank));
+        assert!(!other_film(
+            "F1.2025.2160p.WEB-DL",
+            &Want {
+                titles: vec!["F1".into()],
+                year: Some(2025)
+            }
+        ));
+    }
 
     fn cand(hash: u8, addon: &str, rank: usize) -> StreamCandidate {
         StreamCandidate {

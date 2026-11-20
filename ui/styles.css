@@ -629,6 +629,9 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .lp-tick { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-text); color: var(--accent); opacity: 0; transform: scale(.4); transition: opacity .2s var(--ease), transform .35s cubic-bezier(.34, 1.56, .64, 1); }
 .lp.big .lp-seg button { min-height: 140px; gap: 10px; padding-top: 22px; border-radius: 22px; }
 .lp.big .lp-code { width: 58px; height: 58px; font-size: 20px; }
+/* Bandera en el disco: emoji grande, sin el fondo de color al elegirla. */
+.lp-flag { font-size: 26px; line-height: 1; }
+.lp.big .lp-flag { font-size: 34px; }
 .lp.big .lp-name { font-size: 17px; }
 .lp.big .lp-lbl { display: none; }
 .lp-seg button:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border-strong)); }
@@ -660,6 +663,7 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .tour-skip[hidden], .tour-btn[hidden] { display: none; }
 /* Pasos apilados en la misma celda: el que sale y el que entra se cruzan. */
 .tour-stages { flex: 1; min-height: 0; display: grid; }
+.tour-stage.out { pointer-events: none; }
 .tour-stage { grid-area: 1 / 1; min-height: 0; overflow-y: auto; padding: 16px 32px; display: flex; flex-direction: column; }
 .tour-stage > :first-child { margin-top: auto; }
 .tour-stage > :last-child { margin-bottom: auto; }

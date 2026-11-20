@@ -17,10 +17,11 @@ export const isTouring = () => touring;
 
 const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function steps() {
+/** @param {(changed: boolean) => void} pick elegir un idioma pasa al paso siguiente */
+function steps(pick) {
   return [
-    { icon: 'globe', title: t('¿En qué idioma querés la app?'), body: t('Menús, botones y sinopsis. Lo cambiás cuando quieras en Ajustes.'), extra: () => langPicker('welcome-lang', 'app') },
-    { icon: 'film', title: t('¿En qué idioma querés ver los títulos de pelis y series?'), body: t('Puede ser distinto del de la app. También lo cambiás en Ajustes.'), extra: () => langPicker('welcome-lang', 'titles') },
+    { icon: 'globe', title: t('¿En qué idioma querés la app?'), body: t('Menús, botones y sinopsis. Lo cambiás cuando quieras en Ajustes.'), extra: () => langPicker('welcome-lang', 'app', pick) },
+    { icon: 'film', title: t('¿En qué idioma querés ver los títulos de pelis y series?'), body: t('Puede ser distinto del de la app. También lo cambiás en Ajustes.'), extra: () => langPicker('welcome-lang', 'titles', pick) },
     { icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio y lo mirás al instante en esta compu: por torrent o desde TorBox, con audio latino o el original y subtítulos en español.') },
     { icon: 'key', title: t('Dos keys para sacarle todo'), body: t('Se pegan en Ajustes y quedan en el almacén seguro del sistema.'), extra: keysBox },
     { icon: 'monitor', title: t('Se ve en mpv o VLC'), body: t('Los videos se abren en un reproductor de esta compu. mpv viene recomendado: anda mejor, gasta menos y combina subtítulos.'), extra: playersBox },
@@ -56,7 +57,8 @@ function playersBox() {
 export function openWelcome() {
   const saved = safeGet(STORE);
   if (saved === 'done') return;
-  const list = steps();
+  // Elegir idioma pasa de paso solo: si cambió, la ventana recarga y retoma en el siguiente; si no, avanza tras ver el tilde.
+  const list = steps((changed) => (changed ? safeSet(STORE, String(i + 1)) : setTimeout(() => go(i + 1), 250)));
   let i = Math.min(list.length - 1, Math.max(0, Number(saved) || 0));
   let leaving = false;
   touring = true;
@@ -85,14 +87,18 @@ export function openWelcome() {
     progress.replaceChildren(...list.map((_, n) => el('button', { id: `welcome-dot-${n}`, type: 'button', class: `tour-seg ${n <= i ? 'done' : ''}`, 'aria-label': t('Ir al paso {n}', { n: n + 1 }), onclick: () => go(n) }, el('span'))));
     skip.hidden = last;
     back.hidden = i === 0;
-    next.replaceChildren(last ? t('Listo') : t('Siguiente'), last ? null : icon('arrow', 18));
-    // El que sale y el que entra se cruzan: entra desde el lado hacia donde se avanza.
-    const old = stages.firstElementChild;
+    next.replaceChildren(...(last ? [t('Listo')] : [t('Siguiente'), icon('arrow', 18)]));
+    // El que sale y el que entra se cruzan: entra desde el lado hacia donde se avanza. Salen TODOS los anteriores
+    // (con clics rápidos puede haber más de uno saliendo) y se borran por tiempo, sin depender del fin de la animación.
+    const olds = [...stages.children].filter((o) => !o.classList.contains('out'));
     const now = stage(list[i]);
     stages.append(now);
-    if (old) {
-      if (still() || !dir) old.remove();
-      else old.animate([{ transform: 'none', opacity: 1 }, { transform: `translateX(${-dir * 32}px)`, opacity: 0 }], { duration: 200, easing: 'ease-in' }).finished.then(() => old.remove(), () => old.remove());
+    for (const old of olds) {
+      old.classList.add('out');
+      old.setAttribute('aria-hidden', 'true');
+      if (still() || !dir) { old.remove(); continue; }
+      old.animate([{ transform: 'none', opacity: 1 }, { transform: `translateX(${-dir * 32}px)`, opacity: 0 }], { duration: 200, easing: 'ease-in', fill: 'forwards' });
+      setTimeout(() => old.remove(), 220);
     }
     if (dir && !still()) now.animate([{ transform: `translateX(${dir * 48}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 460, easing: 'cubic-bezier(.16, 1, .3, 1)' });
     safeSet(STORE, String(i));

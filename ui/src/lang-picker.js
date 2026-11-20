@@ -3,18 +3,23 @@
 import { el, icon } from './dom.js';
 import { langs, setLangs, t } from './i18n.js';
 
-/** Cada idioma con su nombre en su propio idioma. */
-const LANGS = [['es', 'Español'], ['en', 'English']];
+/** Cada idioma con su bandera y su nombre en su propio idioma. */
+const LANGS = [['es', 'Español', '🇪🇸'], ['en', 'English', '🇺🇸']];
 
-/** Tarjetas grandes: la elegida se llena de color, con su código en un disco y un tilde. `only`: un solo grupo
- *  ('app' | 'titles'), más grande (la pregunta ya la hace el título del paso). */
-export function langPicker(id, only = null) {
+/** Tarjetas grandes: la elegida se llena de color, con su bandera en un disco y un tilde. `only`: un solo grupo
+ *  ('app' | 'titles'), más grande (la pregunta ya la hace el título del paso). `onPick(changed)`: avisa la elección
+ *  antes de aplicarla (la bienvenida pasa de paso; si cambió, la ventana recarga después). */
+export function langPicker(id, only = null, onPick = null) {
   const seg = (key, label, ic) => el('div', { class: 'lp-row' },
     el('span', { class: 'lp-lbl', id: `${id}-${key}-lbl` }, icon(ic, 16), label),
-    el('div', { class: 'lp-seg', role: 'radiogroup', 'aria-labelledby': `${id}-${key}-lbl` }, LANGS.map(([v, name]) => el('button', {
+    el('div', { class: 'lp-seg', role: 'radiogroup', 'aria-labelledby': `${id}-${key}-lbl` }, LANGS.map(([v, name, flag]) => el('button', {
       id: `${id}-${key}-${v}`, type: 'button', role: 'radio', 'aria-checked': String(langs[key] === v),
-      onclick: () => langs[key] !== v && setLangs({ [key]: v }),
-    }, el('span', { class: 'lp-code' }, v.toUpperCase()), el('span', { class: 'lp-name' }, name), el('span', { class: 'lp-tick', 'aria-hidden': 'true' }, icon('check', 13))))));
+      onclick: () => {
+        const changed = langs[key] !== v;
+        onPick?.(changed);
+        if (changed) setLangs({ [key]: v });
+      },
+    }, el('span', { class: 'lp-code lp-flag', 'aria-hidden': 'true' }, flag), el('span', { class: 'lp-name' }, name), el('span', { class: 'lp-tick', 'aria-hidden': 'true' }, icon('check', 13))))));
   return el('div', { class: `lp ${only ? 'big' : ''}` },
     only !== 'titles' ? seg('app', t('Idioma de la app'), 'monitor') : null,
     only !== 'app' ? seg('titles', t('Títulos de pelis, series y capítulos'), 'film') : null);

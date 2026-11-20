@@ -48,8 +48,9 @@ struct Found {
     #[serde(default)]
     id: u64,
     poster_path: Option<String>,
-    /// Con `language=…` (solo en `localized`): título traducido y fecha de estreno.
+    /// Con `language=…` (solo en `localized` y `names`): título traducido y fecha de estreno.
     title: Option<String>,
+    original_title: Option<String>,
     release_date: Option<String>,
 }
 
@@ -354,6 +355,46 @@ pub async fn localized(http: &Http, imdb_id: &str, timeout: Duration) -> Option<
             .map(|t| super::normalize::clean(&t))
             .filter(|t| !t.is_empty()),
         year: f.release_date.and_then(|d| d.get(..4).map(String::from)),
+    })
+}
+
+/// Títulos (original, inglés y español) y año de una película por su IMDb id, para descartar
+/// torrents de otra película con nombre parecido. `None` sin key o si TMDB no la conoce.
+pub async fn names(
+    http: &Http,
+    imdb_id: &str,
+    timeout: Duration,
+) -> Option<super::aggregate::Want> {
+    let key = crate::secrets::secret(ACCOUNT)?;
+    let url = |lang: &str| {
+        format!(
+            "https://api.themoviedb.org/3/find/{imdb_id}?external_source=imdb_id&language={lang}&api_key={key}"
+        )
+    };
+    let (url_en, url_es) = (url("en-US"), url("es-MX"));
+    let (en, es) = tokio::join!(
+        http.get_json::<FindResponse>(&url_en, timeout),
+        http.get_json::<FindResponse>(&url_es, timeout)
+    );
+    let first =
+        |r: Result<FindResponse, _>| r.ok().and_then(|f| f.movie_results.into_iter().next());
+    let (en, es) = (first(en), first(es));
+    let m = en.as_ref().or(es.as_ref())?;
+    let mut titles: Vec<String> = [
+        m.original_title.clone(),
+        en.as_ref().and_then(|f| f.title.clone()),
+        es.as_ref().and_then(|f| f.title.clone()),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    titles.dedup();
+    Some(super::aggregate::Want {
+        titles,
+        year: m
+            .release_date
+            .as_deref()
+            .and_then(|d| d.get(..4)?.parse().ok()),
     })
 }
 

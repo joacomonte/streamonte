@@ -739,6 +739,8 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-deep-offer-text span { font-size: 12px; color: var(--muted); }
 
 /* TorBox (2026-11-17): badge minimal junto a HDR y su filtro al lado de "Solo HDR". */
+/* Ya falló al reproducirse en esta compu (2026-11-20). */
+.cat-tag.cat-failed-before { color: var(--red, #e5484d); border-color: color-mix(in srgb, var(--red, #e5484d) 45%, transparent); }
 /* TORBOX: dato fijo en blanco y negro, igual que HDR (2026-11-18). */
 .cat-tag.cat-torbox { color: var(--text); border-color: color-mix(in srgb, var(--text) 45%, transparent); background: none; }
 .cat-list-filters { display: inline-flex; gap: 8px; }

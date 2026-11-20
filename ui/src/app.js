@@ -8,6 +8,7 @@ import { $, icon, setStatus, showError } from './dom.js';
 import { translateStatic } from './i18n.js';
 import { langPicker, langToggle } from './lang-picker.js';
 import { openWelcome } from './welcome.js';
+import { markFailed } from './catalog-options.js';
 import { initSpeed, onSpeedEvent } from './speed.js';
 import { state } from './state.js';
 import { playCopied, refreshCache, refreshCopied, refreshDownloads, toggleDownloads } from './top-menus.js';
@@ -62,7 +63,10 @@ function onEvent(event) {
       onConfirmClose(event.active);
       break;
     case 'playback-updated':
-      if (event.row.state.kind === 'failed' && state.playbacks.get(event.row.id)?.state.kind !== 'failed') setStatus(`No se pudo reproducir: ${event.row.state.message}`);
+      if (event.row.state.kind === 'failed' && state.playbacks.get(event.row.id)?.state.kind !== 'failed') {
+        setStatus(`No se pudo reproducir: ${event.row.state.message}`);
+        markFailed(event.row.key.split(':')[0]);
+      }
       if (event.row.state.kind === 'ask-after-close' && state.playbacks.get(event.row.id)?.state.kind !== 'ask-after-close') askAfterClose(event.row);
       state.playbacks.set(event.row.id, event.row);
       window.dispatchEvent(new CustomEvent('playback-changed', { detail: event })); // ya guardada: el catálogo redibuja

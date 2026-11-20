@@ -324,8 +324,8 @@ fn audio_format(tokens: &[String], lower: &str) -> Vec<String> {
 /// año, solo lo que viene después (el título puede ser "Cam (2018)").
 fn is_cam(text: &str) -> bool {
     const CAM: &[&str] = &[
-        "cam", "camrip", "hdcam", "ts", "hdts", "telesync", "tc", "telecine", "scr", "screener",
-        "dvdscr",
+        "cam", "camrip", "hdcam", "ts", "hdts", "tsrip", "telesync", "tc", "hdtc", "telecine",
+        "scr", "screener", "dvdscr", "hdscr", "hdtscr",
     ];
     text.split(['\n', '|']).any(|part| {
         let part = part.trim();
@@ -337,7 +337,9 @@ fn is_cam(text: &str) -> bool {
         let is_year =
             |t: &String| t.len() == 4 && t.parse::<u16>().is_ok_and(|y| (1900..=2099).contains(&y));
         let from = t.iter().position(is_year).map_or(0, |i| i + 1);
-        t[from..].iter().any(|t| CAM.contains(&t.as_str()))
+        let t = &t[from..];
+        t.iter().any(|t| CAM.contains(&t.as_str()))
+            || t.windows(2).any(|w| w[0] == "hd" && w[1] == "pre")
     })
 }
 
@@ -594,6 +596,9 @@ mod tests {
         assert!(is_cam("Movie.2023.HDCAM"));
         assert!(is_cam("Movie 2023 TS"));
         assert!(is_cam("Torrentio\nCAM"));
+        assert!(is_cam("Movie.2026.D.TELECINE.1080p"));
+        assert!(is_cam("Movie 2026 HdTScr x264"));
+        assert!(is_cam("Movie 2026 HD Pre 720p"));
     }
 
     #[test]

@@ -18,6 +18,8 @@ const ACCOUNT: &str = "torbox-api-key";
 pub const KEY_PAGE: &str = "https://torbox.app/settings";
 /// Hashes por pedido (la URL tiene que quedar corta).
 const CHUNK: usize = 80;
+/// Menos que esto es una muestra, un tráiler o un extra: no cuenta como el video del torrent.
+const MIN_VIDEO: u64 = 100 * 1024 * 1024;
 
 /// Guarda la key (o la borra si viene vacía).
 pub fn set_key(key: &str) -> Result<()> {
@@ -43,6 +45,19 @@ pub struct Cached {
     /// de la lista de archivos del mismo pedido: no cuesta nada. Las pistas dentro del video no
     /// aparecen ahí (se saben recién al leerlas).
     pub spanish_subs: Vec<InfoHash>,
+    /// Nombre del video principal (el más grande) de cada una: da la calidad cuando el nombre del
+    /// torrent no la dice. Sale de la misma lista de archivos.
+    #[serde(default)]
+    pub videos: Vec<CachedVideo>,
+}
+
+#[derive(Debug, serde::Serialize, Deserialize)]
+pub struct CachedVideo {
+    pub hash: InfoHash,
+    pub name: String,
+    /// Resolución y fuente sacadas del nombre del archivo (mismo parser que las opciones).
+    pub resolution: Option<String>,
+    pub source: Option<String>,
 }
 
 /// Cuáles de `hashes` están en la caché de TorBox. `None` = sin key o TorBox no respondió (no se
@@ -65,12 +80,35 @@ pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Opti
             .map_err(|e| tracing::warn!("TorBox: {}", e.user_text()))
             .ok()?;
         let data = resp.data.as_ref();
-        out.hashes.extend(in_cache(chunk, data));
+        // Solo las que traen un video de verdad (2026-11-20: aparecían "listas" packs de audio y
+        // muestras de 200 MB que después no se podían ver). Sin lista de archivos, se dejan.
+        let usable: Vec<InfoHash> = in_cache(chunk, data)
+            .into_iter()
+            .filter(|h| {
+                entry(data, h).map_or(true, |e| main_video(e).is_some() || files(e).is_none())
+            })
+            .collect();
+        for h in &usable {
+            if let Some(name) = entry(data, h).and_then(main_video) {
+                let tags = super::normalize::release_tags(
+                    &name,
+                    &crate::release::parse_release_name(&name),
+                );
+                out.videos.push(CachedVideo {
+                    hash: *h,
+                    name,
+                    resolution: tags.resolution,
+                    source: tags.source,
+                });
+            }
+        }
         out.spanish_subs.extend(
-            in_cache(chunk, data)
-                .into_iter()
+            usable
+                .iter()
+                .copied()
                 .filter(|h| entry(data, h).is_some_and(has_spanish_sub)),
         );
+        out.hashes.extend(usable);
     }
     Some(out)
 }
@@ -93,6 +131,30 @@ fn entry<'a>(
         }),
         _ => None,
     }
+}
+
+/// `files[]` de la entrada, si TorBox la mandó.
+fn files(entry: &serde_json::Value) -> Option<&Vec<serde_json::Value>> {
+    entry.get("files").and_then(|f| f.as_array())
+}
+
+/// El video más grande que no es una muestra, si pesa al menos `MIN_VIDEO`.
+fn main_video(entry: &serde_json::Value) -> Option<String> {
+    files(entry)?
+        .iter()
+        .filter_map(|f| {
+            Some((
+                f.get("name")?.as_str()?,
+                f.get("size").and_then(|s| s.as_u64()).unwrap_or(0),
+            ))
+        })
+        .filter(|(name, size)| {
+            crate::engine::is_video(name)
+                && *size >= MIN_VIDEO
+                && !name.to_ascii_lowercase().contains("sample")
+        })
+        .max_by_key(|(_, size)| *size)
+        .map(|(name, _)| name.rsplit('/').next().unwrap_or(name).to_string())
 }
 
 /// ¿Trae un archivo de subtítulo en español (`files[].name`)?
@@ -570,6 +632,24 @@ pub async fn magnet_download(http: &Http, magnet: &str, timeout: Duration) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn video_principal_sin_muestras_ni_audio() {
+        let mb = 1024 * 1024;
+        let e = serde_json::json!({ "files": [
+            { "name": "Peli/Sample/peli.sample.mkv", "size": 300 * mb },
+            { "name": "Peli/Peli.2026.1080p.WEB-DL.mkv", "size": 2000 * mb },
+            { "name": "Peli/trailer.mp4", "size": 20 * mb }
+        ]});
+        assert_eq!(
+            main_video(&e).as_deref(),
+            Some("Peli.2026.1080p.WEB-DL.mkv")
+        );
+        let musica = serde_json::json!({ "files": [{ "name": "Album/01.mp3", "size": 40 * mb }] });
+        assert_eq!(main_video(&musica), None);
+        let muestra = serde_json::json!({ "files": [{ "name": "clip.mp4", "size": 60 * mb }] });
+        assert_eq!(main_video(&muestra), None);
+    }
 
     #[test]
     fn torrent_pegado_bajandose_o_listo() {
