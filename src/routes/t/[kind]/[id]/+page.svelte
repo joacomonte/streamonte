@@ -3,6 +3,7 @@
 	import SeasonChart from '#lib/SeasonChart.svelte';
 	import Torrents from '#lib/Torrents.svelte';
 	import { track } from '#lib/track.js';
+	import { onlyCinema } from '#lib/cinema.js';
 	import * as saved from '#lib/saved.js';
 	import { loc, t as tr } from '#lib/i18n.svelte.js';
 	import { goto } from '$app/navigation';
@@ -117,6 +118,9 @@
 	</div>
 </div>
 
+{#if onlyCinema(t.released)}
+	<div class="wrap cine-wrap"><p id="cine-note" class="cine-note"><Icon name="film" size={15} /><span>{tr('Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.')}</span></p></div>
+{/if}
 {#if t.providers.length || t.genres.length}
 	<div class="wrap tags" aria-label={tr('Dónde verla y géneros')}>
 		{#each t.providers as p (p.name)}
@@ -230,6 +234,9 @@
 	.facts { min-width: 0; padding-bottom: 4px; }
 	.name { margin: 0 0 4px; font-size: 24px; line-height: 1.15; letter-spacing: -0.015em; text-wrap: balance; }
 	.line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; font-size: 13.5px; }
+	.cine-wrap { padding: 12px 16px 0; }
+	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: 12px; background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
+	.cine-note :global(svg) { flex: none; margin-top: 1px; color: var(--amber, #f5a524); }
 	.small { font-size: 12.5px; }
 	.rate { display: inline-flex; align-items: center; gap: 3px; color: var(--yellow); font-weight: 650; }
 	main { padding: 4px 16px calc(32px + var(--safe-bottom)); }

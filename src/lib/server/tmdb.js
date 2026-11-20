@@ -30,6 +30,8 @@ const card = (r, kind) => ({
 	kind,
 	title: r.title ?? r.name,
 	year: (r.release_date ?? r.first_air_date ?? '').slice(0, 4),
+	// Fecha de estreno de las películas (AAAA-MM-DD): recién estrenada = probablemente solo copias de cine (ver cinema.js).
+	released: kind === 'movie' ? r.release_date || null : null,
 	poster: r.poster_path ? `${IMG}w342${r.poster_path}` : null,
 	rating: null
 });
@@ -221,6 +223,25 @@ export async function title(kind, id) {
 			.filter((/** @type {any} */ s) => s.season_number > 0 && s.episode_count > 0)
 			.map((/** @type {any} */ s) => ({ n: s.season_number, name: s.name, count: s.episode_count, year: String(s.air_date ?? '').slice(0, 4) || null }))
 	};
+}
+
+/** Títulos de una película por su IMDb id (original, inglés y español) y su año, para descartar torrents de otra
+ * película con nombre parecido. Queda en memoria. @type {Map<string, Promise<{titles: string[], year: number | null} | null>>} */
+const names = new Map();
+/** @param {string} imdb */
+export function namesOf(imdb) {
+	if (!names.has(imdb)) {
+		const find = (/** @type {'es' | 'en'} */ l) => tmdb(`/find/${imdb}`, { external_source: 'imdb_id' }, l).then((r) => r.movie_results?.[0] ?? null);
+		const p = Promise.all([find('en'), find('es')]).then(([en, es]) => {
+			const m = en ?? es;
+			if (!m) return null;
+			return { titles: [...new Set([m.original_title, en?.title, es?.title].filter(Boolean))], year: Number(String(m.release_date ?? '').slice(0, 4)) || null };
+		});
+		// Si falla no se guarda: se reintenta la próxima.
+		p.catch(() => names.delete(imdb));
+		names.set(imdb, p);
+	}
+	return /** @type {Promise<{titles: string[], year: number | null} | null>} */ (names.get(imdb));
 }
 
 /** @param {string} id @param {string} n */

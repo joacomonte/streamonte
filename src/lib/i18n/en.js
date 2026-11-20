@@ -378,4 +378,7 @@ export default {
 	'Para verlo en la tele tenés que bajar Web Video Caster': 'To watch on your TV you need to download Web Video Caster',
 	Bajar: 'Get',
 	'En la tele: buscalo en la tienda de apps del televisor (Android TV o Fire TV)': 'On the TV: find it in the TV’s app store (Android TV or Fire TV)',
+	'En cines': 'In theaters',
+	'Recién estrenada: probablemente solo haya copias filmadas en el cine': 'Just released: probably only theater recordings so far',
+	'Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.': 'There are probably no good-quality torrents yet: it came out a few weeks ago and so far there are usually only recordings filmed in theaters.',
 };

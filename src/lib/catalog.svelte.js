@@ -43,7 +43,7 @@ function saved() {
 export const cat = $state({
 	f: typeof window !== 'undefined' ? saved() : { ...DEFAULTS },
 	q: '',
-	/** @type {{id: number, kind: 'movie' | 'tv', title: string, year: string, poster: string | null, rating: string | null}[]} */
+	/** @type {{id: number, kind: 'movie' | 'tv', title: string, year: string, released?: string | null, poster: string | null, rating: string | null}[]} */
 	items: [],
 	page: 0,
 	done: false,

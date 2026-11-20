@@ -4,6 +4,7 @@
 	import Icon from '#lib/Icon.svelte';
 	import { track } from '#lib/track.js';
 	import AdminCode from '#lib/AdminCode.svelte';
+	import { onlyCinema } from '#lib/cinema.js';
 	import Sheet from '#lib/Sheet.svelte';
 	import { BACK, DEFAULTS, KINDS, LANGS, SORTS, VOTES, backLabel, cat, loadGenres, loadMore, relang, reset, votesLabel } from '#lib/catalog.svelte.js';
 	import { i18n, setLang, t } from '#lib/i18n.svelte.js';
@@ -545,6 +546,7 @@
 					{:else}
 						<div class="noposter">{it.title}</div>
 					{/if}
+					{#if onlyCinema(it.released)}<span class="cine" title={t('Recién estrenada: probablemente solo haya copias filmadas en el cine')}><Icon name="film" size={11} />{t('En cines')}</span>{/if}
 					<div class="meta">
 						<span class="title">{it.title}</span>
 						<span class="sub">
@@ -1023,6 +1025,8 @@
 	.num { display: inline-block; min-width: 2.6ch; font-variant-numeric: tabular-nums; contain: layout paint; }
 	/* Entrada: sube, crece con rebote y se enfoca; la estrella gira y suelta un destello cuando la tarjeta aterriza. */
 	/* overflow: hidden recorta el brillo, que se mueve con transform (sin repintar cada frame). */
+	/* Recién estrenada en cines: chip arriba del póster. */
+	.cine { position: absolute; top: 6px; left: 6px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: 999px; background: rgb(0 0 0 / 0.72); color: #fff; font-size: 11px; font-weight: 700; }
 	a.card { --t: calc(var(--i, 0) * 70ms); position: relative; overflow: hidden; animation: card-in 0.9s cubic-bezier(0.25, 0.8, 0.3, 1) var(--t) backwards var(--play, paused); }
 	/* Las que llegan scrolleando: entrada corta, escalonado mínimo y desde medio visibles (en pausa ya se ven). */
 	a.card:global(.late) { --t: calc(min(var(--i, 0), 4) * 35ms); animation-name: card-rise; animation-duration: 0.6s; }

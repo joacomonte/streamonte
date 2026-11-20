@@ -2,6 +2,7 @@
 // Parseo portado de crates/core/src/catalog/normalize.rs y audio.rs (versión corta).
 import { get } from './http.js';
 import { cached } from './torbox.js';
+import { namesOf } from './tmdb.js';
 
 const ADDONS = [
 	['Torrentio', 'https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,uindex,knaben,ext,mejortorrent,wolfmax4k,cinecalidad|language=latino,spanish|sort=qualityseeders'],
@@ -44,7 +45,8 @@ function parse(s, addon) {
 	const hdr = [];
 	if (has(['hdr', 'hdr10', 'hdr10plus']) || lower.includes('hdr10+')) hdr.push('HDR');
 	if (has(['dv', 'dovi']) || lower.includes('dolby vision')) hdr.push('DV');
-	const cam = has(['cam', 'camrip', 'hdcam', 'ts', 'telesync', 'hdts']);
+	// Copias de cine: cámara, telesync, telecine y screeners (como `is_cam` del desktop, más HdTScr y "HD Pre").
+	const cam = has(['cam', 'camrip', 'hdcam', 'ts', 'telesync', 'hdts', 'tsrip', 'tc', 'hdtc', 'telecine', 'scr', 'screener', 'dvdscr', 'hdscr', 'hdtscr']) || /\bhd[ ._-]?pre\b/.test(lower);
 	// Fuente del release, como `source_of` del desktop (streamonte/crates/core/src/release.rs).
 	const source = cam ? 'CAM' : has(['remux', 'bdremux']) ? 'REMUX' : /web-?dl/.test(lower) ? 'WEB-DL' : /web-?rip/.test(lower) ? 'WEBRip'
 		: has(['bluray', 'bdrip', 'brrip']) || lower.includes('blu-ray') ? 'BluRay' : has(['hdtv']) ? 'HDTV' : has(['dvdrip', 'dvd']) ? 'DVDRip' : has(['web']) ? 'WEB' : null;
@@ -74,6 +76,22 @@ function parse(s, addon) {
 
 /** @typedef {NonNullable<ReturnType<typeof parse>>} Torrent */
 
+const STOP = new Set(['the', 'and', 'los', 'las', 'del', 'una', 'uno', 'con', 'por', 'para']);
+/** Palabras de 3+ letras sin tildes ni conectores. @param {string} s */
+const words = (s) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3 && !STOP.has(w));
+/** Torrent de otra película con nombre parecido (algunas fuentes buscan por nombre, no por IMDb id): trae un año que
+ * no es el de la película (±1), o no tiene al menos la mitad de las palabras de alguno de sus títulos (original,
+ * inglés o español). Sin año en el nombre y con el mismo título no se distingue (p. ej. una homónima vieja).
+ * @param {string} release @param {{titles: string[], year: number | null}} want */
+export function otherFilm(release, want) {
+	const years = [...release.matchAll(/\b(19\d{2}|20\d{2})\b/g)].map((m) => Number(m[1]));
+	const year = want.year;
+	if (year && years.length && !years.some((y) => Math.abs(y - year) <= 1)) return true;
+	const rel = new Set(words(release));
+	const titles = want.titles.map(words).filter((w) => w.length);
+	return titles.length > 0 && !titles.some((w) => w.filter((x) => rel.has(x)).length >= Math.ceil(w.length / 2));
+}
+
 /** Un archivo de video de un torrent pegado ("Pegar magnet", 2026-11-18) como una opción más: el nombre del archivo
  * da resolución, fuente, HDR e idioma con las mismas reglas que las de los addons. @param {string} hash
  * @param {string} name ruta del archivo en el torrent @param {number | null} bytes */
@@ -95,6 +113,8 @@ export async function torrents(imdb, s, e, onProgress = () => {}) {
 	const vid = s ? `${imdb}:${s}:${e}` : imdb;
 	let done = 0;
 	onProgress({ stage: 'sources', done, total: ADDONS.length });
+	// Películas: sus títulos y año, para descartar las de otra con nombre parecido (en series el id ya trae el episodio).
+	const want = s ? null : namesOf(imdb).catch(() => null);
 	const lists = await Promise.allSettled(
 		ADDONS.map(async ([name, base]) => {
 			try {
@@ -105,12 +125,13 @@ export async function torrents(imdb, s, e, onProgress = () => {}) {
 			}
 		})
 	);
+	const names = await want;
 	/** @type {Map<string, Torrent>} */
 	const byHash = new Map();
 	for (const l of lists) {
 		if (l.status !== 'fulfilled') continue;
 		for (const t of l.value) {
-			if (!t || t.cam) continue;
+			if (!t || t.cam || (names && otherFilm(t.release, names))) continue;
 			const old = byHash.get(t.hash);
 			if (!old) byHash.set(t.hash, t);
 			else {
