@@ -1,6 +1,13 @@
 // Inglés de la app (2026-11-20): clave = el texto en español tal cual está en el código (t() / tr(), index.html y los
 // mensajes fijos del núcleo); lo que no esté acá se muestra en español. `{x}` se reemplaza igual en los dos idiomas.
 export default {
+  "Buscar con audio original": "Search with original audio",
+  "Con subtítulos en español": "With Spanish subtitles",
+  "Busco de nuevo la primera que traiga subtítulos en español adentro": "I'll search again for the first one with built-in Spanish subtitles",
+  "Probablemente español de España": "Probably Spanish from Spain",
+  "Traen audio en español sin decir que es latino (o marcado de España): casi seguro es castellano.": "They have Spanish audio that doesn't say it's Latin American (or is marked as Spain): almost surely Castilian.",
+  "Con español, casi seguro de España": "With Spanish, almost surely from Spain",
+  "Alta probabilidad de que no sea latino · Ver la lista": "Most likely not Latin American · See the list",
   "En cines": "In theaters",
   "Recién estrenada: probablemente solo haya copias filmadas en el cine": "Just released: probably only camcorder copies so far",
   "Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.": "There probably aren't good-quality torrents yet: it came out a few weeks ago and for now there are usually only camcorder copies.",

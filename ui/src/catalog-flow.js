@@ -19,7 +19,7 @@ import { quickAnalyze, startAnalysis, stopTests, unlikely } from './catalog-test
 /** step: 'mode' | 'lat' | 'res' | 'list'. `lat`: null = no se preguntó; `latOff`: sacó el filtro de latino
  *  ("Quitar filtros"); `scanned`: hashes cuyas pistas ya se intentaron leer en la búsqueda. TorBox: `found`, los buenos
  *  matches que se muestran (en el orden en que aparecieron); `all`: pidió "Ver todas las opciones". */
-export const newFlow = () => ({ step: 'mode', mode: null, net: null, lat: null, latOff: false, scan: null, scanned: new Set(), found: [], all: false });
+export const newFlow = () => ({ step: 'mode', mode: null, net: null, lat: null, latOff: false, scan: null, scanned: new Set(), found: [], all: false, spain: false });
 const flow = () => state.side?.flow;
 
 /** Conexión donde se va a ver por TorBox (2026-11-18): el usuario la elige en cada video y pone el tope de
@@ -165,6 +165,7 @@ function goTo(step) {
   if (step === 'mode') Object.assign(f, { mode: null, lat: null });
   if (step === 'mode' || step === 'lat' || step === 'net') Object.assign(f, { lat: null, scan: null, found: [], all: false });
   f.latOff = false;
+  f.spain = false;
   f.step = step;
   view.openRes = '';
   renderStreamsOnly();
@@ -222,6 +223,7 @@ export function flowStep() {
   if (f.step === 'lat') return latScreen();
   if (f.step === 'res') return resScreen();
   // TorBox: buscando el primer match, solo la búsqueda; después, el resultado (o la lista entera si la pidió).
+  if (f.mode === 'torbox' && !f.all && f.spain) return spainScreen();
   if (f.mode === 'torbox' && !f.all) return f.scan?.running && !f.found.length ? scanScreen() : matchScreen();
   lastScreen = null;
   return null;
@@ -249,6 +251,7 @@ function matchScreen() {
   const found = f.found.map((h) => list.find((c) => c.info_hash === h)).filter(Boolean);
   const rows = (cs, mark) => el('ul', { class: 'cat-options' }, cs.map((c) => optionRow(c, mark)));
   const searched = !toConfirm(pool()).length;
+  const spanish = pool().filter(spanishNotLat);
   // Ninguna entra en la conexión elegida: las 3 mejores igual (marcadas "Puede cortarse"), con el aviso.
   const fitsNone = !list.length;
   const none = fitsNone ? tr('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión')
@@ -261,7 +264,36 @@ function matchScreen() {
     el('div', { class: 'cat-flow-actions rows' },
       lighterRow(),
       moreRow(),
+      ...(f.lat && !found.length && !f.scan?.running ? [
+        spanish.length ? el('button', { id: 'cat-match-spain', type: 'button', class: 'cat-flow-btn', onclick: () => { f.spain = true; renderStreamsOnly(); } },
+          icon('speaker', 15), el('span', { class: 'cat-flow-text' }, el('b', {}, tr('Con español, casi seguro de España')), el('small', {}, tr('Alta probabilidad de que no sea latino · Ver la lista'))),
+          el('span', { class: 'cat-flow-count' }, String(spanish.length))) : null,
+        originalRow('cat-match-original')] : []),
       el('button', { id: 'cat-match-all', type: 'button', class: 'cat-flow-btn', onclick: () => { f.all = true; renderStreamsOnly(); } },
+        icon('list', 15), tr('Ver todas las opciones'), el('span', { class: 'cat-flow-count' }, String(pool().filter(flowFilter).length)))));
+}
+/** Leídas con audio en español que no es latino (sin variante o castellano): casi seguro de España. */
+const spanishNotLat = (c) => latOf(c) !== 'real'
+  && !!rowsOf(c.info_hash).find((e) => e.live?.audio?.length)?.languages?.some((l) => l.code === 'es' || l.code === 'cast');
+/** Pidió latino y no hubo: busca de nuevo con audio original (el primer match con subs en español adentro). */
+function toOriginal() {
+  const f = flow();
+  cancelFlowWork();
+  Object.assign(f, { lat: false, found: [], all: false, spain: false, scan: null });
+  runScan();
+}
+const originalRow = (id) => el('button', { id, type: 'button', class: 'cat-flow-btn', title: tr('Busco de nuevo la primera que traiga subtítulos en español adentro'), onclick: toOriginal },
+  icon('speaker', 15), el('span', { class: 'cat-flow-text' }, el('b', {}, tr('Buscar con audio original')), el('small', {}, tr('Con subtítulos en español'))));
+/** Sin latino: las que traen español que no es latino (casi seguro de España), de mejor a peor. */
+function spainScreen() {
+  const f = flow();
+  const list = flatSorted(pool().filter(spanishNotLat));
+  return screen(tr('Probablemente español de España'),
+    el('p', { class: 'cat-flow-note' }, tr('Traen audio en español sin decir que es latino (o marcado de España): casi seguro es castellano.')),
+    el('ul', { class: 'cat-options' }, list.map((c) => optionRow(c, false))),
+    el('div', { class: 'cat-flow-actions rows' },
+      originalRow('cat-spain-original'),
+      el('button', { id: 'cat-spain-all', type: 'button', class: 'cat-flow-btn', onclick: () => { f.spain = false; f.all = true; renderStreamsOnly(); } },
         icon('list', 15), tr('Ver todas las opciones'), el('span', { class: 'cat-flow-count' }, String(pool().filter(flowFilter).length)))));
 }
 /** "¿Se cortó?": baja un nivel de conexión y busca de nuevo con el tope nuevo (en la más baja no aparece). */

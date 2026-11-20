@@ -78,7 +78,9 @@ function langTags(c, best) {
   const read = rowsOf(hash).some((e) => e.live?.audio?.length);
   const want = wantsLatino();
   const spokenEs = state.side?.details?.details?.original_language === 'es';
-  const audio = lat === 'spa' && spokenEs
+  // Español que no es latino (sin variante o castellano): en pelis habladas en español o pidiendo latino, "ES" de España.
+  const spain = lat !== 'real' && rowsOf(hash).find((e) => e.live?.audio?.length)?.languages?.some((l) => l.code === 'es' || l.code === 'cast');
+  const audio = spain && (spokenEs || want)
     ? el('button', { id: `cat-gallego-${hash}`, type: 'button', class: 'cat-tag cat-lang es-audio', title: tr('Gallego: español de España, no latino'),
       onclick: (e) => { e.stopPropagation(); tips.delete(`gallego|${hash}`); gallegoAt = hash; renderStreamsOnly(); } }, icon('speaker', 11), 'ES',
       gallegoAt === hash || best ? tip(`gallego|${hash}`, tr('Gallego'), gallegoAt === hash ? 0 : 500) : null)
@@ -87,7 +89,8 @@ function langTags(c, best) {
         lat === 'real' ? icon('check', 10) : null, 'LAT', best && lat === 'real' ? tip(`best-lat|${hash}`, tr('Tiene audio latino')) : null)
       : want && read ? el('span', { class: 'cat-tag cat-lang no', title: tr('Leído: no trae audio latino') }, el('s', {}, 'LAT'), explain('nolat', hash, tr('No trae audio latino')))
         : want ? el('span', { class: 'cat-tag cat-lang unk', title: tr('Sin analizar: no se sabe si trae audio latino') }, 'LAT?') : null;
-  const cc = subs === true
+  // Pidiendo latino, los subs no importan: no se muestran.
+  const cc = want ? null : subs === true
     ? el('span', { class: 'cat-tag cat-lang ok', title: native.length
       ? `${tr('Trae subtítulos en español (siempre en sync):')}\n${native.map((x) => `· ${x.place} · ${x.kind}`).join('\n')}`
       : tr('Trae un archivo de subtítulos en español (según la lista de archivos de TorBox)') }, icon('subs', 11), 'ES', best ? tip(`best-subs|${hash}`, tr('Subtítulos en español incluidos'), 3600) : null)
@@ -102,7 +105,7 @@ function langActions(c) {
   const subs = hasSpanishSubs(hash);
   const lat = latOf(c);
   return [
-    subs == null ? checkButton(hash, 'subs') : null,
+    subs == null && !wantsLatino() ? checkButton(hash, 'subs') : null,
     wantsLatino() && (lat === 'name' || lat === 'maybe') ? checkButton(hash, 'lat') : null,
     subs === false ? el('button', { id: `cat-subfind-${hash}`, type: 'button', class: 'cat-dock-btn', title: tr('No trae subtítulos en español: elegí de afuera (muestra cuáles calzan con este archivo)'),
       onclick: (e) => { e.stopPropagation(); openSubs(hash, !!view.torboxKey && inTorbox.has(hash), e.currentTarget); } }, icon('search', 13), tr('Elegir subs')) : null,
