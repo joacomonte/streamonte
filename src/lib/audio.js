@@ -32,7 +32,7 @@ console.assert(
  * @returns {{kind: 'lat' | 'name' | 'es' | 'doubt', text: string, title: string} | null} */
 export function latBadge(t, info) {
 	if (info?.audio === 'lat') return { kind: 'lat', text: 'LAT', title: 'Audio latino confirmado en las pistas del video' };
-	if (info?.audio === 'es') return { kind: 'es', text: 'ES', title: 'Gallego: español de España, no latino' };
+	if (info?.audio === 'es' || info?.audio === 'spain') return { kind: 'es', text: 'ES', title: 'Gallego: español de España, no latino' };
 	if (info?.audio) return null;
 	if (t.lat) return { kind: 'name', text: 'LAT', title: 'Latino según el nombre del torrent: si el nombre miente, no lo trae' };
 	if (t.doubt) return { kind: 'doubt', text: '¿Trae latino? Revisar', title: 'MULTI / Dual sin aclarar: validar audio latino' };

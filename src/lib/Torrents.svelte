@@ -220,12 +220,15 @@
 	let found = $state(/** @type {string[]} */ ([]));
 	/** Pidió "Ver todas las opciones". */
 	let showAll = $state(false);
+	/** Pidió latino, no hubo y vio las de español (casi seguro de España). */
+	let showSpain = $state(false);
 	/** Cada cambio de paso (o de video) invalida lo que se estaba leyendo: los bucles miran este número. */
 	let gen = 0;
 	/** @param {'net' | 'audio' | 'list'} to */
 	function goStep(to) {
 		gen++;
 		reading = false;
+		showSpain = false;
 		step = to;
 	}
 
@@ -298,6 +301,8 @@
 		gen++;
 		reading = false;
 	}
+	/** Leídas con audio en español que no es latino (sin variante o de España), de mejor a peor. */
+	const spanish = $derived(all.filter((t) => known(t)?.audio === 'es' || known(t)?.audio === 'spain').sort(byQuality));
 	/** "Ver todas las opciones": la lista completa, con los filtros. */
 	const list = $derived(everything.filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
 	/** "¿Se cortó?": baja un nivel de conexión y busca de nuevo con el tope nuevo. */
@@ -310,7 +315,7 @@
 		chooseAudio(wantLat);
 	}
 	/** Qué se ve en el paso de resultado: buscando el primer match, el resultado o todas. */
-	const screen = $derived(step === 'net' || step === 'audio' ? step : showAll ? 'all' : reading && !found.length ? 'search' : 'match');
+	const screen = $derived(step === 'net' || step === 'audio' ? step : showAll ? 'all' : showSpain ? 'spain' : reading && !found.length ? 'search' : 'match');
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 	/** Entrada de cada paso: sube un poco y aparece. @param {Element} _ */
 	const stepIn = (_) => ({
@@ -374,6 +379,8 @@
 	}
 	/** Recién leídos en esta pantalla: sus badges naranjas explican qué significan con un globito. @type {Record<string, boolean>} */
 	let fresh = $state({});
+	/** Por qué falló el análisis de cada torrent (lo dice el server). */
+	let why = $state(/** @type {Record<string, string>} */ ({}));
 	/** Globito rápido del badge ES ("Gallego") al tocarlo. */
 	let tipFor = $state('');
 	/** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -405,13 +412,14 @@
 		fresh[t.hash] = false;
 		try {
 			const r = await fetch(`/api/tracks?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '', ...(ids ? { tid: String(ids.tid), fid: String(ids.fid) } : {}) })}`);
-			if (!r.ok) throw new Error();
+			if (!r.ok) throw new Error((await r.json().catch(() => null))?.message ?? tr('No se pudo analizar.'));
 			const j = await r.json();
 			know(t.hash, { subs: j.subs.length, audio: audioOf(j.audios), audios: j.audios });
 			fresh[t.hash] = true;
 			return true;
-		} catch {
+		} catch (err) {
 			info[t.hash] = 'err';
+			why[t.hash] = /** @type {Error} */ (err).message;
 			return false;
 		}
 	}
@@ -751,8 +759,23 @@
 						{@render options(byBest.slice(0, 3), false)}
 					{/if}
 					<div class="row-actions">
+						{#if wantLat && !found.length && spanish.length}
+							<button id="see-spain" type="button" class="row-btn" onclick={() => (showSpain = true)}>
+								<Icon name="volume" size={18} /><span class="row-text"><b>{tr('Con español, casi seguro de España')}</b><small>{tr('Alta probabilidad de que no sea latino · Ver la lista')}</small></span><span class="count">{spanish.length}</span>
+							</button>
+						{/if}
 						{@render more()}
 						<button id="see-all" type="button" class="row-btn" onclick={() => (showAll = true)}>
+							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{everything.length}</span>
+						</button>
+					</div>
+				{:else if screen === 'spain'}
+					<h3 class="ask">{tr('Probablemente español de España')}</h3>
+					<p class="muted latsum">{tr('Traen audio en español sin decir que es latino (o marcado de España): casi seguro es castellano.')}</p>
+					{#if error}<p class="status error" role="alert">{error}</p>{/if}
+					{@render options(spanish, false)}
+					<div class="row-actions">
+						<button id="see-all-spain" type="button" class="row-btn" onclick={() => { showSpain = false; showAll = true; }}>
 							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{everything.length}</span>
 						</button>
 					</div>
@@ -805,7 +828,7 @@
 					{#if t.size && !fits(t)}<span class="tag heavy" title={tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) })}>{tr('Puede cortarse')}</span>{/if}
 					{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
 					<!-- ES sin variante solo si la peli es hablada en español; en las de otro idioma solo cuenta el LAT. -->
-					{#if lb?.kind === 'es' && orig === 'es'}
+					{#if lb?.kind === 'es' && (orig === 'es' || wantLat)}
 						<button id="audio-info-{t.hash}" type="button" class="tag es-audio" title={tr(lb.title)} aria-label={tr(lb.title)} onclick={() => quickTip(t.hash)}><Icon name="volume" size={13} />{tr(lb.text)}<span class="tip" class:now={tipFor === t.hash} class:auto={best} aria-hidden="true">{tr('Gallego')}</span></button>
 					<!-- Con audio original elegido, el LAT solo aparece confirmado; el resto de sus estados va en el modo latino. -->
 					{:else if lb?.kind === 'lat' || (wantLat && lb?.kind === 'name')}<span class="tag audio {lb.kind}" title={tr(lb.title)}>{tr(lb.text)}{#if best && lb.kind === 'lat'}<span class="tip" aria-hidden="true">{tr('Tiene audio latino')}</span>{/if}</span>
@@ -833,6 +856,8 @@
 				<!-- Sin leer todavía: un botón chico para leerlo (audio latino y subs incluidos). -->
 				{#if info[t.hash] === 'busy'}
 					<span class="scan busy" role="status"><span class="spin"></span>{tr('Analizando…')}</span>
+				{:else if info[t.hash] === 'err'}
+					<button id="scan-{t.hash}" type="button" class="scan err" title={why[t.hash]} onclick={() => { track('analizar', t.release); probe(t); }}>{tr('No se pudo · reintentar')}</button>
 				{:else if !known(t)}
 					<button id="scan-{t.hash}" type="button" class="scan" title={tr('Analizar torrent: audio latino y subtítulos incluidos')} onclick={() => { track('analizar', t.release); probe(t); }}>{tr('Analizar audio y subs')}</button>
 				{/if}
@@ -1302,6 +1327,7 @@
 	button.scan::after { content: ''; position: absolute; inset: -10px -6px; }
 	button.scan:active { opacity: 0.6; }
 	.scan.busy { color: var(--muted); }
+	.scan.err { color: var(--muted); }
 	.scan .spin { flex: none; width: 12px; height: 12px; border-width: 2px; }
 	/* Estados: LAT tachado = leído y sin latino; ES gris = subs para bajar aparte; gris punteado = sin leer. */
 	.tag.no-lat, .tag.es-dl { color: var(--muted); }
