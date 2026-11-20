@@ -765,6 +765,11 @@
 							</button>
 						{/if}
 						{@render more()}
+						{#if wantLat && !found.length && !reading}
+							<button id="fallback-original" type="button" class="row-btn" onclick={() => chooseAudio(false)}>
+								<Icon name="volume" size={18} /><span class="row-text"><b>{tr('Buscar con audio original')}</b><small>{tr('Con subtítulos en español')}</small></span>
+							</button>
+						{/if}
 						<button id="see-all" type="button" class="row-btn" onclick={() => (showAll = true)}>
 							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{everything.length}</span>
 						</button>
@@ -775,6 +780,9 @@
 					{#if error}<p class="status error" role="alert">{error}</p>{/if}
 					{@render options(spanish, false)}
 					<div class="row-actions">
+						<button id="fallback-original-spain" type="button" class="row-btn" onclick={() => chooseAudio(false)}>
+							<Icon name="volume" size={18} /><span class="row-text"><b>{tr('Buscar con audio original')}</b><small>{tr('Con subtítulos en español')}</small></span>
+						</button>
 						<button id="see-all-spain" type="button" class="row-btn" onclick={() => { showSpain = false; showAll = true; }}>
 							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{everything.length}</span>
 						</button>
@@ -835,10 +843,12 @@
 					<!-- Leído y sin latino: LAT tachado. Sin leer: LAT? gris punteado, sin globito (al lado está "Analizar"). -->
 					{:else if wantLat && known(t)}<span class="tag no-lat" title={tr('Leído: no trae audio latino')} use:explain={'nolat'}><s>LAT</s><span class="tip explain" class:now={fresh[t.hash]} aria-hidden="true">{tr('No trae audio latino')}</span></span>
 					{:else if wantLat}<span class="tag unk" title={tr('Sin analizar: no se sabe si trae audio latino')}>LAT?</span>{/if}
+					<!-- Pidiendo latino, los subs no importan: no se muestran. -->
+					{#if !wantLat}
 					{#if sb?.on}<span class="tag cc es" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES{#if best}<span class="tip second" aria-hidden="true">{tr('Subtítulos en español incluidos')}</span>{/if}</span>
 					<!-- Leído sin subs adentro: ES en gris = se pueden buscar y bajar aparte. Sin leer: ES? gris punteado. -->
 					{:else if sb}<span class="tag cc es-dl" title={sb.title} aria-label={sb.title} use:explain={'esdl'}><Icon name="subs" size={13} />ES<span class="tip explain" class:now={fresh[t.hash]} aria-hidden="true">{tr('No vienen incluidos: se bajan aparte')}</span></span>
-					{:else}<span class="tag cc unk" title={tr('Sin analizar: no se sabe si trae subtítulos en español')}><Icon name="subs" size={13} />ES?</span>{/if}
+					{:else}<span class="tag cc unk" title={tr('Sin analizar: no se sabe si trae subtítulos en español')}><Icon name="subs" size={13} />ES?</span>{/if}{/if}
 				</div>
 				<div class="quality" title={q ? tr('Calidad de imagen: {q}', { q: tr(q[0]) }) : tr('El nombre del torrent no dice de dónde salió el video')}>
 					<Icon name="monitor" size={14} />

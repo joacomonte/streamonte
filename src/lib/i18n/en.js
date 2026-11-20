@@ -339,6 +339,8 @@ export default {
 	'Probablemente español de España': 'Probably Spanish from Spain',
 	'Traen audio en español sin decir que es latino (o marcado de España): casi seguro es castellano.': "They have Spanish audio that doesn't say it's Latin American (or is marked as Spain): almost surely Castilian.",
 	'No se pudo · reintentar': "Couldn't · retry",
+	'Buscar con audio original': 'Search with original audio',
+	'Con subtítulos en español': 'With Spanish subtitles',
 	'No se pudo analizar.': "Couldn't analyze it.",
 	'No pude leer las pistas de este video.': "Couldn't read this video's tracks.",
 	'Baja': 'Low',
