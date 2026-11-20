@@ -1,6 +1,13 @@
 // Inglés de la app (2026-11-20): clave = el texto en español tal cual está en el código (t() / tr(), index.html y los
 // mensajes fijos del núcleo); lo que no esté acá se muestra en español. `{x}` se reemplaza igual en los dos idiomas.
 export default {
+  "No se encontraron opciones con audio latino": "No options with Latin American audio found",
+  "No encontré latino · busco una con subtítulos en español": "No Latin American audio found · I'll look for one with Spanish subtitles",
+  "Español de España": "Spanish from Spain",
+  "1 opción con español que casi seguro no es latino": "1 option with Spanish that is almost surely not Latin American",
+  "{n} opciones con español que casi seguro no es latino": "{n} options with Spanish that are almost surely not Latin American",
+  "Ninguna con español de España": "None with Spanish from Spain",
+  "{n} opciones, sin filtros · de mejor a peor calidad": "{n} options, no filters · best to worst quality",
   "Buscando el mejor torrent para vos": "Finding the best torrent for you",
   "Sinopsis y reparto": "Synopsis and cast",
   "Sinopsis": "Synopsis",
@@ -10,8 +17,6 @@ export default {
   "Busco de nuevo la primera que traiga subtítulos en español adentro": "I'll search again for the first one with built-in Spanish subtitles",
   "Probablemente español de España": "Probably Spanish from Spain",
   "Traen audio en español sin decir que es latino (o marcado de España): casi seguro es castellano.": "They have Spanish audio that doesn't say it's Latin American (or is marked as Spain): almost surely Castilian.",
-  "Con español, casi seguro de España": "With Spanish, almost surely from Spain",
-  "Alta probabilidad de que no sea latino · Ver la lista": "Most likely not Latin American · See the list",
   "En cines": "In theaters",
   "Recién estrenada: probablemente solo haya copias filmadas en el cine": "Just released: probably only camcorder copies so far",
   "Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.": "There probably aren't good-quality torrents yet: it came out a few weeks ago and for now there are usually only camcorder copies.",
@@ -107,7 +112,6 @@ export default {
   "No encontré latino confirmado": "No confirmed Latin American audio found",
   "Ninguna trae sub ES nativo: los subs se buscan afuera": "None has native Spanish subs: subs are searched outside",
   "Ninguna entra en tu conexión": "None fits your connection",
-  "Sin latino confirmado": "No confirmed Latin American audio",
   "Sin subtítulos en español adentro": "No Spanish subtitles inside",
   "Búsqueda detenida: estas son las de mejor calidad": "Search stopped: these are the best quality ones",
   "Ver todas las opciones": "See all options",

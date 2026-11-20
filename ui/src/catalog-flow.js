@@ -185,7 +185,7 @@ async function pickRes(r) {
 // ---------- vista ----------
 const choice = (id, ic, title, sub, onclick, { badge, disabled, primary, muted, cls = '' } = {}) =>
   el('button', { id, type: 'button', class: `cat-menu-item cat-choice ${cls} ${primary ? 'deep' : ''} ${muted ? 'muted' : ''}`, disabled: disabled || null, onclick: disabled ? null : onclick },
-    el('span', { class: 'cat-menu-ic', 'aria-hidden': 'true' }, icon(ic, 28)),
+    el('span', { class: 'cat-menu-ic', 'aria-hidden': 'true' }, typeof ic === 'string' ? icon(ic, 28) : ic),
     el('span', { class: 'cat-menu-text' }, el('b', {}, title, badge ? el('span', { class: 'cat-menu-badge' }, badge) : null), el('span', {}, sub)));
 /** Título de la pantalla dibujada antes: redibujar la misma (llega una lectura, arranca un ▶) no repite la entrada. */
 let lastScreen = null;
@@ -261,8 +261,21 @@ function matchScreen() {
   // Ninguna entra en la conexión elegida: las 3 mejores igual (marcadas "Puede cortarse"), con el aviso.
   const fitsNone = !list.length;
   const none = fitsNone ? tr('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión')
-    : f.lat ? tr('No encontré latino confirmado') : tr('Ninguna trae sub ES nativo: los subs se buscan afuera');
-  const title = found.length ? null : fitsNone ? tr('Ninguna entra en tu conexión') : f.lat ? tr('Sin latino confirmado') : tr('Sin subtítulos en español adentro');
+    : tr('Ninguna trae sub ES nativo: los subs se buscan afuera');
+  // Sin latino (como la web, 2026-11-20): sin lista ni título; cómo seguir, en tarjetas iguales a las del paso de audio.
+  if (f.lat && !found.length && !fitsNone) {
+    const es = el('span', { class: 'cat-es-bubble' }, 'ES');
+    return screen(null,
+      el('p', { class: 'cat-flow-none', role: 'status' }, tr('No se encontraron opciones con audio latino')),
+      choice('cat-match-original', 'speaker', tr('Buscar con audio original'), tr('No encontré latino · busco una con subtítulos en español'), toOriginal, { cls: 'nolat orig' }),
+      choice('cat-match-spain', es, tr('Español de España'), spanish.length
+        ? tr(spanish.length === 1 ? '1 opción con español que casi seguro no es latino' : '{n} opciones con español que casi seguro no es latino', { n: spanish.length })
+        : tr('Ninguna con español de España'), () => { f.spain = true; renderStreamsOnly(); }, { cls: 'nolat spain', disabled: !spanish.length }),
+      choice('cat-match-all', 'list', tr('Ver todas las opciones'), tr('{n} opciones, sin filtros · de mejor a peor calidad', { n: pool().length }),
+        () => { Object.assign(f, { all: true, latOff: true }); renderStreamsOnly(); }, { cls: 'nolat all' }),
+      el('div', { class: 'cat-flow-actions rows' }, moreRow()));
+  }
+  const title = found.length ? null : fitsNone ? tr('Ninguna entra en tu conexión') : tr('Sin subtítulos en español adentro');
   return screen(title,
     found.length ? rows(found, true)
       : el('p', { class: 'cat-flow-note', role: 'status' }, searched || fitsNone ? none : tr('Búsqueda detenida: estas son las de mejor calidad')),
@@ -270,11 +283,6 @@ function matchScreen() {
     el('div', { class: 'cat-flow-actions rows' },
       lighterRow(),
       moreRow(),
-      ...(f.lat && !found.length && !f.scan?.running ? [
-        spanish.length ? el('button', { id: 'cat-match-spain', type: 'button', class: 'cat-flow-btn', onclick: () => { f.spain = true; renderStreamsOnly(); } },
-          icon('speaker', 15), el('span', { class: 'cat-flow-text' }, el('b', {}, tr('Con español, casi seguro de España')), el('small', {}, tr('Alta probabilidad de que no sea latino · Ver la lista'))),
-          el('span', { class: 'cat-flow-count' }, String(spanish.length))) : null,
-        originalRow('cat-match-original')] : []),
       el('button', { id: 'cat-match-all', type: 'button', class: 'cat-flow-btn', onclick: () => { f.all = true; renderStreamsOnly(); } },
         icon('list', 15), tr('Ver todas las opciones'), el('span', { class: 'cat-flow-count' }, String(pool().filter(flowFilter).length)))));
 }
@@ -299,7 +307,7 @@ function spainScreen() {
     el('ul', { class: 'cat-options' }, list.map((c) => optionRow(c, false))),
     el('div', { class: 'cat-flow-actions rows' },
       originalRow('cat-spain-original'),
-      el('button', { id: 'cat-spain-all', type: 'button', class: 'cat-flow-btn', onclick: () => { f.spain = false; f.all = true; renderStreamsOnly(); } },
+      el('button', { id: 'cat-spain-all', type: 'button', class: 'cat-flow-btn', onclick: () => { Object.assign(f, { spain: false, all: true, latOff: true }); renderStreamsOnly(); } },
         icon('list', 15), tr('Ver todas las opciones'), el('span', { class: 'cat-flow-count' }, String(pool().filter(flowFilter).length)))));
 }
 /** "¿Se cortó?": baja un nivel de conexión y busca de nuevo con el tope nuevo (en la más baja no aparece). */
