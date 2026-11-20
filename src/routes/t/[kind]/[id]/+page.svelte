@@ -34,20 +34,12 @@
 	/** El título pasa a la barra cuando el del hero queda tapado. */
 	let titleUp = $state(false);
 	let barH = $state(0);
-	/** @type {HTMLElement | undefined} */
-	let overviewEl = $state();
-	/** La sinopsis no entra en 3 líneas: hay algo que expandir. */
-	let clamped = $state(false);
 
 	$effect(() => {
 		if (!heroTitle) return;
 		const io = new IntersectionObserver(([en]) => (titleUp = !en.isIntersecting), { rootMargin: '-64px 0px 0px 0px' });
 		io.observe(heroTitle);
 		return () => io.disconnect();
-	});
-	$effect(() => {
-		t.overview;
-		if (overviewEl && !more) clamped = overviewEl.scrollHeight > overviewEl.clientHeight + 1;
 	});
 
 	$effect(() => {
@@ -115,6 +107,7 @@
 				{[t.year, t.runtime ? `${t.runtime} min` : '', isTv ? tr(t.seasons.length === 1 ? '{n} temporada' : '{n} temporadas', { n: t.seasons.length }) : ''].filter(Boolean).join(' · ')}
 				{#if t.rating}<span class="rate"><Icon name="star" size={13} />{t.rating}</span>{/if}
 			</p>
+			{#if t.genres.length}<p class="genres">{t.genres.join(' · ')}</p>{/if}
 			{#if t.imdb || t.trailer}
 				<p class="links">
 					{#if t.trailer}<a id="trailer-link" class="ext" href="https://www.youtube.com/watch?v={t.trailer}" target="_blank" rel="noopener noreferrer"><Icon name="play" size={13} />{tr('Tráiler')}</a>{/if}
@@ -128,27 +121,37 @@
 {#if onlyCinema(t.released)}
 	<div class="wrap cine-wrap"><p id="cine-note" class="cine-note"><Icon name="film" size={15} /><span>{tr('Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.')}</span></p></div>
 {/if}
-{#if t.providers.length || t.genres.length}
-	<div class="wrap tags" aria-label={tr('Dónde verla y géneros')}>
+{#if t.providers.length}
+	<div class="wrap tags" aria-label={tr('Dónde verla')}>
 		{#each t.providers as p (p.name)}
 			<span class="tag provider" title={tr('Para ver en Argentina')}>{#if p.logo}<img src={p.logo} alt="" width="20" height="20" />{/if}{p.name}</span>
 		{/each}
-		{#each t.genres as g (g)}<span class="tag">{g}</span>{/each}
 	</div>
 {/if}
 
 <main class="wrap">
-	{#if t.overview}
-		<button id="overview" type="button" class="overview" onclick={() => (more = !more)} aria-expanded={more} disabled={!clamped && !more}>
-			<span class="ov-text" class:more bind:this={overviewEl}>{t.overview}</span>
-			{#if clamped || more}<span class="ov-more">{more ? tr('Ver menos') : tr('Ver más')}</span>{/if}
-		</button>
-	{/if}
-	{#if t.cast.length || t.lang}
-		<dl class="info">
-			{#if t.cast.length}<dt>{tr('Reparto')}</dt><dd>{t.cast.join(', ')}</dd>{/if}
-			{#if t.lang}<dt>{tr('Idioma original')}</dt><dd>{t.lang}</dd>{/if}
-		</dl>
+	<!-- Sinopsis y reparto, plegados: una fila con la primera línea; al tocarla se despliega. -->
+	{#if t.overview || t.cast.length || t.lang}
+		<section class="about" class:open={more}>
+			<button id="about-toggle" type="button" class="about-head" aria-expanded={more} aria-controls="about-body" onclick={() => (more = !more)}>
+				<span class="about-text">
+					<b>{t.overview && t.cast.length ? tr('Sinopsis y reparto') : t.overview ? tr('Sinopsis') : tr('Reparto')}</b>
+					{#if t.overview}<span class="about-peek">{t.overview}</span>{/if}
+				</span>
+				<span class="about-chev" aria-hidden="true"><Icon name="chev" size={16} /></span>
+			</button>
+			<div id="about-body" class="about-body" inert={!more}>
+				<div class="about-in">
+					{#if t.overview}<p class="ov-text">{t.overview}</p>{/if}
+					{#if t.cast.length || t.lang}
+						<dl class="info">
+							{#if t.cast.length}<dt>{tr('Reparto')}</dt><dd>{t.cast.join(', ')}</dd>{/if}
+							{#if t.lang}<dt>{tr('Idioma original')}</dt><dd>{t.lang}</dd>{/if}
+						</dl>
+					{/if}
+				</div>
+			</div>
+		</section>
 	{/if}
 
 	{#if !t.imdb}
@@ -252,19 +255,22 @@
 	.ext:hover { background: color-mix(in srgb, var(--text) 15%, transparent); }
 	.rate { display: inline-flex; align-items: center; gap: 3px; color: var(--yellow); font-weight: 650; }
 	main { padding: 4px 16px calc(32px + var(--safe-bottom)); }
-	.overview { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 6px 0; margin: 4px 0 0; font-size: 14px; cursor: default; }
-	.overview:not(:disabled) { cursor: pointer; }
-	.overview:disabled { opacity: 1; }
-	.ov-text {
-		display: -webkit-box;
-		-webkit-line-clamp: 3;
-		line-clamp: 3;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-		color: var(--muted);
-	}
-	.ov-text.more { -webkit-line-clamp: unset; line-clamp: unset; }
-	.ov-more { display: inline-block; margin-top: 4px; font-weight: 650; color: var(--accent-fg); }
+	.genres { margin: 6px 0 0; font-size: 13px; color: var(--muted); letter-spacing: 0.01em; }
+	/* Plegable: el cuerpo crece con grid-template-rows (0fr → 1fr), sin medir alturas. */
+	.about { margin: 12px 0 0; border-bottom: 1px solid var(--border); }
+	.about-head { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 10px 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+	.about-text { display: grid; gap: 2px; flex: 1; min-width: 0; }
+	.about-text b { font-size: 14.5px; font-weight: 650; }
+	.about-peek { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13.5px; color: var(--muted); transition: opacity 0.2s var(--ease); }
+	.about.open .about-peek { display: none; }
+	.about-chev { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 999px; background: var(--surface-2); color: var(--muted); transition: transform 0.35s var(--out), background 0.2s var(--ease); }
+	.about.open .about-chev { transform: rotate(180deg); }
+	.about-head:active .about-chev { background: var(--surface-3, var(--border)); }
+	.about-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s var(--out); }
+	.about.open .about-body { grid-template-rows: 1fr; }
+	.about-in { min-height: 0; overflow: hidden; }
+	.ov-text { margin: 0 0 12px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+	@media (prefers-reduced-motion: reduce) { .about-body, .about-chev { transition: none; } }
 	h2 { margin: 18px 0 4px; font-size: 17px; }
 	main > :global(.torrents) { margin-top: 18px; }
 	.step { margin-top: 18px; }
@@ -308,20 +314,22 @@
 	.tag.provider { padding-left: 6px; color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent-fg) 55%, transparent); }
 	.tag.provider:not(:has(img)) { padding-left: 12px; }
 	.tag img { width: 20px; height: 20px; border-radius: 5px; }
-	.info { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 10px 0 0; padding-bottom: 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+	.info { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; padding-bottom: 14px; font-size: 14px; }
 	.info dt { color: var(--muted); }
 	.info dd { margin: 0; }
 	.ep-skel { height: 68px; border-radius: 8px; margin-top: 10px; }
 	/* Entrada: el fondo se enfoca desde un zoom y el texto sube en cascada mientras el póster llega volando. */
 	.hero::before { animation: backdrop-in 0.9s var(--out) backwards; will-change: transform; }
-	.name, .line, .tags, main { animation: rise 0.7s var(--out) backwards; }
+	.name, .line, .genres, .links, .tags, main { animation: rise 0.7s var(--out) backwards; }
 	.name { animation-delay: 0.12s; }
 	.line { animation-delay: 0.2s; }
+	.genres { animation-delay: 0.24s; }
+	.links { animation-delay: 0.28s; }
 	.tags { animation-delay: 0.28s; }
 	main { animation-delay: 0.36s; }
 	@keyframes backdrop-in { from { opacity: 0; transform: scale(1.18); } }
 	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 	@media (prefers-reduced-motion: reduce) {
-		.hero::before, .name, .line, .tags, main { animation: none; }
+		.hero::before, .name, .line, .genres, .links, .tags, main { animation: none; }
 	}
 </style>

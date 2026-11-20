@@ -727,23 +727,19 @@
 						</button>
 					</div>
 				{:else if screen === 'search'}
-					<!-- Buscando: una lupa recorre los videos de a uno (de mejor a peor); al primero que sirve, aparece el resultado. -->
+					<!-- Buscando: un radar barre las opciones (puntos que se encienden al pasar); al primero que sirve, aparece el resultado. -->
 					<div class="hunt" role="status" aria-live="polite">
-						<svg class="art hunt-art" viewBox="0 0 180 96" aria-hidden="true">
-							{#each [0, 1, 2, 3] as i (i)}
-								<g class="reel" style="--i:{i}">
-									<rect x={14 + i * 40} y="22" width="32" height="44" rx="5" />
-									<path d="M{20 + i * 40} 30h20M{20 + i * 40} 58h20" />
-									<path class="mini-play" d="M{26 + i * 40} 38v12l9-6z" />
-								</g>
+						<svg class="radar" viewBox="0 0 120 120" aria-hidden="true">
+							<circle class="ring" cx="60" cy="60" r="52" />
+							<circle class="ring inner" cx="60" cy="60" r="34" />
+							<g class="sweep"><path d="M60 60L60 8A52 52 0 0 1 105 34Z" /></g>
+							{#each [[60, 20, 0], [94, 46, 1], [88, 88, 2], [40, 96, 3], [24, 52, 4]] as [x, y, i] (i)}
+								<circle class="blip" cx={x} cy={y} r="4" style="--i:{i}" />
 							{/each}
-							<g class="lens">
-								<circle cx="30" cy="44" r="14" />
-								<path d="M40 54l10 10" />
-							</g>
+							<circle class="core" cx="60" cy="60" r="16" />
+							<path class="core-play" d="M55 52.5v15l12.5-7.5z" />
 						</svg>
-						<b class="hunt-title">{wantLat ? tr('Buscando audio latino') : tr('Buscando subtítulos en español')}</b>
-						<span class="hunt-sub">{tr('De la mejor calidad para abajo')}</span>
+						<b class="hunt-title">{tr('Buscando el mejor torrent para vos')}</b>
 						<span class="hunt-bar"><i style:width="{Math.max(4, (scan.done / Math.max(1, scan.total)) * 100)}%"></i></span>
 						<span class="hunt-count">{tr('{a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })}</span>
 						<button id="search-stop" type="button" class="row-btn ghost" onclick={stopSearch}><Icon name="stop" size={15} />{tr('Detener')}</button>
@@ -920,7 +916,7 @@
 				>
 					{#if copy[t.hash] === 'busy'}<span class="spin" class:light={best}></span>
 					{:else if copy[t.hash] === 'ok'}<Icon name="check" size={18} />
-					{:else}<Icon name="link" size={18} />{/if}
+					{:else}<Icon name="play" size={18} />{/if}
 				</button>
 				</div>
 			</li>
@@ -1264,6 +1260,16 @@
 	.info { min-width: 0; }
 	/* Los buenos matches, como la mejor opción del desktop: tinte verde y etiqueta arriba. */
 	.opt.best { margin-top: 18px; border-color: color-mix(in srgb, var(--green) 55%, var(--border)); background: color-mix(in srgb, var(--green) 6%, var(--bg)); }
+	/* Encontrada: la tarjeta aparece desde el radar (escala, foco y un brillo que la cruza una vez); sin diálogos. */
+	.opt.best { animation: best-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--green) 55%, transparent); }
+	.opt.best::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--green) 28%, transparent) 50%, transparent 65%) no-repeat; background-size: 250% 100%; background-position: 130% 0; animation: best-shine 1.1s ease-out 0.35s both; }
+	.opt.best .best-tag { animation: tag-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
+	.opt.best .copy.primary { animation: play-nudge 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both; }
+	@keyframes best-in { from { opacity: 0; transform: translateY(14px) scale(0.94); filter: blur(6px); } }
+	@keyframes best-shine { to { background-position: -30% 0; } }
+	@keyframes tag-pop { from { opacity: 0; transform: translateY(6px) scale(0.6); } }
+	@keyframes play-nudge { from { transform: scale(0.5); opacity: 0; } }
+	@media (prefers-reduced-motion: reduce) { .opt.best, .opt.best::after, .opt.best .best-tag, .opt.best .copy.primary { animation: none; } }
 	.best-tag { position: absolute; top: -9px; left: 14px; padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; background: var(--green); color: var(--bg); }
 	.copy {
 		position: relative;
@@ -1350,23 +1356,24 @@
 	.row-btn.ghost { width: auto; min-height: 44px; padding: 0 18px; border-radius: 999px; background: none; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; }
 	/* Buscando (2026-11-18): videos en fila, una lupa que los recorre y el avance real abajo. */
 	.hunt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0 8px; text-align: center; }
-	.hunt-art { max-width: 240px; margin-bottom: 6px; }
-	.hunt-art .reel rect { stroke: var(--muted); stroke-width: 2.5; fill: var(--surface-2); }
-	.hunt-art .reel path { stroke: var(--border-strong, var(--muted)); stroke-width: 2; }
-	.hunt-art .reel .mini-play { fill: var(--muted); stroke: none; }
-	.hunt-art .reel { animation: reel-lit 3.2s var(--ease) infinite; animation-delay: calc(var(--i) * 0.8s); }
-	@keyframes reel-lit { 0%, 30%, 100% { opacity: 0.55; } 10%, 20% { opacity: 1; } }
-	.hunt-art .lens { animation: lens 3.2s var(--ease) infinite; }
-	.hunt-art .lens circle { stroke: var(--accent-fg); stroke-width: 3.5; fill: color-mix(in srgb, var(--accent) 14%, transparent); }
-	.hunt-art .lens path { stroke: var(--accent-fg); stroke-width: 4.5; }
-	@keyframes lens { 0% { transform: translateX(0); } 25% { transform: translateX(40px); } 50% { transform: translateX(80px); } 75% { transform: translateX(120px); } 100% { transform: translateX(0); } }
+	/* Radar: el barrido da una vuelta cada 2,4 s y cada punto se enciende cuando le pasa por encima. */
+	.radar { width: 120px; height: 120px; margin-bottom: 10px; overflow: visible; }
+	.radar .ring { fill: none; stroke: var(--border); stroke-width: 1.5; }
+	.radar .ring.inner { stroke-dasharray: 3 5; }
+	.radar .sweep { transform-origin: 60px 60px; animation: sweep 2.4s linear infinite; }
+	.radar .sweep path { fill: color-mix(in srgb, var(--accent) 22%, transparent); }
+	.radar .blip { fill: var(--muted); opacity: 0.25; transform-box: fill-box; transform-origin: center; animation: blip 2.4s var(--out) infinite; animation-delay: calc(var(--i) * 0.48s + 0.1s); }
+	.radar .core { fill: var(--accent); filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--accent) 45%, transparent)); animation: core 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+	.radar .core-play { fill: var(--accent-text, #fff); }
+	@keyframes sweep { to { transform: rotate(360deg); } }
+	@keyframes blip { 0% { opacity: 1; fill: var(--accent-fg); transform: scale(1.5); } 40%, 100% { opacity: 0.25; fill: var(--muted); transform: none; } }
+	@keyframes core { 50% { transform: scale(1.08); } }
 	.hunt-title { font-size: 17px; text-wrap: balance; }
-	.hunt-sub { font-size: 13.5px; color: var(--muted); }
 	.hunt-bar { width: min(240px, 80%); height: 6px; margin-top: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 	.hunt-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.4s var(--out); }
 	.hunt-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 	.hunt .row-btn { margin-top: 10px; }
-	@media (prefers-reduced-motion: reduce) { .hunt-art .reel, .hunt-art .lens { animation: none; } }
+	@media (prefers-reduced-motion: reduce) { .radar .sweep, .radar .blip, .radar .core { animation: none; } }
 	.tag.heavy { color: var(--amber, #b7791f); border-color: currentColor; }
 	/* Audio: LAT confirmado (verde), según el nombre (gris punteado), sin aclarar (ámbar, como "sin sub ES"). */
 	.tag.audio.lat { color: var(--green); }
