@@ -18,12 +18,14 @@
 
 	// Bienvenida: una sola vez, al entrar por primera vez (después del código de acceso). Vista o salteada, no vuelve.
 	let welcomeOpen = $state(false);
+	// Una vez por carga de la app, antes que los avisos de la página (los efectos de las hijas corren primero). La pantalla
+	// (en puntos y densidad) deja adivinar el modelo de iPhone, que Safari no informa.
+	if (typeof window !== 'undefined') track('entrar', `${screen.width}x${screen.height}@${devicePixelRatio}`);
 	/** La bienvenida tapa la portada (deja de taparla al empezar a salir): la portada guarda su entrada para ese momento. */
 	let touring = $state(false);
 	setContext('touring', () => touring);
 	$effect(() => {
 		if (!seen('welcome')) welcomeOpen = touring = true;
-		track('entrar');
 	});
 	// Se rearma al cambiar el idioma en el primer paso: el resto del tutorial ya sale en el elegido.
 	const welcome = $derived(welcomeOpen ? welcomeSteps(device()) : null);

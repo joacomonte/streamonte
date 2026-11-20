@@ -69,7 +69,9 @@
 		whereFor = null;
 		linkDone = null;
 		doneWhere = where;
-		copyUrl(t, where === 'wvc' ? `${location.origin}/play.html#${encodeURIComponent(url)}` : url);
+		// `d`: el dispositivo, para que el panel sepa que se abrió en la tele (ese navegador no tiene la cookie).
+		const dev = document.cookie.match(/(?:^|; )dev=([^;]+)/)?.[1] ?? '';
+		copyUrl(t, where === 'wvc' ? `${location.origin}/play.html?d=${dev}#${encodeURIComponent(url)}` : url);
 	}
 	let subsOpen = $state(false);
 	/** Hoja de "Link copiado": qué se copió (video o subtítulo) y su nombre. */
@@ -192,6 +194,7 @@
 	/** @param {(typeof NET)[number]} n */
 	function chooseNet(n) {
 		if (netPick) return;
+		track('conexión', n.label);
 		net = n;
 		if (still()) return goStep('audio');
 		netPick = n.key;
@@ -265,6 +268,7 @@
 
 	/** @param {boolean} lat */
 	function chooseAudio(lat) {
+		track('audio', lat ? 'Latino' : 'Cualquiera');
 		wantLat = lat;
 		found = [];
 		showAll = false;
@@ -298,6 +302,7 @@
 	const list = $derived(everything.filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
 	/** "¿Se cortó?": baja un nivel de conexión y busca de nuevo con el tope nuevo. */
 	function lighter() {
+		track('se cortó', 'pide una más liviana');
 		const i = NET.findIndex((n) => n.key === net?.key);
 		if (i <= 0) return;
 		net = NET[i - 1];
@@ -557,6 +562,7 @@
 	}
 	/** @param {Sub} sub */
 	async function copySub(sub) {
+		track('subtítulo', `copiar link · ${sub.release}`);
 		pick(`o${sub.id}`);
 		const url = subUrl(sub);
 		const name = sub.release || tr('Subtítulo');
@@ -595,6 +601,7 @@
 	/** "Copiar · 1": baja ese (gasta 1, solo con este toque) y copia el link del .srt servido por la Mac. @param {Sub} sub */
 	async function copyPremium(sub) {
 		if (prem.busy || quota?.remaining === 0) return;
+		track('subtítulo', `premium · ${sub.release}`);
 		prem.busy = sub.id;
 		try {
 			const r = await fetch(`/api/premium/${sub.id}`, { method: 'POST' });
@@ -827,7 +834,7 @@
 				{#if info[t.hash] === 'busy'}
 					<span class="scan busy" role="status"><span class="spin"></span>{tr('Analizando…')}</span>
 				{:else if !known(t)}
-					<button id="scan-{t.hash}" type="button" class="scan" title={tr('Analizar torrent: audio latino y subtítulos incluidos')} onclick={() => probe(t)}>{tr('Analizar audio y subs')}</button>
+					<button id="scan-{t.hash}" type="button" class="scan" title={tr('Analizar torrent: audio latino y subtítulos incluidos')} onclick={() => { track('analizar', t.release); probe(t); }}>{tr('Analizar audio y subs')}</button>
 				{/if}
 				<!-- Como ▶ del desktop: un botón redondo; lleno en los buenos matches. -->
 				<button
@@ -888,7 +895,7 @@
 			<li class="grp">{tr('Vienen con el video')}</li>
 			{#each match.natives as n (n.track)}
 				{#snippet nativeActions()}
-					<button id="sub-copy-native-{n.track}" type="button" class="iconbtn copy" aria-label={tr('Copiar el video con este subtítulo')} onclick={() => copyNative(n)}><Icon name="copy" size={18} /></button>
+					<button id="sub-copy-native-{n.track}" type="button" class="iconbtn copy" aria-label={tr('Copiar el video con este subtítulo')} onclick={() => { track('subtítulo', 'incluido en el video'); copyNative(n); }}><Icon name="copy" size={18} /></button>
 				{/snippet}
 				{@render row({ key: `n${n.track}`, head: tr(n.label), spec: tr('{k} · pista {n}', { k: tr(n.kind), n: n.track }) }, nativeActions)}
 			{/each}
@@ -909,7 +916,7 @@
 				{#snippet foundActions()}
 					<!-- Dos íconos en la misma fila; lleno el que va con donde se ve (Web Video Caster: pegar el link). -->
 					<button id="sub-copy-{sub.id}" type="button" class="iconbtn sa" class:rec={doneWhere === 'wvc'} aria-label={tr('Copiar link')} title={tr('Copiar link')} onclick={() => copySub(sub)}><Icon name="link" size={18} /></button>
-					<a id="sub-{sub.id}" class="iconbtn sa" class:rec={doneWhere !== 'wvc'} aria-label={tr('Descargar')} title={tr('Descargar')} href="/api/subs/{sub.id}?{new URLSearchParams({ name: fileName, ext: sub.format })}" download><Icon name="download" size={18} /></a>
+					<a id="sub-{sub.id}" class="iconbtn sa" class:rec={doneWhere !== 'wvc'} aria-label={tr('Descargar')} title={tr('Descargar')} href="/api/subs/{sub.id}?{new URLSearchParams({ name: fileName, ext: sub.format })}" download onclick={() => track('subtítulo', `bajar · ${sub.release}`)}><Icon name="download" size={18} /></a>
 				{/snippet}
 				{@render row({ key: `o${sub.id}`, head: headOf(sub), spec: specOf(sub), latino: sub.latino, lvl: sub.level, title: sub.release }, foundActions)}
 			{/each}

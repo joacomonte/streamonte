@@ -21,16 +21,18 @@ export async function load({ cookies, url }) {
 			FROM eventos WHERE accion = 'entrar' AND fecha > now() - interval '14 days'
 			GROUP BY 1, date_trunc('day', fecha AT TIME ZONE 'America/Argentina/Buenos_Aires') ORDER BY date_trunc('day', fecha AT TIME ZONE 'America/Argentina/Buenos_Aires') DESC`,
 		q`SELECT dispositivo, (array_agg(equipo ORDER BY fecha DESC))[1] AS equipo, min(fecha) AS primera, max(fecha) AS ultima,
+			(array_agg(lugar ORDER BY fecha DESC) FILTER (WHERE lugar IS NOT NULL))[1] AS lugar,
+			(array_agg(dato ORDER BY fecha DESC) FILTER (WHERE accion = 'entrar' AND dato IS NOT NULL))[1] AS pantalla,
 			count(*) FILTER (WHERE accion = 'entrar')::int AS entradas, count(*)::int AS acciones
 			FROM eventos GROUP BY dispositivo ORDER BY max(fecha) DESC LIMIT 200`,
-		dev ? q`SELECT accion, dato, fecha FROM eventos WHERE dispositivo = ${dev} ORDER BY fecha DESC LIMIT 500` : Promise.resolve([])
+		dev ? q`SELECT id::int, accion, dato, lugar, fecha FROM eventos WHERE dispositivo = ${dev} ORDER BY fecha DESC LIMIT 500` : Promise.resolve([])
 	]);
 	return {
 		locked: false,
 		resumen: /** @type {{entradas: number, dispositivos: number, hoy: number}} */ (/** @type {any[]} */ (resumen)[0]),
 		dias: /** @type {{dia: string, entradas: number, dispositivos: number}[]} */ (dias),
-		dispositivos: /** @type {{dispositivo: string, equipo: string | null, primera: string, ultima: string, entradas: number, acciones: number}[]} */ (dispositivos),
-		eventos: /** @type {{accion: string, dato: string | null, fecha: string}[]} */ (eventos),
+		dispositivos: /** @type {{dispositivo: string, equipo: string | null, lugar: string | null, pantalla: string | null, primera: string, ultima: string, entradas: number, acciones: number}[]} */ (dispositivos),
+		eventos: /** @type {{id: number, accion: string, dato: string | null, lugar: string | null, fecha: string}[]} */ (eventos),
 		dev
 	};
 }

@@ -6,14 +6,18 @@ import { neon } from '@neondatabase/serverless';
 let db = null;
 export const sql = () => (db ??= process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null);
 
-/** @param {import('@sveltejs/kit').RequestEvent} event @param {string} accion @param {string} [dato] */
-export async function track(event, accion, dato) {
+/** @param {import('@sveltejs/kit').RequestEvent} event @param {string} accion @param {string} [dato] @param {string} [deviceId] el del link de la tele (otro navegador) */
+export async function track(event, accion, dato, deviceId) {
 	const q = sql();
 	if (!q) return;
-	const dev = event.cookies.get('dev') ?? 'sin-cookie';
-	const equipo = (event.request.headers.get('user-agent') ?? '').slice(0, 300);
+	const dev = deviceId || event.cookies.get('dev') || 'sin-cookie';
+	const h = event.request.headers;
+	const equipo = (h.get('user-agent') ?? '').slice(0, 300);
+	// Ubicación aproximada por IP que manda Vercel (en local no viene).
+	const city = h.get('x-vercel-ip-city');
+	const lugar = [city && decodeURIComponent(city), h.get('x-vercel-ip-country-region'), h.get('x-vercel-ip-country')].filter(Boolean).join(', ') || null;
 	try {
-		await q`INSERT INTO eventos (dispositivo, equipo, accion, dato) VALUES (${dev}, ${equipo}, ${accion.slice(0, 40)}, ${dato?.slice(0, 300) ?? null})`;
+		await q`INSERT INTO eventos (dispositivo, equipo, accion, dato, lugar) VALUES (${dev}, ${equipo}, ${accion.slice(0, 40)}, ${dato?.slice(0, 300) ?? null}, ${lugar})`;
 	} catch (e) {
 		console.error('track', e);
 	}

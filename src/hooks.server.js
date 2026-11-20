@@ -55,8 +55,10 @@ const GATE = `<!doctype html><html lang="es"><head><meta charset="utf-8">
 
 /** @type {import('@sveltejs/kit/hooks').Handle} */
 export const handle = async ({ event, resolve }) => {
-	// Id del dispositivo para el panel de uso (/admin): se pone en la primera página, antes de cualquier aviso.
-	if (!event.cookies.get('dev')) event.cookies.set('dev', crypto.randomUUID(), { path: '/', maxAge: 60 * 60 * 24 * 365 * 5, httpOnly: true, sameSite: 'lax', secure: event.url.protocol === 'https:' });
+	// Id del dispositivo para el panel de uso (/admin): se pone en la primera página, antes de cualquier aviso. Legible
+	// desde JS para pasarlo en el link de la tele (play.html corre en otro navegador, sin esta cookie).
+	// Se vuelve a poner siempre: así también pasa a legible la que quedó httpOnly de la primera versión.
+	if (!event.url.pathname.startsWith('/api/')) event.cookies.set('dev', event.cookies.get('dev') ?? crypto.randomUUID(), { path: '/', maxAge: 60 * 60 * 24 * 365 * 5, httpOnly: false, sameSite: 'lax', secure: event.url.protocol === 'https:' });
 	// Idiomas del pedido (cookies o el del navegador): la app y los errores en `ui`; los títulos de TMDB en `titles`.
 	const langs = pickLangs((n) => event.cookies.get(n), event.request.headers.get('accept-language'));
 	const lang = langs.ui;
@@ -64,6 +66,8 @@ export const handle = async ({ event, resolve }) => {
 	return langStore.run(langs, async () => {
 		const pass = process.env.APP_PASSWORD;
 		if (!pass || event.cookies.get('code') === pass) return resolve(event, { transformPageChunk: ({ html }) => html.replace('<html lang="es">', `<html lang="${lang}">`) });
+		// El aviso de uso pasa sin código: lo manda también play.html desde el navegador de Web Video Caster.
+		if (event.url.pathname === '/api/track') return resolve(event);
 		if (event.url.pathname.startsWith('/api/')) return new Response(tx('Falta el código.'), { status: 401 });
 		const gate = GATE.replace('<html lang="es">', `<html lang="${lang}">`)
 			.replace('Introducí el código', tx('Introducí el código'))

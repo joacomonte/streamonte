@@ -3,6 +3,7 @@
 	import { getContext, onMount } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
 	import { track } from '#lib/track.js';
+	import AdminCode from '#lib/AdminCode.svelte';
 	import Sheet from '#lib/Sheet.svelte';
 	import { BACK, DEFAULTS, KINDS, LANGS, SORTS, VOTES, backLabel, cat, loadGenres, loadMore, relang, reset, votesLabel } from '#lib/catalog.svelte.js';
 	import { i18n, setLang, t } from '#lib/i18n.svelte.js';
@@ -16,6 +17,20 @@
 	let sentinel = $state();
 	/** @type {ReturnType<typeof setTimeout>} */
 	let typing;
+	/** Panel de uso: si este equipo ya entró, va directo; si no, pide el código en un desplegable sin cambiar de página. */
+	let adminOpen = $state(false);
+	/** @type {HTMLElement | undefined} */
+	let adminPop = $state();
+	function openAdmin() {
+		let ok = false;
+		try {
+			ok = localStorage.getItem('sw.admin') === '1';
+		} catch {
+			/* sin almacenamiento */
+		}
+		if (ok) goto('/admin');
+		else adminPop?.showPopover();
+	}
 	/** @type {ReturnType<typeof setTimeout> | undefined} */
 	let logged;
 	/** Tipo recién tocado: solo ese hace el "pop" (al cargar la página no rebota). */
@@ -400,7 +415,7 @@
 							<button id="lang-{l}" type="button" role="radio" aria-checked={i18n.lang === l} onclick={() => switchLang(l)}>{l.toUpperCase()}</button>
 						{/each}
 					</div>
-					<a id="go-admin" class="icon-btn" href="/admin" aria-label="Panel"><Icon name="list" /></a>
+					<button id="go-admin" type="button" class="icon-btn" aria-label="Panel" onclick={openAdmin}><Icon name="list" /></button>
 					<a id="go-settings" class="icon-btn" href="/ajustes" aria-label={t('Ajustes')}><Icon name="gear" /></a>
 				</div>
 			</div>
@@ -505,6 +520,13 @@
 		{/if}
 	</div>
 </header>
+
+<div id="admin-pop" class="admin-pop" popover bind:this={adminPop} ontoggle={(e) => (adminOpen = /** @type {ToggleEvent} */ (e).newState === 'open')}>
+	{#if adminOpen}
+		<p>Código del panel</p>
+		<AdminCode id="admin-pop-code" />
+	{/if}
+</div>
 
 <main class="wrap">
 	{#if keys && (!keys.tmdb || !keys.torbox)}
@@ -622,6 +644,12 @@
 	@keyframes rise { from { opacity: 0; transform: translateY(24px); } }
 	.row { display: flex; align-items: center; justify-content: space-between; margin-right: -10px; }
 	.top-actions { display: flex; align-items: center; gap: 4px; }
+	/* Desplegable del código del panel: arriba a la derecha, debajo del botón. */
+	.admin-pop { inset: auto; top: calc(env(safe-area-inset-top) + 64px); right: 16px; margin: 0; padding: 16px 18px 8px; border: 1px solid var(--border-strong); border-radius: 18px; background: var(--surface-2, var(--surface)); color: var(--text); box-shadow: 0 16px 40px rgb(0 0 0 / 0.45); }
+	.admin-pop:popover-open { animation: pop-in 0.22s var(--out); }
+	.admin-pop p { margin: 0 0 12px; text-align: center; font-size: 13.5px; font-weight: 650; color: var(--muted); }
+	@keyframes pop-in { from { opacity: 0; transform: translateY(-8px) scale(0.96); } }
+	@media (prefers-reduced-motion: reduce) { .admin-pop:popover-open { animation: none; } }
 	/* ES / EN: dos letras, la elegida resaltada; sin ocupar más que un ícono y medio. */
 	.lang { display: inline-flex; padding: 2px; border-radius: 999px; background: var(--surface-2); }
 	.lang button { position: relative; min-width: 34px; height: 28px; padding: 0 8px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: 0.04em; transition: background 0.2s var(--ease), color 0.2s var(--ease); }

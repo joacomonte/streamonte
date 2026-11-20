@@ -24,6 +24,13 @@
 			const url = decodeURIComponent(location.hash.slice(1));
 			const ok = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.tb-cdn\.(io|cx)\//i.test(url);
 			const v = document.getElementById('v');
+			// Aviso al panel de uso (/admin), a nombre del dispositivo que copió el link.
+			const dev = new URLSearchParams(location.search).get('d') || undefined;
+			const tell = (a) => { try { navigator.sendBeacon('/api/track', JSON.stringify({ a, dev })); } catch {} };
+			if (ok) {
+				tell('abrió en la tele');
+				v.addEventListener('play', () => tell('play en la tele'), { once: true });
+			}
 			if (ok) {
 				const s = document.createElement('source');
 				s.src = url;
