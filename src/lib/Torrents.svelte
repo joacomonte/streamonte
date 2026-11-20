@@ -755,6 +755,7 @@
 						{@render options(found.map((h) => all.find((t) => t.hash === h)).filter((t) => !!t), true)}
 					{:else if wantLat && byBest.length}
 						<!-- Sin latino: cómo seguir, con las mismas tarjetas que el paso de audio (sin lista, los botones ya lo dicen). -->
+						<p class="none" role="status">{tr('No se encontraron opciones con audio latino')}</p>
 						<div class="choices even">
 							<button id="fallback-original" type="button" class="choice net" style="--lvl: var(--accent-fg); --i: 0" onclick={() => chooseAudio(false)}>
 								<span class="tile wave" aria-hidden="true">
@@ -1195,7 +1196,7 @@
 	.searching > span:last-child { display: flex; flex-direction: column; gap: 2px; }
 	.meter { height: 4px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
 	.meter i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width 0.4s var(--out); }
-	.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: 4px 0 2px; font-size: 13.5px; font-weight: 650; color: var(--muted); }
+	.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: 0 0 4px; font-size: 13.5px; font-weight: 650; color: var(--muted); }
 	.crumbs button { min-height: 36px; padding: 0 2px; border: 0; background: none; color: var(--accent-fg); font: inherit; }
 	.crumbs button:active { opacity: 0.6; }
 	.ask { margin: 10px 0 10px; font-size: 16px; }
@@ -1239,6 +1240,8 @@
 	@keyframes bar-flash { 40% { transform: scaleY(0.55); } }
 	@media (prefers-reduced-motion: reduce) { .lat-tile svg, .wave .w1, .wave .w2, .list-tile path, .net, .net .bar.lit, .net.max .bar.lit:nth-child(4), .net.picked .bar.lit { animation: none; } .net:active, .net .tile { transform: none; } }
 	.slow { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 750; background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+	/* Mismo aire que arriba de las migas (~27 px contando el alto de sus botones). */
+	.none { margin: 16px 0 16px; text-align: center; font-size: 13.5px; color: var(--muted); }
 	.latsum { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
 	.link-btn.inline { flex-basis: auto; min-height: 32px; margin-left: auto; color: var(--accent-fg); }
 	@media (hover: hover) { .choice:hover { background: var(--surface-2); } }

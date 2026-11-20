@@ -339,6 +339,7 @@ export default {
 	'Buscar con audio original': 'Search with original audio',
 	'No encontré latino · busco una con subtítulos en español': "No Latin American audio found · I'll look for one with Spanish subtitles",
 	'Español de España': 'Spanish from Spain',
+	'No se encontraron opciones con audio latino': 'No options with Latin American audio found',
 	'1 opción con español que casi seguro no es latino': '1 option with Spanish that is almost surely not Latin American',
 	'{n} opciones con español que casi seguro no es latino': '{n} options with Spanish that are almost surely not Latin American',
 	'Ninguna con español de España': 'None with Spanish from Spain',
