@@ -2,6 +2,7 @@
 	import Icon from '#lib/Icon.svelte';
 	import SeasonChart from '#lib/SeasonChart.svelte';
 	import Torrents from '#lib/Torrents.svelte';
+	import { track } from '#lib/track.js';
 	import * as saved from '#lib/saved.js';
 	import { loc, t as tr } from '#lib/i18n.svelte.js';
 	import { goto } from '$app/navigation';
@@ -10,6 +11,7 @@
 	let { data } = $props();
 	const t = $derived(data.t);
 	const isTv = $derived(t.kind === 'tv');
+	$effect(() => track('ver', `${isTv ? 'Serie' : 'Peli'}: ${t.title}`));
 
 	// Series en dos pasos: lista de temporadas y, al tocar una, sus episodios. La temporada va en la URL (`?s=2`):
 	// ← y el atrás del celu vuelven a la lista. Con una sola temporada se saltea la lista.

@@ -55,6 +55,8 @@ const GATE = `<!doctype html><html lang="es"><head><meta charset="utf-8">
 
 /** @type {import('@sveltejs/kit/hooks').Handle} */
 export const handle = async ({ event, resolve }) => {
+	// Id del dispositivo para el panel de uso (/admin): se pone en la primera página, antes de cualquier aviso.
+	if (!event.cookies.get('dev')) event.cookies.set('dev', crypto.randomUUID(), { path: '/', maxAge: 60 * 60 * 24 * 365 * 5, httpOnly: true, sameSite: 'lax', secure: event.url.protocol === 'https:' });
 	// Idiomas del pedido (cookies o el del navegador): la app y los errores en `ui`; los títulos de TMDB en `titles`.
 	const langs = pickLangs((n) => event.cookies.get(n), event.request.headers.get('accept-language'));
 	const lang = langs.ui;

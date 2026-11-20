@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { getContext, onMount } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
+	import { track } from '#lib/track.js';
 	import Sheet from '#lib/Sheet.svelte';
 	import { BACK, DEFAULTS, KINDS, LANGS, SORTS, VOTES, backLabel, cat, loadGenres, loadMore, relang, reset, votesLabel } from '#lib/catalog.svelte.js';
 	import { i18n, setLang, t } from '#lib/i18n.svelte.js';
@@ -15,6 +16,8 @@
 	let sentinel = $state();
 	/** @type {ReturnType<typeof setTimeout>} */
 	let typing;
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
+	let logged;
 	/** Tipo recién tocado: solo ese hace el "pop" (al cargar la página no rebota). */
 	let popped = $state('');
 
@@ -287,6 +290,9 @@
 		}
 		clearTimeout(typing);
 		typing = setTimeout(reset, 350);
+		// La búsqueda se registra recién cuando deja de escribir un rato (no cada letra).
+		clearTimeout(logged);
+		logged = setTimeout(() => cat.q.trim() && track('buscar', cat.q.trim()), 1500);
 	}
 	/** @param {string} id */
 	function toggleGenre(id) {
@@ -394,6 +400,7 @@
 							<button id="lang-{l}" type="button" role="radio" aria-checked={i18n.lang === l} onclick={() => switchLang(l)}>{l.toUpperCase()}</button>
 						{/each}
 					</div>
+					<a id="go-admin" class="icon-btn" href="/admin" aria-label="Panel"><Icon name="list" /></a>
 					<a id="go-settings" class="icon-btn" href="/ajustes" aria-label={t('Ajustes')}><Icon name="gear" /></a>
 				</div>
 			</div>

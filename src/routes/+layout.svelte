@@ -8,6 +8,7 @@
 	import { onNavigate } from '$app/navigation';
 	import { setContext } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
+	import { track } from '#lib/track.js';
 
 	/** @type {{data: {langs: import('#lib/i18n/translate.js').Langs}, children: import('svelte').Snippet}} */
 	let { data, children } = $props();
@@ -22,6 +23,7 @@
 	setContext('touring', () => touring);
 	$effect(() => {
 		if (!seen('welcome')) welcomeOpen = touring = true;
+		track('entrar');
 	});
 	// Se rearma al cambiar el idioma en el primer paso: el resto del tutorial ya sale en el elegido.
 	const welcome = $derived(welcomeOpen ? welcomeSteps(device()) : null);

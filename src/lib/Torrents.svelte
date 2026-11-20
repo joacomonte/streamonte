@@ -12,6 +12,7 @@
 	import { loc, t as tr } from './i18n.svelte.js';
 	import { untrack } from 'svelte';
 	import { audioOf, latBadge } from './audio.js';
+	import { track } from './track.js';
 
 	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. `runtime`: duración en minutos (de la
 	 * ficha), para el bitrate. `given`: las opciones ya armadas ("Pegar magnet": los videos de ese torrent); sin pasos
@@ -484,6 +485,7 @@
 	/** Copia ya (Chrome deja unos segundos después del toque); si el navegador no deja, un toque más en la hoja.
 	 * @param {Torrent} t @param {string} url */
 	async function copyUrl(t, url) {
+		track('copiar link', `${name}${s ? ` T${s}E${e}` : ''} · ${t.res ?? ''} · ${/play\.html/.test(url) ? 'TV' : 'dispositivo'}`);
 		if (copyNow(url)) return done(t, 'ok');
 		try {
 			await navigator.clipboard.writeText(url);
