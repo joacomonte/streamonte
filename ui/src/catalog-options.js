@@ -977,7 +977,10 @@ export function renderStreamsOnly() {
   for (const n of rows()) {
     const hash = n.dataset.hash, old = before.get(hash);
     // Primera vez que se ve (se abrió el grupo o llegó de las fuentes): entra deslizándose, escalonada.
-    if (!prevOrder.has(hash)) n.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 380, delay: Math.min(fresh++, 10) * 35, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+    // La mejor opción recién encontrada entra con su propia animación (`new-best`), no con la de la lista.
+    const firstBest = !prevOrder.has(hash) && n.classList.contains('best');
+    if (firstBest) fx.set(`best|${hash}`, now);
+    else if (!prevOrder.has(hash)) n.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 380, delay: Math.min(fresh++, 10) * 35, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
     if (old) {
       const dy = old.top - n.getBoundingClientRect().top;
       if (prevOrder.get(hash) !== order.get(hash) && Math.abs(dy) > 1) n.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 450, easing: 'cubic-bezier(.2,.8,.2,1)' });
@@ -990,14 +993,14 @@ export function renderStreamsOnly() {
       if (n.classList.contains('best') && prevBest && prevBest !== hash) fx.set(`best|${hash}`, now);
     }
     // Las filas se recrean en cada redibujo: el efecto sigue donde iba (delay negativo).
-    for (const [kind, target, cls, ms] of [['flash', n.querySelector('.cat-people'), 'flash', 900], ['best', n, 'new-best', 900], ['reveal', n.querySelector('.cat-verdict'), 'reveal', 1000]]) {
+    for (const [kind, target, cls, ms] of [['flash', n.querySelector('.cat-people'), 'flash', 900], ['best', n, 'new-best', 1500], ['reveal', n.querySelector('.cat-verdict'), 'reveal', 1000]]) {
       const t = fx.get(`${kind}|${hash}`);
       if (t === undefined || !target) continue;
       if (now - t > ms) { fx.delete(`${kind}|${hash}`); continue; }
       target.classList.add(cls);
       target.style.animationDelay = `${-(now - t)}ms`;
-      const tag = cls === 'new-best' && n.querySelector('.cat-best-tag');
-      if (tag) tag.style.animationDelay = target.style.animationDelay;
+      // El brillo, la etiqueta y el ▶ arrancan después de la tarjeta: el CSS suma su demora a este corrimiento.
+      if (cls === 'new-best') target.style.setProperty('--fx-d', `${-(now - t)}ms`);
     }
   }
 }

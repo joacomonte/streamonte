@@ -212,10 +212,19 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 
 /* Lista en vivo mientras se analiza (2026-11-15): progreso, número que cambia y mejor opción nueva. */
 @keyframes cat-flash { 0% { background: color-mix(in srgb, var(--accent) 35%, transparent); transform: scale(1.08); } 100% { transform: none; } }
-.cat-opt.new-best { animation: cat-best-in .9s ease-out; }
-.cat-opt.new-best .cat-best-tag { animation: cat-pop-tag .5s ease-out; }
-@keyframes cat-best-in { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
-@keyframes cat-pop-tag { from { opacity: 0; transform: scale(.7); } }
+/* Mejor opción encontrada (2026-11-20, como la web): la tarjeta aparece (escala y foco), un brillo la cruza una vez,
+   la etiqueta salta y el ▶ entra. Sin diálogos. */
+.cat-opt.best { box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--green) 55%, transparent); }
+.cat-opt.new-best { animation: cat-best-in .7s cubic-bezier(.16, 1, .3, 1) both; }
+.cat-opt.new-best::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--green) 28%, transparent) 50%, transparent 65%) no-repeat;
+  background-size: 250% 100%; background-position: 130% 0; animation: cat-best-shine 1.1s ease-out calc(var(--fx-d, 0ms) + .35s) both; }
+.cat-opt.new-best .cat-best-tag { animation: cat-pop-tag .5s cubic-bezier(.16, 1, .3, 1) calc(var(--fx-d, 0ms) + .3s) both; }
+.cat-opt.new-best .cat-play { animation: cat-pop-tag .6s cubic-bezier(.16, 1, .3, 1) calc(var(--fx-d, 0ms) + .55s) both; }
+@keyframes cat-best-in { from { opacity: 0; transform: translateY(14px) scale(.94); filter: blur(6px); } }
+@keyframes cat-best-shine { to { background-position: -30% 0; } }
+@keyframes cat-pop-tag { from { opacity: 0; transform: translateY(6px) scale(.6); } }
+@media (prefers-reduced-motion: reduce) { .cat-opt.new-best, .cat-opt.new-best::after, .cat-opt.new-best .cat-best-tag, .cat-opt.new-best .cat-play { animation: none; } }
 /* Angosto: los badges bajan de línea en vez de cortarse. */
 /* Descartados por el embudo del análisis (motivo en el tooltip de seeders) y salud estimada. */
 .cat-opt.skipped { opacity: .6; }
@@ -261,10 +270,23 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .side-about { display: grid; gap: 12px; padding: 4px 20px 18px; border-bottom: 1px solid var(--border); }
 .side-genres { display: flex; flex-wrap: wrap; gap: 6px; }
 .side-genre { height: 26px; display: inline-flex; align-items: center; padding: 0 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 12.5px; font-weight: 600; }
-.side-desc { margin: 0; max-width: 68ch; font-size: 14px; line-height: 1.55; color: var(--muted); cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.side-desc.open { -webkit-line-clamp: unset; display: block; }
-.side-desc:hover { color: var(--text); }
-.side-desc:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.side-desc { margin: 0 0 10px; max-width: 68ch; font-size: 14px; line-height: 1.55; color: var(--muted); }
+.side-hero-text .side-hero-genres { margin-top: 5px; font-size: 12.5px; letter-spacing: .01em; }
+/* Sinopsis y reparto plegados: el cuerpo crece con grid-template-rows (0fr → 1fr), sin medir alturas. */
+.side-fold { border-top: 1px solid var(--border); }
+.side-fold-head { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 8px 2px; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
+.side-fold-text { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.side-fold-text b { font-size: 14px; font-weight: 700; }
+.side-fold-peek { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; color: var(--muted); }
+.side-fold.open .side-fold-peek { display: none; }
+.side-fold-chev { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 999px; background: var(--surface-2); color: var(--muted); transition: transform .35s cubic-bezier(.16, 1, .3, 1), background .2s, color .2s; }
+.side-fold-head:hover .side-fold-chev { color: var(--text); background: var(--surface-3); }
+.side-fold.open .side-fold-chev { transform: rotate(180deg); }
+.side-fold-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .4s cubic-bezier(.16, 1, .3, 1); }
+.side-fold.open .side-fold-body { grid-template-rows: 1fr; }
+.side-fold-in { min-height: 0; overflow: hidden; }
+.side-fold-in .side-facts { padding-bottom: 12px; }
+@media (prefers-reduced-motion: reduce) { .side-fold-body, .side-fold-chev { transition: none; } }
 .side-imdb { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
 .side-imdb:hover, .side-imdb:focus-visible { color: var(--text); text-decoration-color: currentColor; }
 /* Ficha (2026-11-17): cadenas como badge con borde de acento, reparto e idioma, similares y la
@@ -1030,3 +1052,23 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .side-cine { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: 10px; font-size: 13px; line-height: 1.35;
   background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); }
 .side-cine svg { flex: none; margin-top: 1px; color: var(--amber, #f5a524); }
+
+/* Buscando el mejor match en TorBox (2026-11-20, como la web): radar centrado, barra y Detener. */
+.cat-hunt { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 0 10px; text-align: center; }
+.cat-hunt-radar { width: 120px; height: 120px; margin-bottom: 8px; overflow: visible; }
+.cat-hunt-radar .ring { fill: none; stroke: var(--border); stroke-width: 1.5; }
+.cat-hunt-radar .ring.inner { stroke-dasharray: 3 5; }
+.cat-hunt-radar .sweep { transform-origin: 60px 60px; animation: cat-sweep 2.4s linear infinite; }
+.cat-hunt-radar .sweep path { fill: color-mix(in srgb, var(--accent) 22%, transparent); }
+.cat-hunt-radar .blip { fill: var(--muted); opacity: .25; transform-box: fill-box; transform-origin: center; animation: cat-blip 2.4s cubic-bezier(.16, 1, .3, 1) infinite; animation-delay: calc(var(--i) * .48s + .1s); }
+.cat-hunt-radar .core { fill: var(--accent); transform-box: fill-box; transform-origin: center; filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--accent) 45%, transparent)); animation: cat-core 2.4s ease-in-out infinite; }
+.cat-hunt-radar .core-play { fill: #fff; }
+.cat-hunt-title { font-size: 16px; text-wrap: balance; }
+.cat-hunt-bar { width: min(260px, 80%); height: 6px; margin-top: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.cat-hunt-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .4s cubic-bezier(.16, 1, .3, 1); }
+.cat-hunt-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cat-hunt .cat-flow-btn { margin-top: 8px; }
+@keyframes cat-sweep { to { transform: rotate(360deg); } }
+@keyframes cat-blip { 0% { opacity: 1; fill: var(--accent-fg); transform: scale(1.5); } 40%, 100% { opacity: .25; fill: var(--muted); transform: none; } }
+@keyframes cat-core { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .cat-hunt-radar .sweep, .cat-hunt-radar .blip, .cat-hunt-radar .core { animation: none; } }

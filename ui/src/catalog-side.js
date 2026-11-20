@@ -166,10 +166,13 @@ export function hero(m) {
   const trailer = yt && el('button', { id: 'cat-open-trailer', class: 'side-imdb', title: t('Ver el tráiler en YouTube'), onclick: () => api.catalogOpenTrailer(yt).catch(showError) },
     icon('play', 11), t('Tráiler'));
   const facts = [m.year, rating, m.runtime_min && `${m.runtime_min} min`, trailer].filter(Boolean).flatMap((f, i) => (i ? ['  ·  ', f] : [f]));
+  // Géneros en una línea sutil debajo del año y el puntaje (2026-11-20); con TMDB, en el idioma de la app.
+  const tm = state.side?.details?.details;
+  const genres = (tm?.genres?.length ? tm.genres : m.genres.map(genreName)).join(' · ');
   return el('div', { class: 'side-hero' },
     m.background ? el('div', { class: 'side-hero-bg', style: `background-image:url("${encodeURI(m.background)}")` }) : null,
     m.poster ? el('img', { class: 'side-hero-poster', src: m.poster, alt: '', referrerpolicy: 'no-referrer', onerror: (ev) => ev.target.remove() }) : null,
-    el('div', { class: 'side-hero-text' }, el('h2', {}, titleOf(state.side)), el('p', {}, facts)));
+    el('div', { class: 'side-hero-text' }, el('h2', {}, titleOf(state.side)), el('p', {}, facts), genres ? el('p', { class: 'side-hero-genres' }, genres) : null));
 }
 
 /** Debajo de la cabecera (pedido 2026-11-15): dónde verla en Argentina (2026-11-20), cadenas y géneros, sinopsis
@@ -182,22 +185,27 @@ export function about(m, s) {
     tm?.original_language ? [t('Idioma original'), cap(LANG_NAMES.of(tm.original_language))] : null,
   ].filter(Boolean);
   const description = tm?.overview ?? m.description;
-  const desc = description ? el('p', {
-    class: 'side-desc', tabindex: 0, 'aria-expanded': 'false',
-    onclick: (ev) => { const p = ev.currentTarget; p.setAttribute('aria-expanded', String(p.classList.toggle('open'))); },
-    onkeydown: (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.currentTarget.click(); } },
-  }, description) : null;
+  // Sinopsis y reparto plegados (2026-11-20, como la web): una fila con la primera línea; al tocarla se despliega.
+  // El estado vive en la ficha (`s.aboutOpen`): el panel se redibuja seguido y no tiene que cerrarse solo.
+  const fold = description || facts.length ? el('section', { class: `side-fold ${s.aboutOpen ? 'open' : ''}` },
+    el('button', { id: 'cat-about-toggle', type: 'button', class: 'side-fold-head', 'aria-expanded': String(!!s.aboutOpen), 'aria-controls': 'cat-about-body',
+      onclick: (ev) => { s.aboutOpen = !s.aboutOpen; const sec = ev.currentTarget.parentElement; sec.classList.toggle('open', s.aboutOpen); ev.currentTarget.setAttribute('aria-expanded', String(s.aboutOpen)); sec.lastChild.inert = !s.aboutOpen; } },
+      el('span', { class: 'side-fold-text' }, el('b', {}, description && m.cast.length ? t('Sinopsis y reparto') : description ? t('Sinopsis') : t('Reparto')),
+        description ? el('span', { class: 'side-fold-peek' }, description) : null),
+      el('span', { class: 'side-fold-chev', 'aria-hidden': 'true' }, icon('chev', 16))),
+    el('div', { id: 'cat-about-body', class: 'side-fold-body', inert: s.aboutOpen ? null : '' },
+      el('div', { class: 'side-fold-in' },
+        description ? el('p', { class: 'side-desc' }, description) : null,
+        facts.length ? el('dl', { class: 'side-facts' }, facts.flatMap(([k, v]) => [el('dt', {}, k), el('dd', {}, v)])) : null))) : null;
   const badges = [
     ...(tm?.providers ?? []).map((p, i) => el('span', { id: `cat-provider-${i}`, class: 'side-genre provider', title: t('Para ver en Argentina') },
       p.logo ? el('img', { src: p.logo, alt: '', width: 18, height: 18, referrerpolicy: 'no-referrer', onerror: (ev) => ev.target.remove() }) : null, p.name)),
-    ...(tm?.networks ?? []).map((n) => el('span', { class: 'side-genre network' }, n)),
-    ...(tm?.genres?.length ? tm.genres : m.genres.map(genreName)).map((g) => el('span', { class: 'side-genre' }, g))];
+    ...(tm?.networks ?? []).map((n) => el('span', { class: 'side-genre network' }, n))];
   return el('div', { class: 'side-about' },
     m.kind === 'movie' && onlyCinema(m.released) ? el('p', { id: 'cat-cine-note', class: 'side-cine' }, icon('film', 15),
       el('span', {}, t('Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.'))) : null,
-    badges.length ? el('div', { class: 'side-genres', 'aria-label': t('Dónde verla y géneros') }, badges) : null,
-    desc,
-    facts.length ? el('dl', { class: 'side-facts' }, facts.flatMap(([k, v]) => [el('dt', {}, k), el('dd', {}, v)])) : null,
+    badges.length ? el('div', { class: 'side-genres', 'aria-label': t('Dónde verla') }, badges) : null,
+    fold,
     s.details && !s.details.has_key ? el('div', { class: 'side-tmdb-teaser' },
       el('p', {}, el('b', {}, t('Más datos con TMDB')), t('Idioma original (elige mejor el audio), dónde verla, cadena de la serie y títulos similares. La key es gratis.')),
       el('button', { id: 'cat-tmdb-setup', class: 'pop-btn', onclick: openSettings }, t('Configurar')))

@@ -1,6 +1,10 @@
 // Inglés de la app (2026-11-20): clave = el texto en español tal cual está en el código (t() / tr(), index.html y los
 // mensajes fijos del núcleo); lo que no esté acá se muestra en español. `{x}` se reemplaza igual en los dos idiomas.
 export default {
+  "Buscando el mejor torrent para vos": "Finding the best torrent for you",
+  "Sinopsis y reparto": "Synopsis and cast",
+  "Sinopsis": "Synopsis",
+  "Dónde verla": "Where to watch",
   "Buscar con audio original": "Search with original audio",
   "Con subtítulos en español": "With Spanish subtitles",
   "Busco de nuevo la primera que traiga subtítulos en español adentro": "I'll search again for the first one with built-in Spanish subtitles",
@@ -96,11 +100,6 @@ export default {
   "Audio original": "Original audio",
   "Pasos elegidos": "Chosen steps",
   "Volver a este paso": "Back to this step",
-  "Buscando audio latino": "Looking for Latin American audio",
-  "Buscando subtítulos en español": "Looking for Spanish subtitles",
-  "Leyendo pistas · {a} de {total}": "Reading tracks · {a} of {total}",
-  "De a una, de mejor a peor calidad: te muestro la primera que {a}": "One at a time, from best to worst quality: I'll show you the first one that {a}",
-  "tenga audio latino": "has Latin American audio",
   "traiga subtítulos en español adentro": "has Spanish subtitles inside",
   "Detener": "Stop",
   "Detener: muestro las de mejor calidad con lo leído hasta ahora": "Stop: I'll show the best quality ones with what was read so far",
@@ -388,7 +387,6 @@ export default {
   "Reparto": "Cast",
   "Idioma original": "Original language",
   "Para ver en Argentina": "Where to watch in Argentina",
-  "Dónde verla y géneros": "Where to watch and genres",
   "Más datos con TMDB": "More data with TMDB",
   "Idioma original (elige mejor el audio), dónde verla, cadena de la serie y títulos similares. La key es gratis.": "Original language (picks the audio better), where to watch, the series' network and similar titles. The key is free.",
   "Configurar": "Set up",

@@ -232,14 +232,20 @@ export function flowStep() {
 /** TorBox: mientras no aparezca el primer buen match, solo la búsqueda. */
 function scanScreen() {
   const f = flow(), s = f.scan;
-  return screen(f.lat ? tr('Buscando audio latino') : tr('Buscando subtítulos en español'),
-    el('div', { class: 'cat-deep running', role: 'status' },
-      el('span', { class: 'cat-deep-icon', 'aria-hidden': 'true' }, el('span', { class: 'cat-radar big' })),
-      el('span', { class: 'cat-deep-text' }, el('span', { class: 'cat-deep-title' }, el('b', {}, tr('Leyendo pistas · {a} de {total}', { a: Math.min(s.done + 1, s.total), total: s.total }))),
-        el('span', { class: 'cat-deep-sub' }, tr('De a una, de mejor a peor calidad: te muestro la primera que {a}', { a: f.lat ? tr('tenga audio latino') : tr('traiga subtítulos en español adentro') }))),
-      el('span', { class: 'cat-deep-icons' }, el('button', { id: 'cat-flow-stop', class: 'cat-icon-btn stop', 'aria-label': tr('Detener'), title: tr('Detener: muestro las de mejor calidad con lo leído hasta ahora'),
-        onclick: () => { stopScan(); renderStreamsOnly(); } }, icon('stop', 14))),
-      el('span', { class: 'cat-deep-bar' }, el('i', { style: `width:${Math.max(4, (s.done / s.total) * 100)}%` }))));
+  const svg = (tag, attrs, ...kids) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); n.append(...kids); return n; };
+  // Radar (como la web): el barrido da una vuelta cada 2,4 s y cada punto se enciende cuando le pasa por encima.
+  const radar = svg('svg', { class: 'cat-hunt-radar', viewBox: '0 0 120 120', 'aria-hidden': 'true' },
+    svg('circle', { class: 'ring', cx: 60, cy: 60, r: 52 }), svg('circle', { class: 'ring inner', cx: 60, cy: 60, r: 34 }),
+    svg('g', { class: 'sweep' }, svg('path', { d: 'M60 60L60 8A52 52 0 0 1 105 34Z' })),
+    ...[[60, 20], [94, 46], [88, 88], [40, 96], [24, 52]].map(([x, y], i) => svg('circle', { class: 'blip', cx: x, cy: y, r: 4, style: `--i:${i}` })),
+    svg('circle', { class: 'core', cx: 60, cy: 60, r: 16 }), svg('path', { class: 'core-play', d: 'M55 52.5v15l12.5-7.5z' }));
+  return screen(null,
+    el('div', { class: 'cat-hunt', role: 'status', 'aria-live': 'polite' }, radar,
+      el('b', { class: 'cat-hunt-title' }, tr('Buscando el mejor torrent para vos')),
+      el('span', { class: 'cat-hunt-bar' }, el('i', { style: `width:${Math.max(4, (s.done / s.total) * 100)}%` })),
+      el('span', { class: 'cat-hunt-count' }, tr('{a} de {n}', { a: Math.min(s.done + 1, s.total), n: s.total })),
+      el('button', { id: 'cat-flow-stop', type: 'button', class: 'cat-flow-btn', title: tr('Detener: muestro las de mejor calidad con lo leído hasta ahora'),
+        onclick: () => { stopScan(); renderStreamsOnly(); } }, icon('stop', 14), tr('Detener'))));
 }
 
 /** TorBox, el resultado: solo los buenos matches encontrados, sin título ni nota encima (la fila ya dice "Mejor opción"
