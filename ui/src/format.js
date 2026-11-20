@@ -51,3 +51,9 @@ export function playbackText(pb) {
   if (k === 'failed') return t('falló: {message}', { message: pb.state.message });
   return t('reproduciendo');
 }
+
+/** Película estrenada hace menos de 3 semanas: casi seguro todavía no hay copias buenas, solo filmadas en el cine. */
+export function onlyCinema(released) {
+  const days = (Date.now() - Date.parse(released)) / 864e5;
+  return days >= 0 && days < 21;
+}

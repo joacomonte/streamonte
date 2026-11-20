@@ -6,6 +6,7 @@ import { openSettings } from './dialogs.js';
 import { $, el, icon, setStatus } from './dom.js';
 import { langs, locale, t } from './i18n.js';
 import { loadStreams, renderStreamsOnly } from './catalog-options.js';
+import { onlyCinema } from './format.js';
 import { showError, state, view } from './catalog-state.js';
 import { leaveTests } from './catalog-tests.js';
 import { reduceMotion } from './catalog.js';
@@ -192,6 +193,8 @@ export function about(m, s) {
     ...(tm?.networks ?? []).map((n) => el('span', { class: 'side-genre network' }, n)),
     ...(tm?.genres?.length ? tm.genres : m.genres.map(genreName)).map((g) => el('span', { class: 'side-genre' }, g))];
   return el('div', { class: 'side-about' },
+    m.kind === 'movie' && onlyCinema(m.released) ? el('p', { id: 'cat-cine-note', class: 'side-cine' }, icon('film', 15),
+      el('span', {}, t('Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.'))) : null,
     badges.length ? el('div', { class: 'side-genres', 'aria-label': t('Dónde verla y géneros') }, badges) : null,
     desc,
     facts.length ? el('dl', { class: 'side-facts' }, facts.flatMap(([k, v]) => [el('dt', {}, k), el('dd', {}, v)])) : null,

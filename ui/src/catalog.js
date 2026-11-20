@@ -9,7 +9,7 @@ import { api, onCoreEvent } from './api.js';
 import { play } from './audio-picker.js';
 import { openSettings } from './dialogs.js';
 import { $, el, icon, setStatus } from './dom.js';
-import { humanBytes, playbackText } from './format.js';
+import { humanBytes, onlyCinema, playbackText } from './format.js';
 import { locale, t } from './i18n.js';
 import { bgText, cardSig, measurePlayback, onPlaybackRow, onStreams, renderStreamsOnly, starting } from './catalog-options.js';
 import { magnetHash, openMagnet } from './catalog-magnet.js';
@@ -167,6 +167,8 @@ function posterCard(p) {
   },
   // Título y año sobre el póster, con un degradado chico siempre visible (2026-11-16).
   el('span', { class: 'cat-poster' }, img,
+    p.kind === 'movie' && onlyCinema(p.released)
+      ? el('span', { class: 'cat-cine', title: t('Recién estrenada: probablemente solo haya copias filmadas en el cine') }, icon('film', 11), t('En cines')) : null,
     el('span', { class: 'cat-card-caption' }, el('span', { class: 'cat-card-name' }, p.name),
       el('span', { class: 'cat-card-year' }, p.year,
         p.imdb_rating ? [p.year ? ' · ' : null, el('span', { class: 'cat-card-rate' }, icon('star', 11), el('span', { class: 'num' }, p.imdb_rating))] : null)),

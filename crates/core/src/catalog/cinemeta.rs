@@ -56,6 +56,9 @@ pub struct Meta {
     /// Premios en español y corto: `Ganó 2 Óscar · 164 premios`.
     #[serde(default)]
     pub awards: Option<String>,
+    /// Fecha de estreno `AAAA-MM-DD` (para avisar "En cines").
+    #[serde(default)]
+    pub released: Option<String>,
     /// Id de YouTube del primer tráiler.
     #[serde(default)]
     pub trailer: Option<String>,
@@ -214,6 +217,7 @@ fn to_meta(m: RawMeta, kind: MediaKind, id: &str, now: chrono::DateTime<chrono::
         kind,
         name: clean(m.name.as_deref().unwrap_or("?")),
         year: year_of(&m.release_info, &m.year),
+        released: m.released.as_deref().and_then(|r| r.get(..10)).map(clean),
         runtime_min: m
             .runtime
             .as_deref()

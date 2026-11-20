@@ -1,6 +1,9 @@
 // Inglés de la app (2026-11-20): clave = el texto en español tal cual está en el código (t() / tr(), index.html y los
 // mensajes fijos del núcleo); lo que no esté acá se muestra en español. `{x}` se reemplaza igual en los dos idiomas.
 export default {
+  "En cines": "In theaters",
+  "Recién estrenada: probablemente solo haya copias filmadas en el cine": "Just released: probably only camcorder copies so far",
+  "Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.": "There probably aren't good-quality torrents yet: it came out a few weeks ago and for now there are usually only camcorder copies.",
   "Preparando {a}{b}": "Preparing {a}{b}",
   "Bajando {a} · {b} %": "Downloading {a} · {b} %",
   "Bajando {a} de fondo · {b} %": "Downloading {a} in the background · {b} %",
