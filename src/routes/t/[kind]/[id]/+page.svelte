@@ -114,6 +114,12 @@
 				{[t.year, t.runtime ? `${t.runtime} min` : '', isTv ? tr(t.seasons.length === 1 ? '{n} temporada' : '{n} temporadas', { n: t.seasons.length }) : ''].filter(Boolean).join(' · ')}
 				{#if t.rating}<span class="rate"><Icon name="star" size={13} />{t.rating}</span>{/if}
 			</p>
+			{#if t.imdb || t.trailer}
+				<p class="links">
+					{#if t.trailer}<a id="trailer-link" class="ext" href="https://www.youtube.com/watch?v={t.trailer}" target="_blank" rel="noopener noreferrer"><Icon name="play" size={13} />{tr('Tráiler')}</a>{/if}
+					{#if t.imdb}<a id="imdb-link" class="ext" href="https://www.imdb.com/title/{t.imdb}/" target="_blank" rel="noopener noreferrer"><Icon name="link" size={13} />IMDb</a>{/if}
+				</p>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -238,6 +244,9 @@
 	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: 12px; background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
 	.cine-note :global(svg) { flex: none; margin-top: 1px; color: var(--amber, #f5a524); }
 	.small { font-size: 12.5px; }
+	.links { display: flex; gap: 8px; margin: 10px 0 0; }
+	.ext { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 650; color: var(--text); text-decoration: none; background: color-mix(in srgb, var(--text) 9%, transparent); border: 1px solid var(--border); }
+	.ext:hover { background: color-mix(in srgb, var(--text) 15%, transparent); }
 	.rate { display: inline-flex; align-items: center; gap: 3px; color: var(--yellow); font-weight: 650; }
 	main { padding: 4px 16px calc(32px + var(--safe-bottom)); }
 	.overview { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 6px 0; margin: 4px 0 0; font-size: 14px; cursor: default; }

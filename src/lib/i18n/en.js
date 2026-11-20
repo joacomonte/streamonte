@@ -234,6 +234,7 @@ export default {
 	'Va en el celu y en la tele: el celu le manda el video. Chromecast, Samsung y LG la encuentran solas; en Android TV o Fire TV instalá el Receiver.':
 		'It goes on your phone and your TV: the phone sends the video. Chromecast, Samsung and LG find it on their own; on Android TV or Fire TV install the Receiver.',
 	'Ver menos': 'Show less',
+	'Tráiler': 'Trailer',
 	'Ver más': 'Show more',
 	'Ver resultados': 'Show results',
 	'Viendo si trae subtítulos en español': 'Checking for Spanish subtitles',

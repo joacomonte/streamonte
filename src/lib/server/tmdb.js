@@ -188,7 +188,7 @@ export async function genres(kind) {
 export async function title(kind, id) {
 	// Sinopsis y géneros siempre en el idioma de la app: un pedido más (si difiere de los títulos), en paralelo.
 	const [r, info] = await Promise.all([
-		tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits' }),
+		tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits,videos', include_video_language: 'es,en,null' }),
 		lang() !== titlesLang() ? tmdb(`/${kind}/${id}`, {}, lang()) : null
 	]);
 	const about = info ?? r;
@@ -219,6 +219,11 @@ export async function title(kind, id) {
 		status: { 'Returning Series': 'returning', 'In Production': 'in-production', Pilot: 'in-production', Planned: 'planned', Ended: 'ended', Canceled: 'canceled', Cancelled: 'canceled' }[/** @type {string} */ (r.status)] ?? null,
 		next: r.next_episode_to_air?.air_date ? { season: r.next_episode_to_air.season_number, episode: r.next_episode_to_air.episode_number, date: r.next_episode_to_air.air_date } : null,
 		imdb,
+		// Tráiler de YouTube: el más viejo (en series, el de la temporada 1), oficial primero; como en el desktop.
+		trailer:
+			(r.videos?.results ?? [])
+				.filter((/** @type {any} */ v) => v.site === 'YouTube' && v.type === 'Trailer')
+				.sort((/** @type {any} */ a, /** @type {any} */ b) => Number(b.official) - Number(a.official) || String(a.published_at).localeCompare(String(b.published_at)))[0]?.key ?? null,
 		seasons: (r.seasons ?? [])
 			.filter((/** @type {any} */ s) => s.season_number > 0 && s.episode_count > 0)
 			.map((/** @type {any} */ s) => ({ n: s.season_number, name: s.name, count: s.episode_count, year: String(s.air_date ?? '').slice(0, 4) || null }))
