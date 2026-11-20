@@ -73,5 +73,6 @@
 		border-bottom: 1px solid var(--border);
 	}
 	h2 { margin: 0; font-size: 16px; }
-	.body { overflow: auto; padding: 12px 16px 16px; }
+	/* Al llegar al tope o al fondo de la hoja, el gesto no pasa a la página. */
+	.body { overflow: auto; overscroll-behavior: contain; padding: 12px 16px 16px; }
 </style>

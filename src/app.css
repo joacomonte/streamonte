@@ -78,6 +78,8 @@ img { display: block; }
 	border-bottom: 1px solid var(--border);
 }
 .wrap { max-width: 1200px; margin: 0 auto; }
+/* Con una hoja o diálogo modal abierto la página de atrás no scrollea: el dedo mueve solo la hoja. */
+html:has(dialog:modal) { overflow: hidden; }
 
 .icon-btn {
 	display: inline-grid;
