@@ -33,6 +33,7 @@
 	let heroTitle = $state();
 	/** El título pasa a la barra cuando el del hero queda tapado. */
 	let titleUp = $state(false);
+	let barH = $state(0);
 	/** @type {HTMLElement | undefined} */
 	let overviewEl = $state();
 	/** La sinopsis no entra en 3 líneas: hay algo que expandir. */
@@ -98,14 +99,14 @@
 
 <svelte:head><title>{t.title} · Streamonte</title></svelte:head>
 
-<header class="topbar">
+<header class="topbar" class:clear={!titleUp} bind:offsetHeight={barH}>
 	<div class="wrap row">
 		<a id="back" class="icon-btn" href="/" aria-label={tr('Volver al catálogo')} onclick={(e) => { if (history.length > 1) { e.preventDefault(); history.back(); } }}><Icon name="back" /></a>
 		<span class="top-title" class:up={titleUp} aria-hidden="true">{t.title}</span>
 	</div>
 </header>
 
-<div class="hero" style:--bd={t.backdrop ? `url(${t.backdrop})` : 'none'}>
+<div class="hero" style:--bar="{barH}px" style:--bd={t.backdrop ? `url(${t.backdrop})` : 'none'}>
 	<div class="wrap hero-in">
 		{#if t.poster}<img id="poster" class="poster" src={t.poster} alt="" width="342" height="513" />{/if}
 		<div class="facts">
@@ -224,7 +225,10 @@
 		transition: opacity 0.2s var(--ease), transform 0.25s var(--out);
 	}
 	.top-title.up { opacity: 1; transform: none; }
-	.hero { position: relative; overflow: hidden; }
+	/* Arriba de todo la barra es transparente y el fondo de la peli sube detrás del botón de volver. */
+	.topbar { transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease); }
+	.topbar.clear { background: transparent; border-bottom-color: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+	.hero { position: relative; overflow: hidden; margin-top: calc(-1 * var(--bar, 0px)); padding-top: var(--bar, 0px); }
 	.hero::before {
 		content: '';
 		position: absolute;
