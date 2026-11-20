@@ -150,8 +150,9 @@ struct TorrentInfo {
     #[serde(default)]
     files: Vec<TbFile>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct TbFile {
+    #[serde(default)]
     id: u64,
     #[serde(default)]
     name: String,
@@ -164,7 +165,6 @@ struct Download {
 }
 
 const API: &str = "https://api.torbox.app/v1/api/torrents";
-const VIDEO_EXT: [&str; 6] = [".mkv", ".mp4", ".avi", ".m4v", ".mov", ".webm"];
 
 fn fail(detail: impl Into<String>) -> crate::CoreError {
     crate::CoreError::Catalog {
@@ -203,19 +203,16 @@ async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Str
         )
         .await
         .map_err(|e| fail(format!("mylist: {}", e.user_text())))?;
-    let file = list
-        .data
-        .map(|d| d.files)
-        .unwrap_or_default()
+    let files = list.data.map(|d| d.files).unwrap_or_default();
+    if files.is_empty() {
+        return Err(fail("sin archivos (¿todavía no está listo?)"));
+    }
+    let file = files
         .into_iter()
-        .filter(|f| video_ext(&f.name).is_some())
+        .filter(|f| crate::engine::is_video(&f.name))
         .max_by_key(|f| f.size)
-        .ok_or_else(|| fail("sin archivo de video (¿todavía no está listo?)"))?;
+        .ok_or(crate::CoreError::NoVideo)?;
     Ok((key, id, file))
-}
-fn video_ext(name: &str) -> Option<&'static str> {
-    let lower = name.to_ascii_lowercase();
-    VIDEO_EXT.iter().copied().find(|ext| lower.ends_with(ext))
 }
 /// Link de descarga del archivo. `requestdl` pide la key en la URL (así lo documenta TorBox); no se loguea.
 async fn download_url(
@@ -287,9 +284,15 @@ pub async fn cast_url(
         Err(e) => {
             tracing::info!("TorBox sin stream HLS, va el link de descarga: {e}");
             let url = download_url(http, &key, id, &file, timeout).await?;
-            let ext = video_ext(&file.name).unwrap_or(".mkv");
+            // `video_file` ya garantizó que es un video: la extensión existe.
+            let ext = file
+                .name
+                .rsplit('.')
+                .next()
+                .unwrap_or("mkv")
+                .to_ascii_lowercase();
             let sep = if url.contains('?') { '&' } else { '?' };
-            Ok(format!("{url}{sep}f=video{ext}"))
+            Ok(format!("{url}{sep}f=video.{ext}"))
         }
     }
 }
@@ -381,9 +384,211 @@ fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool) -> usize
         .unwrap_or(0)
 }
 
+/// Un torrent pegado en TorBox (2026-11-20, "Pegar magnet" de la web): `cached` (en su caché: se agrega al instante),
+/// `downloading` (lo está bajando en sus servidores, con avance), `ready` (ya bajado en la cuenta) o `missing` (no lo
+/// tiene). `files`: sus videos, del más grande al más chico.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct MagnetStatus {
+    pub state: MagnetState,
+    pub name: Option<String>,
+    pub progress: f64,
+    /// Bytes por segundo.
+    pub speed: u64,
+    pub seeds: u64,
+    /// Segundos que faltan (0 = no se sabe).
+    pub eta: u64,
+    pub files: Vec<MagnetFile>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MagnetState {
+    Cached,
+    Downloading,
+    Ready,
+    Missing,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct MagnetFile {
+    pub name: String,
+    pub size: u64,
+}
+
+#[derive(Deserialize)]
+struct AllMine {
+    #[serde(default)]
+    data: Vec<Mine>,
+}
+
+#[derive(Deserialize)]
+struct Mine {
+    #[serde(default)]
+    hash: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    download_finished: bool,
+    #[serde(default)]
+    download_state: String,
+    #[serde(default)]
+    progress: f64,
+    #[serde(default)]
+    download_speed: u64,
+    #[serde(default)]
+    seeds: u64,
+    #[serde(default)]
+    eta: u64,
+    #[serde(default)]
+    files: Vec<TbFile>,
+}
+
+/// Solo los videos (sin subtítulos ni muestras chicas fuera de orden): del más grande al más chico.
+fn video_files(files: Vec<TbFile>) -> Vec<MagnetFile> {
+    let mut out: Vec<MagnetFile> = files
+        .into_iter()
+        .filter(|f| crate::engine::is_video(&f.name))
+        .map(|f| MagnetFile {
+            name: f.name.rsplit('/').next().unwrap_or(&f.name).to_string(),
+            size: f.size,
+        })
+        .collect();
+    out.sort_by_key(|a| std::cmp::Reverse(a.size));
+    out
+}
+
+fn status_of_mine(m: Mine) -> MagnetStatus {
+    let ready = m.download_finished
+        || m.progress >= 1.0
+        || matches!(
+            m.download_state.as_str(),
+            "cached" | "completed" | "uploading"
+        );
+    MagnetStatus {
+        state: if ready {
+            MagnetState::Ready
+        } else {
+            MagnetState::Downloading
+        },
+        name: Some(m.name).filter(|n| !n.is_empty()),
+        progress: m.progress.clamp(0.0, 1.0),
+        speed: m.download_speed,
+        seeds: m.seeds,
+        eta: m.eta,
+        files: if ready {
+            video_files(m.files)
+        } else {
+            Vec::new()
+        },
+    }
+}
+
+fn need_key() -> crate::CoreError {
+    crate::CoreError::Catalog {
+        user: "Falta la key de TorBox: cargala en Ajustes.".into(),
+        detail: "torbox: sin key".into(),
+    }
+}
+
+fn unreachable_torbox(what: &str, e: &super::http::FetchError) -> crate::CoreError {
+    crate::CoreError::Catalog {
+        user: "TorBox no respondió. Probá de nuevo en un rato.".into(),
+        detail: format!("torbox {what}: {}", e.user_text()),
+    }
+}
+
+/// Estado de un torrent pegado: primero en la cuenta (bajándose o bajado), si no en la caché de TorBox.
+pub async fn magnet_status(http: &Http, hash: InfoHash, timeout: Duration) -> Result<MagnetStatus> {
+    let key = crate::secrets::secret(ACCOUNT).ok_or_else(need_key)?;
+    let hex = hash.to_hex();
+    let mine: AllMine = http
+        .get_json_bearer(&format!("{API}/mylist?bypass_cache=true"), &key, timeout)
+        .await
+        .map_err(|e| unreachable_torbox("mylist", &e))?;
+    if let Some(m) = mine
+        .data
+        .into_iter()
+        .find(|m| m.hash.eq_ignore_ascii_case(&hex))
+    {
+        return Ok(status_of_mine(m));
+    }
+    let resp: CheckCached = http
+        .get_json_bearer(
+            &format!("{API}/checkcached?hash={hex}&format=object&list_files=true"),
+            &key,
+            timeout,
+        )
+        .await
+        .map_err(|e| unreachable_torbox("checkcached", &e))?;
+    let Some(hit) = entry(resp.data.as_ref(), &hash) else {
+        return Ok(MagnetStatus {
+            state: MagnetState::Missing,
+            name: None,
+            progress: 0.0,
+            speed: 0,
+            seeds: 0,
+            eta: 0,
+            files: Vec::new(),
+        });
+    };
+    let files: Vec<TbFile> = hit
+        .get("files")
+        .and_then(|f| serde_json::from_value(f.clone()).ok())
+        .unwrap_or_default();
+    Ok(MagnetStatus {
+        state: MagnetState::Cached,
+        name: hit.get("name").and_then(|n| n.as_str()).map(str::to_string),
+        progress: 1.0,
+        speed: 0,
+        seeds: 0,
+        eta: 0,
+        files: video_files(files),
+    })
+}
+
+/// "Bajarlo en TorBox": lo agrega a la cuenta aunque no esté en caché (TorBox lo baja en sus servidores).
+pub async fn magnet_download(http: &Http, magnet: &str, timeout: Duration) -> Result<()> {
+    let key = crate::secrets::secret(ACCOUNT).ok_or_else(need_key)?;
+    let created: Created = http
+        .post_multipart_bearer(
+            &format!("{API}/createtorrent"),
+            &key,
+            &[("magnet", magnet.to_string())],
+            timeout,
+        )
+        .await
+        .map_err(|e| unreachable_torbox("createtorrent", &e))?;
+    if created.data.and_then(|d| d.torrent_id).is_none() {
+        return Err(crate::CoreError::Catalog {
+            user: "TorBox no lo agregó.".into(),
+            detail: format!("createtorrent: {}", created.detail.unwrap_or_default()),
+        });
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn torrent_pegado_bajandose_o_listo() {
+        let m: Mine = serde_json::from_str(
+            r#"{"hash":"AA","name":"X","download_state":"downloading","progress":0.4,"download_speed":5,"files":[{"id":1,"name":"a/b.mkv","size":9}]}"#,
+        )
+        .unwrap();
+        let st = status_of_mine(m);
+        assert_eq!(st.state, MagnetState::Downloading);
+        assert!(st.files.is_empty());
+        let m: Mine = serde_json::from_str(
+            r#"{"hash":"AA","download_state":"cached","files":[{"id":1,"name":"a/sample.mkv","size":1},{"id":2,"name":"a/b.srt","size":1},{"id":3,"name":"a/b.mkv","size":9}]}"#,
+        )
+        .unwrap();
+        let st = status_of_mine(m);
+        assert_eq!(st.state, MagnetState::Ready);
+        let names: Vec<&str> = st.files.iter().map(|f| f.name.as_str()).collect();
+        assert_eq!(names, ["b.mkv", "sample.mkv"]);
+    }
 
     #[test]
     fn lee_objeto_y_lista() {

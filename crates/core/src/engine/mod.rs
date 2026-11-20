@@ -91,7 +91,7 @@ impl Metadata {
     /// El índice pedido solo si es un video y, si se sabe el episodio, si es ese episodio (o ningún
     /// archivo lo nombra): el `fileIdx` de una fuente a veces apunta a otro archivo del pack (un
     /// `.txt`, o en un pack de la serie entera un video de entrevistas, 2026-11-16). Si no, el del
-    /// episodio o el video más grande.
+    /// episodio o el video más grande; sin ningún video, [`crate::CoreError::NoVideo`].
     pub fn pick_file(&self, pick: FilePick) -> Result<FileInfo> {
         let names_it = |f: &FileInfo| {
             pick.episode
@@ -125,7 +125,7 @@ impl Metadata {
                 "ningún archivo coincide con el episodio: uso el más grande"
             );
         }
-        self.choose_file(None)
+        self.largest_video()
     }
 }
 
@@ -150,23 +150,15 @@ pub fn is_video(name: &str) -> bool {
 }
 
 impl Metadata {
-    /// El archivo pedido, o el video más grande, o el archivo más grande.
-    /// (Agregado en F2: lo comparten `playback` y `analyzer`.)
-    pub fn choose_file(&self, requested: Option<usize>) -> Result<FileInfo> {
-        if let Some(i) = requested {
-            return self
-                .files
-                .get(i)
-                .cloned()
-                .ok_or_else(|| crate::CoreError::NotFound(format!("archivo {i} del torrent")));
-        }
+    /// El video más grande. Sin ningún video (un pack de mp3) es [`crate::CoreError::NoVideo`]:
+    /// nunca se reproduce ni se mide otra cosa. Lo comparten `playback` y `analyzer`.
+    pub fn largest_video(&self) -> Result<FileInfo> {
         self.files
             .iter()
             .filter(|f| is_video(&f.name))
             .max_by_key(|f| f.size)
-            .or_else(|| self.files.iter().max_by_key(|f| f.size))
             .cloned()
-            .ok_or_else(|| crate::CoreError::NotFound("archivos en el torrent".into()))
+            .ok_or(crate::CoreError::NoVideo)
     }
 
     /// Guarda el `.torrent` para no volver a pedir metadatos (FR-13). Best effort.
@@ -575,6 +567,15 @@ mod tests {
             0,
             "ningún archivo nombra el episodio: el fileIdx"
         );
+        // Pack de música (2026-11-20, "Whalefall - Discography"): error, no el mp3 más grande.
+        let music = meta(&["Whalefall/Whalefall-Part04.mp3", "Whalefall/cover.jpg"]);
+        assert!(matches!(
+            music.pick_file(FilePick {
+                index: Some(0),
+                episode: None
+            }),
+            Err(crate::CoreError::NoVideo)
+        ));
         assert!(names_episode("Breaking_Bad_1x01_Pilot.mkv", 1, 1));
         assert!(!names_episode("Show.S01E010.mkv", 1, 1));
         assert!(!names_episode("Show.11x01.mkv", 1, 1));

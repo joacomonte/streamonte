@@ -151,7 +151,7 @@ pub struct StartRequest {
     pub key: VideoKey,
     /// Magnet a usar. `None` → el de la pausada o el guardado en la biblioteca.
     pub magnet: Option<Magnet>,
-    /// `None` → el de la config (FR-09).
+    /// El elegido en este ▶ (se pregunta en cada uno). `None` → [`crate::player::resolve_player`].
     pub player: Option<PlayerKind>,
     /// `None` → el de la pausada o el video más grande.
     pub file_index: Option<usize>,
@@ -296,14 +296,7 @@ impl PlaybackManager {
 
         let kept = self.shared.take_kept(&req.key);
         let player_cfg = self.shared.deps.config.read().await.player.clone();
-        let player = crate::player::resolve_player(
-            match (req.player, &kept) {
-                (Some(p), _) => p,
-                (None, Some((_, k))) => k.record.player,
-                (None, None) => player_cfg.default_player,
-            },
-            &player_cfg,
-        );
+        let player = crate::player::resolve_player(req.player, &player_cfg);
         let mut req = req;
         let adopted;
         let (id, dir, name, resume_from, file_index, magnet) = match kept {

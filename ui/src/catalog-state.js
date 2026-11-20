@@ -34,8 +34,9 @@ export const view = {
   renderCal: null,
   /** Orden elegido arriba de la lista: 'quality' = Mejor imagen, 'fast' = Arranca más rápido. */
   optSort: safeGet('streamonte.catalog.sort') === 'fast' ? 'fast' : 'quality',
-  /** Filtro de la lista: apagado al abrir cada video (`loadStreams`). */
+  /** Filtros de la lista (HDR y Subs ES): apagados al abrir cada video (`loadStreams`). */
   onlyHdr: false,
+  onlyEs: false,
   /** Espacio libre del disco de descargas (bytes); null = no se sabe (todo entra). */
   freeBytes: null,
   /** Redibujo pendiente (`scheduleRender`) y si hay que redibujar al volver a mostrarse la ventana. */

@@ -2,6 +2,7 @@
 // Ajustes y cierre con reproducciones activas (FR-17).
 import { api } from './api.js';
 import { $, el, setStatus, showError } from './dom.js';
+import { t } from './i18n.js';
 import { humanBytes } from './format.js';
 import { state, titleOf } from './state.js';
 
@@ -51,7 +52,7 @@ export async function askAfterClose(row) {
 
 export async function openLog(row) {
   state.logOpenFor = row.id;
-  $('#dlg-log-title').textContent = `Detalle — ${row.name}`;
+  $('#dlg-log-title').textContent = t('Detalle — {name}', { name: row.name });
   const lines = await api.playbackLog(row.id).catch(() => state.logs.get(row.id) ?? []);
   state.logs.set(row.id, lines);
   $('#dlg-log-body').textContent = lines.join('\n');
@@ -63,17 +64,17 @@ export async function cleanTemp() {
   try {
     const usage = await api.tempUsage();
     if (usage.bytes === 0) {
-      setStatus('La caché está vacía.');
+      setStatus(t('La caché está vacía.'));
       return;
     }
     const ok = await confirmDialog(
-      'Borrar caché',
-      `Se van a borrar ${humanBytes(usage.bytes)}: lo analizado y restos que no están en uso. No se tocan lo que se está reproduciendo ni las descargas guardadas.`,
-      [{ label: 'Cancelar', value: false }, { label: `Borrar ${humanBytes(usage.bytes)}`, value: true, primary: true }],
+      t('Borrar caché'),
+      t('Se van a borrar {a}: lo analizado y restos que no están en uso. No se tocan lo que se está reproduciendo ni las descargas guardadas.', { a: humanBytes(usage.bytes) }),
+      [{ label: t('Cancelar'), value: false }, { label: t('Borrar {a}', { a: humanBytes(usage.bytes) }), value: true, primary: true }],
     );
     if (!ok) return;
     const r = await api.cleanTemp();
-    setStatus(`Caché borrada: ${r.dirs_removed} carpeta(s), ${humanBytes(r.bytes_freed)} liberados${r.failures.length ? ` · ${r.failures.length} no se pudieron borrar (se reintenta al abrir)` : ''}.`);
+    setStatus(t('Caché borrada: {dirs_removed} carpeta(s), {a} liberados{b}.', { dirs_removed: r.dirs_removed, a: humanBytes(r.bytes_freed), b: r.failures.length ? t(' · {n} no se pudieron borrar (se reintenta al abrir)', { n: r.failures.length }) : '' }));
   } catch (e) {
     showError(e);
   }
@@ -83,14 +84,14 @@ export async function cleanTemp() {
 export async function clearDataCache() {
   try {
     const bytes = await api.dataCacheSize();
-    if (!bytes) { setStatus('No hay datos guardados.'); return; }
+    if (!bytes) { setStatus(t('No hay datos guardados.')); return; }
     const ok = await confirmDialog(
-      'Borrar datos guardados',
-      `Son ${humanBytes(bytes)} de fichas, portadas, puntajes por temporada y los datos de IMDb. Sirven para que el catálogo y las series abran al instante y no haya que volver a bajarlos (los de IMDb tardan unos segundos). No son videos.\n\nSi los borrás no se pierde nada: se vuelven a bajar cuando hagan falta.`,
-      [{ id: 'data-clear-cancel', label: 'Cancelar', value: false }, { id: 'data-clear-ok', label: `Borrar ${humanBytes(bytes)}`, value: true, primary: true }],
+      t('Borrar datos guardados'),
+      t('Son {a} de fichas, portadas, puntajes por temporada y los datos de IMDb. Sirven para que el catálogo y las series abran al instante y no haya que volver a bajarlos (los de IMDb tardan unos segundos). No son videos.\n\nSi los borrás no se pierde nada: se vuelven a bajar cuando hagan falta.', { a: humanBytes(bytes) }),
+      [{ id: 'data-clear-cancel', label: t('Cancelar'), value: false }, { id: 'data-clear-ok', label: t('Borrar {a}', { a: humanBytes(bytes) }), value: true, primary: true }],
     );
     if (!ok) return;
-    setStatus(`Datos guardados borrados: ${humanBytes(await api.clearDataCache())} liberados.`);
+    setStatus(t('Datos guardados borrados: {a} liberados.', { a: humanBytes(await api.clearDataCache()) }));
   } catch (e) {
     showError(e);
   }
@@ -98,14 +99,14 @@ export async function clearDataCache() {
 
 export async function stopAllAndClean() {
   const ok = await confirmDialog(
-    'Borrar todo',
-    'Se detienen todas las reproducciones y se borra TODO lo descargado, también lo pausado. Tu lista de magnets no se toca.',
-    [{ label: 'Cancelar', value: false }, { label: 'Borrar todo', value: true, primary: true }],
+    t('Borrar todo'),
+    t('Se detienen todas las reproducciones y se borra TODO lo descargado, también lo pausado. Tu lista de magnets no se toca.'),
+    [{ label: t('Cancelar'), value: false }, { label: t('Borrar todo'), value: true, primary: true }],
   );
   if (!ok) return;
   try {
     const r = await api.stopAllAndClean();
-    setStatus(`Todo borrado.${r.dirs_removed ? ` Restos limpiados: ${humanBytes(r.bytes_freed)}.` : ''}`);
+    setStatus(t('Todo borrado.{a}', { a: r.dirs_removed ? t(' Restos limpiados: {a}.', { a: humanBytes(r.bytes_freed) }) : '' }));
   } catch (e) {
     showError(e);
   }
@@ -115,9 +116,9 @@ export async function stopAllAndClean() {
 /** Estado de la cuenta de OpenSubtitles.com: conectada (con su cuota), login fallido o sin cuenta. */
 async function showOsLogin() {
   const q = await api.premiumQuota().catch(() => null);
-  $('#os-login-state').textContent = !q?.has_login ? 'Sin cuenta: la cuota se sabe con la primera descarga.'
-    : q.login_error ? `No se pudo entrar: ${q.login_error}`
-      : `Cuenta conectada${q.remaining != null ? ` · quedan ${q.remaining} de ${q.per_day} descargas hoy` : ''}.`;
+  $('#os-login-state').textContent = !q?.has_login ? t('Sin cuenta: la cuota se sabe con la primera descarga.')
+    : q.login_error ? t('No se pudo entrar: {login_error}', { login_error: q.login_error })
+      : t('Cuenta conectada{a}.', { a: q.remaining != null ? t(' · quedan {remaining} de {per_day} descargas hoy', { remaining: q.remaining, per_day: q.per_day }) : '' });
 }
 /** Guarda usuario y contraseña (vacíos = borrar) y prueba entrar. */
 export async function saveOsLogin() {
@@ -134,7 +135,7 @@ async function showLatTeam(keys) {
   const addons = await api.catalogAddons();
   $('#set-latteam-on').checked = addons.some((a) => a.id === 'latteam' && a.enabled);
   const has = keys.some((k) => k.service === 'latteam' && k.configured);
-  $('#latteam-state').textContent = has ? '✔ token guardado' : 'sin token';
+  $('#latteam-state').textContent = has ? t('✔ token guardado') : t('sin token');
   $('#latteam-state').className = `key-state ${has ? 'ok' : ''}`;
 }
 export async function toggleLatTeam() {
@@ -149,7 +150,7 @@ export async function saveLatTeamToken() {
     await api.setApiKey('latteam', input.value.trim());
     input.value = '';
     await showLatTeam(await api.apiKeys());
-    setStatus('Token de Lat-Team guardado en el almacén seguro.');
+    setStatus(t('Token de Lat-Team guardado en el almacén seguro.'));
   } catch (e) { showError(e); }
 }
 
@@ -173,12 +174,11 @@ export async function openSettings() {
   $('#dlg-settings').showModal();
 }
 
-/** Reproductor (2026-11-17): mpv incluido (o el instalado) o VLC si está. Sin mpv que corra (macOS < 15
- *  sin uno instalado) se recomienda instalarlo; mientras tanto se usa VLC si está. */
+/** Reproductores de esta compu (2026-11-17): mpv incluido (o el instalado) y VLC si está. Cuál usar se pregunta
+ *  en cada ▶ (2026-11-20). Sin mpv que corra (macOS < 15 sin uno instalado) se recomienda instalarlo; mientras
+ *  tanto se usa VLC si está. */
 async function renderPlayers() {
   const p = await api.playersStatus();
-  $(`#set-player-${p.chosen}`).checked = true;
-  $('#set-player-vlc').disabled = !p.vlc;
   $('#set-vlc-note').textContent = p.vlc ? 'Sin subtítulos combinados ni ecualizador.' : 'No está instalado en esta compu.';
   $('#set-mpv-note').textContent = { bundled: 'Incluido en la app. Recomendado: anda mejor y gasta menos.', installed: 'El que tenés instalado. Recomendado: anda mejor y gasta menos.',
     configured: 'El de la ruta que elegiste.' }[p.mpv] ?? 'Esta compu no puede usar el que trae la app (pide macOS 15 o más nuevo).';
@@ -186,13 +186,6 @@ async function renderPlayers() {
   $('#set-mpv-missing-text').textContent = p.vlc ? 'Mientras tanto se usa VLC. Te recomendamos instalar mpv: anda mejor y gasta menos.'
     : 'Sin mpv ni VLC no se puede reproducir. Instalá mpv (recomendado).';
   $('#btn-install-mpv').textContent = p.can_install_mpv ? 'Instalar mpv' : 'Cómo instalarlo';
-}
-export async function savePlayer(ev) {
-  try {
-    await api.setPlayer(ev.target.value);
-    setStatus('Reproductor guardado: rige desde la próxima reproducción.');
-    await renderPlayers();
-  } catch (e) { showError(e); }
 }
 /** Con Homebrew instala mpv (puede tardar unos minutos); si no, abre la guía de instalación. */
 export async function installMpv(ev) {
@@ -212,7 +205,7 @@ export async function installMpv(ev) {
 export async function saveEqualizer(ev) {
   try {
     await api.setEqualizer(ev.target.value);
-    setStatus('Sonido guardado: rige desde la próxima reproducción.');
+    setStatus(t('Sonido guardado: rige desde la próxima reproducción.'));
   } catch (e) {
     showError(e);
   }
@@ -224,7 +217,7 @@ export async function saveNetwork() {
   $('#set-announce').disabled = !$('#set-incoming').checked;
   try {
     await api.setNetwork($('#set-incoming').checked, $('#set-upnp').checked, $('#set-announce').checked);
-    setStatus('Red guardada: aplica desde la próxima reproducción.');
+    setStatus(t('Red guardada: aplica desde la próxima reproducción.'));
   } catch (e) {
     showError(e);
   }
@@ -240,7 +233,7 @@ function placeKey(service, configured) {
   const home = configured ? $('#set-connected') : document.getElementById(KEY_HOME[service]);
   if (!row || !home) return;
   const badge = document.getElementById(`key-${service}-state`);
-  badge.textContent = configured ? '✔ conectada' : 'sin configurar';
+  badge.textContent = configured ? t('✔ conectada') : t('sin configurar');
   badge.className = `key-state ${configured ? 'ok' : ''}`;
   row.classList.remove('editing', 'saved');
   if (row.parentElement === home) return;
@@ -271,14 +264,14 @@ export async function saveKey(service) {
     if (service === 'torbox') document.dispatchEvent(new CustomEvent('streamonte:torbox-key'));
     if (!value) {
       placeKey(service, false);
-      setStatus(`Key de ${SERVICE_NAMES[service]} borrada.`);
+      setStatus(t('Key de {a} borrada.', { a: SERVICE_NAMES[service] }));
       return;
     }
     const done = row.querySelector('.key-done');
     done.innerHTML = DONE_ICON;
-    done.append(service === 'tmdb' ? '¡TMDB conectada! El catálogo se recarga con filtros por votos, idioma y géneros.' : `¡${SERVICE_NAMES[service]} conectada!`);
+    done.append(service === 'tmdb' ? t('¡TMDB conectada! El catálogo se recarga con filtros por votos, idioma y géneros.') : t('¡{a} conectada!', { a: SERVICE_NAMES[service] }));
     row.classList.add('saved');
-    setStatus(`Key de ${SERVICE_NAMES[service]} guardada en el almacén seguro.`);
+    setStatus(t('Key de {a} guardada en el almacén seguro.', { a: SERVICE_NAMES[service] }));
     await wait(1800);
     const motion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (motion) await row.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(6px)' }], { duration: 220, easing: 'ease-in' }).finished;
@@ -296,17 +289,17 @@ export async function onConfirmClose(count) {
   if (closeAsking) return;
   closeAsking = true;
   const choice = await confirmDialog(
-    'Cerrar Streamonte',
-    `Hay ${count} reproducción(es) activa(s). En los dos casos la descarga queda pausada y guardada para retomarla al volver a abrir la app.`,
+    t('Cerrar Streamonte'),
+    t('Hay {count} reproducción(es) activa(s). En los dos casos la descarga queda pausada y guardada para retomarla al volver a abrir la app.', { count }),
     [
-      { label: 'Cancelar', value: null },
-      { label: 'Dejar el reproductor abierto', value: 'leave-running' },
-      { label: 'Cerrar el reproductor y salir', value: 'stop-all', primary: true },
+      { label: t('Cancelar'), value: null },
+      { label: t('Dejar el reproductor abierto'), value: 'leave-running' },
+      { label: t('Cerrar el reproductor y salir'), value: 'stop-all', primary: true },
     ],
   );
   closeAsking = false;
   if (choice) {
-    setStatus('Cerrando…');
+    setStatus(t('Cerrando…'));
     await api.onClose(choice).catch(showError);
   }
 }
@@ -317,19 +310,19 @@ export async function onNetCheck() {
   const out = $('#net-check-result');
   btn.disabled = true;
   out.className = 'net-check-result';
-  out.textContent = 'Abriendo el puerto en el router y probando desde internet (hasta 30 s)…';
+  out.textContent = t('Abriendo el puerto en el router y probando desde internet (hasta 30 s)…');
   try {
     const r = await api.checkIncoming();
-    const ip = r.local_ip ? ` · IP de esta PC: ${r.local_ip}` : '';
+    const ip = r.local_ip ? t(' · IP de esta PC: {local_ip}', { local_ip: r.local_ip }) : '';
     // Por qué está cerrado, según lo que respondió el router a UPnP (2026-11-16).
-    const why = !r.upnp_on ? 'UPnP está apagado: abrilo a mano en el router (pasos de arriba)'
-      : r.upnp === false ? 'el router rechazó abrirlo por UPnP. Suele ser porque otra PC de la casa ya tiene ese puerto, o el router lo bloquea'
-        : r.upnp === true ? 'el router aceptó abrirlo, pero igual no llega: puede ser el firewall de esta PC o que tu proveedor comparta la IP pública (CGNAT)'
-          : 'el router no respondió a UPnP (puede tenerlo apagado): activalo en el router o abrí el puerto a mano';
+    const why = !r.upnp_on ? t('UPnP está apagado: abrilo a mano en el router (pasos de arriba)')
+      : r.upnp === false ? t('el router rechazó abrirlo por UPnP. Suele ser porque otra PC de la casa ya tiene ese puerto, o el router lo bloquea')
+        : r.upnp === true ? t('el router aceptó abrirlo, pero igual no llega: puede ser el firewall de esta PC o que tu proveedor comparta la IP pública (CGNAT)')
+          : t('el router no respondió a UPnP (puede tenerlo apagado): activalo en el router o abrí el puerto a mano');
     out.className = `net-check-result ${r.reachable === true ? 'ok' : r.reachable === false ? 'bad' : ''}`;
-    out.textContent = r.reachable === true ? `Abierto: el puerto ${r.port} llega desde internet${r.upnp ? ' (lo abrió UPnP)' : ''}${ip}`
-      : r.reachable === false ? `Cerrado: el puerto ${r.port} no llega desde internet; ${why}${ip}`
-        : `${r.problem ?? 'No se pudo probar.'}${ip}`;
+    out.textContent = r.reachable === true ? t('Abierto: el puerto {port} llega desde internet{a}{ip}', { port: r.port, a: r.upnp ? t(' (lo abrió UPnP)') : '', ip })
+      : r.reachable === false ? t('Cerrado: el puerto {port} no llega desde internet; {why}{ip}', { port: r.port, why, ip })
+        : `${r.problem ?? t('No se pudo probar.')}${ip}`;
   } catch (e) {
     showError(e);
     out.textContent = '';

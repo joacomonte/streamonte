@@ -171,6 +171,9 @@ pub fn parse(raw: &Stream, ctx: &ParseCtx) -> Parsed {
     if audio == ["ja"] {
         return Parsed::Skip;
     }
+    if is_music(&text, file_name.as_deref(), &resolution, &codec, &source) {
+        return Parsed::Skip;
+    }
     let is_pack = ctx.is_series
         && release.episode.is_none()
         && (release.season.is_some()
@@ -336,6 +339,36 @@ fn is_cam(text: &str) -> bool {
         let from = t.iter().position(is_year).map_or(0, |i| i + 1);
         t[from..].iter().any(|t| CAM.contains(&t.as_str()))
     })
+}
+
+/// Pack de música, no video (2026-11-20: "Whalefall - Discography" era un pack de mp3 y se
+/// ofrecía como fuente): el archivo es de audio, el nombre dice discografía/banda sonora, o trae
+/// mp3/flac sin ninguna señal de video (resolución, códec, origen).
+fn is_music(
+    text: &str,
+    file_name: Option<&str>,
+    resolution: &Option<String>,
+    codec: &Option<String>,
+    source: &Option<String>,
+) -> bool {
+    const MUSIC: &[&str] = &[
+        "discography",
+        "discografia",
+        "discografía",
+        "soundtrack",
+        "ost",
+    ];
+    const AUDIO: &[&str] = &["mp3", "flac", "m4a", "ogg", "opus", "wav", "alac", "ape"];
+    let audio_file = file_name
+        .and_then(|f| f.rsplit_once('.'))
+        .is_some_and(|(_, ext)| AUDIO.contains(&ext.to_ascii_lowercase().as_str()));
+    let t = tokens(text);
+    let has = |words: &[&str]| t.iter().any(|w| words.contains(&w.as_str()));
+    let video_signs = resolution.is_some()
+        || codec.is_some()
+        || source.is_some()
+        || file_name.is_some_and(crate::engine::is_video);
+    audio_file || has(MUSIC) || (has(AUDIO) && !video_signs)
 }
 
 fn tokens(text: &str) -> Vec<String> {
@@ -508,6 +541,29 @@ mod tests {
         let nyaa =
             stream(serde_json::json!({"infoHash":HASH,"title":"Show 01\n👤 3 💾 1 GB ⚙️ NyaaSi"}));
         assert!(matches!(parse(&nyaa, &ctx(true, true)), Parsed::Skip));
+        // Packs de música (2026-11-20): fuera; una peli con audio FLAC o MP3 se queda.
+        for title in [
+            "Whalefall - Discography (2015-2020)\n👤 4 💾 600 MB",
+            "Interstellar OST [2014]",
+            "Some Album 2019 [MP3 320]",
+            "Movie.2020\nMovie.2020.Part04.flac",
+        ] {
+            let s = stream(serde_json::json!({"infoHash":HASH,"title":title}));
+            assert!(
+                matches!(parse(&s, &ctx(true, false)), Parsed::Skip),
+                "{title}"
+            );
+        }
+        for title in [
+            "Movie.2020.1080p.BluRay.REMUX.FLAC.5.1",
+            "Movie.2005.DVDRip.XviD.MP3-GRP",
+        ] {
+            let s = stream(serde_json::json!({"infoHash":HASH,"title":title}));
+            assert!(
+                matches!(parse(&s, &ctx(true, false)), Parsed::Candidate(_)),
+                "{title}"
+            );
+        }
         let ja = stream(serde_json::json!({"infoHash":HASH,"title":"Show 01 🇯🇵"}));
         assert!(matches!(parse(&ja, &ctx(true, true)), Parsed::Skip));
         let html = cand(parse(

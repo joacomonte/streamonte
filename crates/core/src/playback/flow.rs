@@ -65,13 +65,57 @@ pub(super) async fn stream(
     *slot.mpv.lock().expect("mpv") = player.mpv.clone();
     slot.set_state(PlaybackState::Playing);
     shared.emit_row(slot);
-    tokio::select! {
-        _ = player.wait_exit() => {}
+    if let Some(mpv) = &player.mpv {
+        spawn_first_frame_watcher(shared.clone(), slot.clone(), mpv.events());
+    }
+    let exit = tokio::select! {
+        exit = player.wait_exit(|| showed_video(slot)) => Some(exit),
         _ = slot.cancel.cancelled() => {
             let _ = player.kill().await;
+            None
         }
-    }
+    };
     *slot.mpv.lock().expect("mpv") = None;
+    match exit {
+        Some(exit) => closed(shared, slot, req.player, exit),
+        None => Ok(()),
+    }
+}
+
+/// ¿mpv llegó a mostrar imagen de video? (VLC no avisa: siempre `false`.)
+fn showed_video(slot: &Slot) -> bool {
+    slot.row
+        .lock()
+        .expect("row")
+        .time_to_first_frame_secs
+        .is_some()
+}
+
+/// El reproductor se cerró solo (no "Detener"): se loguea siempre cómo y, si no pudo abrir el
+/// video ([`crate::player::PlayerExit`]), es un error (la fila queda en falla, sin "¿seguir bajando?").
+fn closed(
+    shared: &Shared,
+    slot: &Slot,
+    kind: PlayerKind,
+    exit: Result<crate::player::PlayerExit>,
+) -> Result<()> {
+    let exit = match exit {
+        Ok(exit) => exit,
+        Err(e) => {
+            shared.log(slot, format!("reproductor cerrado ({e})"));
+            return Ok(());
+        }
+    };
+    if exit.failed_to_open {
+        let name = match kind {
+            PlayerKind::Mpv => "mpv",
+            PlayerKind::Vlc => "VLC",
+        };
+        return Err(CoreError::Player(format!(
+            "{name} no pudo abrir el video ({exit})"
+        )));
+    }
+    shared.log(slot, format!("reproductor cerrado ({exit})"));
     Ok(())
 }
 
@@ -323,7 +367,7 @@ pub(super) async fn run(
     let mut tick = tokio::time::interval(Duration::from_secs(1));
     let exit = loop {
         tokio::select! {
-            status = player.wait_exit() => break Some(status),
+            exit = player.wait_exit(|| showed_video(slot)) => break Some(exit),
             _ = slot.cancel.cancelled() => break None,
             _ = tick.tick() => {
                 // Con límite: un motor trabado no debe tapar el cierre del reproductor ni "Detener".
@@ -355,35 +399,17 @@ pub(super) async fn run(
     }
     *slot.mpv.lock().expect("mpv") = None;
     let closed_by_user = exit.is_some();
-    // mpv que sale con error sin haber mostrado imagen = no pudo abrir el video: no preguntar.
-    let failed_to_open = player_kind == PlayerKind::Mpv
-        && slot
-            .row
-            .lock()
-            .expect("row")
-            .time_to_first_frame_secs
-            .is_none()
-        && matches!(&exit, Some(Ok(status)) if !status.success());
-    if failed_to_open {
-        let code = match &exit {
-            Some(Ok(status)) => status.code().map_or("?".into(), |c| c.to_string()),
-            _ => "?".into(),
-        };
-        let message = format!("mpv no pudo abrir el video (código {code})");
-        shared.log(slot, message.clone());
-        shared.status(StatusLevel::Error, message.clone());
-        slot.set_state(PlaybackState::Failed { message });
-        shared.emit_row(slot);
-    } else if closed_by_user {
-        shared.log(slot, "reproductor cerrado".into());
-    } else if slot.keep_player.load(Ordering::Relaxed) {
-        shared.log(
+    match exit {
+        // No pudo abrir el video: error (la fila queda en falla); no se pregunta nada.
+        Some(exit) => closed(shared, slot, player_kind, exit)?,
+        None if slot.keep_player.load(Ordering::Relaxed) => shared.log(
             slot,
             "app cerrada: el reproductor sigue con lo que tiene en caché (Q-10)".into(),
-        );
-    } else {
-        shared.log(slot, "detenido desde la app".into());
-        let _ = player.kill().await;
+        ),
+        None => {
+            shared.log(slot, "detenido desde la app".into());
+            let _ = player.kill().await;
+        }
     }
     if let Some(actual_bps) = calibration.sustained() {
         shared
@@ -391,7 +417,7 @@ pub(super) async fn run(
             .await;
     }
     // 7. Reproductor cerrado sin terminar de bajar: ¿seguir bajando de fondo o pausar? (2026-11-14)
-    if closed_by_user && !failed_to_open && slot.row.lock().expect("row").progress < 0.999 {
+    if closed_by_user && slot.row.lock().expect("row").progress < 0.999 {
         slot.set_state(PlaybackState::AskAfterClose);
         shared.emit_row(slot);
         if wait_answer(&slot.keep_downloading, &slot.cancel, ASK_TIMEOUT).await {

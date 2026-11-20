@@ -4,7 +4,7 @@ import json
 import re
 import sys
 
-BROWSER = {"document", "matchMedia", "innerWidth", "innerHeight", "requestAnimationFrame", "Node", "localStorage", "getComputedStyle", "ClipboardItem"}
+BROWSER = {"document", "matchMedia", "innerWidth", "innerHeight", "requestAnimationFrame", "Node", "localStorage", "getComputedStyle", "ClipboardItem", "IntersectionObserver", "cancelAnimationFrame", "NodeFilter"}
 bad = []
 for d in json.load(sys.stdin)["diagnostics"]:
     name = re.match(r"(\S+)", d["message"]).group(1)

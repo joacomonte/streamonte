@@ -1,5 +1,6 @@
 // Estado compartido (biblioteca del núcleo, reproducciones, análisis): un solo objeto que los módulos leen y escriben (`state.x`).
 // Solo lo que usa más de un módulo; lo propio de cada uno (caché de filas, marquesina…) vive ahí.
+import { t } from './i18n.js';
 
 export const state = {
   /** @type {Map<string, any>} clave de video (`key` del núcleo: hash + episodio) → fila de la
@@ -37,7 +38,7 @@ export function fullName(e) {
 /** Nombre corto para los mensajes: de una fila (`key`) o de un torrent (info_hash). */
 export function titleOf(k) {
   const e = state.entries.get(k) ?? entryOfHash(k);
-  if (!e) return 'un torrent';
+  if (!e) return t('un torrent');
   const r = e.release;
   const ep = r?.season != null && r?.episode != null ? ` T${r.season}·E${r.episode}` : '';
   return `${r?.title || fullName(e)}${ep}`;

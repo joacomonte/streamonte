@@ -4,6 +4,7 @@
 import { api } from './api.js';
 import { openSettings } from './dialogs.js';
 import { $, el, icon, setStatus } from './dom.js';
+import { langs, locale, t } from './i18n.js';
 import { loadStreams, renderStreamsOnly } from './catalog-options.js';
 import { showError, state, view } from './catalog-state.js';
 import { leaveTests } from './catalog-tests.js';
@@ -14,14 +15,14 @@ import { reduceMotion } from './catalog.js';
 export function seasonMini(r, o) {
   const out = [seasonBars(r, o, false)];
   if (o?.date) {
-    const when = o.days <= 1 ? (o.days ? 'mañana' : 'hoy') : `en ${o.days} días`;
+    const when = o.days <= 1 ? t(o.days ? 'mañana' : 'hoy') : t('en {n} días', { n: o.days });
     out.push(el('span', { class: 'cat-mini-next soon' },
       el('span', { class: 'cat-mini-soon' }, icon('clock', 12), when),
-      `T${o.season}${o.episode > 1 ? ` E${o.episode}` : ''} · ${new Date(`${o.date}T12:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }).replace('.', '')}`));
+      `T${o.season}${o.episode > 1 ? ` E${o.episode}` : ''} · ${dayMonth(o.date)}`));
   } else if (o) {
     const end = o.tone === 'done' || o.tone === 'stop';
     out.push(el('span', { class: `cat-mini-next ${o.tone}` }, el('span', { class: 'show-status-dot', 'aria-hidden': 'true' }),
-      end ? `Serie ${o.label.toLowerCase()}` : `${o.label} · sin fecha`));
+      end ? t(o.tone === 'done' ? 'Serie terminada' : 'Serie cancelada') : t('{s} · sin fecha', { s: t(o.label) })));
   }
   return out.filter(Boolean);
 }
@@ -48,13 +49,13 @@ export async function openSide(kind, id, name) {
     return;
   }
   renderSide();
-  setStatus('Abriendo la serie…');
+  setStatus(t('Abriendo la serie…'));
   try {
     const meta = await api.catalogMeta(kind, id);
     if (seq !== view.sideSeq) return;
     state.side.meta = meta;
     state.side.runtime = meta.runtime_min;
-    setStatus('Elegí temporada y episodio.');
+    setStatus(t('Elegí temporada y episodio.'));
     renderSide();
     // Puntaje por temporada de fondo (2026-11-16); la primera vez sin key baja datasets de IMDb.
     api.catalogSeasonRatings(id).then((r) => { if (seq === view.sideSeq) { state.side.seasonRatings = r; renderSide(); } })
@@ -78,9 +79,26 @@ export async function goSeason(season) {
   api.catalogStopStreams().catch(() => {});
   Object.assign(state.side, { season, episode: null, videoId: null });
   state.update = null;
+  loadEpisodeTexts(season);
   renderSide();
   $('#cat-side').scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
 }
+
+/** Títulos y sinopsis de los episodios en los idiomas elegidos (TMDB; Cinemeta los trae en inglés). Sin key de TMDB
+ *  o con todo en inglés quedan los de Cinemeta. Una vez por temporada abierta. */
+function loadEpisodeTexts(season) {
+  const s = state.side;
+  if (season == null || !s.details?.has_key || s.epTexts?.[season] || (langs.app === 'en' && langs.titles === 'en')) return;
+  s.epTexts = { ...s.epTexts, [season]: new Map() };
+  api.catalogEpisodes(s.id, season).then((list) => {
+    if (state.side !== s) return;
+    s.epTexts[season] = new Map(list.map((x) => [x.episode, x]));
+    if (s.season === season) renderSide();
+  }).catch(() => {});
+}
+
+/** Título en el idioma elegido para los títulos (TMDB) o, sin eso, el de Cinemeta. */
+const titleOf = (s) => s.details?.details?.title ?? s.meta?.name ?? s.name;
 
 export function markActiveCard() {
   document.querySelectorAll('.cat-card').forEach((c) => c.classList.toggle('active', c.dataset.id === state.side?.id));
@@ -88,12 +106,12 @@ export function markActiveCard() {
 
 export function crumbs(s) {
   // Serie › Temporada › Episodio como píldoras: las anteriores llevan de vuelta a ese paso.
-  const steps = [{ label: s.name, back: s.season != null ? () => goSeason(null) : null, cls: 'root' }];
-  if (s.season != null) steps.push({ label: s.season === 0 ? 'Especiales' : `Temporada ${s.season}`, back: s.episode != null ? () => goSeason(s.season) : null });
-  if (s.episode != null) steps.push({ label: `Episodio ${s.episode}` });
+  const steps = [{ label: titleOf(s), back: s.season != null ? () => goSeason(null) : null, cls: 'root' }];
+  if (s.season != null) steps.push({ label: s.season === 0 ? t('Especiales') : t('Temporada {n}', { n: s.season }), back: s.episode != null ? () => goSeason(s.season) : null });
+  if (s.episode != null) steps.push({ label: t('Episodio {n}', { n: s.episode }) });
   const up = steps.at(-2)?.back;
-  return el('nav', { class: 'crumbs', 'aria-label': 'Serie' },
-    up ? el('button', { id: 'cat-crumb-up', class: 'crumb-up', title: 'Volver', 'aria-label': 'Volver', onclick: up }, '←') : null,
+  return el('nav', { class: 'crumbs', 'aria-label': t('Serie') },
+    up ? el('button', { id: 'cat-crumb-up', class: 'crumb-up', title: t('Volver'), 'aria-label': t('Volver'), onclick: up }, '←') : null,
     el('ol', { class: 'crumb-path' }, steps.map((st, i) => el('li', {},
       st.back
         ? el('button', { id: `cat-crumb-${i}`, class: `crumb ${st.cls ?? ''}`, title: st.label, onclick: st.back }, st.label)
@@ -114,7 +132,7 @@ export function renderSide() {
   const intro = s.meta ? el('div', { class: `side-intro ${collapsed ? 'collapsed' : ''}`, 'aria-hidden': collapsed ? 'true' : null, inert: collapsed || null },
     hero(s.meta), about(s.meta, s)) : null;
   aside.replaceChildren(...[
-    el('button', { id: 'cat-side-close', class: 'side-close', title: 'Cerrar (Esc)', 'aria-label': 'Cerrar panel', onclick: closeSide }, '✕'),
+    el('button', { id: 'cat-side-close', class: 'side-close', title: t('Cerrar (Esc)'), 'aria-label': t('Cerrar panel'), onclick: closeSide }, '✕'),
     intro,
     // Migas solo en series (2026-11-17): en una película quedaba una franja vacía.
     s.kind === 'series' ? el('div', { class: 'side-head' }, crumbs(s)) : null,
@@ -129,49 +147,57 @@ export function renderSide() {
 }
 
 /** Géneros de Cinemeta (en inglés) a español; los que no están se muestran tal cual. */
-export const GENRE_ES = { Action: 'Acción', Adventure: 'Aventura', Animation: 'Animación', Biography: 'Biografía', Comedy: 'Comedia', Crime: 'Crimen', Documentary: 'Documental', Drama: 'Drama', Family: 'Familia', Fantasy: 'Fantasía', 'Film-Noir': 'Cine negro', History: 'Historia', Horror: 'Terror', Music: 'Música', Musical: 'Musical', Mystery: 'Misterio', Romance: 'Romance', 'Sci-Fi': 'Ciencia ficción', 'Science Fiction': 'Ciencia ficción', Short: 'Corto', Sport: 'Deportes', Thriller: 'Suspenso', War: 'Bélica', Western: 'Western', 'Reality-TV': 'Reality', 'Talk-Show': 'Talk show', 'Game-Show': 'Concurso', News: 'Noticias' };
+const GENRE_ES = { Action: 'Acción', Adventure: 'Aventura', Animation: 'Animación', Biography: 'Biografía', Comedy: 'Comedia', Crime: 'Crimen', Documentary: 'Documental', Drama: 'Drama', Family: 'Familia', Fantasy: 'Fantasía', 'Film-Noir': 'Cine negro', History: 'Historia', Horror: 'Terror', Music: 'Música', Musical: 'Musical', Mystery: 'Misterio', Romance: 'Romance', 'Sci-Fi': 'Ciencia ficción', 'Science Fiction': 'Ciencia ficción', Short: 'Corto', Sport: 'Deportes', Thriller: 'Suspenso', War: 'Bélica', Western: 'Western', 'Reality-TV': 'Reality', 'Talk-Show': 'Talk show', 'Game-Show': 'Concurso', News: 'Noticias' };
+
+/** Género de Cinemeta en el idioma de la app (en inglés, tal cual viene). */
+export const genreName = (g) => (langs.app === 'en' ? g : GENRE_ES[g] ?? g);
 
 /** Cabecera de la serie o película: fondo, póster y datos. */
-export const compact = new Intl.NumberFormat('es-AR', { notation: 'compact' });
-export const LANG_ES = new Intl.DisplayNames(['es'], { type: 'language' });
+const compact = new Intl.NumberFormat(locale(), { notation: 'compact' });
+const LANG_NAMES = new Intl.DisplayNames([langs.app], { type: 'language' });
+const dayMonth = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString(locale(), { day: 'numeric', month: 'short' }).replace('.', '');
 export function hero(m) {
   // El puntaje es el link a IMDb (2026-11-17: antes un botón aparte que ocupaba una fila).
-  const rating = el('button', { id: 'cat-open-imdb', class: 'side-imdb', title: 'Ver en IMDb', onclick: () => api.catalogOpenImdb(m.id).catch(showError) },
-    m.imdb_rating ? `★ ${m.imdb_rating}${m.imdb_votes ? ` (${compact.format(m.imdb_votes)} votos)` : ''}` : 'IMDb', icon('external', 12));
+  const rating = el('button', { id: 'cat-open-imdb', class: 'side-imdb', title: t('Ver en IMDb'), onclick: () => api.catalogOpenImdb(m.id).catch(showError) },
+    m.imdb_rating ? `★ ${m.imdb_rating}${m.imdb_votes ? ` (${t('{n} votos', { n: compact.format(m.imdb_votes) })})` : ''}` : 'IMDb', icon('external', 12));
   // El de TMDB (el más viejo: temporada 1) si hay; si no, el primero de Cinemeta.
   const yt = state.side?.details?.details?.trailer ?? m.trailer;
-  const trailer = yt && el('button', { id: 'cat-open-trailer', class: 'side-imdb', title: 'Ver el tráiler en YouTube', onclick: () => api.catalogOpenTrailer(yt).catch(showError) },
-    icon('play', 11), 'Tráiler');
+  const trailer = yt && el('button', { id: 'cat-open-trailer', class: 'side-imdb', title: t('Ver el tráiler en YouTube'), onclick: () => api.catalogOpenTrailer(yt).catch(showError) },
+    icon('play', 11), t('Tráiler'));
   const facts = [m.year, rating, m.runtime_min && `${m.runtime_min} min`, trailer].filter(Boolean).flatMap((f, i) => (i ? ['  ·  ', f] : [f]));
   return el('div', { class: 'side-hero' },
     m.background ? el('div', { class: 'side-hero-bg', style: `background-image:url("${encodeURI(m.background)}")` }) : null,
     m.poster ? el('img', { class: 'side-hero-poster', src: m.poster, alt: '', referrerpolicy: 'no-referrer', onerror: (ev) => ev.target.remove() }) : null,
-    el('div', { class: 'side-hero-text' }, el('h2', {}, m.name), el('p', {}, facts)));
+    el('div', { class: 'side-hero-text' }, el('h2', {}, titleOf(state.side)), el('p', {}, facts)));
 }
 
-/** Debajo de la cabecera (pedido 2026-11-15): cadenas y géneros, sinopsis (clic para verla entera),
- *  reparto e idioma original, link a IMDb y similares (2026-11-17). Sin key de TMDB, en lugar de
- *  lo que viene de TMDB se ofrece configurarla. */
+/** Debajo de la cabecera (pedido 2026-11-15): dónde verla en Argentina (2026-11-20), cadenas y géneros, sinopsis
+ *  (clic para verla entera), reparto e idioma original, link a IMDb y similares (2026-11-17). Con TMDB, sinopsis y
+ *  géneros en el idioma de la app. Sin key de TMDB, en lugar de lo que viene de TMDB se ofrece configurarla. */
 export function about(m, s) {
   const tm = s.details?.details;
   const facts = [
-    m.cast.length ? ['Reparto', m.cast.join(', ')] : null,
-    tm?.original_language ? ['Idioma original', LANG_ES.of(tm.original_language)] : null,
+    m.cast.length ? [t('Reparto'), m.cast.join(', ')] : null,
+    tm?.original_language ? [t('Idioma original'), cap(LANG_NAMES.of(tm.original_language))] : null,
   ].filter(Boolean);
-  const desc = m.description ? el('p', {
+  const description = tm?.overview ?? m.description;
+  const desc = description ? el('p', {
     class: 'side-desc', tabindex: 0, 'aria-expanded': 'false',
     onclick: (ev) => { const p = ev.currentTarget; p.setAttribute('aria-expanded', String(p.classList.toggle('open'))); },
     onkeydown: (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.currentTarget.click(); } },
-  }, m.description) : null;
-  const badges = [...(tm?.networks ?? []).map((n) => el('span', { class: 'side-genre network' }, n)),
-    ...m.genres.map((g) => el('span', { class: 'side-genre' }, GENRE_ES[g] ?? g))];
+  }, description) : null;
+  const badges = [
+    ...(tm?.providers ?? []).map((p, i) => el('span', { id: `cat-provider-${i}`, class: 'side-genre provider', title: t('Para ver en Argentina') },
+      p.logo ? el('img', { src: p.logo, alt: '', width: 18, height: 18, referrerpolicy: 'no-referrer', onerror: (ev) => ev.target.remove() }) : null, p.name)),
+    ...(tm?.networks ?? []).map((n) => el('span', { class: 'side-genre network' }, n)),
+    ...(tm?.genres?.length ? tm.genres : m.genres.map(genreName)).map((g) => el('span', { class: 'side-genre' }, g))];
   return el('div', { class: 'side-about' },
-    badges.length ? el('div', { class: 'side-genres' }, badges) : null,
+    badges.length ? el('div', { class: 'side-genres', 'aria-label': t('Dónde verla y géneros') }, badges) : null,
     desc,
     facts.length ? el('dl', { class: 'side-facts' }, facts.flatMap(([k, v]) => [el('dt', {}, k), el('dd', {}, v)])) : null,
     s.details && !s.details.has_key ? el('div', { class: 'side-tmdb-teaser' },
-      el('p', {}, el('b', {}, 'Más datos con TMDB'), 'Idioma original (elige mejor el audio), cadena de la serie y títulos similares. La key es gratis.'),
-      el('button', { id: 'cat-tmdb-setup', class: 'pop-btn', onclick: openSettings }, 'Configurar'))
+      el('p', {}, el('b', {}, t('Más datos con TMDB')), t('Idioma original (elige mejor el audio), dónde verla, cadena de la serie y títulos similares. La key es gratis.')),
+      el('button', { id: 'cat-tmdb-setup', class: 'pop-btn', onclick: openSettings }, t('Configurar')))
       : s.details?.has_key ? similarBox(s) : null);
 }
 
@@ -191,10 +217,10 @@ export function similarBox(s) {
   };
   return el('div', { class: `side-similar ${open ? 'open' : ''}` },
     el('button', { id: 'cat-similar-toggle', class: 'side-similar-head', 'aria-expanded': String(open), onclick: toggle },
-      el('span', {}, 'Similares'), icon('chev', 16)),
+      el('span', {}, t('Similares')), icon('chev', 16)),
     !open ? null
       : list == null ? el('div', { class: 'side-similar-grid', 'aria-busy': 'true' }, Array.from({ length: 5 }, () => el('span', { class: 'skel side-similar-skel' })))
-        : !list.length ? el('p', { class: 'hint' }, 'TMDB no tiene recomendaciones para este título.')
+        : !list.length ? el('p', { class: 'hint' }, t('TMDB no tiene recomendaciones para este título.'))
           : el('div', { class: 'side-similar-grid' }, list.map((x) => el('button', {
           id: `cat-similar-${x.id}`, class: 'side-similar-card', title: x.year ? `${x.name} (${x.year})` : x.name, onclick: () => openSide(s.kind, x.id, x.name),
         },
@@ -208,7 +234,8 @@ export function similarBox(s) {
  *  peor, así se ve si sube o baja aunque todas estén entre 8 y 9. Color por nota. Si viene otra
  *  temporada, una barra punteada al final. null = no hay nada que mostrar. */
 export const seasonTone = (x) => (x >= 8.5 ? 'great' : x >= 7.5 ? 'good' : x >= 6.5 ? 'meh' : 'bad');
-export const fmtScore = (x) => x.toFixed(1).replace('.', ',');
+export const fmtScore = (x) => x.toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const cap = (x) => (x ? x[0].toUpperCase() + x.slice(1) : x);
 export function seasonBars(r, o, large) {
   const v = r.seasons.map((x) => x.rating);
   const upcoming = o && !(o.tone === 'done' || o.tone === 'stop') && o.season > (r.seasons.at(-1)?.season ?? 0) ? o : null;
@@ -221,12 +248,12 @@ export function seasonBars(r, o, large) {
   const bars = r.seasons.map((x, i) => col(large ? 'button' : 'span', {
     ...(large ? { id: `cat-season-bar-${x.season}`, onclick: () => goSeason(x.season) } : {}),
     class: `sbar ${seasonTone(x.rating)} ${large && i === best ? 'best' : ''}`,
-    title: `Temporada ${x.season}: ${fmtScore(x.rating)} (${x.episodes} episodios con puntaje)`,
+    title: t('Temporada {s}: {r} ({n} episodios con puntaje)', { s: x.season, r: fmtScore(x.rating), n: x.episodes }),
   }, fmtScore(x.rating), el('i', { style: `height:${height(x.rating)}` }), `T${x.season}`));
   // Lo que viene: punteada, a la altura de la última, con la fecha si se sabe.
   const next = upcoming && col('span', {
-    class: `sbar ghost ${upcoming.tone}`, title: `Temporada ${upcoming.season}: ${upcoming.date ? shortDate(upcoming.date) : `${upcoming.label.toLowerCase()}, sin fecha anunciada`}`,
-  }, upcoming.date ? new Date(`${upcoming.date}T12:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }).replace('.', '') : '?',
+    class: `sbar ghost ${upcoming.tone}`, title: t('Temporada {n}', { n: upcoming.season }) + ': ' + (upcoming.date ? shortDate(upcoming.date) : t('{s}, sin fecha anunciada', { s: t(upcoming.label) })),
+  }, upcoming.date ? dayMonth(upcoming.date) : '?',
   el('i', { style: `height:${height(v.at(-1))}` }), `T${upcoming.season}`);
   return el('span', { class: `sbars ${large ? 'large' : 'small'}` }, bars, next);
 }
@@ -235,8 +262,8 @@ export function seasonTrend(r) {
   const v = r.seasons.map((x) => x.rating);
   if (v.length < 2) return null;
   const delta = v.at(-1) - v[0];
-  if (Math.abs(delta) < 0.3) return { text: 'Estable', icon: 'trend-flat', tone: 'flat' };
-  return { text: `${delta > 0 ? 'Mejoró +' : 'Decayó −'}${fmtScore(Math.abs(delta))}`, icon: delta > 0 ? 'trend-up' : 'trend-down', tone: delta > 0 ? 'up' : 'down' };
+  if (Math.abs(delta) < 0.3) return { text: t('Estable'), icon: 'trend-flat', tone: 'flat' };
+  return { text: t(delta > 0 ? 'Mejoró +{d}' : 'Decayó −{d}', { d: fmtScore(Math.abs(delta)) }), icon: delta > 0 ? 'trend-up' : 'trend-down', tone: delta > 0 ? 'up' : 'down' };
 }
 
 /** Gráfico del panel de la serie. `r`: undefined = cargando (esqueleto). */
@@ -246,9 +273,9 @@ export function seasonChart(r, o) {
   if (!bars) return null;
   const trend = seasonTrend(r), end = o?.tone === 'done' || o?.tone === 'stop';
   return el('div', { class: 'season-chart' },
-    el('div', { class: 'season-chart-head' }, el('b', {}, 'Puntaje por temporada'),
+    el('div', { class: 'season-chart-head' }, el('b', {}, t('Puntaje por temporada')),
       el('span', { class: 'season-chart-meta' },
-        end ? el('span', { class: `season-end ${o.tone}`, title: 'No hay más temporadas' }, icon(o.tone === 'done' ? 'flag' : 'ban', 12), o.label) : null,
+        end ? el('span', { class: `season-end ${o.tone}`, title: t('No hay más temporadas') }, icon(o.tone === 'done' ? 'flag' : 'ban', 12), t(o.label)) : null,
         trend ? el('span', { class: `season-trend ${trend.tone}` }, icon(trend.icon, 13), trend.text) : null,
         el('span', { class: 'season-chart-src' }, 'IMDb'))),
     bars);
@@ -272,16 +299,16 @@ export function seasonOutlook(st, last) {
 export function nextSeasonTile(o) {
   if (!o) return null;
   const end = o.tone === 'done' || o.tone === 'stop';
-  const title = end ? `Serie ${o.label.toLowerCase()}` : o.episode > 1 ? `T${o.season} E${o.episode}` : `Temporada ${o.season}`;
-  const detail = end ? 'No hay más temporadas'
-    : o.date ? `${o.days <= 1 ? `Se estrena ${o.days ? 'mañana' : 'hoy'}` : `Se estrena en ${o.days} días`} · ${shortDate(o.date)}`
-    : `${o.label} · sin fecha anunciada`;
+  const title = end ? t(o.tone === 'done' ? 'Serie terminada' : 'Serie cancelada') : o.episode > 1 ? `T${o.season} E${o.episode}` : t('Temporada {n}', { n: o.season });
+  const detail = end ? t('No hay más temporadas')
+    : o.date ? `${o.days <= 1 ? t(o.days ? 'Se estrena mañana' : 'Se estrena hoy') : t('Se estrena en {n} días', { n: o.days })} · ${shortDate(o.date)}`
+    : t('{s} · sin fecha anunciada', { s: t(o.label) });
   return el('div', { id: 'cat-season-next', class: `season-tile next ${o.tone}` },
     el('span', { class: 'season-tile-num' }, end ? icon(o.tone === 'done' ? 'flag' : 'ban', 22) : String(o.season)),
     el('span', { class: 'season-tile-text' }, el('b', {}, title), el('span', {}, detail)));
 }
 
-export const shortDate = (iso) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+export const shortDate = (iso) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
 export function sideBody(s) {
   if (s.videoId) return el('div', { id: 'cat-streams' });
@@ -291,29 +318,34 @@ export function sideBody(s) {
     // Temporadas: tarjetas sin imagen (las de episodios pueden spoilear, pedido 2026-11-15).
     const seasons = [...new Set(eps.map((e) => e.season))].sort((a, b) => (a || 999) - (b || 999));
     const outlook = seasonOutlook(s.seasonRatings?.status, Math.max(0, ...seasons));
+    // Puntaje de IMDb de cada temporada (2026-11-20, como la web), del mismo dato que el gráfico.
+    const score = new Map((s.seasonRatings?.seasons ?? []).map((x) => [x.season, x.rating]));
     const tiles = seasons.map((n) => {
       const list = eps.filter((e) => e.season === n);
       const years = [...new Set(list.map((e) => e.released?.slice(0, 4)).filter(Boolean))];
+      const r = score.get(n);
       return el('button', { class: 'season-tile', id: `cat-season-${n}`, onclick: () => goSeason(n) },
         el('span', { class: 'season-tile-num' }, n === 0 ? '★' : String(n)),
         el('span', { class: 'season-tile-text' },
-          el('b', {}, n === 0 ? 'Especiales' : `Temporada ${n}`),
-          el('span', {}, [`${list.length} episodios`, years.length && (years.length > 1 ? `${years[0]}–${years.at(-1)}` : years[0])].filter(Boolean).join(' · '))));
+          el('b', {}, n === 0 ? t('Especiales') : t('Temporada {n}', { n })),
+          el('span', {}, [t(list.length === 1 ? '{n} episodio' : '{n} episodios', { n: list.length }), years.length && (years.length > 1 ? `${years[0]}–${years.at(-1)}` : years[0])].filter(Boolean).join(' · '))),
+        r ? el('span', { class: `season-tile-score ${seasonTone(r)}`, title: t('Puntaje de IMDb de la temporada') }, icon('star', 12), fmtScore(r)) : null);
     });
     // La tarjeta punteada va después de la última temporada, antes de Especiales.
     tiles.splice(seasons.includes(0) ? tiles.length - 1 : tiles.length, 0, nextSeasonTile(outlook));
     return el('div', { class: 'season-grid' }, seasonChart(s.seasonRatings, outlook), tiles);
   }
-  // Episodios: número, título, fecha y sinopsis (sin miniatura: puede spoilear).
-  return el('ul', { class: 'ep-list' }, eps.filter((e) => e.season === s.season).map((e) => el('li', {},
+  // Episodios: número, título, fecha y sinopsis (sin miniatura: puede spoilear), en los idiomas elegidos si TMDB los tiene.
+  const texts = s.epTexts?.[s.season];
+  return el('ul', { class: 'ep-list' }, eps.filter((e) => e.season === s.season).map((e) => [e, texts?.get(e.episode)]).map(([e, x]) => el('li', {},
     el('button', {
       class: 'ep-item', id: `cat-ep-${e.season}-${e.episode}`, disabled: !e.available,
       onclick: async () => { await leaveTests(); s.episode = e.episode; loadStreams(e.id); },
     },
     el('span', { class: 'ep-num' }, e.episode),
     el('span', { class: 'ep-text' },
-      el('b', {}, e.title || `Episodio ${e.episode}`),
-      el('span', { class: 'ep-date' }, e.available ? shortDate(e.released) : `Se estrena ${shortDate(e.released) || 'pronto'}`),
-      e.overview ? el('span', { class: 'ep-overview', title: e.overview }, e.overview) : null,
+      el('b', {}, x?.name || e.title || t('Episodio {n}', { n: e.episode })),
+      el('span', { class: 'ep-date' }, e.available ? shortDate(e.released) : t('Se estrena {d}', { d: shortDate(e.released) || t('pronto') })),
+      (x?.overview ?? e.overview) ? el('span', { class: 'ep-overview', title: x?.overview ?? e.overview }, x?.overview ?? e.overview) : null,
     )))));
 }

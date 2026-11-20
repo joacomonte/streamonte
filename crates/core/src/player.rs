@@ -25,11 +25,11 @@ const IPC_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const QUIT_TIMEOUT: Duration = Duration::from_secs(2);
 static NEXT_IPC: AtomicU64 = AtomicU64::new(1);
 
-/// En Windows, `mpv.com` (el que suele quedar en PATH) es un envoltorio de consola que abre una
-/// ventana negra extra; si al lado está `mpv.exe`, usamos ese.
-/// El reproductor que se usa (2026-11-17): el elegido; si es mpv y no hay ninguno (ni el incluido
-/// ni uno instalado, p. ej. macOS < 15 sin mpv), VLC si está instalado.
-pub fn resolve_player(wanted: PlayerKind, cfg: &PlayerConfig) -> PlayerKind {
+/// El reproductor que se usa: el que el usuario eligió en ESTE ▶ (se pregunta en cada uno,
+/// 2026-11-20). Sin elección (hay uno solo, o de fondo sin reproductor): mpv; y si es mpv y no hay
+/// ninguno (ni el incluido ni uno instalado, p. ej. macOS < 15 sin mpv), VLC si está instalado.
+pub fn resolve_player(wanted: Option<PlayerKind>, cfg: &PlayerConfig) -> PlayerKind {
+    let wanted = wanted.unwrap_or(PlayerKind::Mpv);
     let no_mpv = || find_executable(Executable::Mpv, cfg.mpv_path.as_deref()).is_none();
     let has_vlc = || find_executable(Executable::Vlc, cfg.vlc_path.as_deref()).is_some();
     if wanted == PlayerKind::Mpv && no_mpv() && has_vlc() {
@@ -45,9 +45,6 @@ pub struct PlayersStatus {
     /// De dónde sale el mpv que se usaría; `None` = no hay.
     pub mpv: Option<crate::paths::Source>,
     pub vlc: bool,
-    /// El elegido en Ajustes y el que de verdad se usa (VLC si se eligió mpv y no hay).
-    pub chosen: PlayerKind,
-    pub effective: PlayerKind,
     /// macOS con Homebrew: "Instalar mpv" lo instala solo; si no, abre la guía.
     pub can_install_mpv: bool,
 }
@@ -56,8 +53,6 @@ pub fn players_status(cfg: &PlayerConfig) -> PlayersStatus {
     PlayersStatus {
         mpv: crate::paths::locate(Executable::Mpv, cfg.mpv_path.as_deref()).map(|(_, s)| s),
         vlc: find_executable(Executable::Vlc, cfg.vlc_path.as_deref()).is_some(),
-        chosen: cfg.default_player,
-        effective: resolve_player(cfg.default_player, cfg),
         can_install_mpv: homebrew().is_some(),
     }
 }
@@ -106,6 +101,8 @@ pub async fn install_mpv() -> crate::Result<bool> {
     Ok(out.status.success())
 }
 
+/// En Windows, `mpv.com` (el que suele quedar en PATH) es un envoltorio de consola que abre una
+/// ventana negra extra; si al lado está `mpv.exe`, usamos ese.
 fn prefer_gui_binary(path: PathBuf) -> PathBuf {
     let is_com = path
         .extension()
@@ -175,7 +172,8 @@ pub struct LaunchRequest {
 #[derive(Debug, Clone)]
 pub enum MpvEvent {
     FileLoaded,
-    /// Primera imagen en pantalla → métrica "tiempo a primera imagen" (O1, 06-D).
+    /// Primera imagen de VIDEO en pantalla → métrica "tiempo a primera imagen" (O1, 06-D). Solo
+    /// si hay video: con solo audio nunca llega.
     FirstFrame,
     /// La reproducción (re)arrancó: tras abrir y tras cada salto.
     PlaybackRestart,
@@ -198,10 +196,46 @@ pub trait MpvControl: Send + Sync {
     fn events(&self) -> broadcast::Receiver<MpvEvent>;
 }
 
+/// Vivo menos que esto sin mostrar video = no pudo abrirlo (2026-11-20: VLC con un mp3 se cerró a
+/// los 30 ms y la app lo tomó como "lo cerró el usuario").
+const EARLY_EXIT: Duration = Duration::from_secs(2);
+
+/// Cómo terminó el reproductor. Una sola regla para mpv y VLC: si salió sin haber mostrado video,
+/// enseguida ([`EARLY_EXIT`]) o con código ≠ 0, no pudo abrir el video; si no, lo cerró el usuario.
+#[derive(Debug, Clone, Copy)]
+pub struct PlayerExit {
+    /// `None` = terminó por una señal.
+    pub code: Option<i32>,
+    pub after: Duration,
+    pub failed_to_open: bool,
+}
+
+impl PlayerExit {
+    /// `showed_video`: mpv avisó la primera imagen ([`MpvEvent::FirstFrame`]); VLC no avisa nada.
+    pub fn new(success: bool, code: Option<i32>, after: Duration, showed_video: bool) -> Self {
+        Self {
+            code,
+            after,
+            failed_to_open: !showed_video && (after < EARLY_EXIT || !success),
+        }
+    }
+}
+
+impl std::fmt::Display for PlayerExit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.code {
+            Some(c) => write!(f, "código {c}")?,
+            None => write!(f, "sin código (señal)")?,
+        }
+        write!(f, ", a los {:.1} s", self.after.as_secs_f32())
+    }
+}
+
 /// Un reproductor abierto. Soltarlo NO lo mata; `playback` decide (FR-17).
 pub struct PlayerSession {
     pub kind: PlayerKind,
     pub pid: u32,
+    launched: std::time::Instant,
     /// Solo mpv.
     pub mpv: Option<std::sync::Arc<dyn MpvControl>>,
     child: tokio::process::Child,
@@ -210,15 +244,22 @@ pub struct PlayerSession {
 }
 
 impl PlayerSession {
-    /// Espera a que el usuario cierre el reproductor (FR-12).
-    pub async fn wait_exit(&mut self) -> Result<ExitStatus> {
+    /// Espera a que el reproductor se cierre (FR-12) y dice cómo ([`PlayerExit`]).
+    /// `showed_video` se consulta al salir: si mpv llegó a mostrar imagen.
+    pub async fn wait_exit(&mut self, showed_video: impl FnOnce() -> bool) -> Result<PlayerExit> {
         let status = self
             .child
             .wait()
             .await
             .map_err(|e| crate::CoreError::Player(e.to_string()));
         self.remove_socket_file();
-        status
+        let status: ExitStatus = status?;
+        Ok(PlayerExit::new(
+            status.success(),
+            status.code(),
+            self.launched.elapsed(),
+            showed_video(),
+        ))
     }
 
     /// Pide `quit` por IPC (mpv cierra limpio); si no cierra en [`QUIT_TIMEOUT`], lo mata.
@@ -284,6 +325,7 @@ impl PlayerLauncher {
         };
 
         tracing::info!(?exe, player = ?req.kind, "lanzando reproductor");
+        let launched = std::time::Instant::now();
         let child = spawn_player(&exe, &args, false)?;
         let pid = child.id().unwrap_or_default();
 
@@ -301,6 +343,7 @@ impl PlayerLauncher {
         Ok(PlayerSession {
             kind: req.kind,
             pid,
+            launched,
             mpv,
             child,
             ipc_path: ipc,
@@ -324,6 +367,9 @@ impl PlayerLauncher {
             // El motor puede tardar en conseguir una pieza: no abortar la lectura HTTP.
             "--network-timeout=120".into(),
             "--keep-open=no".into(),
+            // Ventana siempre, ya al abrir (2026-11-20: con un mp3 sonaba sin ventana y no había
+            // dónde cerrarlo).
+            "--force-window=immediate".into(),
         ];
         // Ecualizador elegido en Ajustes (2026-11-17; antes fijo en "cine"). `af-append` suma al
         // final: no pisa los filtros del mpv.conf del usuario.
@@ -470,4 +516,24 @@ pub async fn probe_media(
     let _ = child.kill().await;
     remove_ipc_socket(&ipc_path);
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 2026-11-20: VLC con un mp3 se cerró a los 30 ms con código 0 → no pudo abrir, no "lo cerró
+    /// el usuario". Igual para mpv; con video ya mostrado, cerrar es del usuario.
+    #[test]
+    fn salida_temprana_o_con_error_sin_video_es_que_no_pudo_abrir() {
+        let ms = Duration::from_millis;
+        assert!(PlayerExit::new(true, Some(0), ms(30), false).failed_to_open);
+        assert!(PlayerExit::new(false, Some(2), ms(9_000), false).failed_to_open);
+        assert!(!PlayerExit::new(true, Some(0), ms(9_000), false).failed_to_open);
+        assert!(!PlayerExit::new(false, Some(1), ms(500), true).failed_to_open);
+        assert_eq!(
+            PlayerExit::new(true, Some(0), ms(30), false).to_string(),
+            "código 0, a los 0.0 s"
+        );
+    }
 }

@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use super::cinemeta::{is_excluded, BrowseSort, MetaPreview};
 use super::http::{FetchError, Http};
 use super::MediaKind;
+use crate::config::Lang;
 use crate::datacache::DataCache;
 use crate::{CoreError, Result};
 
@@ -39,8 +40,8 @@ const TMDB_VOTE_RATIO: u32 = 250;
 /// shortcut: sin rango de fechas (toda la historia) quedan afuera las de menos votos en TMDB;
 /// si hiciera falta, paginar hasta que el piso corte en vez de este tope.
 const MAX_PAGES: u32 = 30;
-/// Género de TMDB para "documentales" (en Cinemeta es `Documentary`).
-const TMDB_DOCUMENTARY: u32 = 99;
+/// La lista de géneros de TMDB casi no cambia.
+const GENRES_TTL: Duration = Duration::from_secs(30 * 24 * 3600);
 
 /// Filtros de la lista (los de la URL de IMDb).
 #[derive(Debug, Clone)]
@@ -53,7 +54,10 @@ pub struct TopQuery {
     pub min_votes: u32,
     /// ISO 639-1 (`en`, `es`); vacío = cualquier idioma. Idioma original (alcanza con que sea uno de estos).
     pub languages: Vec<String>,
-    pub documentary: bool,
+    /// Géneros de TMDB (ids de su lista, [`genre_list`]): alcanza con uno. Vacío = todos.
+    pub genres: Vec<u32>,
+    /// Idioma de los títulos.
+    pub titles: Lang,
 }
 
 /// Puntaje (una decimal, como lo muestra IMDb) y votos, por número de `tt`.
@@ -98,45 +102,57 @@ struct Candidate {
     release_date: Option<String>,
     poster_path: Option<String>,
     popularity: Option<f64>,
-    #[serde(default)]
-    genre_ids: Vec<u32>,
 }
 
-/// Géneros de TMDB (ids fijos de su API) con el nombre que se muestra. Los de series que juntan
-/// dos (Acción y aventura, Ciencia ficción y fantasía) cuentan para los dos; los que no tienen
-/// equivalente en la lista de la UI (infantil, reality, noticias…) no se muestran.
-const GENRES: &[(u32, &str)] = &[
-    (28, "Acción"),
-    (12, "Aventura"),
-    (16, "Animación"),
-    (35, "Comedia"),
-    (80, "Crimen"),
-    (99, "Documental"),
-    (18, "Drama"),
-    (10751, "Familia"),
-    (14, "Fantasía"),
-    (36, "Historia"),
-    (27, "Terror"),
-    (10402, "Música"),
-    (9648, "Misterio"),
-    (10749, "Romance"),
-    (878, "Ciencia ficción"),
-    (10770, "Película de TV"),
-    (53, "Suspenso"),
-    (10752, "Bélica"),
-    (37, "Western"),
-    (10759, "Acción"),
-    (10759, "Aventura"),
-    (10765, "Ciencia ficción"),
-    (10765, "Fantasía"),
-    (10768, "Bélica"),
-];
+/// Un género de TMDB para el filtro de Explorar, con su nombre en el idioma de la app.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GenreName {
+    pub id: u32,
+    pub name: String,
+}
 
-fn genre_names(ids: &[u32]) -> Vec<String> {
-    ids.iter()
-        .flat_map(|id| GENRES.iter().filter(move |(g, _)| g == id))
-        .map(|(_, n)| (*n).to_string())
-        .collect()
+#[derive(Deserialize)]
+struct GenreList {
+    #[serde(default)]
+    genres: Vec<GenreName>,
+}
+
+/// Géneros de películas o series (TMDB tiene listas e ids distintos para cada tipo), en `lang`.
+/// Guardados un mes por tipo e idioma. Requiere la key de TMDB.
+pub async fn genre_list(
+    http: &Http,
+    data: &DataCache,
+    kind: MediaKind,
+    lang: Lang,
+    timeout: Duration,
+) -> Result<Vec<GenreName>> {
+    let file = format!("tmdb-generos-{}-{}.json", kind.as_str(), lang.tmdb());
+    if let Some((saved, _)) = data
+        .get::<Vec<GenreName>>(&file)
+        .filter(|(_, age)| *age < GENRES_TTL)
+    {
+        return Ok(saved);
+    }
+    let key = crate::secrets::secret(super::tmdb::ACCOUNT).ok_or_else(no_key)?;
+    let url = format!(
+        "{API}/genre/{}/list?api_key={key}&language={}",
+        path_of(kind),
+        lang.tmdb()
+    );
+    let list: GenreList = match http.get_json(&url, timeout).await {
+        Ok(l) => l,
+        Err(FetchError::Status(401)) => return Err(bad_key()),
+        Err(e) => return Err(super::fetch_error("cargar los géneros de TMDB", &e)),
+    };
+    data.put(&file, &list.genres);
+    Ok(list.genres)
+}
+
+const fn path_of(kind: MediaKind) -> &'static str {
+    match kind {
+        MediaKind::Movie => "movie",
+        MediaKind::Series => "tv",
+    }
 }
 
 #[derive(Deserialize)]
@@ -190,10 +206,7 @@ impl TopRated {
         q: &TopQuery,
         timeout: Duration,
     ) -> Result<Vec<MetaPreview>> {
-        let key = crate::secrets::secret(super::tmdb::ACCOUNT).ok_or_else(|| CoreError::Catalog {
-            user: "Para filtrar por votos e idioma hace falta la key gratuita de TMDB (Ajustes → Pósters).".into(),
-            detail: "top: sin key de TMDB".into(),
-        })?;
+        let key = crate::secrets::secret(super::tmdb::ACCOUNT).ok_or_else(no_key)?;
         let ratings = self.ratings(http).await?;
         let candidates = discover(http, &key, q, timeout).await?;
         self.fill_details(http, &key, q.kind, &candidates, timeout)
@@ -322,6 +335,13 @@ pub(super) async fn imdb_dataset(
     }
 }
 
+fn no_key() -> CoreError {
+    CoreError::Catalog {
+        user: "Para filtrar por votos e idioma hace falta la key gratuita de TMDB (Ajustes → Pósters).".into(),
+        detail: "top: sin key de TMDB".into(),
+    }
+}
+
 fn bad_key() -> CoreError {
     CoreError::Catalog {
         user: "TMDB rechazó la key: revisala en Ajustes → Pósters.".into(),
@@ -337,21 +357,18 @@ async fn discover(
     timeout: Duration,
 ) -> Result<Vec<Candidate>> {
     let floor = (q.min_votes / TMDB_VOTE_RATIO).max(20);
-    let genre = if q.documentary {
-        format!("&with_genres={TMDB_DOCUMENTARY}")
-    } else {
-        String::new()
-    };
-    let (path, date) = match q.kind {
-        MediaKind::Movie => ("movie", "primary_release_date"),
-        MediaKind::Series => ("tv", "first_air_date"),
+    let extra = discover_filters(q);
+    let path = path_of(q.kind);
+    let date = match q.kind {
+        MediaKind::Movie => "primary_release_date",
+        MediaKind::Series => "first_air_date",
     };
     let mut out = Vec::new();
     let mut page = 1;
     loop {
         let url = format!(
             "{API}/discover/{path}?api_key={key}&sort_by=vote_count.desc&include_adult=false&include_video=false\
-             &{date}.gte={}&{date}.lte={}&vote_count.gte={floor}{genre}&page={page}",
+             &{date}.gte={}&{date}.lte={}&vote_count.gte={floor}{extra}&page={page}",
             q.from, q.to
         );
         let p: DiscoverPage = match http.get_json(&url, timeout).await {
@@ -365,6 +382,16 @@ async fn discover(
         }
         page += 1;
     }
+}
+
+/// Idioma de los títulos y géneros (`|` = alcanza con uno, como en la web): los filtra TMDB, no la UI.
+fn discover_filters(q: &TopQuery) -> String {
+    let mut out = format!("&language={}", q.titles.tmdb());
+    if !q.genres.is_empty() {
+        let ids: Vec<String> = q.genres.iter().map(u32::to_string).collect();
+        out.push_str(&format!("&with_genres={}", ids.join("|")));
+    }
+    out
 }
 
 fn detail(raw: RawDetail) -> Detail {
@@ -441,7 +468,6 @@ fn rank(
                     poster: c.poster_path.map(|p| format!("{IMAGE_BASE}{p}")),
                     released,
                     popularity: c.popularity,
-                    genres: genre_names(&c.genre_ids),
                 },
             ))
         })
@@ -468,7 +494,8 @@ mod tests {
             to: NaiveDate::from_ymd_opt(2026, 11, 30).unwrap(),
             min_votes,
             languages: languages.iter().map(|s| s.to_string()).collect(),
-            documentary: false,
+            genres: Vec::new(),
+            titles: Lang::Es,
         }
     }
 
@@ -479,13 +506,19 @@ mod tests {
             release_date: Some("2025-04-18".into()),
             poster_path: None,
             popularity: None,
-            genre_ids: vec![28, 53, 1],
         }
     }
 
     #[test]
-    fn generos_de_tmdb_en_espanol_ignorando_ids_desconocidos() {
-        assert_eq!(genre_names(&cand(1, "A").genre_ids), ["Acción", "Suspenso"]);
+    fn generos_e_idioma_los_filtra_tmdb() {
+        let mut query = q(0, &[]);
+        assert_eq!(discover_filters(&query), "&language=es-MX");
+        query.genres = vec![28, 53];
+        query.titles = Lang::En;
+        assert_eq!(
+            discover_filters(&query),
+            "&language=en-US&with_genres=28|53"
+        );
     }
 
     #[test]
@@ -549,7 +582,7 @@ mod tests {
     }
 
     #[test]
-    fn serie_de_tmdb_nombre_fecha_imdb_y_generos_dobles() {
+    fn serie_de_tmdb_nombre_fecha_e_imdb() {
         let c: Candidate = serde_json::from_str(
             r#"{"id":1396,"name":"Breaking Bad","first_air_date":"2008-01-20","genre_ids":[18,10759,10764]}"#,
         )
@@ -558,7 +591,6 @@ mod tests {
             (c.title.as_str(), c.release_date.as_deref()),
             ("Breaking Bad", Some("2008-01-20"))
         );
-        assert_eq!(genre_names(&c.genre_ids), ["Drama", "Acción", "Aventura"]);
         let raw: RawDetail = serde_json::from_str(
             r#"{"original_language":"en","external_ids":{"imdb_id":"tt0903747"}}"#,
         )

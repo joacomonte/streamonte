@@ -212,17 +212,17 @@ pub async fn config_get(core: Core<'_>) -> CmdResult<Config> {
 pub async fn players_status(core: Core<'_>) -> CmdResult<streamonte_core::player::PlayersStatus> {
     Ok(core.players_status().await)
 }
-#[tauri::command]
-pub async fn config_set_player(
-    core: Core<'_>,
-    player: streamonte_core::config::PlayerKind,
-) -> CmdResult<()> {
-    Ok(core.set_player(player).await?)
-}
 /// "Instalar mpv" (Ajustes): con Homebrew lo instala; si no, abre la guía. `true` = instalado.
 #[tauri::command]
 pub async fn install_mpv() -> CmdResult<bool> {
     Ok(streamonte_core::player::install_mpv().await?)
+}
+#[tauri::command]
+pub async fn config_set_language(
+    core: Core<'_>,
+    language: streamonte_core::config::LanguageConfig,
+) -> CmdResult<()> {
+    Ok(core.set_language(language).await?)
 }
 #[tauri::command]
 pub async fn config_set_equalizer(
@@ -518,13 +518,8 @@ pub async fn catalog_season_ratings(
     Ok(core.catalog_season_ratings(&imdb_id, quick).await?)
 }
 #[tauri::command]
-pub async fn catalog_trending(
-    core: Core<'_>,
-    kind: MediaKind,
-    genre: Option<String>,
-    skip: u32,
-) -> CmdResult<BrowsePage> {
-    Ok(core.catalog_trending(kind, genre.as_deref(), skip).await?)
+pub async fn catalog_trending(core: Core<'_>, kind: MediaKind, skip: u32) -> CmdResult<BrowsePage> {
+    Ok(core.catalog_trending(kind, skip).await?)
 }
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
@@ -536,7 +531,7 @@ pub async fn catalog_browse_top(
     to: Option<String>,
     min_votes: u32,
     languages: Vec<String>,
-    genre: Option<String>,
+    genres: Vec<u32>,
 ) -> CmdResult<BrowsePage> {
     Ok(core
         .catalog_browse_top(
@@ -546,7 +541,49 @@ pub async fn catalog_browse_top(
             to.as_deref(),
             min_votes,
             languages,
-            genre.as_deref(),
+            genres,
         )
         .await?)
+}
+/// Géneros de TMDB del tipo, en el idioma de la app (filtro de Explorar).
+#[tauri::command]
+pub async fn catalog_genres(
+    core: Core<'_>,
+    kind: MediaKind,
+) -> CmdResult<Vec<streamonte_core::catalog::top::GenreName>> {
+    Ok(core.catalog_genres(kind).await?)
+}
+/// Títulos y sinopsis de los episodios de una temporada en los idiomas elegidos.
+#[tauri::command]
+pub async fn catalog_episodes(
+    core: Core<'_>,
+    imdb_id: String,
+    season: u32,
+) -> CmdResult<Vec<streamonte_core::catalog::tmdb::EpisodeText>> {
+    Ok(core.catalog_episodes(&imdb_id, season).await)
+}
+/// "Pegar magnet" con TorBox: estado en TorBox, sus videos y (con `who`) qué película o serie es.
+#[derive(Serialize)]
+pub struct TorboxMagnetView {
+    status: streamonte_core::catalog::torbox::MagnetStatus,
+    ident: Option<streamonte_core::catalog::tmdb::Identified>,
+}
+#[tauri::command]
+pub async fn torbox_magnet(
+    core: Core<'_>,
+    hash: InfoHash,
+    name: String,
+    who: bool,
+) -> CmdResult<TorboxMagnetView> {
+    let (status, ident) = core.torbox_magnet(hash, &name, who).await?;
+    Ok(TorboxMagnetView { status, ident })
+}
+/// "Bajarlo en TorBox": lo agrega aunque no esté en caché; devuelve el estado nuevo.
+#[tauri::command]
+pub async fn torbox_magnet_download(
+    core: Core<'_>,
+    hash: InfoHash,
+    name: String,
+) -> CmdResult<streamonte_core::catalog::torbox::MagnetStatus> {
+    Ok(core.torbox_magnet_download(hash, &name).await?)
 }

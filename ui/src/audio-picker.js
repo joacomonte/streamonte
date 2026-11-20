@@ -151,15 +151,15 @@ function audioOptions(e, original) {
   return opts.length < 2 ? null : opts;
 }
 
-/** Con VLC instalado y un mpv que anda (2026-11-17), con cuál; si no, `null` (el de Ajustes, con VLC de respaldo).
- *  El de Ajustes, primero. */
+/** Con VLC instalado y un mpv que anda (2026-11-17), con cuál: se pregunta en CADA ▶, también al retomar
+ *  (2026-11-20, no se recuerda). Con uno solo no hay qué elegir: `null` (el núcleo usa el que haya). mpv primero. */
 async function playerOptions() {
   const p = await api.playersStatus().catch(() => null);
   if (!p?.vlc || !p.mpv) return null;
   return [
     { value: 'mpv', label: 'mpv', sub: 'Recomendado: más liviano, subtítulos combinados y ecualizador', art: playerArt('mpv') },
     { value: 'vlc', label: 'VLC', sub: 'El clásico: sin subtítulos combinados ni ecualizador', art: playerArt('vlc') },
-  ].sort((a, b) => (b.value === p.chosen) - (a.value === p.chosen));
+  ];
 }
 /** Dibujito de cada reproductor (inline, sin archivos): mpv, un disco con ▶; VLC, el cono naranja. */
 function playerArt(kind) {
@@ -191,9 +191,9 @@ const SPANISH = new Set(['lat', 'cast', 'es']);
 export async function play(key, anchor, entry = state.entries.get(key), original = null, subsStep = null, start = null, prefer = null) {
   try {
     // Si ESTE video ya está en el panel (pausado) se retoma con el audio que se eligió la otra
-    // vez. Otro episodio del mismo pack no cuenta: es otra clave.
+    // vez (el reproductor se pregunta igual). Otro episodio del mismo pack no cuenta: es otra clave.
     const resuming = [...state.playbacks.values()].some((p) => p.key === key);
-    const players = resuming ? null : await playerOptions();
+    const players = await playerOptions();
     const audios = resuming ? null : audioOptions(entry, original);
     const decided = audios ? preferredAudio(audios, prefer, original) : -1;
     const audioOf = (r) => audios?.[r.audio ?? decided] ?? null;

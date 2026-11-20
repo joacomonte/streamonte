@@ -4,6 +4,7 @@
 
 import { api } from './api.js';
 import { setStatus } from './dom.js';
+import { t as tr } from './i18n.js';
 import { currentNetwork } from './health-calib.js';
 import { bgLoads, groupsOf, health, inScope, isSafeBest, knownSeeds, lowerRes, openGroup, renderStreamsOnly, RES_ORDER, resLabel, scheduleRender, seedsOf, sortOptions, startBg } from './catalog-options.js';
 import { cancelFlowWork } from './catalog-flow.js';
@@ -91,17 +92,17 @@ async function analyze(start, best) {
     if (pick) {
       try {
         if (!bgLoads.has(pick.info_hash)) await startBg(pick.info_hash);
-        t.auto = { step: 'done', res, text: `elegí una de ${resLabel(res)} que anda sin cortes y ya la estoy descargando de fondo. Dale play cuando quieras.` };
+        t.auto = { step: 'done', res, text: tr('elegí una de {a} que anda sin cortes y ya la estoy descargando de fondo. Dale play cuando quieras.', { a: resLabel(res) }) };
       } catch (e) {
         showError(e);
-        t.auto = { step: 'none', res, text: 'encontré una buena pero no pude empezar a bajarla. Probá con ▶ en la primera de la lista.' };
+        t.auto = { step: 'none', res, text: tr('encontré una buena pero no pude empezar a bajarla. Probá con ▶ en la primera de la lista.') };
       }
       break;
     }
     run.prev = res;
     const lower = lowerRes(res);
     res = lower && RES_ORDER.indexOf(lower) <= RES_ORDER.indexOf('720p') ? lower : null;
-    if (!res) t.auto = { step: 'none', res: run.prev, text: 'no encontré ninguna que ande sin cortes. Arriba de la lista quedó la mejor candidata: podés probarla igual o volver más tarde.' };
+    if (!res) t.auto = { step: 'none', res: run.prev, text: tr('no encontré ninguna que ande sin cortes. Arriba de la lista quedó la mejor candidata: podés probarla igual o volver más tarde.') };
   }
   if (t.run === run) t.run = null;
   renderStreamsOnly();
@@ -248,7 +249,7 @@ export async function countSeeds(hashes) {
       stopped.delete(h);
     }
     logCensus(todo);
-    if (todo.length === 1 && !found[todo[0]]) setStatus('No se pudo contar ese torrent: nadie respondió a tiempo.');
+    if (todo.length === 1 && !found[todo[0]]) setStatus(tr('No se pudo contar ese torrent: nadie respondió a tiempo.'));
   } catch (e) { showError(e); } finally {
     todo.forEach((h) => { counting.delete(h); liveCount.delete(h); phaseAt.delete(h); });
     const d = state.side?.deep;
@@ -290,7 +291,7 @@ function learnEta(field, secs) {
 export function analysisEta(n = TOP) {
   const s = etaStats();
   const secs = (s.quick ?? 35) + Math.ceil(Math.min(TOP, n || TOP) / DEEP_BATCH) * (s.deepBatch ?? 110);
-  return `~${Math.max(1, Math.round(secs / 60))} min`;
+  return tr('~{a} min', { a: Math.max(1, Math.round(secs / 60)) });
 }
 /** Finalistas que además reciben el análisis rápido (metadatos, duración, idiomas). */
 export const FINALISTS = 8;

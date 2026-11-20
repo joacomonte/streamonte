@@ -29,9 +29,6 @@ pub struct MetaPreview {
     /// Popularidad de TMDB según Cinemeta: con año o rango la UI ordena lo cargado por esto
     /// (los catálogos `year` vienen por fecha, no por popularidad).
     pub popularity: Option<f64>,
-    /// Géneros en español (solo la lista con filtros de IMDb; la UI filtra por ellos sin pedir de nuevo).
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub genres: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,21 +121,13 @@ pub struct BrowsePage {
 pub async fn trending(
     http: &Http,
     kind: MediaKind,
-    genre: Option<&str>,
     skip: u32,
     timeout: Duration,
 ) -> Result<BrowsePage, super::http::FetchError> {
-    let mut extras = Vec::new();
-    if let Some(g) = genre {
-        extras.push(format!("genre={}", encode_extra(g)));
-    }
-    if skip > 0 {
-        extras.push(format!("skip={skip}"));
-    }
-    let extra = if extras.is_empty() {
-        String::new()
+    let extra = if skip > 0 {
+        format!("/skip={skip}")
     } else {
-        format!("/{}", extras.join("&"))
+        String::new()
     };
     let url = format!("{CINEMETA}/catalog/{}/top{extra}.json", kind.as_str());
     let resp: CatalogResponse = http.get_json(&url, timeout).await?;
@@ -166,7 +155,6 @@ fn preview(m: RawMeta, kind: MediaKind) -> Option<MetaPreview> {
         poster: https_only(m.poster),
         released: m.released.as_deref().and_then(|r| r.get(..10)).map(clean),
         popularity: m.popularities.and_then(|p| p.moviedb),
-        genres: Vec::new(),
     })
 }
 

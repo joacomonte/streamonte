@@ -84,7 +84,7 @@ pub async fn fetch_names(
                 metadata.save_torrent_cache(&cache);
             }
             if !metadata.name.is_empty() {
-                let video_size = metadata.choose_file(None).ok().map(|f| f.size);
+                let video_size = metadata.largest_video().ok().map(|f| f.size);
                 on_found(hash, metadata.name.clone(), video_size);
             }
             Some(())

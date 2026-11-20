@@ -26,7 +26,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
 
-use crate::config::{AddonEntry, CatalogConfig, Config};
+use crate::config::{AddonEntry, CatalogConfig, Config, Lang, LanguageConfig};
 use crate::library::CatalogOrigin;
 use crate::magnet::{InfoHash, Magnet};
 use crate::{CoreError, Result};
@@ -314,11 +314,12 @@ impl Catalog {
         }
     }
 
-    /// Idioma original, cadenas y similares de TMDB (con key).
+    /// Idioma original, cadenas, dónde verla y textos en los idiomas elegidos, de TMDB (con key).
     pub async fn details(
         &self,
         kind: MediaKind,
         imdb_id: &str,
+        langs: LanguageConfig,
         timeout: Duration,
     ) -> tmdb::DetailsView {
         if !is_imdb_id(imdb_id) {
@@ -327,7 +328,47 @@ impl Catalog {
                 details: None,
             };
         }
-        tmdb::details(&self.http, &self.data, kind, imdb_id, timeout).await
+        tmdb::details(&self.http, &self.data, kind, imdb_id, langs, timeout).await
+    }
+
+    /// Títulos y sinopsis de los episodios de una temporada en los idiomas elegidos (vacío sin key).
+    pub async fn episodes(
+        &self,
+        imdb_id: &str,
+        season: u32,
+        langs: LanguageConfig,
+        timeout: Duration,
+    ) -> Vec<tmdb::EpisodeText> {
+        if !is_imdb_id(imdb_id) {
+            return Vec::new();
+        }
+        tmdb::episodes(&self.http, &self.data, imdb_id, season, langs, timeout).await
+    }
+
+    /// Géneros de TMDB para el filtro de Explorar, en el idioma de la app.
+    pub async fn genres(
+        &self,
+        kind: MediaKind,
+        app: Lang,
+        timeout: Duration,
+    ) -> Result<Vec<top::GenreName>> {
+        top::genre_list(&self.http, &self.data, kind, app, timeout).await
+    }
+
+    /// La película o serie de un torrent pegado, por su nombre, con el puntaje de IMDb si ya está cargado.
+    pub async fn identify(
+        &self,
+        name: &str,
+        titles: Lang,
+        timeout: Duration,
+    ) -> Option<tmdb::Identified> {
+        let mut found = tmdb::identify(&self.http, name, titles, timeout).await?;
+        found.rating = self
+            .top
+            .ratings_loaded()
+            .zip(top::tt_number(&found.id))
+            .and_then(|(r, tt)| r.get(&tt).map(|&(rating, _)| top::rating_label(rating)));
+        Some(found)
     }
 
     /// Similares de TMDB (al abrirlos), con el puntaje de IMDb que usa el resto de la app (si no,
@@ -336,12 +377,13 @@ impl Catalog {
         &self,
         kind: MediaKind,
         imdb_id: &str,
+        titles: Lang,
         timeout: Duration,
     ) -> Vec<tmdb::Similar> {
         if !is_imdb_id(imdb_id) {
             return Vec::new();
         }
-        let mut list = tmdb::similar(&self.http, &self.data, kind, imdb_id, timeout).await;
+        let mut list = tmdb::similar(&self.http, &self.data, kind, imdb_id, titles, timeout).await;
         let ratings = self.top.ratings_loaded();
         for x in &mut list {
             let imdb = ratings
@@ -378,17 +420,12 @@ impl Catalog {
     pub async fn trending(
         &self,
         kind: MediaKind,
-        genre: Option<&str>,
         skip: u32,
         timeout: Duration,
     ) -> Result<BrowsePage> {
-        let key = format!(
-            "lista-tendencia-{}-{}-{skip}.json",
-            kind.as_str(),
-            genre.unwrap_or("todos")
-        );
+        let key = format!("lista-tendencia-{}-{skip}.json", kind.as_str());
         self.browse_page(key, Duration::from_secs(3600), async {
-            cinemeta::trending(&self.http, kind, genre, skip, timeout)
+            cinemeta::trending(&self.http, kind, skip, timeout)
                 .await
                 .map_err(|e| fetch_error("cargar la lista", &e))
         })
@@ -434,7 +471,8 @@ impl Catalog {
         to: Option<&str>,
         min_votes: u32,
         languages: Vec<String>,
-        genre: Option<&str>,
+        genres: Vec<u32>,
+        titles: Lang,
         timeout: Duration,
     ) -> Result<BrowsePage> {
         let (from, to) = date_range(from, to)?;
@@ -445,17 +483,20 @@ impl Catalog {
             to,
             min_votes,
             languages,
-            documentary: genre.is_some_and(|g| g.eq_ignore_ascii_case("Documentary")),
+            genres,
+            titles,
         };
+        let genres: Vec<String> = q.genres.iter().map(u32::to_string).collect();
         let key = format!(
-            "lista-top-{}-{:?}-{}-{}-{}-{}-{}.json",
+            "lista-top-{}-{:?}-{}-{}-{}-{}-{}-{}.json",
             q.kind.as_str(),
             q.sort,
             q.from,
             q.to,
             q.min_votes,
             q.languages.join("+"),
-            q.documentary
+            genres.join("+"),
+            q.titles.tmdb()
         );
         self.browse_page(key, Duration::from_secs(6 * 3600), async {
             Ok(BrowsePage {
@@ -893,7 +934,6 @@ mod tests {
             poster: None,
             released: None,
             popularity: None,
-            genres: Vec::new(),
         };
         let movies = vec![
             p(

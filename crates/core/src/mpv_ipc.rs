@@ -19,6 +19,9 @@ use crate::{CoreError, Result};
 type Pending = Arc<std::sync::Mutex<HashMap<u64, oneshot::Sender<Result<Value>>>>>;
 type Writer = Box<dyn AsyncWrite + Send + Unpin>;
 
+/// Id propio del `observe_property` de `video-params` (los ejemplos usan ids chicos).
+const OBSERVE_VIDEO_PARAMS: u64 = 0x5354;
+
 /// Tope de espera por respuesta: un mpv trabado no debe colgar a quien pregunta.
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -50,7 +53,20 @@ impl MpvIpc {
         let deadline = tokio::time::Instant::now() + timeout;
         loop {
             match open(path).await {
-                Ok((reader, writer)) => return Ok(Self::start(reader, writer)),
+                Ok((reader, writer)) => {
+                    let ipc = Self::start(reader, writer);
+                    // Para la primera imagen: `video-params` existe solo con video decodificado
+                    // (con `--force-window` la ventana está igual, así que `vo-configured` no sirve).
+                    // Si falla, solo se pierde la métrica.
+                    let _ = ipc
+                        .command(&[
+                            json!("observe_property"),
+                            json!(OBSERVE_VIDEO_PARAMS),
+                            json!("video-params"),
+                        ])
+                        .await;
+                    return Ok(ipc);
+                }
                 Err(e) if tokio::time::Instant::now() < deadline => {
                     tracing::trace!(target: DIAG_MPV, "esperando IPC de mpv: {e}");
                     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -76,7 +92,9 @@ impl MpvIpc {
 
         tokio::spawn(async move {
             let mut lines = BufReader::new(reader).lines();
-            let mut first_frame_sent = false;
+            // Primera imagen = la reproducción arrancó (`playback-restart`) Y hay video
+            // (`video-params` no vacío), en el orden que lleguen. Con solo audio no hay.
+            let (mut restarted, mut has_video, mut first_frame_sent) = (false, false, false);
             while let Ok(Some(line)) = lines.next_line().await {
                 tracing::trace!(target: DIAG_MPV, "← {line}");
                 let Ok(msg) = serde_json::from_str::<Value>(&line) else {
@@ -100,15 +118,23 @@ impl MpvIpc {
                     continue;
                 };
                 tracing::debug!(target: DIAG_MPV, event = name, "evento mpv");
+                match name {
+                    "playback-restart" => restarted = true,
+                    "property-change" if msg.get("name") == Some(&json!("video-params")) => {
+                        has_video = msg
+                            .get("data")
+                            .and_then(Value::as_object)
+                            .is_some_and(|o| !o.is_empty());
+                    }
+                    _ => {}
+                }
+                if restarted && has_video && !first_frame_sent {
+                    first_frame_sent = true;
+                    let _ = events.send(MpvEvent::FirstFrame);
+                }
                 let event =
                     match name {
                         "file-loaded" => Some(MpvEvent::FileLoaded),
-                        // Primer `playback-restart` = empezó a mostrar imagen (métrica O1).
-                        "playback-restart" if !first_frame_sent => {
-                            first_frame_sent = true;
-                            let _ = events.send(MpvEvent::FirstFrame);
-                            Some(MpvEvent::PlaybackRestart)
-                        }
                         // Cada salto termina con otro `playback-restart` (tiempo de salto, 06-D).
                         "playback-restart" => Some(MpvEvent::PlaybackRestart),
                         "property-change" => msg.get("name").and_then(Value::as_str).map(|n| {

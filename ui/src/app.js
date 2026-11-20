@@ -3,8 +3,11 @@
 // selector de audio en audio-picker.js y la burbuja de actividad en activity-feed.js.
 import { api, onCoreEvent } from './api.js';
 import { logEvent, renderActivity } from './activity-feed.js';
-import { askAfterClose, installMpv, onConfirmClose, onNetCheck, openSettings, saveEqualizer, saveKey, saveNetwork, saveOsLogin, savePlayer, saveLatTeamToken, toggleKeyEdit, toggleLatTeam } from './dialogs.js';
+import { askAfterClose, installMpv, onConfirmClose, onNetCheck, openSettings, saveEqualizer, saveKey, saveNetwork, saveOsLogin, saveLatTeamToken, toggleKeyEdit, toggleLatTeam } from './dialogs.js';
 import { $, icon, setStatus, showError } from './dom.js';
+import { translateStatic } from './i18n.js';
+import { langPicker, langToggle } from './lang-picker.js';
+import { openWelcome } from './welcome.js';
 import { initSpeed, onSpeedEvent } from './speed.js';
 import { state } from './state.js';
 import { playCopied, refreshCache, refreshCopied, refreshDownloads, toggleDownloads } from './top-menus.js';
@@ -93,6 +96,10 @@ function onEvent(event) {
 
 // ---------- arranque ----------
 async function init() {
+  translateStatic(document.body);
+  $('#btn-settings').before(langToggle());
+  $('#set-lang-picker').append(langPicker('set-lang'));
+  openWelcome();
   $('#btn-clipboard').addEventListener('click', playCopied);
   $('#btn-downloads').addEventListener('click', toggleDownloads);
   $('#btn-settings').append(icon('gear', 24));
@@ -102,7 +109,6 @@ async function init() {
   refreshCopied();
   setInterval(() => { if (document.hasFocus()) refreshCopied(); }, 3000);
   for (const r of document.querySelectorAll('input[name="set-eq"]')) r.addEventListener('change', saveEqualizer);
-  for (const r of document.querySelectorAll('input[name="set-player"]')) r.addEventListener('change', savePlayer);
   $('#btn-install-mpv').addEventListener('click', installMpv);
   $('#set-incoming').addEventListener('change', saveNetwork);
   $('#set-announce').addEventListener('change', saveNetwork);

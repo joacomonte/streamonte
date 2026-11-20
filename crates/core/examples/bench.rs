@@ -304,7 +304,7 @@ async fn run_once(
         }
 
         let _ = mpv.command(&[json!("quit")]).await;
-        let _ = tokio::time::timeout(Duration::from_secs(10), player.wait_exit()).await;
+        let _ = tokio::time::timeout(Duration::from_secs(10), player.wait_exit(|| true)).await;
 
         // Cierre y borrado (FR-12, T-04).
         let t = Instant::now();

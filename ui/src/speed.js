@@ -6,6 +6,7 @@
 
 import { api } from './api.js';
 import { $, el, setStatus } from './dom.js';
+import { t as tr } from './i18n.js';
 import { ago, mbps, nf1 } from './format.js';
 import { DEFAULT_SEED_MBPS, MIN_SAMPLES, TRACKER_MIN, fidelity, healthCalibration, incomingStatus, measuringNow, predict, recalibrate, resetCalibration, setLinkMbps, setSeedMbps } from './health-calib.js';
 import { state } from './state.js';
@@ -45,16 +46,16 @@ function renderButton() {
   btn.classList.toggle('measuring', v.kind === 'measuring');
   btn.classList.toggle('failed', v.kind === 'failed');
   btn.setAttribute('aria-busy', String(v.kind === 'measuring'));
-  const value = v.kind === 'measuring' || v.kind === 'done' ? `${fmt(v.mbps ?? 0)} <small>Mbps</small>` : v.kind === 'failed' ? 'Sin medir' : 'Medir';
+  const value = v.kind === 'measuring' || v.kind === 'done' ? `${fmt(v.mbps ?? 0)} <small>Mbps</small>` : v.kind === 'failed' ? tr('Sin medir') : tr('Medir');
   btn.innerHTML = `${gauge(v.mbps ?? 0)}<span class="speed-val">${value}</span>`;
-  btn.title = 'Tu conexión: velocidad de internet y cómo se estima si un torrent va a andar bien';
+  btn.title = tr('Tu conexión: velocidad de internet y cómo se estima si un torrent va a andar bien');
 }
 
 /** Nombre de una medición: el del torrent en la biblioteca (las viejas guardaban el hash). */
 function nameOf(l) {
   const e = [...state.entries.values()].find((x) => x.info_hash === l.hash);
   const name = e?.torrent_name || e?.name || l.name;
-  return !name || /^[0-9a-f]{40}$/i.test(name) ? 'Torrent sin nombre' : name;
+  return !name || /^[0-9a-f]{40}$/i.test(name) ? tr('Torrent sin nombre') : name;
 }
 
 function renderPop() {
@@ -67,82 +68,82 @@ function renderPop() {
   const internet = el('div', { class: 'conn-card' },
     svgSpan('conn-gauge', gauge(v.mbps ?? 0, 56)),
     el('span', { class: 'conn-main' },
-      el('span', { class: 'conn-big' }, v.kind === 'done' || measuring ? `${fmt(v.mbps ?? 0)} Mbps` : 'Sin medir'),
-      el('span', { class: 'conn-sub' }, measuring ? 'Midiendo tu internet…'
-        : v.kind === 'done' ? `Tu internet en esta red · medida ${ago(v.at)}`
-          : v.kind === 'failed' ? v.message : 'Todavía no se midió')),
-    el('button', { id: 'speed-retest', class: 'pop-btn', disabled: measuring, onclick: () => measure(true) }, measuring ? 'Midiendo…' : 'Medir de nuevo'));
+      el('span', { class: 'conn-big' }, v.kind === 'done' || measuring ? tr('{a} Mbps', { a: fmt(v.mbps ?? 0) }) : tr('Sin medir')),
+      el('span', { class: 'conn-sub' }, measuring ? tr('Midiendo tu internet…')
+        : v.kind === 'done' ? tr('Tu internet en esta red · medida {a}', { a: ago(v.at) })
+          : v.kind === 'failed' ? v.message : tr('Todavía no se midió'))),
+    el('button', { id: 'speed-retest', class: 'pop-btn', disabled: measuring, onclick: () => measure(true) }, measuring ? tr('Midiendo…') : tr('Medir de nuevo')));
 
-  const perSeedNote = cal.source === 'manual' ? 'Fijado a mano' : `Se aprende solo en esta red (arranca en ${DEFAULT_SEED_MBPS} Mbps)`;
+  const perSeedNote = cal.source === 'manual' ? tr('Fijado a mano') : tr('Se aprende solo en esta red (arranca en {DEFAULT_SEED_MBPS} Mbps)', { DEFAULT_SEED_MBPS });
   const tracks = calibTracks(cal);
   const doneCount = tracks.filter((t) => t.have >= t.goal).length;
   const now = measuringNow();
   const seeder = el('div', { class: 'conn-card' },
     el('span', { class: 'conn-main' },
-      el('span', { class: 'conn-big' }, `${nf1(cal.seedMbps)} Mbps `, el('small', {}, 'por seeder')),
+      el('span', { class: 'conn-big' }, tr('{a} Mbps ', { a: nf1(cal.seedMbps) }), el('small', {}, tr('por seeder'))),
       el('span', { class: 'conn-sub' }, perSeedNote),
       el('div', { id: 'calib-tracks', class: 'calib' },
-        el('span', { class: `calib-head ${doneCount === tracks.length ? 'all' : ''}` }, `Calibración ${doneCount}/${tracks.length}`),
+        el('span', { class: `calib-head ${doneCount === tracks.length ? 'all' : ''}` }, tr('Calibración {doneCount}/{n}', { doneCount, n: tracks.length })),
         tracks.map((t) => {
           const done = t.have >= t.goal;
           return el('div', { id: `calib-${t.id}`, class: `calib-row ${done ? 'done' : ''}` },
             el('span', { class: 'calib-label' }, t.label, el('b', {}, t.value)),
             el('span', { class: 'calib-steps', role: 'progressbar', 'aria-valuenow': t.have, 'aria-valuemin': 0, 'aria-valuemax': t.goal, 'aria-label': t.label },
               Array.from({ length: t.goal }, (_, i) => el('i', { class: i < t.have ? 'on' : '' }))),
-            el('span', { class: 'calib-state' }, done ? t.reward : `faltan ${t.goal - t.have} reprod.`));
+            el('span', { class: 'calib-state' }, done ? t.reward : tr('faltan {a} reprod.', { a: t.goal - t.have })));
         })),
       now.length ? el('span', { class: 'conn-live' }, el('i', { 'aria-hidden': 'true' }),
-        `Midiendo: ${now[0].name} · ${mbps(now[0].avg_speed_bps)}${now[0].ev ? '' : ' (sin datos del análisis: no cuenta)'}`) : null),
+        tr('Midiendo: {a} · {b}{c}', { a: now[0].name, b: mbps(now[0].avg_speed_bps), c: now[0].ev ? '' : tr(' (sin datos del análisis: no cuenta)') })) : null),
     editing
       ? el('span', { class: 'conn-edit' },
-        el('input', { id: 'speed-seed-input', type: 'number', min: '0.1', step: '0.5', inputmode: 'decimal', value: String(Math.round(cal.seedMbps * 10) / 10), 'aria-label': 'Mbps por seeder' }),
-        el('button', { id: 'speed-seed-fix', class: 'pop-btn', onclick: fixSeed }, 'Fijar'),
-        cal.source === 'manual' ? el('button', { id: 'speed-seed-auto', class: 'pop-btn', onclick: () => { editing = false; recalibrate(); } }, 'Usar lo medido') : null)
-      : el('button', { id: 'speed-seed-edit', class: 'pop-btn', onclick: () => { editing = true; renderPop(); $('#speed-seed-input')?.focus(); } }, 'Cambiar'));
+        el('input', { id: 'speed-seed-input', type: 'number', min: '0.1', step: '0.5', inputmode: 'decimal', value: String(Math.round(cal.seedMbps * 10) / 10), 'aria-label': tr('Mbps por seeder') }),
+        el('button', { id: 'speed-seed-fix', class: 'pop-btn', onclick: fixSeed }, tr('Fijar')),
+        cal.source === 'manual' ? el('button', { id: 'speed-seed-auto', class: 'pop-btn', onclick: () => { editing = false; recalibrate(); } }, tr('Usar lo medido')) : null)
+      : el('button', { id: 'speed-seed-edit', class: 'pop-btn', onclick: () => { editing = true; renderPop(); $('#speed-seed-input')?.focus(); } }, tr('Cambiar')));
 
   // Conexiones entrantes (2026-11-16): lo que vieron las reproducciones en esta red.
   const inc = incomingStatus();
   const incoming = el('div', { class: `conn-card conn-incoming ${inc ? (inc.open ? 'open' : 'closed') : ''}` },
     el('span', { class: 'conn-main' },
-      el('span', { class: 'conn-title' }, inc ? (inc.open ? 'Entrantes: sí' : 'Entrantes: no') : 'Entrantes: sin datos'),
-      el('span', { class: 'conn-sub' }, !inc ? 'Se sabe después de reproducir algo 2 minutos en esta red.'
-        : inc.open ? `Otros peers se conectan a vos: más fuentes para cada torrent. Visto ${ago(inc.at)}.`
-          : 'Tu router no deja entrar conexiones: anda igual, pero con menos peers. Preferí opciones con buena salud; si podés, activá UPnP en el router.')));
+      el('span', { class: 'conn-title' }, inc ? (inc.open ? tr('Entrantes: sí') : tr('Entrantes: no')) : tr('Entrantes: sin datos')),
+      el('span', { class: 'conn-sub' }, !inc ? tr('Se sabe después de reproducir algo 2 minutos en esta red.')
+        : inc.open ? tr('Otros peers se conectan a vos: más fuentes para cada torrent. Visto {a}.', { a: ago(inc.at) })
+          : tr('Tu router no deja entrar conexiones: anda igual, pero con menos peers. Preferí opciones con buena salud; si podés, activá UPnP en el router.'))));
 
   // Fidelidad (salud fiel): lo que dijo la salud al tocar ▶ vs lo que bajó en los minutos 2–5; cada
   // muestra predicha solo con lo aprendido de las anteriores.
   const f = fidelity(cal.learnable, cal.capFrom === 'test' ? cal.capMbps : null);
   const ok = f && f.n >= 8 && Math.abs(f.biasAfter) <= Math.log(1.5) && f.hits / f.n >= 0.75 && f.pessimistic / f.n <= 0.1;
-  const dir = (x) => (x < 0 ? `pesimista ×${nf1(Math.exp(-x))}` : `optimista ×${nf1(Math.exp(x))}`);
+  const dir = (x) => (x < 0 ? tr('pesimista ×{a}', { a: nf1(Math.exp(-x)) }) : tr('optimista ×{a}', { a: nf1(Math.exp(x)) }));
   const fid = el('div', { id: 'conn-fidelity', class: `conn-card ${ok ? 'ok' : ''}` },
     el('span', { class: 'conn-main' },
-      el('span', { class: 'conn-title' }, f ? `Fidelidad: acertó ${f.hits} de ${f.n} niveles` : 'Fidelidad: sin datos'),
+      el('span', { class: 'conn-title' }, f ? tr('Fidelidad: acertó {hits} de {n} niveles', { hits: f.hits, n: f.n }) : tr('Fidelidad: sin datos')),
       el('span', { class: 'conn-sub' }, f
-        ? `Sin aprender: ${dir(f.biasBefore)} (error típico ×${nf1(Math.exp(f.typBefore))}). Con lo aprendido: ${dir(f.biasAfter)} (×${nf1(Math.exp(f.typAfter))}). Dijo menos de lo que anduvo ${f.pessimistic} veces y más ${f.optimistic}; lo real cayó dentro del rango ${f.inBand} de ${f.n}.`
-        : 'Se calcula al reproducir 2 minutos algo cuya salud se mostró.')));
+        ? tr('Sin aprender: {a} (error típico ×{b}). Con lo aprendido: {c} (×{d}). Dijo menos de lo que anduvo {pessimistic} veces y más {optimistic}; lo real cayó dentro del rango {inBand} de {n}.', { a: dir(f.biasBefore), b: nf1(Math.exp(f.typBefore)), c: dir(f.biasAfter), d: nf1(Math.exp(f.typAfter)), pessimistic: f.pessimistic, optimistic: f.optimistic, inBand: f.inBand, n: f.n })
+        : tr('Se calcula al reproducir 2 minutos algo cuya salud se mostró.'))));
 
   // Cómo se calcula, con los números de esta PC.
   const how = el('div', { class: 'conn-how' },
     el('p', { class: 'conn-formula' },
-      el('span', {}, `seeders × ${nf1(cal.seedMbps)}`), ' + ', el('span', {}, `leechers × ${nf1(cal.seedMbps / 6)}`),
-      cal.capMbps ? [' · máx. ', el('span', {}, `${fmt(cal.capMbps)} Mbps`)] : null,
-      ' ÷ ', el('span', {}, 'lo que pide el video')),
+      el('span', {}, tr('seeders × {a}', { a: nf1(cal.seedMbps) })), ' + ', el('span', {}, tr('leechers × {a}', { a: nf1(cal.seedMbps / 6) })),
+      cal.capMbps ? [tr(' · máx. '), el('span', {}, tr('{a} Mbps', { a: fmt(cal.capMbps) }))] : null,
+      ' ÷ ', el('span', {}, tr('lo que pide el video'))),
     el('p', { class: 'conn-legend' },
-      el('b', { class: 'good' }, 'Buena'), ' sobra el doble · ', el('b', { class: 'fair' }, 'Puede cortarse'), ' alcanza apenas · ', el('b', { class: 'risky' }, 'Mala'), ' no alcanza'),
-    el('p', { class: 'hint' }, `"Lo que pide" = tamaño del episodio o película ÷ duración. Si ese torrent ya se midió (reproduciendo, cargando en background o al analizarlo), manda lo medido. Cada reproducción (minutos 2 a 5) compara lo que mostró la salud con lo que bajó de verdad y corrige la estimación, aparte para cada red (casa, trabajo…).`));
+      el('b', { class: 'good' }, tr('Buena')), tr(' sobra el doble · '), el('b', { class: 'fair' }, tr('Puede cortarse')), tr(' alcanza apenas · '), el('b', { class: 'risky' }, tr('Mala')), tr(' no alcanza')),
+    el('p', { class: 'hint' }, tr('"Lo que pide" = tamaño del episodio o película ÷ duración. Si ese torrent ya se midió (reproduciendo, cargando en background o al analizarlo), manda lo medido. Cada reproducción (minutos 2 a 5) compara lo que mostró la salud con lo que bajó de verdad y corrige la estimación, aparte para cada red (casa, trabajo…).')));
 
   const samples = el('details', { class: 'conn-samples' },
-    el('summary', {}, `Mediciones (${cal.samples.length})`),
+    el('summary', {}, tr('Mediciones ({n})', { n: cal.samples.length })),
     cal.samples.length
       ? el('ul', { class: 'calib-list' }, cal.samples.map((l) => el('li', {},
         el('b', {}, nameOf(l)),
         el('span', {}, sampleText(l)))))
-      : el('p', { class: 'hint' }, 'Todavía ninguna. Se mide sola al ver una opción ya analizada.'),
-    cal.samples.length ? el('button', { id: 'speed-reset', class: 'link', onclick: () => { editing = false; resetCalibration(); setStatus('Mediciones olvidadas: se vuelve a calibrar con las próximas reproducciones.'); } }, 'Olvidar mediciones y volver a calibrar') : null);
+      : el('p', { class: 'hint' }, tr('Todavía ninguna. Se mide sola al ver una opción ya analizada.')),
+    cal.samples.length ? el('button', { id: 'speed-reset', class: 'link', onclick: () => { editing = false; resetCalibration(); setStatus(tr('Mediciones olvidadas: se vuelve a calibrar con las próximas reproducciones.')); } }, tr('Olvidar mediciones y volver a calibrar')) : null);
 
   pop.replaceChildren(
-    el('div', { class: 'pop-head' }, el('div', {}, el('h3', {}, 'Tu conexión'),
-      el('p', { class: 'pop-sub' }, 'Con esto se estima si cada torrent va a andar bien: el ícono de señal y el orden de las opciones.'))),
+    el('div', { class: 'pop-head' }, el('div', {}, el('h3', {}, tr('Tu conexión')),
+      el('p', { class: 'pop-sub' }, tr('Con esto se estima si cada torrent va a andar bien: el ícono de señal y el orden de las opciones.')))),
     internet, seeder, incoming, fid, how, samples);
 }
 
@@ -150,22 +151,22 @@ function renderPop() {
  *  pasa a confiarse (MIN_SAMPLES) o, la de trackers, a mostrar salud sola (TRACKER_MIN). */
 function calibTracks(cal) {
   return [
-    { id: 'counted', label: 'Seeders contados', value: `${nf1(cal.seedMbps)} Mbps c/u`, goal: MIN_SAMPLES, reward: 'Calibrado' },
-    { id: 'tracker', label: 'Seeders de trackers', value: `${nf1(cal.trackerSeedMbps)} Mbps c/u`, goal: TRACKER_MIN, reward: 'Ya estima salud' },
-    { id: 'measured', label: 'Medición del análisis', value: `×${nf1(cal.measuredFactor)}`, goal: MIN_SAMPLES, reward: 'Calibrado' },
+    { id: 'counted', label: tr('Seeders contados'), value: tr('{a} Mbps c/u', { a: nf1(cal.seedMbps) }), goal: MIN_SAMPLES, reward: tr('Calibrado') },
+    { id: 'tracker', label: tr('Seeders de trackers'), value: tr('{a} Mbps c/u', { a: nf1(cal.trackerSeedMbps) }), goal: TRACKER_MIN, reward: tr('Ya estima salud') },
+    { id: 'measured', label: tr('Medición del análisis'), value: `×${nf1(cal.measuredFactor)}`, goal: MIN_SAMPLES, reward: tr('Calibrado') },
   ].map((t) => ({ ...t, have: Math.min(t.goal, Math.round(cal.bias[t.id]?.nEff ?? 0)) }));
 }
 
 function sampleText(l) {
-  if (!l.ev) return `${l.seeds} seeders · ${mbps(l.avg_speed_bps)} · ${nf1((l.avg_speed_bps * 8) / 1e6 / l.seeds)} por seeder · ${ago(l.measured_at)}`;
+  if (!l.ev) return tr('{seeds} seeders · {a} · {b} por seeder · {c}', { seeds: l.seeds, a: mbps(l.avg_speed_bps), b: nf1((l.avg_speed_bps * 8) / 1e6 / l.seeds), c: ago(l.measured_at) });
   const p = predict(l.ev, { bias: {}, capMbps: null })?.p50;
-  if (p == null) return `real ${nf1(l.real_mbps)} Mbps · sin predicción · ${ago(l.measured_at)}`;
-  return `predijo ${nf1(p)} → real ${nf1(l.real_mbps)} Mbps (×${nf1(l.real_mbps / p)}) · reales ${l.real_seeds} seeders / ${l.real_peers} peers (${l.real_incoming} entrantes)${l.short ? ' · corta' : ''} · ${ago(l.measured_at)}`;
+  if (p == null) return tr('real {a} Mbps · sin predicción · {b}', { a: nf1(l.real_mbps), b: ago(l.measured_at) });
+  return tr('predijo {a} → real {b} Mbps (×{c}) · reales {real_seeds} seeders / {real_peers} peers ({real_incoming} entrantes){d} · {e}', { a: nf1(p), b: nf1(l.real_mbps), c: nf1(l.real_mbps / p), real_seeds: l.real_seeds, real_peers: l.real_peers, real_incoming: l.real_incoming, d: l.short ? tr(' · corta') : '', e: ago(l.measured_at) });
 }
 
 function fixSeed() {
   const v = Number($('#speed-seed-input').value);
-  if (!(v > 0)) { setStatus('Poné un número mayor a 0.'); return; }
+  if (!(v > 0)) { setStatus(tr('Poné un número mayor a 0.')); return; }
   editing = false;
   setSeedMbps(v);
 }

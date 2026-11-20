@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use super::http::{FetchError, Http};
 use super::MediaKind;
+use crate::config::{Lang, LanguageConfig};
 use crate::datacache::DataCache;
 use crate::Result;
 
@@ -107,9 +108,17 @@ fn poster_url(r: FindResponse) -> Option<String> {
 }
 
 /// Datos de TMDB para el panel (2026-11-17): idioma original (manda en el audio por defecto),
-/// cadenas de la serie y tráiler. Los similares van aparte ([`similar`]): se piden al abrirlos.
+/// cadenas de la serie, tráiler, dónde verla y los textos en los idiomas elegidos (2026-11-20).
+/// Los similares van aparte ([`similar`]): se piden al abrirlos.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Details {
+    /// Título en el idioma de los títulos.
+    pub title: Option<String>,
+    /// Sinopsis y géneros en el idioma de la app.
+    pub overview: Option<String>,
+    pub genres: Vec<String>,
+    /// Dónde verla en Argentina (TMDB/JustWatch): suscripción primero, después con avisos o gratis.
+    pub providers: Vec<Provider>,
     /// ISO 639-1 (`en`, `es`, `ja`…).
     pub original_language: Option<String>,
     /// Series: dónde se emite (HBO, Netflix…).
@@ -118,6 +127,13 @@ pub struct Details {
     /// varios sin título ni orden: el primero puede ser de la última temporada.
     #[serde(default)]
     pub trailer: Option<String>,
+}
+
+/// Un servicio donde está el título, con su logo.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Provider {
+    pub name: String,
+    pub logo: Option<String>,
 }
 
 /// Un título similar, del mismo tipo que el de la ficha.
@@ -149,10 +165,67 @@ const DETAILS_TTL: Duration = Duration::from_secs(7 * 24 * 3600);
 
 #[derive(Deserialize)]
 struct RawDetails {
+    /// Películas: `title`; series: `name`.
+    title: Option<String>,
+    name: Option<String>,
+    overview: Option<String>,
+    #[serde(default)]
+    genres: Vec<Named>,
     original_language: Option<String>,
     #[serde(default)]
     networks: Vec<Named>,
     videos: Option<Videos>,
+    #[serde(rename = "watch/providers")]
+    providers: Option<WatchProviders>,
+}
+
+#[derive(Deserialize)]
+struct WatchProviders {
+    #[serde(default)]
+    results: HashMap<String, Offers>,
+}
+
+#[derive(Deserialize, Default)]
+struct Offers {
+    #[serde(default)]
+    flatrate: Vec<RawProvider>,
+    #[serde(default)]
+    ads: Vec<RawProvider>,
+    #[serde(default)]
+    free: Vec<RawProvider>,
+}
+
+#[derive(Deserialize, Clone)]
+struct RawProvider {
+    provider_id: u64,
+    provider_name: String,
+    logo_path: Option<String>,
+    #[serde(default)]
+    display_priority: i64,
+}
+
+const LOGO_BASE: &str = "https://image.tmdb.org/t/p/w92";
+
+/// Argentina: suscripción, con avisos y gratis, sin repetir, en el orden de TMDB.
+fn providers_ar(p: Option<WatchProviders>) -> Vec<Provider> {
+    let ar = p
+        .and_then(|mut p| p.results.remove("AR"))
+        .unwrap_or_default();
+    let mut all: Vec<RawProvider> = ar
+        .flatrate
+        .into_iter()
+        .chain(ar.ads)
+        .chain(ar.free)
+        .collect();
+    let mut seen = std::collections::HashSet::new();
+    all.retain(|x| seen.insert(x.provider_id));
+    all.sort_by_key(|x| x.display_priority);
+    all.into_iter()
+        .map(|x| Provider {
+            name: super::normalize::clean(&x.provider_name),
+            logo: x.logo_path.map(|l| format!("{LOGO_BASE}{l}")),
+        })
+        .collect()
 }
 
 #[derive(Deserialize)]
@@ -184,7 +257,7 @@ fn first_trailer(videos: Vec<Video>) -> Option<String> {
         .map(|v| v.key)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct Named {
     name: String,
 }
@@ -218,6 +291,7 @@ pub async fn details(
     data: &DataCache,
     kind: MediaKind,
     imdb_id: &str,
+    langs: LanguageConfig,
     timeout: Duration,
 ) -> DetailsView {
     let Some(key) = crate::secrets::secret(ACCOUNT) else {
@@ -226,8 +300,13 @@ pub async fn details(
             details: None,
         };
     };
-    // v3: con tráiler y sin similares.
-    let file = format!("tmdb-detalle-v3-{}-{imdb_id}.json", kind.as_str());
+    // v4: con dónde verla y los textos en los idiomas elegidos (uno por combinación).
+    let file = format!(
+        "tmdb-detalle-v4-{}-{imdb_id}-{}-{}.json",
+        kind.as_str(),
+        langs.titles.tmdb(),
+        langs.app.tmdb()
+    );
     if let Some((saved, _)) = data
         .get::<Details>(&file)
         .filter(|(_, age)| *age < DETAILS_TTL)
@@ -237,7 +316,7 @@ pub async fn details(
             details: Some(saved),
         };
     }
-    let found = fetch_details(http, &key, kind, imdb_id, timeout).await;
+    let found = fetch_details(http, &key, kind, imdb_id, langs, timeout).await;
     if let Some(d) = &found {
         data.put(&file, d);
     }
@@ -315,21 +394,53 @@ async fn fetch_details(
     key: &str,
     kind: MediaKind,
     imdb_id: &str,
+    langs: LanguageConfig,
     timeout: Duration,
 ) -> Option<Details> {
     let id = tmdb_id(http, key, kind, imdb_id, timeout).await?;
     let path = tmdb_path(kind);
-    let raw: RawDetails = http
-        .get_json(
-            &format!(
-                "https://api.themoviedb.org/3/{path}/{id}?append_to_response=videos&api_key={key}"
-            ),
-            timeout,
-        )
-        .await
-        .map_err(|e| tracing::debug!(imdb_id, "TMDB detalle: {}", e.user_text()))
-        .ok()?;
+    let get = |lang: Lang, extra: &str| {
+        let url = format!(
+            "https://api.themoviedb.org/3/{path}/{id}?language={}{extra}&api_key={key}",
+            lang.tmdb()
+        );
+        async move {
+            http.get_json::<RawDetails>(&url, timeout)
+                .await
+                .map_err(|e| tracing::debug!(imdb_id, "TMDB detalle: {}", e.user_text()))
+                .ok()
+        }
+    };
+    // Los videos en inglés (o sin idioma), como antes de pedir en el idioma de los títulos.
+    let raw = get(
+        langs.titles,
+        "&append_to_response=videos,watch/providers&include_video_language=en,null",
+    )
+    .await?;
+    // Sinopsis y géneros siempre en el idioma de la app: un pedido más solo si difiere.
+    let about = if langs.app == langs.titles {
+        None
+    } else {
+        get(langs.app, "").await
+    };
+    let (overview, genres) = match about {
+        Some(a) => (a.overview, a.genres),
+        None => (raw.overview.clone(), raw.genres.clone()),
+    };
     Some(Details {
+        title: raw
+            .title
+            .or(raw.name)
+            .map(|t| super::normalize::clean(&t))
+            .filter(|t| !t.is_empty()),
+        overview: overview
+            .map(|o| super::normalize::clean(&o))
+            .filter(|o| !o.is_empty()),
+        genres: genres
+            .into_iter()
+            .map(|g| super::normalize::clean(&g.name))
+            .collect(),
+        providers: providers_ar(raw.providers),
         original_language: raw.original_language.filter(|l| !l.is_empty()),
         networks: raw
             .networks
@@ -347,19 +458,24 @@ pub async fn similar(
     data: &DataCache,
     kind: MediaKind,
     imdb_id: &str,
+    titles: Lang,
     timeout: Duration,
 ) -> Vec<Similar> {
     let Some(key) = crate::secrets::secret(ACCOUNT) else {
         return Vec::new();
     };
-    let file = format!("tmdb-similares-{}-{imdb_id}.json", kind.as_str());
+    let file = format!(
+        "tmdb-similares-{}-{imdb_id}-{}.json",
+        kind.as_str(),
+        titles.tmdb()
+    );
     if let Some((saved, _)) = data
         .get::<Vec<Similar>>(&file)
         .filter(|(_, age)| *age < DETAILS_TTL)
     {
         return saved;
     }
-    let Some(found) = fetch_similar(http, &key, kind, imdb_id, timeout).await else {
+    let Some(found) = fetch_similar(http, &key, kind, imdb_id, titles, timeout).await else {
         return Vec::new();
     };
     data.put(&file, &found);
@@ -371,13 +487,17 @@ async fn fetch_similar(
     key: &str,
     kind: MediaKind,
     imdb_id: &str,
+    titles: Lang,
     timeout: Duration,
 ) -> Option<Vec<Similar>> {
     let id = tmdb_id(http, key, kind, imdb_id, timeout).await?;
     let path = tmdb_path(kind);
     let page: Page = http
         .get_json(
-            &format!("https://api.themoviedb.org/3/{path}/{id}/recommendations?api_key={key}"),
+            &format!(
+                "https://api.themoviedb.org/3/{path}/{id}/recommendations?language={}&api_key={key}",
+                titles.tmdb()
+            ),
             timeout,
         )
         .await
@@ -428,9 +548,276 @@ async fn fetch_similar(
     )
 }
 
+/// Título y sinopsis de un episodio en los idiomas elegidos (Cinemeta los trae solo en inglés).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EpisodeText {
+    pub episode: u32,
+    pub name: Option<String>,
+    pub overview: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct RawSeason {
+    #[serde(default)]
+    episodes: Vec<RawEpisode>,
+}
+
+#[derive(Deserialize)]
+struct RawEpisode {
+    episode_number: u32,
+    name: Option<String>,
+    overview: Option<String>,
+}
+
+/// Episodios de una temporada: título en el idioma de los títulos, sinopsis en el de la app.
+/// Guardados una semana por temporada y combinación de idiomas. Sin key o si falla, vacío (la UI
+/// deja los de Cinemeta).
+pub async fn episodes(
+    http: &Http,
+    data: &DataCache,
+    imdb_id: &str,
+    season: u32,
+    langs: LanguageConfig,
+    timeout: Duration,
+) -> Vec<EpisodeText> {
+    let Some(key) = crate::secrets::secret(ACCOUNT) else {
+        return Vec::new();
+    };
+    let file = format!(
+        "tmdb-episodios-{imdb_id}-{season}-{}-{}.json",
+        langs.titles.tmdb(),
+        langs.app.tmdb()
+    );
+    if let Some((saved, _)) = data
+        .get::<Vec<EpisodeText>>(&file)
+        .filter(|(_, age)| *age < DETAILS_TTL)
+    {
+        return saved;
+    }
+    let Some(id) = tmdb_id(http, &key, MediaKind::Series, imdb_id, timeout).await else {
+        return Vec::new();
+    };
+    let get = |lang: Lang| {
+        let url = format!(
+            "https://api.themoviedb.org/3/tv/{id}/season/{season}?language={}&api_key={key}",
+            lang.tmdb()
+        );
+        async move {
+            http.get_json::<RawSeason>(&url, timeout)
+                .await
+                .map_err(|e| tracing::debug!(imdb_id, "TMDB temporada: {}", e.user_text()))
+                .ok()
+                .map(|s| s.episodes)
+        }
+    };
+    let Some(named) = get(langs.titles).await else {
+        return Vec::new();
+    };
+    let about = if langs.app == langs.titles {
+        None
+    } else {
+        get(langs.app).await
+    };
+    let text = |t: Option<String>| {
+        t.map(|t| super::normalize::clean(&t))
+            .filter(|t| !t.is_empty())
+    };
+    let found: Vec<EpisodeText> = named
+        .into_iter()
+        .map(|e| {
+            let overview = match &about {
+                Some(list) => list
+                    .iter()
+                    .find(|a| a.episode_number == e.episode_number)
+                    .and_then(|a| a.overview.clone()),
+                None => e.overview,
+            };
+            EpisodeText {
+                episode: e.episode_number,
+                name: text(e.name),
+                overview: text(overview),
+            }
+        })
+        .collect();
+    data.put(&file, &found);
+    found
+}
+
+/// La película o serie de un torrent pegado (2026-11-20, "Pegar magnet" de la web), reconocida
+/// por su nombre en TMDB.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Identified {
+    pub kind: MediaKind,
+    /// IMDb id: se abre como cualquier título del catálogo.
+    pub id: String,
+    pub name: String,
+    pub year: Option<String>,
+    pub poster: Option<String>,
+    /// Puntaje de IMDb (se completa con el índice en memoria, si está).
+    #[serde(default)]
+    pub rating: Option<String>,
+    pub season: Option<u16>,
+    pub episode: Option<u16>,
+}
+
+#[derive(Deserialize)]
+struct MultiPage {
+    #[serde(default)]
+    results: Vec<MultiHit>,
+}
+
+#[derive(Deserialize)]
+struct MultiHit {
+    id: u64,
+    #[serde(default)]
+    media_type: String,
+    title: Option<String>,
+    name: Option<String>,
+    release_date: Option<String>,
+    first_air_date: Option<String>,
+    poster_path: Option<String>,
+    #[serde(default)]
+    original_language: String,
+}
+
+/// Lo que se busca en TMDB por el nombre de un release: título, año y si es de una serie.
+#[derive(Debug, PartialEq, Eq)]
+struct NameQuery {
+    title: String,
+    year: Option<String>,
+    season: Option<u16>,
+    episode: Option<u16>,
+}
+
+fn name_query(name: &str) -> Option<NameQuery> {
+    let r = crate::release::parse_release_name(name);
+    let title = r.title.filter(|t| t.chars().count() >= 2)?;
+    Some(NameQuery {
+        title,
+        year: r.year.map(|y| y.to_string()),
+        season: r.season,
+        episode: r.episode,
+    })
+}
+
+/// De los resultados, el que mejor calza: con temporada o capítulo solo series; si el nombre trae
+/// año, el de ese año; si no, el primero (TMDB ordena por relevancia). Sin anime (FR-40).
+fn best_hit(hits: Vec<MultiHit>, q: &NameQuery) -> Option<MultiHit> {
+    let fit: Vec<MultiHit> = hits
+        .into_iter()
+        .filter(|h| match h.media_type.as_str() {
+            "tv" => true,
+            "movie" => q.season.is_none(),
+            _ => false,
+        })
+        .filter(|h| h.original_language != "ja")
+        .collect();
+    let year_of = |h: &MultiHit| {
+        h.release_date
+            .as_deref()
+            .or(h.first_air_date.as_deref())
+            .and_then(|d| d.get(..4))
+            .map(str::to_string)
+    };
+    let pick = q
+        .year
+        .as_ref()
+        .and_then(|y| fit.iter().position(|h| year_of(h).as_ref() == Some(y)))
+        .unwrap_or(0);
+    fit.into_iter().nth(pick)
+}
+
+pub async fn identify(
+    http: &Http,
+    name: &str,
+    titles: Lang,
+    timeout: Duration,
+) -> Option<Identified> {
+    let key = crate::secrets::secret(ACCOUNT)?;
+    let q = name_query(name)?;
+    let url = format!(
+        "https://api.themoviedb.org/3/search/multi?query={}&language={}&include_adult=false&api_key={key}",
+        super::protocol::encode_extra(&q.title),
+        titles.tmdb()
+    );
+    let page: MultiPage = http
+        .get_json(&url, timeout)
+        .await
+        .map_err(|e| tracing::debug!("TMDB identificar: {}", e.user_text()))
+        .ok()?;
+    let hit = best_hit(page.results, &q)?;
+    let (kind, path) = if hit.media_type == "tv" {
+        (MediaKind::Series, "tv")
+    } else {
+        (MediaKind::Movie, "movie")
+    };
+    let ids: ExternalIds = http
+        .get_json(
+            &format!(
+                "https://api.themoviedb.org/3/{path}/{}/external_ids?api_key={key}",
+                hit.id
+            ),
+            timeout,
+        )
+        .await
+        .ok()?;
+    Some(Identified {
+        kind,
+        id: ids.imdb_id.filter(|id| id.starts_with("tt"))?,
+        name: super::normalize::clean(hit.title.or(hit.name)?.as_str()),
+        year: hit
+            .release_date
+            .or(hit.first_air_date)
+            .and_then(|d| d.get(..4).map(str::to_string)),
+        poster: hit.poster_path.map(|p| format!("{IMAGE_BASE}{p}")),
+        rating: None,
+        season: q.season,
+        episode: q.episode,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reconoce_el_titulo_de_un_release() {
+        let q = name_query("The.Bear.S03E02.1080p.WEB-DL.mkv").unwrap();
+        assert_eq!(
+            (q.title.as_str(), q.season, q.episode),
+            ("The Bear", Some(3), Some(2))
+        );
+        let hit = |id, media: &str, date: &str| MultiHit {
+            id,
+            media_type: media.into(),
+            title: Some("X".into()),
+            name: None,
+            release_date: Some(date.into()),
+            first_air_date: None,
+            poster_path: None,
+            original_language: "en".into(),
+        };
+        // Con capítulo, solo series; con año, el de ese año.
+        let hits = vec![hit(1, "movie", "2022-01-01"), hit(2, "tv", "2022-06-01")];
+        assert_eq!(best_hit(hits, &q).map(|h| h.id), Some(2));
+        let movie = name_query("Oppenheimer (2023) [1080p]").unwrap();
+        assert_eq!(movie.year.as_deref(), Some("2023"));
+        let hits = vec![hit(1, "movie", "1990-01-01"), hit(2, "movie", "2023-07-21")];
+        assert_eq!(best_hit(hits, &movie).map(|h| h.id), Some(2));
+        assert!(name_query("x").is_none());
+    }
+
+    #[test]
+    fn donde_verla_en_argentina_sin_repetir() {
+        let p: WatchProviders = serde_json::from_str(
+            r#"{"results":{"AR":{"flatrate":[{"provider_id":8,"provider_name":"Netflix","logo_path":"/n.jpg","display_priority":2}],
+              "free":[{"provider_id":8,"provider_name":"Netflix","display_priority":2},{"provider_id":1,"provider_name":"Cine.ar","display_priority":1}]},
+              "US":{"flatrate":[{"provider_id":9,"provider_name":"Prime","display_priority":0}]}}}"#,
+        )
+        .unwrap();
+        let names: Vec<String> = providers_ar(Some(p)).into_iter().map(|x| x.name).collect();
+        assert_eq!(names, ["Cine.ar", "Netflix"]);
+    }
 
     #[test]
     fn trailer_oficial_mas_viejo() {

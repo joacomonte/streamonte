@@ -1,5 +1,6 @@
 // Formatos de números compartidos por la app: bytes, Mbps, duraciones y fechas
 // relativas, en español de Argentina (coma decimal).
+import { t } from './i18n.js';
 
 /** "1,4 GB" / "734 MB"; sin dato, "—". */
 export function humanBytes(b) {
@@ -9,7 +10,7 @@ export function humanBytes(b) {
 }
 
 /** bytes/s → "7,2 Mbps" (siempre un decimal). */
-export const mbps = (bytesPerSec) => `${((bytesPerSec * 8) / 1e6).toFixed(1).replace('.', ',')} Mbps`;
+export const mbps = (bytesPerSec) => t('{a} Mbps', { a: ((bytesPerSec * 8) / 1e6).toFixed(1).replace('.', ',') });
 
 /** Hasta un decimal ("2", "1,5"). */
 export const nf = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 1 });
@@ -31,22 +32,22 @@ export function clock(secs, shortUnderHour = false) {
 /** "recién", "hace 5 min", "hace 3 h", "hace 2 días". */
 export function ago(iso) {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return 'recién';
-  if (mins < 60) return `hace ${mins} min`;
+  if (mins < 1) return t('recién');
+  if (mins < 60) return t('hace {mins} min', { mins });
   const h = Math.round(mins / 60);
-  return h < 48 ? `hace ${h} h` : `hace ${Math.round(h / 24)} días`;
+  return h < 48 ? t('hace {h} h', { h }) : t('hace {a} días', { a: Math.round(h / 24) });
 }
 
 /** Estado de una reproducción en palabras (menú Descargas y la card del catálogo). */
 export function playbackText(pb) {
   const k = pb.state.kind;
-  if (k === 'fetching-metadata') return 'cargando…';
-  if (k === 'preparing') return `cargando ${Math.round((pb.state.fraction ?? 0) * 100)} %`;
-  if (k === 'stopping') return 'cerrando…';
-  if (k === 'download-paused') return 'reproduciendo · descarga en pausa';
-  if (k === 'ask-after-close') return 'cerraste el reproductor…';
-  if (k === 'background') return `descargando · ${Math.floor((pb.progress ?? 0) * 100)} %`;
-  if (k === 'paused') return `pausado · ${Math.floor((pb.progress ?? 0) * 100)} % bajado`;
-  if (k === 'failed') return `falló: ${pb.state.message}`;
-  return 'reproduciendo';
+  if (k === 'fetching-metadata') return t('cargando…');
+  if (k === 'preparing') return t('cargando {a} %', { a: Math.round((pb.state.fraction ?? 0) * 100) });
+  if (k === 'stopping') return t('cerrando…');
+  if (k === 'download-paused') return t('reproduciendo · descarga en pausa');
+  if (k === 'ask-after-close') return t('cerraste el reproductor…');
+  if (k === 'background') return t('descargando · {a} %', { a: Math.floor((pb.progress ?? 0) * 100) });
+  if (k === 'paused') return t('pausado · {a} % bajado', { a: Math.floor((pb.progress ?? 0) * 100) });
+  if (k === 'failed') return t('falló: {message}', { message: pb.state.message });
+  return t('reproduciendo');
 }

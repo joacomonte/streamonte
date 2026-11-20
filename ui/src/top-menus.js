@@ -4,7 +4,8 @@
 import { api } from './api.js';
 import { play } from './audio-picker.js';
 import { cleanTemp, clearDataCache, openLog, stopAllAndClean } from './dialogs.js';
-import { $, el, icon, setStatus, showError } from './dom.js';
+import { $, el, icon, showError } from './dom.js';
+import { t as tr } from './i18n.js';
 import { humanBytes, mbps, playbackText } from './format.js';
 import { state, titleOf } from './state.js';
 
@@ -65,13 +66,13 @@ export async function refreshCopied() {
 
 export async function playCopied() {
   if (!copied) return;
-  const { raw, info_hash: key, name } = copied;
+  const { raw, info_hash: key } = copied;
   const btn = $('#btn-clipboard');
   btn.disabled = true;
   try {
     await api.addSelected([raw]);
-    await api.play(key);
-    setStatus(`Abriendo ${name ?? 'el magnet copiado'}…`);
+    // Como cualquier ▶: pregunta con qué reproductor (y audio, si se sabe) antes de abrir.
+    await play(key, btn);
   } catch (e) { showError(e); } finally { btn.disabled = false; }
 }
 
@@ -103,18 +104,18 @@ function analyzerSection() {
   const s = state.analyzerState;
   if (!s || s.kind === 'idle') return null;
   const queued = state.queued?.length ?? 0;
-  const what = s.kind === 'paused' ? 'En pausa'
-    : s.kind === 'measuring' ? `Midiendo ${titleOf(s.current)}`
-      : s.kind === 'scraping' ? 'Consultando trackers' : 'Leyendo metadatos';
-  return section('Análisis',
+  const what = s.kind === 'paused' ? tr('En pausa')
+    : s.kind === 'measuring' ? tr('Midiendo {a}', { a: titleOf(s.current) })
+      : s.kind === 'scraping' ? tr('Consultando trackers') : tr('Leyendo metadatos');
+  return section(tr('Análisis'),
     el('div', { class: 'pop-item' },
       el('div', { class: 'pop-item-text' },
         el('span', { class: 'pop-item-title' }, what),
-        el('span', { class: 'pop-item-sub' }, `${queued} en cola · cada medición usa un motor propio`)),
+        el('span', { class: 'pop-item-sub' }, tr('{queued} en cola · cada medición usa un motor propio', { queued }))),
       el('div', { class: 'pop-actions' },
         s.kind === 'paused'
-          ? el('button', { id: 'dl-analyzer-resume', class: 'pop-btn', onclick: () => api.analyzerResume().catch(showError) }, 'Reanudar')
-          : el('button', { id: 'dl-analyzer-pause', class: 'pop-btn', title: 'Corta lo que se está midiendo y pausa la cola', onclick: () => api.analyzerPause().catch(showError) }, 'Pausar'))));
+          ? el('button', { id: 'dl-analyzer-resume', class: 'pop-btn', onclick: () => api.analyzerResume().catch(showError) }, tr('Reanudar'))
+          : el('button', { id: 'dl-analyzer-pause', class: 'pop-btn', title: tr('Corta lo que se está midiendo y pausa la cola'), onclick: () => api.analyzerPause().catch(showError) }, tr('Pausar')))));
 }
 
 function renderDownloads() {
@@ -130,25 +131,25 @@ function renderDownloads() {
   const total = usage && dataBytes != null ? humanBytes(usage.bytes + dataBytes) : '…';
   pop.replaceChildren(...[
     el('div', { class: 'pop-head' },
-      el('div', {}, el('h3', {}, 'Descargas'), el('p', { class: 'pop-sub' }, `${total} en disco`)),
-      el('button', { id: 'dl-open-folder', class: 'pop-btn', onclick: () => api.openDownloadsFolder().catch(showError) }, icon('folder', 15), 'Abrir carpeta')),
+      el('div', {}, el('h3', {}, tr('Descargas')), el('p', { class: 'pop-sub' }, tr('{total} en disco', { total }))),
+      el('button', { id: 'dl-open-folder', class: 'pop-btn', onclick: () => api.openDownloadsFolder().catch(showError) }, icon('folder', 15), tr('Abrir carpeta'))),
     el('ul', { class: 'disk-list' },
       el('li', { class: 'disk-row' },
-        el('span', { class: 'disk-row-text' }, el('b', {}, 'Caché'), el('span', {}, 'Lo analizado y restos sin uso')),
+        el('span', { class: 'disk-row-text' }, el('b', {}, tr('Caché')), el('span', {}, tr('Lo analizado y restos sin uso'))),
         el('span', { class: 'disk-row-size' }, usage ? humanBytes(usage.bytes) : '…'),
-        el('button', { id: 'dl-clean', class: 'pop-btn', title: 'Borra lo analizado y los restos que no están en uso (no toca lo activo ni lo guardado)', disabled: usage?.bytes === 0, onclick: () => afterClean(cleanTemp) }, 'Borrar'))),
+        el('button', { id: 'dl-clean', class: 'pop-btn', title: tr('Borra lo analizado y los restos que no están en uso (no toca lo activo ni lo guardado)'), disabled: usage?.bytes === 0, onclick: () => afterClean(cleanTemp) }, tr('Borrar')))),
     // Datos guardados: discreto a propósito, sirven para abrir todo más rápido y no conviene
     // invitar a borrarlos (se vuelven a bajar si se borran).
     el('p', { class: 'pop-data-line' },
-      `Datos guardados · ${dataBytes == null ? '…' : humanBytes(dataBytes)} · aceleran el catálogo, no hace falta borrarlos · `,
-      el('button', { id: 'dl-clear-data', type: 'button', title: 'Borra fichas, portadas y puntajes guardados (se vuelven a bajar cuando hagan falta)', onclick: () => afterClean(clearDataCache) }, 'borrar')),
+      tr('Datos guardados · {a} · aceleran el catálogo, no hace falta borrarlos · ', { a: dataBytes == null ? '…' : humanBytes(dataBytes) }),
+      el('button', { id: 'dl-clear-data', type: 'button', title: tr('Borra fichas, portadas y puntajes guardados (se vuelven a bajar cuando hagan falta)'), onclick: () => afterClean(clearDataCache) }, tr('borrar'))),
     // Las secciones vacías no se muestran (2026-11-17).
-    running.length ? section(`En curso · ${running.length}`, el('ul', { class: 'pop-list' }, running.map(playbackItem))) : null,
-    kept.length ? section(`Guardadas · ${kept.length}`, el('ul', { class: 'pop-list' }, kept.map(playbackItem))) : null,
+    running.length ? section(tr('En curso · {n}', { n: running.length }), el('ul', { class: 'pop-list' }, running.map(playbackItem))) : null,
+    kept.length ? section(tr('Guardadas · {n}', { n: kept.length }), el('ul', { class: 'pop-list' }, kept.map(playbackItem))) : null,
     analyzerSection(),
     // Solo hace algo distinto de "Borrar caché" cuando hay reproducciones o descargas guardadas.
     rows.length ? el('div', { class: 'pop-foot' },
-      el('button', { id: 'dl-stop-all', class: 'pop-btn danger', title: 'Detiene todo y borra todo lo descargado, también lo pausado', onclick: () => afterClean(stopAllAndClean) }, 'Detener y borrar todo')) : null,
+      el('button', { id: 'dl-stop-all', class: 'pop-btn danger', title: tr('Detiene todo y borra todo lo descargado, también lo pausado'), onclick: () => afterClean(stopAllAndClean) }, tr('Detener y borrar todo'))) : null,
   ].filter(Boolean));
 }
 
@@ -179,7 +180,7 @@ export async function refreshCache() {
   const u = await api.tempUsage().catch(() => null);
   const cache = $('#downloads-cache');
   cache.hidden = !u || u.bytes < 1024 ** 2;
-  if (u) cache.textContent = `· ${humanBytes(u.bytes)} de caché`;
+  if (u) cache.textContent = tr('· {a} de caché', { a: humanBytes(u.bytes) });
 }
 
 /** Estados en que de verdad baja datos (pausada o "solo reproduciendo lo bajado" no). */
@@ -197,7 +198,7 @@ function showTransfer() {
   bar.classList.toggle('waiting', pct === 0); // conectando o sin metadatos: barra que corre
   bar.firstElementChild.style.width = `${Math.max(pct, 2)}%`;
   bar.setAttribute('aria-valuenow', String(pct));
-  bar.title = `Bajando ${rows.length === 1 ? rows[0].name : `${rows.length} videos`} · ${pct} % · ${mbps(bps)}`;
+  bar.title = tr('Bajando {a} · {pct} % · {b}', { a: rows.length === 1 ? rows[0].name : `${rows.length} videos`, pct, b: mbps(bps) });
 }
 
 /** Lo que baja de fondo (2026-11-17), siempre a la vista en la barra de arriba: nombre, % y ▶ para
@@ -211,11 +212,11 @@ function showBackground() {
   const r = rows[0];
   const pct = Math.floor((r.progress ?? 0) * 100);
   box.replaceChildren(
-    el('span', { class: 'top-bg-info', title: `Bajando de fondo: ${titleOf(r.key)} · ${pct} %${r.speed_bps > 0 ? ` · ${mbps(r.speed_bps)}` : ''}` },
+    el('span', { class: 'top-bg-info', title: tr('Bajando de fondo: {a} · {pct} %{b}', { a: titleOf(r.key), pct, b: r.speed_bps > 0 ? ` · ${mbps(r.speed_bps)}` : '' }) },
       icon('download', 14), el('span', { class: 'top-bg-name' }, titleOf(r.key)), el('b', {}, `${pct} %`),
       rows.length > 1 ? el('span', { class: 'top-bg-more' }, `+${rows.length - 1}`) : null,
       el('span', { class: 'top-bg-bar', 'aria-hidden': 'true' }, el('i', { style: `width:${Math.max(pct, 2)}%` }))),
-    el('button', { id: 'top-bg-play', class: 'top-bg-play', 'aria-label': `Ver ${titleOf(r.key)}`, title: 'Verla ahora (sigue bajando mientras la ves)',
+    el('button', { id: 'top-bg-play', class: 'top-bg-play', 'aria-label': tr('Ver {a}', { a: titleOf(r.key) }), title: tr('Verla ahora (sigue bajando mientras la ves)'),
       onclick: (ev) => play(r.key, ev.currentTarget) }, icon('play', 14)));
 }
 
@@ -224,7 +225,7 @@ export function refreshDownloads() {
   const bytes = downloadedBytes();
   const size = $('#downloads-size');
   size.hidden = bytes < 1024 ** 2;
-  size.textContent = `· ${humanBytes(bytes)} bajados`;
+  size.textContent = tr('· {a} bajados', { a: humanBytes(bytes) });
   const n = [...state.playbacks.values()].filter(ACTIVE).length;
   showTransfer();
   showBackground();

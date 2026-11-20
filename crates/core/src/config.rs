@@ -28,6 +28,8 @@ pub struct Config {
     pub logging: LoggingConfig,
     /// Catálogo y addons de Stremio (F4b, spec 09 §9).
     pub catalog: CatalogConfig,
+    /// Idiomas elegidos por el usuario (2026-11-20, como la web): textos de la app y títulos.
+    pub language: LanguageConfig,
 }
 
 impl Config {
@@ -69,8 +71,37 @@ impl Default for Config {
             clipboard: ClipboardConfig::default(),
             logging: LoggingConfig::default(),
             catalog: CatalogConfig::default(),
+            language: LanguageConfig::default(),
         }
     }
+}
+
+/// Idioma de la app o de los títulos. Español por defecto.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum Lang {
+    #[default]
+    Es,
+    En,
+}
+
+impl Lang {
+    /// Parámetro `language` de TMDB (el español de TMDB más cercano al rioplatense es el de México).
+    pub fn tmdb(self) -> &'static str {
+        match self {
+            Self::Es => "es-MX",
+            Self::En => "en-US",
+        }
+    }
+}
+
+/// `app`: menús, botones, sinopsis y géneros. `titles`: títulos de películas, series y capítulos
+/// (puede ser otro). Los subtítulos no dependen de esto: siempre priorizan español.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default)]
+pub struct LanguageConfig {
+    pub app: Lang,
+    pub titles: Lang,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -250,8 +281,6 @@ pub enum PlayerKind {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct PlayerConfig {
-    /// mpv por defecto (FR-09, ADR-05).
-    pub default_player: PlayerKind,
     /// `None` = detectar automáticamente (NFR-03).
     pub mpv_path: Option<PathBuf>,
     pub vlc_path: Option<PathBuf>,
@@ -291,7 +320,6 @@ impl Equalizer {
 impl Default for PlayerConfig {
     fn default() -> Self {
         Self {
-            default_player: PlayerKind::Mpv,
             mpv_path: None,
             vlc_path: None,
             use_app_profile: true,
@@ -626,7 +654,7 @@ mod tests {
         let (store, dir) = temp_store("roundtrip");
         let mut c = Config::default();
         c.logging.diagnostics = true;
-        c.player.default_player = PlayerKind::Vlc;
+        c.player.equalizer = Equalizer::Flat;
         c.trackers.push("udp://ejemplo:1/announce".into());
         c.engine.listen_ports = [43_210, 43_219];
         store.save(&c).unwrap();
@@ -710,7 +738,6 @@ mod tests {
         let c = Config::default();
         assert_eq!(c.trackers.len(), 7);
         assert!(c.trackers.iter().all(|t| !t.starts_with("wss://")));
-        assert_eq!(c.player.default_player, PlayerKind::Mpv);
         assert!(c.player.use_app_profile);
         assert!(
             !c.logging.diagnostics,

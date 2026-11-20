@@ -678,6 +678,15 @@ impl AppCore {
         .await
     }
 
+    /// Idiomas de la app y de los títulos (Ajustes y bienvenida, 2026-11-20): lo de TMDB se pide en ellos.
+    pub async fn set_language(&self, language: crate::config::LanguageConfig) -> Result<()> {
+        self.update_config(|c| {
+            c.language = language;
+            Ok(())
+        })
+        .await
+    }
+
     pub async fn set_network(
         &self,
         incoming: bool,
@@ -780,8 +789,7 @@ impl AppCore {
             .max(std::time::Duration::from_secs(20));
         let (url, title) = self.catalog.torbox_stream(hash, timeout).await?;
         let cfg = self.config.read().await.clone();
-        let kind =
-            crate::player::resolve_player(player.unwrap_or(cfg.player.default_player), &cfg.player);
+        let kind = crate::player::resolve_player(player, &cfg.player);
         // Lo elegido en el paso de subtítulos de Reproducir (por opción, como la reproducción
         // por torrent): una pista del video se elige con `--sid`; un archivo va solo (mpv muestra
         // el único `--sub-file`). Sin elegir: los ya bajados, mejor primero.
@@ -971,15 +979,6 @@ impl AppCore {
     /// Reproductores de este equipo (Ajustes → Reproductor, 2026-11-17).
     pub async fn players_status(&self) -> crate::player::PlayersStatus {
         crate::player::players_status(&self.config.read().await.player)
-    }
-
-    /// Reproductor elegido en Ajustes; rige desde la próxima reproducción.
-    pub async fn set_player(&self, player: crate::config::PlayerKind) -> Result<()> {
-        self.update_config(|c| {
-            c.player.default_player = player;
-            Ok(())
-        })
-        .await
     }
 
     /// Abre el tráiler en YouTube (solo ids de video válidos).
@@ -1376,14 +1375,9 @@ impl AppCore {
     }
 
     /// Explorar sin key de TMDB: en tendencia ahora.
-    pub async fn catalog_trending(
-        &self,
-        kind: MediaKind,
-        genre: Option<&str>,
-        skip: u32,
-    ) -> Result<BrowsePage> {
+    pub async fn catalog_trending(&self, kind: MediaKind, skip: u32) -> Result<BrowsePage> {
         let timeout = self.catalog_timeout().await;
-        self.catalog.trending(kind, genre, skip, timeout).await
+        self.catalog.trending(kind, skip, timeout).await
     }
 
     /// Explorar con los filtros de IMDb (votos, idiomas); necesita la key de TMDB.
@@ -1396,12 +1390,82 @@ impl AppCore {
         to: Option<&str>,
         min_votes: u32,
         languages: Vec<String>,
-        genre: Option<&str>,
+        genres: Vec<u32>,
     ) -> Result<BrowsePage> {
         let timeout = self.catalog_timeout().await;
+        let titles = self.languages().await.titles;
         self.catalog
-            .browse_top(kind, sort, from, to, min_votes, languages, genre, timeout)
+            .browse_top(
+                kind, sort, from, to, min_votes, languages, genres, titles, timeout,
+            )
             .await
+    }
+
+    /// Géneros de TMDB del tipo, en el idioma de la app (filtro de Explorar).
+    pub async fn catalog_genres(
+        &self,
+        kind: MediaKind,
+    ) -> Result<Vec<crate::catalog::top::GenreName>> {
+        let timeout = self.catalog_timeout().await;
+        let app = self.languages().await.app;
+        self.catalog.genres(kind, app, timeout).await
+    }
+
+    /// Títulos y sinopsis de los episodios de una temporada en los idiomas elegidos (vacío sin key de TMDB).
+    pub async fn catalog_episodes(
+        &self,
+        imdb_id: &str,
+        season: u32,
+    ) -> Vec<crate::catalog::tmdb::EpisodeText> {
+        let timeout = self.catalog_timeout().await;
+        let langs = self.languages().await;
+        self.catalog.episodes(imdb_id, season, langs, timeout).await
+    }
+
+    /// "Pegar magnet" con TorBox (2026-11-20): si lo tiene en caché, se baja o ya está en la cuenta, con
+    /// sus videos; `who` también reconoce la película o serie por el nombre (`dn`) en TMDB.
+    pub async fn torbox_magnet(
+        &self,
+        hash: InfoHash,
+        name: &str,
+        who: bool,
+    ) -> Result<(
+        crate::catalog::torbox::MagnetStatus,
+        Option<crate::catalog::tmdb::Identified>,
+    )> {
+        let timeout = self.catalog_timeout().await;
+        let status =
+            crate::catalog::torbox::magnet_status(&self.catalog.http, hash, timeout).await?;
+        let titles = self.languages().await.titles;
+        let named = status
+            .name
+            .as_deref()
+            .filter(|n| !n.is_empty())
+            .unwrap_or(name);
+        let ident = if who {
+            self.catalog.identify(named, titles, timeout).await
+        } else {
+            None
+        };
+        Ok((status, ident))
+    }
+
+    /// "Bajarlo en TorBox": lo agrega a la cuenta aunque no esté en caché; devuelve el estado nuevo.
+    pub async fn torbox_magnet_download(
+        &self,
+        hash: InfoHash,
+        name: &str,
+    ) -> Result<crate::catalog::torbox::MagnetStatus> {
+        let timeout = self.catalog_timeout().await;
+        let mut magnet = format!("magnet:?xt=urn:btih:{}", hash.to_hex());
+        if !name.is_empty() {
+            magnet.push_str(&format!(
+                "&dn={}",
+                crate::catalog::protocol::encode_extra(name)
+            ));
+        }
+        crate::catalog::torbox::magnet_download(&self.catalog.http, &magnet, timeout).await?;
+        crate::catalog::torbox::magnet_status(&self.catalog.http, hash, timeout).await
     }
 
     /// Datos de TMDB para el panel (2026-11-17); sin key, `has_key = false`.
@@ -1411,7 +1475,8 @@ impl AppCore {
         imdb_id: &str,
     ) -> crate::catalog::tmdb::DetailsView {
         let timeout = self.catalog_timeout().await;
-        self.catalog.details(kind, imdb_id, timeout).await
+        let langs = self.languages().await;
+        self.catalog.details(kind, imdb_id, langs, timeout).await
     }
 
     /// Similares de TMDB del título, al abrir "Similares" en el panel (2026-11-17).
@@ -1421,7 +1486,8 @@ impl AppCore {
         imdb_id: &str,
     ) -> Vec<crate::catalog::tmdb::Similar> {
         let timeout = self.catalog_timeout().await;
-        self.catalog.similar(kind, imdb_id, timeout).await
+        let titles = self.languages().await.titles;
+        self.catalog.similar(kind, imdb_id, titles, timeout).await
     }
 
     /// FR-38/39: ficha de película o serie (con episodios).
@@ -1579,6 +1645,10 @@ impl AppCore {
 
     async fn catalog_timeout(&self) -> Duration {
         Duration::from_millis(self.config.read().await.catalog.timeout_ms)
+    }
+
+    async fn languages(&self) -> crate::config::LanguageConfig {
+        self.config.read().await.language
     }
 }
 

@@ -10,6 +10,7 @@
 
 import { api } from './api.js';
 import { el, icon } from './dom.js';
+import { t as tr } from './i18n.js';
 import { state, view } from './catalog-state.js';
 import { flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, mbpsOf, openGroup, optionRow, renderStreamsOnly, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.js';
 import { readTracks } from './catalog-subs.js';
@@ -24,10 +25,10 @@ const flow = () => state.side?.flow;
 /** Conexión donde se va a ver por TorBox (2026-11-18): el usuario la elige en cada video y pone el tope de
  *  bitrate del buen match; "¿Se cortó?" baja un nivel. `mbps`: lo más que se le pide al video (el piso del rango). */
 const NET = [
-  { key: 'terrible', label: 'Muy baja', range: 'Menos de 8 Mbps o señal que se corta: busco una muy liviana', mbps: 4 },
-  { key: 'low', label: 'Baja', range: '8 a 25 Mbps, o la tele en wifi 2.4 GHz', mbps: 10 },
-  { key: 'normal', label: 'Normal', range: '25 a 100 Mbps', mbps: 25 },
-  { key: 'high', label: 'Alta', range: 'Más de 100 Mbps, en wifi 5 GHz o por cable', mbps: Infinity },
+  { key: 'terrible', label: tr('Muy baja'), range: tr('Menos de 8 Mbps o señal que se corta: busco una muy liviana'), mbps: 4 },
+  { key: 'low', label: tr('Baja'), range: tr('8 a 25 Mbps, o la tele en wifi 2.4 GHz'), mbps: 10 },
+  { key: 'normal', label: tr('Normal'), range: tr('25 a 100 Mbps'), mbps: 25 },
+  { key: 'high', label: tr('Alta'), range: tr('Más de 100 Mbps, en wifi 5 GHz o por cable'), mbps: Infinity },
 ];
 /** La conexión elegida para este video: se pregunta siempre (pedido 2026-11-18: cambia según dónde se vea). */
 const net = () => flow()?.net ?? null;
@@ -99,7 +100,7 @@ function nextMatch() {
 /** "~40 s" / "~3 min" para leer las pistas de `n`. */
 function eta(n) {
   const secs = flow()?.mode === 'torbox' ? n * TORBOX_SECS : Math.ceil(n / SWARM_PARALLEL) * SWARM_SECS;
-  return secs < 60 ? `~${Math.max(10, Math.round(secs / 10) * 10)} s` : `~${Math.round(secs / 60)} min`;
+  return secs < 60 ? `~${Math.max(10, Math.round(secs / 10) * 10)} s` : tr('~{a} min', { a: Math.round(secs / 60) });
 }
 
 /** Lee las candidatas de `scope`, en orden, hasta el próximo buen match. TorBox: de a una, y para en el primer match
@@ -187,7 +188,7 @@ let lastScreen = null;
 const screen = (title, ...body) => {
   const again = lastScreen === title;
   lastScreen = title;
-  return el('div', { class: `cat-flow ${again ? 'still' : ''}`, id: 'cat-flow' }, crumbs(), el('h3', { class: 'cat-flow-title' }, title), ...body);
+  return el('div', { class: `cat-flow ${again ? 'still' : ''}`, id: 'cat-flow' }, crumbs(), title ? el('h3', { class: 'cat-flow-title' }, title) : null, ...body);
 };
 
 /** Migas: lo elegido hasta ahora; tocar una vuelve a ese paso. */
@@ -197,12 +198,12 @@ export function crumbs() {
   const items = [];
   if (view.torboxKey && state.side.torbox === 'done') items.push(['mode', f.mode === 'torbox' ? 'TorBox' : 'Torrent']);
   else items.push([null, 'Torrent']);
-  if (f.mode === 'torbox' && net() && f.step !== 'net') items.push(['net', `Conexión ${net().label.toLowerCase()}`]);
-  if (f.lat != null) items.push(['lat', f.lat ? 'Audio latino' : 'Audio original']);
+  if (f.mode === 'torbox' && net() && f.step !== 'net') items.push(['net', tr('Conexión {a}', { a: net().label.toLowerCase() })]);
+  if (f.lat != null) items.push(['lat', f.lat ? tr('Audio latino') : tr('Audio original')]);
   if (f.step === 'list' && view.openRes) items.push(['res', resLabel(view.openRes)]);
-  return el('nav', { class: 'cat-crumbs', 'aria-label': 'Pasos elegidos' },
+  return el('nav', { class: 'cat-crumbs', 'aria-label': tr('Pasos elegidos') },
     items.map(([step, label], i) => [i ? el('span', { class: 'cat-crumb-sep', 'aria-hidden': 'true' }, '›') : null,
-      step && step !== f.step ? el('button', { id: `cat-crumb-${step}`, type: 'button', class: 'cat-crumb', title: 'Volver a este paso', onclick: () => goTo(step) }, label)
+      step && step !== f.step ? el('button', { id: `cat-crumb-${step}`, type: 'button', class: 'cat-crumb', title: tr('Volver a este paso'), onclick: () => goTo(step) }, label)
         : el('span', { class: 'cat-crumb current' }, label)]));
 }
 
@@ -226,18 +227,19 @@ export function flowStep() {
 /** TorBox: mientras no aparezca el primer buen match, solo la búsqueda. */
 function scanScreen() {
   const f = flow(), s = f.scan;
-  return screen(f.lat ? 'Buscando audio latino' : 'Buscando subtítulos en español',
+  return screen(f.lat ? tr('Buscando audio latino') : tr('Buscando subtítulos en español'),
     el('div', { class: 'cat-deep running', role: 'status' },
       el('span', { class: 'cat-deep-icon', 'aria-hidden': 'true' }, el('span', { class: 'cat-radar big' })),
-      el('span', { class: 'cat-deep-text' }, el('span', { class: 'cat-deep-title' }, el('b', {}, `Leyendo pistas · ${Math.min(s.done + 1, s.total)} de ${s.total}`)),
-        el('span', { class: 'cat-deep-sub' }, `De a una, de mejor a peor calidad: te muestro la primera que ${f.lat ? 'tenga audio latino' : 'traiga subtítulos en español adentro'}`)),
-      el('span', { class: 'cat-deep-icons' }, el('button', { id: 'cat-flow-stop', class: 'cat-icon-btn stop', 'aria-label': 'Detener', title: 'Detener: muestro las de mejor calidad con lo leído hasta ahora',
+      el('span', { class: 'cat-deep-text' }, el('span', { class: 'cat-deep-title' }, el('b', {}, tr('Leyendo pistas · {a} de {total}', { a: Math.min(s.done + 1, s.total), total: s.total }))),
+        el('span', { class: 'cat-deep-sub' }, tr('De a una, de mejor a peor calidad: te muestro la primera que {a}', { a: f.lat ? tr('tenga audio latino') : tr('traiga subtítulos en español adentro') }))),
+      el('span', { class: 'cat-deep-icons' }, el('button', { id: 'cat-flow-stop', class: 'cat-icon-btn stop', 'aria-label': tr('Detener'), title: tr('Detener: muestro las de mejor calidad con lo leído hasta ahora'),
         onclick: () => { stopScan(); renderStreamsOnly(); } }, icon('stop', 14))),
       el('span', { class: 'cat-deep-bar' }, el('i', { style: `width:${Math.max(4, (s.done / s.total) * 100)}%` }))));
 }
 
-/** TorBox, el resultado: solo los buenos matches encontrados ("Mejor opción" y por qué). Sin ningún match, las 3 de
- *  mejor calidad con el aviso. Al pie, "Seguir buscando" y "Ver todas las opciones". */
+/** TorBox, el resultado: solo los buenos matches encontrados, sin título ni nota encima (la fila ya dice "Mejor opción"
+ *  y sus badges explican por qué, 2026-11-20). Sin ningún match, las 3 de mejor calidad con el aviso. Al pie, del mismo
+ *  tamaño, "¿Se cortó?", "Seguir buscando" y "Ver todas las opciones". */
 function matchScreen() {
   const f = flow();
   const list = ranked();
@@ -246,33 +248,33 @@ function matchScreen() {
   const searched = !toConfirm(pool()).length;
   // Ninguna entra en la conexión elegida: las 3 mejores igual (marcadas "Puede cortarse"), con el aviso.
   const fitsNone = !list.length;
-  const none = fitsNone ? 'Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión'
-    : f.lat ? 'No encontré latino confirmado' : 'Ninguna trae sub ES nativo: los subs se buscan afuera';
-  const title = found.length ? 'Mejor opción' : fitsNone ? 'Ninguna entra en tu conexión' : f.lat ? 'Sin latino confirmado' : 'Sin subtítulos en español adentro';
+  const none = fitsNone ? tr('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión')
+    : f.lat ? tr('No encontré latino confirmado') : tr('Ninguna trae sub ES nativo: los subs se buscan afuera');
+  const title = found.length ? null : fitsNone ? tr('Ninguna entra en tu conexión') : f.lat ? tr('Sin latino confirmado') : tr('Sin subtítulos en español adentro');
   return screen(title,
-    found.length ? [el('p', { class: 'cat-flow-note' }, icon('check', 13), ' ', f.lat ? 'Audio latino confirmado' : 'Trae subtítulos en español'), rows(found, true)]
-      : el('p', { class: 'cat-flow-note', role: 'status' }, searched || fitsNone ? none : 'Búsqueda detenida: estas son las de mejor calidad'),
+    found.length ? rows(found, true)
+      : el('p', { class: 'cat-flow-note', role: 'status' }, searched || fitsNone ? none : tr('Búsqueda detenida: estas son las de mejor calidad')),
     found.length ? null : rows((fitsNone ? flatSorted(pool().filter(flowFilter)) : list).slice(0, 3), false),
-    moreRow(),
-    el('div', { class: 'cat-flow-actions' },
+    el('div', { class: 'cat-flow-actions rows' },
       lighterRow(),
+      moreRow(),
       el('button', { id: 'cat-match-all', type: 'button', class: 'cat-flow-btn', onclick: () => { f.all = true; renderStreamsOnly(); } },
-        icon('list', 15), 'Ver todas las opciones', el('span', { class: 'cat-flow-count' }, String(pool().filter(flowFilter).length)))));
+        icon('list', 15), tr('Ver todas las opciones'), el('span', { class: 'cat-flow-count' }, String(pool().filter(flowFilter).length)))));
 }
 /** "¿Se cortó?": baja un nivel de conexión y busca de nuevo con el tope nuevo (en la más baja no aparece). */
 function lighterRow() {
   const i = NET.indexOf(net());
   if (i <= 0) return null;
   const lower = NET[i - 1];
-  return el('button', { id: 'cat-lighter', type: 'button', class: 'cat-flow-btn', title: `Paso a conexión ${lower.label.toLowerCase()} (${lower.range}) y busco de nuevo`,
-    onclick: () => { cancelFlowWork(); setNet(lower); runScan(); } }, icon('gauge', 15), '¿Se cortó? Una más liviana');
+  return el('button', { id: 'cat-lighter', type: 'button', class: 'cat-flow-btn', title: tr('Paso a conexión {a} ({range}) y busco de nuevo', { a: lower.label.toLowerCase(), range: lower.range }),
+    onclick: () => { cancelFlowWork(); setNet(lower); runScan(); } }, icon('gauge', 15), tr('¿Se cortó? Una más liviana'));
 }
 
 /** TorBox: cómo es la conexión donde se va a ver (cada vez; se cambia desde la miga). */
 function netScreen() {
   const f = flow();
   const cur = net();
-  return screen('¿Cómo es tu internet donde lo vas a ver?',
+  return screen(tr('¿Cómo es tu internet donde lo vas a ver?'),
     // La más rápida arriba (pedido 2026-11-18); `NET` queda de menor a mayor para que "¿Se cortó?" baje un nivel.
     [...NET].reverse().map((n) => choice(`cat-flow-net-${n.key}`, 'gauge', n.label, n.range, () => { setNet(n); f.step = 'lat'; renderStreamsOnly(); }, { primary: cur?.key === n.key })));
 }
@@ -280,11 +282,11 @@ function netScreen() {
 function searchScreen() {
   const u = state.update;
   const ok = u ? u.addons.filter((a) => a.state !== 'pending').length : 0;
-  const sub = !u?.done ? `${ok} de ${u?.addons.length ?? '…'} fuentes respondieron${u?.candidates.length ? ` · ${u.candidates.length} torrents hasta ahora` : ''}`
-    : `${u.candidates.length} torrents · viendo cuáles están listos en TorBox…`;
+  const sub = !u?.done ? tr('{ok} de {a} fuentes respondieron{b}', { ok, a: u?.addons.length ?? '…', b: u?.candidates.length ? tr(' · {n} torrents hasta ahora', { n: u.candidates.length }) : '' })
+    : tr('{n} torrents · viendo cuáles están listos en TorBox…', { n: u.candidates.length });
   return el('div', { class: 'cat-flow cat-flow-wait', id: 'cat-flow', role: 'status', 'aria-busy': 'true' },
     el('span', { class: 'cat-res-spin big', 'aria-hidden': 'true' }),
-    el('b', {}, 'Buscando torrents…'), el('span', {}, sub));
+    el('b', {}, tr('Buscando torrents…')), el('span', {}, sub));
 }
 
 function modeScreen() {
@@ -292,10 +294,10 @@ function modeScreen() {
   const all = state.update.candidates.length;
   const tb = state.update.candidates.filter((c) => inTorbox.has(c.info_hash)).length;
   const go = (mode) => () => { Object.assign(f, { mode, step: mode === 'torbox' ? 'net' : 'lat' }); renderStreamsOnly(); };
-  return screen('¿Cómo lo querés ver?',
-    choice('cat-flow-torbox', 'play', 'Por TorBox', tb ? `${tb} ${tb === 1 ? 'lista' : 'listas'} en sus servidores: arranca al instante y no depende de los seeds` : 'No hay torrents en TorBox para esto',
-      go('torbox'), { badge: tb ? 'Al instante' : null, disabled: !tb, primary: !!tb, cls: 'torbox' }),
-    choice('cat-flow-torrent', 'peers', 'Por torrent', `${all} torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten`, go('torrent')));
+  return screen(tr('¿Cómo lo querés ver?'),
+    choice('cat-flow-torbox', 'play', tr('Por TorBox'), tb ? tr('{tb} {a} en sus servidores: arranca al instante y no depende de los seeds', { tb, a: tb === 1 ? tr('lista') : tr('listas') }) : tr('No hay torrents en TorBox para esto'),
+      go('torbox'), { badge: tb ? tr('Al instante') : null, disabled: !tb, primary: !!tb, cls: 'torbox' }),
+    choice('cat-flow-torrent', 'peers', tr('Por torrent'), tr('{all} torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten', { all }), go('torrent')));
 }
 
 function latScreen() {
@@ -306,12 +308,12 @@ function latScreen() {
   const named = potential.filter((c) => latOf(c) === 'name' || latOf(c) === 'real').length;
   const doubtful = potential.length - named;
   const left = toConfirm(p, true).length;
-  const how = f.mode === 'torbox' ? 'de a una, de mejor a peor calidad' : `de a ${SWARM_PARALLEL}, en la calidad que elijas`;
-  const yesSub = none ? 'No hay torrents con audio latino'
-    : [named ? `${named} ${named === 1 ? 'lo dice' : 'lo dicen'} en el nombre` : null, doubtful ? `${doubtful} ${doubtful === 1 ? 'dudosa' : 'dudosas'} (MULTI / Dual)` : null]
-      .filter(Boolean).concat(left ? `reviso ${how}, hasta encontrar latino` : []).join(' · ');
+  const how = f.mode === 'torbox' ? tr('de a una, de mejor a peor calidad') : tr('de a {SWARM_PARALLEL}, en la calidad que elijas', { SWARM_PARALLEL });
+  const yesSub = none ? tr('No hay torrents con audio latino')
+    : [named ? tr('{named} {a} en el nombre', { named, a: named === 1 ? tr('lo dice') : tr('lo dicen') }) : null, doubtful ? tr('{doubtful} {a} (MULTI / Dual)', { doubtful, a: doubtful === 1 ? tr('dudosa') : tr('dudosas') }) : null]
+      .filter(Boolean).concat(left ? tr('reviso {how}, hasta encontrar latino', { how }) : []).join(' · ');
   // El latino suele venir en releases más livianos: que no sorprenda no encontrarlo en 4K.
-  const yesNote = el('span', { class: 'cat-choice-note' }, 'Ojo: el audio latino suele venir en menor resolución (1080p o 720p); en 4K es raro.');
+  const yesNote = el('span', { class: 'cat-choice-note' }, tr('Ojo: el audio latino suele venir en menor resolución (1080p o 720p); en 4K es raro.'));
   // Por torrent se elige la calidad (y la búsqueda de latino arranca ahí, `pickRes`); por TorBox se busca ya el mejor match.
   const pick = (lat) => () => {
     Object.assign(f, { lat, step: hasResStep() ? 'res' : 'list' });
@@ -319,11 +321,11 @@ function latScreen() {
     if (hasResStep()) renderStreamsOnly();
     else runScan();
   };
-  const origSub = f.mode === 'torbox' ? 'El idioma en que se filmó · busco la primera que traiga subtítulos en español adentro'
-    : 'El idioma en que se filmó, sin preguntar al reproducir · sigo directo a elegir la calidad';
-  return screen('¿Necesitás audio latino?',
-    choice('cat-flow-lat-no', 'speaker', 'Audio original', origSub, pick(false)),
-    choice('cat-flow-lat-yes', 'search', 'Solo audio latino', none ? yesSub : [yesSub, yesNote], pick(true), { badge: left ? 'Demora más' : null, disabled: none }));
+  const origSub = f.mode === 'torbox' ? tr('El idioma en que se filmó · busco la primera que traiga subtítulos en español adentro')
+    : tr('El idioma en que se filmó, sin preguntar al reproducir · sigo directo a elegir la calidad');
+  return screen(tr('¿Necesitás audio latino?'),
+    choice('cat-flow-lat-no', 'speaker', tr('Audio original'), origSub, pick(false)),
+    choice('cat-flow-lat-yes', 'search', tr('Solo audio latino'), none ? yesSub : [yesSub, yesNote], pick(true), { badge: left ? tr('Demora más') : null, disabled: none }));
 }
 
 /** Al pie de lo que se ve (por TorBox siempre; por torrent, pidiendo latino): la búsqueda en curso (con Detener),
@@ -332,13 +334,13 @@ export function moreRow() {
   const f = flow();
   const tb = f?.mode === 'torbox';
   if (!f || (!tb && !f.lat) || f.latOff) return null;
-  const what = f.lat ? 'latino' : 'sub ES';
+  const what = f.lat ? tr('latino') : tr('sub ES');
   const s = f.scan;
   if (s?.running) {
     return el('div', { class: 'cat-lat-more', role: 'status' },
       el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }),
-      el('span', {}, `Leyendo pistas para encontrar ${what} · ${s.done} de ${s.total}`),
-      el('button', { id: 'cat-lat-stop', type: 'button', class: 'link', onclick: () => { stopScan(); renderStreamsOnly(); } }, 'Detener'));
+      el('span', {}, tr('Leyendo pistas para encontrar {what} · {done} de {total}', { what, done: s.done, total: s.total })),
+      el('button', { id: 'cat-lat-stop', type: 'button', class: 'link', onclick: () => { stopScan(); renderStreamsOnly(); } }, tr('Detener')));
   }
   const left = toConfirm(scope()).length;
   const step = tb ? 1 : SWARM_PARALLEL;
@@ -347,11 +349,11 @@ export function moreRow() {
     if (!f.scanned.size) return null;
     const found = tb ? f.found.length : scope().some((c) => latOf(c) === 'real');
     return el('p', { class: 'cat-lat-more done', role: 'status' }, icon(found ? 'check' : 'ban', 13),
-      tb ? 'No hay más para buscar.' : found ? 'Revisé todas: no hay más para buscar.' : 'No encontré latino confirmado en sus pistas: quedan las que lo dicen en el nombre.');
+      tb ? tr('No hay más para buscar.') : found ? tr('Revisé todas: no hay más para buscar.') : tr('No encontré latino confirmado en sus pistas: quedan las que lo dicen en el nombre.'));
   }
   return el('button', { id: 'cat-lat-more', type: 'button', class: 'cat-lat-more go', onclick: () => runScan() },
-    icon('search', 14), el('span', {}, el('b', {}, `Seguir buscando ${what}`),
-      left ? el('small', {}, `${left} ${left === 1 ? 'candidata queda' : 'candidatas quedan'} · ${eta(step)} cada ${step === 1 ? 'una' : step}`) : null));
+    icon('search', 14), el('span', {}, el('b', {}, tr('Seguir buscando {what}', { what })),
+      left ? el('small', {}, tr('{left} {a} · {b} cada {c}', { left, a: left === 1 ? tr('candidata queda') : tr('candidatas quedan'), b: eta(step), c: step === 1 ? tr('una') : step })) : null));
 }
 
 function resScreen() {
@@ -368,9 +370,9 @@ function resScreen() {
     const unit = n === 1 ? 'torrent' : 'torrents';
     // Lo dudoso (MULTI / Dual / español sin aclarar) no se cuenta como latino.
     const sub = !f.lat ? `${n} ${unit}`
-      : lat ? [real && `${real} con latino confirmado`, named && `${named} ${named === 1 ? 'dice' : 'dicen'} latino`, doubtful && `${doubtful} ${doubtful === 1 ? 'dudosa' : 'dudosas'}`]
-        .filter(Boolean).join(' · ') + ` de ${n}` : `Ninguna con latino de ${n}`;
+      : lat ? [real && tr('{real} con latino confirmado', { real }), named && tr(named === 1 ? '{n} dice latino' : '{n} dicen latino', { n: named }), doubtful && tr(doubtful === 1 ? '{n} dudosa' : '{n} dudosas', { n: doubtful })]
+        .filter(Boolean).join(' · ') + tr(' de {n}', { n }) : tr('Ninguna con latino de {n}', { n });
     return choice(`cat-flow-res-${r}`, 'monitor', resLabel(r), sub, () => pickRes(r), { muted: !!f.lat && !lat });
   }).filter(Boolean);
-  return screen('Elegí la calidad', ...rows);
+  return screen(tr('Elegí la calidad'), ...rows);
 }

@@ -44,6 +44,12 @@
     </header>
     <div class="set-body">
       <!-- Las keys sin configurar van en su sección; las configuradas pasan a "Conectado", al final (2026-11-17). -->
+      <!-- Idiomas (2026-11-20, como la web): app y títulos; las tarjetas las arma ui/src/lang-picker.js. -->
+      <section class="set-card" id="set-lang" aria-labelledby="set-h-lang">
+        <h4 id="set-h-lang">Idioma</h4>
+        <div id="set-lang-picker"></div>
+      </section>
+
       <section class="set-card" id="set-catalog" aria-labelledby="set-h-catalog">
         <h4 id="set-h-catalog">Catálogo</h4>
         <div class="key-row" data-service="tmdb">
@@ -138,13 +144,14 @@
         </div>
       </section>
 
-      <!-- Reproductor (2026-11-17): mpv incluido o VLC si está instalado, y el ecualizador de mpv. -->
+      <!-- Reproductor (2026-11-17): qué hay en esta compu (cuál usar se pregunta en cada ▶, 2026-11-20) y el ecualizador de mpv. -->
       <section class="set-card" aria-labelledby="set-h-player">
         <h4 id="set-h-player">Reproductor</h4>
-        <div class="set-eq" role="radiogroup" aria-label="Reproductor">
-          <label class="set-eq-opt"><input id="set-player-mpv" type="radio" name="set-player" value="mpv"><span><b>mpv</b><small id="set-mpv-note">Recomendado: anda mejor y gasta menos.</small></span></label>
-          <label class="set-eq-opt"><input id="set-player-vlc" type="radio" name="set-player" value="vlc"><span><b>VLC</b><small id="set-vlc-note">Sin subtítulos combinados ni ecualizador.</small></span></label>
+        <div class="set-eq" aria-label="Reproductores">
+          <div class="set-eq-opt set-player-opt"><span><b>mpv</b><small id="set-mpv-note">Recomendado: anda mejor y gasta menos.</small></span></div>
+          <div class="set-eq-opt set-player-opt"><span><b>VLC</b><small id="set-vlc-note">Sin subtítulos combinados ni ecualizador.</small></span></div>
         </div>
+        <small id="set-player-ask" class="set-player-ask">Al reproducir te preguntamos con cuál abrirlo.</small>
         <div id="set-mpv-missing" class="set-mpv-missing" hidden>
           <span id="set-mpv-missing-text"></span>
           <button id="btn-install-mpv"></button>

@@ -51,6 +51,10 @@ pub enum CoreError {
     #[error("no encontrado: {0}")]
     NotFound(String),
 
+    /// El torrent no trae ningún archivo de video (p. ej. un pack de mp3, 2026-11-20).
+    #[error("el torrent no tiene archivos de video")]
+    NoVideo,
+
     #[error("portapapeles: {0}")]
     Clipboard(String),
 
@@ -84,6 +88,10 @@ impl CoreError {
             Self::Unsupported(what) => format!("{what} no está disponible en este sistema."),
             Self::Cancelled => "Cancelado.".into(),
             Self::NotFound(what) => format!("No encontrado: {what}."),
+            Self::NoVideo => {
+                "Este torrent no tiene video (trae solo audio u otros archivos). Elegí otra fuente."
+                    .into()
+            }
             Self::Clipboard(_) => "No se pudo leer el portapapeles.".into(),
             Self::Logger(_) => "No se pudieron iniciar los registros de diagnóstico.".into(),
             Self::Catalog { user, .. } => user.clone(),

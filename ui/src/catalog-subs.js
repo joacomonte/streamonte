@@ -13,6 +13,7 @@
 import { api } from './api.js';
 import { openSettings } from './dialogs.js';
 import { el, icon, setStatus } from './dom.js';
+import { t as tr } from './i18n.js';
 import { closeWizard, openWizard } from './audio-picker.js';
 import { rowsOf } from './catalog-options.js';
 import { quickAnalyze } from './catalog-tests.js';
@@ -37,11 +38,11 @@ const READ_WAIT_MS = 120_000;
 /** Lo que se espera a que llegue la fila actualizada después de leerlas por TorBox. */
 const ROW_WAIT_MS = 3_000;
 const LEVEL = {
-  exact: ['perfecto', () => 'Hecho para este mismo archivo'],
-  release: ['muy probable', (f) => `Mismo release: grupo ${f.head}${f.spec !== 'sin release' ? ` y ${f.spec}` : ''}`],
-  fps: ['probable', () => 'Mismos fps y misma duración que el video'],
+  exact: [tr('perfecto'), () => tr('Hecho para este mismo archivo')],
+  release: [tr('muy probable'), (f) => f.spec !== 'sin release' ? tr('Mismo release: grupo {head} y {spec}', { head: f.head, spec: f.spec }) : tr('Mismo release: grupo {head}', { head: f.head })],
+  fps: [tr('probable'), () => tr('Mismos fps y misma duración que el video')],
 };
-const VARIANT = { latino: 'Latinoamérica', spain: 'España', unknown: 'Español' };
+const VARIANT = { latino: tr('Latinoamérica'), spain: tr('España'), unknown: tr('Español') };
 
 function subsOf(hash) {
   if (forVideo !== state.side?.videoId) { byHash.clear(); forVideo = state.side?.videoId; }
@@ -69,7 +70,7 @@ export async function readTracks(hash, torbox) {
   // Sin leer (falló, se pasó el tiempo o "No esperar"): no se reintenta solo; el botón de la fila dice por qué.
   const skipped = s.read === 'skipped';
   s.read = natives(hash) != null ? 'done' : skipped ? null : 'failed';
-  if (s.read === 'failed' && !s.error) s.error = torbox ? 'TorBox no devolvió sus pistas a tiempo' : 'Nadie compartió el comienzo del video a tiempo (pocos seeds)';
+  if (s.read === 'failed' && !s.error) s.error = torbox ? tr('TorBox no devolvió sus pistas a tiempo') : tr('Nadie compartió el comienzo del video a tiempo (pocos seeds)');
   changed();
 }
 
@@ -150,11 +151,11 @@ async function useSub(hash, key, path = null) {
     if (step?.live) {
       await api.playbackSubtitle(step.live, key, path);
       s.picks = { chosen: key, tried: [...(s.picks?.tried ?? []), s.picks?.chosen].filter((k) => k && k !== key) };
-      setStatus('Subtítulo cambiado en el reproductor.');
+      setStatus(tr('Subtítulo cambiado en el reproductor.'));
       return closeWizard();
     }
     s.picks = await api.catalogSubtitleUse(state.side.videoId, hash, key);
-    setStatus('Listo: se usa ese subtítulo al reproducir.');
+    setStatus(tr('Listo: se usa ese subtítulo al reproducir.'));
     if (step?.next) return step.next(true);
   } catch (e) { showError(e); }
   changed();
@@ -187,7 +188,7 @@ async function premiumUse(hash, r) {
     s.found = got.found;
     s.picks = got.picks;
     s.timing = got.timing_known;
-    setStatus('Bajado: se usa ese subtítulo al reproducir.');
+    setStatus(tr('Bajado: se usa ese subtítulo al reproducir.'));
     s.premium.busy = null;
     loadQuota();
     const step = active;
@@ -202,10 +203,10 @@ async function premiumUse(hash, r) {
 /** Copia uno ya bajado a Descargas (`<título> (subtítulos)`) y abre la carpeta. */
 async function saveSub(f) {
   const [, s, e] = (state.side.videoId ?? '').split(':');
-  const title = `${state.side.name ?? 'Video'}${s ? ` S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : ''}`;
+  const title = `${state.side.name ?? tr('Video')}${s ? ` S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : ''}`;
   try {
     await api.saveSubtitles(title, [{ path: f.path, name: `${f.language.toUpperCase()} - ${f.release_name}` }]);
-    setStatus('Subtítulo guardado en Descargas.');
+    setStatus(tr('Subtítulo guardado en Descargas.'));
   } catch (err) { showError(err); }
 }
 
@@ -224,21 +225,21 @@ export function subsStep(hash, torbox, live = null) {
  *  con este paso. */
 export function openSubs(hash, torbox, anchor, live = null) {
   const s = subsStep(hash, torbox, live);
-  openWizard(anchor, [{ id: 'subs', title: live ? 'Cambiar subtítulo' : 'Subtítulos', render: () => s(null) }]).then(() => { active = null; });
+  openWizard(anchor, [{ id: 'subs', title: live ? tr('Cambiar subtítulo') : tr('Subtítulos'), render: () => s(null) }]).then(() => { active = null; });
 }
 
 function quotaText() {
-  if (!quota) return 'viendo cuántas descargas quedan…';
-  if (quota.remaining == null) return 'no sé cuántas descargas quedan hoy';
-  if (quota.remaining === 0) return `usaste las ${quota.per_day} de hoy${quota.resets_at ? ` · vuelven ${quota.resets_at}` : ''}`;
-  return `quedan ${quota.remaining} de ${quota.per_day} descargas hoy`;
+  if (!quota) return tr('viendo cuántas descargas quedan…');
+  if (quota.remaining == null) return tr('no sé cuántas descargas quedan hoy');
+  if (quota.remaining === 0) return tr('usaste las {per_day} de hoy{a}', { per_day: quota.per_day, a: quota.resets_at ? tr(' · vuelven {resets_at}', { resets_at: quota.resets_at }) : '' });
+  return tr('quedan {remaining} de {per_day} descargas hoy', { remaining: quota.remaining, per_day: quota.per_day });
 }
 
 /** Una fila: clic = usar (`key` null = solo se usa con su botón). `end`: lo de la derecha. */
 function subItem({ id, key, head, spec, latino, src, title, end, onPick }, picks) {
   const on = key && picks?.chosen === key;
   const tried = key && !on && picks?.tried.includes(key);
-  return el('div', { class: `cat-sub-item ${on ? 'on' : ''} ${tried ? 'tried' : ''}`, title: tried ? 'Probado · no sincronizó' : '' },
+  return el('div', { class: `cat-sub-item ${on ? 'on' : ''} ${tried ? 'tried' : ''}`, title: tried ? tr('Probado · no sincronizó') : '' },
     el('button', { id, type: 'button', class: 'cat-sub-pick', role: 'menuitemradio', 'aria-checked': String(!!on), 'aria-label': `${head} ${spec}`, title,
       onclick: onPick, disabled: onPick ? null : true }),
     el('span', { class: 'cat-sub-mark' }, on ? icon('check', 14) : null),
@@ -256,15 +257,15 @@ function fitWord(f) {
 /** Si ninguno calza, por qué (sin inventar niveles): otro release, o no se saben los fps y la duración del archivo. */
 function noFitLine(list, timing) {
   if (!list.length || list.some((f) => LEVEL[f.level])) return null;
-  return el('div', { class: 'cat-sub-none' }, timing ? 'Ninguno es de este release ni de sus mismos fps y duración'
-    : 'Sin fps ni duración de este archivo: solo se reconoce el mismo release');
+  return el('div', { class: 'cat-sub-none' }, timing ? tr('Ninguno es de este release ni de sus mismos fps y duración')
+    : tr('Sin fps ni duración de este archivo: solo se reconoce el mismo release'));
 }
 
 function foundItem(hash, f, i, picks) {
   return subItem({ id: `cat-sub-pick-${i}`, key: f.key, head: f.head, spec: f.language === 'en' ? `${f.spec} · EN` : f.spec, latino: f.latino, src: f.provider, title: f.release_name,
     onPick: () => useSub(hash, f.key, f.path), end: [
       fitWord(f),
-      el('button', { id: `cat-sub-dl-${i}`, type: 'button', class: 'cat-sub-dl', 'aria-label': 'Bajar a la Mac', title: 'Bajar a la Mac', onclick: () => saveSub(f) }, icon('download', 14)),
+      el('button', { id: `cat-sub-dl-${i}`, type: 'button', class: 'cat-sub-dl', 'aria-label': tr('Bajar a la Mac'), title: tr('Bajar a la Mac'), onclick: () => saveSub(f) }, icon('download', 14)),
     ] }, picks);
 }
 
@@ -273,31 +274,31 @@ const spin = () => el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' }
 
 function premiumBody(hash, p, timing) {
   if (!quota?.has_key) {
-    return msg(icon('lock', 14), 'Necesita tu API key de opensubtitles.com.', el('button', { id: 'cat-prem-key', type: 'button', class: 'cat-sub-btn',
-      onclick: async () => { closeWizard(); await openSettings(); document.getElementById('set-subs')?.scrollIntoView({ block: 'center' }); } }, 'Ajustes'));
+    return msg(icon('lock', 14), tr('Necesita tu API key de opensubtitles.com.'), el('button', { id: 'cat-prem-key', type: 'button', class: 'cat-sub-btn',
+      onclick: async () => { closeWizard(); await openSettings(); document.getElementById('set-subs')?.scrollIntoView({ block: 'center' }); } }, tr('Ajustes')));
   }
-  if (p.status === 'loading' || p.status === 'idle') return msg(spin(), 'Buscando en opensubtitles.com…');
+  if (p.status === 'loading' || p.status === 'idle') return msg(spin(), tr('Buscando en opensubtitles.com…'));
   if (p.status === 'error') {
-    return msg(icon('info', 14), 'opensubtitles.com no respondió. No se gastó ninguna descarga.',
-      el('button', { id: 'cat-prem-retry', type: 'button', class: 'cat-sub-btn', onclick: () => premiumSearch(hash) }, icon('refresh', 12), 'Reintentar'), true);
+    return msg(icon('info', 14), tr('opensubtitles.com no respondió. No se gastó ninguna descarga.'),
+      el('button', { id: 'cat-prem-retry', type: 'button', class: 'cat-sub-btn', onclick: () => premiumSearch(hash) }, icon('refresh', 12), tr('Reintentar')), true);
   }
   if (p.status === 'empty') {
     const [, s, e] = state.side.videoId.split(':');
-    return msg(icon('info', 14), `Tampoco hay en español para ${s ? `S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : 'esta película'}. No se gastó ninguna descarga.`);
+    return msg(icon('info', 14), tr('Tampoco hay en español para {a}. No se gastó ninguna descarga.', { a: s ? `S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : tr('esta película') }));
   }
   const off = quota.remaining === 0;
   return [...p.results.map((r, i) => subItem({ id: `cat-prem-pick-${i}`, key: null, head: r.head, spec: r.spec, latino: r.latino, src: `${r.downloads.toLocaleString('es-AR')} ↓`, title: r.release_name,
-    end: [fitWord(r), p.busy === r.key ? el('span', { class: 'cat-sub-btn' }, spin(), 'Bajando')
-      : el('button', { id: `cat-prem-use-${i}`, type: 'button', class: 'cat-sub-btn', 'aria-disabled': off ? 'true' : null, title: off ? 'Sin descargas por hoy' : 'Gasta 1 descarga de hoy',
-        onclick: () => !off && premiumUse(hash, r) }, 'Usar ', el('span', { class: 'cat-sub-cost' }, '· 1'))] }, null)), noFitLine(p.results, timing)];
+    end: [fitWord(r), p.busy === r.key ? el('span', { class: 'cat-sub-btn' }, spin(), tr('Bajando'))
+      : el('button', { id: `cat-prem-use-${i}`, type: 'button', class: 'cat-sub-btn', 'aria-disabled': off ? 'true' : null, title: off ? tr('Sin descargas por hoy') : tr('Gasta 1 descarga de hoy'),
+        onclick: () => !off && premiumUse(hash, r) }, tr('Usar '), el('span', { class: 'cat-sub-cost' }, '· 1'))] }, null)), noFitLine(p.results, timing)];
 }
 
 function premiumGate(hash, s) {
   const p = s.premium;
   const tried = s.picks?.tried.length ?? 0;
   const hot = tried >= 2 && quota?.has_key;
-  const sub = quota && !quota.has_key ? 'Necesita tu API key de opensubtitles.com'
-    : hot ? `Probaste ${tried} y no sincronizaron · ${quotaText()}` : `Último recurso · ${quotaText()}`;
+  const sub = quota && !quota.has_key ? tr('Necesita tu API key de opensubtitles.com')
+    : hot ? tr('Probaste {tried} y no sincronizaron · {a}', { tried, a: quotaText() }) : tr('Último recurso · {a}', { a: quotaText() });
   return [el('div', { class: 'cat-sub-sep' }),
     el('button', { id: 'cat-prem-gate', type: 'button', class: `cat-sub-gate ${hot ? 'hot' : ''}`, 'aria-expanded': String(p.open), onclick: () => {
       p.open = !p.open;
@@ -306,7 +307,7 @@ function premiumGate(hash, s) {
       changed();
     } },
     el('span', { class: 'cat-sub-gi' }, icon('lock', 15)),
-    el('span', {}, el('b', {}, hot ? '¿Ninguno anduvo? Buscá en Premium' : 'Buscar en Premium'), el('span', { class: 'cat-sub-gs' }, sub)),
+    el('span', {}, el('b', {}, hot ? tr('¿Ninguno anduvo? Buscá en Premium') : tr('Buscar en Premium')), el('span', { class: 'cat-sub-gs' }, sub)),
     el('span', { class: 'cat-sub-chev' }, icon('chev', 13))),
     p.open ? el('div', { class: 'cat-sub-open' }, premiumBody(hash, p, s.timing)) : null];
 }
@@ -316,29 +317,29 @@ function subsBody(hash, playing) {
   const s = subsOf(hash);
   const nat = natives(hash);
   const grp = (t) => el('div', { class: 'cat-sub-grp' }, t);
-  const out = [grp('Vienen con el video')];
+  const out = [grp(tr('Vienen con el video'))];
   if (s.read === 'reading') {
-    out.push(s.torbox ? msg(spin(), 'Leyendo sus pistas en TorBox…')
-      : msg(spin(), 'Viendo si el video trae subtítulos… (baja solo el comienzo)',
-        el('button', { id: 'cat-subs-noread', type: 'button', class: 'cat-sub-btn', onclick: () => { s.read = 'skipped'; } }, 'No esperar')));
+    out.push(s.torbox ? msg(spin(), tr('Leyendo sus pistas en TorBox…'))
+      : msg(spin(), tr('Viendo si el video trae subtítulos… (baja solo el comienzo)'),
+        el('button', { id: 'cat-subs-noread', type: 'button', class: 'cat-sub-btn', onclick: () => { s.read = 'skipped'; } }, tr('No esperar'))));
   } else if (nat?.length) {
     out.push(...nat.map((n, i) => subItem({ id: `cat-sub-native-${i}`, key: n.key, head: VARIANT[n.variant], spec: n.kind, src: n.place, title: '',
       onPick: () => useSub(hash, n.key), end: [] }, s.picks)));
-  } else out.push(el('div', { class: 'cat-sub-none' }, nat ? 'Este video no trae en español' : 'Sin confirmar: no se pudieron leer sus pistas'));
+  } else out.push(el('div', { class: 'cat-sub-none' }, nat ? tr('Este video no trae en español') : tr('Sin confirmar: no se pudieron leer sus pistas')));
   if (s.phase === 'searching') {
     const p = subsProgress.get(state.side.videoId);
-    out.push(grp('Encontrados para vos'), msg(spin(), p?.downloading ? `Bajando subtítulos · ${p.done} de ${p.total}` : 'Buscando en Wyzie, Subdivx y OpenSubtitles.org…'));
+    out.push(grp(tr('Encontrados para vos')), msg(spin(), p?.downloading ? tr('Bajando subtítulos · {done} de {total}', { done: p.done, total: p.total }) : tr('Buscando en Wyzie, Subdivx y OpenSubtitles.org…')));
   } else if (s.found) {
-    out.push(grp('Encontrados para vos'), ...(s.found.length ? s.found.map((f, i) => foundItem(hash, f, i, s.picks))
-      : [el('div', { class: 'cat-sub-none' }, 'No encontré en Wyzie, Subdivx ni OpenSubtitles.org')]), noFitLine(s.found, s.timing));
+    out.push(grp(tr('Encontrados para vos')), ...(s.found.length ? s.found.map((f, i) => foundItem(hash, f, i, s.picks))
+      : [el('div', { class: 'cat-sub-none' }, tr('No encontré en Wyzie, Subdivx ni OpenSubtitles.org'))]), noFitLine(s.found, s.timing));
     out.push(...premiumGate(hash, s));
   } else if (s.phase === 'done') {
     out.push(el('button', { id: 'cat-subs-more', type: 'button', class: 'cat-sub-more', onclick: () => search(hash) }, icon('search', 14),
-      el('span', {}, el('b', {}, 'Buscar más subtítulos'), el('span', {}, 'Por si los del video no te sirven'))));
+      el('span', {}, el('b', {}, tr('Buscar más subtítulos')), el('span', {}, tr('Por si los del video no te sirven')))));
   }
   if (playing) {
     out.push(el('div', { class: 'cat-sub-foot' },
-      el('button', { id: 'cat-subs-skip', type: 'button', class: 'cat-sub-btn', onclick: () => active?.next?.(true) }, 'Reproducir sin elegir')));
+      el('button', { id: 'cat-subs-skip', type: 'button', class: 'cat-sub-btn', onclick: () => active?.next?.(true) }, tr('Reproducir sin elegir'))));
   }
-  return el('div', { class: 'cat-subs-menu', role: 'menu', id: 'cat-subs-menu', 'aria-label': 'Subtítulos' }, ...out);
+  return el('div', { class: 'cat-subs-menu', role: 'menu', id: 'cat-subs-menu', 'aria-label': tr('Subtítulos') }, ...out);
 }

@@ -1,6 +1,7 @@
 // DOM compartido: buscar y crear elementos, íconos, barra de estado
 // y avisos para lectores de pantalla.
 import { activity } from './activity.js';
+import { t } from './i18n.js';
 
 export const $ = (sel) => document.querySelector(sel);
 
@@ -66,6 +67,16 @@ const ICONS = {
   list: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/>',
   // Torrent (P2P, 2026-11-18): pares conectados entre sí.
   peers: '<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M10.8 7.2 6.2 15.8M13.2 7.2l4.6 8.6M7.5 18h9"/>',
+  // Explorar, idiomas y bienvenida (2026-11-20, los de la web).
+  star: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" fill="currentColor" stroke="none"/>',
+  flame: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.3 2.4-5.4 3.6-8.3.4 1.7 1.3 2.8 2.4 3.4.2-2.9 1.8-5.4 3.9-6.9-.3 2.8.8 4.6 2.2 6.2 1.3 1.5 2.4 3.1 2.4 5.6 0 3.6-2.6 6.2-6.5 6.2z"/>',
+  film: '<rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M7.5 4v16M16.5 4v16M3.5 9h4M3.5 15h4M16.5 9h4M16.5 15h4"/>',
+  tv: '<rect x="3" y="6" width="18" height="12.5" rx="2.5"/><path d="M8.5 2.5 12 6l3.5-3.5M8 21h8"/>',
+  sliders: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z"/>',
+  key: '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 19 4M15.5 7.5l2.5 2.5M17.5 5.5 20 8"/>',
+  cloud: '<path d="M7 18.5h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 9.2 4.7 4.7 0 0 0 7 18.5z"/>',
 };
 export function icon(name, size = 16) {
   const s = el('span', { class: 'ico', 'aria-hidden': 'true' });
@@ -73,8 +84,9 @@ export function icon(name, size = 16) {
   return s;
 }
 
+/** Los mensajes del núcleo (Rust) llegan en español: pasan por el diccionario como cualquier texto. */
 export function setStatus(message) {
-  $('#status').textContent = message;
+  $('#status').textContent = t(message);
 }
 
 /** UiError {message, detail}: mostrar `message`, nunca el detalle técnico (NFR-12).
@@ -82,7 +94,7 @@ export function setStatus(message) {
  *  `{ activity: false, ignoreCancelled: true }` (solo la barra, y sin los "Cancelado."). */
 export function showError(err, { activity: toActivity = true, ignoreCancelled = false } = {}) {
   if (ignoreCancelled && err?.message === 'Cancelado.') return;
-  const msg = err?.message ?? String(err);
+  const msg = t(err?.message ?? String(err));
   setStatus(msg);
   if (toActivity) activity.push({ area: 'general', level: 'error', text: msg });
 }

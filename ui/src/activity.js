@@ -8,22 +8,23 @@
 //   (salvo fijado). Las líneas del mismo trabajo (`key`) o repetidas se actualizan en su lugar.
 
 import { api } from './api.js';
+import { t as tr } from './i18n.js';
 
 const KEEP = 300;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Íconos por área (trazo 2, 24×24).
 const AREA = {
-  analisis: ['Análisis', '<path d="M4.6 18.5a9 9 0 1 1 14.8 0"/><path d="M12 14.5l4.2-5"/>'],
+  analisis: [tr('Análisis'), '<path d="M4.6 18.5a9 9 0 1 1 14.8 0"/><path d="M12 14.5l4.2-5"/>'],
   motor: ['Torrent', '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>'],
-  reproduccion: ['Reproducción', '<path d="M8 5.5v13l10-6.5z"/>'],
-  subtitulos: ['Subtítulos', '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 14h4M13 14h4M7 10h10"/>'],
-  catalogo: ['Catálogo', '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L20 20"/>'],
-  limpieza: ['Limpieza', '<path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13"/>'],
-  red: ['Red', '<path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a5.5 5.5 0 0 1 8 0"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/>'],
-  portapapeles: ['Portapapeles', '<rect x="6" y="4.5" width="12" height="16" rx="2"/><path d="M9.5 4.5V3h5v1.5"/>'],
-  general: ['General', '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 2"/>'],
-  error: ['Error', '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor"/>'],
+  reproduccion: [tr('Reproducción'), '<path d="M8 5.5v13l10-6.5z"/>'],
+  subtitulos: [tr('Subtítulos'), '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 14h4M13 14h4M7 10h10"/>'],
+  catalogo: [tr('Catálogo'), '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L20 20"/>'],
+  limpieza: [tr('Limpieza'), '<path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13"/>'],
+  red: [tr('Red'), '<path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a5.5 5.5 0 0 1 8 0"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/>'],
+  portapapeles: [tr('Portapapeles'), '<rect x="6" y="4.5" width="12" height="16" rx="2"/><path d="M9.5 4.5V3h5v1.5"/>'],
+  general: [tr('General'), '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 2"/>'],
+  error: [tr('Error'), '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor"/>'],
 };
 const svg = (paths, size = 14) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 const ICON = {
@@ -54,26 +55,26 @@ const lineChev = h('span', { class: 'act-chev', 'aria-hidden': 'true' }, svg('<p
 line.append(lineDot, lineIc, lineSum, lineN, lineChev);
 const panel = h('div', { class: 'act-panel', id: 'act-panel', role: 'region', 'aria-labelledby': 'act-title' });
 const head = h('div', { class: 'act-h' });
-const title = h('span', { class: 'act-title', id: 'act-title' }, 'Actividad');
+const title = h('span', { class: 'act-title', id: 'act-title' }, tr('Actividad'));
 const headSum = h('span', { class: 'act-sum' });
 const btn = (label, icon, extra = {}) => h('button', { type: 'button', class: 'act-b', 'aria-label': label, 'data-tip': label, ...extra }, svg(ICON[icon]));
 const tabBtn = (id, label) => h('button', { type: 'button', id, class: 'act-tab', role: 'tab' }, label);
-const tabFriendly = tabBtn('act-tab-friendly', 'Resumen');
-const tabDetail = tabBtn('act-tab-detail', 'Detallado');
+const tabFriendly = tabBtn('act-tab-friendly', tr('Resumen'));
+const tabDetail = tabBtn('act-tab-detail', tr('Detallado'));
 const tabs = h('div', { class: 'act-tabs', role: 'tablist' });
 tabs.append(tabFriendly, tabDetail);
 // Filtro: por tipo (Resumen) o por nivel (Detallado). Las opciones se arman al cambiar de vista.
-const filter = h('select', { id: 'act-filter', class: 'act-filter', 'aria-label': 'Filtrar' });
-const refreshBtn = btn('Actualizar el log detallado', 'refresh', { id: 'act-refresh' });
-const exportBtn = btn('Descargar logs (para debuguear)', 'download', { id: 'act-export' });
-const pinBtn = btn('Fijar: que no se cierre al tocar afuera', 'pin', { id: 'act-pin', 'aria-pressed': 'false' });
-const clearBtn = btn('Vaciar la lista', 'clear', { id: 'act-clear' });
-const minBtn = btn('Cerrar', 'min', { id: 'act-close' });
+const filter = h('select', { id: 'act-filter', class: 'act-filter', 'aria-label': tr('Filtrar') });
+const refreshBtn = btn(tr('Actualizar el log detallado'), 'refresh', { id: 'act-refresh' });
+const exportBtn = btn(tr('Descargar logs (para debuguear)'), 'download', { id: 'act-export' });
+const pinBtn = btn(tr('Fijar: que no se cierre al tocar afuera'), 'pin', { id: 'act-pin', 'aria-pressed': 'false' });
+const clearBtn = btn(tr('Vaciar la lista'), 'clear', { id: 'act-clear' });
+const minBtn = btn(tr('Cerrar'), 'min', { id: 'act-close' });
 head.append(title, tabs, headSum, filter, refreshBtn, exportBtn, pinBtn, clearBtn, minBtn);
-const list = h('ol', { class: 'act-list', tabindex: '0', 'aria-label': 'Lo que está pasando, lo más nuevo abajo', 'aria-live': 'off' });
-const detail = h('ol', { class: 'act-list act-detail', tabindex: '0', 'aria-label': 'Log detallado del núcleo, lo más nuevo abajo' });
+const list = h('ol', { class: 'act-list', tabindex: '0', 'aria-label': tr('Lo que está pasando, lo más nuevo abajo'), 'aria-live': 'off' });
+const detail = h('ol', { class: 'act-list act-detail', tabindex: '0', 'aria-label': tr('Log detallado del núcleo, lo más nuevo abajo') });
 detail.hidden = true;
-const newChip = h('button', { type: 'button', id: 'act-new', class: 'act-new' }, '↓ nuevas');
+const newChip = h('button', { type: 'button', id: 'act-new', class: 'act-new' }, tr('↓ nuevas'));
 newChip.hidden = true;
 const live = h('div', { class: 'sr', 'aria-live': 'polite' });
 panel.append(head, list, detail, newChip);
@@ -125,8 +126,8 @@ function renderLine() {
   root.classList.toggle('is-busy', Boolean(busy)); // no `busy`: esa clase apaga los clics (botones con spinner)
   root.classList.toggle('warn', !busy && last?.level === 'warn');
   root.classList.toggle('error', !busy && last?.level === 'error');
-  line.setAttribute('aria-label', `Actividad: ${text || 'nada en curso'}${unseen ? `, ${unseen} nuevas` : ''}. ${state === 'open' ? 'Cerrar' : 'Ver detalle'}`);
-  line.dataset.tip = state === 'open' ? 'Cerrar la actividad' : 'Ver todo lo que pasa de fondo';
+  line.setAttribute('aria-label', tr('Actividad: {a}{b}. {c}', { a: text || tr('nada en curso'), b: unseen ? tr(', {unseen} nuevas', { unseen }) : '', c: state === 'open' ? tr('Cerrar') : tr('Ver detalle') }));
+  line.dataset.tip = state === 'open' ? tr('Cerrar la actividad') : tr('Ver todo lo que pasa de fondo');
   root.dataset.state = state;
 }
 
@@ -204,7 +205,7 @@ function setBusy(text) {
 
 // ---------- vistas: Resumen (amigable) y Detallado (log del núcleo) ----------
 let view = 'friendly';
-const LEVELS = [['all', 'Todos los niveles'], ['warn', 'Avisos y errores'], ['info', 'Info'], ['debug', 'Debug / verbose']];
+const LEVELS = [['all', tr('Todos los niveles')], ['warn', tr('Avisos y errores')], ['info', tr('Info')], ['debug', tr('Debug / verbose')]];
 /** Nivel de una línea del log de tracing ("2026-…Z  INFO streamonte_core::…: mensaje"). */
 const levelOf = (l) => (/\b(ERROR|WARN)\b/.test(l) ? 'warn' : /\b(DEBUG|TRACE)\b/.test(l) ? 'debug' : 'info');
 
@@ -217,7 +218,7 @@ function setView(v) {
   refreshBtn.hidden = v !== 'detail';
   clearBtn.hidden = v !== 'friendly';
   const opts = v === 'friendly'
-    ? [['all', 'Todos los tipos'], ...Object.entries(AREA).filter(([a]) => lines.some((x) => x.area === a)).map(([a, [name]]) => [a, name])]
+    ? [['all', tr('Todos los tipos')], ...Object.entries(AREA).filter(([a]) => lines.some((x) => x.area === a)).map(([a, [name]]) => [a, name])]
     : LEVELS;
   filter.replaceChildren(...opts.map(([value, label]) => { const o = h('option', { value }); o.textContent = label; return o; }));
   applyFilter();
@@ -257,7 +258,7 @@ async function exportLogs() {
   const friendly = lines.map((x) => `${x.li.querySelector('time').textContent} [${AREA[x.area][0]}] ${x.text}${x.n > 1 ? ` ×${x.n}` : ''}`).join('\n');
   try {
     const dir = await api.exportLogs(friendly);
-    push({ area: 'general', text: `Logs guardados en ${dir}` });
+    push({ area: 'general', text: tr('Logs guardados en {dir}', { dir }) });
   } catch (e) {
     push({ area: 'general', level: 'error', text: e?.message ?? String(e) });
   }
@@ -282,7 +283,7 @@ minBtn.addEventListener('click', () => close(true));
 pinBtn.addEventListener('click', () => {
   pinned = !pinned;
   pinBtn.setAttribute('aria-pressed', String(pinned));
-  const tip = pinned ? 'Fijada: tocá para que se cierre al tocar afuera' : 'Fijar: que no se cierre al tocar afuera';
+  const tip = pinned ? tr('Fijada: tocá para que se cierre al tocar afuera') : tr('Fijar: que no se cierre al tocar afuera');
   pinBtn.dataset.tip = tip;
   pinBtn.setAttribute('aria-label', tip);
 });

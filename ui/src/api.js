@@ -85,15 +85,24 @@ export const api = {
   /** FR-36: películas y series juntas, lo más popular primero. Una búsqueda nueva cancela la anterior (error "Cancelado."). */
   catalogSearch: (query) => invoke('catalog_search', { query }),
   /** En tendencia ahora (sin key de TMDB): {items, has_more}, 50 por página desde `skip`. */
-  catalogTrending: (kind, genre, skip) => invoke('catalog_trending', { kind, genre, skip }),
+  catalogTrending: (kind, skip) => invoke('catalog_trending', { kind, skip }),
+  /** Géneros de TMDB del tipo, en el idioma de la app: [{id, name}] (filtro de Explorar). */
+  catalogGenres: (kind) => invoke('catalog_genres', { kind }),
+  /** Episodios de una temporada en los idiomas elegidos: [{episode, name, overview}]; vacío sin key de TMDB. */
+  catalogEpisodes: (imdbId, season) => invoke('catalog_episodes', { imdbId, season }),
+  /** "Pegar magnet" con TorBox: {status: {state: 'cached'|'downloading'|'ready'|'missing', name, progress, speed, seeds,
+   *  eta, files: [{name, size}]}, ident: {kind, id, name, year, poster, rating, season, episode} | null}. */
+  torboxMagnet: (hash, name, who) => invoke('torbox_magnet', { hash, name, who }),
+  /** "Bajarlo en TorBox": lo agrega aunque no esté en caché; devuelve el estado nuevo. */
+  torboxMagnetDownload: (hash, name) => invoke('torbox_magnet_download', { hash, name }),
   /** Puntaje promedio por temporada: {source: 'IMDb'|'TMDB', seasons: [{season, rating, episodes}], status}.
    *  quick: no espera al índice de IMDb si se está armando (solo el estado). */
   catalogDetails: (kind, imdbId) => invoke('catalog_details', { kind, imdbId }),
   catalogSimilar: (kind, imdbId) => invoke('catalog_similar', { kind, imdbId }),
   catalogSeasonRatings: (imdbId, quick = false) => invoke('catalog_season_ratings', { imdbId, quick }),
   /** Explorar con filtros de IMDb (necesita key de TMDB): {items, has_more:false}. sort: 'popular' | 'rating'.
-   *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera. */
-  catalogBrowseTop: (kind, sort, from, to, minVotes, languages, genre) => invoke('catalog_browse_top', { kind, sort, from, to, minVotes, languages, genre }),
+   *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera. genres: ids de TMDB (alcanza con uno). */
+  catalogBrowseTop: (kind, sort, from, to, minVotes, languages, genres) => invoke('catalog_browse_top', { kind, sort, from, to, minVotes, languages, genres }),
   /** Abre la ficha de IMDb del título en el navegador. */
   catalogOpenTrailer: (youtubeId) => invoke('catalog_open_trailer', { youtubeId }),
   catalogSwarmSaved: (hashes) => invoke('catalog_swarm_saved', { hashes }),
@@ -142,12 +151,13 @@ export const api = {
   // Un comando por ajuste: nunca se reescribe la config entera desde la UI.
   /** Ajustes → Red (ADR-30): entrantes / UPnP. */
   /** 'cine' | 'voices' | 'flat' (Ajustes → Reproductor, 2026-11-17). */
-  /** Reproductores de este equipo: {mpv: 'bundled'|'installed'|'configured'|null, vlc, chosen, effective, can_install_mpv}. */
+  /** Reproductores de este equipo: {mpv: 'bundled'|'installed'|'configured'|null, vlc, can_install_mpv}. */
   playersStatus: () => invoke('players_status'),
-  setPlayer: (player) => invoke('config_set_player', { player }),
   /** Con Homebrew instala mpv (minutos); si no, abre la guía. true = instalado. */
   installMpv: () => invoke('install_mpv'),
   setEqualizer: (equalizer) => invoke('config_set_equalizer', { equalizer }),
+  /** Idiomas de la app y de los títulos: {app: 'es'|'en', titles: 'es'|'en'}. */
+  setLanguage: (language) => invoke('config_set_language', { language }),
   setNetwork: (incoming, upnp, announceEarly) => invoke('config_set_network', { incoming, upnp, announceEarly }),
 };
 
