@@ -197,6 +197,19 @@
 			{#if msg && open === '' && !anyMissing}<p class="msg" role="status">{msg}</p>{/if}
 		</section>
 	{/if}
+
+	<section id="privacy" class="field saved">
+		<span class="lbl">{t('Privacidad')}</span>
+		<p class="help-text">{t('Para saber cómo se usa la app guardo, por cada dispositivo, un id al azar, el navegador, la ciudad aproximada (por la IP) y qué hacés acá: búsquedas, títulos que abrís y opciones que copiás. No se comparte con nadie y se borra solo a los 90 días.')}</p>
+	</section>
+
+	<section id="credits" class="field saved">
+		<span class="lbl">{t('Datos')}</span>
+		<p class="help-text">
+			{t('Fichas, pósters y géneros:')} <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">TMDB</a>. {t('Este producto usa la API de TMDB, pero TMDB no lo respalda ni lo certifica.')}
+			{t('Puntajes:')} <a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener noreferrer">{t('datasets de IMDb')}</a> {t('(uso personal, no comercial).')}
+		</p>
+	</section>
 </main>
 
 {#snippet head(/** @type {'tmdb' | 'torbox' | 'opensubtitles' | 'login'} */ which, /** @type {string} */ name, /** @type {string} */ hint)}
@@ -244,6 +257,7 @@
 	.msg { text-align: center; }
 	.saved { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
 	.help-text { color: var(--muted); font-size: 13px; }
+	.help-text a { color: var(--accent-fg); text-underline-offset: 2px; }
 	.kept { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius); }
 	.kept li + li { border-top: 1px solid var(--border); }
 	.krow { display: flex; align-items: center; gap: 10px; padding-left: 12px; font-size: 14px; }

@@ -1,4 +1,4 @@
-// Registro simple de uso: qué dispositivo hizo qué y cuándo, en la tabla `eventos` de Neon.
+// Registro simple de uso: qué dispositivo hizo qué y cuándo, en la tabla `eventos` de Neon (esquema en db/schema.sql).
 // El dispositivo es un id al azar en la cookie `dev` (la pone hooks.server.js); sin DATABASE_URL no registra nada.
 import { neon } from '@neondatabase/serverless';
 
@@ -18,6 +18,9 @@ export async function track(event, accion, dato, deviceId) {
 	const lugar = [city && decodeURIComponent(city), h.get('x-vercel-ip-country-region'), h.get('x-vercel-ip-country')].filter(Boolean).join(', ') || null;
 	try {
 		await q`INSERT INTO eventos (dispositivo, equipo, accion, dato, lugar) VALUES (${dev}, ${equipo}, ${accion.slice(0, 40)}, ${dato?.slice(0, 300) ?? null}, ${lugar})`;
+		// Retención de 90 días (lo dice Ajustes > Privacidad): 1 de cada 50 avisos borra lo viejo, sin cron.
+		// shortcut: depende de que haya uso; si pasa meses sin nadie, lo viejo espera al próximo aviso.
+		if (Math.random() < 0.02) await q`DELETE FROM eventos WHERE fecha < now() - interval '90 days'`;
 	} catch (e) {
 		console.error('track', e);
 	}

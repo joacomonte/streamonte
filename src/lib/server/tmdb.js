@@ -56,6 +56,18 @@ const DETAILS_FILE = `${DIR}/tmdb-fichas.json`;
 const DETAILS_TTL = 90 * 24 * 3600 * 1000;
 /** Listas armadas, por filtros: el scroll infinito pide de a 20 sin rehacer el cruce. */
 const LIST_TTL = 10 * 60 * 1000;
+/** Tope de listas y de títulos en memoria por instancia: se va la más vieja. */
+const MAX_LISTS = 40;
+const MAX_NAMES = 500;
+/** Pisos de votos de IMDb que ofrece la web (como `VOTES` de catalog.svelte.js); `/api/catalog` acepta solo estos. */
+export const VOTES = [0, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
+/** Guarda en un Map con tope: al pasarse, borra la entrada más vieja (los Map recorren en orden de inserción).
+ * @template K, V @param {Map<K, V>} map @param {K} key @param {V} value @param {number} max */
+function capped(map, key, value, max) {
+	map.delete(key);
+	map.set(key, value);
+	if (map.size > max) map.delete(/** @type {K} */ (map.keys().next().value));
+}
 
 /** @typedef {{imdb: number | null, lang: string | null, excluded: boolean, at: number}} Detail */
 /** "movie:123" → ficha. @type {Record<string, Detail> | null} */
@@ -153,7 +165,7 @@ export async function discover(f) {
 	let hit = lists.get(key);
 	if (!hit || hit.at < Date.now() - LIST_TTL) {
 		hit = { at: Date.now(), list: build(f) };
-		lists.set(key, hit);
+		capped(lists, key, hit, MAX_LISTS);
 		hit.list.catch(() => lists.delete(key));
 	}
 	const list = await hit.list;
@@ -187,9 +199,12 @@ export async function genres(kind) {
 /** Ficha: datos, IMDb id (para los torrents) y temporadas. @param {'movie' | 'tv'} kind @param {string} id */
 export async function title(kind, id) {
 	// Sinopsis y géneros siempre en el idioma de la app: un pedido más (si difiere de los títulos), en paralelo.
-	const [r, info] = await Promise.all([
+	// El dataset de IMDb se espera junto con TMDB: en una instancia recién creada todavía no está cargado y el puntaje
+	// salía vacío. Si no se puede bajar, la ficha sale igual, sin puntaje.
+	const [r, info, table] = await Promise.all([
 		tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits,videos', include_video_language: 'es,en,null' }),
-		lang() !== titlesLang() ? tmdb(`/${kind}/${id}`, {}, lang()) : null
+		lang() !== titlesLang() ? tmdb(`/${kind}/${id}`, {}, lang()) : null,
+		ratings().catch(() => null)
 	]);
 	const about = info ?? r;
 	// Dónde verla en Argentina (TMDB/JustWatch): suscripción primero, después con avisos o gratis.
@@ -201,7 +216,7 @@ export async function title(kind, id) {
 		.map((/** @type {any} */ p) => ({ name: p.provider_name, logo: p.logo_path ? `${IMG}w92${p.logo_path}` : null }));
 	const langName = r.original_language ? new Intl.DisplayNames([lang()], { type: 'language' }).of(r.original_language) : null;
 	const imdb = r.imdb_id ?? r.external_ids?.imdb_id ?? null;
-	const real = imdbOf(imdb);
+	const real = table ? imdbOf(imdb, table) : null;
 	return {
 		...card(r, kind),
 		...(real ? { rating: real.rating.toFixed(1) } : {}),
@@ -244,7 +259,7 @@ export function namesOf(imdb) {
 		});
 		// Si falla no se guarda: se reintenta la próxima.
 		p.catch(() => names.delete(imdb));
-		names.set(imdb, p);
+		capped(names, imdb, p, MAX_NAMES);
 	}
 	return /** @type {Promise<{titles: string[], year: number | null} | null>} */ (names.get(imdb));
 }

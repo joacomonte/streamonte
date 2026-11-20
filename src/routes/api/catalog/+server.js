@@ -1,19 +1,26 @@
-import { discover, search } from '#lib/server/tmdb.js';
+import { discover, search, VOTES } from '#lib/server/tmdb.js';
 import { route } from '#lib/server/http.js';
+
+/** Solo valores que puede mandar la web: cada combinación nueva arma una lista con hasta 30 pedidos de discover y
+ * 600 fichas de TMDB, así que lo que no se reconoce cae al valor por defecto en vez de abrir otra combinación. */
+const date = (/** @type {string | null} */ v) => (/^\d{4}-\d{2}-\d{2}$/.test(v ?? '') ? /** @type {string} */ (v) : '');
+/** Hasta `max` valores únicos y ordenados (`es,en` y `en,es` son la misma lista). @param {string | null} v @param {RegExp} re @param {number} max */
+const set = (v, re, max) => [...new Set((v ?? '').split(',').filter((x) => re.test(x)))].sort().slice(0, max);
 
 export const GET = route(async ({ url }) => {
 	const p = url.searchParams;
-	const page = Number(p.get('page')) || 1;
-	const q = p.get('q')?.trim();
+	const page = Math.min(Math.max(Math.trunc(Number(p.get('page'))) || 1, 1), 30);
+	const q = p.get('q')?.trim().slice(0, 100);
 	if (q) return search(q, page);
+	const votes = Number(p.get('votes'));
 	return discover({
 		kind: p.get('kind') === 'tv' ? 'tv' : 'movie',
-		sort: p.get('sort') ?? 'popular',
-		from: p.get('from') ?? '',
-		to: p.get('to') ?? '',
-		votes: Number(p.get('votes')) || 0,
-		lang: p.get('lang') ?? '',
-		genres: (p.get('genres') ?? '').split(',').filter((g) => /^\d+$/.test(g)),
+		sort: p.get('sort') === 'popular' ? 'popular' : 'rating',
+		from: date(p.get('from')),
+		to: date(p.get('to')),
+		votes: VOTES.includes(votes) ? votes : 0,
+		lang: set(p.get('lang'), /^[a-z]{2}$/, 6).join(','),
+		genres: set(p.get('genres'), /^\d{1,6}$/, 5),
 		page
 	});
 });
