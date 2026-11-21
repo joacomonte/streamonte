@@ -12,7 +12,7 @@ import { api } from './api.js';
 import { el, icon } from './dom.js';
 import { t as tr } from './i18n.js';
 import { state, view } from './catalog-state.js';
-import { failedBefore, flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, mbpsOf, openGroup, optionRow, renderStreamsOnly, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.js';
+import { failedBefore, flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, latPotential, latToCheck, mbpsOf, openGroup, optionRow, renderStreamsOnly, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.js';
 import { readTracks } from './catalog-subs.js';
 import { quickAnalyze, startAnalysis, stopTests, unlikely } from './catalog-tests.js';
 
@@ -59,12 +59,11 @@ const pool = () => (state.update?.candidates ?? [])
   .sort((a, b) => failedBefore.has(a.info_hash) - failedBefore.has(b.info_hash));
 /** Donde se busca latino: el modo y, con paso de resolución, la calidad abierta. */
 const scope = () => pool().filter((c) => !hasResStep() || !view.openRes || resKey(c) === view.openRes);
-/** Única regla de "potencial de latino": confirmado ('real'), dice LATINO ('name'), dudosa ('maybe': MULTI / Dual /
- *  español sin aclarar) o pista en español sin variante ('spa'). Las que no dicen nada de idioma no cuentan. */
-const hasPotential = (c) => latOf(c) != null;
+/** Potencial de latino: la regla vive en catalog-options.js (`latPotential`). */
+const hasPotential = latPotential;
 /** Única regla de "buen match" en TorBox: pidiendo latino, latino confirmado en sus pistas (los subs no importan); con
  *  audio original, subtítulos en español nativos (dentro del video o .srt en la lista de TorBox). De cine, nunca. */
-export const isMatch = (c) => c.source !== 'CAM' && !failedBefore.has(c.info_hash) && (flow()?.lat ? latOf(c) === 'real' : hasSpanishSubs(c.info_hash) === true);
+export const isMatch = (c) => c.source !== 'CAM' && !failedBefore.has(c.info_hash) && (flow()?.lat ? latOf(c) === 'lat' : hasSpanishSubs(c.info_hash) === true);
 /** Filtro de la lista por el flujo (lo usa `passesFilters`): modo y, si pidió latino, solo las con potencial. */
 export function flowFilter(c) {
   const f = flow();
@@ -77,15 +76,15 @@ const tracksRead = (h) => rowsOf(h).some((e) => e.live?.audio?.length);
  *  conectarse a una que no se va a poder ver). */
 const healthy = (c) => flow()?.mode === 'torbox' || (!unlikely(c) && (knownSeeds(c) ?? 0) > 0);
 const byPotential = (a, b) => (knownSeeds(b) ?? -1) - (knownSeeds(a) ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0);
-/** Grupo de candidata a latino: 0 dice LATINO, 1 dudosa (MULTI / Dual / español sin aclarar). */
-const latTier = (c) => (latOf(c) === 'name' ? 0 : 1);
+/** Grupo de candidata a latino: 0 web latina, 1 español sin aclarar (MULTI / Dual / español). */
+const latTier = (c) => (latOf(c) === 'likely' ? 0 : 1);
 /** Candidatas a leer (única regla): sin leer, con salud y que puedan ser lo pedido (latino: con potencial; audio
  *  original: sin saber si trae sub ES). TorBox: de mejor a peor calidad (resolución, imagen y peso), como la lista.
  *  Torrent: por grupo (`latTier`), mejor resolución y seeds, así la primera confirmada es la mejor. */
 function toConfirm(cands, lat = flow().lat) {
   const f = flow();
   const pending = cands.filter((c) => !f.scanned.has(c.info_hash) && !tracksRead(c.info_hash) && healthy(c)
-    && (lat ? hasPotential(c) : hasSpanishSubs(c.info_hash) == null));
+    && (lat ? latToCheck(c) : hasSpanishSubs(c.info_hash) == null));
   if (f.mode === 'torbox') return flatSorted(pending.filter(fitsNet));
   return pending.sort(byPotential).sort((a, b) => latTier(a) - latTier(b) || RES_ORDER.indexOf(resKey(a)) - RES_ORDER.indexOf(resKey(b)));
 }
@@ -132,14 +131,14 @@ async function runScan() {
     }
     scan.done += batch.length;
     if (flow() === f) renderStreamsOnly();
-    if (!tb && batch.some((h) => latOf(state.update.candidates.find((c) => c.info_hash === h)) === 'real')) break;
+    if (!tb && batch.some((h) => latOf(state.update.candidates.find((c) => c.info_hash === h)) === 'lat')) break;
   }
   if (f.scan === scan) scan.running = false;
   if (flow() === f) renderStreamsOnly();
 }
 /** Pidiendo latino, al llegar a la lista: busca salvo que ya haya una confirmada (de una lectura anterior). */
 function autoScan() {
-  if (flow().lat && !scope().some((c) => latOf(c) === 'real')) runScan();
+  if (flow().lat && !scope().some((c) => latOf(c) === 'lat')) runScan();
   else renderStreamsOnly();
 }
 /** Corta la búsqueda de latino en curso (lo ya leído queda; lo que no llegó a leerse vuelve a ser candidata). */
@@ -286,9 +285,8 @@ function matchScreen() {
       el('button', { id: 'cat-match-all', type: 'button', class: 'cat-flow-btn', onclick: () => { f.all = true; renderStreamsOnly(); } },
         icon('list', 15), tr('Ver todas las opciones'), el('span', { class: 'cat-flow-count' }, String(pool().filter(flowFilter).length)))));
 }
-/** Leídas con audio en español que no es latino (sin variante o castellano): casi seguro de España. */
-const spanishNotLat = (c) => latOf(c) !== 'real'
-  && !!rowsOf(c.info_hash).find((e) => e.live?.audio?.length)?.languages?.some((l) => l.code === 'es' || l.code === 'cast');
+/** Español de España (pistas, nombre o web de origen). */
+const spanishNotLat = (c) => latOf(c) === 'spain';
 /** Pidió latino y no hubo: busca de nuevo con audio original (el primer match con subs en español adentro). */
 function toOriginal() {
   const f = flow();
@@ -354,7 +352,7 @@ function latScreen() {
   const p = pool();
   const potential = p.filter(hasPotential);
   const none = !potential.length;
-  const named = potential.filter((c) => latOf(c) === 'name' || latOf(c) === 'real').length;
+  const named = potential.filter((c) => latOf(c) === 'lat').length;
   const doubtful = potential.length - named;
   const left = toConfirm(p, true).length;
   const how = f.mode === 'torbox' ? tr('de a una, de mejor a peor calidad') : tr('de a {SWARM_PARALLEL}, en la calidad que elijas', { SWARM_PARALLEL });
@@ -396,7 +394,7 @@ export function moreRow() {
   // TorBox: también hay "más" si queda un match ya sabido (p. ej. un .srt en español) sin mostrar.
   if (!left && !(tb && nextMatch())) {
     if (!f.scanned.size) return null;
-    const found = tb ? f.found.length : scope().some((c) => latOf(c) === 'real');
+    const found = tb ? f.found.length : scope().some((c) => latOf(c) === 'lat');
     return el('p', { class: 'cat-lat-more done', role: 'status' }, icon(found ? 'check' : 'ban', 13),
       tb ? tr('No hay más para buscar.') : found ? tr('Revisé todas: no hay más para buscar.') : tr('No encontré latino confirmado en sus pistas: quedan las que lo dicen en el nombre.'));
   }
@@ -413,13 +411,13 @@ function resScreen() {
     if (!all.length) return null;
     const n = all.length;
     const lat = all.filter(hasPotential).length;
-    const real = all.filter((c) => latOf(c) === 'real').length;
-    const named = all.filter((c) => latOf(c) === 'name').length;
+    const real = all.filter((c) => latOf(c) === 'lat').length;
+    const named = all.filter((c) => latOf(c) === 'likely').length;
     const doubtful = lat - real - named;
     const unit = n === 1 ? 'torrent' : 'torrents';
     // Lo dudoso (MULTI / Dual / español sin aclarar) no se cuenta como latino.
     const sub = !f.lat ? `${n} ${unit}`
-      : lat ? [real && tr('{real} con latino confirmado', { real }), named && tr(named === 1 ? '{n} dice latino' : '{n} dicen latino', { n: named }), doubtful && tr(doubtful === 1 ? '{n} dudosa' : '{n} dudosas', { n: doubtful })]
+      : lat ? [real && tr('{real} con latino confirmado', { real }), named && tr(named === 1 ? '{n} probablemente latina' : '{n} probablemente latinas', { n: named }), doubtful && tr(doubtful === 1 ? '{n} dudosa' : '{n} dudosas', { n: doubtful })]
         .filter(Boolean).join(' · ') + tr(' de {n}', { n }) : tr('Ninguna con latino de {n}', { n });
     return choice(`cat-flow-res-${r}`, 'monitor', resLabel(r), sub, () => pickRes(r), { muted: !!f.lat && !lat });
   }).filter(Boolean);

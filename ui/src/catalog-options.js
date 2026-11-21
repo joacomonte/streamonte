@@ -20,15 +20,35 @@ export const HDR_TIP = {
   HDR: tr('HDR: más rango de brillo y color. Se aprovecha con pantalla HDR; en una común se ve igual o un poco más apagado.'),
   DV: tr('Dolby Vision: HDR dinámico de Dolby. En pantallas sin Dolby Vision puede verse con colores raros (verde/violeta).'),
 };
-/** ¿Audio latino? (2026-11-18). Con las pistas ya leídas mandan ellas: 'real' (pista latina), 'spa' (español sin
- *  aclarar la variante: puede ser latino o de España) o null. Sin leerlas, el nombre: 'name' (dice LATINO), 'maybe'
- *  (MULTI / Dual / español sin aclarar cuál: hay que validar) o null. */
+// Webs de origen dentro del nombre: solo orientan, no confirman (como la web, streamonte-web/src/lib/server/torrents.js).
+const LAT_SITES = ['cinecalidad', 'verpeliculasonline', 'pelisplus', 'cuevana', 'pelispanda', 'pelismart'];
+const SPAIN_SITES = ['mejortorrent', 'wolfmax4k', 'dontorrent', 'divxtotal', 'elitetorrent'];
+/** Estado del audio latino (2026-11-21, única regla, igual que `latStatus` de la web):
+ *  - Las pistas leídas ganan cuando dicen cuál español es (latino, castellano) o que no hay español.
+ *  - Español sin variante no decide: decide el nombre (LATINO / banderas latinas o castellano) y, si no, la web.
+ *  'lat' latino · 'likely' solo la web de origen es latina · 'spain' de España · 'check' no se sabe: probar a mano ·
+ *  'none' leído y sin español. */
 export function latOf(c) {
   const read = rowsOf(c.info_hash).find((e) => e.live?.audio?.length);
-  if (read) return read.languages?.some((l) => l.code === 'lat') ? 'real' : read.languages?.some((l) => l.code === 'es') ? 'spa' : null;
-  if (c.audio.includes('lat')) return 'name';
-  return !c.audio.includes('cast') && (c.audio.includes('multi') || c.audio.includes('es')) ? 'maybe' : null;
+  const codes = read?.languages?.map((l) => l.code) ?? [];
+  if (codes.includes('lat')) return 'lat';
+  if (codes.includes('cast')) return 'spain';
+  if (read && !codes.includes('es')) return 'none';
+  if (c.audio.includes('lat')) return 'lat';
+  if (c.audio.includes('cast')) return 'spain';
+  const name = `${c.release_name} ${c.file_name ?? ''}`.toLowerCase();
+  if (LAT_SITES.some((w) => name.includes(w))) return 'likely';
+  if (SPAIN_SITES.some((w) => name.includes(w))) return 'spain';
+  return 'check';
 }
+/** Dice o trae español sin aclarar cuál (MULTI / Dual / español en el nombre, o una pista en español). */
+const saysSpanish = (c) => c.audio.includes('multi') || c.audio.includes('es')
+  || !!rowsOf(c.info_hash).find((e) => e.live?.audio?.length)?.languages?.some((l) => l.code === 'es');
+/** Sin confirmar pero vale la pena leer sus pistas: web latina, o español sin aclarar. Las que no dicen nada de
+ *  idioma no se leen. */
+export const latToCheck = (c) => { const s = latOf(c); return s === 'likely' || (s === 'check' && saysSpanish(c)); };
+/** Con potencial de latino (única regla): latino o vale la pena revisarla. */
+export const latPotential = (c) => latOf(c) === 'lat' || latToCheck(c);
 /** ¿Pidió ver en latino? (paso "¿Necesitás audio latino?" del flujo). Afuera de ese modo, el latino solo se muestra
  *  confirmado. */
 const wantsLatino = () => state.side?.flow?.lat === true;
@@ -63,8 +83,8 @@ function explain(kind, hash, text) {
   const x = s.explained.get(kind);
   return x.hash === hash ? tip(`explain|${s.videoId}|${kind}`, text, x.delay) : null;
 }
-/** "ES" tocado (español de España): su globito "Gallego" sale al toque. */
-let gallegoAt = null;
+/** Badge de audio tocado (Gallego / LAT? / Probar manualmente): su globito sale al toque. */
+let tappedAt = null;
 /** Idioma ya sabido, como badges junto al peso (2026-11-20, todos los estados de la web): audio y subtítulos.
  *  Audio, pidiendo latino: LAT verde (confirmado en las pistas), LAT gris punteado (lo dice el nombre), LAT tachado
  *  (leído, sin latino) o LAT? punteado (sin leer). Con audio original, LAT solo si está confirmado; y ES blanco
@@ -75,20 +95,21 @@ function langTags(c, best) {
   const subs = hasSpanishSubs(hash);
   const native = rowsOf(hash).find((e) => e.native_subs)?.native_subs ?? [];
   const lat = latOf(c);
-  const read = rowsOf(hash).some((e) => e.live?.audio?.length);
   const want = wantsLatino();
   const spokenEs = state.side?.details?.details?.original_language === 'es';
-  // Español que no es latino (sin variante o castellano): en pelis habladas en español o pidiendo latino, "ES" de España.
-  const spain = lat !== 'real' && rowsOf(hash).find((e) => e.live?.audio?.length)?.languages?.some((l) => l.code === 'es' || l.code === 'cast');
-  const audio = spain && (spokenEs || want)
-    ? el('button', { id: `cat-gallego-${hash}`, type: 'button', class: 'cat-tag cat-lang es-audio', title: tr('Gallego: español de España, no latino'),
-      onclick: (e) => { e.stopPropagation(); tips.delete(`gallego|${hash}`); gallegoAt = hash; renderStreamsOnly(); } }, icon('speaker', 11), 'ES',
-      gallegoAt === hash || best ? tip(`gallego|${hash}`, tr('Gallego'), gallegoAt === hash ? 0 : 500) : null)
-    : lat === 'real' || (want && lat === 'name')
-      ? el('span', { class: `cat-tag cat-lang ${lat === 'real' ? 'ok' : 'name'}`, title: (lat === 'real' ? tr('Audio latino confirmado en las pistas del video') : tr('Latino según el nombre del torrent: si el nombre miente, no lo trae')) },
-        lat === 'real' ? icon('check', 10) : null, 'LAT', best && lat === 'real' ? tip(`best-lat|${hash}`, tr('Tiene audio latino')) : null)
-      : want && read ? el('span', { class: 'cat-tag cat-lang no', title: tr('Leído: no trae audio latino') }, el('s', {}, 'LAT'), explain('nolat', hash, tr('No trae audio latino')))
-        : want ? el('span', { class: 'cat-tag cat-lang unk', title: tr('Sin analizar: no se sabe si trae audio latino') }, 'LAT?') : null;
+  // Gallego solo en pelis habladas en español o pidiendo latino; LAT siempre; el resto solo pidiendo latino.
+  // Al tocar Gallego / LAT? / Probar manualmente, su globito sale al toque.
+  const tappable = (cls, text, title, tipText, ...pre) => el('button', { id: `cat-audio-${hash}`, type: 'button', class: `cat-tag cat-lang es-audio ${cls}`, title,
+    onclick: (e) => { e.stopPropagation(); tips.delete(`audio|${hash}`); tappedAt = hash; renderStreamsOnly(); } }, ...pre, text,
+    tappedAt === hash || (best && cls === '') ? tip(`audio|${hash}`, tipText, tappedAt === hash ? 0 : 500) : null);
+  const audio = lat === 'spain' && (spokenEs || want)
+    ? tappable('', tr('Gallego'), tr('Gallego: español de España, no latino'), tr('Español de España'), icon('speaker', 11))
+    : lat === 'lat'
+      ? el('span', { class: 'cat-tag cat-lang ok', title: tr('Audio latino: lo dicen las pistas del video o el nombre del torrent') },
+        icon('check', 10), 'LAT', best ? tip(`best-lat|${hash}`, tr('Tiene audio latino')) : null)
+      : want && lat === 'none' ? el('span', { class: 'cat-tag cat-lang no', title: tr('Leído: no trae audio latino') }, el('s', {}, 'LAT'), explain('nolat', hash, tr('No trae audio latino')))
+        : want && lat === 'likely' ? tappable('likely', 'LAT?', tr('Probablemente latino: viene de una web latina, pero no lo pudimos confirmar. Abrilo y probá el audio.'), tr('Probablemente latino'))
+          : want ? tappable('check', tr('Probar manualmente'), tr('No pudimos confirmar si es español latino o de España. Abrilo y probá el audio.'), tr('Abrilo y probá el audio')) : null;
   // Pidiendo latino, los subs no importan: no se muestran.
   const cc = want ? null : subs === true
     ? el('span', { class: 'cat-tag cat-lang ok', title: native.length
@@ -103,10 +124,9 @@ function langTags(c, best) {
 function langActions(c) {
   const hash = c.info_hash;
   const subs = hasSpanishSubs(hash);
-  const lat = latOf(c);
   return [
     subs == null && !wantsLatino() ? checkButton(hash, 'subs') : null,
-    wantsLatino() && (lat === 'name' || lat === 'maybe') ? checkButton(hash, 'lat') : null,
+    wantsLatino() && latToCheck(c) && !rowsOf(hash).some((e) => e.live?.audio?.length) ? checkButton(hash, 'lat') : null,
     subs === false ? el('button', { id: `cat-subfind-${hash}`, type: 'button', class: 'cat-dock-btn', title: tr('No trae subtítulos en español: elegí de afuera (muestra cuáles calzan con este archivo)'),
       onclick: (e) => { e.stopPropagation(); openSubs(hash, !!view.torboxKey && inTorbox.has(hash), e.currentTarget); } }, icon('search', 13), tr('Elegir subs')) : null,
   ].filter(Boolean);
@@ -143,7 +163,7 @@ export async function loadStreams(videoId) {
   view.shownRows = PAGE_ROWS;
   view.onlyHdr = false;
   view.onlyEs = false;
-  gallegoAt = null;
+  tappedAt = null;
   api.downloadsFreeBytes().then((b) => { view.freeBytes = b; renderStreamsOnly(); }).catch(() => {});
   state.update = null;
   renderSide();
@@ -1103,7 +1123,7 @@ export function renderStreamsBody(box) {
       // encontrar una que sirva (sub ES y, si pidió latino, latino confirmado).
       const wantLat = f.lat && !f.latOff;
       const byHash = new Map(sorted.map((c) => [c.info_hash, c]));
-      if (!flat) readUntil(sorted.map((c) => c.info_hash), (h) => hasSpanishSubs(h) === true && (!wantLat || latOf(byHash.get(h)) === 'real'));
+      if (!flat) readUntil(sorted.map((c) => c.info_hash), (h) => hasSpanishSubs(h) === true && (!wantLat || latOf(byHash.get(h)) === 'lat'));
       // Solo las primeras (2026-11-17): con 150+ filas redibujar todas trababa la compu; las de
       // abajo casi nunca se eligen y siguen probándose igual.
       const rest = sorted.length - view.shownRows;
