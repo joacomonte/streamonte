@@ -74,12 +74,26 @@ export async function load({ cookies, url, getClientAddress }) {
 }
 
 export const actions = {
-	default: async ({ request, cookies, url, getClientAddress }) => {
+	login: async ({ request, cookies, url, getClientAddress }) => {
 		const pass = String((await request.formData()).get('pass') ?? '');
 		if (!process.env.ADMIN_PASSWORD) return fail(401, { wrong: true });
 		const r = await attempt(`admin:${getClientAddress()}`, pass, process.env.ADMIN_PASSWORD);
 		if (!r.ok) return fail(r.wait ? 429 : 401, { wrong: true, wait: r.wait });
 		cookies.set('admin', pass, { path: '/', maxAge: 60 * 60 * 24 * 365, httpOnly: true, sameSite: 'lax', secure: url.protocol === 'https:' });
+		redirect(303, '/admin');
+	},
+	/** Borra todo lo registrado de un usuario (por apodo, o por dispositivo si nunca puso apodo): usuarios de prueba
+	 * o que entraron sin nombre. Si ese equipo vuelve a usar la app, aparece de nuevo con lo nuevo. */
+	borrar: async ({ request, cookies }) => {
+		const pass = process.env.ADMIN_PASSWORD;
+		if (!pass || cookies.get('admin') !== pass) return fail(401, { wrong: true });
+		const q = sql();
+		if (!q) return fail(503, { noDb: true });
+		const f = await request.formData();
+		const nick = String(f.get('u') ?? '');
+		const dev = String(f.get('d') ?? '');
+		if (nick) await q`DELETE FROM eventos WHERE apodo = ${nick}`;
+		else if (dev) await q`DELETE FROM eventos WHERE apodo IS NULL AND dispositivo = ${dev}`;
 		redirect(303, '/admin');
 	}
 };

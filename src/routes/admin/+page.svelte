@@ -7,6 +7,18 @@
 	let { data } = $props();
 
 	let loading = $state(false);
+	/** Borrar usuario en dos toques: el primero arma (y avisa), el segundo borra; se desarma solo a los 4 s. */
+	let arming = $state(false);
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
+	let disarm;
+	/** @param {MouseEvent} e */
+	function armDelete(e) {
+		if (arming) return;
+		e.preventDefault();
+		arming = true;
+		clearTimeout(disarm);
+		disarm = setTimeout(() => (arming = false), 4000);
+	}
 	async function refresh() {
 		loading = true;
 		await invalidateAll();
@@ -177,6 +189,13 @@
 		<section class="card">
 			<h2>{titulo}</h2>
 			<p class="muted">Desde {cuando(primera)} · {reproducciones.length} {reproducciones.length === 1 ? 'reproducción' : 'reproducciones'} · {equipos.length} {equipos.length === 1 ? 'dispositivo' : 'dispositivos'}</p>
+			<form method="POST" action="?/borrar" class="del-form">
+				{#if data.nick}<input type="hidden" name="u" value={data.nick} />{:else}<input type="hidden" name="d" value={data.dev} />{/if}
+				<button id="user-delete" type="submit" class="del" class:arming onclick={armDelete}>
+					<Icon name="close" size={14} />{arming ? 'Tocá de nuevo para borrar todo' : 'Borrar usuario'}
+				</button>
+				{#if arming}<span class="muted del-note">Se borra todo lo registrado de este usuario. No se puede deshacer.</span>{/if}
+			</form>
 		</section>
 		{#if reproducciones.length}
 			<h2>Reproducciones</h2>
@@ -305,6 +324,13 @@
 	.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 	.stats div, .card { background: var(--surface); border-radius: 16px; padding: 14px; }
 	.card p { margin: 2px 0 0; }
+	.del-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 12px; }
+	.del { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease); }
+	.del:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, transparent); }
+	.del.arming { color: #fff; background: var(--red); border-color: var(--red); animation: arm 0.35s var(--out); }
+	.del-note { font-size: 12.5px; animation: arm 0.35s var(--out); }
+	@keyframes arm { from { opacity: 0.6; transform: scale(0.97); } }
+	@media (prefers-reduced-motion: reduce) { .del.arming, .del-note { animation: none; } }
 	.stats b { display: block; font-size: 26px; }
 	.stats span { color: var(--muted); font-size: 13px; }
 	ul, ol { list-style: none; margin: 0; padding: 0; }

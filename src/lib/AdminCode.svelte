@@ -19,7 +19,7 @@
 		const fd = new FormData();
 		fd.set('pass', code);
 		// La acción de /admin pone la cookie y responde `redirect` si el código es el correcto.
-		const r = await fetch('/admin', { method: 'POST', body: fd, headers: { 'x-sveltekit-action': 'true' } }).then(async (x) => deserialize(await x.text())).catch(() => null);
+		const r = await fetch('/admin?/login', { method: 'POST', body: fd, headers: { 'x-sveltekit-action': 'true' } }).then(async (x) => deserialize(await x.text())).catch(() => null);
 		busy = false;
 		if (r?.type === 'redirect') {
 			try {
