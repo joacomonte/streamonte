@@ -46,6 +46,14 @@ impl FetchError {
     }
 }
 
+/// Valor de un header con una key o un código: marcado sensible (no sale en el `Debug` del pedido).
+fn secret_header(value: &str) -> Result<reqwest::header::HeaderValue, FetchError> {
+    let mut v = reqwest::header::HeaderValue::from_str(value)
+        .map_err(|_| FetchError::Network("header de acceso inválido".into()))?;
+    v.set_sensitive(true);
+    Ok(v)
+}
+
 impl From<HttpError> for FetchError {
     fn from(e: HttpError) -> Self {
         match e {
@@ -110,23 +118,36 @@ impl Http {
         token: &str,
         timeout: Duration,
     ) -> Result<T, FetchError> {
+        self.get_json_auth(url, ("Authorization", &format!("Bearer {token}")), timeout)
+            .await
+    }
+
+    /// GET de JSON con un header de acceso (`Authorization: Bearer …` o, por el proxy de la web,
+    /// `Cookie: code=…`; 2026-11-21). El valor nunca se loguea.
+    pub async fn get_json_auth<T: serde::de::DeserializeOwned>(
+        &self,
+        url: &str,
+        auth: (&str, &str),
+        timeout: Duration,
+    ) -> Result<T, FetchError> {
         let req = self
             .client
             .get(url)
             .header("Accept", "application/json")
-            .bearer_auth(token);
+            .header(auth.0, secret_header(auth.1)?);
         let bytes = tokio::time::timeout(timeout, crate::http::get_bytes(req, LIMITS))
             .await
             .map_err(|_| FetchError::Timeout)??;
         serde_json::from_slice(&bytes).map_err(|_| FetchError::NotJson)
     }
 
-    /// POST `multipart/form-data` con `Authorization: Bearer`, respuesta JSON (TorBox `createtorrent`,
-    /// que según su OpenAPI solo acepta multipart). Sin reintento: el cuerpo no se puede clonar.
-    pub async fn post_multipart_bearer<T: serde::de::DeserializeOwned>(
+    /// POST `multipart/form-data` con un header de acceso (como [`Self::get_json_auth`]), respuesta JSON
+    /// (TorBox `createtorrent`, que según su OpenAPI solo acepta multipart). Sin reintento: el cuerpo no se
+    /// puede clonar.
+    pub async fn post_multipart_auth<T: serde::de::DeserializeOwned>(
         &self,
         url: &str,
-        token: &str,
+        auth: (&str, &str),
         fields: &[(&'static str, String)],
         timeout: Duration,
     ) -> Result<T, FetchError> {
@@ -140,7 +161,7 @@ impl Http {
                 .client
                 .post(url)
                 .header("Accept", "application/json")
-                .bearer_auth(token)
+                .header(auth.0, secret_header(auth.1)?)
                 .multipart(form)
                 .send()
                 .await

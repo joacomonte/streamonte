@@ -3,7 +3,7 @@
 // selector de audio en audio-picker.js y la burbuja de actividad en activity-feed.js.
 import { api, onCoreEvent } from './api.js';
 import { logEvent, renderActivity } from './activity-feed.js';
-import { askAfterClose, installMpv, onConfirmClose, onNetCheck, openSettings, saveEqualizer, saveKey, saveNetwork, saveOsLogin, saveLatTeamToken, toggleKeyEdit, toggleLatTeam } from './dialogs.js';
+import { askAfterClose, installMpv, onConfirmClose, onNetCheck, openSettings, saveEqualizer, saveKey, saveNetwork, saveOsLogin, saveLatTeamToken, saveTorboxCode, toggleKeyEdit, toggleLatTeam, toggleTorboxShared } from './dialogs.js';
 import { $, icon, setStatus, showError } from './dom.js';
 import { translateStatic } from './i18n.js';
 import { langPicker, langToggle } from './lang-picker.js';
@@ -122,6 +122,9 @@ async function init() {
   $('#os-login-save').addEventListener('click', saveOsLogin);
   $('#set-latteam-on').addEventListener('change', toggleLatTeam);
   $('#key-latteam-save').addEventListener('click', saveLatTeamToken);
+  $('#set-torbox-shared').addEventListener('change', toggleTorboxShared);
+  $('#key-torbox-code-save').addEventListener('click', saveTorboxCode);
+  $('#key-torbox-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveTorboxCode(); });
   document.querySelectorAll('.key-change').forEach((b) => b.addEventListener('click', () => toggleKeyEdit(b.closest('.key-row').dataset.service)));
   document.querySelectorAll('[data-key-page]').forEach((b) => b.addEventListener('click', () => api.openKeyPage(b.dataset.keyPage).catch(showError)));
   document.querySelectorAll('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));

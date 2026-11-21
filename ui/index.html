@@ -67,6 +67,16 @@
           </div>
           <p class="key-done" role="status"></p>
         </div>
+        <!-- TorBox de Streamonte (2026-11-21): la key del servidor, por la web, con el código de acceso. Apagado, la key propia. -->
+        <div id="torbox-shared">
+          <label class="set-line"><input id="set-torbox-shared" type="checkbox"> Usar TorBox de Streamonte <span id="torbox-code-state" class="key-state"></span></label>
+          <p class="hint">Usa la cuenta de TorBox de Streamonte: pide el código de acceso (el mismo de la web) una sola vez. Apagalo para usar tu propia key.</p>
+          <div id="torbox-code-line" class="key-line">
+            <input id="key-torbox-code" type="password" inputmode="numeric" maxlength="3" placeholder="Código de 3 dígitos" autocomplete="off">
+            <button id="key-torbox-code-save" type="button">Guardar</button>
+          </div>
+          <p id="torbox-code-error" class="hint" role="alert"></p>
+        </div>
         <!-- TorBox (2026-11-17): marca las opciones que ya están en su caché. -->
         <div class="key-row" data-service="torbox">
           <div class="key-head">

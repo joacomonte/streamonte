@@ -154,13 +154,60 @@ export async function saveLatTeamToken() {
   } catch (e) { showError(e); }
 }
 
+// ---------- Ajustes: TorBox de Streamonte (2026-11-21) ----------
+/** Prendido: el código de acceso (la fila de la key propia no se ve). Apagado: la key propia, como antes. */
+function showTorboxShared(shared, keys) {
+  const usable = keys.some((k) => k.service === 'torbox' && k.configured);
+  $('#set-torbox-shared').checked = shared;
+  $('#torbox-code-line').hidden = !shared;
+  $('#torbox-code-state').hidden = !shared;
+  $('#torbox-code-state').textContent = usable ? t('✔ código guardado') : t('falta el código');
+  $('#torbox-code-state').className = `key-state ${usable ? 'ok' : ''}`;
+  const row = document.querySelector('.key-row[data-service="torbox"]');
+  row.hidden = shared;
+  if (shared) $('#set-catalog').insertBefore(row, $('#torbox-shared').nextSibling);
+  else placeKey('torbox', usable);
+}
+export async function toggleTorboxShared() {
+  try {
+    await api.setTorboxShared($('#set-torbox-shared').checked);
+    $('#torbox-code-error').textContent = '';
+    showTorboxShared($('#set-torbox-shared').checked, await api.apiKeys());
+    document.dispatchEvent(new CustomEvent('streamonte:torbox-key'));
+  } catch (e) { showError(e); }
+}
+/** Guarda el código (3 dígitos; vacío = lo borra). Si la web lo rechaza, se borra y se vuelve a pedir acá. */
+export async function saveTorboxCode() {
+  const input = $('#key-torbox-code');
+  const code = input.value.trim();
+  if (code && !/^\d{3}$/.test(code)) {
+    $('#torbox-code-error').textContent = t('Son 3 dígitos.');
+    return;
+  }
+  try {
+    await api.setApiKey('streamonte-code', code);
+    input.value = '';
+    $('#torbox-code-error').textContent = '';
+    showTorboxShared(true, await api.apiKeys());
+    document.dispatchEvent(new CustomEvent('streamonte:torbox-key'));
+    setStatus(code ? t('Código de Streamonte guardado.') : t('Código de Streamonte borrado.'));
+  } catch (e) { showError(e); }
+}
+/** La web rechazó el código (`api.js`): Ajustes abierto en el campo, con el aviso. */
+document.addEventListener('streamonte:torbox-code', async () => {
+  if (!$('#dlg-settings').open) await openSettings();
+  $('#torbox-code-error').textContent = t('Código incorrecto');
+  $('#key-torbox-code').focus();
+});
+
 export async function openSettings() {
   try {
     showOsLogin();
     const keys = await api.apiKeys();
-    for (const k of keys) placeKey(k.service, k.configured);
+    const { engine, player, catalog } = await api.config();
+    for (const k of keys) if (!(k.service === 'torbox' && catalog.torbox_shared)) placeKey(k.service, k.configured);
+    showTorboxShared(catalog.torbox_shared, keys);
     await showLatTeam(keys);
-    const { engine, player } = await api.config();
     $(`#set-eq-${player.equalizer}`).checked = true;
     await renderPlayers();
     $('#set-incoming').checked = engine.incoming;

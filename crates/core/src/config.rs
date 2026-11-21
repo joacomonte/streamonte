@@ -494,6 +494,9 @@ pub struct CatalogConfig {
     /// Plazo total por pedido a un addon o a Cinemeta (NFR-19). Cada addon puede tener el suyo.
     pub timeout_ms: u64,
     pub connect_timeout_ms: u64,
+    /// "Usar TorBox de Streamonte" (2026-11-21): TorBox por la web, con la key del servidor y el código de
+    /// acceso. Apagado, con la key propia.
+    pub torbox_shared: bool,
 }
 
 impl Default for CatalogConfig {
@@ -507,6 +510,7 @@ impl Default for CatalogConfig {
             exclude_japanese: true,
             timeout_ms: 10_000,
             connect_timeout_ms: 4_000,
+            torbox_shared: true,
         }
     }
 }

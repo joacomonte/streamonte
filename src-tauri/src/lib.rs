@@ -84,6 +84,7 @@ pub fn run() {
             commands::export_logs,
             commands::config_get,
             commands::config_set_network,
+            commands::config_set_torbox_shared,
             commands::config_set_equalizer,
             commands::config_set_language,
             commands::players_status,

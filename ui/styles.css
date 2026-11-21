@@ -288,6 +288,8 @@ button.danger { color: var(--red); }
 .key-edit { display: grid; gap: 8px; }
 .key-edit .link { justify-self: start; font-size: 12px; }
 .key-line { display: flex; gap: 8px; }
+/* TorBox de Streamonte (2026-11-21): según el modo se ocultan el campo del código o la fila de la key propia. */
+.key-line[hidden], .key-row[hidden] { display: none; }
 .key-line input { flex: 1; min-width: 0; height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
 .key-line input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 .key-change { display: none; margin-left: auto; height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }

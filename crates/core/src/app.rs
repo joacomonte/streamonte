@@ -268,6 +268,7 @@ impl AppCore {
         let calibration = Arc::new(crate::playback::Calibration::load(&paths));
         library.set_speed_factor(calibration.factor().0);
         let read_history_on_start = config.clipboard.read_history_on_start;
+        crate::catalog::torbox::set_shared(config.catalog.torbox_shared);
         let config = Arc::new(tokio::sync::RwLock::new(config));
         let library = Arc::new(Mutex::new(library));
         spawn_library_saver(&library);
@@ -687,6 +688,17 @@ impl AppCore {
         .await
     }
 
+    /// "Usar TorBox de Streamonte" (Ajustes, 2026-11-21): rige desde el próximo pedido a TorBox.
+    pub async fn set_torbox_shared(&self, on: bool) -> Result<()> {
+        self.update_config(|c| {
+            c.catalog.torbox_shared = on;
+            Ok(())
+        })
+        .await?;
+        crate::catalog::torbox::set_shared(on);
+        Ok(())
+    }
+
     pub async fn set_network(
         &self,
         incoming: bool,
@@ -711,6 +723,7 @@ impl AppCore {
         match service {
             crate::catalog::tmdb::TMDB => crate::catalog::tmdb::set_key(key),
             crate::catalog::torbox::TORBOX => crate::catalog::torbox::set_key(key),
+            crate::catalog::torbox::CODE => crate::catalog::torbox::set_code(key),
             crate::catalog::latteam::LATTEAM => crate::catalog::latteam::set_key(key),
             provider => crate::subtitles::secrets::set_api_key(provider, key),
         }
@@ -729,9 +742,10 @@ impl AppCore {
                     service: crate::catalog::tmdb::TMDB.to_string(),
                     configured: crate::catalog::tmdb::has_key(),
                 },
+                // TorBox: si se puede usar en el modo vigente (código de Streamonte o key propia).
                 ApiKeyStatus {
                     service: crate::catalog::torbox::TORBOX.to_string(),
-                    configured: crate::catalog::torbox::has_key(),
+                    configured: crate::catalog::torbox::usable(),
                 },
                 ApiKeyStatus {
                     service: crate::catalog::latteam::LATTEAM.to_string(),
@@ -763,12 +777,12 @@ impl AppCore {
     }
 
     /// Cuáles de esas opciones (de la lista vigente) ya están en la caché de TorBox (2026-11-17).
-    /// `None` = sin key de TorBox o no respondió.
+    /// `None` = sin key de TorBox (o código) o no respondió. Error: el código de la web rechazado.
     pub async fn catalog_torbox(
         &self,
         video_id: &str,
         hashes: &[InfoHash],
-    ) -> Option<crate::catalog::torbox::Cached> {
+    ) -> Result<Option<crate::catalog::torbox::Cached>> {
         let timeout = self.catalog_timeout().await;
         self.catalog.torbox_cached(video_id, hashes, timeout).await
     }

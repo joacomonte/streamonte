@@ -301,11 +301,17 @@ api.apiKeys().then((ks) => {
   view.torboxKey = ks.some((k) => k.service === 'torbox' && k.configured);
   renderStreamsOnly();
 }).catch(() => {});
-// Key de TorBox recién cargada en Ajustes: se marca enseguida lo del video abierto.
-document.addEventListener('streamonte:torbox-key', () => {
-  view.torboxKey = true;
-  if (state.update?.done) loadTorbox(state.side.videoId, state.update.candidates);
+// Key o código de TorBox recién cargado, o cambio de modo en Ajustes: se marca enseguida lo del video abierto.
+document.addEventListener('streamonte:torbox-key', async () => {
+  const ks = await api.apiKeys().catch(() => []);
+  view.torboxKey = ks.some((k) => k.service === 'torbox' && k.configured);
+  if (view.torboxKey && state.update?.done) loadTorbox(state.side.videoId, state.update.candidates);
   else renderStreamsOnly();
+});
+// Código rechazado por la web: el núcleo lo borró; hasta cargarlo de nuevo no hay TorBox.
+document.addEventListener('streamonte:torbox-code', () => {
+  view.torboxKey = false;
+  renderStreamsOnly();
 });
 // ---------- clic derecho en una opción (2026-11-17): copiar su magnet o su link de TorBox ----------
 const ctx = el('div', { id: 'cat-ctx', class: 'cat-ctx', role: 'menu' });

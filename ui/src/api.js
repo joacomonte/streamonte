@@ -11,7 +11,13 @@
 /** @typedef {{message:string, detail:string}} UiError */
 
 const tauri = window.__TAURI__;
-const invoke = (cmd, args) => tauri.core.invoke(cmd, args);
+/** `detail` del núcleo cuando la web rechaza el código de TorBox de Streamonte (`torbox::WRONG_CODE`). */
+const TORBOX_WRONG_CODE = 'torbox: código incorrecto';
+// Código rechazado (2026-11-21): el núcleo ya lo borró; Ajustes lo vuelve a pedir (`dialogs.js`).
+const invoke = (cmd, args) => tauri.core.invoke(cmd, args).catch((e) => {
+  if (e?.detail === TORBOX_WRONG_CODE) document.dispatchEvent(new CustomEvent('streamonte:torbox-code'));
+  throw e;
+});
 
 export const api = {
   // Biblioteca (FR-01–04)
@@ -159,6 +165,8 @@ export const api = {
   /** Idiomas de la app y de los títulos: {app: 'es'|'en', titles: 'es'|'en'}. */
   setLanguage: (language) => invoke('config_set_language', { language }),
   setNetwork: (incoming, upnp, announceEarly) => invoke('config_set_network', { incoming, upnp, announceEarly }),
+  /** "Usar TorBox de Streamonte" (key del servidor, por la web) o la key propia. */
+  setTorboxShared: (on) => invoke('config_set_torbox_shared', { on }),
 };
 
 /**

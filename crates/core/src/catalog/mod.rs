@@ -707,7 +707,7 @@ impl Catalog {
         video_id: &str,
         hashes: &[InfoHash],
         timeout: Duration,
-    ) -> Option<torbox::Cached> {
+    ) -> crate::Result<Option<torbox::Cached>> {
         // "torbox2": desde el 2026-11-20 solo las que traen un video de verdad (las guardadas antes no filtraban).
         let key = recent_key("torbox2", video_id);
         if let Some((saved, _)) = self
@@ -715,11 +715,13 @@ impl Catalog {
             .get::<torbox::Cached>(&key)
             .filter(|(_, age)| *age < RECENT_TTL)
         {
-            return Some(saved);
+            return Ok(Some(saved));
         }
-        let found = torbox::cached(&self.http, hashes, timeout).await?;
+        let Some(found) = torbox::cached(&self.http, hashes, timeout).await? else {
+            return Ok(None);
+        };
         self.data.put(&key, &found);
-        Some(found)
+        Ok(Some(found))
     }
 
     /// Link directo de TorBox para esa opción de la lista vigente, y su nombre (2026-11-17).

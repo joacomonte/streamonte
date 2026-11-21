@@ -2,7 +2,12 @@
 //! servidores, sin depender de los seeds). Con la key del usuario (Ajustes); sin key, nada.
 //! API: `GET https://api.torbox.app/v1/api/torrents/checkcached?hash=a,b&format=object` con
 //! `Authorization: Bearer <key>`; `data` trae una entrada por cada hash que está en caché.
+//!
+//! Dos modos (2026-11-21), decididos solo en [`api`]: "TorBox de Streamonte" (por defecto) le pide
+//! a la web (`/api/desktop/torbox/<ruta>`, con la cookie `code`), que agrega la key del servidor;
+//! así esa key nunca llega a esta compu. Apagado, se usa la key propia directo contra TorBox.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -16,6 +21,22 @@ pub const TORBOX: &str = "torbox";
 const ACCOUNT: &str = "torbox-api-key";
 /// Página de la cuenta donde está la API key.
 pub const KEY_PAGE: &str = "https://torbox.app/settings";
+/// Id del código de acceso de la web en Ajustes (mismo que pide la web: 3 dígitos).
+pub const CODE: &str = "streamonte-code";
+const CODE_ACCOUNT: &str = "streamonte-web-code";
+const DIRECT: &str = "https://api.torbox.app/v1/api";
+const PROXY: &str = "https://streamonte-web.vercel.app/api/desktop/torbox";
+/// "Usar TorBox de Streamonte" (`catalog.torbox_shared` de la config): lo pone la app al abrir y al cambiarlo.
+static SHARED: AtomicBool = AtomicBool::new(true);
+
+pub fn set_shared(on: bool) {
+    SHARED.store(on, Ordering::Relaxed);
+}
+
+/// Guarda el código de acceso de la web (o lo borra si viene vacío).
+pub fn set_code(code: &str) -> Result<()> {
+    crate::secrets::set_secret(CODE_ACCOUNT, code)
+}
 /// Hashes por pedido (la URL tiene que quedar corta).
 const CHUNK: usize = 80;
 /// Menos que esto es una muestra, un tráiler o un extra: no cuenta como el video del torrent.
@@ -26,8 +47,91 @@ pub fn set_key(key: &str) -> Result<()> {
     crate::secrets::set_secret(ACCOUNT, key)
 }
 
+/// ¿Hay key propia guardada? (la fila "TorBox" de Ajustes).
 pub fn has_key() -> bool {
     crate::secrets::secret(ACCOUNT).is_some()
+}
+
+/// ¿Se le puede pedir a TorBox en el modo vigente? (código de la web, o key propia).
+pub fn usable() -> bool {
+    api().is_some()
+}
+
+/// A dónde se le pide a TorBox y con qué header.
+struct Api {
+    base: &'static str,
+    auth: (&'static str, String),
+    /// La key propia (solo directo): `requestdl` la pide también en la URL. Por la web la pone el servidor.
+    own_key: Option<String>,
+}
+
+/// La única regla de a quién se le pide: con "TorBox de Streamonte", a la web con el código; si no, a TorBox
+/// con la key propia. `None` = falta el código o la key.
+fn api() -> Option<Api> {
+    if SHARED.load(Ordering::Relaxed) {
+        let code = crate::secrets::secret(CODE_ACCOUNT)?;
+        return Some(Api {
+            base: PROXY,
+            auth: ("Cookie", format!("code={code}")),
+            own_key: None,
+        });
+    }
+    let key = crate::secrets::secret(ACCOUNT)?;
+    Some(Api {
+        base: DIRECT,
+        auth: ("Authorization", format!("Bearer {key}")),
+        own_key: Some(key),
+    })
+}
+
+/// Resultado de un pedido: afuera, el código de la web rechazado (401); adentro, lo que contestó.
+type Call<T> = Result<std::result::Result<T, super::http::FetchError>>;
+
+impl Api {
+    /// GET de `path` (desde `/v1/api/`, p. ej. `torrents/mylist?id=1`).
+    async fn get<T: serde::de::DeserializeOwned>(
+        &self,
+        http: &Http,
+        path: &str,
+        timeout: Duration,
+    ) -> Call<T> {
+        let url = format!("{}/{path}", self.base);
+        let r = http
+            .get_json_auth(&url, (self.auth.0, &self.auth.1), timeout)
+            .await;
+        self.check_code(r)
+    }
+    async fn post_multipart<T: serde::de::DeserializeOwned>(
+        &self,
+        http: &Http,
+        path: &str,
+        fields: &[(&'static str, String)],
+        timeout: Duration,
+    ) -> Call<T> {
+        let url = format!("{}/{path}", self.base);
+        let r = http
+            .post_multipart_auth(&url, (self.auth.0, &self.auth.1), fields, timeout)
+            .await;
+        self.check_code(r)
+    }
+    /// Por la web, un 401 es siempre el código (el proxy no devuelve 401 de TorBox): se borra para pedirlo de nuevo.
+    fn check_code<T>(&self, r: std::result::Result<T, super::http::FetchError>) -> Call<T> {
+        if self.own_key.is_none() && r.as_ref().err() == Some(&super::http::FetchError::Status(401))
+        {
+            let _ = set_code("");
+            return Err(wrong_code());
+        }
+        Ok(r)
+    }
+}
+
+/// Mismo `detail` que mira la UI (`ui/src/api.js`) para volver a pedir el código.
+pub const WRONG_CODE: &str = "torbox: código incorrecto";
+fn wrong_code() -> crate::CoreError {
+    crate::CoreError::Catalog {
+        user: "Código incorrecto: cargá el de Streamonte en Ajustes.".into(),
+        detail: WRONG_CODE.into(),
+    }
 }
 
 #[derive(Deserialize)]
@@ -60,10 +164,10 @@ pub struct CachedVideo {
     pub source: Option<String>,
 }
 
-/// Cuáles de `hashes` están en la caché de TorBox. `None` = sin key o TorBox no respondió (no se
-/// muestra nada); un hash que falta = no está.
-pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Option<Cached> {
-    let key = crate::secrets::secret(ACCOUNT)?;
+/// Cuáles de `hashes` están en la caché de TorBox. `None` = sin key (o código) o TorBox no respondió (no se
+/// muestra nada); un hash que falta = no está. Error: solo el código de la web rechazado.
+pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Result<Option<Cached>> {
+    let Some(api) = api() else { return Ok(None) };
     let mut out = Cached::default();
     for chunk in hashes.chunks(CHUNK) {
         let list = chunk
@@ -71,14 +175,14 @@ pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Opti
             .map(|h| h.to_hex())
             .collect::<Vec<_>>()
             .join(",");
-        let url = format!(
-            "https://api.torbox.app/v1/api/torrents/checkcached?hash={list}&format=object&list_files=true"
-        );
-        let resp: CheckCached = http
-            .get_json_bearer(&url, &key, timeout)
-            .await
-            .map_err(|e| tracing::warn!("TorBox: {}", e.user_text()))
-            .ok()?;
+        let path = format!("torrents/checkcached?hash={list}&format=object&list_files=true");
+        let resp: CheckCached = match api.get(http, &path, timeout).await? {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!("TorBox: {}", e.user_text());
+                return Ok(None);
+            }
+        };
         let data = resp.data.as_ref();
         // Solo las que traen un video de verdad (2026-11-20: aparecían "listas" packs de audio y
         // muestras de 200 MB que después no se podían ver). Sin lista de archivos, se dejan.
@@ -110,7 +214,7 @@ pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Opti
         );
         out.hashes.extend(usable);
     }
-    Some(out)
+    Ok(Some(out))
 }
 
 /// La entrada de `hash` en `data` (objeto por hash, o lista con `hash`).
@@ -226,8 +330,6 @@ struct Download {
     data: Option<String>,
 }
 
-const API: &str = "https://api.torbox.app/v1/api/torrents";
-
 fn fail(detail: impl Into<String>) -> crate::CoreError {
     crate::CoreError::Catalog {
         user: "TorBox no pudo darme el video. Probá con ▶ normal (P2P).".into(),
@@ -236,20 +338,20 @@ fn fail(detail: impl Into<String>) -> crate::CoreError {
 }
 
 /// El torrent en la cuenta de TorBox y su archivo de video más grande (2026-11-17): lo agrega solo si ya está en
-/// caché (si no, TorBox empezaría a bajarlo y no estaría al instante). Devuelve la key, el id y el archivo.
-async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(String, u64, TbFile)> {
-    let key = crate::secrets::secret(ACCOUNT).ok_or_else(|| fail("sin key de TorBox"))?;
-    let created: Created = http
-        .post_multipart_bearer(
-            &format!("{API}/createtorrent"),
-            &key,
+/// caché (si no, TorBox empezaría a bajarlo y no estaría al instante). Devuelve a quién pedir, el id y el archivo.
+async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Api, u64, TbFile)> {
+    let api = api().ok_or_else(|| fail("sin key de TorBox (o código de Streamonte)"))?;
+    let created: Created = api
+        .post_multipart(
+            http,
+            "torrents/createtorrent",
             &[
                 ("magnet", magnet.to_string()),
                 ("add_only_if_cached", "true".into()),
             ],
             timeout,
         )
-        .await
+        .await?
         .map_err(|e| fail(format!("createtorrent: {}", e.user_text())))?;
     let id = created.data.and_then(|d| d.torrent_id).ok_or_else(|| {
         fail(format!(
@@ -257,13 +359,13 @@ async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Str
             created.detail.unwrap_or_default()
         ))
     })?;
-    let list: MyList = http
-        .get_json_bearer(
-            &format!("{API}/mylist?id={id}&bypass_cache=true"),
-            &key,
+    let list: MyList = api
+        .get(
+            http,
+            &format!("torrents/mylist?id={id}&bypass_cache=true"),
             timeout,
         )
-        .await
+        .await?
         .map_err(|e| fail(format!("mylist: {}", e.user_text())))?;
     let files = list.data.map(|d| d.files).unwrap_or_default();
     if files.is_empty() {
@@ -274,26 +376,32 @@ async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Str
         .filter(|f| crate::engine::is_video(&f.name))
         .max_by_key(|f| f.size)
         .ok_or(crate::CoreError::NoVideo)?;
-    Ok((key, id, file))
+    Ok((api, id, file))
 }
 /// Link de descarga del archivo. `requestdl` pide la key en la URL (así lo documenta TorBox); no se loguea.
+/// Por la web, la pone el servidor.
 async fn download_url(
     http: &Http,
-    key: &str,
+    api: &Api,
     id: u64,
     file: &TbFile,
     timeout: Duration,
 ) -> Result<String> {
-    let dl: Download = http
-        .get_json_bearer(
+    let token = api
+        .own_key
+        .as_deref()
+        .map(|k| format!("token={k}&"))
+        .unwrap_or_default();
+    let dl: Download = api
+        .get(
+            http,
             &format!(
-                "{API}/requestdl?token={key}&torrent_id={id}&file_id={}&zip_link=false",
+                "torrents/requestdl?{token}torrent_id={id}&file_id={}&zip_link=false",
                 file.id
             ),
-            key,
             timeout,
         )
-        .await
+        .await?
         .map_err(|e| fail(format!("requestdl: {}", e.user_text())))?;
     dl.data
         .filter(|u| u.starts_with("https://"))
@@ -302,8 +410,8 @@ async fn download_url(
 
 /// Link directo del video de ese torrent en TorBox (2026-11-17), que mpv reproduce como cualquier video en línea.
 pub async fn stream_url(http: &Http, magnet: &str, timeout: Duration) -> Result<String> {
-    let (key, id, file) = video_file(http, magnet, timeout).await?;
-    download_url(http, &key, id, &file, timeout).await
+    let (api, id, file) = video_file(http, magnet, timeout).await?;
+    download_url(http, &api, id, &file, timeout).await
 }
 
 #[derive(Deserialize)]
@@ -340,12 +448,12 @@ pub async fn cast_url(
     latino: bool,
     timeout: Duration,
 ) -> Result<String> {
-    let (key, id, file) = video_file(http, magnet, timeout).await?;
-    match hls_url(http, &key, id, file.id, orig, latino, timeout).await {
+    let (api, id, file) = video_file(http, magnet, timeout).await?;
+    match hls_url(http, &api, id, file.id, orig, latino, timeout).await {
         Ok(url) => Ok(url),
         Err(e) => {
             tracing::info!("TorBox sin stream HLS, va el link de descarga: {e}");
-            let url = download_url(http, &key, id, &file, timeout).await?;
+            let url = download_url(http, &api, id, &file, timeout).await?;
             // `video_file` ya garantizó que es un video: la extensión existe.
             let ext = file
                 .name
@@ -360,18 +468,18 @@ pub async fn cast_url(
 }
 async fn hls_url(
     http: &Http,
-    key: &str,
+    api: &Api,
     id: u64,
     file_id: u64,
     orig: Option<&str>,
     latino: bool,
     timeout: Duration,
 ) -> Result<String> {
-    let base = format!("{STREAM_API}/createstream?id={id}&file_id={file_id}&type=torrent");
-    let ask = |url: String| async move {
-        let s: Stream = http
-            .get_json_bearer(&url, key, timeout)
-            .await
+    let base = format!("stream/createstream?id={id}&file_id={file_id}&type=torrent");
+    let ask = |path: String| async move {
+        let s: Stream = api
+            .get(http, &path, timeout)
+            .await?
             .map_err(|e| fail(format!("createstream: {}", e.user_text())))?;
         s.data.ok_or_else(|| fail("createstream sin datos"))
     };
@@ -426,7 +534,6 @@ pub fn iso3(iso1: &str) -> Option<&'static str> {
         _ => return None,
     })
 }
-const STREAM_API: &str = "https://api.torbox.app/v1/api/stream";
 /// Posición del audio a poner: latino (español con "lat"/"419"/"mex" en el título) si se pidió y está; si no, el
 /// idioma original; si no, inglés; si no, el primero.
 fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool) -> usize {
@@ -547,7 +654,7 @@ fn status_of_mine(m: Mine) -> MagnetStatus {
 
 fn need_key() -> crate::CoreError {
     crate::CoreError::Catalog {
-        user: "Falta la key de TorBox: cargala en Ajustes.".into(),
+        user: "Falta la key de TorBox (o el código de Streamonte): cargala en Ajustes.".into(),
         detail: "torbox: sin key".into(),
     }
 }
@@ -561,11 +668,11 @@ fn unreachable_torbox(what: &str, e: &super::http::FetchError) -> crate::CoreErr
 
 /// Estado de un torrent pegado: primero en la cuenta (bajándose o bajado), si no en la caché de TorBox.
 pub async fn magnet_status(http: &Http, hash: InfoHash, timeout: Duration) -> Result<MagnetStatus> {
-    let key = crate::secrets::secret(ACCOUNT).ok_or_else(need_key)?;
+    let api = api().ok_or_else(need_key)?;
     let hex = hash.to_hex();
-    let mine: AllMine = http
-        .get_json_bearer(&format!("{API}/mylist?bypass_cache=true"), &key, timeout)
-        .await
+    let mine: AllMine = api
+        .get(http, "torrents/mylist?bypass_cache=true", timeout)
+        .await?
         .map_err(|e| unreachable_torbox("mylist", &e))?;
     if let Some(m) = mine
         .data
@@ -574,13 +681,13 @@ pub async fn magnet_status(http: &Http, hash: InfoHash, timeout: Duration) -> Re
     {
         return Ok(status_of_mine(m));
     }
-    let resp: CheckCached = http
-        .get_json_bearer(
-            &format!("{API}/checkcached?hash={hex}&format=object&list_files=true"),
-            &key,
+    let resp: CheckCached = api
+        .get(
+            http,
+            &format!("torrents/checkcached?hash={hex}&format=object&list_files=true"),
             timeout,
         )
-        .await
+        .await?
         .map_err(|e| unreachable_torbox("checkcached", &e))?;
     let Some(hit) = entry(resp.data.as_ref(), &hash) else {
         return Ok(MagnetStatus {
@@ -610,15 +717,15 @@ pub async fn magnet_status(http: &Http, hash: InfoHash, timeout: Duration) -> Re
 
 /// "Bajarlo en TorBox": lo agrega a la cuenta aunque no esté en caché (TorBox lo baja en sus servidores).
 pub async fn magnet_download(http: &Http, magnet: &str, timeout: Duration) -> Result<()> {
-    let key = crate::secrets::secret(ACCOUNT).ok_or_else(need_key)?;
-    let created: Created = http
-        .post_multipart_bearer(
-            &format!("{API}/createtorrent"),
-            &key,
+    let api = api().ok_or_else(need_key)?;
+    let created: Created = api
+        .post_multipart(
+            http,
+            "torrents/createtorrent",
             &[("magnet", magnet.to_string())],
             timeout,
         )
-        .await
+        .await?
         .map_err(|e| unreachable_torbox("createtorrent", &e))?;
     if created.data.and_then(|d| d.torrent_id).is_none() {
         return Err(crate::CoreError::Catalog {
