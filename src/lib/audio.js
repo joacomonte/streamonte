@@ -25,16 +25,31 @@ console.assert(
 );
 
 
-/** Badge de audio: LAT confirmado (verde) y LAT según el nombre (gris punteado) informan; "ES" (español de España:
- * al tocarlo dice "Gallego") y "¿Trae latino? Revisar" (MULTI / Dual sin leer).
- * null si no hay nada que decir.
- * @param {{lat: boolean, doubt?: boolean}} t @param {Tracks | null | undefined} info
- * @returns {{kind: 'lat' | 'name' | 'es' | 'doubt', text: string, title: string} | null} */
-export function latBadge(t, info) {
-	if (info?.audio === 'lat') return { kind: 'lat', text: 'LAT', title: 'Audio latino confirmado en las pistas del video' };
-	if (info?.audio === 'es' || info?.audio === 'spain') return { kind: 'es', text: 'ES', title: 'Gallego: español de España, no latino' };
-	if (info?.audio) return null;
-	if (t.lat) return { kind: 'name', text: 'LAT', title: 'Latino según el nombre del torrent: si el nombre miente, no lo trae' };
-	if (t.doubt) return { kind: 'doubt', text: '¿Trae latino? Revisar', title: 'MULTI / Dual sin aclarar: validar audio latino' };
-	return null;
+/** Estado del audio latino de una opción: la única regla (la usan los badges, el buen match y las listas).
+ * - Las pistas leídas ganan cuando dicen cuál español es (latino, de España) o que no hay español.
+ * - "spa" sin variante no decide: decide el nombre (o la web de origen) del torrent.
+ * `lat` latino (pista o nombre) · `likely` solo la web de origen es latina · `spain` español de España ·
+ * `check` no se sabe: probar a mano · `none` leído y sin español.
+ * @param {{hint: 'lat' | 'likely' | 'spain' | null}} t @param {Tracks | null | undefined} info
+ * @returns {'lat' | 'likely' | 'spain' | 'check' | 'none'} */
+export function latStatus(t, info) {
+	const read = info?.audio;
+	if (read === 'lat' || read === 'spain' || read === 'none') return read;
+	return t.hint ?? 'check';
 }
+console.assert(
+	latStatus({ hint: 'lat' }, { subs: 0, audio: 'es' }) === 'lat' &&
+		latStatus({ hint: 'lat' }, { subs: 0, audio: 'spain' }) === 'spain' &&
+		latStatus({ hint: null }, { subs: 0, audio: 'es' }) === 'check' &&
+		latStatus({ hint: 'likely' }, null) === 'likely',
+	'latStatus'
+);
+
+/** Texto, explicación corta (globito) y larga (title) de cada estado. */
+export const LAT_BADGE = {
+	lat: { text: 'LAT', tip: 'Tiene audio latino', title: 'Audio latino: lo dicen las pistas del video o el nombre del torrent' },
+	likely: { text: 'LAT?', tip: 'Probablemente latino', title: 'Probablemente latino: viene de una web latina, pero no lo pudimos confirmar. Abrilo y probá el audio.' },
+	spain: { text: 'Gallego', tip: 'Español de España', title: 'Gallego: español de España, no latino' },
+	check: { text: 'Probar manualmente', tip: 'Abrilo y probá el audio', title: 'No pudimos confirmar si es español latino o de España. Abrilo y probá el audio.' },
+	none: { text: 'LAT', tip: 'No trae audio latino', title: 'Leído: no trae audio latino' }
+};

@@ -76,18 +76,10 @@
 		const p = (dato ?? '').split(' · ');
 		return { titulo: p[0] || '?', calidad: p[1] || '?', audio: p.length >= 4 ? p[2] : '—', donde: p.at(-1) === 'TV' ? 'TV' : 'Celu' };
 	}
-	/** @typedef {NonNullable<typeof data.dispositivos>[number]} Usuario */
-	/** Apodos repetidos (dos dispositivos con el mismo): ahí el equipo los distingue. */
-	const repetidos = $derived.by(() => {
-		/** @type {Record<string, number>} */
-		const n = {};
-		for (const d of data.dispositivos ?? []) if (d.apodo) n[d.apodo] = (n[d.apodo] ?? 0) + 1;
-		return n;
-	});
-	/** @param {Usuario} d */
+	/** @param {{equipo: string | null, pantalla: string | null}} d */
 	const corto = (d) => equipo(d.equipo, d.pantalla).split(' · ')[0];
-	/** @param {Usuario} d */
-	const nombre = (d) => d.apodo ?? corto(d);
+	/** Nombre de una fila de la lista: el apodo o, si nunca puso uno, su equipo. @param {NonNullable<typeof data.usuarios>[number]} d */
+	const nombre = (d) => d.apodo ?? `Sin apodo · ${corto(d)}`;
 	const ICON = /** @type {Record<string, import('svelte').ComponentProps<typeof Icon>['name']>} */ ({
 		entrar: 'next',
 		buscar: 'search',
@@ -97,14 +89,20 @@
 		analizar: 'help',
 		'se cortó': 'stop',
 		'copiar link': 'link',
+		filtro: 'sliders',
 		subtítulo: 'subs',
 		'abrió en la tele': 'tv',
 		'play en la tele': 'play'
 	});
-	const sel = $derived(data.dev ? data.dispositivos?.find((x) => x.dispositivo === data.dev) : null);
-	/** @typedef {{id: number, accion: string, dato: string | null, fecha: string}} Ev */
-	/** Historial del dispositivo con cada "ver" agrupando sus pasos (conexión, audio, link, subs, tele) hasta que vuelve
-	 * a entrar, buscar o abre otro título. Más nuevo arriba. */
+	/** Usuario abierto (`?u=apodo` o `?d=dispositivo` si no tiene apodo): sus dispositivos, el más reciente primero. */
+	const equipos = $derived(data.equipos?.length ? data.equipos : null);
+	const titulo = $derived(data.nick ?? (equipos ? `Sin apodo · ${corto(equipos[0])}` : ''));
+	const base = $derived(data.nick ? `/admin?u=${encodeURIComponent(data.nick)}` : `/admin?d=${data.dev}`);
+	/** @typedef {{id: number, accion: string, dato: string | null, fecha: string, dispositivo: string, zona: string | null}} Ev */
+	/** Zona del evento o, en los viejos que no la traen, la última de su dispositivo. @param {Ev} ev */
+	const zonaDe = (ev) => ev.zona ?? equipos?.find((e) => e.dispositivo === ev.dispositivo)?.zona;
+	/** Historial del usuario con cada "ver" agrupando sus pasos (conexión, audio, link, subs, tele) hasta que vuelve
+	 * a entrar, buscar, filtrar o abre otro título. Más nuevo arriba. */
 	const items = $derived.by(() => {
 		/** @type {(Ev & {pasos?: Ev[]})[]} */
 		const out = [];
@@ -112,7 +110,7 @@
 		let cur = null;
 		for (const ev of [...(data.eventos ?? [])].reverse()) {
 			if (ev.accion === 'ver') out.push((cur = { ...ev, pasos: [] }));
-			else if (cur && ev.accion !== 'entrar' && ev.accion !== 'buscar') cur.pasos.push(ev);
+			else if (cur && ev.accion !== 'entrar' && ev.accion !== 'buscar' && ev.accion !== 'filtro') cur.pasos.push(ev);
 			else {
 				cur = null;
 				out.push(ev);
@@ -122,6 +120,11 @@
 	});
 	const vid = $derived(Number(page.url.searchParams.get('v')) || null);
 	const reproducciones = $derived((data.eventos ?? []).filter((ev) => ev.accion === 'copiar link'));
+	// Orden del detalle: reproducciones, pelis/series que abrió, filtros y búsquedas, y el resto.
+	const vistos = $derived(items.filter((x) => x.pasos));
+	const busquedas = $derived(items.filter((x) => !x.pasos && (x.accion === 'buscar' || x.accion === 'filtro')));
+	const resto = $derived(items.filter((x) => !x.pasos && x.accion !== 'buscar' && x.accion !== 'filtro'));
+	const primera = $derived(equipos ? equipos.reduce((a, e) => (e.primera < a ? e.primera : a), equipos[0].primera) : '');
 	const open = $derived(vid ? items.find((x) => x.id === vid) : null);
 </script>
 
@@ -129,17 +132,17 @@
 
 <main class="admin">
 	<header class="top">
-		<a id="admin-back" class="icon-btn" href={open ? `/admin?d=${data.dev}` : data.dev ? '/admin' : '/'} aria-label="Volver"><Icon name="back" /></a>
+		<a id="admin-back" class="icon-btn" href={open ? base : equipos ? '/admin' : '/'} aria-label="Volver"><Icon name="back" /></a>
 		<nav class="crumbs" aria-label="Ubicación">
-			{#if sel}
+			{#if equipos}
 				<a id="crumb-panel" href="/admin">Panel</a>
 				<span aria-hidden="true">›</span>
 				{#if open}
-					<a id="crumb-dev" href="/admin?d={data.dev}">{nombre(sel)}</a>
+					<a id="crumb-user" href={base}>{titulo}</a>
 					<span aria-hidden="true">›</span>
 					<b>{open.dato?.replace(/^(Peli|Serie): /, '')}</b>
 				{:else}
-					<b>{nombre(sel)}</b>
+					<b>{titulo}</b>
 				{/if}
 			{:else}
 				<h1>Panel</h1>
@@ -154,7 +157,7 @@
 		<div class="login"><p class="muted">Código del panel</p><AdminCode id="admin-pass" wait={data.wait} /></div>
 	{:else if data.noDb}
 		<p class="muted">Falta DATABASE_URL: no hay datos.</p>
-	{:else if sel && open}
+	{:else if equipos && open}
 		<section class="card">
 			<h2>{open.dato}</h2>
 			<p class="muted">{cuando(open.fecha)} · {open.pasos?.length ?? 0} pasos</p>
@@ -164,19 +167,16 @@
 				<li>
 					<span class="ico"><Icon name={ICON[ev.accion] ?? 'next'} size={16} /></span>
 					<span class="what"><b>{ev.accion}</b>{#if ev.dato}{' '}<span>{ev.dato}</span>{/if}</span>
-					{@render hora(ev.fecha)}
+					{@render hora(ev.fecha, zonaDe(ev))}
 				</li>
 			{:else}
 				<li class="muted">Abrió la ficha y no hizo nada más.</li>
 			{/each}
 		</ol>
-	{:else if sel}
+	{:else if equipos}
 		<section class="card">
-			<h2>{nombre(sel)}</h2>
-			<p class="muted">{equipo(sel.equipo, sel.pantalla)}{#if sel.modelo}{` · ${sel.modelo}`}{/if}</p>
-			{#if sel.lugar}<p class="muted">{sel.lugar}</p>{/if}
-			{#if sel.zona}<p class="muted">{sel.zona} · ahora son las {cuando(new Date(), sel.zona).split(' ').at(-1)}</p>{/if}
-			<p class="muted">Desde {cuando(sel.primera)} · {sel.entradas} entradas · {sel.acciones} acciones</p>
+			<h2>{titulo}</h2>
+			<p class="muted">Desde {cuando(primera)} · {reproducciones.length} {reproducciones.length === 1 ? 'reproducción' : 'reproducciones'} · {equipos.length} {equipos.length === 1 ? 'dispositivo' : 'dispositivos'}</p>
 		</section>
 		{#if reproducciones.length}
 			<h2>Reproducciones</h2>
@@ -185,57 +185,70 @@
 					{@const r = repro(ev.dato)}
 					<li>
 						<span class="what"><b>{r.titulo}</b><span>{r.calidad} · {r.audio} · {r.donde}</span></span>
-						{@render hora(ev.fecha)}
+						{@render hora(ev.fecha, zonaDe(ev))}
 					</li>
 				{/each}
 			</ul>
 		{/if}
-		<h2>Actividad</h2>
-		<ol class="feed">
-			{#each items as ev (ev.id)}
-				<li>
-					{#if ev.pasos}
-						<a id="ev-{ev.id}" class="row" href="/admin?d={data.dev}&v={ev.id}">
-							<span class="ico"><Icon name="film" size={16} /></span>
-							<span class="what"><b>{ev.accion}</b>{' '}<span>{ev.dato}</span>{#if ev.pasos.length}<em>{ev.pasos.length} pasos</em>{/if}</span>
-							{@render hora(ev.fecha)}
+		{#if vistos.length}
+			<h2>Pelis y series que abrió</h2>
+			<ol class="feed">
+				{#each vistos as ev (ev.id)}
+					<li>
+						<a id="ev-{ev.id}" class="row" href="{base}&v={ev.id}">
+							<span class="ico"><Icon name={ev.dato?.startsWith('Serie') ? 'tv' : 'film'} size={16} /></span>
+							<span class="what"><b>{ev.dato?.replace(/^(Peli|Serie): /, '') ?? '?'}</b>{#if ev.pasos?.length}<em>{ev.pasos.length} pasos</em>{/if}</span>
+							{@render hora(ev.fecha, zonaDe(ev))}
 							<span class="go" aria-hidden="true"><Icon name="chev" size={16} /></span>
 						</a>
-					{:else}
-						<div class="row">
-							<span class="ico"><Icon name={ICON[ev.accion] ?? 'next'} size={16} /></span>
-							<span class="what"><b>{ev.accion}</b>{#if ev.dato && ev.accion !== 'entrar'}{' '}<span>{ev.dato}</span>{/if}</span>
-							{@render hora(ev.fecha)}
-							<span></span>
-						</div>
-					{/if}
+					</li>
+				{/each}
+			</ol>
+		{/if}
+		{#if busquedas.length}
+			<h2>Filtros y búsquedas</h2>
+			<ol class="feed">
+				{#each busquedas as ev (ev.id)}
+					<li>{@render fila(ev)}</li>
+				{/each}
+			</ol>
+		{/if}
+		{#if resto.length}
+			<h2>Otra actividad</h2>
+			<ol class="feed">
+				{#each resto as ev (ev.id)}
+					<li>{@render fila(ev)}</li>
+				{/each}
+			</ol>
+		{/if}
+		<h2>{equipos.length === 1 ? 'Dispositivo' : 'Dispositivos'}</h2>
+		<ul class="equipos">
+			{#each equipos as e (e.dispositivo)}
+				<li class="card">
+					<b>{equipo(e.equipo, e.pantalla)}{#if e.modelo}{` · ${e.modelo}`}{/if}</b>
+					{#if e.lugar}<p class="muted">{e.lugar}</p>{/if}
+					{#if e.zona}<p class="muted">{e.zona} · ahora son las {cuando(new Date(), e.zona).split(' ').at(-1)}</p>{/if}
+					<p class="muted">Desde {cuando(e.primera)} · {hace(e.ultima)} · {e.entradas} entradas · {e.acciones} acciones</p>
 				</li>
 			{/each}
-		</ol>
+		</ul>
 	{:else}
 		<section class="stats">
-			<div><b>{data.resumen?.entradas ?? 0}</b><span>entradas</span></div>
-			<div><b>{data.resumen?.hoy ?? 0}</b><span>últimas 24 h</span></div>
-			<div><b>{data.resumen?.dispositivos ?? 0}</b><span>dispositivos</span></div>
+			<div><b>{data.resumen?.usuarios ?? 0}</b><span>usuarios</span></div>
+			<div><b>{data.resumen?.activos ?? 0}</b><span>activos 24 h</span></div>
+			<div><b>{data.resumen?.reproducciones ?? 0}</b><span>reproducciones</span></div>
 		</section>
-
-		{#if data.dias?.length}
-			<h2>Por día</h2>
-			<ul class="days">
-				{#each data.dias as d (d.dia)}
-					<li><span>{d.dia}</span><span>{d.entradas} entradas · {d.dispositivos} disp.</span></li>
-				{/each}
-			</ul>
-		{/if}
+		<!-- Entradas: contadas pero en segundo plano (cada recarga suma una). -->
+		<p class="muted entradas">{data.resumen?.entradas ?? 0} entradas · {data.resumen?.hoy ?? 0} en 24 h</p>
 
 		<h2>Usuarios</h2>
 		<ul class="devices">
-			{#each data.dispositivos ?? [] as d (d.dispositivo)}
+			{#each data.usuarios ?? [] as d (d.apodo ?? d.dispositivo)}
 				<li>
-					<a id="dev-{d.dispositivo}" href="/admin?d={d.dispositivo}">
+					<a id="user-{d.apodo?.replace(/ /g, '-') ?? d.dispositivo}" href={d.apodo ? `/admin?u=${encodeURIComponent(d.apodo)}` : `/admin?d=${d.dispositivo}`}>
 						<span class="info">
-							<span class="name">{nombre(d)}{#if !d.apodo || (repetidos[d.apodo] ?? 0) > 1}<small class="muted">{d.apodo ? ` · ${corto(d)}` : ' · sin apodo'}</small>{/if}</span>
-							<span class="muted">{hace(d.ultima)} · {d.reproducciones} {d.reproducciones === 1 ? 'reproducción' : 'reproducciones'}</span>
+							<span class="name">{nombre(d)}</span>
+							<span class="muted">{hace(d.ultima)} · {d.reproducciones} {d.reproducciones === 1 ? 'reproducción' : 'reproducciones'}{#if d.dispositivos > 1}{` · ${d.dispositivos} dispositivos`}{/if}</span>
 							{#if d.ultimo}<span class="muted last">Último: {repro(d.ultimo).titulo}</span>{/if}
 						</span>
 						<span class="go" aria-hidden="true"><Icon name="chev" size={18} /></span>
@@ -245,13 +258,37 @@
 				<li class="muted">Todavía nadie.</li>
 			{/each}
 		</ul>
+
+		{#if data.dias?.length}
+			<h2>Entradas por día</h2>
+			<ul class="days">
+				{#each data.dias as d (d.dia)}
+					<li><span>{d.dia}</span><span>{d.entradas} entradas · {d.usuarios} {d.usuarios === 1 ? 'usuario' : 'usuarios'}</span></li>
+				{/each}
+			</ul>
+		{/if}
 	{/if}
 </main>
 
 <!-- Hora de Argentina y, debajo, la local del usuario si vive en otra zona. -->
-{#snippet hora(/** @type {string} */ fecha)}
-	{@const l = local(fecha, sel?.zona)}
+{#snippet hora(/** @type {string} */ fecha, /** @type {string | null | undefined} */ zona)}
+	{@const l = local(fecha, zona)}
 	<time>{cuando(fecha)}{#if l}<small>{l} local</small>{/if}</time>
+{/snippet}
+
+<!-- Un evento suelto; el único 'entrar' que llega es el primero del usuario. -->
+{#snippet fila(/** @type {Ev} */ ev)}
+	<div class="row">
+		{#if ev.accion === 'entrar'}
+			<span class="ico"><Icon name="user" size={16} /></span>
+			<span class="what"><b>Usuario nuevo</b></span>
+		{:else}
+			<span class="ico"><Icon name={ICON[ev.accion] ?? 'next'} size={16} /></span>
+			<span class="what"><b>{ev.accion}</b>{#if ev.dato}{' '}<span>{ev.dato}</span>{/if}</span>
+		{/if}
+		{@render hora(ev.fecha, zonaDe(ev))}
+		<span></span>
+	</div>
 {/snippet}
 
 <style>
@@ -290,9 +327,10 @@
 	.feed .what span { color: var(--muted); overflow-wrap: anywhere; }
 	.feed time, .plays time { color: var(--muted); font-size: 12.5px; white-space: nowrap; text-align: right; }
 	time small { display: block; font-size: 11.5px; opacity: 0.8; }
-	.devices .name small { font-weight: 400; font-size: 13.5px; }
 	.devices .last { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.plays li { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding: 10px 2px; border-bottom: 1px solid var(--border-strong); font-size: 14px; }
 	.plays .what { display: flex; flex-direction: column; min-width: 0; }
 	.plays .what span { color: var(--muted); font-size: 13px; }
+	.entradas { margin: 8px 2px 0; }
+	.equipos li { margin-bottom: 8px; font-size: 14px; }
 </style>

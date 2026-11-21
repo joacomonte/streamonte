@@ -1,4 +1,4 @@
-// Panel de uso: resumen de entradas, usuarios (por dispositivo, con su apodo) y lo que hizo cada uno.
+// Panel de uso: resumen, usuarios (por apodo, con todos sus dispositivos) y lo que hizo cada uno.
 // shortcut: contraseña fija en env guardada tal cual en una cookie; si hay datos sensibles, pasar a login real.
 // Con el mismo límite de intentos que el código de acceso (lib/server/intentos.js), aparte por IP.
 import { fail, redirect } from '@sveltejs/kit';
@@ -17,35 +17,58 @@ export async function load({ cookies, url, getClientAddress }) {
 	}
 	const q = sql();
 	if (!q) return { locked: false, noDb: true };
-	const dev = url.searchParams.get('d');
-	const [resumen, dias, dispositivos, eventos] = await Promise.all([
+	// Usuario abierto: por apodo (`u`) o, si nunca puso apodo, por dispositivo (`d`). /api/nick le pone el apodo a lo
+	// que el dispositivo hizo antes, así que sin apodo quedan solo los que nunca lo eligieron.
+	const nick = url.searchParams.get('u');
+	const dev = nick ? null : url.searchParams.get('d');
+	const quien = nick ? q`apodo = ${nick}` : q`apodo IS NULL AND dispositivo = ${dev}`;
+	const [resumen, dias, usuarios, equipos, eventos] = await Promise.all([
+		// Entradas quedan contadas pero en segundo plano (el panel destaca usuarios y reproducciones).
 		q`SELECT count(*) FILTER (WHERE accion = 'entrar')::int AS entradas,
-			count(DISTINCT dispositivo)::int AS dispositivos,
-			count(*) FILTER (WHERE accion = 'entrar' AND fecha > now() - interval '1 day')::int AS hoy
+			count(*) FILTER (WHERE accion = 'entrar' AND fecha > now() - interval '1 day')::int AS hoy,
+			count(DISTINCT COALESCE(apodo, dispositivo))::int AS usuarios,
+			(count(DISTINCT COALESCE(apodo, dispositivo)) FILTER (WHERE fecha > now() - interval '1 day'))::int AS activos,
+			count(*) FILTER (WHERE accion = 'copiar link')::int AS reproducciones
 			FROM eventos`,
 		q`SELECT to_char(date_trunc('day', fecha AT TIME ZONE 'America/Argentina/Buenos_Aires'), 'DD/MM') AS dia,
-			count(*)::int AS entradas, count(DISTINCT dispositivo)::int AS dispositivos
+			count(*)::int AS entradas, count(DISTINCT COALESCE(apodo, dispositivo))::int AS usuarios
 			FROM eventos WHERE accion = 'entrar' AND fecha > now() - interval '14 days'
 			GROUP BY 1, date_trunc('day', fecha AT TIME ZONE 'America/Argentina/Buenos_Aires') ORDER BY date_trunc('day', fecha AT TIME ZONE 'America/Argentina/Buenos_Aires') DESC`,
-		// Un usuario = un dispositivo con su último apodo; más reciente arriba. Reproducciones = links copiados.
-		q`SELECT dispositivo, (array_agg(equipo ORDER BY fecha DESC))[1] AS equipo, min(fecha) AS primera, max(fecha) AS ultima,
-			(array_agg(apodo ORDER BY fecha DESC) FILTER (WHERE apodo IS NOT NULL))[1] AS apodo,
-			(array_agg(lugar ORDER BY fecha DESC) FILTER (WHERE lugar IS NOT NULL))[1] AS lugar,
-			(array_agg(zona ORDER BY fecha DESC) FILTER (WHERE zona IS NOT NULL))[1] AS zona,
-			(array_agg(modelo ORDER BY fecha DESC) FILTER (WHERE modelo IS NOT NULL))[1] AS modelo,
+		// Un usuario = un apodo con todos sus dispositivos (sin apodo: uno por dispositivo); más reciente arriba.
+		// Reproducciones = links copiados. `equipo`/`pantalla` solo sirven para nombrar a los sin apodo.
+		q`SELECT apodo, CASE WHEN apodo IS NULL THEN dispositivo END AS dispositivo, max(fecha) AS ultima,
+			(array_agg(equipo ORDER BY fecha DESC))[1] AS equipo,
 			(array_agg(dato ORDER BY fecha DESC) FILTER (WHERE accion = 'entrar' AND dato IS NOT NULL))[1] AS pantalla,
 			(array_agg(dato ORDER BY fecha DESC) FILTER (WHERE accion = 'copiar link'))[1] AS ultimo,
 			count(*) FILTER (WHERE accion = 'copiar link')::int AS reproducciones,
-			count(*) FILTER (WHERE accion = 'entrar')::int AS entradas, count(*)::int AS acciones
-			FROM eventos GROUP BY dispositivo ORDER BY max(fecha) DESC LIMIT 200`,
-		dev ? q`SELECT id::int, accion, dato, lugar, fecha FROM eventos WHERE dispositivo = ${dev} ORDER BY fecha DESC LIMIT 500` : Promise.resolve([])
+			count(DISTINCT dispositivo)::int AS dispositivos
+			FROM eventos GROUP BY apodo, CASE WHEN apodo IS NULL THEN dispositivo END ORDER BY max(fecha) DESC LIMIT 200`,
+		// Dispositivos del usuario abierto, con lo último que se sabe de cada uno.
+		nick || dev
+			? q`SELECT dispositivo, (array_agg(equipo ORDER BY fecha DESC))[1] AS equipo, min(fecha) AS primera, max(fecha) AS ultima,
+				(array_agg(lugar ORDER BY fecha DESC) FILTER (WHERE lugar IS NOT NULL))[1] AS lugar,
+				(array_agg(zona ORDER BY fecha DESC) FILTER (WHERE zona IS NOT NULL))[1] AS zona,
+				(array_agg(modelo ORDER BY fecha DESC) FILTER (WHERE modelo IS NOT NULL))[1] AS modelo,
+				(array_agg(dato ORDER BY fecha DESC) FILTER (WHERE accion = 'entrar' AND dato IS NOT NULL))[1] AS pantalla,
+				count(*) FILTER (WHERE accion = 'copiar link')::int AS reproducciones,
+				count(*) FILTER (WHERE accion = 'entrar')::int AS entradas, count(*)::int AS acciones
+				FROM eventos WHERE ${quien} GROUP BY dispositivo ORDER BY max(fecha) DESC`
+			: Promise.resolve([]),
+		// Su actividad sin los 'entrar' (ruido), salvo el primero: es cuando llegó (dentro de los 90 días que se guardan).
+		nick || dev
+			? q`SELECT id::int, accion, dato, fecha, dispositivo, zona FROM eventos WHERE ${quien}
+				AND (accion <> 'entrar' OR id = (SELECT id FROM eventos WHERE ${quien} AND accion = 'entrar' ORDER BY fecha LIMIT 1))
+				ORDER BY fecha DESC LIMIT 500`
+			: Promise.resolve([])
 	]);
 	return {
 		locked: false,
-		resumen: /** @type {{entradas: number, dispositivos: number, hoy: number}} */ (/** @type {any[]} */ (resumen)[0]),
-		dias: /** @type {{dia: string, entradas: number, dispositivos: number}[]} */ (dias),
-		dispositivos: /** @type {{dispositivo: string, equipo: string | null, apodo: string | null, lugar: string | null, zona: string | null, modelo: string | null, pantalla: string | null, ultimo: string | null, primera: string, ultima: string, reproducciones: number, entradas: number, acciones: number}[]} */ (dispositivos),
-		eventos: /** @type {{id: number, accion: string, dato: string | null, lugar: string | null, fecha: string}[]} */ (eventos),
+		resumen: /** @type {{entradas: number, hoy: number, usuarios: number, activos: number, reproducciones: number}} */ (/** @type {any[]} */ (resumen)[0]),
+		dias: /** @type {{dia: string, entradas: number, usuarios: number}[]} */ (dias),
+		usuarios: /** @type {{apodo: string | null, dispositivo: string | null, equipo: string | null, pantalla: string | null, ultimo: string | null, ultima: string, reproducciones: number, dispositivos: number}[]} */ (usuarios),
+		equipos: /** @type {{dispositivo: string, equipo: string | null, lugar: string | null, zona: string | null, modelo: string | null, pantalla: string | null, primera: string, ultima: string, reproducciones: number, entradas: number, acciones: number}[]} */ (equipos),
+		eventos: /** @type {{id: number, accion: string, dato: string | null, fecha: string, dispositivo: string, zona: string | null}[]} */ (eventos),
+		nick,
 		dev
 	};
 }

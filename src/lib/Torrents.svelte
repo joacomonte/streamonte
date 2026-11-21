@@ -11,7 +11,7 @@
 	import * as saved from './saved.js';
 	import { loc, t as tr } from './i18n.svelte.js';
 	import { untrack } from 'svelte';
-	import { audioOf, latBadge } from './audio.js';
+	import { audioOf, latStatus, LAT_BADGE } from './audio.js';
 	import { track } from './track.js';
 
 	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. `runtime`: duración en minutos (de la
@@ -19,7 +19,7 @@
 	 * ni búsqueda, directo a la lista. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null, runtime?: number | null, given?: any[] | null}} */
 	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null } = $props();
 
-	/** @typedef {{hash: string, release: string, file: string | null, res: string | null, hdr: string[], source: string | null, lat: boolean, multi: boolean, size: number | null, seeds: number, addons: string[], subFile: boolean, doubt?: boolean}} Torrent */
+	/** @typedef {{hash: string, release: string, file: string | null, res: string | null, hdr: string[], source: string | null, hint: 'lat' | 'likely' | 'spain' | null, multi: boolean, spa: boolean, size: number | null, seeds: number, addons: string[], subFile: boolean}} Torrent */
 	/** @typedef {{id: string, release: string, latino: boolean, format: string, downloads: number, exact?: boolean, fps?: number | null, last?: number | null, group?: string, premium?: boolean}} Sub */
 	/** @typedef {{label: string, kind: string, track: number, url: string}} Native */
 	/** @typedef {{hasKey: boolean, remaining: number | null, perDay: number | null, resetsAt: number | null, login?: string | null}} Quota */
@@ -238,18 +238,23 @@
 		const v = info[t.hash];
 		return v && typeof v === 'object' ? v : null;
 	};
-	/** Con potencial de latino (única regla): leídas, latino o español sin variante; sin leer, que el nombre diga
-	 * LATINO o MULTI / Dual / español sin aclarar. Las que no dicen nada de idioma no cuentan. @param {Torrent} t */
-	const potential = (t) => (known(t)?.audio ? known(t)?.audio === 'lat' || known(t)?.audio === 'es' : t.lat || !!t.doubt);
+	/** Estado del audio latino (regla única en audio.js). @param {Torrent} t */
+	const status = (t) => latStatus(t, known(t));
+	/** Con potencial de latino: latino o probable, o sin confirmar pero con español (dicho en el nombre o leído sin
+	 * variante). Las que no dicen nada de idioma no cuentan. @param {Torrent} t */
+	const potential = (t) => {
+		const s = status(t);
+		return s === 'lat' || s === 'likely' || (s === 'check' && (t.spa || known(t)?.audio === 'es'));
+	};
 	/** @param {Torrent} t */
 	const hasEs = (t) => t.subFile || (known(t)?.subs ?? 0) > 0;
-	/** Única regla de "buen match": pidiendo latino, latino confirmado en sus pistas (los subs no importan); con audio
-	 * original, sub ES nativo (dentro del video o .srt en el torrent). @param {Torrent} t */
-	const isMatch = (t) => (wantLat ? known(t)?.audio === 'lat' : hasEs(t));
-	/** Única regla de "candidata a leer": sin leer (ni leyéndose ni con error) y que pueda ser lo pedido. Latino: el
-	 * nombre dice LATINO o MULTI / Dual / español sin aclarar (las que no dicen nada de idioma no se leen); audio
-	 * original: sin saber si trae sub ES. @param {boolean} lat @param {Torrent} t */
-	const unread = (lat, t) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (t.lat || !!t.doubt) : !hasEs(t) && !known(t));
+	/** Única regla de "buen match": pidiendo latino, LAT (pistas o nombre; los subs no importan); con audio original,
+	 * sub ES nativo (dentro del video o .srt en el torrent). @param {Torrent} t */
+	const isMatch = (t) => (wantLat ? status(t) === 'lat' : hasEs(t));
+	/** Única regla de "candidata a leer": sin leer (ni leyéndose ni con error) y que pueda ser lo pedido. Latino: sin
+	 * confirmar y con algo que lo sugiera (web latina, MULTI / Dual / español sin aclarar); las que no dicen nada de
+	 * idioma no se leen. Audio original: sin saber si trae sub ES. @param {boolean} lat @param {Torrent} t */
+	const unread = (lat, t) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (status(t) === 'likely' || (status(t) === 'check' && t.spa)) : !hasEs(t) && !known(t));
 	/** @param {Torrent} t */
 	const qualityRank = (t) => (t.source ? QUALITY[t.source]?.[1] : null) ?? 2.5;
 	/** De mejor a peor: más bitrate (más imagen por segundo; la resolución sola no dice cuánto se comprimió), y a igual
@@ -301,8 +306,8 @@
 		gen++;
 		reading = false;
 	}
-	/** Leídas con audio en español que no es latino (sin variante o de España), de mejor a peor. */
-	const spanish = $derived(all.filter((t) => known(t)?.audio === 'es' || known(t)?.audio === 'spain').sort(byQuality));
+	/** Español de España (pistas, nombre o web de origen), de mejor a peor. */
+	const spanish = $derived(all.filter((t) => status(t) === 'spain').sort(byQuality));
 	/** "Ver todas las opciones": todas, sin el filtro de audio, de mejor a peor (solo los chips HDR / Subs ES). */
 	const list = $derived([...all].sort(byQuality).filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
 	/** "¿Se cortó?": baja un nivel de conexión y busca de nuevo con el tope nuevo. */
@@ -691,7 +696,7 @@
 						{/each}
 					</div>
 				{:else if screen === 'audio'}
-					{@const named = all.filter((t) => t.lat).length}
+					{@const named = all.filter((t) => status(t) === 'lat').length}
 					{@const toRead = all.filter((t) => unread(true, t)).length}
 					{@const maybe = all.filter(potential).length}
 					<h3 class="ask">{tr('¿Necesitás audio latino?')}</h3>
@@ -858,7 +863,8 @@
 		{#each items as t (t.hash)}
 			{@const q = t.source ? QUALITY[t.source] : null}
 			{@const sb = subBadge(t)}
-			{@const lb = latBadge(t, known(t))}
+			{@const ls = status(t)}
+			{@const lb = LAT_BADGE[ls]}
 			<li class="opt" class:best>
 				{#if best}<span class="best-tag">{tr('Mejor opción')}</span>{/if}
 				<div class="info">
@@ -867,14 +873,16 @@
 					{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
 					{#if t.size && !fits(t)}<span class="tag heavy" title={tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) })}>{tr('Puede cortarse')}</span>{/if}
 					{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
-					<!-- ES sin variante solo si la peli es hablada en español; en las de otro idioma solo cuenta el LAT. -->
-					{#if lb?.kind === 'es' && (orig === 'es' || wantLat)}
-						<button id="audio-info-{t.hash}" type="button" class="tag es-audio" title={tr(lb.title)} aria-label={tr(lb.title)} onclick={() => quickTip(t.hash)}><Icon name="volume" size={13} />{tr(lb.text)}<span class="tip" class:now={tipFor === t.hash} class:auto={best} aria-hidden="true">{tr('Gallego')}</span></button>
-					<!-- Con audio original elegido, el LAT solo aparece confirmado; el resto de sus estados va en el modo latino. -->
-					{:else if lb?.kind === 'lat' || (wantLat && lb?.kind === 'name')}<span class="tag audio {lb.kind}" title={tr(lb.title)}>{tr(lb.text)}{#if best && lb.kind === 'lat'}<span class="tip" aria-hidden="true">{tr('Tiene audio latino')}</span>{/if}</span>
-					<!-- Leído y sin latino: LAT tachado. Sin leer: LAT? gris punteado, sin globito (al lado está "Analizar"). -->
-					{:else if wantLat && known(t)}<span class="tag no-lat" title={tr('Leído: no trae audio latino')} use:explain={'nolat'}><s>LAT</s><span class="tip explain" class:now={fresh[t.hash]} aria-hidden="true">{tr('No trae audio latino')}</span></span>
-					{:else if wantLat}<span class="tag unk" title={tr('Sin analizar: no se sabe si trae audio latino')}>LAT?</span>{/if}
+					<!-- Gallego solo si la peli es hablada en español o se pide latino; LAT siempre; el resto solo pidiendo latino. -->
+					{#if ls === 'spain' && (orig === 'es' || wantLat)}
+						<button id="audio-info-{t.hash}" type="button" class="tag es-audio" title={tr(lb.title)} aria-label={tr(lb.title)} onclick={() => quickTip(t.hash)}><Icon name="volume" size={13} />{tr(lb.text)}<span class="tip" class:now={tipFor === t.hash} class:auto={best} aria-hidden="true">{tr(lb.tip)}</span></button>
+					{:else if ls === 'lat'}<span class="tag audio lat" title={tr(lb.title)}>{lb.text}{#if best}<span class="tip" aria-hidden="true">{tr(lb.tip)}</span>{/if}</span>
+					<!-- Leído y sin español: LAT tachado. -->
+					{:else if wantLat && ls === 'none'}<span class="tag no-lat" title={tr(lb.title)} use:explain={'nolat'}><s>LAT</s><span class="tip explain" class:now={fresh[t.hash]} aria-hidden="true">{tr(lb.tip)}</span></span>
+					<!-- Sin confirmar: al tocarlo explica que hay que abrirlo y probar el audio. -->
+					{:else if wantLat && (ls === 'likely' || ls === 'check')}
+						<button id="audio-info-{t.hash}" type="button" class="tag es-audio audio {ls}" title={tr(lb.title)} aria-label={tr(lb.title)} onclick={() => quickTip(t.hash)}>{tr(lb.text)}<span class="tip" class:now={tipFor === t.hash} aria-hidden="true">{tr(lb.tip)}</span></button>
+					{/if}
 					<!-- Pidiendo latino, los subs no importan: no se muestran. -->
 					{#if !wantLat}
 					{#if sb?.on}<span class="tag cc es" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES{#if best}<span class="tip second" aria-hidden="true">{tr('Subtítulos en español incluidos')}</span>{/if}</span>
@@ -1378,7 +1386,8 @@
 	.tag.heavy { color: var(--amber, #b7791f); border-color: currentColor; }
 	/* Audio: LAT confirmado (verde), según el nombre (gris punteado), sin aclarar (ámbar, como "sin sub ES"). */
 	.tag.audio.lat { color: var(--green); }
-	.tag.audio.name { border-style: dashed; color: var(--muted); }
+	.tag.audio.likely { border-style: dashed; color: var(--green); }
+	.tag.audio.check { border-style: dashed; color: var(--amber); }
 	/* Badge de audio en español que se toca (ver pistas): gris, mismo tamaño que un badge. */
 	.acts { display: flex; align-items: center; gap: 8px; }
 	/* Analizar: texto chico en acento, en dos renglones si hace falta; se toca en 44 px sin agrandar la fila. */

@@ -20,6 +20,10 @@
 	let typing;
 	/** @type {ReturnType<typeof setTimeout> | undefined} */
 	let logged;
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
+	let filtered;
+	/** Último 'filtro' registrado: el mismo no se manda dos veces. */
+	let lastFilter = '';
 	/** Tipo recién tocado: solo ese hace el "pop" (al cargar la página no rebota). */
 	let popped = $state('');
 
@@ -262,6 +266,26 @@
 		}
 		reset();
 		scrollTo({ top: 0 });
+		logFilters();
+	}
+	/** Registra los filtros cuando deja de tocarlos un rato (como la búsqueda), con un texto legible en español para /admin
+	 * (los géneros salen en el idioma de la app). */
+	function logFilters() {
+		clearTimeout(filtered);
+		filtered = setTimeout(() => {
+			const f = cat.f;
+			const meses = (/** @type {number} */ m) => (m === 0 ? 'hoy' : m < 12 ? `hace ${m} ${m === 1 ? 'mes' : 'meses'}` : `hace ${m / 12} ${m === 12 ? 'año' : 'años'}`);
+			const names = genres.filter((/** @type {{id: string}} */ g) => f.genres.includes(g.id)).map((/** @type {{name: string}} */ g) => g.name);
+			const dato = [
+				kind.label,
+				names.length ? `Género: ${names.join(', ')}` : '',
+				`Orden: ${SORTS.find(([v]) => v === f.sort)?.[1] ?? f.sort}`,
+				`Idioma: ${LANGS.find(([v]) => v === f.lang)?.[1] ?? f.lang}`,
+				`Votos: ${f.votes ? `${f.votes / 1000}k+` : 'cualquiera'}`,
+				`Fechas: desde ${meses(f.from)} hasta ${meses(f.to)}`
+			].filter(Boolean).join(' · ');
+			if (dato !== lastFilter) track('filtro', (lastFilter = dato));
+		}, 1500);
 	}
 	/** Vuelve al catálogo con los filtros, arriba de todo. */
 	function clearSearch() {
@@ -300,6 +324,7 @@
 	function toggleGenre(id) {
 		cat.f.genres = cat.f.genres.includes(id) ? cat.f.genres.filter((/** @type {string} */ g) => g !== id) : [...cat.f.genres, id];
 		reset();
+		logFilters();
 	}
 	/** @type {('es' | 'en')[]} */
 	const UI_LANGS = ['es', 'en'];

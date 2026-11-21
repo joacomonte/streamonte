@@ -12,6 +12,12 @@ const ADDONS = [
 ];
 const RES_RANK = { '2160p': 5, '1440p': 4, '1080p': 3, '720p': 2, '480p': 1 };
 const LAT_FLAGS = ['🇲🇽', '🇦🇷', '🇨🇴', '🇨🇱', '🇵🇪', '🇻🇪', '🇺🇾'];
+// Webs de origen (proveedor del addon o dominio dentro del nombre): solo orientan, no confirman.
+const LAT_SITES = ['cinecalidad', 'verpeliculasonline', 'pelisplus', 'cuevana', 'pelispanda', 'pelismart'];
+const SPAIN_SITES = ['mejortorrent', 'wolfmax4k', 'dontorrent', 'divxtotal', 'elitetorrent'];
+/** Qué tan fuerte es cada pista al unir el mismo torrent de varios addons. */
+/** @type {Record<string, number>} */
+const HINT_RANK = { lat: 3, spain: 2, likely: 1 };
 
 /** @param {string} text @param {string} emoji */
 const after = (text, emoji) => text.split(emoji)[1]?.trim().split(/\s{2,}|[\n⚙🌐🔎👤💾]/u)[0]?.trim();
@@ -61,13 +67,19 @@ function parse(s, addon) {
 		cam,
 		codec: has(['x265', 'h265', 'hevc']) ? 'HEVC' : has(['x264', 'h264', 'avc']) ? 'H.264' : has(['av1']) ? 'AV1' : null,
 		atmos: has(['atmos']),
-		lat: has(['latino', 'lat', 'latam']) || lower.includes('es-la') || lower.includes('es-419') || LAT_FLAGS.some((f) => text.includes(f)),
+		// Audio según el nombre y la web de origen (lo leído en las pistas gana; ver latStatus en audio.js).
+		hint: has(['latino', 'lat', 'latam']) || lower.includes('es-la') || lower.includes('es-419') || LAT_FLAGS.some((f) => text.includes(f))
+			? 'lat'
+			: has(['cast', 'castellano', 'spain', 'españa']) || text.includes('🇪🇸')
+				? 'spain'
+				: LAT_SITES.some((w) => lower.includes(w))
+					? 'likely'
+					: SPAIN_SITES.some((w) => lower.includes(w))
+						? 'spain'
+						: null,
 		multi: has(['multi', 'multiaudio', 'dual']),
-		// Dudoso para latino: MULTI / Dual o "español" sin decir cuál, y sin castellano. Se confirma leyendo sus pistas.
-		doubt:
-			!(has(['latino', 'lat', 'latam']) || lower.includes('es-la') || lower.includes('es-419')) &&
-			has(['multi', 'multiaudio', 'dual', 'spanish', 'español', 'espanol', 'spa', 'esp']) &&
-			!has(['cast', 'castellano', 'spain', 'españa']),
+		// Dice que trae español (MULTI / Dual / español sin aclarar cuál): vale la pena leer sus pistas.
+		spa: has(['multi', 'multiaudio', 'dual', 'spanish', 'español', 'espanol', 'spa', 'esp']),
 		size: hints.videoSize > 0 ? hints.videoSize : size(after(body, '💾')),
 		seeds,
 		addons: [addon]
@@ -138,8 +150,8 @@ export async function torrents(imdb, s, e, onProgress = () => {}) {
 				old.seeds = Math.max(old.seeds, t.seeds);
 				old.size ??= t.size;
 				old.file ??= t.file;
-				old.lat ||= t.lat;
-				old.doubt = (old.doubt || t.doubt) && !old.lat;
+				if ((HINT_RANK[t.hint ?? ''] ?? 0) > (HINT_RANK[old.hint ?? ''] ?? 0)) old.hint = t.hint;
+				old.spa ||= t.spa;
 				if (!old.addons.includes(t.addons[0])) old.addons.push(t.addons[0]);
 			}
 		}
