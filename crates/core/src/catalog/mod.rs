@@ -11,6 +11,7 @@ pub mod elitetorrent;
 pub mod http;
 pub mod latteam;
 pub mod normalize;
+pub mod people;
 pub mod protocol;
 pub mod seasons;
 pub mod tmdb;
@@ -394,6 +395,29 @@ impl Catalog {
         }
         list.sort_by(|a, b| b.rating.unwrap_or(0.0).total_cmp(&a.rating.unwrap_or(0.0)));
         list
+    }
+
+    /// Actores y directores para las sugerencias del buscador (vacío sin key de TMDB).
+    pub async fn people(
+        &self,
+        query: &str,
+        titles: Lang,
+        timeout: Duration,
+    ) -> Result<Vec<people::Person>> {
+        people::search(&self.http, query, titles, timeout).await
+    }
+
+    /// Lo que actuó o dirigió una persona, películas y series, de más a menos popular, con el
+    /// puntaje de IMDb. Necesita la key de TMDB.
+    pub async fn person_titles(
+        &self,
+        id: u64,
+        role: people::Role,
+        titles: Lang,
+        timeout: Duration,
+    ) -> Result<Vec<MetaPreview>> {
+        let credits = people::credits(&self.http, id, role, titles, timeout).await?;
+        self.top.scored(&self.http, credits, timeout).await
     }
 
     pub async fn season_ratings(

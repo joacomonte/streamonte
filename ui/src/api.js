@@ -90,6 +90,11 @@ export const api = {
   // Catálogo y addons (F4b, spec 09). kind: 'movie' | 'series'; videoId: 'tt…' o 'tt…:T:E'.
   /** FR-36: películas y series juntas, lo más popular primero. Una búsqueda nueva cancela la anterior (error "Cancelado."). */
   catalogSearch: (query) => invoke('catalog_search', { query }),
+  /** Actores y directores para las sugerencias del buscador (hasta 6; vacío sin key de TMDB):
+   *  [{id, name, photo, known, role: 'cast' | 'director'}]. */
+  catalogPeople: (query) => invoke('catalog_people', { query }),
+  /** Lo que actuó o dirigió la persona (MetaPreview[], de más a menos popular). Necesita key de TMDB. */
+  catalogPersonTitles: (id, role) => invoke('catalog_person_titles', { id, role }),
   /** En tendencia ahora (sin key de TMDB): {items, has_more}, 50 por página desde `skip`. */
   catalogTrending: (kind, skip) => invoke('catalog_trending', { kind, skip }),
   /** Géneros de TMDB del tipo, en el idioma de la app: [{id, name}] (filtro de Explorar). */

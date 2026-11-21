@@ -74,6 +74,7 @@ const ICONS = {
   tv: '<rect x="3" y="6" width="18" height="12.5" rx="2.5"/><path d="M8.5 2.5 12 6l3.5-3.5M8 21h8"/>',
   sliders: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z"/>',
   key: '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 19 4M15.5 7.5l2.5 2.5M17.5 5.5 20 8"/>',
   cloud: '<path d="M7 18.5h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 9.2 4.7 4.7 0 0 0 7 18.5z"/>',

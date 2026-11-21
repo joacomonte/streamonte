@@ -32,13 +32,17 @@ const SEARCH_WAIT_MS = 900;
 function onQueryInput() {
   clearTimeout(searchTimer);
   searchSeq++; // lo que esté en vuelo ya no se muestra
+  // Escribir de nuevo saca al actor o director elegido y vuelve a buscar por texto.
+  const hadPerson = !!state.person;
+  state.person = null;
   const raw = $('#cat-q').value;
   $('#cat-q-clear').hidden = !raw;
   // Un magnet pegado en el buscador va al mismo camino que "Pegados" (2026-11-20), no se busca como texto.
-  if (/^\s*magnet:\?/i.test(raw)) { pasteMagnet(raw.trim()); return; }
+  if (/^\s*magnet:\?/i.test(raw)) { findPeople(''); pasteMagnet(raw.trim()); return; }
   const q = raw.trim();
+  findPeople(q);
   if (q.length < 2) { state.results = null; state.searching = false; render(); return; }
-  if (!state.searching) { state.searching = true; render(); toTop(); }
+  if (!state.searching || hadPerson) { state.searching = true; render(); toTop(); }
   searchTimer = setTimeout(() => search(q), SEARCH_WAIT_MS);
 }
 
@@ -75,6 +79,81 @@ async function search(q) {
   } catch (e) {
     if (seq === searchSeq) { state.searching = false; render(); showError(e); }
   }
+}
+
+// ---------- actores y directores (2026-11-21, como la web) ----------
+/** Sugerencias desde 3 letras, un rato después de la última tecla; una respuesta vieja no pisa a la nueva. */
+const PEOPLE_MIN = 3;
+const PEOPLE_WAIT_MS = 250;
+let people = [];
+let peopleSeq = 0;
+let peopleTimer = null;
+function findPeople(q) {
+  clearTimeout(peopleTimer);
+  const seq = ++peopleSeq;
+  if (q.length < PEOPLE_MIN) { if (people.length) { people = []; renderPeople(); } return; }
+  peopleTimer = setTimeout(async () => {
+    const list = await api.catalogPeople(q).catch(() => []);
+    if (seq !== peopleSeq) return;
+    people = list;
+    renderPeople();
+  }, PEOPLE_WAIT_MS);
+}
+const closePeople = () => findPeople('');
+
+/** Lista bajo el buscador, solo con el buscador enfocado y algo escrito. pointerdown sin foco: el buscador no se
+ *  desenfoca (y la lista no se cierra) antes del clic. */
+function renderPeople() {
+  const box = $('#cat-who');
+  const input = $('#cat-q');
+  const open = people.length > 0 && document.activeElement === input && !!input.value.trim();
+  box.hidden = !open;
+  box.replaceChildren(...(open ? people.map((p, i) => el('li', { style: `--i:${i}` },
+    el('button', { id: `cat-person-${p.id}`, type: 'button', class: 'cat-who-row', onpointerdown: (e) => e.preventDefault(), onclick: () => pickPerson(p) },
+      p.photo ? el('img', { src: p.photo, alt: '', width: 40, height: 40, loading: 'lazy' }) : el('span', { class: 'cat-who-ph' }, icon('user', 18)),
+      el('span', { class: 'cat-who-name' }, el('b', {}, p.name),
+        el('small', {}, el('span', { class: 'cat-who-role' }, t(p.role === 'director' ? 'Director' : 'Actúa')), p.known ? ` · ${p.known}` : null)),
+      el('span', { class: 'cat-who-go' }, icon('chev', 16))))) : []));
+}
+
+/** Elegido un actor o director: lo que actuó o dirigió, sin los filtros (se esconden), con su píldora arriba. */
+async function pickPerson(p) {
+  clearTimeout(searchTimer);
+  closePeople();
+  $('#cat-q').value = '';
+  $('#cat-q-clear').hidden = true;
+  state.person = { id: p.id, name: p.name, photo: p.photo, role: p.role };
+  state.results = null;
+  state.searching = true;
+  render();
+  toTop();
+  const seq = ++searchSeq;
+  setStatus(t('Buscando lo de {name}…', { name: p.name }));
+  try {
+    const r = await api.catalogPersonTitles(p.id, p.role);
+    if (seq !== searchSeq) return;
+    state.searching = false;
+    state.results = r;
+    setStatus(r.length ? t('Elegí una película o serie.') : t('No encontré títulos de {name}.', { name: p.name }));
+    render();
+  } catch (e) {
+    if (seq === searchSeq) { state.searching = false; state.results = []; render(); showError(e); }
+  }
+}
+
+/** Píldora "Con {name}" / "Dirigidas por {name}": de quién son los resultados; la ✕ vuelve al catálogo con los filtros. */
+function renderPersonChip() {
+  const chip = $('#cat-person');
+  const p = state.person;
+  chip.hidden = !p;
+  const sig = p ? `${p.role}-${p.id}` : '';
+  if (chip.dataset.sig === sig) return; // la misma persona: no repite la entrada
+  chip.dataset.sig = sig;
+  chip.replaceChildren(...(p ? [
+    p.photo ? el('img', { src: p.photo, alt: '', width: 28, height: 28 }) : null,
+    el('span', {}, t(p.role === 'director' ? 'Dirigidas por {name}' : 'Con {name}', { name: p.name })),
+    el('button', { id: 'cat-person-clear', type: 'button', class: 'cat-person-x', 'aria-label': t('Volver al catálogo'), onclick: clearSearch }, icon('close', 12)),
+  ] : []));
 }
 
 // ---------- tarjetas ----------
@@ -221,10 +300,11 @@ async function fillCardInfo(info, p) {
 
 /** Resultados de la búsqueda: películas y series juntas, ya ordenadas por el núcleo (lo más popular primero). */
 function renderResults(root) {
-  const list = state.results.filter((p) => !(state.hideJapanese && state.excluded.has(p.id)));
+  const list = state.results.filter((p) => !(state.hideJapanese && (p.excluded || state.excluded.has(p.id))));
+  const empty = state.person ? t('No encontré títulos de {name}.', { name: state.person.name }) : t('Sin resultados para esa búsqueda.');
   root.append(list.length
     ? el('div', { class: 'cat-grid' }, list.map(cardFor))
-    : el('p', { class: 'hint' }, t('Sin resultados para esa búsqueda.')));
+    : el('p', { class: 'hint' }, empty));
 }
 
 /** Cards de carga mientras se tipea (2026-11-15) o mientras llega la página siguiente. */
@@ -771,6 +851,7 @@ function renderBrowse(root) {
 // ---------- render ----------
 function render() {
   renderFilters();
+  renderPersonChip();
   const root = $('#cat-body');
   root.replaceChildren();
   if (state.searching) root.append(skeletonGrid());
@@ -787,9 +868,17 @@ async function init() {
       // Buscador y filtros en la barra fija (siempre visibles al bajar, 2026-11-15).
       el('div', { id: 'cat-bar', class: 'cat-bar' },
         el('div', { class: 'cat-search' },
-          el('input', { id: 'cat-q', type: 'search', placeholder: t('Buscar película o serie, o pegar un magnet…'), autocomplete: 'off', oninput: onQueryInput,
-            onkeydown: (e) => { if (e.key === 'Escape' && e.target.value) { e.stopPropagation(); clearSearch(); } } }),
-          el('button', { id: 'cat-q-clear', type: 'button', class: 'cat-q-clear', hidden: true, 'aria-label': t('Limpiar búsqueda'), onclick: clearSearch }, icon('close', 13))),
+          el('input', { id: 'cat-q', type: 'search', placeholder: t('Título, actor/actriz o director, o pegar un magnet…'), autocomplete: 'off', oninput: onQueryInput,
+            onfocus: renderPeople, onblur: renderPeople,
+            onkeydown: (e) => {
+              if (e.key !== 'Escape') return;
+              // Esc: primero cierra las sugerencias; después limpia la búsqueda.
+              if (people.length) { e.stopPropagation(); closePeople(); } else if (e.target.value) { e.stopPropagation(); clearSearch(); }
+            } }),
+          el('button', { id: 'cat-q-clear', type: 'button', class: 'cat-q-clear', hidden: true, 'aria-label': t('Limpiar búsqueda'), onclick: clearSearch }, icon('close', 13)),
+          // Actores y directores que coinciden: elegir uno trae lo que actuó o dirigió.
+          el('ul', { id: 'cat-who', class: 'cat-who', hidden: true, 'aria-label': t('Actores y directores') })),
+        el('div', { id: 'cat-person', class: 'cat-person-chip', role: 'status', hidden: true }),
         el('div', { id: 'cat-controls', class: 'cat-controls' }),
         el('div', { id: 'cat-since' })),
       el('div', { id: 'cat-body' })),

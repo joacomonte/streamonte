@@ -1378,6 +1378,24 @@ impl AppCore {
             .await
     }
 
+    /// Actores y directores que coinciden con lo que se escribe en el buscador (vacío sin key de TMDB).
+    pub async fn catalog_people(&self, query: &str) -> Result<Vec<crate::catalog::people::Person>> {
+        let timeout = self.catalog_timeout().await;
+        let titles = self.languages().await.titles;
+        self.catalog.people(query, titles, timeout).await
+    }
+
+    /// Lo que actuó o dirigió la persona elegida en las sugerencias (necesita la key de TMDB).
+    pub async fn catalog_person_titles(
+        &self,
+        id: u64,
+        role: crate::catalog::people::Role,
+    ) -> Result<Vec<MetaPreview>> {
+        let timeout = self.catalog_timeout().await;
+        let titles = self.languages().await.titles;
+        self.catalog.person_titles(id, role, titles, timeout).await
+    }
+
     /// Puntaje promedio por temporada de una serie (IMDb) y su estado.
     pub async fn catalog_season_ratings(
         &self,

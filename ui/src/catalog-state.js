@@ -16,6 +16,7 @@ export const safeSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /
 export const state = {
   results: null,          // MetaPreview[] ya ordenadas
   searching: false,       // tipeando / esperando la búsqueda: cards de carga
+  person: null,           // actor o director elegido en las sugerencias: {id, name, photo, role}; results = lo suyo
   excluded: new Set(),    // ids anime/japonés (FR-40)
   hideJapanese: true,
   // Panel lateral: lo que se eligió. Serie: `meta` (episodios) → `season` → `episode`/`videoId`.

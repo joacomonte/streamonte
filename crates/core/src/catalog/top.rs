@@ -92,16 +92,17 @@ struct DiscoverPage {
     results: Vec<Candidate>,
 }
 
-/// Película o serie de discover (las series traen `name` y `first_air_date`).
+/// Película o serie de discover o de los créditos de una persona (las series traen `name` y
+/// `first_air_date`).
 #[derive(Debug, Clone, Deserialize)]
-struct Candidate {
-    id: u64,
+pub(super) struct Candidate {
+    pub(super) id: u64,
     #[serde(default, alias = "name")]
     title: String,
     #[serde(alias = "first_air_date")]
     release_date: Option<String>,
     poster_path: Option<String>,
-    popularity: Option<f64>,
+    pub(super) popularity: Option<f64>,
 }
 
 /// Un género de TMDB para el filtro de Explorar, con su nombre en el idioma de la app.
@@ -213,6 +214,39 @@ impl TopRated {
             .await?;
         let details = self.details.lock().expect("details").clone();
         Ok(rank(candidates, &details, &ratings, q))
+    }
+
+    /// Títulos sueltos de películas y series (lo de un actor o director, `people`), en el orden
+    /// dado, con el puntaje de IMDb como el resto del catálogo. Los que no tienen IMDb id quedan
+    /// afuera (no se pueden abrir); sin el dataset de IMDb salen sin puntaje.
+    pub(super) async fn scored(
+        &self,
+        http: &Http,
+        items: Vec<(MediaKind, Candidate)>,
+        timeout: Duration,
+    ) -> Result<Vec<MetaPreview>> {
+        let key = crate::secrets::secret(super::tmdb::ACCOUNT).ok_or_else(no_key)?;
+        let ratings = self.ratings(http).await.ok();
+        for kind in [MediaKind::Movie, MediaKind::Series] {
+            let of_kind: Vec<Candidate> = items
+                .iter()
+                .filter(|(k, _)| *k == kind)
+                .map(|(_, c)| c.clone())
+                .collect();
+            self.fill_details(http, &key, kind, &of_kind, timeout)
+                .await?;
+        }
+        let details = self.details.lock().expect("details").clone();
+        let mut seen = HashSet::new();
+        Ok(items
+            .into_iter()
+            .filter_map(|(kind, c)| {
+                let d = details.get(&(kind, c.id))?;
+                let tt = d.imdb.filter(|tt| seen.insert(*tt))?;
+                let rating = ratings.as_ref().and_then(|r| r.get(&tt)).map(|&(r, _)| r);
+                Some(preview(kind, tt, c, rating, d.excluded))
+            })
+            .collect())
     }
 
     /// Los puntajes si ya están en memoria, sin esperar a leerlos (para no frenar la búsqueda).
@@ -335,14 +369,14 @@ pub(super) async fn imdb_dataset(
     }
 }
 
-fn no_key() -> CoreError {
+pub(super) fn no_key() -> CoreError {
     CoreError::Catalog {
         user: "Para filtrar por votos e idioma hace falta la key gratuita de TMDB (Ajustes → Pósters).".into(),
         detail: "top: sin key de TMDB".into(),
     }
 }
 
-fn bad_key() -> CoreError {
+pub(super) fn bad_key() -> CoreError {
     CoreError::Catalog {
         user: "TMDB rechazó la key: revisala en Ajustes → Pósters.".into(),
         detail: "top: TMDB 401".into(),
@@ -435,6 +469,28 @@ fn parse_ratings(r: impl Read) -> Ratings {
         .collect()
 }
 
+/// La card de un título de TMDB ya cruzado con IMDb (`tt`, puntaje si IMDb lo tiene).
+fn preview(
+    kind: MediaKind,
+    tt: u32,
+    c: Candidate,
+    rating: Option<f32>,
+    excluded: bool,
+) -> MetaPreview {
+    let released = c.release_date.filter(|d| !d.is_empty());
+    MetaPreview {
+        id: format!("tt{tt:07}"),
+        kind,
+        name: c.title,
+        year: released.as_ref().map(|d| d[..4.min(d.len())].to_string()),
+        imdb_rating: rating.map(rating_label),
+        excluded,
+        poster: c.poster_path.map(|p| format!("{IMAGE_BASE}{p}")),
+        released,
+        popularity: c.popularity,
+    }
+}
+
 /// Cruce y orden: como IMDb, por puntaje y, a igual puntaje, por votos (o por popularidad de TMDB).
 fn rank(
     candidates: Vec<Candidate>,
@@ -454,21 +510,10 @@ fn rank(
             if votes < q.min_votes || !lang_ok || !seen.insert(tt) {
                 return None;
             }
-            let released = c.release_date.filter(|d| !d.is_empty());
             Some((
                 rating,
                 votes,
-                MetaPreview {
-                    id: format!("tt{tt:07}"),
-                    kind: q.kind,
-                    name: c.title,
-                    year: released.as_ref().map(|d| d[..4.min(d.len())].to_string()),
-                    imdb_rating: Some(rating_label(rating)),
-                    excluded: d.excluded,
-                    poster: c.poster_path.map(|p| format!("{IMAGE_BASE}{p}")),
-                    released,
-                    popularity: c.popularity,
-                },
+                preview(q.kind, tt, c, Some(rating), d.excluded),
             ))
         })
         .collect();

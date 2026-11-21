@@ -108,6 +108,8 @@ pub fn run() {
             commands::catalog_premium_use,
             commands::open_key_page,
             commands::catalog_search,
+            commands::catalog_people,
+            commands::catalog_person_titles,
             commands::catalog_meta,
             commands::catalog_details,
             commands::catalog_similar,

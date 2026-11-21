@@ -435,6 +435,23 @@ pub async fn catalog_poster(core: Core<'_>, imdb_id: String) -> CmdResult<Option
 pub async fn catalog_search(core: Core<'_>, query: String) -> CmdResult<Vec<MetaPreview>> {
     Ok(core.catalog_search(&query).await?)
 }
+/// Actores y directores para las sugerencias del buscador.
+#[tauri::command]
+pub async fn catalog_people(
+    core: Core<'_>,
+    query: String,
+) -> CmdResult<Vec<streamonte_core::catalog::people::Person>> {
+    Ok(core.catalog_people(&query).await?)
+}
+/// Lo que actuó (`cast`) o dirigió (`director`) una persona.
+#[tauri::command]
+pub async fn catalog_person_titles(
+    core: Core<'_>,
+    id: u64,
+    role: streamonte_core::catalog::people::Role,
+) -> CmdResult<Vec<MetaPreview>> {
+    Ok(core.catalog_person_titles(id, role).await?)
+}
 #[tauri::command]
 pub async fn catalog_meta(core: Core<'_>, kind: MediaKind, id: String) -> CmdResult<Meta> {
     Ok(core.catalog_meta(kind, &id).await?)
