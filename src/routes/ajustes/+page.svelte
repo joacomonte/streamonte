@@ -4,6 +4,10 @@
 	import { wipe } from '#lib/saved.js';
 	import { t } from '#lib/i18n.svelte.js';
 	import LangPicker from '#lib/LangPicker.svelte';
+	import AdminCode from '#lib/AdminCode.svelte';
+	import { saveNick } from '#lib/nick.js';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 
 	let status = $state(/** @type {{tmdb: boolean, torbox: boolean, opensubtitles: boolean, opensubtitles_user: boolean, opensubtitles_pass: boolean} | null} */ (null));
 	let tmdb = $state('');
@@ -25,6 +29,38 @@
 		open = open === which ? '' : which;
 		tmdb = torbox = opensubtitles = osUser = osPass = '';
 		msg = '';
+	}
+
+	// Apodo: mismo validador que la bienvenida (lib/nick.js).
+	let nick = $state((() => page.data.nick ?? '')());
+	let nickMsg = $state('');
+	let nickBad = $state(false);
+	let nickSaving = $state(false);
+	/** @param {SubmitEvent} e */
+	async function onNick(e) {
+		e.preventDefault();
+		nickSaving = true;
+		const r = await saveNick(nick);
+		nickSaving = false;
+		nickBad = !r.nick;
+		nickMsg = r.nick ? t('Guardado.') : t(r.error ?? '');
+		if (r.nick) {
+			nick = r.nick;
+			invalidateAll();
+		}
+	}
+
+	/** Panel de uso: si este equipo ya entró, va directo; si no, pide el código acá mismo. */
+	let adminOpen = $state(false);
+	function openAdmin() {
+		let ok = false;
+		try {
+			ok = localStorage.getItem('sw.admin') === '1';
+		} catch {
+			/* sin almacenamiento */
+		}
+		if (ok) goto('/admin');
+		else adminOpen = !adminOpen;
 	}
 
 	onMount(async () => {
@@ -120,6 +156,17 @@
 		{/if}
 	</form>
 
+	<form id="nick-form" class="field saved" novalidate onsubmit={onNick}>
+		<label class="lbl" for="nick-input">{t('Apodo')}</label>
+		<div class="pact">
+			<input id="nick-input" class="grow" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" aria-invalid={nickBad} aria-describedby="nick-msg" bind:value={nick} oninput={() => (nickMsg = '')} />
+			<button id="nick-save" class="btn primary" type="submit" disabled={nickSaving || nick.trim() === (page.data.nick ?? '')}>
+				{#if nickSaving}<span class="spin"></span>{/if}{t('Guardar')}
+			</button>
+		</div>
+		<p id="nick-msg" class="help-text" class:bad={nickBad} role="status">{nickMsg}</p>
+	</form>
+
 	<section class="field saved">
 		<span class="lbl">{t('Idioma')}</span>
 		<LangPicker id="settings-lang" />
@@ -200,7 +247,22 @@
 
 	<section id="privacy" class="field saved">
 		<span class="lbl">{t('Privacidad')}</span>
-		<p class="help-text">{t('Para saber cómo se usa la app guardo, por cada dispositivo, un id al azar, el navegador, la ciudad aproximada (por la IP) y qué hacés acá: búsquedas, títulos que abrís y opciones que copiás. No se comparte con nadie y se borra solo a los 90 días.')}</p>
+		<p class="help-text">{t('Para saber cómo se usa la app guardo, por cada dispositivo, un id al azar, tu apodo, el navegador, el modelo del equipo (si el navegador lo informa), la zona horaria, la ciudad aproximada (por la IP) y qué hacés acá: búsquedas, títulos que abrís y opciones que copiás. No se comparte con nadie y se borra solo a los 90 días.')}</p>
+	</section>
+
+	<section id="admin" class="field saved">
+		<div class="kept">
+			<div class="krow">
+				<span class="kname">{t('Panel')} <span class="muted">· {t('uso de la app')}</span></span>
+				<button id="go-admin" type="button" class="link" aria-expanded={adminOpen} aria-controls="admin-panel" onclick={openAdmin}>{t('Abrir')}</button>
+			</div>
+			{#if adminOpen}
+				<div id="admin-panel" class="panel admin-code">
+					<p class="help-text">{t('Código del panel')}</p>
+					<AdminCode id="admin-pop-code" />
+				</div>
+			{/if}
+		</div>
 	</section>
 
 	<section id="credits" class="field saved">
@@ -269,5 +331,10 @@
 	.pact { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 	.pact .help { margin: 0; flex-wrap: wrap; }
 	.pact .btn { height: 40px; padding: 0 16px; }
+	#nick-form .pact .btn { height: 46px; }
+	.grow { flex: 1; min-width: 0; }
+	.help-text.bad { color: var(--red); }
+	#nick-msg { min-height: 1.45em; }
+	.admin-code { align-items: center; }
 	@keyframes reveal { from { opacity: 0; transform: translateY(-6px); } }
 </style>

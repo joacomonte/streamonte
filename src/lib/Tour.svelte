@@ -4,10 +4,13 @@
 	import Icon from './Icon.svelte';
 	import { t } from './i18n.svelte.js';
 	import LangPicker from './LangPicker.svelte';
+	import { saveNick } from './nick.js';
+	import { invalidateAll } from '$app/navigation';
 
-	/** `onleave`: arranca la salida (lo de atrás ya puede entrar mientras el tutorial se apaga).
-	 * @type {{id: string, label: string, open: boolean, steps: import('./tours.js').Step[], onclose: () => void, onleave?: () => void}} */
-	let { id, label, open, steps, onclose, onleave } = $props();
+	/** `onleave`: arranca la salida (lo de atrás ya puede entrar mientras el tutorial se apaga). `nick`: el apodo ya
+	 * guardado; mientras no haya, el paso del apodo no deja pasar ni salir.
+	 * @type {{id: string, label: string, open: boolean, steps: import('./tours.js').Step[], nick?: string | null, onclose: () => void, onleave?: () => void}} */
+	let { id, label, open, steps, nick = null, onclose, onleave } = $props();
 	/** @type {HTMLDialogElement | undefined} */
 	let dlg = $state();
 	let i = $state(0);
@@ -15,6 +18,14 @@
 	let dir = $state(1);
 	const step = $derived(steps[i]);
 	const last = $derived(i === steps.length - 1);
+	// Apodo: lo tipeado, el error en línea y si ya quedó guardado (en esta bienvenida o antes).
+	let nickValue = $state((() => nick ?? '')());
+	let nickError = $state('');
+	let nickSaving = $state(false);
+	let nickOk = $state((() => !!nick)());
+	const nickAt = $derived(steps.findIndex((s) => s.nick));
+	/** Paso más allá del apodo sin tenerlo: se queda en el del apodo. @param {number} to */
+	const guard = (to) => (nickAt >= 0 && !nickOk && to > nickAt ? nickAt : to);
 	/** Íconos de tienda que no cargaron (por URL del ícono): se cambian por un mosaico propio. @type {Record<string, boolean>} */
 	let broken = $state({});
 
@@ -29,6 +40,8 @@
 	/** @param {number} to */
 	function go(to) {
 		if (to < 0 || to >= steps.length) return;
+		to = guard(to);
+		if (to === i) return;
 		dir = to > i ? 1 : -1;
 		i = to;
 	}
@@ -36,6 +49,8 @@
 	/** Sale con su animación y recién después cierra el `<dialog>` (Saltar, Listo y Esc). */
 	function exit() {
 		if (leaving || !dlg?.open) return;
+		// Sin apodo no se sale (Saltar y Esc llevan al paso del apodo).
+		if (guard(steps.length) !== steps.length) return go(nickAt);
 		leaving = true;
 		onleave?.();
 		if (still()) dlg.close();
@@ -56,14 +71,46 @@
 		duration: still() ? 0 : 200,
 		css: (/** @type {number} */ t) => `transform: translateX(${(1 - t) * -dir * 32}px); opacity: ${t};`
 	});
+	/** Valida y guarda el apodo; si está bien, sigue (o cierra, si era el último paso). */
+	async function submitNick() {
+		if (nickSaving) return;
+		nickSaving = true;
+		const r = await saveNick(nickValue);
+		nickSaving = false;
+		if (!r.nick) {
+			nickError = t(r.error ?? '');
+			return;
+		}
+		nickValue = r.nick;
+		nickOk = true;
+		nickError = '';
+		// El saludo de la portada lee el apodo de los datos del layout.
+		invalidateAll();
+		if (last) exit();
+		else go(i + 1);
+	}
+	/** Siguiente/Listo: en el paso del apodo, primero lo guarda. */
+	function next() {
+		if (step.nick) submitNick();
+		else if (last) exit();
+		else go(i + 1);
+	}
 	/** @param {string} name */
 	const initials = (name) => name.split(' ').map((w) => w[0]).join('').slice(0, 2);
 </script>
 
-<dialog {id} bind:this={dlg} class="tour" class:leaving aria-label={label} onclose={onclose} oncancel={(e) => {
+<dialog {id} bind:this={dlg} class="tour" class:leaving aria-label={label} onclose={() => {
+	// Sin apodo no se cierra: Chrome cierra con Esc aunque se cancele el evento si no hubo un toque antes.
+	if (open && guard(steps.length) !== steps.length) {
+		dlg?.showModal();
+		go(nickAt);
+	} else onclose();
+}} oncancel={(e) => {
 	e.preventDefault();
 	exit();
 }} onkeydown={(e) => {
+	// Las flechas dentro del campo del apodo mueven el cursor, no el tutorial.
+	if (e.target instanceof HTMLInputElement) return;
 	if (e.key === 'ArrowRight') go(i + 1);
 	else if (e.key === 'ArrowLeft') go(i - 1);
 }}>
@@ -87,7 +134,7 @@
 					<button id="{id}-dot-{n}" type="button" class="seg" class:done={n <= i} aria-label={t('Ir al paso {n}', { n: n + 1 })} onclick={() => go(n)}><span></span></button>
 				{/each}
 			</div>
-			{#if !last}
+			{#if !last && !(step.nick && !nickOk)}
 				<button id="{id}-skip" type="button" class="skip" onclick={exit}>{t('Saltar')}</button>
 			{/if}
 		</header>
@@ -102,6 +149,15 @@
 					</div>
 					<h2 id="{id}-title">{step.title}</h2>
 					<p>{step.body}</p>
+					{#if step.nick}
+						<form id="{id}-nick-form" class="nick" novalidate onsubmit={(e) => {
+							e.preventDefault();
+							submitNick();
+						}}>
+							<input id="{id}-nick" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="done" placeholder="Joaco" aria-label={t('Tu apodo')} aria-invalid={!!nickError} aria-describedby="{id}-nick-error" bind:value={nickValue} oninput={() => (nickError = '')} />
+							<p id="{id}-nick-error" class="nick-error" role="alert">{nickError}</p>
+						</form>
+					{/if}
 					{#if step.picker}
 						<div class="picker"><LangPicker id="{id}-lang" only={step.picker} /></div>
 					{/if}
@@ -129,7 +185,7 @@
 			{#if i > 0}
 				<button id="{id}-back" type="button" class="btn ghost" onclick={() => go(i - 1)}>{t('Atrás')}</button>
 			{/if}
-			<button id="{id}-next" type="button" class="btn primary" onclick={() => (last ? exit() : go(i + 1))}>
+			<button id="{id}-next" type="button" class="btn primary" disabled={step.nick && nickSaving} onclick={next}>
 				{last ? t('Listo') : t('Siguiente')}
 				{#if !last}<Icon name="next" size={20} />{/if}
 			</button>
@@ -218,6 +274,25 @@
 	p { margin: 0; font-size: 17px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
 
 	.picker { margin-top: 28px; }
+	.nick { margin-top: 28px; display: flex; flex-direction: column; align-items: stretch; }
+	.nick input {
+		height: 64px;
+		padding: 0 16px;
+		border: 2px solid var(--border-strong);
+		border-radius: 18px;
+		background: var(--surface);
+		color: var(--text);
+		font-size: 26px;
+		font-weight: 650;
+		text-align: center;
+		letter-spacing: -0.01em;
+		outline: none;
+		transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+	}
+	.nick input::placeholder { color: var(--muted); opacity: 0.5; font-weight: 500; }
+	.nick input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); }
+	.nick input[aria-invalid='true'] { border-color: var(--red); }
+	.nick-error { min-height: 1.5em; margin-top: 8px; font-size: 14.5px; color: var(--red); text-align: center; }
 	.stores { list-style: none; margin: 28px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 	.stores li { animation: up 0.6s var(--out) both; }
 	.stores li:nth-child(2) { animation-delay: 90ms; }

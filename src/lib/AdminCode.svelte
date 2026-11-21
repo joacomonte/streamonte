@@ -1,11 +1,14 @@
 <script>
 	// Código del panel (/admin): 3 casillas; al completar la tercera lo prueba y, si está bien, entra solo.
 	import { goto } from '$app/navigation';
+	import { deserialize } from '$app/forms';
 
-	let { id = 'admin-code' } = $props();
+	/** `wait`: minutos de bloqueo que ya informó el servidor (demasiados intentos). @type {{id?: string, wait?: number}} */
+	let { id = 'admin-code', wait = 0 } = $props();
 
 	let code = $state('');
 	let wrong = $state(false);
+	let blocked = $state((() => wait)());
 	let busy = $state(false);
 
 	async function onCode() {
@@ -16,7 +19,7 @@
 		const fd = new FormData();
 		fd.set('pass', code);
 		// La acción de /admin pone la cookie y responde `redirect` si el código es el correcto.
-		const r = await fetch('/admin', { method: 'POST', body: fd, headers: { 'x-sveltekit-action': 'true' } }).then((x) => x.json()).catch(() => null);
+		const r = await fetch('/admin', { method: 'POST', body: fd, headers: { 'x-sveltekit-action': 'true' } }).then(async (x) => deserialize(await x.text())).catch(() => null);
 		busy = false;
 		if (r?.type === 'redirect') {
 			try {
@@ -26,6 +29,7 @@
 			}
 			goto('/admin', { invalidateAll: true });
 		} else {
+			blocked = r?.type === 'failure' ? Number(r.data?.wait) || 0 : 0;
 			wrong = true;
 			code = '';
 		}
@@ -38,9 +42,9 @@
 			<span class="box" class:on={!busy && i === Math.min(code.length, 2)}>{code[i] ?? ''}</span>
 		{/each}
 		<!-- svelte-ignore a11y_autofocus -->
-		<input {id} type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="one-time-code" aria-label="Código del panel" autofocus disabled={busy} bind:value={code} oninput={onCode} />
+		<input {id} type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="one-time-code" aria-label="Código del panel" autofocus disabled={busy || !!blocked} bind:value={code} oninput={onCode} />
 	</div>
-	<p class="err" role="alert">{wrong ? 'Código incorrecto' : ''}</p>
+	<p class="err" role="alert">{blocked ? `Demasiados intentos. Probá de nuevo en ${blocked} min.` : wrong ? 'Código incorrecto' : ''}</p>
 </div>
 
 <style>

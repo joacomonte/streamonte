@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import Tour from '#lib/Tour.svelte';
-	import { device, markSeen, seen, welcomeSteps } from '#lib/tours.js';
+	import { device, markSeen, nickStep, seen, welcomeSteps } from '#lib/tours.js';
 	import { i18n, t } from '#lib/i18n.svelte.js';
 	import { updated } from '$app/state';
 	import { onNavigate } from '$app/navigation';
@@ -10,7 +10,7 @@
 	import Icon from '#lib/Icon.svelte';
 	import { track } from '#lib/track.js';
 
-	/** @type {{data: {langs: import('#lib/i18n/translate.js').Langs}, children: import('svelte').Snippet}} */
+	/** @type {{data: {langs: import('#lib/i18n/translate.js').Langs, nick: string | null}, children: import('svelte').Snippet}} */
 	let { data, children } = $props();
 	// El idioma que decidió el servidor (cookie o navegador), antes del primer render (también en el servidor, donde
 	// no corren los efectos); después lo cambia el toggle.
@@ -18,6 +18,8 @@
 
 	// Bienvenida: una sola vez, al entrar por primera vez (después del código de acceso). Vista o salteada, no vuelve.
 	let welcomeOpen = $state(false);
+	// Quien ya vio la bienvenida y no tiene apodo (la vio antes de que existiera): solo el paso del apodo, sin salida.
+	let nickOpen = $state(false);
 	// Una vez por carga de la app, antes que los avisos de la página (los efectos de las hijas corren primero). La pantalla
 	// (en puntos y densidad) deja adivinar el modelo de iPhone, que Safari no informa.
 	if (typeof window !== 'undefined') track('entrar', `${screen.width}x${screen.height}@${devicePixelRatio}`);
@@ -26,6 +28,7 @@
 	setContext('touring', () => touring);
 	$effect(() => {
 		if (!seen('welcome')) welcomeOpen = touring = true;
+		else if (!data.nick) nickOpen = true;
 	});
 	// Se rearma al cambiar el idioma en el primer paso: el resto del tutorial ya sale en el elegido.
 	const welcome = $derived(welcomeOpen ? welcomeSteps(device()) : null);
@@ -104,7 +107,11 @@
 {/if}
 
 {#if welcome}
-	<Tour id="welcome" label={t('Bienvenida')} open steps={welcome} onleave={() => (touring = false)} onclose={() => { markSeen('welcome'); welcomeOpen = touring = false; }} />
+	<Tour id="welcome" label={t('Bienvenida')} open steps={welcome} nick={data.nick} onleave={() => (touring = false)} onclose={() => { markSeen('welcome'); welcomeOpen = touring = false; }} />
+{/if}
+
+{#if nickOpen}
+	<Tour id="nick" label={t('Tu apodo')} open steps={[nickStep()]} nick={data.nick} onclose={() => (nickOpen = false)} />
 {/if}
 
 <style>

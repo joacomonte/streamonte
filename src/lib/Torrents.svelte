@@ -498,7 +498,8 @@
 	/** Copia ya (Chrome deja unos segundos después del toque); si el navegador no deja, un toque más en la hoja.
 	 * @param {Torrent} t @param {string} url */
 	async function copyUrl(t, url) {
-		track('copiar link', `${name}${s ? ` T${s}E${e}` : ''} · ${t.res ?? ''} · ${/play\.html/.test(url) ? 'TV' : 'dispositivo'}`);
+		// Título · calidad · audio elegido · dónde (el panel lo separa por ` · `).
+		track('copiar link', `${name}${s ? ` T${s}E${e}` : ''} · ${t.res ?? ''} · ${wantLat ? 'Latino' : 'Original'} · ${/play\.html/.test(url) ? 'TV' : 'Celu'}`);
 		if (copyNow(url)) return done(t, 'ok');
 		try {
 			await navigator.clipboard.writeText(url);

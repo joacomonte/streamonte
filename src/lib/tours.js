@@ -5,7 +5,8 @@ import { t } from './i18n.svelte.js';
 /** `icon`: el ícono oficial de la tienda (hotlink; si no carga, Tour muestra un mosaico propio). Sin `href` no hay
  * botón de descarga: se instala desde otro lado (el Receiver, desde la tele) y `store` lo explica.
  * @typedef {{label: string, store: string, href?: string, icon: string}} StoreLink */
-/** `picker`: el paso muestra ese grupo del selector de idiomas (LangPicker). @typedef {{icon: 'play' | 'phone' | 'cast' | 'wifi' | 'link' | 'subs' | 'globe' | 'film', title: string, body: string, links?: StoreLink[], picker?: 'app' | 'titles'}} Step */
+/** `picker`: el paso muestra ese grupo del selector de idiomas (LangPicker). `nick`: pide el apodo (obligatorio: sin
+ * apodo válido no se avanza ni se sale). @typedef {{icon: 'play' | 'phone' | 'cast' | 'wifi' | 'link' | 'subs' | 'globe' | 'film' | 'user', title: string, body: string, links?: StoreLink[], picker?: 'app' | 'titles', nick?: boolean}} Step */
 
 // Íconos: artworkUrl512 de itunes.apple.com/lookup (iOS) y og:image de la ficha de Google Play (tamaño =s256).
 const JUST_PLAYER = { label: 'Just Player', store: 'Google Play', href: 'https://play.google.com/store/apps/details?id=com.brouken.player', icon: 'https://play-lh.googleusercontent.com/1du5nvD4DXIf1h4S_ip5MuRZHHfpPlJl0EEzJ915TAGJws1H8E9Hi-NRPSw0gUfhOn-SRzqQsoQ4Yz-7kbQflQ=s256' };
@@ -26,6 +27,9 @@ export function device() {
 /** @param {ReturnType<typeof device>} d */
 const casterFor = (d) => (d === 'ios' ? [WVC_IOS] : d === 'android' ? [WVC_ANDROID] : [WVC_IOS, WVC_ANDROID]);
 
+/** El paso del apodo: en la bienvenida y solo, para quien ya la vio sin tener apodo. @returns {Step} */
+export const nickStep = () => ({ icon: 'user', title: t('¿Cómo te decimos?'), body: t('Tu apodo para saludarte. Lo cambiás en Ajustes.'), nick: true });
+
 /** Bienvenida: qué es, con qué verlo en el celu (según el dispositivo) y qué hace falta para la tele.
  * @param {ReturnType<typeof device>} d @returns {Step[]} */
 export function welcomeSteps(d) {
@@ -37,6 +41,7 @@ export function welcomeSteps(d) {
 				: { title: t('Para verlo en el celular vas a necesitar bajar SenPlayer (iPhone) o Just Player (Android)'), body: t('Abrís el link copiado y elegís el audio y los subtítulos.'), links: [SENPLAYER, JUST_PLAYER] };
 	return [
 		{ icon: 'globe', title: t('¿En qué idioma querés la app?'), body: t('Menús, botones y sinopsis. Lo cambiás cuando quieras en Ajustes.'), picker: 'app' },
+		nickStep(),
 		{ icon: 'film', title: t('¿En qué idioma querés ver los títulos de pelis y series?'), body: t('Puede ser distinto del de la app. También lo cambiás en Ajustes.'), picker: 'titles' },
 		{ icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.') },
 		{ icon: 'phone', ...player },

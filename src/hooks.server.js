@@ -1,8 +1,17 @@
 import { pickLangs } from '#lib/i18n/translate.js';
 import { langStore, tx } from '#lib/server/lang.js';
+import { attempt } from '#lib/server/intentos.js';
 
 // Candado rústico: si hay APP_PASSWORD (en Vercel), pide un código de 3 dígitos y lo guarda en una cookie.
-// shortcut: código fijo en env, en cookie legible y sin rate limit; si se expone más, pasar a login real.
+// Cambiar APP_PASSWORD (y redeployar) deja afuera todas las cookies viejas: se compara contra el valor actual.
+// 5 códigos errados seguidos bloquean la IP 15 min (lib/server/intentos.js).
+// shortcut: código fijo en env, en cookie legible; si se expone más, pasar a login real.
+
+/** Pide a Chrome (Android) el modelo del equipo y la versión del sistema en los pedidos siguientes (los lee track()). */
+const HINTS = 'Sec-CH-UA-Model, Sec-CH-UA-Platform-Version';
+/** IPs que ya entraron con el código correcto en esta instancia (vencimiento en ms): así el pedido de todos los
+ * días no consulta la base. Una IP bloqueada no entra acá, y una que entró y falla después se saca. */
+const okIps = new Map();
 
 const GATE = `<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Streamonte</title>
@@ -26,12 +35,10 @@ const GATE = `<!doctype html><html lang="es"><head><meta charset="utf-8">
 		<div class="gate-box"></div><div class="gate-box"></div><div class="gate-box"></div>
 		<input id="gate-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="one-time-code" aria-label="Código de 3 dígitos">
 	</div>
-	<p id="gate-error" role="alert"></p>
+	<p id="gate-error" role="alert">GATE_ERROR</p>
 </main>
 <script>
 	const input = document.getElementById('gate-code');
-	// Si ya había cookie y seguimos acá, el código guardado era incorrecto.
-	if (/(^|; )code=/.test(document.cookie)) document.getElementById('gate-error').textContent = 'Código incorrecto';
 	const boxes = document.querySelectorAll('.gate-box');
 	const paint = () => boxes.forEach((b, i) => {
 		b.textContent = input.value[i] ?? '';
@@ -65,14 +72,40 @@ export const handle = async ({ event, resolve }) => {
 	event.locals.langs = langs;
 	return langStore.run(langs, async () => {
 		const pass = process.env.APP_PASSWORD;
-		if (!pass || event.cookies.get('code') === pass) return resolve(event, { transformPageChunk: ({ html }) => html.replace('<html lang="es">', `<html lang="${lang}">`) });
+		const app = async () => {
+			const res = await resolve(event, { transformPageChunk: ({ html }) => html.replace('<html lang="es">', `<html lang="${lang}">`) });
+			if (res.headers.get('content-type')?.startsWith('text/html')) res.headers.set('Accept-CH', HINTS);
+			return res;
+		};
+		if (!pass) return app();
+		const code = event.cookies.get('code');
+		/** @type {number | undefined} */
+		let wait;
+		if (code) {
+			const ip = event.getClientAddress();
+			if (code === pass && (okIps.get(ip) ?? 0) > Date.now()) return app();
+			const r = await attempt(`app:${ip}`, code, pass);
+			if (r.ok) {
+				okIps.set(ip, Date.now() + 10 * 60_000);
+				return app();
+			}
+			okIps.delete(ip);
+			wait = r.wait;
+		}
 		// El aviso de uso pasa sin código: lo manda también play.html desde el navegador de Web Video Caster.
 		if (event.url.pathname === '/api/track') return resolve(event);
-		if (event.url.pathname.startsWith('/api/')) return new Response(tx('Falta el código.'), { status: 401 });
-		const gate = GATE.replace('<html lang="es">', `<html lang="${lang}">`)
+		// Bloqueada: 429 y no 401 (el desktop toma 401 como código incorrecto y borra el que tiene guardado).
+		if (event.url.pathname.startsWith('/api/')) return wait ? new Response(tx('Demasiados intentos. Probá en 15 minutos.'), { status: 429 }) : new Response(tx('Falta el código.'), { status: 401 });
+		const error = wait ? tx('Demasiados intentos. Probá de nuevo en {n} min.', { n: wait }) : code ? tx('Código incorrecto') : '';
+		let gate = GATE.replace('<html lang="es">', `<html lang="${lang}">`)
 			.replace('Introducí el código', tx('Introducí el código'))
 			.replace('Código de 3 dígitos', tx('Código de 3 dígitos'))
-			.replace("'Código incorrecto'", JSON.stringify(tx('Código incorrecto')));
-		return new Response(gate, { status: 401, headers: { 'content-type': 'text/html; charset=utf-8' } });
+			.replace('GATE_ERROR', error);
+		if (wait) gate = gate.replace('<input id="gate-code"', '<input id="gate-code" disabled');
+		const headers = new Headers({ 'content-type': 'text/html; charset=utf-8', 'accept-ch': HINTS });
+		// Código errado (o bloqueado): se borra la cookie, así recargar no lo manda (ni lo cuenta) de nuevo. A mano: las
+		// cookies de `event.cookies` no llegan a una Response armada acá.
+		if (code) headers.append('set-cookie', 'code=; Path=/; Max-Age=0; SameSite=Lax');
+		return new Response(gate, { status: 401, headers });
 	});
 };
