@@ -30,7 +30,15 @@
 	const kind = $derived(KINDS.find((k) => k.v === cat.f.kind) ?? KINDS[0]);
 	const kindIdx = $derived(Math.max(0, KINDS.indexOf(kind)));
 	const genres = $derived(cat.genreList[kind.kind] ?? []);
-	const searching = $derived(cat.q.trim() !== '');
+	/** Buscando por texto o viendo lo de un actor: los filtros no aplican y se esconden. */
+	const searching = $derived(cat.q.trim() !== '' || !!cat.person);
+	/** Actores y directores que coinciden con lo escrito (sugerencias debajo del buscador). @type {{id: number, name: string, photo: string | null, known: string, role: 'cast' | 'director'}[]} */
+	let people = $state([]);
+	let qFocus = $state(false);
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
+	let peopleT;
+	/** Solo la última respuesta cuenta (escribe rápido: llegan desordenadas). */
+	let peopleGen = 0;
 	/** Resumen de lo aplicado, debajo de los chips (ni el idioma ni las fechas, que ya muestra el selector de años). */
 	const summary = $derived(
 		[
@@ -290,6 +298,10 @@
 	/** Vuelve al catálogo con los filtros, arriba de todo. */
 	function clearSearch() {
 		clearTimeout(typing);
+		clearTimeout(peopleT);
+		peopleGen++;
+		people = [];
+		cat.person = null;
 		cat.q = '';
 		reset();
 		scrollTo({ top: 0 });
@@ -314,11 +326,38 @@
 			goto(`/m/${hash}${dn ? `?${new URLSearchParams({ dn })}` : ''}`);
 			return;
 		}
+		// Escribir de nuevo deja al actor elegido y vuelve a buscar por texto.
+		cat.person = null;
 		clearTimeout(typing);
 		typing = setTimeout(reset, 350);
+		findPeople();
 		// La búsqueda se registra recién cuando deja de escribir un rato (no cada letra).
 		clearTimeout(logged);
 		logged = setTimeout(() => cat.q.trim() && track('buscar', cat.q.trim()), 1500);
+	}
+	/** Sugerencias de actores y directores mientras escribe (desde 3 letras), un rato después de la última tecla. */
+	function findPeople() {
+		clearTimeout(peopleT);
+		const q = cat.q.trim();
+		const my = ++peopleGen;
+		if (q.length < 3) return void (people = []);
+		peopleT = setTimeout(async () => {
+			const r = await fetch(`/api/people?${new URLSearchParams({ q })}`).catch(() => null);
+			const list = r?.ok ? await r.json() : [];
+			if (my === peopleGen) people = list;
+		}, 250);
+	}
+	/** Elegido un actor o director: el catálogo muestra lo que actuó o dirigió, sin filtros. @param {{id: number, name: string, photo: string | null, role: 'cast' | 'director'}} p */
+	function pickPerson(p) {
+		clearTimeout(typing);
+		clearTimeout(logged);
+		peopleGen++;
+		people = [];
+		cat.q = '';
+		cat.person = { id: p.id, name: p.name, photo: p.photo, role: p.role };
+		reset();
+		scrollTo({ top: 0 });
+		track(p.role === 'director' ? 'director' : 'actor', p.name);
 	}
 	/** @param {string} id */
 	function toggleGenre(id) {
@@ -435,13 +474,36 @@
 					<a id="go-settings" class="icon-btn" href="/ajustes" aria-label={t('Ajustes')}><Icon name="gear" /></a>
 				</div>
 			</div>
-			<label class="search">
-				<Icon name="search" size={18} />
-				<input id="cat-q" type="search" placeholder={t('Buscar película o serie')} autocomplete="off" enterkeyhint="search" bind:value={cat.q} oninput={onSearch} onkeydown={(e) => e.key === 'Escape' && cat.q && clearSearch()} />
-				{#if cat.q}
-					<button id="cat-q-clear" type="button" class="clear-q" aria-label={t('Limpiar búsqueda')} onclick={clearSearch}><Icon name="close" size={14} /></button>
+			<div class="finder">
+				<label class="search">
+					<Icon name="search" size={18} />
+					<input id="cat-q" type="search" placeholder={t('Título, actor/actriz o director')} autocomplete="off" enterkeyhint="search" bind:value={cat.q} oninput={onSearch} onfocus={() => (qFocus = true)} onblur={() => (qFocus = false)} onkeydown={(e) => e.key === 'Escape' && (people.length ? (people = []) : cat.q && clearSearch())} />
+					{#if cat.q || cat.person}
+						<button id="cat-q-clear" type="button" class="clear-q" aria-label={t('Limpiar búsqueda')} onclick={clearSearch}><Icon name="close" size={14} /></button>
+					{/if}
+				</label>
+				<!-- Actores y directores que coinciden: tocar uno trae lo que actuó o dirigió. pointerdown sin foco: el input no se cierra antes del clic. -->
+				{#if qFocus && people.length && cat.q.trim()}
+					<ul id="people-list" class="people" aria-label={t('Actores y directores')}>
+						{#each people as p, i (p.id)}
+							<li style:--i={i}>
+								<button id="person-{p.id}" type="button" class="person" onpointerdown={(e) => e.preventDefault()} onclick={() => pickPerson(p)}>
+									{#if p.photo}<img src={p.photo} alt="" width="40" height="40" loading="lazy" />{:else}<span class="ph" aria-hidden="true"><Icon name="user" size={18} /></span>{/if}
+									<span class="who"><b>{p.name}</b><small><span class="role">{t(p.role === 'director' ? 'Director' : 'Actúa')}</span>{#if p.known} · {p.known}{/if}</small></span>
+									<span class="go" aria-hidden="true"><Icon name="chev" size={16} /></span>
+								</button>
+							</li>
+						{/each}
+					</ul>
 				{/if}
-			</label>
+			</div>
+			{#if cat.person}
+				<div id="person-chip" class="person-chip" role="status">
+					{#if cat.person.photo}<img src={cat.person.photo} alt="" width="28" height="28" />{/if}
+					<span>{t(cat.person.role === 'director' ? 'Dirigidas por {name}' : 'Con {name}', { name: cat.person.name })}</span>
+					<button id="person-clear" type="button" class="chip-x" aria-label={t('Volver al catálogo')} onclick={clearSearch}><Icon name="close" size={12} /></button>
+				</div>
+			{/if}
 			{#if !searching}
 				<div class="seg" role="radiogroup" aria-label={t('Tipo')} style:--i={kindIdx}>
 					<span class="seg-thumb" aria-hidden="true"></span>
@@ -705,6 +767,44 @@
 	}
 	/* Se ve de 22px, se toca en 44px. */
 	.clear-q::after { content: ''; position: absolute; inset: -11px; }
+
+	/* Buscador con sugerencias de actores y directores: la lista cae justo debajo, sobre el catálogo. */
+	.finder { position: relative; }
+	.people {
+		position: absolute;
+		top: calc(100% + 6px);
+		left: 0;
+		right: 0;
+		z-index: 30;
+		margin: 0;
+		padding: 6px;
+		list-style: none;
+		border-radius: 14px;
+		background: var(--raised);
+		box-shadow: 0 12px 32px var(--shadow-lg);
+		transform-origin: top center;
+		animation: drop 0.28s var(--out);
+	}
+	.people li { animation: rise-in 0.36s var(--out) calc(var(--i) * 35ms) backwards; }
+	.person { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 10px; border: 0; border-radius: 10px; background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+	.person:hover, .person:focus-visible { background: var(--surface-2); }
+	.person:active { transform: scale(0.985); }
+	.person img, .person .ph { flex: none; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--surface-3); }
+	.person .ph { display: grid; place-items: center; color: var(--muted); }
+	.go { flex: none; display: grid; color: var(--muted); transform: rotate(-90deg); }
+	.who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+	.who b { font-size: 15px; font-weight: 650; }
+	.who .role { color: var(--accent-fg); font-weight: 600; }
+	.who small { overflow: hidden; color: var(--muted); font-size: 12.5px; white-space: nowrap; text-overflow: ellipsis; }
+	@keyframes drop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
+	@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
+	/* Actor elegido: una píldora dice de quién son los resultados y se quita con la cruz. */
+	.person-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin: 10px 0 8px; padding: 4px 4px 4px 4px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent-fg); font-size: 14px; font-weight: 650; animation: rise-in 0.4s var(--out); }
+	.person-chip img { flex: none; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+	.person-chip span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-left: 4px; }
+	.chip-x { position: relative; flex: none; display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--accent) 22%, transparent); color: inherit; }
+	.chip-x::after { content: ''; position: absolute; inset: -9px; }
+	@media (prefers-reduced-motion: reduce) { .people, .people li, .person-chip { animation: none; } }
 
 	/* Control segmentado (iOS/Android): la píldora se desliza al tipo elegido. */
 	.seg {

@@ -1,4 +1,4 @@
-import { discover, search, VOTES } from '#lib/server/tmdb.js';
+import { discover, personTitles, search, VOTES } from '#lib/server/tmdb.js';
 import { route } from '#lib/server/http.js';
 
 /** Solo valores que puede mandar la web: cada combinación nueva arma una lista con hasta 30 pedidos de discover y
@@ -10,6 +10,9 @@ const set = (v, re, max) => [...new Set((v ?? '').split(',').filter((x) => re.te
 export const GET = route(async ({ url }) => {
 	const p = url.searchParams;
 	const page = Math.min(Math.max(Math.trunc(Number(p.get('page'))) || 1, 1), 30);
+	// Lo que actuó o dirigió una persona (sugerencia del buscador): ignora los filtros.
+	const person = Number(p.get('person'));
+	if (Number.isInteger(person) && person > 0) return personTitles(person, p.get('role') === 'director' ? 'director' : 'cast');
 	const q = p.get('q')?.trim().slice(0, 100);
 	if (q) return search(q, page);
 	const votes = Number(p.get('votes'));

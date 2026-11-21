@@ -190,6 +190,53 @@ export async function search(q, page) {
 	return { items, page: j.page, pages: j.total_pages };
 }
 
+/** Sugerencias de actores y directores para el buscador: hasta 6 (los demás oficios no), con foto, rol y por qué se
+ * lo conoce. @param {string} q @returns {Promise<{id: number, name: string, photo: string | null, known: string, role: 'cast' | 'director'}[]>} */
+export async function people(q) {
+	const j = await tmdb('/search/person', { query: q, include_adult: false });
+	return j.results
+		.filter((/** @type {any} */ r) => r.known_for?.length && (r.known_for_department === 'Acting' || r.known_for_department === 'Directing'))
+		.slice(0, 6)
+		.map((/** @type {any} */ r) => ({
+			id: r.id,
+			name: r.name,
+			photo: r.profile_path ? `${IMG}w185${r.profile_path}` : null,
+			known: r.known_for.slice(0, 2).map((/** @type {any} */ k) => k.title ?? k.name).filter(Boolean).join(', '),
+			role: /** @type {'cast' | 'director'} */ (r.known_for_department === 'Directing' ? 'director' : 'cast')
+		}));
+}
+
+/** Géneros de TV que no son actuar (talk shows, noticias, realities): ahí aparece como sí mismo. */
+const NOT_ACTING = [10767, 10763, 10764];
+/** Series donde actuó menos episodios que esto: invitado o cameo (Friends para Brad Pitt), no se muestran. */
+const MIN_EPISODES = 3;
+/** Hasta cuántos títulos de un actor (los más populares): cada uno sin ficha guardada es un pedido a TMDB. */
+const MAX_CREDITS = 80;
+
+/** Lo que actuó (`cast`) o dirigió (`director`) una persona, películas y series, de más a menos popular, sin filtros:
+ * una sola página. @param {number} id @param {'cast' | 'director'} role */
+export async function personTitles(id, role) {
+	const j = await tmdb(`/person/${id}/combined_credits`);
+	const seen = new Set();
+	/** @type {any[]} */
+	const credits = role === 'director' ? j.crew.filter((/** @type {any} */ r) => r.job === 'Director') : j.cast;
+	const cast = credits
+		.filter((/** @type {any} */ r) => (r.media_type === 'movie' || r.media_type === 'tv') && keep(r) && !r.genre_ids?.some((/** @type {number} */ g) => NOT_ACTING.includes(g)) && (r.media_type === 'movie' || role === 'director' || (r.episode_count ?? 0) >= MIN_EPISODES))
+		.filter((/** @type {any} */ r) => !seen.has(`${r.media_type}${r.id}`) && seen.add(`${r.media_type}${r.id}`))
+		.sort((/** @type {any} */ a, /** @type {any} */ b) => b.popularity - a.popularity)
+		.slice(0, MAX_CREDITS);
+	const [table, movies, shows] = await Promise.all([
+		ratings(),
+		fillDetails('movie', cast.filter((r) => r.media_type === 'movie').map((r) => r.id)),
+		fillDetails('tv', cast.filter((r) => r.media_type === 'tv').map((r) => r.id))
+	]);
+	const items = cast.map((r) => {
+		const d = (r.media_type === 'movie' ? movies : shows)[`${r.media_type}:${r.id}`];
+		return scored(r, r.media_type, d?.imdb ? imdbOf(d.imdb, table) : null);
+	});
+	return { items, page: 1, pages: 1 };
+}
+
 /** @param {'movie' | 'tv'} kind */
 export async function genres(kind) {
 	const j = await tmdb(`/genre/${kind}/list`, {}, lang());

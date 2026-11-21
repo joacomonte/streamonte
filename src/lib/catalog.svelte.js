@@ -43,6 +43,8 @@ function saved() {
 export const cat = $state({
 	f: typeof window !== 'undefined' ? saved() : { ...DEFAULTS },
 	q: '',
+	/** Actor o director elegido en las sugerencias del buscador: muestra lo que actuó o dirigió, sin filtros. @type {{id: number, name: string, photo: string | null, role: 'cast' | 'director'} | null} */
+	person: null,
 	/** @type {{id: number, kind: 'movie' | 'tv', title: string, year: string, released?: string | null, poster: string | null, rating: string | null}[]} */
 	items: [],
 	page: 0,
@@ -68,7 +70,11 @@ export async function loadMore() {
 	cat.loading = true;
 	const k = KINDS.find((x) => x.v === cat.f.kind) ?? KINDS[0];
 	const p = new URLSearchParams({ page: String(cat.page + 1) });
-	if (cat.q.trim()) p.set('q', cat.q.trim());
+	if (cat.person) {
+		p.set('person', String(cat.person.id));
+		p.set('role', cat.person.role);
+	}
+	else if (cat.q.trim()) p.set('q', cat.q.trim());
 	else {
 		p.set('kind', k.kind);
 		p.set('sort', cat.f.sort);
