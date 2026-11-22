@@ -17,3 +17,6 @@ mem.db*
 /src-tauri/mpv/*
 !/src-tauri/mpv/.gitkeep
 .vercel
+
+# Worktrees de agentes en paralelo
+.claude/worktrees/
