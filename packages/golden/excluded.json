@@ -1,0 +1,121 @@
+[
+ {
+  "in": {
+   "countries": [
+    "US"
+   ],
+   "animation": false
+  },
+  "out": false
+ },
+ {
+  "in": {
+   "countries": [],
+   "animation": false
+  },
+  "out": false,
+  "nota": "sin país"
+ },
+ {
+  "in": {
+   "countries": [
+    "JP"
+   ],
+   "animation": false
+  },
+  "out": true
+ },
+ {
+  "in": {
+   "countries": [
+    "JP"
+   ],
+   "animation": true
+  },
+  "out": true
+ },
+ {
+  "in": {
+   "countries": [
+    "US",
+    "JP"
+   ],
+   "animation": false
+  },
+  "out": false,
+  "nota": "Japón segundo, sin animación"
+ },
+ {
+  "in": {
+   "countries": [
+    "US",
+    "JP"
+   ],
+   "animation": true
+  },
+  "out": true,
+  "nota": "Japón segundo + animación"
+ },
+ {
+  "in": {
+   "countries": [
+    "JP",
+    "US"
+   ],
+   "animation": false
+  },
+  "out": true,
+  "nota": "Japón primero"
+ },
+ {
+  "in": {
+   "countries": [
+    "US"
+   ],
+   "animation": true
+  },
+  "out": false,
+  "nota": "animación sin Japón"
+ },
+ {
+  "in": {
+   "countries": [
+    "KR"
+   ],
+   "animation": true
+  },
+  "out": false
+ },
+ {
+  "in": {
+   "countries": [
+    "FR",
+    "GB",
+    "JP"
+   ],
+   "animation": true
+  },
+  "out": true
+ },
+ {
+  "in": {
+   "countries": [
+    "FR",
+    "GB",
+    "JP"
+   ],
+   "animation": false
+  },
+  "out": false
+ },
+ {
+  "in": {
+   "countries": [
+    "JP",
+    "KR"
+   ],
+   "animation": true
+  },
+  "out": true
+ }
+]

@@ -189,9 +189,9 @@
 
 		<footer>
 			{#if i > 0}
-				<button id="{id}-back" type="button" class="btn ghost" onclick={() => go(i - 1)}>{t('Atrás')}</button>
+				<button id="{id}-back" type="button" class="btn btn-ghost" onclick={() => go(i - 1)}>{t('Atrás')}</button>
 			{/if}
-			<button id="{id}-next" type="button" class="btn primary" disabled={step.nick && nickSaving} onclick={next}>
+			<button id="{id}-next" type="button" class="btn btn-primary" disabled={step.nick && nickSaving} onclick={next}>
 				{last ? t('Listo') : t('Siguiente')}
 				{#if !last}<Icon name="next" size={20} />{/if}
 			</button>
@@ -229,7 +229,7 @@
 	header { display: flex; align-items: center; gap: 12px; padding: 12px 20px 0; min-height: 56px; flex: none; }
 	.progress { flex: 1; display: flex; gap: 6px; }
 	.seg { flex: 1; height: 32px; padding: 0; border: 0; background: none; display: grid; align-items: center; cursor: pointer; }
-	.seg span { display: block; height: 5px; border-radius: 99px; background: var(--surface-3); overflow: hidden; position: relative; }
+	.seg span { display: block; height: 5px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; position: relative; }
 	.seg span::after {
 		content: '';
 		position: absolute;
@@ -241,7 +241,7 @@
 		transition: transform 0.5s var(--out);
 	}
 	.seg.done span::after { transform: scaleX(1); }
-	.skip { min-height: 44px; margin-right: -10px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 15px; font-weight: 600; }
+	.skip { min-height: 44px; margin-right: -10px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: none; color: var(--muted); font-size: 15px; font-weight: 600; }
 	.skip:active { background: var(--surface-2); }
 
 	/* Pasos apilados en la misma celda: el que sale y el que entra se cruzan. */
@@ -267,7 +267,7 @@
 		border-radius: 34px;
 		background: color-mix(in srgb, var(--accent) 20%, var(--surface));
 		color: var(--accent-fg);
-		box-shadow: 0 16px 40px -12px color-mix(in srgb, var(--accent) 55%, transparent);
+		box-shadow: 0 16px 40px -12px color-mix(in srgb, var(--accent) var(--tint-4), transparent);
 		animation: pop 0.7s var(--out) both, float 4.5s ease-in-out 0.7s infinite;
 	}
 	.ring { width: 112px; height: 112px; border-radius: 34px; border: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); animation: ring 2.6s var(--out) 0.2s infinite both; }
@@ -285,7 +285,7 @@
 		height: 64px;
 		padding: 0 16px;
 		border: 2px solid var(--border-strong);
-		border-radius: 18px;
+		border-radius: var(--r-lg);
 		background: var(--surface);
 		color: var(--text);
 		font-size: 26px;
@@ -329,7 +329,7 @@
 		gap: 6px;
 		height: 44px;
 		padding: 0 16px;
-		border-radius: 999px;
+		border-radius: var(--r-pill);
 		background: var(--accent);
 		color: var(--accent-text);
 		font-size: 15px;
@@ -337,8 +337,7 @@
 	}
 
 	footer { flex: none; display: flex; gap: 10px; padding: 12px 20px 16px; }
-	footer .btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 56px; border-radius: 16px; font-size: 17px; font-weight: 650; }
-	.ghost { background: none; }
+	footer .btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 56px; border-radius: var(--r-lg); font-size: 17px; font-weight: 650; }
 
 	@media (hover: hover) {
 		a.app:hover { background: var(--surface-2); }

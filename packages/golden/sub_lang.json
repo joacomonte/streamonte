@@ -1,0 +1,86 @@
+[
+ {
+  "in": "Sintel/Sintel.es.srt",
+  "out": true
+ },
+ {
+  "in": "Subs/2_Spanish.srt",
+  "out": true
+ },
+ {
+  "in": "peli.spa.latino.srt",
+  "out": true
+ },
+ {
+  "in": "peli.es-419.srt",
+  "out": true
+ },
+ {
+  "in": "peli.es-ES.srt",
+  "out": true
+ },
+ {
+  "in": "peli.castellano.srt",
+  "out": true
+ },
+ {
+  "in": "Sintel/Sintel.en.srt",
+  "out": false
+ },
+ {
+  "in": "Sintel/Sintel.de.srt",
+  "out": false
+ },
+ {
+  "in": "Subs/Español.srt",
+  "out": true
+ },
+ {
+  "in": "Subs/Espanol.ass",
+  "out": true
+ },
+ {
+  "in": "Subs/ESP.srt",
+  "out": true
+ },
+ {
+  "in": "Subs/English.srt",
+  "out": false
+ },
+ {
+  "in": "peli.eng.srt",
+  "out": false
+ },
+ {
+  "in": "Sintel.fr.srt",
+  "out": false
+ },
+ {
+  "in": "Subs/Spanish.vtt",
+  "out": true
+ },
+ {
+  "in": "peli.2023.srt",
+  "out": false
+ },
+ {
+  "in": "Subs/Latino.srt",
+  "out": true
+ },
+ {
+  "in": "peli.es.mkv",
+  "out": true,
+  "nota": "no es subtítulo por extensión",
+  "diverge": "web: false"
+ },
+ {
+  "in": "Subs\\Spanish.srt",
+  "out": true,
+  "nota": "ruta con barras invertidas"
+ },
+ {
+  "in": "Spanish Dub/peli.en.srt",
+  "out": false,
+  "nota": "carpeta en español, archivo en inglés"
+ }
+]

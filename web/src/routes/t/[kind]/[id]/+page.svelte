@@ -105,7 +105,7 @@
 
 <header class="topbar" class:clear={!titleUp} bind:offsetHeight={barH}>
 	<div class="wrap row">
-		<a id="back" class="icon-btn" href="/" aria-label={tr('Volver al catálogo')} onclick={(e) => { if (history.length > 1) { e.preventDefault(); history.back(); } }}><Icon name="back" /></a>
+		<a id="back" class="btn-icon" href="/" aria-label={tr('Volver al catálogo')} onclick={(e) => { if (history.length > 1) { e.preventDefault(); history.back(); } }}><Icon name="back" /></a>
 		<span class="top-title" class:up={titleUp} aria-hidden="true">{t.title}</span>
 	</div>
 </header>
@@ -270,13 +270,13 @@
 		mask-image: linear-gradient(to bottom, #000 40%, transparent);
 	}
 	.hero-in { position: relative; display: flex; gap: 14px; align-items: flex-end; padding: 18px 16px 8px; }
-	.poster { width: 110px; height: auto; aspect-ratio: 2 / 3; border-radius: 10px; box-shadow: 0 8px 24px var(--shadow-lg); object-fit: cover; flex: none; }
+	.poster { width: 110px; height: auto; aspect-ratio: 2 / 3; border-radius: var(--r-md); box-shadow: 0 8px 24px var(--shadow-lg); object-fit: cover; flex: none; }
 	@media (min-width: 720px) { .poster { width: 170px; } }
 	.facts { min-width: 0; padding-bottom: 4px; }
 	.name { margin: 0 0 4px; font-size: 24px; line-height: 1.15; letter-spacing: -0.015em; text-wrap: balance; }
 	.line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; font-size: 13.5px; }
 	.cine-wrap { padding: 12px 16px 0; }
-	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: 12px; background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
+	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: var(--r-card); background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
 	.cine-note :global(svg) { flex: none; margin-top: 1px; color: var(--amber, #f5a524); }
 	.small { font-size: 12.5px; }
 	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
@@ -289,7 +289,7 @@
 	.providers.open { gap: 6px 14px; padding: 6px 14px 6px 6px; border-radius: 20px; }
 	.prov { display: inline-flex; align-items: center; gap: 8px; }
 	.prov img, .prov-empty { width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface-2); object-fit: cover; }
-	.providers.open .prov img, .providers.open .prov-empty { border-radius: 8px; }
+	.providers.open .prov img, .providers.open .prov-empty { border-radius: var(--r-sm); }
 	.prov-empty { display: grid; place-items: center; background: var(--border); font-size: 12px; font-weight: 700; }
 	.prov-name { font-size: 13.5px; font-weight: 600; }
 	.prov-more { margin-left: 8px; font-size: 13px; font-weight: 650; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -301,7 +301,7 @@
 	.people { display: flex; gap: 4px; margin: 0 auto; padding: 14px 16px 2px; list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
 	.people::-webkit-scrollbar { display: none; }
 	.people li { flex: none; scroll-snap-align: start; }
-	.person { display: flex; flex-direction: column; align-items: center; width: 84px; padding: 6px 2px; border: 0; border-radius: 12px; background: none; color: var(--text); font: inherit; text-align: center; cursor: pointer; }
+	.person { display: flex; flex-direction: column; align-items: center; width: 84px; padding: 6px 2px; border: 0; border-radius: var(--r-card); background: none; color: var(--text); font: inherit; text-align: center; cursor: pointer; }
 	.person img, .face-empty { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--surface-2); transition: transform 0.2s var(--out); }
 	.face-empty { display: grid; place-items: center; color: var(--muted); }
 	.person:active img { transform: scale(0.94); }
@@ -318,7 +318,7 @@
 	.about-text b { font-size: 14.5px; font-weight: 650; }
 	.about-peek { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13.5px; color: var(--muted); transition: opacity 0.2s var(--ease); }
 	.about.open .about-peek { display: none; }
-	.about-chev { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 999px; background: var(--surface-2); color: var(--muted); transition: transform 0.35s var(--out), background 0.2s var(--ease); }
+	.about-chev { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--muted); transition: transform 0.35s var(--out), background 0.2s var(--ease); }
 	.about.open .about-chev { transform: rotate(180deg); }
 	.about-head:active .about-chev { background: var(--surface-3, var(--border)); }
 	.about-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s var(--out); }
@@ -338,36 +338,36 @@
 		min-height: 64px;
 		padding: 10px 12px 10px 10px;
 		border: 1px solid var(--border);
-		border-radius: 14px;
+		border-radius: var(--r-card);
 		background: var(--surface);
 		text-decoration: none;
 		transition: background 0.2s, transform 0.15s;
 	}
 	.season:active { transform: scale(0.985); background: var(--surface-2); }
-	.s-num { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 12px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent-fg); font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
+	.s-num { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: var(--r-card); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent-fg); font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
 	.s-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 	.s-name { font-weight: 650; font-size: 15px; }
 	.s-score { display: inline-flex; align-items: center; gap: 3px; font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 	.s-score :global(svg) { color: #e6b54a; fill: currentColor; }
 	.crumbs { display: flex; align-items: center; gap: 4px; min-height: 44px; }
 	.crumbs h2 { margin: 0; }
-	.crumb { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; margin-left: -6px; padding: 0 6px; border: 0; border-radius: 8px; background: none; color: var(--accent-fg); font-size: 15px; font-weight: 650; }
+	.crumb { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; margin-left: -6px; padding: 0 6px; border: 0; border-radius: var(--r-sm); background: none; color: var(--accent-fg); font-size: 15px; font-weight: 650; }
 	.crumb:active { background: var(--surface-2); }
 	.sep { color: var(--muted); }
 	@media (hover: hover) { .season:hover { background: var(--surface-2); } }
 	.eps { list-style: none; margin: 10px 0 0; padding: 0; }
 	.eps li { border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 6px; }
-	.ep { display: flex; gap: 12px; align-items: center; width: 100%; padding: 6px 0; text-decoration: none; border-radius: 10px; }
+	.ep { display: flex; gap: 12px; align-items: center; width: 100%; padding: 6px 0; text-decoration: none; border-radius: var(--r-md); }
 	.ep:active { background: var(--surface-2); }
 	.ep.future { opacity: 0.6; }
-	.ep img, .still-empty { width: 120px; height: auto; aspect-ratio: 16 / 9; border-radius: 8px; object-fit: cover; background: var(--surface-2); flex: none; }
+	.ep img, .still-empty { width: 120px; height: auto; aspect-ratio: 16 / 9; border-radius: var(--r-sm); object-fit: cover; background: var(--surface-2); flex: none; }
 	.ep-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 	.ep-name { font-weight: 600; font-size: 14px; }
 	.chev { color: var(--muted); }
 	.info { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; padding-bottom: 14px; font-size: 14px; }
 	.info dt { color: var(--muted); }
 	.info dd { margin: 0; }
-	.ep-skel { height: 68px; border-radius: 8px; margin-top: 10px; }
+	.ep-skel { height: 68px; border-radius: var(--r-sm); margin-top: 10px; }
 	/* Entrada: el fondo se enfoca desde un zoom y el texto sube en cascada mientras el póster llega volando. */
 	.hero::before { animation: backdrop-in 0.9s var(--out) backwards; will-change: transform; }
 	.name, .line, .genres, .companies, .acts, .people, main { animation: rise 0.7s var(--out) backwards; }

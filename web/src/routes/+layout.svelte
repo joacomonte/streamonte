@@ -127,14 +127,14 @@
 		max-width: 520px;
 		margin: 0 auto;
 		padding: 8px 8px 8px 16px;
-		border-radius: 14px;
+		border-radius: var(--r-card);
 		background: var(--raised);
 		box-shadow: 0 8px 28px var(--shadow-lg);
 		font-size: 14.5px;
 		font-weight: 600;
 		animation: update-in 0.4s var(--out);
 	}
-	.update-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-text); font-size: 14px; font-weight: 700; }
+	.update-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 0; border-radius: var(--r-md); background: var(--accent); color: var(--accent-text); font-size: 14px; font-weight: 700; }
 	.update-btn:active { transform: scale(0.97); }
 	@keyframes update-in { from { transform: translateY(24px); opacity: 0; } }
 	@media (prefers-reduced-motion: reduce) { .update { animation: none; } }
@@ -144,7 +144,7 @@
 	:global(::view-transition-group(poster)) { animation-duration: 0.6s; animation-timing-function: cubic-bezier(0.3, 0.9, 0.2, 1); z-index: 2; }
 	:global(::view-transition-old(poster)) { animation: none; opacity: 0; }
 	:global(::view-transition-new(poster)) { animation: none; height: 100%; object-fit: cover; }
-	:global(::view-transition-image-pair(poster)) { animation: vt-lift 0.6s cubic-bezier(0.3, 0.9, 0.2, 1); border-radius: 10px; overflow: hidden; }
+	:global(::view-transition-image-pair(poster)) { animation: vt-lift 0.6s cubic-bezier(0.3, 0.9, 0.2, 1); border-radius: var(--r-md); overflow: hidden; }
 	/* Abrir: el catálogo se hunde y desenfoca detrás; cerrar: la ficha baja y se apaga mientras vuelve el catálogo.
 	   Con movimiento reducido queda el fundido corto por defecto del navegador. */
 	@media (prefers-reduced-motion: no-preference) {

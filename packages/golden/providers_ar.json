@@ -1,0 +1,322 @@
+[
+ {
+  "in": null,
+  "out": [],
+  "nota": "sin watch/providers"
+ },
+ {
+  "in": {
+   "results": {}
+  },
+  "out": []
+ },
+ {
+  "in": {
+   "results": {
+    "US": {
+     "flatrate": [
+      {
+       "provider_id": 8,
+       "provider_name": "Netflix",
+       "logo_path": "/n.jpg",
+       "display_priority": 3
+      }
+     ]
+    }
+   }
+  },
+  "out": [],
+  "nota": "otro país"
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "flatrate": [
+      {
+       "provider_id": 8,
+       "provider_name": "Netflix",
+       "logo_path": "/n.jpg",
+       "display_priority": 3
+      }
+     ]
+    }
+   }
+  },
+  "out": [
+   {
+    "name": "Netflix",
+    "logo": "https://image.tmdb.org/t/p/w92/n.jpg"
+   }
+  ]
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "flatrate": [
+      {
+       "provider_id": 8,
+       "provider_name": "Netflix",
+       "logo_path": "/n.jpg",
+       "display_priority": 3
+      },
+      {
+       "provider_id": 1899,
+       "provider_name": "Max",
+       "logo_path": "/m.jpg",
+       "display_priority": 1
+      }
+     ]
+    }
+   }
+  },
+  "out": [
+   {
+    "name": "Max",
+    "logo": "https://image.tmdb.org/t/p/w92/m.jpg"
+   },
+   {
+    "name": "Netflix",
+    "logo": "https://image.tmdb.org/t/p/w92/n.jpg"
+   }
+  ],
+  "nota": "ordena por display_priority"
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "ads": [
+      {
+       "provider_id": 300,
+       "provider_name": "Pluto TV",
+       "logo_path": "/p.jpg",
+       "display_priority": 20
+      }
+     ]
+    }
+   }
+  },
+  "out": [
+   {
+    "name": "Pluto TV",
+    "logo": "https://image.tmdb.org/t/p/w92/p.jpg"
+   }
+  ]
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "free": [
+      {
+       "provider_id": 300,
+       "provider_name": "Pluto TV",
+       "logo_path": "/p.jpg",
+       "display_priority": 20
+      }
+     ]
+    }
+   }
+  },
+  "out": [
+   {
+    "name": "Pluto TV",
+    "logo": "https://image.tmdb.org/t/p/w92/p.jpg"
+   }
+  ]
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "flatrate": [
+      {
+       "provider_id": 8,
+       "provider_name": "Netflix",
+       "logo_path": "/n.jpg",
+       "display_priority": 3
+      }
+     ],
+     "ads": [
+      {
+       "provider_id": 8,
+       "provider_name": "Netflix",
+       "logo_path": "/n.jpg",
+       "display_priority": 3
+      }
+     ]
+    }
+   }
+  },
+  "out": [
+   {
+    "name": "Netflix",
+    "logo": "https://image.tmdb.org/t/p/w92/n.jpg"
+   }
+  ],
+  "nota": "sin repetir"
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "flatrate": [
+      {
+       "provider_id": 300,
+       "provider_name": "Pluto TV",
+       "logo_path": "/p.jpg",
+       "display_priority": 20
+      }
+     ],
+     "free": [
+      {
+       "provider_id": 1899,
+       "provider_name": "Max",
+       "logo_path": "/m.jpg",
+       "display_priority": 1
+      }
+     ],
+     "ads": [
+      {
+       "provider_id": 337,
+       "provider_name": "Disney Plus",
+       "logo_path": "/d.jpg",
+       "display_priority": 2
+      }
+     ]
+    }
+   }
+  },
+  "out": [
+   {
+    "name": "Max",
+    "logo": "https://image.tmdb.org/t/p/w92/m.jpg"
+   },
+   {
+    "name": "Disney Plus",
+    "logo": "https://image.tmdb.org/t/p/w92/d.jpg"
+   },
+   {
+    "name": "Pluto TV",
+    "logo": "https://image.tmdb.org/t/p/w92/p.jpg"
+   }
+  ]
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "flatrate": [
+      {
+       "provider_id": 5,
+       "provider_name": "X",
+       "logo_path": "/x.jpg",
+       "display_priority": 1
+      }
+     ],
+     "ads": [
+      {
+       "provider_id": 6,
+       "provider_name": "Y",
+       "logo_path": "/y.jpg",
+       "display_priority": 1
+      }
+     ]
+    }
+   }
+  },
+  "out": [
+   {
+    "name": "X",
+    "logo": "https://image.tmdb.org/t/p/w92/x.jpg"
+   },
+   {
+    "name": "Y",
+    "logo": "https://image.tmdb.org/t/p/w92/y.jpg"
+   }
+  ],
+  "nota": "empate de prioridad: orden estable (flatrate, ads, free)"
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "flatrate": [
+      {
+       "provider_id": 9,
+       "provider_name": "SinLogo",
+       "logo_path": null,
+       "display_priority": 1
+      }
+     ]
+    }
+   }
+  },
+  "out": [
+   {
+    "name": "SinLogo",
+    "logo": null
+   }
+  ]
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "rent": [
+      {
+       "provider_id": 8,
+       "provider_name": "Netflix",
+       "logo_path": "/n.jpg",
+       "display_priority": 3
+      }
+     ],
+     "buy": [
+      {
+       "provider_id": 1899,
+       "provider_name": "Max",
+       "logo_path": "/m.jpg",
+       "display_priority": 1
+      }
+     ]
+    }
+   }
+  },
+  "out": [],
+  "nota": "alquiler y compra no cuentan"
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {
+     "flatrate": [
+      {
+       "provider_id": 10,
+       "provider_name": "  Espacios  ",
+       "logo_path": "/e.jpg",
+       "display_priority": 1
+      }
+     ]
+    }
+   }
+  },
+  "out": [
+   {
+    "name": "Espacios",
+    "logo": "https://image.tmdb.org/t/p/w92/e.jpg"
+   }
+  ],
+  "nota": "el nombre se recorta",
+  "diverge": "web: name '  Espacios  ' (no recorta)"
+ },
+ {
+  "in": {
+   "results": {
+    "AR": {}
+   }
+  },
+  "out": []
+ }
+]

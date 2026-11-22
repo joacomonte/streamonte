@@ -16,7 +16,7 @@
 
 <header class="topbar">
 	<div class="wrap row">
-		<a id="back" class="icon-btn" href="/t/tv/{t.id}?s={data.s}" aria-label={tr('Volver a los capítulos')} onclick={(e) => { if (history.length > 1) { e.preventDefault(); history.back(); } }}><Icon name="back" /></a>
+		<a id="back" class="btn-icon" href="/t/tv/{t.id}?s={data.s}" aria-label={tr('Volver a los capítulos')} onclick={(e) => { if (history.length > 1) { e.preventDefault(); history.back(); } }}><Icon name="back" /></a>
 		<span class="top-title">{t.title}</span>
 	</div>
 </header>
@@ -46,7 +46,7 @@
 	.row { display: flex; align-items: center; gap: 4px; margin-left: -10px; }
 	.top-title { font-size: 16px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	main { padding: 14px 16px calc(32px + var(--safe-bottom)); }
-	.still { width: 100%; max-width: 560px; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-card); background: var(--surface-2); box-shadow: 0 6px 20px var(--shadow); }
+	.still { width: 100%; max-width: 560px; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-card); background: var(--surface-2); box-shadow: 0 6px 20px var(--shadow); }
 	.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: 10px 0 2px; font-size: 13px; font-weight: 650; color: var(--muted); }
 	.crumbs a { display: inline-flex; align-items: center; min-height: 32px; color: var(--accent-fg); text-decoration: none; }
 	.crumbs a:active { opacity: 0.6; }

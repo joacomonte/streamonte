@@ -60,7 +60,7 @@
 		min-height: 104px;
 		padding: 14px 8px 12px;
 		border: 1.5px solid var(--border-strong);
-		border-radius: 18px;
+		border-radius: var(--r-lg);
 		background: var(--surface);
 		color: var(--muted);
 		transition: background 0.25s var(--ease), border-color 0.25s var(--ease), color 0.25s var(--ease), transform 0.15s var(--out);
@@ -98,7 +98,7 @@
 	.big .seg button { min-height: 148px; gap: 10px; padding-top: 22px; border-radius: 22px; }
 	.big .code { width: 60px; height: 60px; font-size: 20px; }
 	.big .name { font-size: 17px; }
-	.seg button[aria-checked='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+	.seg button[aria-checked='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) var(--tint-3), transparent); }
 	.seg button[aria-checked='true'] .code { background: var(--accent-text); color: var(--accent); transform: scale(1.08); }
 	.seg button[aria-checked='true'] .tick { opacity: 1; transform: none; }
 	.seg button:active { transform: scale(0.97); }

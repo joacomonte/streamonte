@@ -441,8 +441,6 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 }
 
 
-/* Sin analizar: el panel entero es el botón (variante F, 2026-11-16). */
-  background: var(--accent); color: var(--accent-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent); transition: filter .15s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease); }
 /* Encabezado angosto (panel lateral): sin ícono, el texto respira y no se corta. */
 @container (max-width: 640px) { .cat-deep-icon { display: none; } .cat-deep { padding-left: 16px; gap: 14px; } }
 /* Sin key de TMDB (2026-11-16): invitación a cargarla para tener los filtros. */
@@ -721,10 +719,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 /* Categoría por puntaje en la tarjeta chica (2026-11-17). */
 .cat-info-tier { font-size: 12.5px; font-weight: 700; color: var(--text); }
 
-  0%, 33%, 66% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent); }
-  20%, 53%, 86% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent); }
-  100% { box-shadow: none; }
-}
 
 
 /* Primera tanda de la prueba rápida: se llena pareja en ~30 s (lo máximo que dura cada una). */

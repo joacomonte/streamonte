@@ -54,7 +54,7 @@
 <style>
 	.code { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 	.otp { position: relative; display: flex; gap: 10px; }
-	.box { width: 52px; height: 62px; display: grid; place-items: center; font-size: 30px; font-weight: 700; color: var(--text); border: 2px solid var(--border-strong); border-radius: 14px; background: var(--surface); }
+	.box { width: 52px; height: 62px; display: grid; place-items: center; font-size: 30px; font-weight: 700; color: var(--text); border: 2px solid var(--border-strong); border-radius: var(--r-card); background: var(--surface); }
 	.box.on { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); }
 	/* Invisible encima de las casillas: anda con tocar, pegar y autocompletar. */
 	.otp input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; border: 0; padding: 0; caret-color: transparent; }

@@ -985,4 +985,47 @@ mod tests {
         let empty: FindResponse = serde_json::from_str("{}").unwrap();
         assert_eq!(poster_url(empty), None);
     }
+
+    // Vectores compartidos con la web (`/packages/golden/`): la fuente de verdad es esta salida.
+    fn golden(json: &str) -> Vec<serde_json::Value> {
+        serde_json::from_str(json).unwrap()
+    }
+
+    #[test]
+    fn golden_trailer() {
+        for case in golden(include_str!("../../../../packages/golden/trailer.json")) {
+            let videos: Vec<Video> = serde_json::from_value(case["in"].clone()).unwrap();
+            assert_eq!(
+                serde_json::json!(first_trailer(videos)),
+                case["out"],
+                "{case}"
+            );
+        }
+    }
+
+    #[test]
+    fn golden_providers_ar() {
+        for case in golden(include_str!(
+            "../../../../packages/golden/providers_ar.json"
+        )) {
+            let wp: Option<WatchProviders> = serde_json::from_value(case["in"].clone()).unwrap();
+            assert_eq!(serde_json::json!(providers_ar(wp)), case["out"], "{case}");
+        }
+    }
+
+    #[test]
+    fn golden_people() {
+        for case in golden(include_str!("../../../../packages/golden/people.json")) {
+            let kind = match case["in"]["kind"].as_str().unwrap() {
+                "movie" => MediaKind::Movie,
+                _ => MediaKind::Series,
+            };
+            let credits: Credits = serde_json::from_value(case["in"]["credits"].clone()).unwrap();
+            assert_eq!(
+                serde_json::json!(people(credits, kind)),
+                case["out"],
+                "{case}"
+            );
+        }
+    }
 }

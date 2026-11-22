@@ -464,7 +464,7 @@
 							<button id="lang-{l}" type="button" role="radio" aria-checked={i18n.lang === l} onclick={() => switchLang(l)}>{l.toUpperCase()}</button>
 						{/each}
 					</div>
-					<a id="go-settings" class="icon-btn" href="/ajustes" aria-label={t('Ajustes')}><Icon name="gear" /></a>
+					<a id="go-settings" class="btn-icon" href="/ajustes" aria-label={t('Ajustes')}><Icon name="gear" /></a>
 				</div>
 			</div>
 			<div class="finder">
@@ -479,7 +479,7 @@
 				{#if qFocus && peopleLoading && cat.q.trim()}
 					<ul id="people-loading" class="people" aria-busy="true" aria-label={t('Buscando actores y directores…')}>
 						{#each Array(3) as _, i (i)}
-							<li class="person skel-row" aria-hidden="true"><span class="skel sk-face"></span><span class="who"><span class="skel sk-line"></span><span class="skel sk-line short"></span></span></li>
+							<li class="person skel-row" aria-hidden="true"><span class="skel skel-circle sk-face"></span><span class="who"><span class="skel skel-line sk-line"></span><span class="skel skel-line sk-line short"></span></span></li>
 						{/each}
 					</ul>
 				{:else if qFocus && people.length && cat.q.trim()}
@@ -689,7 +689,7 @@
 
 	<div class="sheet-actions">
 		<button id="filters-reset" type="button" class="btn" disabled={!changed} onclick={resetFilters}>{t('Restablecer')}</button>
-		<button id="filters-done" type="button" class="btn primary" onclick={() => (filtersOpen = false)}>{t('Ver resultados')}</button>
+		<button id="filters-done" type="button" class="btn btn-primary" onclick={() => (filtersOpen = false)}>{t('Ver resultados')}</button>
 	</div>
 </Sheet>
 
@@ -716,8 +716,8 @@
 	.row { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-right: -10px; }
 	.top-actions { display: flex; align-items: center; gap: 4px; }
 	/* ES / EN: dos letras, la elegida resaltada; sin ocupar más que un ícono y medio. */
-	.lang { display: inline-flex; padding: 2px; border-radius: 999px; background: var(--surface-2); }
-	.lang button { position: relative; min-width: 34px; height: 28px; padding: 0 8px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: 0.04em; transition: background 0.2s var(--ease), color 0.2s var(--ease); }
+	.lang { display: inline-flex; padding: 2px; border-radius: var(--r-pill); background: var(--surface-2); }
+	.lang button { position: relative; min-width: 34px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--r-pill); background: none; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: 0.04em; transition: background 0.2s var(--ease), color 0.2s var(--ease); }
 	.lang button::after { content: ''; position: absolute; inset: -8px -2px; }
 	.lang button[aria-checked='true'] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px var(--shadow); }
 	.brand { margin: 0; font-size: 28px; font-weight: 750; letter-spacing: -0.025em; flex: none; }
@@ -742,7 +742,7 @@
 		margin-top: 6px;
 		padding: 0 12px;
 		height: 44px;
-		border-radius: 12px;
+		border-radius: var(--r-card);
 		background: var(--surface-2);
 		color: var(--muted);
 	}
@@ -760,8 +760,8 @@
 		margin-right: -2px;
 		padding: 0;
 		border: 0;
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--muted) 55%, transparent);
+		border-radius: var(--r-pill);
+		background: color-mix(in srgb, var(--muted) var(--tint-4), transparent);
 		color: var(--bg);
 	}
 	/* Se ve de 22px, se toca en 44px. */
@@ -778,14 +778,14 @@
 		margin: 0;
 		padding: 6px;
 		list-style: none;
-		border-radius: 14px;
+		border-radius: var(--r-card);
 		background: var(--raised);
 		box-shadow: 0 12px 32px var(--shadow-lg);
 		transform-origin: top center;
 		animation: drop 0.28s var(--out);
 	}
 	.people li { animation: rise-in 0.36s var(--out) calc(var(--i) * 35ms) backwards; }
-	.person { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 10px; border: 0; border-radius: 10px; background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+	.person { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 10px; border: 0; border-radius: var(--r-md); background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
 	.person:hover, .person:focus-visible { background: var(--surface-2); }
 	.person:active { transform: scale(0.985); }
 	.person img, .person .ph { flex: none; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--surface-3); }
@@ -796,14 +796,14 @@
 	.who .role { color: var(--accent-fg); font-weight: 600; }
 	.who small { overflow: hidden; color: var(--muted); font-size: 12.5px; white-space: nowrap; text-overflow: ellipsis; }
 	.skel-row { cursor: default; }
-	.sk-face { flex: none; width: 40px; height: 40px; border-radius: 50%; }
+	.sk-face { flex: none; width: 40px; height: 40px; }
 	.skel-row .who { gap: 7px; }
-	.sk-line { height: 11px; width: 55%; border-radius: 6px; }
+	.sk-line { width: 55%; }
 	.sk-line.short { width: 80%; height: 9px; }
 	@keyframes drop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
 	@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
 	/* Actor elegido: una píldora dice de quién son los resultados y se quita con la cruz. */
-	.person-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin: 10px 0 8px; padding: 4px 4px 4px 4px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent-fg); font-size: 14px; font-weight: 650; animation: rise-in 0.4s var(--out); }
+	.person-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin: 10px 0 8px; padding: 4px 4px 4px 4px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent-fg); font-size: 14px; font-weight: 650; animation: rise-in 0.4s var(--out); }
 	.person-chip img { flex: none; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
 	.person-chip span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-left: 4px; }
 	.chip-x { position: relative; flex: none; display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--accent) 22%, transparent); color: inherit; }
@@ -817,7 +817,7 @@
 		grid-template-columns: repeat(2, 1fr);
 		margin-top: 10px;
 		padding: 3px;
-		border-radius: 12px;
+		border-radius: var(--r-card);
 		background: var(--surface-2);
 	}
 	.seg-thumb {
@@ -826,7 +826,7 @@
 		bottom: 3px;
 		left: 3px;
 		width: calc((100% - 6px) / 2);
-		border-radius: 9px;
+		border-radius: var(--r-md);
 		background: var(--raised);
 		box-shadow: 0 1px 2px var(--shadow), 0 2px 8px var(--shadow);
 		transform: translateX(calc(100% * var(--i)));
@@ -837,7 +837,7 @@
 		position: relative;
 		min-height: 38px;
 		border: 0;
-		border-radius: 9px;
+		border-radius: var(--r-md);
 		background: none;
 		font-size: 14px;
 		font-weight: 600;
@@ -861,7 +861,7 @@
 		grid-template-columns: 1fr 1fr;
 		margin-top: 10px;
 		border: 1px solid var(--border);
-		border-radius: 999px;
+		border-radius: var(--r-pill);
 		background: color-mix(in srgb, var(--text) 5%, transparent);
 	}
 	/* Píldora que se estira al viajar (como una gota) y toma el color de la opción: dorado para puntaje, fuego para populares. */
@@ -876,7 +876,7 @@
 		border-radius: inherit;
 		pointer-events: none;
 		background: linear-gradient(135deg, color-mix(in srgb, var(--c) 30%, var(--surface-3)), color-mix(in srgb, var(--c) 12%, var(--surface-2)));
-		box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 28%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px color-mix(in srgb, var(--c) 35%, transparent);
+		box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 28%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px color-mix(in srgb, var(--c) var(--tint-3), transparent);
 		transform-origin: left center;
 		transition: transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1), --c 0.4s;
 		animation: goo 0.5s var(--out);
@@ -892,7 +892,7 @@
 		min-height: 44px;
 		padding: 0 14px;
 		border: 0;
-		border-radius: 999px;
+		border-radius: var(--r-pill);
 		background: none;
 		font-size: 13px;
 		font-weight: 600;
@@ -955,7 +955,7 @@
 		min-height: 34px;
 		padding: 0 13px;
 		border: 0;
-		border-radius: 999px;
+		border-radius: var(--r-pill);
 		background: none;
 		color: var(--muted);
 		font-size: 13.5px;
@@ -969,7 +969,7 @@
 		left: 0;
 		height: 34px;
 		width: var(--w);
-		border-radius: 999px;
+		border-radius: var(--r-pill);
 		background: var(--accent);
 		box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent);
 		transform: translateX(var(--x)) scale(0.6);
@@ -983,7 +983,7 @@
 		position: relative;
 		height: 64px;
 		margin-top: 10px;
-		border-radius: 14px;
+		border-radius: var(--r-card);
 		background:
 			radial-gradient(circle at 50% 50%, var(--bg) 2.2px, transparent 2.8px) 0 5px / 14px 8px repeat-x,
 			radial-gradient(circle at 50% 50%, var(--bg) 2.2px, transparent 2.8px) 0 calc(100% - 5px) / 14px 8px repeat-x,
@@ -999,7 +999,7 @@
 	.reel-lit {
 		position: absolute;
 		inset: 14px calc(100% - var(--to-at)) 14px var(--at);
-		background: linear-gradient(90deg, color-mix(in srgb, var(--amber) 55%, transparent), color-mix(in srgb, var(--accent) 35%, transparent));
+		background: linear-gradient(90deg, color-mix(in srgb, var(--amber) var(--tint-4), transparent), color-mix(in srgb, var(--accent) var(--tint-3), transparent));
 		transition: left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), right 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 	.reel.zooming .reel-lit, .reel.zooming .playhead { transition-property: transform; }
@@ -1078,7 +1078,7 @@
 		min-height: 44px;
 		padding: 0 10px;
 		border: 0;
-		border-radius: var(--radius);
+		border-radius: var(--r-sm);
 		background: none;
 		color: var(--text);
 		font-size: 13px;
@@ -1091,7 +1091,7 @@
 		min-width: 17px;
 		height: 17px;
 		padding: 0 5px;
-		border-radius: 999px;
+		border-radius: var(--r-pill);
 		background: var(--accent);
 		color: var(--accent-text);
 		font-size: 11px;
@@ -1109,9 +1109,9 @@
 		gap: 2px;
 		padding: 12px 14px;
 		margin-bottom: 12px;
-		border-radius: var(--radius-card);
+		border-radius: var(--r-card);
 		background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-		border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) var(--tint-3), transparent);
 		text-decoration: none;
 		font-size: 14px;
 	}
@@ -1129,7 +1129,7 @@
 		width: 100%;
 		height: auto;
 		aspect-ratio: 2 / 3;
-		border-radius: 10px;
+		border-radius: var(--r-md);
 		background: var(--surface-2);
 		object-fit: cover;
 		box-shadow: 0 1px 3px var(--shadow);
@@ -1146,7 +1146,7 @@
 	/* Entrada: sube, crece con rebote y se enfoca; la estrella gira y suelta un destello cuando la tarjeta aterriza. */
 	/* overflow: hidden recorta el brillo, que se mueve con transform (sin repintar cada frame). */
 	/* Recién estrenada en cines: chip arriba del póster. */
-	.cine { position: absolute; top: 6px; left: 6px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: 999px; background: rgb(0 0 0 / 0.72); color: #fff; font-size: 11px; font-weight: 700; }
+	.cine { position: absolute; top: 6px; left: 6px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: var(--r-pill); background: rgb(0 0 0 / 0.72); color: #fff; font-size: 11px; font-weight: 700; }
 	a.card { --t: calc(var(--i, 0) * 70ms); position: relative; overflow: hidden; animation: card-in 0.9s cubic-bezier(0.25, 0.8, 0.3, 1) var(--t) backwards var(--play, paused); }
 	/* Las que llegan scrolleando: entrada corta, escalonado mínimo y desde medio visibles (en pausa ya se ven). */
 	a.card:global(.late) { --t: calc(min(var(--i, 0), 4) * 35ms); animation-name: card-rise; animation-duration: 0.6s; }
@@ -1156,7 +1156,7 @@
 		position: absolute;
 		inset: 0 0 auto;
 		aspect-ratio: 2 / 3;
-		border-radius: 10px;
+		border-radius: var(--r-md);
 		background: linear-gradient(100deg, transparent 25%, rgb(255 255 255 / 0.22) 45%, rgb(190 225 255 / 0.16) 55%, transparent 75%);
 		opacity: 0;
 		pointer-events: none;
@@ -1236,15 +1236,15 @@
 	}
 	.reel-wheel:first-child { left: 18px; }
 	.reel-wheel:nth-child(2) { left: 92px; width: 58px; top: 8px; animation-duration: 1.2s; }
-	.proj-body { position: absolute; left: 20px; top: 72px; width: 130px; height: 46px; border-radius: 10px; background: var(--surface-3); box-shadow: inset 0 0 0 2px var(--border-strong); }
-	.proj-body::after { content: ''; position: absolute; right: -16px; top: 12px; width: 18px; height: 22px; border-radius: 3px 8px 8px 3px; background: var(--border-strong); }
+	.proj-body { position: absolute; left: 20px; top: 72px; width: 130px; height: 46px; border-radius: var(--r-md); background: var(--surface-3); box-shadow: inset 0 0 0 2px var(--border-strong); }
+	.proj-body::after { content: ''; position: absolute; right: -16px; top: 12px; width: 18px; height: 22px; border-radius: 3px var(--r-sm) var(--r-sm) 3px; background: var(--border-strong); }
 	.proj-beam {
 		position: absolute;
 		left: 166px;
 		top: 58px;
 		width: 60px;
 		height: 74px;
-		background: linear-gradient(90deg, color-mix(in srgb, var(--amber) 55%, transparent), transparent);
+		background: linear-gradient(90deg, color-mix(in srgb, var(--amber) var(--tint-4), transparent), transparent);
 		clip-path: polygon(0 40%, 100% 0, 100% 100%, 0 60%);
 		transform-origin: left center;
 		animation: beam 0.22s steps(2) infinite;
@@ -1263,7 +1263,6 @@
 			var(--surface-3);
 		animation: roll 0.9s linear infinite;
 	}
-	@keyframes spin { to { transform: rotate(360deg); } }
 	@keyframes beam { 50% { opacity: 0.6; } }
 	@keyframes roll { to { background-position: 12px 3px, 12px calc(100% - 3px), 30px 0, 0 0; } }
 	.leader-msg { display: grid; margin: 0; color: var(--muted); font-size: 14px; font-weight: 600; }

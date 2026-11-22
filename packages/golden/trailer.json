@@ -1,0 +1,223 @@
+[
+ {
+  "in": [],
+  "out": null,
+  "nota": "sin videos"
+ },
+ {
+  "in": [
+   {
+    "key": "aaaaaaaaaaa",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": "aaaaaaaaaaa"
+ },
+ {
+  "in": [
+   {
+    "key": "aaaaaaaaaaa",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": false,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": "aaaaaaaaaaa",
+  "nota": "sin oficiales, cualquiera"
+ },
+ {
+  "in": [
+   {
+    "key": "aaaaaaaaaaa",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2021-01-01T00:00:00.000Z"
+   },
+   {
+    "key": "bbbbbbbbbbb",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": "bbbbbbbbbbb",
+  "nota": "el publicado primero"
+ },
+ {
+  "in": [
+   {
+    "key": "aaaaaaaaaaa",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": false,
+    "published_at": "2019-01-01T00:00:00.000Z"
+   },
+   {
+    "key": "bbbbbbbbbbb",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2021-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": "bbbbbbbbbbb",
+  "nota": "oficial gana aunque sea más nuevo"
+ },
+ {
+  "in": [
+   {
+    "key": "aaaaaaaaaaa",
+    "site": "Vimeo",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": null
+ },
+ {
+  "in": [
+   {
+    "key": "aaaaaaaaaaa",
+    "site": "YouTube",
+    "type": "Teaser",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": null
+ },
+ {
+  "in": [
+   {
+    "key": "aaaaaaaaaaa",
+    "site": "YouTube",
+    "type": "Clip",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   },
+   {
+    "key": "bbbbbbbbbbb",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": "bbbbbbbbbbb"
+ },
+ {
+  "in": [
+   {
+    "key": "aaaaaaaaaaa",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   },
+   {
+    "key": "bbbbbbbbbbb",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": "aaaaaaaaaaa",
+  "nota": "empate: el primero de la lista"
+ },
+ {
+  "in": [
+   {
+    "key": "aaaaaaaaaaa",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": false,
+    "published_at": "2022-05-01T00:00:00.000Z"
+   },
+   {
+    "key": "bbbbbbbbbbb",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": false,
+    "published_at": "2021-05-01T00:00:00.000Z"
+   },
+   {
+    "key": "ccccccccccc",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": false,
+    "published_at": "2023-05-01T00:00:00.000Z"
+   }
+  ],
+  "out": "bbbbbbbbbbb"
+ },
+ {
+  "in": [
+   {
+    "key": "abc",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": null,
+  "nota": "clave que no es id de YouTube (11 caracteres)",
+  "diverge": "web: 'abc' (no valida id de YouTube)"
+ },
+ {
+  "in": [
+   {
+    "key": "abc def ghi",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": null,
+  "nota": "11 caracteres pero con espacios",
+  "diverge": "web: 'abc def ghi' (no valida id de YouTube)"
+ },
+ {
+  "in": [
+   {
+    "key": "abc",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   },
+   {
+    "key": "bbbbbbbbbbb",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": false,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": "bbbbbbbbbbb",
+  "nota": "descarta la clave inválida y elige la válida",
+  "diverge": "web: 'abc' (elige la clave inválida)"
+ },
+ {
+  "in": [
+   {
+    "key": "a-b_c1D2e3F",
+    "site": "YouTube",
+    "type": "Trailer",
+    "official": true,
+    "published_at": "2020-01-01T00:00:00.000Z"
+   }
+  ],
+  "out": "a-b_c1D2e3F",
+  "nota": "guion y guion bajo valen"
+ }
+]

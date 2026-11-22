@@ -265,6 +265,40 @@ export async function genres(kind: Kind) {
 /** Persona de los créditos de la ficha. `note`: personaje (actores). */
 const person = (c: TmdbPerson, role: 'cast' | 'director', note: string | null) => ({ id: c.id, name: c.name, photo: c.profile_path ? `${IMG}w185${c.profile_path}` : null, role, note });
 
+/** Dónde verla en Argentina (`providers_ar` del desktop): suscripción, avisos, gratis; sin repetir, por prioridad. */
+export function providersAr(wp: TmdbTitle['watch/providers']) {
+	const ar = wp?.results?.AR ?? {};
+	const seen = new Set<number>();
+	return [...(ar.flatrate ?? []), ...(ar.ads ?? []), ...(ar.free ?? [])]
+		.filter((p) => !seen.has(p.provider_id) && seen.add(p.provider_id))
+		.sort((a, b) => a.display_priority - b.display_priority)
+		.map((p) => ({ name: p.provider_name, logo: p.logo_path ? `${IMG}w92${p.logo_path}` : null }));
+}
+
+/** Director (solo películas) y 3 actores (`people` del desktop). */
+export function peopleOf(kind: Kind, credits: TmdbTitle['credits']) {
+	return [
+		...(kind === 'movie' ? (credits?.crew ?? []).filter((c) => c.job === 'Director').slice(0, 1) : []).map((c) => person(c, 'director', null)),
+		...(credits?.cast ?? []).slice(0, 3).map((c) => person(c, 'cast', c.character || null))
+	];
+}
+
+/** Estado de la serie y próximo episodio, como `tmdb_status` del desktop. */
+export function showStatus(r: Pick<TmdbTitle, 'status' | 'next_episode_to_air'>) {
+	const map: Record<string, string> = { 'Returning Series': 'returning', 'In Production': 'in-production', Pilot: 'in-production', Planned: 'planned', Ended: 'ended', Canceled: 'canceled', Cancelled: 'canceled' };
+	const n = r.next_episode_to_air;
+	return { status: map[r.status as string] ?? null, next: n?.air_date ? { season: n.season_number, episode: n.episode_number, date: n.air_date } : null };
+}
+
+/** Tráiler de YouTube: oficial primero, el más viejo (`first_trailer` del desktop). */
+export function firstTrailer(videos: TmdbVideo[] | undefined): string | null {
+	return (
+		(videos ?? [])
+			.filter((v) => v.site === 'YouTube' && v.type === 'Trailer')
+			.sort((a, b) => Number(b.official) - Number(a.official) || String(a.published_at).localeCompare(String(b.published_at)))[0]?.key ?? null
+	);
+}
+
 /** Ficha: datos, IMDb id (para los torrents) y temporadas. */
 export async function title(kind: Kind, id: string | number) {
 	// Sinopsis y géneros siempre en el idioma de la app: un pedido más (si difiere de los títulos), en paralelo.
@@ -277,12 +311,7 @@ export async function title(kind: Kind, id: string | number) {
 	]);
 	const about = info ?? r;
 	// Dónde verla en Argentina (TMDB/JustWatch): suscripción primero, después con avisos o gratis.
-	const ar = r['watch/providers']?.results?.AR ?? {};
-	const seen = new Set<number>();
-	const providers = [...(ar.flatrate ?? []), ...(ar.ads ?? []), ...(ar.free ?? [])]
-		.filter((p) => !seen.has(p.provider_id) && seen.add(p.provider_id))
-		.sort((a, b) => a.display_priority - b.display_priority)
-		.map((p) => ({ name: p.provider_name, logo: p.logo_path ? `${IMG}w92${p.logo_path}` : null }));
+	const providers = providersAr(r['watch/providers']);
 	const langName = r.original_language ? new Intl.DisplayNames([lang()], { type: 'language' }).of(r.original_language) : null;
 	const imdb = r.imdb_id ?? r.external_ids?.imdb_id ?? null;
 	const real = table ? imdbOf(imdb, table) : null;
@@ -296,23 +325,16 @@ export async function title(kind: Kind, id: string | number) {
 		genres: [...new Set((about.genres ?? []).flatMap((g) => TV_GENRES[g.id]?.map((x) => translate(lang(), x)) ?? [g.name]))],
 		providers,
 		// Quién la hizo: en películas el director primero; después los 3 actores principales con su personaje.
-		people: [
-			...(kind === 'movie' ? (r.credits?.crew ?? []).filter((c) => c.job === 'Director').slice(0, 1) : []).map((c) => person(c, 'director', null)),
-			...(r.credits?.cast ?? []).slice(0, 3).map((c) => person(c, 'cast', c.character || null))
-		],
+		people: peopleOf(kind, r.credits),
 		companies: (r.production_companies ?? []).slice(0, 2).map((c) => c.name),
 		lang: langName ? langName[0].toUpperCase() + langName.slice(1) : null,
 		// Código ISO 639-1 del idioma original (`en`, `ja`…): el audio por defecto del video.
 		origLang: r.original_language ?? null,
 		// Estado de la serie, como `tmdb_status` del desktop.
-		status: ({ 'Returning Series': 'returning', 'In Production': 'in-production', Pilot: 'in-production', Planned: 'planned', Ended: 'ended', Canceled: 'canceled', Cancelled: 'canceled' } as Record<string, string>)[r.status as string] ?? null,
-		next: r.next_episode_to_air?.air_date ? { season: r.next_episode_to_air.season_number, episode: r.next_episode_to_air.episode_number, date: r.next_episode_to_air.air_date } : null,
+		...showStatus(r),
 		imdb,
 		// Tráiler de YouTube: el más viejo (en series, el de la temporada 1), oficial primero; como en el desktop.
-		trailer:
-			(r.videos?.results ?? [])
-				.filter((v) => v.site === 'YouTube' && v.type === 'Trailer')
-				.sort((a, b) => Number(b.official) - Number(a.official) || String(a.published_at).localeCompare(String(b.published_at)))[0]?.key ?? null,
+		trailer: firstTrailer(r.videos?.results),
 		seasons: (r.seasons ?? [])
 			.filter((s) => s.season_number > 0 && s.episode_count > 0)
 			.map((s) => ({ n: s.season_number, name: s.name, count: s.episode_count, year: String(s.air_date ?? '').slice(0, 4) || null }))

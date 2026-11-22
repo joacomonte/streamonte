@@ -16,3 +16,4 @@ mem.db*
 # mpv incluido: lo baja scripts/fetch-mpv.sh (no va al repo)
 /src-tauri/mpv/*
 !/src-tauri/mpv/.gitkeep
+.vercel

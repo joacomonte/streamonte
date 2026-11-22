@@ -1,0 +1,118 @@
+/* Tokens compartidos desktop + web: claro por defecto, oscuro según el sistema.
+   Unión de ui/styles.css y web/src/app.css. Si un nombre tenía dos valores, se usó el de la web (ver --display). */
+:root {
+	/* Superficies y texto */
+	--bg: #f6f7f9;
+	--surface: #ffffff;
+	--surface-2: #eef1f4;
+	--surface-3: #e3e7ec;
+	--sunk: #f2f4f7;
+	--raised: #ffffff;
+	--text: #1b1f24;
+	--muted: #535c68;
+	--dim: #5c6571;
+	--border: #dde1e6;
+	--border-strong: #c3c9d1;
+	--track: #98a1ad;
+	/* Acento (--accent es para fondos con texto blanco; --accent-fg es el acento como texto) */
+	--accent: #2563eb;
+	--accent-hover: #1d4fd8;
+	--accent-text: #ffffff;
+	--accent-fg: #1d4ed8;
+	/* Estado */
+	--green: #12733a;
+	--yellow: #8a5300;
+	--amber: #9a5b00;
+	--red: #c01c1c;
+	--ok: var(--green);
+	--warn: var(--amber);
+	--bad: var(--red);
+	--fit-3: #12733a;
+	--fit-2: #3d7a55;
+	--fit-1: #76681c;
+	/* Selector y tooltip del desktop */
+	--pk-bg: #ffffff;
+	--tip-bg: #232a34;
+	--tip-fg: #eef1f4;
+	--tip-border: #232a34;
+	--tip-head: #ffffff;
+	--tip-body: #c9d0d8;
+	--tip-kbd-bg: #2f3742;
+	--tip-kbd-border: #4a5361;
+	--shadow: rgb(15 23 42 / 0.12);
+	--shadow-lg: rgb(15 23 42 / 0.28);
+
+	/* Radios: usar siempre la escala, no valores sueltos */
+	--r-xs: 5px;
+	--r-sm: 8px;
+	--r-md: 10px;
+	--r-card: 12px;
+	--r-lg: 16px;
+	--r-pill: 999px;
+	--radius: var(--r-sm); /* alias del código viejo */
+	--radius-card: var(--r-card); /* alias del código viejo */
+
+	/* Tintes: color-mix(in srgb, <color> var(--tint-N), transparent) */
+	--tint-1: 8%;
+	--tint-2: 18%;
+	--tint-3: 35%;
+	--tint-4: 55%;
+
+	/* Espaciado */
+	--sp-1: 4px;
+	--sp-2: 8px;
+	--sp-3: 12px;
+	--sp-4: 16px;
+	--sp-5: 24px;
+	--sp-6: 32px;
+
+	/* Tipografía */
+	--fs-xs: 12px;
+	--fs-sm: 13px;
+	--fs-md: 14px;
+	--display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, sans-serif; /* conflicto: web (suma -apple-system) */
+	--mono: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+
+	/* Movimiento */
+	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--out: cubic-bezier(0.16, 1, 0.3, 1);
+
+	/* Área segura (notch del celu); 0 en desktop */
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+	color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #0d1014;
+		--surface: #161a20;
+		--surface-2: #1c2129;
+		--surface-3: #232a34;
+		--sunk: #11151a;
+		--raised: #2c3440;
+		--text: #e7eaee;
+		--muted: #9aa3ae;
+		--dim: #8b949f;
+		--border: #252b34;
+		--border-strong: #353d48;
+		--track: #46505d;
+		--accent-fg: #7ab0ff;
+		--green: #4ade80;
+		--yellow: #facc15;
+		--amber: #f5b041;
+		--red: #f87171;
+		--fit-3: #4ade80;
+		--fit-2: #b5d86a;
+		--fit-1: #d9a85b;
+		--pk-bg: #232a34;
+		--tip-bg: #272f3b;
+		--tip-fg: #e7eaee;
+		--tip-border: #3a4350;
+		--tip-head: #f3f5f7;
+		--tip-body: #b9c1cb;
+		--tip-kbd-bg: #323a46;
+		--tip-kbd-border: #4a5361;
+		--shadow: rgb(0 0 0 / 0.45);
+		--shadow-lg: rgb(0 0 0 / 0.7);
+	}
+}

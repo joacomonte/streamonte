@@ -1,0 +1,7 @@
+# Vercel deploya solo la web (Root Directory = web) y el CSS compartido; el resto es el desktop.
+/*
+!/web
+!/packages
+/web/node_modules
+/web/.svelte-kit
+/web/.vercel

@@ -99,7 +99,7 @@
 
 <header class="topbar">
 	<div class="wrap row">
-		<a id="back" class="icon-btn" href="/" aria-label={t('Volver')}><Icon name="back" /></a>
+		<a id="back" class="btn-icon" href="/" aria-label={t('Volver')}><Icon name="back" /></a>
 		<h1>{t('Ajustes')}</h1>
 	</div>
 </header>
@@ -147,7 +147,7 @@
 				</label>
 			{/if}
 
-			<button id="keys-save" class="btn primary" type="submit" disabled={saving || (!tmdb && !torbox && !opensubtitles && !osUser && !osPass)}>
+			<button id="keys-save" class="btn btn-primary" type="submit" disabled={saving || (!tmdb && !torbox && !opensubtitles && !osUser && !osPass)}>
 				{#if saving}<span class="spin"></span>{/if}{t('Guardar')}
 			</button>
 			{#if msg && open === ''}<p class="msg" role="status">{msg}</p>{/if}
@@ -158,7 +158,7 @@
 		<label class="lbl" for="nick-input">{t('Apodo')}</label>
 		<div class="pact">
 			<input id="nick-input" class="grow" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" aria-invalid={nickBad} aria-describedby="nick-msg" bind:value={nick} oninput={() => (nickMsg = '')} />
-			<button id="nick-save" class="btn primary" type="submit" disabled={nickSaving || nick.trim() === (page.data.nick ?? '')}>
+			<button id="nick-save" class="btn btn-primary" type="submit" disabled={nickSaving || nick.trim() === (page.data.nick ?? '')}>
 				{#if nickSaving}<span class="spin"></span>{/if}{t('Guardar')}
 			</button>
 		</div>
@@ -286,7 +286,7 @@
 			{#if href}<a href={href} target="_blank" rel="noreferrer">{hrefText}</a> ·{/if}
 			<button id={which === 'login' ? 'del-os-login' : `del-${which}`} type="button" class="link" onclick={() => remove(which)}>{which === 'login' ? t('Borrar usuario y contraseña') : t('Borrar')}</button>
 		</span>
-		<button id="save-{which}" form="keys-form" class="btn primary" type="submit" disabled={saving || !filled}>
+		<button id="save-{which}" form="keys-form" class="btn btn-primary" type="submit" disabled={saving || !filled}>
 			{#if saving}<span class="spin"></span>{/if}{t('Guardar')}
 		</button>
 	</div>
@@ -305,7 +305,7 @@
 	input {
 		height: 46px;
 		padding: 0 12px;
-		border-radius: var(--radius);
+		border-radius: var(--r-sm);
 		border: 1px solid var(--border-strong);
 		background: var(--surface);
 		font-size: 16px;
@@ -318,7 +318,7 @@
 	.saved { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
 	.help-text { color: var(--muted); font-size: 13px; }
 	.help-text a { color: var(--accent-fg); text-underline-offset: 2px; }
-	.kept { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius); }
+	.kept { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--r-sm); }
 	.kept li + li { border-top: 1px solid var(--border); }
 	.krow { display: flex; align-items: center; gap: 10px; padding-left: 12px; font-size: 14px; }
 	.ok { display: inline-flex; color: var(--green); }

@@ -1,0 +1,237 @@
+[
+ {
+  "in": "Movie.2023.2160p.UHD.BluRay.x265.HDR.DV.Atmos-GRP",
+  "out": {
+   "res": "2160p",
+   "hdr": [
+    "HDR",
+    "DV"
+   ],
+   "codec": "HEVC",
+   "source": "BluRay",
+   "atmos": true
+  }
+ },
+ {
+  "in": "Movie.2023.1080p.WEB-DL.DDP5.1.H264-GRP",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": "H.264",
+   "source": "WEB-DL",
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.2023.1440p.WEB-DL.x265-GRP",
+  "out": {
+   "res": "1440p",
+   "hdr": [],
+   "codec": "HEVC",
+   "source": "WEB-DL",
+   "atmos": false
+  },
+  "nota": "1440p existe en ambos lados"
+ },
+ {
+  "in": "Movie 4K HDR",
+  "out": {
+   "res": "2160p",
+   "hdr": [
+    "HDR"
+   ],
+   "codec": null,
+   "source": null,
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie 1080i",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": null,
+   "source": null,
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.720p.WEBRip.x264",
+  "out": {
+   "res": "720p",
+   "hdr": [],
+   "codec": "H.264",
+   "source": "WEBRip",
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.576p.DVDRip",
+  "out": {
+   "res": "480p",
+   "hdr": [],
+   "codec": null,
+   "source": "DVDRip",
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie SD",
+  "out": {
+   "res": "480p",
+   "hdr": [],
+   "codec": null,
+   "source": null,
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.2023.1080p.BluRay.REMUX.AVC",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": "H.264",
+   "source": "REMUX",
+   "atmos": false
+  },
+  "nota": "REMUX gana a BluRay"
+ },
+ {
+  "in": "Movie.2022.HDCAM.x264",
+  "out": {
+   "res": null,
+   "hdr": [],
+   "codec": "H.264",
+   "source": "CAM",
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.2022.1080p.HDTS",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": null,
+   "source": "CAM",
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.2022.TELESYNC.720p",
+  "out": {
+   "res": "720p",
+   "hdr": [],
+   "codec": null,
+   "source": "CAM",
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.2022.HD.Pre.1080p",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": null,
+   "source": "CAM",
+   "atmos": false
+  },
+  "nota": "HD Pre"
+ },
+ {
+  "in": "Cam.2018.1080p.BluRay.x264",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": "H.264",
+   "source": "CAM",
+   "atmos": false
+  },
+  "nota": "título \"Cam\": Rust toma la fuente del nombre aunque sea el título (is_cam sí corta por año)"
+ },
+ {
+  "in": "Movie.2023.1080p.HDR10+.DoVi.HEVC",
+  "out": {
+   "res": "1080p",
+   "hdr": [
+    "HDR",
+    "DV"
+   ],
+   "codec": "HEVC",
+   "source": null,
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.2023.Dolby.Vision.1080p",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": null,
+   "source": null,
+   "atmos": false
+  },
+  "nota": "con puntos no hay \"dolby vision\": ninguno de los dos lo detecta"
+ },
+ {
+  "in": "Movie.2023.1080p.AV1",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": "AV1",
+   "source": null,
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.2023.1080p.HDTV.x264",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": "H.264",
+   "source": "HDTV",
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.2023.1080p.HDRip.x264",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": "H.264",
+   "source": "HDRip",
+   "atmos": false
+  },
+  "nota": "HDRip es fuente en Rust",
+  "diverge": "web: source null (no reconoce HDRip)"
+ },
+ {
+  "in": "Movie.2023.1080p.WEB.x264",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": "H.264",
+   "source": "WEB",
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie sin calidad",
+  "out": {
+   "res": null,
+   "hdr": [],
+   "codec": null,
+   "source": null,
+   "atmos": false
+  }
+ },
+ {
+  "in": "Movie.2023.1080p.BluRay.TrueHD.Atmos.7.1",
+  "out": {
+   "res": "1080p",
+   "hdr": [],
+   "codec": null,
+   "source": "BluRay",
+   "atmos": true
+  }
+ }
+]

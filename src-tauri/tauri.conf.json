@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "identifier": "app.streamonte",
   "build": {
-    "frontendDist": "../ui"
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../ui/dist",
+    "beforeDevCommand": "cd ui && deno run -A npm:vite",
+    "beforeBuildCommand": "cd ui && deno install && deno run -A npm:vite build"
   },
   "app": {
     "withGlobalTauri": true,
@@ -20,7 +23,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src ipc: http://ipc.localhost",
+      "devCsp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src ipc: http://ipc.localhost ws://127.0.0.1:1420"
     }
   },
   "bundle": {

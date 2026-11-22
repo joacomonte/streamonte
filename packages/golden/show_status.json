@@ -1,0 +1,180 @@
+[
+ {
+  "in": {
+   "status": "Returning Series",
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": "returning",
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Returning Series",
+   "next_episode_to_air": {
+    "season_number": 3,
+    "episode_number": 1,
+    "air_date": "2026-03-12"
+   }
+  },
+  "out": {
+   "state": "returning",
+   "next": {
+    "season": 3,
+    "episode": 1,
+    "date": "2026-03-12"
+   }
+  }
+ },
+ {
+  "in": {
+   "status": "In Production",
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": "in-production",
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Pilot",
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": "in-production",
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Planned",
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": "planned",
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Ended",
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": "ended",
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Canceled",
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": "canceled",
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Cancelled",
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": "canceled",
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Rumored",
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": null,
+   "next": null
+  },
+  "nota": "estado desconocido"
+ },
+ {
+  "in": {
+   "status": null,
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": null,
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Ended",
+   "next_episode_to_air": {
+    "season_number": 1,
+    "episode_number": 2,
+    "air_date": ""
+   }
+  },
+  "out": {
+   "state": "ended",
+   "next": null
+  },
+  "nota": "fecha vacía = sin próximo"
+ },
+ {
+  "in": {
+   "status": "Ended",
+   "next_episode_to_air": {
+    "season_number": 1,
+    "episode_number": 2,
+    "air_date": null
+   }
+  },
+  "out": {
+   "state": "ended",
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Ended",
+   "next_episode_to_air": {
+    "season_number": 1,
+    "episode_number": 2
+   }
+  },
+  "out": {
+   "state": "ended",
+   "next": null
+  }
+ },
+ {
+  "in": {
+   "status": "Rumored",
+   "next_episode_to_air": {
+    "season_number": 3,
+    "episode_number": 1,
+    "air_date": "2026-03-12"
+   }
+  },
+  "out": {
+   "state": null,
+   "next": null
+  },
+  "nota": "estado desconocido con próximo episodio",
+  "diverge": "web: state null pero next {season 3, episode 1, date 2026-03-12} (Rust descarta next si el estado es desconocido)"
+ },
+ {
+  "in": {
+   "status": "returning series",
+   "next_episode_to_air": null
+  },
+  "out": {
+   "state": null,
+   "next": null
+  },
+  "nota": "distingue mayúsculas"
+ }
+]

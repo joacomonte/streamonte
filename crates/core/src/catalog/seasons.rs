@@ -452,4 +452,19 @@ mod tests {
         println!("{dexter:?}");
         assert!(dexter[0].season == 1 && dexter[0].rating > 9.0);
     }
+
+    #[test]
+    fn golden_show_status() {
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../../packages/golden/show_status.json"))
+                .unwrap();
+        for case in cases {
+            let tv: TvDetail = serde_json::from_value(case["in"].clone()).unwrap();
+            let out = match tmdb_status(&tv) {
+                Some(s) => serde_json::json!({ "state": s.state, "next": s.next }),
+                None => serde_json::json!({ "state": null, "next": null }),
+            };
+            assert_eq!(out, case["out"], "{case}");
+        }
+    }
 }

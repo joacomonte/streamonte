@@ -1,0 +1,15 @@
+/* Reset y reglas globales comunes. Importar después de tokens.css. */
+* { box-sizing: border-box; }
+::selection { background: color-mix(in srgb, var(--accent) var(--tint-3), transparent); }
+:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+/* Texto secundario y de error */
+.muted { color: var(--muted); }
+.error { color: var(--red); }
+
+/* Sin animaciones largas si el sistema lo pide */
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

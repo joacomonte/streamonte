@@ -5,3 +5,4 @@ mod acceptance;
 mod catalog_mock;
 mod common;
 mod config_updates;
+mod golden;

@@ -50,4 +50,16 @@ mod tests {
         );
         assert_eq!(lang_from_name("Sintel/Sintel.de.srt"), None);
     }
+
+    #[test]
+    fn golden_sub_lang() {
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../../../packages/golden/sub_lang.json"))
+                .unwrap();
+        for case in cases {
+            let spanish = lang_from_name(case["in"].as_str().unwrap())
+                .is_some_and(|(l, _)| l == SubtitleLanguage::Es);
+            assert_eq!(serde_json::json!(spanish), case["out"], "{case}");
+        }
+    }
 }

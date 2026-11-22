@@ -80,7 +80,7 @@
 				<button
 					id="score-s{x.season}"
 					type="button"
-					class="bar {tone(x.rating)}"
+					class="col {tone(x.rating)}"
 					class:best={x.rating === top}
 					class:current={x.season === current}
 					aria-label={t('Temporada {s}: {r} ({n} episodios con puntaje)', { s: x.season, r: fmt(x.rating), n: x.episodes })}
@@ -92,7 +92,7 @@
 				</button>
 			{/each}
 			{#if upcoming}
-				<span class="bar ghost" class:go={upcoming.go} title={t('Temporada {n}', { n: upcoming.season }) + ': ' + (upcoming.go ? upcoming.label : t('{s}, sin fecha anunciada', { s: t(STATES[status ?? ''] ?? '') }))}>
+				<span class="col ghost" class:go={upcoming.go} title={t('Temporada {n}', { n: upcoming.season }) + ': ' + (upcoming.go ? upcoming.label : t('{s}, sin fecha anunciada', { s: t(STATES[status ?? ''] ?? '') }))}>
 					<span class="val">{upcoming.label}</span>
 					<span class="track"><i style:height={height(v.at(-1) as number)}></i></span>
 					<span class="n">{t('T{n}', { n: upcoming.season })}</span>
@@ -103,20 +103,19 @@
 {/if}
 
 <style>
-	.chart { margin-top: 18px; padding: 14px 14px 10px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); }
-	.chart-skel { height: 150px; border-radius: 10px; }
+	.chart { margin-top: 18px; padding: 14px 14px 10px; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface); }
+	.chart-skel { height: 150px; border-radius: var(--r-md); }
 	.head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 	h2 { margin: 0; font-size: 15px; }
 	.src { font-size: 11px; font-weight: 750; letter-spacing: 0.05em; color: var(--muted); }
 	.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-	.pill { --t: var(--muted); display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 8px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--t); background: color-mix(in srgb, var(--t) 14%, transparent); }
 	.pill.stop, .pill.down { --t: var(--red); }
 	.pill.up { --t: var(--green); }
 	.pill.flat { --t: var(--accent-fg); }
 	.bars { display: flex; gap: 6px; height: 148px; margin: 12px -14px 0; padding: 0 14px 4px; overflow-x: auto; scrollbar-width: none; }
 	.bars::-webkit-scrollbar { display: none; }
-	.bar { flex: 1 0 34px; max-width: 72px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--muted); }
-	.track { flex: 1; width: 100%; display: flex; align-items: flex-end; border-radius: 8px; background: color-mix(in srgb, var(--text) 5%, transparent); }
+	.col { flex: 1 0 34px; max-width: 72px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--muted); }
+	.track { flex: 1; width: 100%; display: flex; align-items: flex-end; border-radius: var(--r-sm); background: color-mix(in srgb, var(--text) 5%, transparent); }
 	.track i { display: block; width: 100%; border-radius: inherit; transition: height 0.4s var(--out), filter 0.12s; }
 	.great i { background: var(--green); }
 	.good i { background: color-mix(in srgb, var(--green) 55%, var(--yellow)); }
@@ -128,7 +127,7 @@
 	.best i { box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 24%, transparent); }
 	.current .n { color: var(--text); }
 	.current .track { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-	.bar:active i { filter: brightness(1.15); }
+	.col:active i { filter: brightness(1.15); }
 	.ghost { --c: var(--yellow); color: var(--c); }
 	.ghost.go { --c: var(--green); }
 	.ghost .track { background: none; }

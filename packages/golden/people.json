@@ -1,0 +1,480 @@
+[
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {}
+  },
+  "out": []
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [
+     {
+      "id": 10,
+      "name": "Actor0",
+      "profile_path": "/a0.jpg",
+      "character": "Rol0"
+     },
+     {
+      "id": 11,
+      "name": "Actor1",
+      "profile_path": "/a1.jpg",
+      "character": "Rol1"
+     },
+     {
+      "id": 12,
+      "name": "Actor2",
+      "profile_path": "/a2.jpg",
+      "character": "Rol2"
+     },
+     {
+      "id": 13,
+      "name": "Actor3",
+      "profile_path": "/a3.jpg",
+      "character": "Rol3"
+     },
+     {
+      "id": 14,
+      "name": "Actor4",
+      "profile_path": "/a4.jpg",
+      "character": "Rol4"
+     }
+    ],
+    "crew": [
+     {
+      "id": 3,
+      "name": "Writer",
+      "profile_path": null,
+      "job": "Writer"
+     },
+     {
+      "id": 1,
+      "name": "Nolan",
+      "profile_path": "/n.jpg",
+      "job": "Director"
+     }
+    ]
+   }
+  },
+  "out": [
+   {
+    "id": 1,
+    "name": "Nolan",
+    "photo": "https://image.tmdb.org/t/p/w185/n.jpg",
+    "role": "director",
+    "note": null
+   },
+   {
+    "id": 10,
+    "name": "Actor0",
+    "photo": "https://image.tmdb.org/t/p/w185/a0.jpg",
+    "role": "cast",
+    "note": "Rol0"
+   },
+   {
+    "id": 11,
+    "name": "Actor1",
+    "photo": "https://image.tmdb.org/t/p/w185/a1.jpg",
+    "role": "cast",
+    "note": "Rol1"
+   },
+   {
+    "id": 12,
+    "name": "Actor2",
+    "photo": "https://image.tmdb.org/t/p/w185/a2.jpg",
+    "role": "cast",
+    "note": "Rol2"
+   }
+  ]
+ },
+ {
+  "in": {
+   "kind": "series",
+   "credits": {
+    "cast": [
+     {
+      "id": 10,
+      "name": "Actor0",
+      "profile_path": "/a0.jpg",
+      "character": "Rol0"
+     },
+     {
+      "id": 11,
+      "name": "Actor1",
+      "profile_path": "/a1.jpg",
+      "character": "Rol1"
+     },
+     {
+      "id": 12,
+      "name": "Actor2",
+      "profile_path": "/a2.jpg",
+      "character": "Rol2"
+     },
+     {
+      "id": 13,
+      "name": "Actor3",
+      "profile_path": "/a3.jpg",
+      "character": "Rol3"
+     },
+     {
+      "id": 14,
+      "name": "Actor4",
+      "profile_path": "/a4.jpg",
+      "character": "Rol4"
+     }
+    ],
+    "crew": [
+     {
+      "id": 3,
+      "name": "Writer",
+      "profile_path": null,
+      "job": "Writer"
+     },
+     {
+      "id": 1,
+      "name": "Nolan",
+      "profile_path": "/n.jpg",
+      "job": "Director"
+     }
+    ]
+   }
+  },
+  "out": [
+   {
+    "id": 10,
+    "name": "Actor0",
+    "photo": "https://image.tmdb.org/t/p/w185/a0.jpg",
+    "role": "cast",
+    "note": "Rol0"
+   },
+   {
+    "id": 11,
+    "name": "Actor1",
+    "photo": "https://image.tmdb.org/t/p/w185/a1.jpg",
+    "role": "cast",
+    "note": "Rol1"
+   },
+   {
+    "id": 12,
+    "name": "Actor2",
+    "photo": "https://image.tmdb.org/t/p/w185/a2.jpg",
+    "role": "cast",
+    "note": "Rol2"
+   }
+  ],
+  "nota": "series: sin director"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [
+     {
+      "id": 10,
+      "name": "Actor0",
+      "profile_path": "/a0.jpg",
+      "character": "Rol0"
+     },
+     {
+      "id": 11,
+      "name": "Actor1",
+      "profile_path": "/a1.jpg",
+      "character": "Rol1"
+     },
+     {
+      "id": 12,
+      "name": "Actor2",
+      "profile_path": "/a2.jpg",
+      "character": "Rol2"
+     },
+     {
+      "id": 13,
+      "name": "Actor3",
+      "profile_path": "/a3.jpg",
+      "character": "Rol3"
+     },
+     {
+      "id": 14,
+      "name": "Actor4",
+      "profile_path": "/a4.jpg",
+      "character": "Rol4"
+     }
+    ],
+    "crew": [
+     {
+      "id": 2,
+      "name": "Otro",
+      "profile_path": null,
+      "job": "Director"
+     },
+     {
+      "id": 1,
+      "name": "Nolan",
+      "profile_path": "/n.jpg",
+      "job": "Director"
+     }
+    ]
+   }
+  },
+  "out": [
+   {
+    "id": 2,
+    "name": "Otro",
+    "photo": null,
+    "role": "director",
+    "note": null
+   },
+   {
+    "id": 10,
+    "name": "Actor0",
+    "photo": "https://image.tmdb.org/t/p/w185/a0.jpg",
+    "role": "cast",
+    "note": "Rol0"
+   },
+   {
+    "id": 11,
+    "name": "Actor1",
+    "photo": "https://image.tmdb.org/t/p/w185/a1.jpg",
+    "role": "cast",
+    "note": "Rol1"
+   },
+   {
+    "id": 12,
+    "name": "Actor2",
+    "photo": "https://image.tmdb.org/t/p/w185/a2.jpg",
+    "role": "cast",
+    "note": "Rol2"
+   }
+  ],
+  "nota": "un solo director: el primero"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [
+     {
+      "id": 10,
+      "name": "Actor0",
+      "profile_path": "/a0.jpg",
+      "character": "Rol0"
+     },
+     {
+      "id": 11,
+      "name": "Actor1",
+      "profile_path": "/a1.jpg",
+      "character": "Rol1"
+     }
+    ],
+    "crew": []
+   }
+  },
+  "out": [
+   {
+    "id": 10,
+    "name": "Actor0",
+    "photo": "https://image.tmdb.org/t/p/w185/a0.jpg",
+    "role": "cast",
+    "note": "Rol0"
+   },
+   {
+    "id": 11,
+    "name": "Actor1",
+    "photo": "https://image.tmdb.org/t/p/w185/a1.jpg",
+    "role": "cast",
+    "note": "Rol1"
+   }
+  ]
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [],
+    "crew": [
+     {
+      "id": 1,
+      "name": "Nolan",
+      "profile_path": "/n.jpg",
+      "job": "Director"
+     }
+    ]
+   }
+  },
+  "out": [
+   {
+    "id": 1,
+    "name": "Nolan",
+    "photo": "https://image.tmdb.org/t/p/w185/n.jpg",
+    "role": "director",
+    "note": null
+   }
+  ]
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [
+     {
+      "id": 5,
+      "name": "Sin Foto",
+      "profile_path": null,
+      "character": "Hero"
+     }
+    ],
+    "crew": []
+   }
+  },
+  "out": [
+   {
+    "id": 5,
+    "name": "Sin Foto",
+    "photo": null,
+    "role": "cast",
+    "note": "Hero"
+   }
+  ]
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [
+     {
+      "id": 5,
+      "name": "A",
+      "profile_path": null,
+      "character": ""
+     }
+    ],
+    "crew": []
+   }
+  },
+  "out": [
+   {
+    "id": 5,
+    "name": "A",
+    "photo": null,
+    "role": "cast",
+    "note": null
+   }
+  ],
+  "nota": "personaje vacío = sin nota"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [
+     {
+      "id": 5,
+      "name": "A",
+      "profile_path": null
+     }
+    ],
+    "crew": []
+   }
+  },
+  "out": [
+   {
+    "id": 5,
+    "name": "A",
+    "photo": null,
+    "role": "cast",
+    "note": null
+   }
+  ],
+  "nota": "sin personaje"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [],
+    "crew": [
+     {
+      "id": 3,
+      "name": "Writer",
+      "profile_path": null,
+      "job": "Writer"
+     }
+    ]
+   }
+  },
+  "out": []
+ },
+ {
+  "in": {
+   "kind": "series",
+   "credits": {
+    "cast": [],
+    "crew": [
+     {
+      "id": 1,
+      "name": "Nolan",
+      "profile_path": "/n.jpg",
+      "job": "Director"
+     }
+    ]
+   }
+  },
+  "out": []
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [
+     {
+      "id": 5,
+      "name": "  Espacios  ",
+      "profile_path": null,
+      "character": "  Rol  "
+     }
+    ],
+    "crew": []
+   }
+  },
+  "out": [
+   {
+    "id": 5,
+    "name": "Espacios",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol"
+   }
+  ],
+  "nota": "nombre y personaje se recortan",
+  "diverge": "web: name '  Espacios  ', note '  Rol  ' (no recorta)"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "credits": {
+    "cast": [
+     {
+      "id": 5,
+      "name": "A",
+      "profile_path": null,
+      "character": "   "
+     }
+    ],
+    "crew": []
+   }
+  },
+  "out": [
+   {
+    "id": 5,
+    "name": "A",
+    "photo": null,
+    "role": "cast",
+    "note": null
+   }
+  ],
+  "nota": "personaje solo espacios",
+  "diverge": "web: note '   ' (no vacía los espacios)"
+ }
+]

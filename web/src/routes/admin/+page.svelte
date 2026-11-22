@@ -140,7 +140,7 @@
 
 <main class="admin">
 	<header class="top">
-		<a id="admin-back" class="icon-btn" href={open ? base : equipos ? '/admin' : '/'} aria-label="Volver"><Icon name="back" /></a>
+		<a id="admin-back" class="btn-icon" href={open ? base : equipos ? '/admin' : '/'} aria-label="Volver"><Icon name="back" /></a>
 		<nav class="crumbs" aria-label="Ubicación">
 			{#if equipos}
 				<a id="crumb-panel" href="/admin">Panel</a>
@@ -157,7 +157,7 @@
 			{/if}
 		</nav>
 		{#if !data.locked}
-			<button id="admin-refresh" type="button" class="icon-btn refresh" class:spin={loading} aria-label="Actualizar" onclick={refresh} disabled={loading}><Icon name="refresh" /></button>
+			<button id="admin-refresh" type="button" class="btn-icon refresh" class:spin={loading} aria-label="Actualizar" onclick={refresh} disabled={loading}><Icon name="refresh" /></button>
 		{/if}
 	</header>
 
@@ -315,13 +315,12 @@
 	.muted { color: var(--muted); font-size: 13.5px; }
 	.refresh { margin-left: auto; }
 	.refresh.spin :global(svg) { animation: spin 0.8s linear infinite; }
-	@keyframes spin { to { transform: rotate(360deg); } }
 	.login { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 32px; }
 	.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-	.stats div, .card { background: var(--surface); border-radius: 16px; padding: 14px; }
+	.stats div, .card { background: var(--surface); border-radius: var(--r-lg); padding: 14px; }
 	.card p { margin: 2px 0 0; }
 	.del-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 12px; }
-	.del { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease); }
+	.del { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease); }
 	.del:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, transparent); }
 	.del.arming { color: #fff; background: var(--red); border-color: var(--red); animation: arm 0.35s var(--out); }
 	.del-note { font-size: 12.5px; animation: arm 0.35s var(--out); }
@@ -331,7 +330,7 @@
 	.stats span { color: var(--muted); font-size: 13px; }
 	ul, ol { list-style: none; margin: 0; padding: 0; }
 	.days li { display: flex; justify-content: space-between; padding: 8px 2px; border-bottom: 1px solid var(--border-strong); font-size: 14px; }
-	.devices li a { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 8px; background: var(--surface); border-radius: 14px; color: inherit; text-decoration: none; }
+	.devices li a { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 8px; background: var(--surface); border-radius: var(--r-card); color: inherit; text-decoration: none; }
 	.devices .info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 	.devices .name { font-weight: 650; }
 	.devices .go { color: var(--muted); transform: rotate(-90deg); display: grid; }
