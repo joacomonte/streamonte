@@ -45,7 +45,9 @@ function invoke(cmd: string, args?: Record<string, unknown>): Promise<unknown> {
   return Promise.resolve(null);
 }
 
-const w = window as unknown as { __TAURI__?: unknown };
+// Evento a mano (solo mock): `scripts/bench-options.mjs` empuja `catalog-streams` y `catalog-swarm-*` por acá.
+const w = window as unknown as { __TAURI__?: unknown; __mockEmit?: (payload: unknown) => void };
+w.__mockEmit = (payload) => listeners.forEach((cb) => cb({ payload }));
 w.__TAURI__ ??= { core: { invoke }, event: { listen: (_: string, cb: Listener) => { listeners.push(cb); return Promise.resolve(() => {}); } },
   updater: { check: () => Promise.resolve(null) }, process: {} };
 // La bienvenida taparía toda captura.
