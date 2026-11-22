@@ -1,0 +1,45 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "type": "#cat-q",
+   "text": "fight club",
+   "after": 1500
+  }
+ ],
+ "must": [
+  {
+   "sel": "#cat-card-tt0137523",
+   "text": "Fight Club"
+  },
+  {
+   "sel": "#cat-card-tt0137523",
+   "text": "Crimen|Crime",
+   "hover": "#cat-card-tt0137523",
+   "status": "regressed",
+   "note": "hover: géneros (catalog.js fillCardInfo)"
+  },
+  {
+   "sel": "#cat-card-tt0137523",
+   "text": "139 min",
+   "hover": "#cat-card-tt0137523",
+   "status": "regressed",
+   "note": "hover: duración"
+  },
+  {
+   "sel": "#cat-card-tt0137523",
+   "text": "Clásico eterno|De Óscar",
+   "hover": "#cat-card-tt0137523",
+   "status": "regressed",
+   "note": "hover: categoría por puntaje (RATING_TIERS)"
+  },
+  {
+   "sel": "#cat-card-tt0137523",
+   "text": "premios",
+   "hover": "#cat-card-tt0137523",
+   "status": "regressed",
+   "note": "hover: premios"
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "click": "#btn-downloads",
+   "after": 800
+  }
+ ],
+ "must": [
+  {
+   "sel": "#downloads-pop",
+   "text": "Descargas"
+  },
+  {
+   "sel": "#dl-open-folder",
+   "text": "Abrir carpeta"
+  },
+  {
+   "sel": "#dl-clean",
+   "text": "Borrar"
+  },
+  {
+   "sel": "#dl-clear-data"
+  }
+ ]
+}

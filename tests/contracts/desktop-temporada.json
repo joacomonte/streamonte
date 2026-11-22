@@ -1,0 +1,35 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "click": "#cat-kind-tv",
+   "after": 1500
+  },
+  {
+   "click": "#cat-card-tt0903747",
+   "after": 2000
+  },
+  {
+   "click": "#cat-season-1",
+   "after": 1500
+  }
+ ],
+ "must": [
+  {
+   "sel": "#cat-crumb-up"
+  },
+  {
+   "sel": "#cat-crumb-0",
+   "text": "Breaking Bad"
+  },
+  {
+   "sel": "[id^=cat-ep-1-]",
+   "count": 7
+  },
+  {
+   "sel": "#cat-ep-1-1",
+   "text": "Principio del fin"
+  }
+ ]
+}

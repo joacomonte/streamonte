@@ -1,0 +1,37 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "click": "#cat-kind-tv",
+   "after": 1500
+  }
+ ],
+ "must": [
+  {
+   "sel": "#cat-card-tt0903747",
+   "text": "Breaking Bad"
+  },
+  {
+   "sel": "#cat-card-tt0903747",
+   "text": "Crimen|Crime",
+   "hover": "#cat-card-tt0903747",
+   "status": "regressed",
+   "note": "hover: géneros"
+  },
+  {
+   "sel": "#cat-card-tt0903747 [class*=sbar]",
+   "count": 3,
+   "hover": "#cat-card-tt0903747",
+   "status": "regressed",
+   "note": "hover: barras de temporadas"
+  },
+  {
+   "sel": "#cat-card-tt0903747",
+   "text": "Emmy",
+   "hover": "#cat-card-tt0903747",
+   "status": "regressed",
+   "note": "hover: premios"
+  }
+ ]
+}

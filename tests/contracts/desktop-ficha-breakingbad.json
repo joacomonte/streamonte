@@ -1,0 +1,51 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "click": "#cat-kind-tv",
+   "after": 1500
+  },
+  {
+   "click": "#cat-card-tt0903747",
+   "after": 2000
+  }
+ ],
+ "must": [
+  {
+   "sel": "#cat-side",
+   "text": "Breaking Bad"
+  },
+  {
+   "sel": "#cat-open-imdb"
+  },
+  {
+   "sel": "#cat-who-cast-17419",
+   "text": "Cranston"
+  },
+  {
+   "sel": "#cat-about-toggle"
+  },
+  {
+   "sel": "#cat-similar-toggle"
+  },
+  {
+   "sel": "[id^=cat-season-]:not(#cat-season-next)",
+   "count": 5
+  },
+  {
+   "sel": "#cat-season-1",
+   "text": "Temporada 1"
+  },
+  {
+   "sel": "#cat-season-next",
+   "text": "Serie terminada"
+  },
+  {
+   "sel": "[id^=cat-season-bar-]",
+   "count": 5,
+   "status": "regressed",
+   "note": "gráfico de puntaje por temporada: la mock no trae catalog_season_ratings con quick=false; falta fixture"
+  }
+ ]
+}

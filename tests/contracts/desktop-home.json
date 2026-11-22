@@ -1,0 +1,39 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [],
+ "must": [
+  {
+   "sel": "#btn-speed"
+  },
+  {
+   "sel": "#btn-downloads"
+  },
+  {
+   "sel": "#top-lang"
+  },
+  {
+   "sel": "#btn-settings"
+  },
+  {
+   "sel": "#cat-q"
+  },
+  {
+   "sel": "#cat-kind-movie"
+  },
+  {
+   "sel": "#cat-kind-tv"
+  },
+  {
+   "sel": "#cat-trending",
+   "text": "tendencia"
+  },
+  {
+   "sel": "[id^=cat-card-]",
+   "count": 10
+  },
+  {
+   "sel": "#status"
+  }
+ ]
+}

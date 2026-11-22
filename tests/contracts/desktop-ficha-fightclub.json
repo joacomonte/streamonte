@@ -1,0 +1,68 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "type": "#cat-q",
+   "text": "fight club",
+   "after": 1500
+  },
+  {
+   "click": "#cat-card-tt0137523",
+   "after": 2000
+  }
+ ],
+ "must": [
+  {
+   "sel": "#cat-side",
+   "text": "club de la pelea"
+  },
+  {
+   "sel": "#cat-side-close"
+  },
+  {
+   "sel": "#cat-poster"
+  },
+  {
+   "sel": "#cat-open-imdb"
+  },
+  {
+   "sel": "#cat-open-trailer"
+  },
+  {
+   "sel": "#cat-providers"
+  },
+  {
+   "sel": "#cat-provider-0"
+  },
+  {
+   "sel": "#cat-who-director-7467",
+   "text": "Fincher"
+  },
+  {
+   "sel": "#cat-who-cast-287",
+   "text": "Brad Pitt"
+  },
+  {
+   "sel": "#cat-about-toggle",
+   "text": "Sinopsis"
+  },
+  {
+   "sel": "#cat-similar-toggle",
+   "text": "Similares"
+  },
+  {
+   "sel": "#cat-side",
+   "text": "8[.,]8"
+  },
+  {
+   "sel": "#cat-streams"
+  },
+  {
+   "sel": "#cat-flow-lat-no"
+  },
+  {
+   "sel": "#cat-flow-lat-yes"
+  }
+ ]
+}

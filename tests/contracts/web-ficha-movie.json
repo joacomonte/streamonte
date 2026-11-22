@@ -1,0 +1,55 @@
+{
+ "app": "web",
+ "cookies": {
+  "nick": "Test"
+ },
+ "storage": {
+  "tour:welcome": "1"
+ },
+ "url": "/t/movie/550",
+ "setup": [],
+ "must": [
+  {
+   "sel": "#back"
+  },
+  {
+   "sel": "#poster"
+  },
+  {
+   "sel": "#imdb-link"
+  },
+  {
+   "sel": "#trailer-link"
+  },
+  {
+   "sel": "#providers-toggle"
+  },
+  {
+   "sel": "#provider-0"
+  },
+  {
+   "sel": "#person-7467",
+   "text": "Fincher"
+  },
+  {
+   "sel": "#person-287",
+   "text": "Brad Pitt"
+  },
+  {
+   "sel": "#about-toggle",
+   "text": "Sinopsis"
+  },
+  {
+   "sel": "#net-high"
+  },
+  {
+   "sel": "#net-normal"
+  },
+  {
+   "sel": "#net-low"
+  },
+  {
+   "sel": "#net-terrible"
+  }
+ ]
+}

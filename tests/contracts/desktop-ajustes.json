@@ -1,0 +1,67 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "click": "#btn-settings",
+   "after": 1000
+  }
+ ],
+ "must": [
+  {
+   "sel": "#dlg-settings"
+  },
+  {
+   "sel": "#set-title",
+   "text": "Ajustes"
+  },
+  {
+   "sel": "#set-lang-picker"
+  },
+  {
+   "sel": "#set-lang-app-es"
+  },
+  {
+   "sel": "#set-lang-titles-en"
+  },
+  {
+   "sel": "#key-tmdb"
+  },
+  {
+   "sel": "#key-tmdb-save"
+  },
+  {
+   "sel": "#key-torbox"
+  },
+  {
+   "sel": "#torbox-shared"
+  },
+  {
+   "sel": "#btn-sources"
+  },
+  {
+   "sel": "#key-latteam"
+  },
+  {
+   "sel": "#key-wyzie"
+  },
+  {
+   "sel": "#key-opensubtitles"
+  },
+  {
+   "sel": "#os-user"
+  },
+  {
+   "sel": "#os-pass"
+  },
+  {
+   "sel": "#set-h-player"
+  },
+  {
+   "sel": "#set-mpv-note"
+  },
+  {
+   "sel": "#btn-settings-x"
+  }
+ ]
+}

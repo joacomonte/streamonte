@@ -1,0 +1,72 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "type": "#cat-q",
+   "text": "fight club",
+   "after": 1500
+  },
+  {
+   "click": "#cat-card-tt0137523",
+   "after": 2000
+  },
+  {
+   "click": "#cat-flow-lat-no"
+  },
+  {
+   "click": "#cat-flow-res-1080p"
+  },
+  {
+   "contextmenu": ".cat-opt[data-hash]"
+  },
+  {
+   "click": "#cat-ctx-subs"
+  },
+  {
+   "click": "#cat-subs-noread",
+   "after": 1500
+  }
+ ],
+ "must": [
+  {
+   "sel": "#subs-picker"
+  },
+  {
+   "sel": "#subs-picker",
+   "text": "Encontrados"
+  },
+  {
+   "sel": "[id^=cat-sub-pick-]",
+   "count": 2
+  },
+  {
+   "sel": "[id^=cat-sub-dl-]",
+   "count": 2
+  },
+  {
+   "sel": "#subs-picker",
+   "text": "LAT"
+  },
+  {
+   "sel": "#subs-picker",
+   "text": "probable"
+  },
+  {
+   "sel": "#prem-gate",
+   "text": "Premium"
+  },
+  {
+   "sel": "#subs-picker",
+   "text": "Wyzie",
+   "status": "regressed",
+   "note": "fuente del sub (· Wyzie / · Subdivx) en cada fila (catalog-subs.js subItem src)"
+  },
+  {
+   "sel": "#subs-picker",
+   "text": "Subdivx",
+   "status": "regressed",
+   "note": "fuente del sub"
+  }
+ ]
+}
