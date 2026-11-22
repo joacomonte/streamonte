@@ -11,12 +11,12 @@ import { $, el, icon, setStatus } from './dom.js';
 import { humanBytes } from '$ui/format.ts';
 import { playbackText } from './format.js';
 import { t } from './i18n.js';
-import { bgText, cardSig, measurePlayback, onPlaybackRow, onStreams, renderStreamsOnly, starting } from './catalog-options.js';
+import { bgText, cardSig, measurePlayback, onPlaybackRow, onStreams, renderStreamsOnly, starting } from './catalog-options.ts';
 import { magnetHash, openMagnet } from './catalog-magnet.js';
 import { subsProgress } from './catalog-subs.js';
 import { closeSide, renderSide } from './catalog-side.js';
 import { showError, state, view } from './catalog-state.js';
-import { onSwarmEvent } from './catalog-tests.js';
+import { onSwarmEvent } from './catalog-tests.ts';
 
 /** @typedef {import('./types.js').LibraryRow} LibraryRow */
 /** @typedef {import('./catalog-state.js').PickedPerson} PickedPerson */
