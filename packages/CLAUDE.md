@@ -5,7 +5,8 @@ CSS compartido, TS compartido (`ui/src/`) y vectores de prueba, sin build propio
 - `ui/css/tokens.css` — `:3 :root` variables (claro) · `:85 @media (prefers-color-scheme: dark)`. Unión de `ui/styles.css` y `web/src/app.css`; si un nombre tenía dos valores, ganó el de la web (ej. `--display`).
 - `ui/css/base.css` — reset, `:13 prefers-reduced-motion`.
 - `ui/css/components.css` — `:4 .btn` · `:46 .chip` · `:69 .pill` · `:84 .badge` · `:99 .surface` · `:102 .list` · `:108 .skel` · `:118 .spin` · `:130 .bar` · `:134 .switch` · `:142 .sheet` · `:166 .menu`.
-- Consumidor: `web/src/app.css:2-4`. Desktop (`ui/styles.css`) aún no adoptó.
+- `ui/css/options.css` — fila y lista de opciones (`.cat-opt`, `.cat-tag`, `.cat-play`, `.cat-dock`, `.cat-tip`) de `packages/ui/src/options/OptionRow.svelte`.
+- Consumidores: `web/src/app.css:2-5`, `ui/src/main.ts:4-9`.
 - `ui/src/` — TS compartido (`$ui`) → `ui/CLAUDE.md` en `/Users/monti/Documents/Dev/streamonte/packages/ui/CLAUDE.md` · ← `web/src/lib/webApi.ts`, `ui/src/tauriApi.ts`.
 - `golden/*.json` — `[{ "in", "out", "nota"?, "diverge"? }]`, Rust fuente de verdad. Rust ↔ web:
   - `release.json` — `crates/core/tests/it/golden.rs:15` ↔ `torrents.ts:33 parse`

@@ -7,7 +7,7 @@
   import { t } from '../i18n.js';
   import {
     DEFAULT_SEED_MBPS, MIN_SAMPLES, TRACKER_MIN, fidelity, healthCalibration, incomingStatus, measuringNow, predict, recalibrate, resetCalibration, setSeedMbps
-  } from '../health-calib.js';
+  } from '../health-store.ts';
   import { fmtMbps } from '../speed-model.ts';
   import { speedStore } from '../speed-instance.ts';
   import { state as appState } from '../state.js';

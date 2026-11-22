@@ -13,14 +13,17 @@
 	import { untrack } from 'svelte';
 	import { audioOf, latStatus, LAT_BADGE, type Tracks } from '$ui/audio.ts';
 	import type { Snippet } from 'svelte';
-	import type { Torrent } from './types.ts';
 	import { track } from './track.ts';
-	import { QUALITY, byQuality as rankQuality, optionMbps } from '$ui/rank.ts';
+	import { byQuality as rankQuality, optionMbps } from '$ui/rank.ts';
+	import { getApi } from '$ui/context.ts';
+	import OptionsList from '$ui/options/OptionsList.svelte';
+	import { emptyLoad, loadOptions, type OptionsLoad } from '$ui/options/options-load.ts';
+	import { HDR_TIP, langTags, qualityOf, resLabel, sizeText, TipBook, type DockButton, type OptionRowView } from '$ui/options/row.ts';
 	import SubRow from '$ui/subs/SubRow.svelte';
 	import SubsPicker from '$ui/subs/SubsPicker.svelte';
 	import type { SubsCtx } from '$ui/subs/subs-flow.ts';
 	import { keyOf } from '$ui/subs/subs-logic.ts';
-	import type { SubtitleOption } from '$ui/types.ts';
+	import type { NativeSub, OptionRef, SubtitleOption, TorboxIds, TorrentOption } from '$ui/types.ts';
 
 	interface Props {
 		imdb: string;
@@ -32,21 +35,24 @@
 		/** Duración en minutos (de la ficha), para el bitrate. */
 		runtime?: number | null;
 		/** Las opciones ya armadas ("Pegar magnet": los videos de ese torrent); sin pasos ni búsqueda, directo a la lista. */
-		given?: Torrent[] | null;
+		given?: TorrentOption[] | null;
 	}
 	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null }: Props = $props();
-	// SubsPicker lee el Api del contexto (la raíz de la web todavía no lo fija).
+	const api = getApi();
 
-	type Native = { label: string; kind: string; track: number; url: string };
+	type Torrent = TorrentOption;
+	type Native = NativeSub;
 	type Choice = { key: string; label: string; url: string };
 	type Video = { fps: number | null; duration: number | null };
 	type FileId = { hash: string; size: string };
 
 	/** Resoluciones de mejor a peor; `other` junta lo que no es 4K/1080p/720p (o no lo dice). */
 	const RES = ['2160p', '1080p', '720p', 'other'];
-	const qs = $derived(new URLSearchParams({ imdb, ...(s && e ? { s: String(s), e: String(e) } : {}) }).toString());
+	/** El video (y episodio): opciones, links, pistas y subtítulos van por `getApi()` con esto. */
+	const ref: OptionRef = $derived(s && e ? { kind: 'tv', videoId: `${imdb}:${s}:${e}` } : { kind: 'movie', videoId: imdb });
 
-	let data = $state<{ list: Torrent[]; found: number; sources: number } | null>(null);
+	/** La búsqueda de opciones (`options.load`): progreso fuente por fuente, chequeo de TorBox y la lista. */
+	let load = $state<OptionsLoad>(emptyLoad());
 	let error = $state('');
 	let onlyHdr = $state(false);
 	/** Solo las que ya se sabe que traen subs en español (verificadas o con .srt en el torrent). */
@@ -113,14 +119,13 @@
 	/** Buscar subtítulos afuera sin tocar "Buscar más" (se abrió la lista sin que el video traiga en español). */
 	let subsAuto = $state(false);
 
-	// Solo depende del video (`qs`): lo demás va en `untrack`, así nada que llegue
+	// Solo depende del video (`ref`): lo demás va en `untrack`, así nada que llegue
 	// después (subs, cuota, copias) vuelve a disparar el pedido ni vacía la lista que ya se ve.
-	/** "Buscando torrents… 2 de 4 fuentes" / "Chequeando TorBox". */
-	let progress = $state<{ done: number; total: number; torbox: boolean }>({ done: 0, total: 0, torbox: false });
 	$effect(() => {
-		const url = `/api/torrents?${qs}`;
-		const ctrl = new AbortController();
-		const hit = saved.peek(url);
+		const r = ref;
+		const key = `options:${r.videoId}`;
+		const hit = saved.peek(key) as TorrentOption[] | null;
+		let live = true;
 		untrack(() => {
 			error = '';
 			copy = {};
@@ -130,46 +135,27 @@
 			wantLat = false;
 			found = [];
 			showAll = false;
-			progress = { done: 0, total: 0, torbox: false };
+			tips.reset();
 			// Lista guardada 1 hora (saved.ts): se pinta en este mismo cuadro, sin pasar por la búsqueda.
-			data = given ? { list: given, found: given.length, sources: 1 } : hit as typeof data;
+			const ready = given ?? hit;
+			load = ready ? { ...emptyLoad(), options: ready, done: true } : emptyLoad();
 			// Torrent pegado: ya se sabe qué torrent es, no hay conexión ni audio para elegir.
-			if (given) { step = 'list'; showAll = true; }
+			if (given) {
+				step = 'list';
+				showAll = true;
+			}
+			if (!ready)
+				loadOptions(api, r, (st) => {
+					load = st;
+					if (st.error) error = st.error;
+					if (st.done && st.options) saved.store(key, st.options, saved.HOUR);
+				}, () => live);
 		});
-		if (!hit && !given) search(url, ctrl.signal);
 		return () => {
-			ctrl.abort();
+			live = false;
 			gen++;
 		};
 	});
-	/** Lee la respuesta en líneas (progreso por fuente y al final la lista) y la guarda 1 hora. */
-	async function search(url: string, signal: AbortSignal) {
-		try {
-			const r = await fetch(url, { signal });
-			if (!r.body) throw new Error(tr('No se pudieron buscar'));
-			const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
-			let buf = '';
-			for (;;) {
-				const { done, value } = await reader.read();
-				if (done) break;
-				buf += value;
-				let nl;
-				while ((nl = buf.indexOf('\n')) >= 0) {
-					const msg = JSON.parse(buf.slice(0, nl));
-					buf = buf.slice(nl + 1);
-					if (msg.stage === 'sources') progress = { done: msg.done, total: msg.total, torbox: false };
-					else if (msg.stage === 'torbox') progress.torbox = true;
-					else if (msg.error) error = msg.error;
-					else if (msg.result) {
-						data = msg.result;
-						saved.store(url, msg.result, saved.HOUR);
-					}
-				}
-			}
-		} catch (err) {
-			if (!signal.aborted) error = (err as Error).message;
-		}
-	}
 
 	// ── Pasos ────────────────────────────────────────────────────────────────────────────────────────────────
 	/** Conexión donde se va a ver (2026-11-18): la elige el usuario en cada video y pone el tope de bitrate
@@ -198,10 +184,9 @@
 		}, 220);
 	}
 	/** Lo que mira el ranking compartido de una opción. */
-	const quality = (t: Torrent) => ({ resolution: t.res, sizeBytes: t.size, source: t.source });
-	const mbpsOf = (t: Torrent) => optionMbps(quality(t), runtime);
+	const mbpsOf = (t: Torrent) => optionMbps(t, runtime);
 	/** ¿Entra en la conexión elegida? Sin peso no se sabe cuánto pide: no entra (no puede ser el buen match). */
-	const fits = (t: Torrent) => !!t.size && (!net || mbpsOf(t) <= net.mbps);
+	const fits = (t: Torrent) => !!t.sizeBytes && (!net || mbpsOf(t) <= net.mbps);
 
 	/** Paso actual: la conexión (si no se eligió nunca), el audio, o el resultado (buscando el primer buen match, ese
 	 * match o, con `showAll`, todas). */
@@ -222,7 +207,7 @@
 		step = to;
 	}
 
-	const all = $derived(data?.list ?? []);
+	const all = $derived(load.options ?? []);
 	const known = (t: Torrent) => {
 		const v = info[t.hash];
 		return v && typeof v === 'object' ? v : null;
@@ -233,7 +218,7 @@
 	 * variante). Las que no dicen nada de idioma no cuentan. */
 	const potential = (t: Torrent) => {
 		const s = status(t);
-		return s === 'lat' || s === 'likely' || (s === 'check' && (t.spa || known(t)?.audio === 'es'));
+		return s === 'lat' || s === 'likely' || (s === 'check' && (t.spanish || known(t)?.audio === 'es'));
 	};
 	const hasEs = (t: Torrent) => t.subFile || (known(t)?.subs ?? 0) > 0;
 	/** Única regla de "buen match": pidiendo latino, LAT (pistas o nombre; los subs no importan); con audio original,
@@ -242,8 +227,8 @@
 	/** Única regla de "candidata a leer": sin leer (ni leyéndose ni con error) y que pueda ser lo pedido. Latino: sin
 	 * confirmar y con algo que lo sugiera (web latina, MULTI / Dual / español sin aclarar); las que no dicen nada de
 	 * idioma no se leen. Audio original: sin saber si trae sub ES. */
-	const unread = (lat: boolean, t: Torrent) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (status(t) === 'likely' || (status(t) === 'check' && t.spa)) : !hasEs(t) && !known(t));
-	const byQuality = (a: Torrent, b: Torrent) => rankQuality(quality(a), quality(b), runtime);
+	const unread = (lat: boolean, t: Torrent) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (status(t) === 'likely' || (status(t) === 'check' && t.spanish)) : !hasEs(t) && !known(t));
+	const byQuality = (a: Torrent, b: Torrent) => rankQuality(a, b, runtime);
 	/** Lo que entra con el audio elegido (latino: solo las con potencial), de mejor a peor. `byBest`: solo las que entran
 	 * en la conexión (de ahí sale el buen match); `everything`: todas, para "Ver todas". */
 	const everything = $derived((wantLat ? all.filter(potential) : [...all]).sort(byQuality));
@@ -312,45 +297,30 @@
 	});
 	/** El video que copiaste: los subtítulos se ordenan por cuánto calzan con él. */
 	let match = $state<{ hash: string; release: string; natives?: Native[]; file?: FileId; video?: Video } | null>(null);
-	const gb = (b: number | null) => (b == null ? '—' : b >= 1024 ** 3 ? `${(b / 1024 ** 3).toLocaleString(loc(), { maximumFractionDigits: 1, minimumFractionDigits: 1 })} GB` : `${Math.round(b / 1024 ** 2)} MB`);
 
 	/** Link de TorBox recién pedido (uno nuevo en cada copia); `choices` si hay audio en inglés y en latino. */
-	async function linkOf(t: Torrent): Promise<{ url: string; choices?: Choice[]; file?: FileId; natives?: Native[]; video?: Video; subsEs?: number; ids?: { tid: number; fid: number } }> {
-		const r = await fetch(`/api/link?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '', orig: orig ?? '' })}`);
-		const j = await r.json();
-		if (!r.ok) throw new Error(j.message);
-		return j;
-	}
+	const linkOf = (t: Torrent) => api.options.link(ref, t, { orig });
 	/** Elegir audio: el toque en la opción es el que copia (por http hace falta un toque para copiar). */
-	/** Badges que ya se explicaron en este video: la primera vez que aparece cada tipo (el de más arriba), un globito
-	 * cuenta qué significa; si aparecen varios tipos, de a uno. */
-	const explained = new Set<string>();
-	function explain(node: HTMLElement, kind: string) {
-		if (explained.has(kind) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		node.style.setProperty('--d', `${0.4 + explained.size * 2.2}s`);
-		explained.add(kind);
-		node.classList.add('explaining');
+	/** Globitos de los badges (los mismos que el desktop, `TipBook`): el primero de cada tipo explica qué significa; el
+	 * badge tocado (Gallego, LAT?) muestra el suyo al toque. */
+	const tips = new TipBook();
+	/** Sube con cada toque de un badge: vuelve a armar las filas (los globitos no son estado de Svelte). */
+	let tapped = $state(0);
+	function quickTip(hash: string) {
+		tips.tap(hash);
+		tapped++;
 	}
 	/** Recién leídos en esta pantalla: sus badges naranjas explican qué significan con un globito. */
 	let fresh = $state<Record<string, boolean>>({});
 	/** Por qué falló el análisis de cada torrent (lo dice el server). */
 	let why = $state<Record<string, string>>({});
-	/** Globito rápido del badge ES ("Gallego") al tocarlo. */
-	let tipFor = $state('');
-	let tipT: ReturnType<typeof setTimeout> | undefined;
-	function quickTip(hash: string) {
-		tipFor = '';
-		requestAnimationFrame(() => (tipFor = hash));
-		clearTimeout(tipT);
-		tipT = setTimeout(() => (tipFor = ''), 2400);
-	}
 	let audioFor = $state<{ t: Torrent; choices: Choice[] } | null>(null);
 
 	/** Lo leído de cada torrent (subs en español y audio, ver audio.ts), 'busy' mientras se lee o 'err' si falló.
 	 * Es del torrent y no cambia: se guarda para siempre (saved.remember). */
 	let info = $state<Record<string, Tracks | 'busy' | 'err' | null>>({});
 	$effect(() => {
-		for (const t of data?.list ?? []) if (!(t.hash in info)) info[t.hash] = saved.recall(`tracks:${t.hash}`) as Tracks | null;
+		for (const t of load.options ?? []) if (!(t.hash in info)) info[t.hash] = saved.recall(`tracks:${t.hash}`) as Tracks | null;
 	});
 	function know(hash: string, v: Tracks) {
 		info[hash] = v;
@@ -358,30 +328,54 @@
 	}
 	/** Lee el encabezado del video (subs y audios). Con `ids` (del link recién copiado) es un pedido a TorBox; sin
 	 * ellos, también agrega el torrent. false si falló. */
-	async function probe(t: Torrent, ids?: { tid: number; fid: number }) {
+	async function probe(t: Torrent, ids?: TorboxIds | null) {
 		info[t.hash] = 'busy';
 		fresh[t.hash] = false;
 		try {
-			const r = await fetch(`/api/tracks?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '', ...(ids ? { tid: String(ids.tid), fid: String(ids.fid) } : {}) })}`);
-			if (!r.ok) throw new Error((await r.json().catch(() => null))?.message ?? tr('No se pudo analizar.'));
-			const j = await r.json();
-			know(t.hash, { subs: j.subs.length, audio: audioOf(j.audios), audios: j.audios });
+			const j = await api.options.tracks(ref, t, { ids });
+			know(t.hash, { subs: j.subs, audio: audioOf(j.audios), audios: j.audios });
 			fresh[t.hash] = true;
 			return true;
 		} catch (err) {
 			info[t.hash] = 'err';
-			why[t.hash] = (err as Error).message;
+			why[t.hash] = (err as Error).message || tr('No se pudo analizar.');
 			return false;
 		}
 	}
-	const subBadge = (t: Torrent) => {
-		const n = known(t)?.subs;
-		if (typeof n === 'number' && n > 0) return { on: true, text: 'Sub ES', title: tr(n > 1 ? 'El video trae {n} subtítulos en español adentro' : 'El video trae {n} subtítulo en español adentro', { n }) };
-		if (t.subFile) return { on: true, text: 'Sub ES', title: tr('El torrent trae un archivo de subtítulo en español') };
-		if (n === 0) return { on: false, text: 'Sin sub ES', title: tr('El video no trae subtítulos en español: hay que buscarlos afuera') };
-		return null;
-	};
-
+	/** La fila de la lista compartida (`$ui/options/OptionRow.svelte`): peso, badges, calidad, analizar y copiar. */
+	function rowOf(t: Torrent, best: boolean): OptionRowView {
+		void tapped;
+		const k = known(t);
+		const v = info[t.hash];
+		const n = k?.subs ?? null;
+		const subsTitle = n != null && n > 0 ? tr(n > 1 ? 'El video trae {n} subtítulos en español adentro' : 'El video trae {n} subtítulo en español adentro', { n })
+			: t.subFile ? tr('El torrent trae un archivo de subtítulo en español') : undefined;
+		const { audio, subs } = langTags({ hash: t.hash, lat: status(t), want: wantLat, spokenEs: orig === 'es', subs: hasEs(t) ? true : n === 0 ? false : null, best,
+			fresh: fresh[t.hash], subsTitle, audioId: `audio-info-${t.hash}`, onTap: () => quickTip(t.hash) }, tips, tr);
+		const analyze = () => {
+			track('analizar', t.release);
+			probe(t);
+		};
+		const scan = (text: string, title: string, busy: string | null = null): DockButton =>
+			({ id: `scan-${t.hash}`, icon: 'search', text, busy, cancel: '', title, aria: busy ?? text, onclick: busy ? () => {} : analyze });
+		// Sin leer todavía: un botón chico para leerlo (audio latino y subs incluidos).
+		const dock = v === 'busy' ? [scan('', tr('Analizando…'), tr('Analizando…'))]
+			: v === 'err' ? [scan(tr('No se pudo · reintentar'), why[t.hash] ?? '')]
+			: !k ? [scan(tr('Analizar audio y subs'), tr('Analizar torrent: audio latino y subtítulos incluidos'))] : [];
+		const c = copy[t.hash];
+		const label = c === 'err' ? tr('Reintentar copiar el link') : tr('Copiar link de TorBox');
+		return {
+			hash: t.hash, title: t.release, best, bestText: tr('Mejor opción'), idle: true, tooBig: false, skipped: false,
+			size: sizeText(t.sizeBytes, loc()),
+			hdr: t.hdr.length ? t.hdr.map((x) => HDR_TIP[x]).filter((x): x is string => !!x).map((x) => tr(x)).join('\n') || 'HDR' : null,
+			res: t.resolution ? resLabel(t.resolution, tr('Otras')) : null,
+			heavy: t.sizeBytes && !fits(t) ? tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) }) : null,
+			failedBefore: null, torbox: null, audio, subs, nofit: null, mid: null,
+			quality: qualityOf(t.source, t.release, `qinfo-${t.hash}`, tr),
+			// Como ▶ del desktop: un botón redondo; lleno en los buenos matches.
+			action: { kind: 'play', id: `copy-${t.hash}`, tone: best ? 'accent' : 'ghost', state: c ?? 'idle', label, title: label, onclick: () => copyLink(t), bg: null, dock }
+		};
+	}
 	/** Pide el link en el toque; si hay inglés y latino, pregunta antes de copiar. */
 	async function copyLink(t: Torrent) {
 		copy[t.hash] = 'busy';
@@ -396,7 +390,7 @@
 		// Link de descarga (plan sin streaming): de paso se leen sus pistas, sin volver a agregar el torrent.
 		if (got.ids && !known(t)) probe(t, got.ids);
 		else if (got.subsEs != null && !known(t)) know(t.hash, { subs: got.subsEs, audio: null });
-		subsFor(t, got.file, got.natives, got.video);
+		subsFor(t, got.file ?? undefined, got.natives, got.video ?? undefined);
 		if (got.choices?.length) audioFor = { t, choices: got.choices };
 		else askWhere(t, got.url);
 	}
@@ -421,7 +415,7 @@
 	/** Copia ya (Chrome deja unos segundos después del toque); si el navegador no deja, un toque más en la hoja. */
 	async function copyUrl(t: Torrent, url: string) {
 		// Título · calidad · audio elegido · dónde (el panel lo separa por ` · `).
-		track('copiar link', `${name}${s ? ` T${s}E${e}` : ''} · ${t.res ?? ''} · ${wantLat ? 'Latino' : 'Original'} · ${/play\.html/.test(url) ? 'TV' : 'Celu'}`);
+		track('copiar link', `${name}${s ? ` T${s}E${e}` : ''} · ${t.resolution ?? ''} · ${wantLat ? 'Latino' : 'Original'} · ${/play\.html/.test(url) ? 'TV' : 'Celu'}`);
 		if (copyNow(url)) return done(t, 'ok');
 		try {
 			await navigator.clipboard.writeText(url);
@@ -513,28 +507,26 @@
 		if (copyNow(url)) copied = { kind: 'sub', name };
 		else manual = { url, release: name, kind: 'sub' };
 	}
-	/** El video y episodio de los subtítulos. */
-	const subsRef = $derived(s && e ? { kind: 'tv' as const, videoId: `${imdb}:${s}:${e}` } : { kind: 'movie' as const, videoId: imdb });
 
 	const fileName = $derived(name + (s && e ? ` S${String(s).padStart(2, '0')}E${String(e).padStart(2, '0')}` : ''));
 </script>
 
-<section class="torrents" aria-label={tr('Torrents en TorBox')} aria-busy={!data && !error}>
-	{#if !data && !error}
+<section class="torrents" aria-label={tr('Torrents en TorBox')} aria-busy={!load.options && !error}>
+	{#if !load.options && !error}
 		<!-- Paso 1: hasta que terminan TODAS las fuentes y el chequeo de TorBox. -->
 		<div class="searching" role="status">
 			<span class="spin"></span>
 			<span>
 				<strong>{tr('Buscando torrents…')}</strong>
-				<span class="muted">{progress.torbox ? tr('Viendo cuáles tiene TorBox') : progress.total ? tr('{n} de {d} fuentes', { n: progress.done, d: progress.total }) : ''}</span>
+				<span class="muted">{load.checking ? tr('Viendo cuáles tiene TorBox') : load.progress?.total ? tr('{n} de {d} fuentes', { n: load.progress.done, d: load.progress.total }) : ''}</span>
 			</span>
 		</div>
-		{#if progress.total}<div class="meter" aria-hidden="true"><i style:width="{progress.torbox ? 100 : (progress.done / progress.total) * 90}%"></i></div>{/if}
-	{:else if error && !data}
+		{#if load.progress?.total}<div class="meter" aria-hidden="true"><i style:width="{load.checking ? 100 : (load.progress.done / load.progress.total) * 90}%"></i></div>{/if}
+	{:else if error && !load.options}
 		<p class="status error" role="alert">{error}</p>
-	{:else if data && !all.length}
+	{:else if load.options && !all.length}
 		<p class="status muted">{tr('No hay torrents en TorBox para esto.')}</p>
-	{:else if data}
+	{:else if load.options}
 		{#if step !== 'net' && net}
 			<nav class="crumbs" aria-label={tr('Ruta')}>
 				<button id="crumb-net" type="button" title={tr('Cambiar la conexión')} onclick={() => goStep('net')}>{tr('Conexión {c}', { c: tr(net.label).toLowerCase() })}</button>
@@ -730,80 +722,9 @@
 	{/if}
 {/snippet}
 
-<!-- Opciones: `best` = buenos matches (destacados, con el botón de copiar lleno). -->
+<!-- Opciones: `best` = buenos matches (destacados, con el botón de copiar lleno). La lista es la compartida con el desktop. -->
 {#snippet options(items: Torrent[], best: boolean)}
-	<ul>
-		{#each items as t (t.hash)}
-			{@const q = t.source ? QUALITY[t.source] : null}
-			{@const sb = subBadge(t)}
-			{@const ls = status(t)}
-			{@const lb = LAT_BADGE[ls]}
-			<li class="opt" class:best>
-				{#if best}<span class="best-tag">{tr('Mejor opción')}</span>{/if}
-				<div class="info">
-				<div class="top">
-					<span class="size">{gb(t.size)}</span>
-					{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res === '1440p' ? '2K' : t.res}</span>{/if}
-					{#if t.size && !fits(t)}<span class="tag heavy" title={tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) })}>{tr('Puede cortarse')}</span>{/if}
-					{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
-					<!-- Gallego solo si la peli es hablada en español o se pide latino; LAT siempre; el resto solo pidiendo latino. -->
-					{#if ls === 'spain' && (orig === 'es' || wantLat)}
-						<button id="audio-info-{t.hash}" type="button" class="tag es-audio" title={tr(lb.title)} aria-label={tr(lb.title)} onclick={() => quickTip(t.hash)}><Icon name="volume" size={13} />{tr(lb.text)}<span class="tip" class:now={tipFor === t.hash} class:auto={best} aria-hidden="true">{tr(lb.tip)}</span></button>
-					{:else if ls === 'lat'}<span class="tag audio lat" title={tr(lb.title)}>{lb.text}{#if best}<span class="tip" aria-hidden="true">{tr(lb.tip)}</span>{/if}</span>
-					<!-- Leído y sin español: LAT tachado. -->
-					{:else if wantLat && ls === 'none'}<span class="tag no-lat" title={tr(lb.title)} use:explain={'nolat'}><s>LAT</s><span class="tip explain" class:now={fresh[t.hash]} aria-hidden="true">{tr(lb.tip)}</span></span>
-					<!-- Sin confirmar: al tocarlo explica que hay que abrirlo y probar el audio. -->
-					{:else if wantLat && (ls === 'likely' || ls === 'check')}
-						<button id="audio-info-{t.hash}" type="button" class="tag es-audio audio {ls}" title={tr(lb.title)} aria-label={tr(lb.title)} onclick={() => quickTip(t.hash)}>{tr(lb.text)}<span class="tip" class:now={tipFor === t.hash} aria-hidden="true">{tr(lb.tip)}</span></button>
-					{/if}
-					<!-- Pidiendo latino, los subs no importan: no se muestran. -->
-					{#if !wantLat}
-					{#if sb?.on}<span class="tag cc es" title={sb.title} aria-label={sb.title}><Icon name="subs" size={13} />ES{#if best}<span class="tip second" aria-hidden="true">{tr('Subtítulos en español incluidos')}</span>{/if}</span>
-					<!-- Leído sin subs adentro: ES en gris = se pueden buscar y bajar aparte. Sin leer: ES? gris punteado. -->
-					{:else if sb}<span class="tag cc es-dl" title={sb.title} aria-label={sb.title} use:explain={'esdl'}><Icon name="subs" size={13} />ES<span class="tip explain" class:now={fresh[t.hash]} aria-hidden="true">{tr('No vienen incluidos: se bajan aparte')}</span></span>
-					{:else}<span class="tag cc unk" title={tr('Sin analizar: no se sabe si trae subtítulos en español')}><Icon name="subs" size={13} />ES?</span>{/if}{/if}
-				</div>
-				<div class="quality" title={q ? tr('Calidad de imagen: {q}', { q: tr(q[0]) }) : tr('El nombre del torrent no dice de dónde salió el video')}>
-					<Icon name="monitor" size={14} />
-					{#if q}
-						<span class="stars" role="img" aria-label={tr('{n} de 4', { n: q[1] })}>
-							{#each [1, 2, 3, 4] as n (n)}<span class:on={n <= q[1]}><Icon name="star" size={13} /></span>{/each}
-						</span>
-						<span class="qname">{tr(q[0])}</span>
-					{:else}
-						<span class="qname unknown">{tr('Calidad sin dato')}</span>
-					{/if}
-				</div>
-				</div>
-				<div class="acts">
-				<!-- Sin leer todavía: un botón chico para leerlo (audio latino y subs incluidos). -->
-				{#if info[t.hash] === 'busy'}
-					<span class="scan busy" role="status"><span class="spin"></span>{tr('Analizando…')}</span>
-				{:else if info[t.hash] === 'err'}
-					<button id="scan-{t.hash}" type="button" class="scan err" title={why[t.hash]} onclick={() => { track('analizar', t.release); probe(t); }}>{tr('No se pudo · reintentar')}</button>
-				{:else if !known(t)}
-					<button id="scan-{t.hash}" type="button" class="scan" title={tr('Analizar torrent: audio latino y subtítulos incluidos')} onclick={() => { track('analizar', t.release); probe(t); }}>{tr('Analizar audio y subs')}</button>
-				{/if}
-				<!-- Como ▶ del desktop: un botón redondo; lleno en los buenos matches. -->
-				<button
-					id="copy-{t.hash}"
-					type="button"
-					class="copy"
-					class:primary={best}
-					class:ok={copy[t.hash] === 'ok'}
-					class:err={copy[t.hash] === 'err'}
-					aria-label={copy[t.hash] === 'err' ? tr('Reintentar copiar el link') : tr('Copiar link de TorBox')}
-					disabled={copy[t.hash] === 'busy'}
-					onclick={() => copyLink(t)}
-				>
-					{#if copy[t.hash] === 'busy'}<span class="spin" class:light={best}></span>
-					{:else if copy[t.hash] === 'ok'}<Icon name="check" size={18} />
-					{:else}<Icon name="play" size={18} />{/if}
-				</button>
-				</div>
-			</li>
-		{/each}
-	</ul>
+	<OptionsList rows={items.map((t) => rowOf(t, best))} />
 {/snippet}
 
 <!-- Subtítulos que trae el video: copiar el video con ese subtítulo puesto. -->
@@ -842,7 +763,7 @@
 	<p class="paste-note"><Icon name="link" size={14} />{tr('SenPlayer y Web Video Caster aceptan pegar el link del subtítulo')}</p>
 	{#if match}
 		{#key match}
-			<SubsPicker ref={subsRef} option={{ hash: match.hash, release: match.release, file: null }} file={match.file ?? null} match={{ release: match.release, video: match.video }} autoSearch={subsAuto} settingsHref="/ajustes"
+			<SubsPicker {ref} option={{ hash: match.hash, release: match.release, file: null }} file={match.file ?? null} match={{ release: match.release, video: match.video }} autoSearch={subsAuto} settingsHref="/ajustes"
 				lead={match.natives?.length ? nativeRows : undefined} actions={foundActions} onUse={copyPremium} useLabel={tr('Copiar')} useIcon="copy" />
 		{/key}
 	{/if}
@@ -1004,6 +925,8 @@
 
 <style>
 	.torrents { margin-top: 8px; }
+	/* Aire para la etiqueta "Mejor opción" (sale arriba de la fila). */
+	.torrents :global(.cat-options) { padding-top: 10px; }
 	.status { display: flex; align-items: center; gap: 10px; padding: 14px 0; margin: 0; font-size: 14px; }
 
 
@@ -1067,105 +990,6 @@
 	@media (hover: hover) { .choice:hover { background: var(--surface-2); } }
 	.toggle:not(.on) { border-style: dashed; background: transparent; color: var(--muted); }
 	.summary { margin: 4px 0 0; font-size: 11.5px; color: color-mix(in srgb, var(--muted) 75%, transparent); font-variant-numeric: tabular-nums; }
-
-	ul { list-style: none; margin: 0; padding: 0; }
-	.opt {
-		position: relative;
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		align-items: center;
-		gap: 10px;
-		padding: 10px 10px 10px 14px;
-		margin-top: 8px;
-		border-radius: var(--r-card);
-		background: var(--bg);
-		border: 1px solid var(--border);
-	}
-	.info { min-width: 0; }
-	/* Los buenos matches, como la mejor opción del desktop: tinte verde y etiqueta arriba. */
-	.opt.best { margin-top: 18px; border-color: color-mix(in srgb, var(--green) 55%, var(--border)); background: color-mix(in srgb, var(--green) 6%, var(--bg)); }
-	/* Encontrada: la tarjeta aparece desde el radar (escala, foco y un brillo que la cruza una vez); sin diálogos. */
-	.opt.best { animation: best-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--green) var(--tint-4), transparent); }
-	.opt.best::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--green) 28%, transparent) 50%, transparent 65%) no-repeat; background-size: 250% 100%; background-position: 130% 0; animation: best-shine 1.1s ease-out 0.35s both; }
-	.opt.best .best-tag { animation: tag-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
-	.opt.best .copy.primary { animation: play-nudge 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both; }
-	@keyframes best-in { from { opacity: 0; transform: translateY(14px) scale(0.94); filter: blur(6px); } }
-	@keyframes best-shine { to { background-position: -30% 0; } }
-	@keyframes tag-pop { from { opacity: 0; transform: translateY(6px) scale(0.6); } }
-	@keyframes play-nudge { from { transform: scale(0.5); opacity: 0; } }
-	@media (prefers-reduced-motion: reduce) { .opt.best, .opt.best::after, .opt.best .best-tag, .opt.best .copy.primary { animation: none; } }
-	.best-tag { position: absolute; top: -9px; left: 14px; padding: 1px 8px; border-radius: var(--r-pill); font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; background: var(--green); color: var(--bg); }
-	.copy {
-		position: relative;
-		display: grid;
-		place-items: center;
-		width: 44px;
-		height: 44px;
-		padding: 0;
-		border-radius: 50%;
-		border: 1px solid var(--border-strong);
-		background: var(--surface);
-		color: var(--text);
-		transition: transform 0.2s var(--out), box-shadow 0.2s var(--ease), background 0.2s var(--ease);
-	}
-	.copy.primary { border-color: transparent; background: var(--accent); color: var(--accent-text); }
-	.copy:active:not(:disabled) { transform: scale(0.92); }
-	.copy.ok { border-color: transparent; background: var(--green); color: var(--bg); }
-	.copy.err { border-color: var(--red); color: var(--red); }
-	.copy:disabled { cursor: default; }
-	.top { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 6px; }
-	.size { font-size: 17.5px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-right: 2px; }
-	.tag {
-		padding: 1px 6px;
-		border-radius: var(--r-xs);
-		border: 1.5px solid currentColor;
-		font-size: 10.5px;
-		font-weight: 750;
-		letter-spacing: 0.05em;
-		color: var(--muted);
-		white-space: nowrap;
-	}
-	/* En la mejor opción, un globito explica cada badge al aparecer: primero el audio, después los subs. */
-	.tag { position: relative; }
-	.tip {
-		position: absolute;
-		bottom: calc(100% + 8px);
-		left: 50%;
-		z-index: 3;
-		padding: 5px 9px;
-		border-radius: var(--r-sm);
-		background: var(--text);
-		color: var(--bg);
-		font-size: 11.5px;
-		font-weight: 650;
-		letter-spacing: 0;
-		white-space: nowrap;
-		pointer-events: none;
-		box-shadow: 0 6px 18px var(--shadow-lg);
-		translate: -50% 0;
-		opacity: 0;
-		animation: tip 3s var(--out) 0.5s;
-	}
-	.tip::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--text); }
-	.tip.second { animation-delay: 3.6s; }
-	/* El del badge ES: solo en la mejor opción sale solo; en cualquiera, al tocarlo. */
-	.tip.explain { animation: none; }
-	.tip.explain.now { animation: tip 3s var(--out) 0.3s; }
-	.tag:global(.explaining) > .tip.explain { animation: tip 3s var(--out) var(--d); }
-	.es-audio .tip { animation: none; }
-	.es-audio .tip.auto { animation: tip 3s var(--out) 0.5s; }
-	.es-audio .tip.now { animation: tip 2.4s var(--out); }
-	.tag.es-audio { display: inline-flex; align-items: center; gap: 3px; background: none; font-family: inherit; color: var(--text); cursor: pointer; }
-	@keyframes tip {
-		0% { opacity: 0; transform: translateY(6px) scale(0.7); }
-		12% { opacity: 1; transform: translateY(-2px) scale(1.06); }
-		20% { transform: none; }
-		85% { opacity: 1; transform: none; }
-		100% { opacity: 0; transform: translateY(-4px) scale(0.96); }
-	}
-	@media (prefers-reduced-motion: reduce) { .tip { display: none; } }
-	.tag.res, .tag.hdr { color: var(--text); }
-	.tag.lat, .tag.es { color: var(--green); }
 	/* Acciones al pie del resultado (2026-11-18): todas del mismo ancho y alto, ícono a la izquierda. */
 	.row-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 	.row-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 16px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface-2); color: var(--text); font: inherit; text-align: left; transition: transform 0.15s var(--out), border-color 0.2s var(--ease); }
@@ -1196,32 +1020,6 @@
 	.hunt-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 	.hunt .row-btn { margin-top: 10px; }
 	@media (prefers-reduced-motion: reduce) { .radar .sweep, .radar .blip, .radar .core { animation: none; } }
-	.tag.heavy { color: var(--amber, #b7791f); border-color: currentColor; }
-	/* Audio: LAT confirmado (verde), según el nombre (gris punteado), sin aclarar (ámbar, como "sin sub ES"). */
-	.tag.audio.lat { color: var(--green); }
-	.tag.audio.likely { border-style: dashed; color: var(--green); }
-	.tag.audio.check { border-style: dashed; color: var(--amber); }
-	/* Badge de audio en español que se toca (ver pistas): gris, mismo tamaño que un badge. */
-	.acts { display: flex; align-items: center; gap: 8px; }
-	/* Analizar: texto chico en acento, en dos renglones si hace falta; se toca en 44 px sin agrandar la fila. */
-	.scan { position: relative; display: inline-flex; align-items: center; gap: 5px; max-width: 84px; padding: 0; border: 0; background: none; color: var(--accent-fg); font: inherit; font-size: 12px; font-weight: 650; line-height: 1.2; text-align: right; }
-	button.scan::after { content: ''; position: absolute; inset: -10px -6px; }
-	button.scan:active { opacity: 0.6; }
-	.scan.busy { color: var(--muted); }
-	.scan.err { color: var(--muted); }
-	.scan .spin { flex: none; width: 12px; height: 12px; border-width: 2px; }
-	/* Estados: LAT tachado = leído y sin latino; ES gris = subs para bajar aparte; gris punteado = sin leer. */
-	.tag.no-lat, .tag.es-dl { color: var(--muted); }
-	.tag.no-lat s { text-decoration-thickness: 1.5px; }
-	.tag.unk { border-style: dotted; color: color-mix(in srgb, var(--muted) 70%, transparent); }
-	/* Badge de subs compacto (cc + ES): entra en la línea de los tags. (`.sub` ya es la fila de subtítulo.) */
-	.tag.cc { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px 1px 4px; }
-	.quality { display: flex; align-items: center; gap: 5px; margin-top: 5px; color: var(--muted); font-size: 13.5px; }
-	.stars { display: inline-flex; gap: 1px; color: color-mix(in srgb, var(--muted) 45%, transparent); }
-	.stars :global(svg) { fill: currentColor; stroke-width: 1.5; }
-	.stars .on { color: #e6b54a; }
-	.qname { font-weight: 600; color: var(--text); }
-	.qname.unknown { font-weight: 500; color: var(--muted); font-size: 13.5px; }
 	.audio-hint { margin: 0 0 14px; font-size: 14px; }
 	.audio-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 	.audio-opt {

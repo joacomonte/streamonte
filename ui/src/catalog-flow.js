@@ -15,8 +15,9 @@ import { api } from './api.js';
 import { el, icon } from './dom.js';
 import { t as tr } from './i18n.js';
 import { state, view } from './catalog-state.js';
-import { failedBefore, flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, latPotential, latToCheck, mbpsOf, openGroup, optionRow, renderStreamsOnly, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.js';
+import { failedBefore, flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, latPotential, latToCheck, mbpsOf, openGroup, renderStreamsOnly, rowView, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.js';
 import { readTracks } from './catalog-subs.js';
+import { optionsList } from './options-mount.svelte.ts';
 import { quickAnalyze, side, sideOf, startAnalysis, stopTests, unlikely } from './catalog-tests.js';
 
 /** step: 'mode' | 'lat' | 'res' | 'list'. `lat`: null = no se preguntó; `latOff`: sacó el filtro de latino
@@ -292,7 +293,7 @@ function matchScreen() {
   const list = ranked();
   const found = /** @type {Candidate[]} */ (f.found.map((h) => list.find((c) => c.info_hash === h)).filter(Boolean));
   /** @param {Candidate[]} cs @param {boolean} mark */
-  const rows = (cs, mark) => el('ul', { class: 'cat-options' }, cs.map((c) => optionRow(c, mark)));
+  const rows = (cs, mark) => optionsList('match', cs.map((c) => rowView(c, mark)));
   const searched = !toConfirm(pool()).length;
   const spanish = pool().filter(spanishNotLat);
   // Ninguna entra en la conexión elegida: las 3 mejores igual (marcadas "Puede cortarse"), con el aviso.
@@ -342,7 +343,7 @@ function spainScreen() {
   const list = flatSorted(pool().filter(spanishNotLat));
   return screen(tr('Probablemente español de España'),
     el('p', { class: 'cat-flow-note' }, tr('Traen audio en español sin decir que es latino (o marcado de España): casi seguro es castellano.')),
-    el('ul', { class: 'cat-options' }, list.map((c) => optionRow(c, false))),
+    optionsList('spain', list.map((c) => rowView(c, false))),
     el('div', { class: 'cat-flow-actions rows' },
       originalRow('cat-spain-original'),
       el('button', { id: 'cat-spain-all', type: 'button', class: 'cat-flow-btn', onclick: () => { Object.assign(f, { spain: false, all: true, latOff: true }); renderStreamsOnly(); } },

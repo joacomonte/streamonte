@@ -93,7 +93,7 @@ export const option = (t: TorrentRaw): TorrentOption => ({
 	isPack: false
 });
 
-export const link = (raw: LinkRaw): OptionLink => ({ url: raw.url, choices: raw.choices ?? [], video: raw.video ?? null });
+export const link = (raw: LinkRaw): OptionLink => ({ url: raw.url, choices: raw.choices ?? [], video: raw.video ?? null, file: raw.file ?? null, natives: raw.natives ?? [], subsEs: raw.subsEs ?? null, ids: raw.ids ?? null });
 export const tracks = (raw: TracksRaw): TorrentTracks => ({ subs: raw.subs.length, audios: raw.audios });
 
 export const subtitle = (s: Sub): SubtitleOption => ({
@@ -168,20 +168,3 @@ export async function* optionsUpdates(lines: AsyncIterable<string>): AsyncGenera
 		}
 	}
 }
-
-/** Inversa de `option` para lo que sigue pidiendo `Torrent` (lista de opciones de la web, hasta que migre al modelo de vista). */
-export const torrentOf = (o: TorrentOption): Torrent => ({
-	hash: o.hash,
-	release: o.release,
-	file: o.file,
-	res: o.resolution,
-	hdr: o.hdr,
-	source: o.source,
-	hint: o.hint,
-	multi: o.multi,
-	spa: o.spanish,
-	size: o.sizeBytes,
-	seeds: o.seeds ?? 0,
-	addons: o.addons,
-	subFile: o.subFile
-});

@@ -144,7 +144,14 @@ export type OptionsUpdate = {
 
 export type OptionRef = { kind: Kind; videoId: string };
 export type TorrentTracks = { subs: number; audios: { language: string; title: string }[] };
-export type OptionLink = { url: string; choices: { key: string; label: string; url: string }[]; video: { fps: number | null; duration: number | null } | null };
+export type OptionLink = { url: string; choices: { key: string; label: string; url: string }[]; video: { fps: number | null; duration: number | null } | null;
+	/** Web: el archivo concreto (para subtítulos exactos), los subs en español del video como links del stream, cuántos trae y los
+	 * ids de TorBox (para leer sus pistas sin volver a agregar el torrent). */
+	file?: { hash: string; size: string } | null; natives?: NativeSub[]; subsEs?: number | null; ids?: TorboxIds | null };
+/** Ids de TorBox de un link ya pedido (torrent y archivo). */
+export type TorboxIds = { tid: number; fid: number };
+/** Subtítulo en español que trae el video (web: link del stream con ese subtítulo puesto). */
+export type NativeSub = { label: string; kind: string; track: number; url: string };
 
 // ---------- Subtítulos ----------
 export type MatchLevel = 'exact' | 'release' | 'fps' | 'none';

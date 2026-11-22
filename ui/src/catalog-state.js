@@ -32,7 +32,7 @@ export const safeSet = (/** @type {string} */ k, /** @type {string} */ v) => { t
  *   epTexts?: Record<number, Map<number, EpisodeText>>, similar?: Similar[]|null, similarOpen?: boolean, aboutOpen?: boolean,
  *   providersOpen?: boolean,
  *   tests?: VideoTests, deep?: Deep, flow?: Flow,
- *   torbox?: null|'checking'|'done'|'error', explained?: Map<string, {hash: string, delay: number}>}} Side */
+ *   torbox?: null|'checking'|'done'|'error'}} Side */
 /** Actor o director elegido en las sugerencias (lo guarda el catálogo compartido). @typedef {{id: number, name: string, photo: string|null, role: 'cast'|'director'}} PickedPerson */
 
 /** Gancho de `catalog-mount.ts`: avisa al catálogo compartido qué título tiene el panel abierto (para resaltar su tarjeta). */
@@ -59,7 +59,7 @@ export const view = {
    *  calibración de la salud, armadas una vez y no por fila (con 200+ opciones se notaba). Fuera, null. */
   /** @type {Map<string, LibraryRow[]>|null} */
   libByHash: null,
-  /** @type {ReturnType<typeof import('./health-calib.js').healthCalibration>|null} */
+  /** @type {ReturnType<typeof import('./health-store.ts').healthCalibration>|null} */
   renderCal: null,
   /** Orden elegido arriba de la lista: 'quality' = Mejor imagen, 'fast' = Arranca más rápido. */
   optSort: /** @type {'quality'|'fast'} */ (safeGet('streamonte.catalog.sort') === 'fast' ? 'fast' : 'quality'),

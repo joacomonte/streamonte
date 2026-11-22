@@ -83,7 +83,7 @@ test('createWebApi: arma las URLs y adapta la respuesta (fetch simulado)', async
 	assert.deepEqual(seen, ['/api/catalog?q=fight&page=2', '/api/torrents?imdb=tt0903747&s=1&e=2']);
 });
 
-test('subs: find con archivo, premium.search marca premium, torrentOf invierte option', async () => {
+test('subs: find con archivo, premium.search marca premium', async () => {
 	const seen: string[] = [];
 	const sub = { id: '7', release: 'Peli.1080p-GRP', latino: false, format: 'srt', downloads: 2 };
 	const api = createWebApi(((url: string) => {
@@ -96,6 +96,22 @@ test('subs: find con archivo, premium.search marca premium, torrentOf invierte o
 	const prem = await api.premium?.search({ kind: 'tv', videoId: 'tt1:1:2' }, o);
 	assert.equal(prem?.[0]?.premium, true);
 	assert.deepEqual(seen, ['/api/subs?imdb=tt1&hash=0123456789abcdef&size=99', '/api/premium?imdb=tt1&s=1&e=2']);
-	const t = adapt.torrentOf(adapt.option(torrent));
-	assert.deepEqual([t.hash, t.res, t.hint, t.spa, t.size, t.subFile], [torrent.hash, '2160p', 'lat', true, 5e10, true]);
+});
+
+test('options.link trae archivo, nativos e ids; options.tracks con ids no vuelve a agregar el torrent', async () => {
+	const seen: string[] = [];
+	const api = createWebApi(((url: string) => {
+		seen.push(String(url));
+		const body = String(url).startsWith('/api/link')
+			? { url: 'https://x/v.mkv', ids: { tid: 3, fid: 4 }, file: { hash: 'f', size: '9' }, subsEs: 1 }
+			: { subs: [{ label: 'Español', kind: 'del video', track: 2 }], audios: [{ language: 'es-419', title: '' }] };
+		return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+	}) as typeof fetch);
+	const ref = { kind: 'movie' as const, videoId: 'tt1' };
+	const o = adapt.option(torrent);
+	const l = await api.options.link(ref, o, { orig: 'en' });
+	assert.deepEqual([l.ids, l.file, l.subsEs, l.natives, l.choices], [{ tid: 3, fid: 4 }, { hash: 'f', size: '9' }, 1, [], []]);
+	const tr = await api.options.tracks(ref, o, { ids: l.ids });
+	assert.equal(tr.subs, 1);
+	assert.match(seen[1] ?? '', /tid=3&fid=4$/);
 });

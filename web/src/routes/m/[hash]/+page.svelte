@@ -3,7 +3,6 @@
 	import Icon from '$ui/components/Icon.svelte';
 	import Torrents from '#lib/Torrents.svelte';
 	import { t as tr } from '#lib/i18n.svelte.ts';
-	import { torrentOf } from '#lib/web-adapt.ts';
 	import { page } from '$app/state';
 	import MagnetView from '$ui/magnet/MagnetView.svelte';
 
@@ -20,7 +19,7 @@
 	{#key hash}
 		<MagnetView {hash} name={dn} bind:title titleHref={(i) => `/t/${i.kind}/${i.id}`}>
 			{#snippet ready(st, ident, shown)}
-				<Torrents imdb={ident?.imdb ?? ''} s={ident?.season ?? null} e={ident?.episode ?? null} name={shown} orig={ident?.origLang ?? null} runtime={ident?.runtime ?? null} given={st.options.map(torrentOf)} />
+				<Torrents imdb={ident?.imdb ?? ''} s={ident?.season ?? null} e={ident?.episode ?? null} name={shown} orig={ident?.origLang ?? null} runtime={ident?.runtime ?? null} given={st.options} />
 			{/snippet}
 		</MagnetView>
 	{/key}

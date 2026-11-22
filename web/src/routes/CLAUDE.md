@@ -6,7 +6,7 @@ Páginas `+page.svelte` que pegan a `/api/*` (`+server.ts` delgados: validan con
 - `+page.svelte` (home, delgada) — monta `$ui/catalog/Catalog.svelte` con `webCatalog()`: `header` (marca, ES/EN), `top` (`/api/keys` → `#keys-cta`), `onmagnet` → `/m/…`, `onlog` → `track`.
 - `t/[kind]/[id]/` — `+page.ts:6 load` (`/api/title`, caché `saved.DAY`) · `+page.svelte` — monta `<TitleView> :69` (`$ui/title/`, `getApi()`; scores/episodios por `getApi()`), `<Torrents> :84` en su snippet `options`.
 - `t/[kind]/[id]/[s]/[e]/` — `+page.ts:7 load` valida s/e · `+page.svelte` `<Torrents s e> :41` (solo `tv`).
-- `m/[hash]/+page.svelte` — "Pegar magnet": `<MagnetView>` (`$ui/magnet/`) ← `getApi().magnet` → `/api/magnet` GET/POST; `<Torrents given> :26` vía `web-adapt.ts torrentOf`.
+- `m/[hash]/+page.svelte` — "Pegar magnet": `<MagnetView>` (`$ui/magnet/`) ← `getApi().magnet` → `/api/magnet` GET/POST; `<Torrents given> :22` con `st.options` (`TorrentOption[]`).
 - `ajustes/+page.svelte` — idioma, apodo, keys `/api/keys :67-93`, borrar caché, `AdminCode`.
 - `admin/+page.server.ts` — `:9 load` · `:14 attempt` · `:77 actions`; `+page.svelte` panel de uso.
 - `api/*/+server.ts` (todas por `route()` salvo indicado): `catalog :10` · `genres :4` · `people :5` · `title/[kind]/[id] :4` · `season/[id]/[n] :4` · `scores/[imdb] :4` · `torrents :8` (NDJSON) · `link :5` · `tracks :7` · `subs :5` · `subs/[id] :5` · `premium :6` · `premium/quota :5` · `premium/[id]` POST `:5` / GET `:8` · `magnet` GET `:5` / POST `:13` · `keys` GET `:15` / POST `:16` · `nick :6` · `track :6` (sin `route`) · `dev-stamp :9`.

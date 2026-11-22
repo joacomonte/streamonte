@@ -35,20 +35,6 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .crumb.current { color: var(--accent-text); background: var(--accent); }
 .crumb.root:not(.current) { color: var(--text); }
 
-/* Opciones: encabezado sutil ordenable + filas grandes (2026-11-15). */
-.cat-options { display: grid; gap: 10px; }
-.cat-opt {
-  display: grid; align-items: center; gap: 4px 14px;
-  /* Peso y calidad · veredicto y gente · bajar y ▶ (2026-11-17). La del medio se achica: si no, la
-     fila pasa el ancho del panel y aparece scroll horizontal. */
-  grid-template-columns: minmax(130px, 190px) minmax(0, 1fr) auto;
-  padding: 12px 12px 12px 18px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border);
-  transition: border-color .15s var(--ease), background .15s var(--ease);
-}
-.cat-options .cat-opt:hover { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
-.cat-size { font-size: 17px; font-weight: 700; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.cat-opt.tb-idle .cat-size-cell { grid-column: 1 / 3; }
-.cat-opt-actions { grid-column: 3; display: flex; align-items: center; gap: 8px; }
 
 /* Resoluciones en acordeón: encabezados siempre en la lista; uno abierto (2026-11-15). */
 .cat-sticky { position: sticky; top: -16px; z-index: 3; margin: -16px -18px 12px; padding: 12px 18px 10px; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
@@ -81,7 +67,6 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-icon-btn.primary:hover { filter: brightness(1.12); color: var(--accent-text); }
 .cat-icon-btn:disabled { opacity: .5; }
 /* Fila de opción sin solapes (2026-11-15): velocidad debajo del peso; seeders como botón. */
-.cat-size-cell { display: grid; gap: 2px; min-width: 0; }
 .cat-size-cell .cat-speed { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .cat-size-cell .cat-speed.bg-green { color: var(--green); }
 .cat-size-cell .cat-speed.bg-yellow { color: var(--yellow); }
@@ -103,12 +88,8 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-pasted-name { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cat-pasted-size { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-/* La mejor opción de la lista final. */
-.cat-opt.best { position: relative; border-color: color-mix(in srgb, var(--green) 55%, var(--border)); background: color-mix(in srgb, var(--green) 6%, var(--bg)); }
-.cat-best-tags { position: absolute; top: -10px; left: 14px; z-index: 1; display: flex; align-items: center; gap: 6px; }
 /* Aire para la etiqueta "Mejor opción" de la primera fila. */
 .cat-group .cat-options { padding-top: 8px; }
-.cat-best-tag { padding: 1px 8px; border-radius: var(--r-pill); font-size: 10px; font-weight: 800; letter-spacing: .04em; background: var(--green); color: #fff; }
 /* Cerrar el panel: grande, arriba a la derecha, sobre la cabecera (2026-11-15). */
 .side-open .cat-side { position: relative; }
 .side-close { position: sticky; top: 14px; align-self: flex-end; margin: 14px 14px -62px 0; z-index: 5; width: 48px; height: 48px; padding: 0; border-radius: var(--r-pill); font-size: 20px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); box-shadow: 0 6px 20px rgb(0 0 0 / .35); }
@@ -119,7 +100,6 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 @keyframes cat-flash { 0% { background: color-mix(in srgb, var(--accent) 35%, transparent); transform: scale(1.08); } 100% { transform: none; } }
 /* Mejor opción encontrada (2026-11-20, como la web): la tarjeta aparece (escala y foco), un brillo la cruza una vez,
    la etiqueta salta y el ▶ entra. Sin diálogos. */
-.cat-opt.best { box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--green) 55%, transparent); }
 .cat-opt.new-best { animation: cat-best-in .7s cubic-bezier(.16, 1, .3, 1) both; }
 .cat-opt.new-best::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--green) 28%, transparent) 50%, transparent 65%) no-repeat;
@@ -198,60 +178,8 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 /* Mientras llegan los torrents (2026-11-16): esqueleto con forma de fila y las nuevas entran deslizándose. */
 @media (prefers-reduced-motion: reduce) { .cat-deep-bar i, .cat-deep-creep { animation: none; } }
 
-/* Fila de opción (2026-11-16): etiquetas chicas junto al peso, "Analizar" recomendado y ▶ con menú. */
-.cat-size-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.cat-tag { display: inline-flex; align-items: center; height: 17px; padding: 0 5px; border-radius: 5px; font-size: 9.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
-  color: var(--muted); border: 1px solid var(--border-strong); cursor: help; }
-.cat-tag.cat-res { color: var(--muted); border-color: var(--border-strong); }
-.cat-tag.cat-hdr { color: var(--text); border-color: color-mix(in srgb, var(--text) 45%, transparent); }
-/* Idioma ya sabido junto a TORBOX (2026-11-18, design/opciones-acciones/variantes-v6.html): verde trae, gris no. */
-.cat-tag.cat-lang { gap: 3px; }
-.cat-tag.cat-lang.ok { color: var(--green); border-color: color-mix(in srgb, var(--green) 55%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
-.cat-tag.cat-lang.no { color: var(--dim); border-color: var(--border-strong); }
 
-/* Lo que falta saber del idioma: cápsula con 1 o 2 botones junto al ▶. */
-.cat-dock { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 6px; border-radius: var(--r-pill); background: var(--surface-2); border: 1px solid var(--border); }
-.cat-dock-acts { display: flex; align-items: center; gap: 2px; }
-.cat-dock-div { width: 1px; height: 22px; margin: 0 2px; background: var(--border-strong); }
-.cat-dock-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 8px; border-radius: var(--r-pill); border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; transition: background .15s var(--ease), color .15s var(--ease); }
-.cat-dock-btn:hover, .cat-dock-btn:focus-visible { background: var(--surface-3); color: var(--text); outline: none; }
-.cat-dock-btn .ico { color: var(--accent-fg); }
-/* Leyendo: el mismo botón, ícono → spinner; con el mouse encima, ■ Cancelar. */
-.cat-dock-ic { display: inline-grid; place-items: center; width: 13px; height: 13px; }
-.cat-dock-ic > * { grid-area: 1 / 1; }
-.cat-dock-ic .cat-res-spin { width: 11px; height: 11px; border-width: 1.6px; }
-.cat-dock-ic .ico, .cat-dock-cancel { display: none; }
-.cat-dock-btn.loading:hover .cat-dock-ic .cat-res-spin, .cat-dock-btn.loading:hover .cat-dock-busy,
-.cat-dock-btn.loading:focus-visible .cat-dock-ic .cat-res-spin, .cat-dock-btn.loading:focus-visible .cat-dock-busy { display: none; }
-.cat-dock-btn.loading:hover .cat-dock-ic .ico, .cat-dock-btn.loading:focus-visible .cat-dock-ic .ico { display: inline-flex; color: var(--muted); }
-.cat-dock-btn.loading:hover .cat-dock-cancel, .cat-dock-btn.loading:focus-visible .cat-dock-cancel { display: inline; }
 
-/* Con acciones pendientes, salud y seeds bajan a una 3.ª línea: la fila no se aprieta. */
-.cat-opt.pend:not(.tb-idle) .cat-size-cell { grid-column: 1 / 3; }
-.cat-opt.pend .cat-mid { grid-column: 1 / 3; grid-row: 2; display: flex; align-items: center; gap: 10px; }
-.cat-opt.pend .cat-verdict { height: 20px; gap: 6px; }
-.cat-opt.pend .cat-verdict strong { font-size: 13px; }
-.cat-opt.pend:not(.tb-idle) .cat-opt-actions { grid-row: 1 / span 2; }
-
-/* Angosto (≤ 440 px): cards más altas, ▶ arriba a la derecha, salud debajo y las acciones como píldoras de ancho justo. */
-.cat-options { container-type: inline-size; }
-@container (max-width: 440px) {
-  .cat-opt { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 10px; padding: 16px 12px 16px 16px; }
-  .cat-opt .cat-size-cell, .cat-opt.tb-idle .cat-size-cell, .cat-opt.pend:not(.tb-idle) .cat-size-cell { grid-column: 1; gap: 6px; }
-  .cat-opt .cat-opt-actions, .cat-opt.pend:not(.tb-idle) .cat-opt-actions { grid-column: 2; grid-row: 1; align-self: start; }
-  .cat-opt .cat-mid, .cat-opt.pend .cat-mid { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: 12px; }
-  .cat-opt.pend { grid-template-columns: minmax(0, 1fr) auto auto; }
-  .cat-opt.pend .cat-opt-actions, .cat-opt.pend .cat-play-btns, .cat-opt.pend .cat-dock { display: contents; }
-  .cat-opt.pend .cat-bg-btn { grid-column: 2; grid-row: 1; align-self: start; margin-top: 7px; }
-  .cat-opt.pend .cat-play { grid-column: 3; grid-row: 1; align-self: start; }
-  .cat-opt.pend .cat-dock-div { display: none; }
-  .cat-opt.pend .cat-dock-acts { grid-column: 1 / -1; grid-row: 3; flex-wrap: wrap; gap: 8px; }
-  .cat-opt.pend.tb-idle .cat-dock-acts { grid-row: 2; }
-  .cat-opt.pend .cat-mid { grid-column: 1 / -1; }
-  .cat-opt.pend .cat-dock-btn { height: 36px; padding: 0 14px 0 12px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); font-size: 13px; }
-  /* Sin mouse: leyendo, el ■ se ve fijo para cancelar. */
-  .cat-dock-btn.loading .cat-dock-busy::after { content: " · ■"; color: var(--dim); }
-}
 
 /* Encabezado angosto (panel lateral): sin ícono, el texto respira y no se corta. */
 @container (max-width: 640px) { .cat-deep-icon { display: none; } .cat-deep { padding-left: 16px; gap: 14px; } }
@@ -299,19 +227,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   color: #0b1a10; background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent); }
 .cat-mini-next.soon { gap: 8px; }
 
-/* ---------- Fila de opción (2026-11-17, design/opciones-final.html) ----------
-   Peso + calidad de imagen · veredicto (o testear) con la gente debajo · bajar de fondo y ▶. */
-.cat-size-line { display: flex; align-items: center; gap: 6px; }
-.cat-quality { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
-.cat-quality-q { display: inline-flex; align-items: center; gap: 6px; cursor: help; }
-.cat-quality.cam, .cat-quality.cam .ico { color: var(--red); }
-.cat-stars { letter-spacing: 1px; font-size: 11px; line-height: 1; }
-.cat-stars i { font-style: normal; color: var(--track); }
-.cat-stars i.on { color: #e8c26a; }
-.cat-nofit { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; color: var(--yellow); cursor: help; }
-.cat-opt.too-big .cat-size { color: var(--muted); }
-.cat-opt.too-big .cat-play { background: var(--surface-3); color: var(--muted); }
-.cat-mid { display: grid; gap: 4px; justify-items: start; align-content: center; min-width: 0; }
 .cat-people { display: inline-flex; align-items: center; gap: 4px; padding-left: 2px; color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cat-people b { color: var(--muted); font-weight: 600; }
 .cat-people.flash { animation: cat-flash .9s ease-out; border-radius: 6px; }
@@ -358,9 +273,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-testing.quick.phase-meta .cat-testing-bar i { animation-duration: 12s; animation-timing-function: linear; }
 .cat-testing.quick.phase-count .cat-testing-bar i { animation-duration: 18s; animation-timing-function: linear; }
 .cat-testing-step { padding: 1px 6px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-/* Calidad sin dato: gris y chico, el porqué en el tooltip. */
-.cat-quality-unknown { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; cursor: help; opacity: .8; }
-.cat-quality-unknown:hover, .cat-quality-unknown:focus-visible { opacity: 1; }
 @keyframes cat-fill { from { width: 3%; } to { width: 96%; } }
 .cat-failed { display: inline-flex; align-items: center; gap: 8px; height: 30px; }
 .cat-failed-msg { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; font-weight: 700; cursor: help; white-space: nowrap; }
@@ -373,15 +285,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-mid .cat-speed.bg-red { color: var(--red); }
 .cat-mid .cat-speed.bg-measuring { color: var(--accent-fg); }
 
-/* Bajar de fondo y ▶, minimal. */
-.cat-play-btns { display: flex; align-items: center; gap: 8px; }
-.cat-bg-btn { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 0; background: var(--surface-3); color: var(--muted); transition: color .15s, background .15s; }
-.cat-bg-btn:hover { color: var(--text); background: var(--border-strong); }
-.cat-bg-btn.on { color: var(--green); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--green) 60%, transparent); }
-.cat-play { position: relative; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-text); transition: transform .2s var(--out), box-shadow .2s; }
-.cat-play:hover:not(:disabled) { transform: scale(1.06); box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent); }
-.cat-play.busy > * { visibility: hidden; }
-.cat-play.busy::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
 
 /* Orden: Mejor imagen / Arranca más rápido, arriba de las opciones del grupo abierto. */
 .cat-list-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 0 12px 10px 18px; }
@@ -414,10 +317,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-subchange { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--muted); cursor: pointer; }
 .cat-subchange:hover, .cat-subchange:focus-visible { color: var(--text); border-color: var(--border-strong); }
 
-/* Rendimiento (2026-11-17): las filas fuera de la vista no se pintan ni se animan. */
-.cat-opt { content-visibility: auto; contain-intrinsic-size: auto 92px; }
-/* content-visibility recorta lo que sobresale: la etiqueta "Mejor opción" (arriba de la fila) quedaba cortada. */
-.cat-opt.best { content-visibility: visible; }
 .cat-more-rows { justify-self: center; margin: 4px auto 0; padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--r-pill); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .cat-more-rows:hover { color: var(--text); border-color: var(--accent); }
 
@@ -429,13 +328,10 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 /* "Bajar el mejor" (2026-11-17): una línea con en qué anda o cómo terminó. */
 @media (prefers-reduced-motion: reduce) { .cat-auto-status .cat-radar::after { animation: none; } }
 
-@keyframes cat-quick-spin { to { transform: rotate(1turn); } }
 
 /* Buscando torrents (2026-11-17): las resoluciones ya se ven y se pueden elegir; la elegida se
    analiza sola al terminar. */
 .cat-group.searching .cat-res-count { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
-.cat-res-spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--surface-3, var(--border)); border-top-color: var(--accent); animation: cat-quick-spin .9s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .cat-res-spin { animation-duration: 3s; } }
 
 /* El panel del análisis vive dentro de la resolución elegida (2026-11-17). */
 .cat-group > .cat-deep { margin: 0 14px 14px; }
@@ -481,11 +377,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-deep-offer-text b { color: var(--accent-fg); font-size: 13.5px; }
 .cat-deep-offer-text span { font-size: 12px; color: var(--muted); }
 
-/* TorBox (2026-11-17): badge minimal junto a HDR y su filtro al lado de "Solo HDR". */
-/* Ya falló al reproducirse en esta compu (2026-11-20). */
-.cat-tag.cat-failed-before { color: var(--red, #e5484d); border-color: color-mix(in srgb, var(--red, #e5484d) 45%, transparent); }
-/* TORBOX: dato fijo en blanco y negro, igual que HDR (2026-11-18). */
-.cat-tag.cat-torbox { color: var(--text); border-color: color-mix(in srgb, var(--text) 45%, transparent); background: none; }
 .cat-list-filters { display: inline-flex; gap: 8px; }
 
 /* Opciones elegibles (pasos del video, 2026-11-18): ícono, título y una línea de qué implica. */
@@ -532,11 +423,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-crumb-sep { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .cat-flow { animation: none; } }
 
-/* ▶ de una opción en TorBox (2026-11-17): verde y con un pulso suave, para que se note que es especial. */
-.cat-play.torbox { background: var(--green); box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); animation: cat-tb-pulse 1.8s ease-out infinite; }
-.cat-play.torbox:hover { filter: brightness(1.08); }
-@keyframes cat-tb-pulse { 70% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--green) 0%, transparent); } 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 0%, transparent); } }
-@media (prefers-reduced-motion: reduce) { .cat-play.torbox { animation: none; } }
 
 /* Clic derecho en una opción (2026-11-17): copiar magnet o link de TorBox. */
 .cat-ctx { position: fixed; z-index: 60; display: grid; min-width: 220px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); box-shadow: 0 12px 32px var(--shadow-lg); }
@@ -555,8 +441,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-lat-more.go > span { display: grid; gap: 2px; }
 .cat-lat-more.go small { color: var(--muted); font-size: 12px; }
 
-/* TorBox (2026-11-18): opción que pide más Mbps que la conexión elegida. */
-.cat-tag.cat-heavy { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
 
 /* Acciones al pie del resultado de TorBox (2026-11-18): botones secundarios, no links sueltos. */
 .cat-flow-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 14px; }
@@ -567,17 +451,6 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-flow-count { padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .cat-flow-btn { transition: none; } }
 
-/* ---------- Opciones: badges de idioma con todos sus estados y globitos (2026-11-20) ---------- */
-.cat-tag.cat-lang.es-audio.likely { border-style: dashed; color: var(--green); border-color: color-mix(in srgb, var(--green) 55%, transparent); }
-.cat-tag.cat-lang.es-audio.check { border-style: dashed; color: var(--amber, #f5b041); border-color: color-mix(in srgb, var(--amber, #f5b041) 55%, transparent); }
-.cat-tag.cat-lang.no s { text-decoration-thickness: 1.5px; }
-.cat-tag.cat-lang.unk { border-style: dotted; color: color-mix(in srgb, var(--muted) 70%, transparent); border-color: var(--border-strong); }
-.cat-tag.cat-lang.es-audio { position: relative; color: var(--text); border-color: color-mix(in srgb, var(--text) 45%, transparent); background: none; font-family: inherit; cursor: pointer; }
-.cat-tag { position: relative; }
-.cat-tip { position: absolute; bottom: calc(100% + 8px); left: 50%; z-index: 3; padding: 5px 9px; border-radius: 8px; background: var(--tip-bg); color: var(--tip-fg); font-size: 11.5px; font-weight: 650; letter-spacing: 0; text-transform: none; white-space: nowrap; pointer-events: none; box-shadow: 0 6px 18px var(--shadow-lg); translate: -50% 0; opacity: 0; animation: tip 3s var(--out) both; }
-.cat-tip::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--tip-bg); }
-@keyframes tip { 0% { opacity: 0; transform: translateY(6px) scale(.7); } 12% { opacity: 1; transform: translateY(-2px) scale(1.06); } 20% { transform: none; } 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-4px) scale(.96); } }
-@media (prefers-reduced-motion: reduce) { .cat-tip { display: none; } }
 /* Resultado de TorBox: las acciones del pie, todas del mismo ancho y alto, ícono a la izquierda. */
 .cat-flow-actions.rows { flex-direction: column; align-items: stretch; }
 .cat-flow-actions.rows > * { width: 100%; min-height: 52px; margin: 0; box-sizing: border-box; border-radius: 14px; justify-content: flex-start; padding: 0 16px; }

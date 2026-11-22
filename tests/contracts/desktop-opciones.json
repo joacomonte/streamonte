@@ -1,0 +1,65 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "type": "#cat-q",
+   "text": "fight club",
+   "after": 1500
+  },
+  {
+   "click": "#cat-card-tt0137523",
+   "after": 2000
+  },
+  {
+   "click": "#cat-flow-lat-no"
+  },
+  {
+   "click": "#cat-flow-res-1080p",
+   "after": 800
+  }
+ ],
+ "must": [
+  {
+   "sel": "#cat-group-1080p .cat-options .cat-opt[data-hash]",
+   "count": 3
+  },
+  {
+   "sel": "[id^=cat-play-]",
+   "count": 3
+  },
+  {
+   "sel": "[id^=cat-bg-]",
+   "count": 3
+  },
+  {
+   "sel": "[id^=cat-check-]",
+   "count": 3
+  },
+  {
+   "sel": "[id^=cat-subscheck-]",
+   "count": 3
+  },
+  {
+   "sel": ".cat-opt .cat-quality",
+   "text": "Blu-ray"
+  },
+  {
+   "sel": ".cat-opt .cat-people",
+   "text": "seeds"
+  },
+  {
+   "sel": ".cat-opt .cat-lang.unk",
+   "text": "ES\\?"
+  },
+  {
+   "sel": "#cat-only-hdr"
+  },
+  {
+   "sel": "#cat-only-es"
+  },
+  {
+   "sel": "#cat-deep-go"
+  }
+ ]
+}
