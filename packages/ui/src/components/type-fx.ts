@@ -57,7 +57,10 @@ function attach(input: HTMLInputElement): void {
 	input.addEventListener('input', () => render(true));
 	input.addEventListener('scroll', () => (mirror.scrollLeft = input.scrollLeft));
 	input.addEventListener('keyup', () => (mirror.scrollLeft = input.scrollLeft));
-	new ResizeObserver(place).observe(input);
+	// También la página: si algo de arriba crece, el campo baja sin cambiar de tamaño y el espejo quedaba en el lugar viejo.
+	const ro = new ResizeObserver(place);
+	ro.observe(input);
+	ro.observe(document.body);
 	place();
 	render(false);
 }
