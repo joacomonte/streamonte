@@ -10,6 +10,13 @@
   --text: #1b1f24;
   --muted: #535c68;
   --dim: #5c6571;
+  /* Tokens del Tour y LangPicker compartidos (packages/ui/css/tokens.css) */
+  --r-lg: 16px;
+  --r-pill: 999px;
+  --tint-3: 35%;
+  --tint-4: 55%;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
   --border: #dde1e6;
   --border-strong: #c3c9d1;
   --track: #98a1ad;
@@ -196,7 +203,6 @@ button.danger { color: var(--red); }
 @keyframes pk-step-next { from { opacity: 0; transform: translateX(18px); } }
 @keyframes pk-step-prev { from { opacity: 0; transform: translateX(-18px); } }
 /* El paso de subtítulos: el menú ya es el panel (sin otro borde ni sombra) y con su propio scroll. */
-.pk .cat-subs-menu { max-height: min(460px, 60vh); padding: 0; border: 0; background: none; box-shadow: none; }
 .pk-o { width: 100%; display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; padding: 9px 10px; border: 0; border-radius: 8px; background: none; color: var(--text); opacity: 0; transform: translateY(-6px); transition: background .15s, opacity .2s ease, transform .5s var(--out); }
 .pk.on .pk-o { opacity: 1; transform: none; }
 .pk.on .pk-o:nth-child(2) { transition-delay: 0s, .06s, .06s; }
@@ -455,6 +461,7 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 /* Barra superior: magnet copiado, Descargas y Ajustes. */
 .topbar { padding: 12px 20px; }
 .actions { gap: 10px; align-items: center; }
+.actions > .host { display: contents; } /* lugar de los componentes Svelte de la barra (main.ts) */
 .top-btn {
   position: relative; display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 20px;
   border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
@@ -620,85 +627,6 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .top-lang { display: inline-flex; padding: 2px; border-radius: 999px; background: var(--surface-2); }
 .top-lang button { min-width: 34px; height: 26px; padding: 0 8px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .04em; transition: background .2s var(--ease), color .2s var(--ease); }
 .top-lang button[aria-checked="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px var(--shadow); }
-/* Tarjetas grandes: la elegida se llena de color, con su código en un disco y un tilde que salta. */
-.lp { display: flex; flex-direction: column; gap: 18px; }
-.lp-row { display: flex; flex-direction: column; gap: 8px; }
-.lp-lbl { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 650; color: var(--muted); }
-.lp-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.lp-seg button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 96px; padding: 14px 8px 12px; border: 1.5px solid var(--border-strong); border-radius: 18px; background: var(--surface); color: var(--muted); transition: background .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), transform .15s var(--out); }
-.lp-code { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--surface-3); color: var(--text); font-size: 16px; font-weight: 800; transition: background .25s var(--ease), color .25s var(--ease), transform .4s cubic-bezier(.34, 1.56, .64, 1); }
-.lp-name { font-size: 15px; font-weight: 700; }
-.lp-tick { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-text); color: var(--accent); opacity: 0; transform: scale(.4); transition: opacity .2s var(--ease), transform .35s cubic-bezier(.34, 1.56, .64, 1); }
-.lp.big .lp-seg button { min-height: 140px; gap: 10px; padding-top: 22px; border-radius: 22px; }
-.lp.big .lp-code { width: 58px; height: 58px; font-size: 20px; }
-/* Bandera en el disco: emoji grande, sin el fondo de color al elegirla. */
-.lp-flag { font-size: 26px; line-height: 1; }
-.lp.big .lp-flag { font-size: 34px; }
-.lp.big .lp-name { font-size: 17px; }
-.lp.big .lp-lbl { display: none; }
-.lp-seg button:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border-strong)); }
-.lp-seg button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent); }
-.lp-seg button[aria-checked="true"] .lp-code { background: var(--accent-text); color: var(--accent); transform: scale(1.08); }
-.lp-seg button[aria-checked="true"] .lp-tick { opacity: 1; transform: none; }
-.lp-seg button:active { transform: scale(.97); }
-
-/* ---------- Bienvenida por pasos (2026-11-20, como Tour de la web) ---------- */
-.tour { position: fixed; inset: 0; width: 100%; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; color: var(--text); overflow: hidden;
-  background: radial-gradient(130% 55% at 50% 0%, color-mix(in srgb, var(--accent) 16%, var(--bg)), var(--bg) 70%) var(--bg); }
-.tour[open] { animation: tour-fade .35s var(--out); }
-.tour::backdrop { background: var(--bg); }
-@keyframes tour-fade { from { opacity: 0; } }
-/* Salida: se agranda apenas y se apaga, con el fondo, y deja ver la portada. */
-.tour.leaving { animation: tour-away .38s var(--ease) forwards; pointer-events: none; }
-.tour.leaving::backdrop { animation: tour-away-bg .38s var(--ease) forwards; }
-@keyframes tour-away { to { opacity: 0; transform: scale(1.06); } }
-@keyframes tour-away-bg { to { opacity: 0; } }
-.tour-frame { height: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; }
-.tour-head { display: flex; align-items: center; gap: 12px; padding: 16px 24px 0; min-height: 56px; }
-.tour-progress { flex: 1; display: flex; gap: 6px; }
-.tour-seg { flex: 1; height: 28px; padding: 0; border: 0; background: none; display: grid; align-items: center; cursor: pointer; }
-.tour-seg span { position: relative; display: block; height: 5px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
-.tour-seg span::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform .5s var(--out); }
-.tour-seg.done span::after { transform: scaleX(1); }
-.tour-skip { min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 14px; font-weight: 600; }
-.tour-skip:hover { color: var(--text); background: var(--surface-2); }
-.tour-skip[hidden], .tour-btn[hidden] { display: none; }
-/* Pasos apilados en la misma celda: el que sale y el que entra se cruzan. */
-.tour-stages { flex: 1; min-height: 0; display: grid; }
-.tour-stage.out { pointer-events: none; }
-.tour-stage { grid-area: 1 / 1; min-height: 0; overflow-y: auto; padding: 16px 32px; display: flex; flex-direction: column; }
-.tour-stage > :first-child { margin-top: auto; }
-.tour-stage > :last-child { margin-bottom: auto; }
-.tour-stage > * { animation: tour-up .6s var(--out) both; }
-.tour-stage > :nth-child(2) { animation-delay: 70ms; }
-.tour-stage > :nth-child(3) { animation-delay: 130ms; }
-.tour-stage > :nth-child(4) { animation-delay: 190ms; }
-@keyframes tour-up { from { transform: translateY(18px); opacity: 0; } }
-.tour-art { position: relative; width: 132px; height: 132px; margin-bottom: 28px; display: grid; place-items: center; }
-.tour-art > * { grid-area: 1 / 1; }
-.tour-disc { width: 112px; height: 112px; display: grid; place-items: center; border-radius: 34px; background: color-mix(in srgb, var(--accent) 20%, var(--surface)); color: var(--accent-fg); box-shadow: 0 16px 40px -12px color-mix(in srgb, var(--accent) 55%, transparent); animation: tour-pop .7s var(--out) both, tour-float 4.5s ease-in-out .7s infinite; }
-.tour-ring { width: 112px; height: 112px; border-radius: 34px; border: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); animation: tour-ring 2.6s var(--out) .2s infinite both; }
-.tour-ring.late { animation-delay: 1.5s; }
-@keyframes tour-pop { from { transform: scale(.6) rotate(-10deg); } }
-@keyframes tour-float { 50% { transform: translateY(-8px) rotate(2deg); } }
-@keyframes tour-ring { from { transform: scale(1); opacity: .9; } to { transform: scale(1.7); opacity: 0; } }
-.tour h2 { margin: 0 0 12px; font-size: 30px; line-height: 1.15; letter-spacing: -.025em; text-wrap: balance; }
-.tour p { margin: 0; font-size: 16px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
-.tour-extra { margin-top: 26px; }
-.tour-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.tour-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--border-strong); border-radius: 18px; background: var(--surface); }
-.tour-item-text { flex: 1; display: grid; gap: 3px; min-width: 0; }
-.tour-item-text b { display: inline-flex; align-items: center; gap: 8px; font-size: 15.5px; }
-.tour-item-text small { font-size: 13px; color: var(--muted); line-height: 1.4; }
-.tour-item button { display: inline-flex; align-items: center; gap: 6px; flex: none; }
-.tour-ok { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
-.tour-foot { display: flex; gap: 10px; padding: 12px 24px 24px; }
-.tour-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 50px; border-radius: 14px; font-size: 16px; font-weight: 650; }
-.tour-btn.ghost { background: none; }
-.tour-btn.primary { border: 0; background: var(--accent); color: var(--accent-text); }
-.tour-btn.primary:hover { background: var(--accent-hover); }
 @media (prefers-reduced-motion: reduce) {
-  .tour[open], .tour.leaving, .tour.leaving::backdrop, .tour-stage > *, .tour-disc, .tour-ring { animation: none; }
-  .tour-ring { display: none; }
-  .tour-seg span::after, .lp-seg button, .lp-code, .lp-tick, .top-lang button { transition: none; }
+  .top-lang button { transition: none; }
 }

@@ -37,6 +37,15 @@ for (const vp of names) for (const theme of themes) {
   const status = res?.status() ?? 0;
   if (status >= 400) fail = true;
   for (const c of clicks) { await page.click(c); await page.waitForLoadState('networkidle'); }
+  // imágenes visibles: esperar carga o error (tope 8 s); las fallidas se cuentan
+  const imgFailed = await page.evaluate(() => {
+    const visible = [...document.images].filter((i) => { const r = i.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+    const settled = (i) => i.complete;
+    return Promise.race([
+      Promise.all(visible.map((i) => settled(i) ? 0 : new Promise((ok) => { i.addEventListener('load', ok, { once: true }); i.addEventListener('error', ok, { once: true }); }))),
+      new Promise((ok) => setTimeout(ok, 8000)),
+    ]).then(() => visible.filter((i) => !(i.complete && i.naturalWidth)).length);
+  });
   // las animaciones infinitas tiran al terminar: se ignoran
   await page.evaluate(() => document.getAnimations().forEach((a) => { try { a.finish(); } catch {} }));
   const file = `${out}/${vp}-${theme}.png`;
@@ -45,7 +54,7 @@ for (const vp of names) for (const theme of themes) {
     .map((e) => ({ e, r: e.getBoundingClientRect() }))
     .filter(({ e, r }) => r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden')
     .map(({ e, r }) => ({ id: e.id, x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), text: (e.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 40) })), sel);
-  console.log(JSON.stringify({ file, viewport: vp, theme, status, consoleErrors, els }));
+  console.log(JSON.stringify({ file, viewport: vp, theme, status, imgFailed, consoleErrors, els }));
   await ctx.close();
 }
 await browser.close();

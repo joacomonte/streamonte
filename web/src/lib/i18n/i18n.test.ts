@@ -1,13 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import EN from './en.ts';
-import { pickLang, pickLangs, translate } from './translate.ts';
-
-const SRC = fileURLToPath(new URL('../../', import.meta.url));
-const holes = (s: string) => [...new Set(s.match(/\{\w+\}/g) ?? [])].sort();
+import { locale, pickLang, pickLangs, translate } from './translate.ts';
 
 test('translate: es deja el texto, en traduce, {x} se reemplaza', () => {
 	assert.equal(translate('es', 'Descargar'), 'Descargar');
@@ -26,31 +19,7 @@ test('pickLang / pickLangs: cookie manda, sin cookie es español', () => {
 	assert.deepEqual(pickLangs(cookies({ titles: 'raro' }), null), { ui: 'es', titles: 'es' });
 });
 
-test('en.ts: los {x} de cada clave coinciden con los de su traducción', () => {
-	const bad = Object.entries(EN).filter(([key, value]) => holes(key).join() !== holes(value).join()).map(([key]) => key);
-	assert.deepEqual(bad, []);
-});
-
-function sources(dir: string): string[] {
-	return readdirSync(dir, { withFileTypes: true }).flatMap((f) => {
-		const path = join(dir, f.name);
-		if (f.isDirectory()) return f.name === 'node_modules' ? [] : sources(path);
-		return /\.(js|ts|svelte)$/.test(f.name) && !/\.test\.(js|ts)$/.test(f.name) ? [path] : [];
-	});
-}
-
-// t('…'), tr('…'), tx('…') con literal de comilla simple, doble o backtick sin `${}`.
-const CALL = /(?<![\w$])(?:t|tr|tx)\(\s*(?:'((?:\\.|[^'\\\n])*)'|"((?:\\.|[^"\\\n])*)"|`((?:\\.|[^`\\$])*)`)/g;
-const unescape = (raw: string) => raw.replace(/\\(.)/g, (_: string, c: string) => (c === 'n' ? '\n' : c));
-
-test('src: cada t/tr/tx con literal tiene su clave en en.ts', () => {
-	const missing: string[] = [];
-	for (const file of sources(SRC)) {
-		const text = readFileSync(file, 'utf8');
-		for (const m of text.matchAll(CALL)) {
-			const key = unescape(m[1] ?? m[2] ?? m[3]);
-			if (!(key in EN)) missing.push(`${file}: ${key}`);
-		}
-	}
-	assert.deepEqual(missing, []);
+test('locale', () => {
+	assert.equal(locale('en'), 'en-US');
+	assert.equal(locale('es'), 'es-AR');
 });

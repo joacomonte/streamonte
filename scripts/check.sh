@@ -1,13 +1,13 @@
 #!/bin/sh
 # Chequeos del proyecto (2026-11-17; en paralelo desde 2026-11-22). Rápido (por defecto): formato, clippy
 # (lib, binarios y tests; sin ejemplos), tipos y lint del JS de la UI. `full`: además los tests del núcleo
-# (nextest), los de la UI (deno test), tipos y tests de la web y clippy de los ejemplos.
+# (nextest), los de la UI y de packages/ui (node --test), tipos y tests de la web y clippy de los ejemplos.
 #   sh scripts/check.sh        # rápido
 #   sh scripts/check.sh full   # + tests
 # Para chequeo continuo mientras se edita: `bacon` (clippy) o `bacon nextest`.
 set -e
 cd "$(dirname "$0")/.."
-export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH" # node 24 primero (la web usa su type stripping; el de Homebrew es viejo); deno, cargo-nextest
+export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH" # node 24 primero (la web usa su type stripping; el de Homebrew es viejo); cargo-nextest
 # clippy con su propia carpeta: si comparte la de nextest, cargo los serializa con su lock.
 CLIPPY_TARGET="target/clippy"
 [ "$1" = "full" ] && CLIPPY_TARGETS="--all-targets" || CLIPPY_TARGETS="--lib --bins --tests"
@@ -19,13 +19,13 @@ run() { name=$1; shift; ( "$@" >"$tmp/$name.log" 2>&1 || touch "$tmp/$name.fail"
 
 run fmt cargo fmt --all --check
 run clippy env CARGO_TARGET_DIR="$CLIPPY_TARGET" cargo clippy --workspace $CLIPPY_TARGETS -q -- -D warnings
-# no-window*: la UI usa `window` a propósito (es un webview, no Deno). `no-undef` no conoce los globales del
-# navegador: lint-undef.py ignora solo esos (2026-11-17: un `const` borrado de más no lo marcaba nadie).
-run js sh -c 'deno lint -q --rules-exclude=no-window,no-window-prefix ui/src &&
-  deno lint --json --rules-include=no-undef ui/src | python3 scripts/lint-undef.py &&
-  deno check -q --config ui/deno.json ui/src/*.js'
+# oxlint (ui/.oxlintrc.json: globales del navegador, no-undef) y tsc con checkJs estricto (svelte-check + ui/tsconfig.js.json).
+run js sh -c 'cd ui && npm run -s lint >/dev/null && npm run -s check >/dev/null'
+# packages/ui (código compartido web + desktop): tsc estricto con el typescript de ui/node_modules.
+run uipkg sh -c 'cd packages/ui && npm run -s check'
 if [ "$1" = "full" ]; then
-  run uitest deno test -q --no-check --allow-read --config ui/deno.json ui/src
+  run uipkgtest sh -c 'cd packages/ui && npm test --silent'
+  run uitest sh -c 'cd ui && npm test --silent'
   # Web (monorepo, 2026-11-22): tipos y tests, en paralelo con el resto.
   run web sh -c 'cd web && npm run -s check >/dev/null && npm test --silent'
   # --lib --tests: sin compilar los ejemplos (los compila clippy de arriba).

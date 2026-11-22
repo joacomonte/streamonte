@@ -3,10 +3,10 @@ Páginas `+page.svelte` que pegan a `/api/*` (`+server.ts` delgados: validan con
 
 ## Mapa (`/Users/monti/Documents/Dev/streamonte/web/src/routes/`)
 - `+layout.server.ts:5 load` (langs, nick) · `+layout.svelte` — `i18n` antes del 1er render, Tour de bienvenida, aviso de versión, solo dev `/api/dev-stamp :83`.
-- `+page.svelte` (home, 1306 líneas) — Explorar: `cat`/`loadMore`, `/api/people :339`, `/api/keys :55`.
-- `t/[kind]/[id]/` — `+page.ts:6 load` (`/api/title`, caché `saved.DAY`) · `+page.svelte` — `<Torrents> :189`, `/api/scores :55`, `/api/season :95`.
+- `+page.svelte` (home, delgada) — monta `$ui/catalog/Catalog.svelte` con `webCatalog()`: `header` (marca, ES/EN), `top` (`/api/keys` → `#keys-cta`), `onmagnet` → `/m/…`, `onlog` → `track`.
+- `t/[kind]/[id]/` — `+page.ts:6 load` (`/api/title`, caché `saved.DAY`) · `+page.svelte` — monta `<TitleView> :69` (`$ui/title/`, `setApi(webApi)`; scores/episodios por `getApi()`), `<Torrents> :84` en su snippet `options`.
 - `t/[kind]/[id]/[s]/[e]/` — `+page.ts:7 load` valida s/e · `+page.svelte` `<Torrents s e> :41` (solo `tv`).
-- `m/[hash]/+page.svelte` — "Pegar magnet": `/api/magnet` GET `:20` / POST `:42`, `<Torrents given> :103`.
+- `m/[hash]/+page.svelte` — "Pegar magnet": `<MagnetView>` (`$ui/magnet/`) ← `getApi().magnet` → `/api/magnet` GET/POST; `<Torrents given> :26` vía `web-adapt.ts torrentOf`.
 - `ajustes/+page.svelte` — idioma, apodo, keys `/api/keys :67-93`, borrar caché, `AdminCode`.
 - `admin/+page.server.ts` — `:9 load` · `:14 attempt` · `:77 actions`; `+page.svelte` panel de uso.
 - `api/*/+server.ts` (todas por `route()` salvo indicado): `catalog :10` · `genres :4` · `people :5` · `title/[kind]/[id] :4` · `season/[id]/[n] :4` · `scores/[imdb] :4` · `torrents :8` (NDJSON) · `link :5` · `tracks :7` · `subs :5` · `subs/[id] :5` · `premium :6` · `premium/quota :5` · `premium/[id]` POST `:5` / GET `:8` · `magnet` GET `:5` / POST `:13` · `keys` GET `:15` / POST `:16` · `nick :6` · `track :6` (sin `route`) · `dev-stamp :9`.
@@ -18,6 +18,7 @@ Páginas `+page.svelte` que pegan a `/api/*` (`+server.ts` delgados: validan con
 - `api/premium/[id]` POST gasta cuota diaria: solo con toque del usuario.
 - `api/torrents` no usa `json()`: errores van dentro del stream.
 - Admin: contraseña en cookie tal cual (`shortcut`); cada lectura cuenta como intento (`admin/+page.server.ts:14`).
+- Auto-recarga tras deploy: `+layout.svelte` `beforeNavigate` (si `updated.current`) y `../hooks.client.ts` `handleError` (chunk que falló, 1 vez/10 s) hacen carga completa al destino en vez de mostrar 500.
 - `/api/title` se cachea 1 día en localStorage (versión `title` en `lib/saved.ts:11`).
 
 ## Flujo

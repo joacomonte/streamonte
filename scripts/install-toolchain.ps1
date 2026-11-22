@@ -1,5 +1,5 @@
 # Instala las herramientas para compilar Streamonte en Windows (winget, fuentes oficiales).
-# Rust (rustup, toolchain MSVC) + Build Tools de C++ de Visual Studio + Git.
+# Rust (rustup, toolchain MSVC) + Build Tools de C++ de Visual Studio + Git + Node 24 (UI con Vite/npm).
 # Idempotente: si algo ya esta instalado, winget lo informa y sigue.
 # Archivo en ASCII a proposito: PowerShell 5.1 lee mal UTF-8 sin BOM (leccion 8).
 
@@ -26,6 +26,10 @@ Step 'Git' {
     winget install --id Git.Git @common
 }
 
+Step 'Node 24' {
+    winget install --id OpenJS.NodeJS --version 24.21.0 @common
+}
+
 # PATH nuevo en esta misma consola.
 $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
 
@@ -39,4 +43,5 @@ Write-Host "=== Verificacion ===" -ForegroundColor Green
 rustc --version
 cargo --version
 git --version
+node --version
 Write-Host 'LISTO' -ForegroundColor Green

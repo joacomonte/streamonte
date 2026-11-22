@@ -2,51 +2,37 @@
 // Subtítulos de una opción (2026-11-18, docs/mockups/subs-dropdown/ELEGIDA.md): el paso "Subtítulos" del panel de
 // Reproducir (`openWizard`). Son de cada torrent: nada se busca antes de que el usuario los pida, al reproducir, con
 // clic derecho → Subtítulos… o con "Cambiar subtítulo" mientras se ve (se carga en el mpv abierto).
-// 1. "Vienen con el video": los en español que trae ESE archivo (pistas y .srt sueltos). Si todavía no se leyeron,
-//    se leen de donde se va a ver ([`readTracks`]): por TorBox, su link; si no, la lectura corta del enjambre (como
-//    "Buscar LAT"). Si trae, no se busca afuera: queda "Buscar más subtítulos", a pedido.
-// 2. "Encontrados para vos": fuentes gratis, ya ordenadas por el núcleo (exacto → mismo release → mismos fps y
-//    duración → resto).
-// 3. Premium (OpenSubtitles.com, cuota diaria), plegado, recién después de buscar afuera: buscar es gratis; cada
-//    "Usar · 1" baja UNO. Nada se baja solo.
-// Clic en una fila = usar ese subtítulo al reproducir esa opción (el anterior cuenta como probado).
+// Acá queda la LECTURA de pistas del video (qué trae en español, "Buscar sub ES") y los gestos del panel; lo que se ve
+// (los que trae el video + buscar afuera + Premium con cuota) es `SubsStep.svelte` sobre `SubsPicker` de packages/ui.
+// Clic en "Usar" = ese subtítulo al reproducir esa opción (o, con `live`, cargado en el mpv abierto).
 
 import { api } from './api.js';
 import { openSettings } from './dialogs.js';
-import { el, icon, setStatus } from './dom.js';
+import { el, setStatus } from './dom.js';
 import { t as tr } from './i18n.js';
 import { closeWizard, openWizard } from './audio-picker.js';
 import { rowsOf } from './catalog-options.js';
 import { quickAnalyze, side, sideOf } from './catalog-tests.js';
 import { showError } from './catalog-state.js';
+import { mountSubsStep } from './mount-shared.ts';
 
-/** @typedef {import('./types.js').SubtitleFound} SubtitleFound */
-/** @typedef {import('./types.js').SubtitlePicks} SubtitlePicks */
-/** @typedef {import('./types.js').PremiumQuota} PremiumQuota */
 /** @typedef {import('./dom.js').ElChild} ElChild */
-/** @typedef {{open: boolean, status: 'idle'|'loading'|'ready'|'empty'|'error', results: SubtitleFound[], busy: string|null}} Premium */
 /** Lo de una opción en el paso de subtítulos (ver `byHash`). `read`: lectura de sus pistas.
- *  @typedef {{phase: 'reading'|'searching'|'done'|null, read: 'reading'|'done'|'failed'|'skipped'|null, error: string|null, torbox: boolean,
- *   found: SubtitleFound[]|null, picks: SubtitlePicks|null, timing?: boolean, premium: Premium}} HashSubs */
+ *  @typedef {{read: 'reading'|'done'|'failed'|'skipped'|null, error: string|null, torbox: boolean, asked: boolean}} HashSubs */
 /** El paso abierto: `next` sigue con Reproducir; `live` es el id de la reproducción donde se carga lo elegido.
  *  @typedef {{hash: string, next: ((value?: unknown) => void)|null, live: number|null}} Active */
 /** "Buscar sub ES" del video: null | 'running' | 'paused' | 'found' | 'none'. @typedef {null|'running'|'paused'|'found'|'none'} ScanState */
 
-/** Por opción (info hash) del video abierto: {phase: 'reading'|'searching'|'done', read: lectura de sus pistas
- *  ('reading'|'done'|'failed'|'skipped'), torbox, found: [SubtitleFound] | null,
- *  picks: {chosen, tried} | null, premium: {open, status, results, busy}}. Se vacía al cambiar de video. */
-/** @type {Map<string, HashSubs>} */
+/** Por opción (info hash) del video abierto. Se vacía al cambiar de video. @type {Map<string, HashSubs>} */
 const byHash = new Map();
+/** El paso dibujado por opción (se reusa: Svelte sigue montado cuando el panel se redibuja). @type {Map<string, {host: HTMLElement, unmount: () => void}>} */
+const steps = new Map();
 /** @type {string|null|undefined} */
 let forVideo = null;
-/** Progreso de la búsqueda por video: {downloading, done, total} (lo emite el núcleo). */
-/** @type {Map<string, {downloading: boolean, done: number, total: number}>} */
+/** Progreso de la búsqueda por video, que `catalog.js` sigue guardando; lo que se ve lo toma `SubsPicker` del evento.
+ *  shortcut: sin lectores acá, se borra cuando `catalog.js` deje de escribirlo. @type {Map<string, {downloading: boolean, done: number, total: number}>} */
 export const subsProgress = new Map();
-/** Cuota de Premium (una para la app): {has_key, remaining, per_day, resets_at}. */
-/** @type {PremiumQuota|null} */
-let quota = null;
-/** El paso abierto: {hash, next (Reproducir: seguir), live (id de la reproducción: cargarlo en mpv)}. */
-/** @type {Active|null} */
+/** El paso abierto: {hash, next (Reproducir: seguir), live (id de la reproducción: cargarlo en mpv)}. @type {Active|null} */
 let active = null;
 /** Avisa al panel que redibuje el paso (lo que muestra cambió). */
 const changed = () => document.dispatchEvent(new Event('subs-changed'));
@@ -55,19 +41,15 @@ const changed = () => document.dispatchEvent(new Event('subs-changed'));
 const READ_WAIT_MS = 120_000;
 /** Lo que se espera a que llegue la fila actualizada después de leerlas por TorBox. */
 const ROW_WAIT_MS = 3_000;
-/** @type {Record<string, [string, (f: SubtitleFound) => string]>} */
-const LEVEL = {
-  exact: [tr('perfecto'), () => tr('Hecho para este mismo archivo')],
-  release: [tr('muy probable'), (f) => f.spec !== 'sin release' ? tr('Mismo release: grupo {head} y {spec}', { head: f.head, spec: f.spec }) : tr('Mismo release: grupo {head}', { head: f.head })],
-  fps: [tr('probable'), () => tr('Mismos fps y misma duración que el video')],
-};
-/** @type {Record<string, string>} */
-const VARIANT = { latino: tr('Latinoamérica'), spain: tr('España'), unknown: tr('Español') };
-
 /** @param {string} hash @returns {HashSubs} */
 function subsOf(hash) {
-  if (forVideo !== sideOf()?.videoId) { byHash.clear(); forVideo = sideOf()?.videoId; }
-  return byHash.get(hash) ?? /** @type {HashSubs} */ (byHash.set(hash, { phase: null, read: null, error: null, torbox: false, found: null, picks: null, premium: { open: false, status: 'idle', results: [], busy: null } }).get(hash));
+  if (forVideo !== sideOf()?.videoId) {
+    byHash.clear();
+    for (const s of steps.values()) s.unmount();
+    steps.clear();
+    forVideo = sideOf()?.videoId;
+  }
+  return byHash.get(hash) ?? /** @type {HashSubs} */ (byHash.set(hash, { read: null, error: null, torbox: false, asked: false }).get(hash));
 }
 /** Los en español que trae esa opción; `null` = todavía no se leyeron sus pistas. */
 /** @param {string} hash */
@@ -146,105 +128,68 @@ export function stopReading(hash) {
   if (s.read === 'reading') s.read = 'skipped';
 }
 
-/** Primer paso: nativos de ESE archivo; si trae en español, listo; si no, busca afuera. */
-/** @param {string} hash @param {boolean} torbox */
-async function prepare(hash, torbox) {
-  const s = subsOf(hash);
-  if (s.phase) return;
-  s.phase = 'reading';
-  await readTracks(hash, torbox);
-  if (natives(hash)?.length) { s.phase = 'done'; changed(); return; }
-  await search(hash);
-}
-
-/** Busca en las fuentes gratis para esa opción (su release ordena). */
-/** @param {string} hash */
-async function search(hash) {
-  const s = subsOf(hash);
-  const video = /** @type {string} */ (sideOf()?.videoId);
-  s.phase = 'searching';
-  changed();
-  try {
-    const got = await api.catalogSubtitles(video, hash, 'es');
-    if (sideOf()?.videoId !== video) return;
-    s.found = got.found;
-    s.picks = got.picks;
-    s.timing = got.timing_known;
-  } catch (e) { s.found = []; showError(e); }
-  s.phase = 'done';
-  changed();
-}
-
-/** Usar ese subtítulo: al reproducir esta opción (y, si Reproducir lo esperaba, sigue) o, mientras se ve, ya en el
- *  mpv abierto. `path`: el archivo bajado (no hace falta para una pista del video). */
-/** @param {string} hash @param {string} key @param {string|null} [path] */
-async function useSub(hash, key, path = null) {
-  const s = subsOf(hash);
+/** Usar una pista que trae el video: al reproducir esta opción (y, si Reproducir lo esperaba, sigue) o, mientras se ve, ya en el mpv abierto. */
+/** @param {string} hash @param {string} key */
+async function useNative(hash, key) {
   const step = active;
   try {
     if (step?.live) {
-      await api.playbackSubtitle(step.live, key, path);
-      s.picks = { chosen: key, tried: [...(s.picks?.tried ?? []), s.picks?.chosen].filter(/** @param {string|null|undefined} k @returns {k is string} */ (k) => !!k && k !== key) };
+      await api.playbackSubtitle(step.live, key, null);
       setStatus(tr('Subtítulo cambiado en el reproductor.'));
       return closeWizard();
     }
-    s.picks = await api.catalogSubtitleUse(side().videoId, hash, key);
+    await api.catalogSubtitleUse(side().videoId, hash, key);
     setStatus(tr('Listo: se usa ese subtítulo al reproducir.'));
-    if (step?.next) return step.next(true);
+    step?.next?.(true);
   } catch (e) { showError(e); }
-  changed();
 }
 
-async function loadQuota() {
-  quota = await api.premiumQuota().catch(() => quota);
-  changed();
-}
-
-/** @param {string} hash */
-async function premiumSearch(hash) {
-  const p = subsOf(hash).premium;
-  p.status = 'loading';
-  changed();
+/** Se eligió uno de afuera (el núcleo ya lo dejó elegido; Premium, ya bajado): con `live`, se carga en el mpv abierto. */
+/** @param {import('../../packages/ui/src/types.ts').SubtitleOption} sub @param {import('../../packages/ui/src/api.ts').SubtitleFile} file */
+async function usedFound(sub, file) {
+  const step = active;
   try {
-    p.results = await api.catalogPremiumSearch(side().videoId, hash);
-    p.status = p.results.length ? 'ready' : 'empty';
-  } catch { p.status = 'error'; }
-  changed();
-}
-
-/** "Usar · 1": baja ese (gasta 1) y queda elegido. */
-/** @param {string} hash @param {SubtitleFound} r */
-async function premiumUse(hash, r) {
-  const s = subsOf(hash);
-  if (s.premium.busy) return;
-  s.premium.busy = r.key;
-  changed();
-  try {
-    const got = await api.catalogPremiumUse(side().videoId, hash, { id: Number(r.key.split(':')[1]), release_name: r.release_name, latino: r.latino, level: r.level });
-    s.found = got.found;
-    s.picks = got.picks;
-    s.timing = got.timing_known;
-    setStatus(tr('Bajado: se usa ese subtítulo al reproducir.'));
-    s.premium.busy = null;
-    loadQuota();
-    const step = active;
-    if (step?.live) return useSub(hash, r.key, got.found.find((f) => f.key === r.key)?.path ?? null);
-    if (step?.next) return step.next(true);
-    return;
+    if (step?.live) {
+      await api.playbackSubtitle(step.live, sub.id, file.path ?? sub.path ?? null);
+      setStatus(tr('Subtítulo cambiado en el reproductor.'));
+      return closeWizard();
+    }
+    setStatus(sub.premium ? tr('Bajado: se usa ese subtítulo al reproducir.') : tr('Listo: se usa ese subtítulo al reproducir.'));
+    step?.next?.(true);
   } catch (e) { showError(e); }
-  s.premium.busy = null;
-  loadQuota();
 }
 
 /** Copia uno ya bajado a Descargas (`<título> (subtítulos)`) y abre la carpeta. */
-/** @param {SubtitleFound} f */
-async function saveSub(f) {
+/** @param {import('../../packages/ui/src/types.ts').SubtitleOption} sub */
+async function saveSub(sub) {
   const [, s, e] = (side().videoId ?? '').split(':');
   const title = `${side().name ?? tr('Video')}${s ? ` S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : ''}`;
   try {
-    await api.saveSubtitles(title, [{ path: f.path, name: `${f.language.toUpperCase()} - ${f.release_name}` }]);
+    await api.saveSubtitles(title, [{ path: sub.path ?? '', name: `ES - ${sub.release}` }]);
     setStatus(tr('Subtítulo guardado en Descargas.'));
   } catch (err) { showError(err); }
+}
+
+/** El paso de una opción, montado una vez. @param {string} hash @param {boolean} playing */
+function stepOf(hash, playing) {
+  const s = subsOf(hash);
+  const key = `${hash}|${playing}`;
+  const hit = steps.get(key);
+  if (hit) return hit.host;
+  const host = el('div', { class: 'subs-step-host' });
+  const unmount = mountSubsStep(host, {
+    hash, playing,
+    ref: { kind: side().kind === 'series' ? 'tv' : 'movie', videoId: side().videoId },
+    read: () => ({ reading: s.read, torbox: s.torbox, natives: natives(hash) }),
+    onNoWait: () => { s.read = 'skipped'; },
+    onSkip: () => active?.next?.(true),
+    onUseNative: (/** @type {string} */ k) => useNative(hash, k),
+    onUse: usedFound,
+    onSave: (/** @type {import('../../packages/ui/src/types.ts').SubtitleOption} */ sub) => void saveSub(sub),
+    onSettings: async () => { closeWizard(); await openSettings(); document.getElementById('set-subs')?.scrollIntoView({ block: 'center' }); }
+  });
+  steps.set(key, { host, unmount });
+  return host;
 }
 
 /** El paso "Subtítulos" de una opción para el panel de Reproducir: `render(next)`. `torbox`: se ve por TorBox (las
@@ -253,9 +198,10 @@ async function saveSub(f) {
 export function subsStep(hash, torbox, live = null) {
   return (next) => {
     active = { hash, next: live ? null : next, live };
-    if (!quota) loadQuota();
-    prepare(hash, torbox);
-    return subsBody(hash, !!next && !live);
+    const s = subsOf(hash);
+    // Una sola vez: si se cortó con "No esperar", redibujar el panel no vuelve a leer.
+    if (!s.asked) { s.asked = true; void readTracks(hash, torbox); }
+    return stepOf(hash, !!next && !live);
   };
 }
 
@@ -265,131 +211,4 @@ export function subsStep(hash, torbox, live = null) {
 export function openSubs(hash, torbox, anchor, live = null) {
   const s = subsStep(hash, torbox, live);
   openWizard(anchor, [{ id: 'subs', title: live ? tr('Cambiar subtítulo') : tr('Subtítulos'), render: () => s(null) }]).then(() => { active = null; });
-}
-
-function quotaText() {
-  if (!quota) return tr('viendo cuántas descargas quedan…');
-  if (quota.remaining == null) return tr('no sé cuántas descargas quedan hoy');
-  if (quota.remaining === 0) return tr('usaste las {per_day} de hoy{a}', { per_day: quota.per_day, a: quota.resets_at ? tr(' · vuelven {resets_at}', { resets_at: quota.resets_at }) : '' });
-  return tr('quedan {remaining} de {per_day} descargas hoy', { remaining: quota.remaining, per_day: quota.per_day });
-}
-
-/** Una fila: clic = usar (`key` null = solo se usa con su botón). `end`: lo de la derecha. */
-/** @param {{id: string, key: string|null, head: string, spec: string, latino?: boolean, src?: string, title: string, end: (Node|null)[], onPick?: (() => unknown)|null}} item
- *  @param {SubtitlePicks|null} picks */
-function subItem({ id, key, head, spec, latino, src, title, end, onPick }, picks) {
-  const on = key && picks?.chosen === key;
-  const tried = key && !on && picks?.tried.includes(key);
-  return el('div', { class: `cat-sub-item ${on ? 'on' : ''} ${tried ? 'tried' : ''}`, title: tried ? tr('Probado · no sincronizó') : '' },
-    el('button', { id, type: 'button', class: 'cat-sub-pick', role: 'menuitemradio', 'aria-checked': String(!!on), 'aria-label': `${head} ${spec}`, title,
-      onclick: onPick, disabled: onPick ? null : true }),
-    el('span', { class: 'cat-sub-mark' }, on ? icon('check', 14) : null),
-    el('span', { class: 'cat-sub-l1' }, el('b', {}, head), el('span', { class: 'cat-sub-spec' }, spec),
-      latino ? el('span', { class: 'cat-sub-lat' }, 'LAT') : null, tried ? el('span', { class: 'cat-sub-why' }, 'probado') : null,
-      src ? el('span', { class: 'cat-sub-src' }, `· ${src}`) : null),
-    el('span', { class: 'cat-sub-end' }, ...end));
-}
-
-/** Palabra de cuánto calza (perfecto / muy probable / probable), con el porqué en el tooltip; nada si no calza. */
-/** @param {SubtitleFound} f */
-function fitWord(f) {
-  const lvl = LEVEL[f.level];
-  return lvl ? el('span', { class: `cat-sub-fit ${f.level}`, title: lvl[1](f), 'aria-label': `${lvl[0]}: ${lvl[1](f)}` }, lvl[0]) : null;
-}
-/** Si ninguno calza, por qué (sin inventar niveles): otro release, o no se saben los fps y la duración del archivo. */
-/** @param {SubtitleFound[]} list @param {boolean|undefined} timing */
-function noFitLine(list, timing) {
-  if (!list.length || list.some((f) => LEVEL[f.level])) return null;
-  return el('div', { class: 'cat-sub-none' }, timing ? tr('Ninguno es de este release ni de sus mismos fps y duración')
-    : tr('Sin fps ni duración de este archivo: solo se reconoce el mismo release'));
-}
-
-/** @param {string} hash @param {SubtitleFound} f @param {number} i @param {SubtitlePicks|null} picks */
-function foundItem(hash, f, i, picks) {
-  return subItem({ id: `cat-sub-pick-${i}`, key: f.key, head: f.head, spec: f.language === 'en' ? `${f.spec} · EN` : f.spec, latino: f.latino, src: f.provider, title: f.release_name,
-    onPick: () => useSub(hash, f.key, f.path), end: [
-      fitWord(f),
-      el('button', { id: `cat-sub-dl-${i}`, type: 'button', class: 'cat-sub-dl', 'aria-label': tr('Bajar a la Mac'), title: tr('Bajar a la Mac'), onclick: () => saveSub(f) }, icon('download', 14)),
-    ] }, picks);
-}
-
-/** @param {Node} ico @param {string} text @param {Node} [btn] @param {boolean} [err] */
-const msg = (ico, text, btn, err = false) => el('div', { class: `cat-sub-msg ${err ? 'err' : ''}` }, ico, el('span', {}, text), btn);
-const spin = () => el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' });
-
-/** @param {string} hash @param {Premium} p @param {boolean|undefined} timing */
-function premiumBody(hash, p, timing) {
-  if (!quota?.has_key) {
-    return msg(icon('lock', 14), tr('Necesita tu API key de opensubtitles.com.'), el('button', { id: 'cat-prem-key', type: 'button', class: 'cat-sub-btn',
-      onclick: async () => { closeWizard(); await openSettings(); document.getElementById('set-subs')?.scrollIntoView({ block: 'center' }); } }, tr('Ajustes')));
-  }
-  if (p.status === 'loading' || p.status === 'idle') return msg(spin(), tr('Buscando en opensubtitles.com…'));
-  if (p.status === 'error') {
-    return msg(icon('info', 14), tr('opensubtitles.com no respondió. No se gastó ninguna descarga.'),
-      el('button', { id: 'cat-prem-retry', type: 'button', class: 'cat-sub-btn', onclick: () => premiumSearch(hash) }, icon('refresh', 12), tr('Reintentar')), true);
-  }
-  if (p.status === 'empty') {
-    const [, s, e] = side().videoId.split(':');
-    return msg(icon('info', 14), tr('Tampoco hay en español para {a}. No se gastó ninguna descarga.', { a: s ? `S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : tr('esta película') }));
-  }
-  const off = quota.remaining === 0;
-  return [...p.results.map((r, i) => subItem({ id: `cat-prem-pick-${i}`, key: null, head: r.head, spec: r.spec, latino: r.latino, src: `${r.downloads.toLocaleString('es-AR')} ↓`, title: r.release_name,
-    end: [fitWord(r), p.busy === r.key ? el('span', { class: 'cat-sub-btn' }, spin(), tr('Bajando'))
-      : el('button', { id: `cat-prem-use-${i}`, type: 'button', class: 'cat-sub-btn', 'aria-disabled': off ? 'true' : null, title: off ? tr('Sin descargas por hoy') : tr('Gasta 1 descarga de hoy'),
-        onclick: () => !off && premiumUse(hash, r) }, tr('Usar '), el('span', { class: 'cat-sub-cost' }, '· 1'))] }, null)), noFitLine(p.results, timing)];
-}
-
-/** @param {string} hash @param {HashSubs} s */
-function premiumGate(hash, s) {
-  const p = s.premium;
-  const tried = s.picks?.tried.length ?? 0;
-  const hot = tried >= 2 && quota?.has_key;
-  const sub = quota && !quota.has_key ? tr('Necesita tu API key de opensubtitles.com')
-    : hot ? tr('Probaste {tried} y no sincronizaron · {a}', { tried, a: quotaText() }) : tr('Último recurso · {a}', { a: quotaText() });
-  return [el('div', { class: 'cat-sub-sep' }),
-    el('button', { id: 'cat-prem-gate', type: 'button', class: `cat-sub-gate ${hot ? 'hot' : ''}`, 'aria-expanded': String(p.open), onclick: () => {
-      p.open = !p.open;
-      // Buscar es gratis: corre solo al abrir.
-      if (p.open && quota?.has_key && p.status === 'idle') premiumSearch(hash);
-      changed();
-    } },
-    el('span', { class: 'cat-sub-gi' }, icon('lock', 15)),
-    el('span', {}, el('b', {}, hot ? tr('¿Ninguno anduvo? Buscá en Premium') : tr('Buscar en Premium')), el('span', { class: 'cat-sub-gs' }, sub)),
-    el('span', { class: 'cat-sub-chev' }, icon('chev', 13))),
-    p.open ? el('div', { class: 'cat-sub-open' }, premiumBody(hash, p, s.timing)) : null];
-}
-
-/** Lo que muestra el paso: los tres grupos. `playing`: dentro de Reproducir (suma "Reproducir sin elegir"). */
-/** @param {string} hash @param {boolean} playing */
-function subsBody(hash, playing) {
-  const s = subsOf(hash);
-  const nat = natives(hash);
-  /** @param {string} t */
-  const grp = (t) => el('div', { class: 'cat-sub-grp' }, t);
-  /** @type {(Node|null)[]} */
-  const out = [grp(tr('Vienen con el video'))];
-  if (s.read === 'reading') {
-    out.push(s.torbox ? msg(spin(), tr('Leyendo sus pistas en TorBox…'))
-      : msg(spin(), tr('Viendo si el video trae subtítulos… (baja solo el comienzo)'),
-        el('button', { id: 'cat-subs-noread', type: 'button', class: 'cat-sub-btn', onclick: () => { s.read = 'skipped'; } }, tr('No esperar'))));
-  } else if (nat?.length) {
-    out.push(...nat.map((n, i) => subItem({ id: `cat-sub-native-${i}`, key: n.key, head: VARIANT[n.variant], spec: n.kind, src: n.place, title: '',
-      onPick: () => useSub(hash, n.key), end: [] }, s.picks)));
-  } else out.push(el('div', { class: 'cat-sub-none' }, nat ? tr('Este video no trae en español') : tr('Sin confirmar: no se pudieron leer sus pistas')));
-  if (s.phase === 'searching') {
-    const p = subsProgress.get(side().videoId);
-    out.push(grp(tr('Encontrados para vos')), msg(spin(), p?.downloading ? tr('Bajando subtítulos · {done} de {total}', { done: p.done, total: p.total }) : tr('Buscando en Wyzie, Subdivx y OpenSubtitles.org…')));
-  } else if (s.found) {
-    out.push(grp(tr('Encontrados para vos')), ...(s.found.length ? s.found.map((f, i) => foundItem(hash, f, i, s.picks))
-      : [el('div', { class: 'cat-sub-none' }, tr('No encontré en Wyzie, Subdivx ni OpenSubtitles.org'))]), noFitLine(s.found, s.timing));
-    out.push(...premiumGate(hash, s));
-  } else if (s.phase === 'done') {
-    out.push(el('button', { id: 'cat-subs-more', type: 'button', class: 'cat-sub-more', onclick: () => search(hash) }, icon('search', 14),
-      el('span', {}, el('b', {}, tr('Buscar más subtítulos')), el('span', {}, tr('Por si los del video no te sirven')))));
-  }
-  if (playing) {
-    out.push(el('div', { class: 'cat-sub-foot' },
-      el('button', { id: 'cat-subs-skip', type: 'button', class: 'cat-sub-btn', onclick: () => active?.next?.(true) }, tr('Reproducir sin elegir'))));
-  }
-  return el('div', { class: 'cat-subs-menu', role: 'menu', id: 'cat-subs-menu', 'aria-label': tr('Subtítulos') }, ...out);
 }

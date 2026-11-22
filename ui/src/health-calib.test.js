@@ -1,18 +1,19 @@
 import './test-stub.js';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { fidelity, learnBias, levelOf, predict, rawPrediction, shownLevel } from './health-calib.js';
 
 /** @param {number} a @param {number} b */
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≉ ${b}`);
 
-Deno.test('levelOf: 0 sobra el doble, 1 alcanza, 2 no alcanza', () => {
+test('levelOf: 0 sobra el doble, 1 alcanza, 2 no alcanza', () => {
   assert.equal(levelOf(2), 0);
   assert.equal(levelOf(1.5), 1);
   assert.equal(levelOf(1), 1);
   assert.equal(levelOf(0.99), 2);
 });
 
-Deno.test('rawPrediction: medición, seeders contados y de trackers', () => {
+test('rawPrediction: medición, seeders contados y de trackers', () => {
   assert.equal(rawPrediction(null, 'measured'), null);
   assert.equal(rawPrediction({ analysis_mbps: 20 }, 'measured'), 20);
   assert.equal(rawPrediction({ analysis_mbps: 0 }, 'measured'), null);
@@ -22,7 +23,7 @@ Deno.test('rawPrediction: medición, seeders contados y de trackers', () => {
   assert.equal(rawPrediction({ tracker_seeds: 4 }, 'tracker'), 12);
 });
 
-Deno.test('learnBias: sin muestras no corrige; con muestras se contrae hacia 0', () => {
+test('learnBias: sin muestras no corrige; con muestras se contrae hacia 0', () => {
   const none = learnBias([], Date.now(), null);
   assert.equal(none.counted.factor, 1);
   assert.equal(none.counted.n, 0);
@@ -34,7 +35,7 @@ Deno.test('learnBias: sin muestras no corrige; con muestras se contrae hacia 0',
   assert.equal(b.measured.n, 0); // sin analysis_mbps no enseña a esa evidencia
 });
 
-Deno.test('predict: la medición manda; sin evidencia, null', () => {
+test('predict: la medición manda; sin evidencia, null', () => {
   assert.equal(predict(null, { bias: {} }), null);
   const r = /** @type {import('./types.js').HealthRange} */ (predict({ analysis_mbps: 20 }, { bias: {} }));
   assert.equal(r.kind, 'measured');
@@ -46,13 +47,13 @@ Deno.test('predict: la medición manda; sin evidencia, null', () => {
   assert.equal(capped.p50, 50); // el techo de la conexión
 });
 
-Deno.test('shownLevel: sube un nivel si el p75 alcanza el de arriba', () => {
+test('shownLevel: sube un nivel si el p75 alcanza el de arriba', () => {
   assert.deepEqual(shownLevel({ kind: 'counted', lo: 0, p50: 30, p75: 40, hi: 50, conf: 'baja' }, 10), { level: 0, shown: 0, probable: false });
   assert.deepEqual(shownLevel({ kind: 'counted', lo: 0, p50: 15, p75: 25, hi: 50, conf: 'baja' }, 10), { level: 1, shown: 0, probable: true });
   assert.equal(shownLevel({ kind: 'counted', lo: 0, p50: 15, p75: 25, hi: 50, conf: 'alta' }, 10).probable, false);
 });
 
-Deno.test('fidelity: sin muestras, null; con una, la cuenta', () => {
+test('fidelity: sin muestras, null; con una, la cuenta', () => {
   assert.equal(fidelity([], null), null);
   const s = { ev: { analysis_mbps: 20, need_mbps: 10 }, real_mbps: 20, measured_at: '2026-11-01T00:00:00Z', avg_speed_bps: 0, max_speed_bps: 0, measured_secs: 200 };
   const f = /** @type {import('./types.js').HealthFidelity} */ (fidelity([s], null));

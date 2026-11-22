@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Icon from '#lib/Icon.svelte';
+	import Icon from '$ui/components/Icon.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import AdminCode from '#lib/AdminCode.svelte';

@@ -2,7 +2,8 @@
 // - `lang`: textos de la app.
 // - `titles`: títulos de películas, series y capítulos (TMDB).
 // Sinopsis y géneros siempre van en el idioma de la app.
-import { translate, locale, pickLangs, type Lang } from './i18n/translate.ts';
+import { setTranslator } from '$ui/i18n/runtime.ts';
+import { translate, locale, pickLangs, type Lang, type Vars } from './i18n/translate.ts';
 
 /** En el navegador arranca de lo que decidió el servidor (`<html lang>` y las cookies): los `load` corren antes que
  * el layout y la clave de la caché ya tiene que ir en el idioma correcto. */
@@ -17,7 +18,9 @@ function initial(): { lang: Lang; titles: Lang } {
 export const i18n: { lang: Lang; titles: Lang } = $state(initial());
 
 /** Texto en el idioma de la app; la clave es el texto en español. */
-export const t = (s: string, vars?: Record<string, string | number>) => translate(i18n.lang, s, vars);
+export const t = (s: string, vars?: Vars) => translate(i18n.lang, s, vars);
+// La lógica compartida (format.ts…) traduce con el idioma de esta app.
+setTranslator(t);
 /** Locale para `toLocaleDateString` y números. */
 export const loc = () => locale(i18n.lang);
 /** Idiomas en que llega lo de TMDB (títulos y sinopsis): la caché de esas respuestas va por esta clave. */

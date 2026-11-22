@@ -1,34 +1,26 @@
 [
   {
-    "id": "tt34966013",
-    "name": "Abrázame en la luz",
-    "year": "2025",
-    "poster": "https://image.tmdb.org/t/p/w500/hMPhJIVIndESo1ORZRFwjo9TUoA.jpg",
-    "rating": 7.5,
-    "tmdb_rating": 6.968
-  },
-  {
-    "id": "tt30319555",
-    "name": "Frida",
-    "year": "2024",
-    "poster": "https://image.tmdb.org/t/p/w500/qfPjPZF2AqB2XnXPFcHlYtlQRS3.jpg",
-    "rating": 7.5,
-    "tmdb_rating": 6.8
-  },
-  {
     "id": "tt18376122",
     "name": "Pamela Anderson: Una historia de amor",
     "year": "2023",
     "poster": "https://image.tmdb.org/t/p/w500/rPZyRrdynfyOv0XxCPauDMONjHw.jpg",
-    "rating": 7.2,
+    "rating": 7.0,
     "tmdb_rating": 7.0
+  },
+  {
+    "id": "tt34966013",
+    "name": "Abrázame en la luz",
+    "year": "2025",
+    "poster": "https://image.tmdb.org/t/p/w500/hMPhJIVIndESo1ORZRFwjo9TUoA.jpg",
+    "rating": 7.0,
+    "tmdb_rating": 6.968
   },
   {
     "id": "tt0498329",
     "name": "We Live in Public",
     "year": "2009",
     "poster": "https://image.tmdb.org/t/p/w500/eGKZn41ckFwyfXeQS7mtfIG8u4G.jpg",
-    "rating": 7.1,
+    "rating": 6.8,
     "tmdb_rating": 6.79
   },
   {
@@ -36,24 +28,24 @@
     "name": "Catfish",
     "year": "2010",
     "poster": "https://image.tmdb.org/t/p/w500/mXNxee2ix6Ke0bSIqFST0UhbVLR.jpg",
-    "rating": 7.1,
+    "rating": 6.8,
     "tmdb_rating": 6.814
+  },
+  {
+    "id": "tt30319555",
+    "name": "Frida",
+    "year": "2024",
+    "poster": "https://image.tmdb.org/t/p/w500/qfPjPZF2AqB2XnXPFcHlYtlQRS3.jpg",
+    "rating": 6.8,
+    "tmdb_rating": 6.8
   },
   {
     "id": "tt43619305",
     "name": "Una tóxica historia de amor",
     "year": "2026",
     "poster": "https://image.tmdb.org/t/p/w500/9CmyFXKqQRVbGGxyJE6kp7fhrHa.jpg",
-    "rating": 6.6,
+    "rating": 6.5,
     "tmdb_rating": 6.5
-  },
-  {
-    "id": "tt16951452",
-    "name": "Anna Nicole Smith: You Don't Know Me",
-    "year": "2023",
-    "poster": "https://image.tmdb.org/t/p/w500/8G0lRuW4PmVoyCqwIrm2qfNsu5I.jpg",
-    "rating": 6.4,
-    "tmdb_rating": 6.1
   },
   {
     "id": "tt39049795",
@@ -62,5 +54,13 @@
     "poster": "https://image.tmdb.org/t/p/w500/xCawp08whOaJS434IDlBytX7sSm.jpg",
     "rating": 6.2,
     "tmdb_rating": 6.188
+  },
+  {
+    "id": "tt16951452",
+    "name": "Anna Nicole Smith: You Don't Know Me",
+    "year": "2023",
+    "poster": "https://image.tmdb.org/t/p/w500/8G0lRuW4PmVoyCqwIrm2qfNsu5I.jpg",
+    "rating": 6.1,
+    "tmdb_rating": 6.1
   }
 ]

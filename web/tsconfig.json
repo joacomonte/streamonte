@@ -5,7 +5,22 @@
 		"types": [
 			"$app/types",
 			"node"
-		]
+		],
+		"paths": {
+			"$ui/*": [
+				"../packages/ui/src/*"
+			],
+			"svelte": [
+				"./node_modules/svelte"
+			],
+			"svelte/*": [
+				"./node_modules/svelte/*"
+			]
+		},
+		"noImplicitAny": true
 	},
-	"include": ["src", "vite.config.ts"]
+	"include": [
+		"src",
+		"vite.config.ts"
+	]
 }

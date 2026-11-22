@@ -1,4 +1,4 @@
-// Entorno mínimo de webview para correr módulos de la UI con `deno test --no-check`: se importa PRIMERO
+// Entorno mínimo de webview para correr módulos de la UI con `node --test`: se importa PRIMERO
 // (i18n.js lee la config con un await al cargar y usa `document`). No es un test.
 const g = /** @type {any} */ (globalThis);
 g.window = globalThis;

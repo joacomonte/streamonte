@@ -1,9 +1,0 @@
-{
-  "nodeModulesDir": "auto",
-  "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext", "deno.ns"],
-    "types": ["./src/globals.d.ts"],
-    "checkJs": true,
-    "strict": true
-  }
-}

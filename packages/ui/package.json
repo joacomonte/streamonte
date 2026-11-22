@@ -1,0 +1,10 @@
+{
+  "name": "streamonte-shared-ui",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "../../ui/node_modules/.bin/tsc -p tsconfig.json",
+    "test": "node --test \"src/**/*.test.ts\""
+  }
+}

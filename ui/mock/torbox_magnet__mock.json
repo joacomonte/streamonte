@@ -1,0 +1,7 @@
+{
+  "status": { "state": "ready", "name": "Fight.Club.1999.1080p.BluRay", "progress": 1, "speed": 0, "seeds": 0, "eta": 0, "files": [
+    { "name": "Fight.Club.1999.1080p.BluRay.x264.mkv", "size": 2147483648 },
+    { "name": "Fight.Club.1999.Extras.mkv", "size": 314572800 }
+  ] },
+  "ident": { "kind": "movie", "id": "tt0137523", "name": "Fight Club", "year": "1999", "poster": null, "rating": "8.8", "season": null, "episode": null }
+}

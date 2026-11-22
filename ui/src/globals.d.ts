@@ -12,3 +12,8 @@ interface TauriGlobal {
 interface Window {
   __TAURI__: TauriGlobal;
 }
+// Los tipos mínimos de Node para los tests (node:test, node:assert/strict, node:fs) viven en packages/ui/src/globals.d.ts.
+// Para vite.config.ts (sin @types/node).
+declare module 'node:url' {
+  export function fileURLToPath(url: URL | string): string;
+}

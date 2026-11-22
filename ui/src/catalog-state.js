@@ -15,7 +15,6 @@ export const showError = (/** @type {unknown} */ e) => reportError(e, { activity
 export const safeGet = (/** @type {string} */ k) => { try { return localStorage.getItem(k); } catch { return null; } };
 export const safeSet = (/** @type {string} */ k, /** @type {string} */ v) => { try { localStorage.setItem(k, v); } catch { /* sin almacenamiento */ } };
 
-/** @typedef {import('./types.js').CatalogItem} CatalogItem */
 /** @typedef {import('./types.js').Meta} Meta */
 /** @typedef {import('./types.js').DetailsView} DetailsView */
 /** @typedef {import('./types.js').Similar} Similar */
@@ -34,19 +33,18 @@ export const safeSet = (/** @type {string} */ k, /** @type {string} */ v) => { t
  *   providersOpen?: boolean,
  *   tests?: VideoTests, deep?: Deep, flow?: Flow,
  *   torbox?: null|'checking'|'done'|'error', explained?: Map<string, {hash: string, delay: number}>}} Side */
-/** Actor o director elegido en las sugerencias. @typedef {{id: number, name: string, photo: string|null, role: 'cast'|'director'}} PickedPerson */
+/** Actor o director elegido en las sugerencias (lo guarda el catálogo compartido). @typedef {{id: number, name: string, photo: string|null, role: 'cast'|'director'}} PickedPerson */
+
+/** Gancho de `catalog-mount.ts`: avisa al catálogo compartido qué título tiene el panel abierto (para resaltar su tarjeta). */
+/** @type {{side: ((side: Side|null) => void)|null}} */
+export const hooks = { side: null };
+/** @type {Side|null} */
+let currentSide = null;
 
 export const state = {
-  /** @type {CatalogItem[]|null} ya ordenadas */
-  results: null,
-  searching: false,       // tipeando / esperando la búsqueda: cards de carga
-  /** actor o director elegido en las sugerencias; results = lo suyo. @type {PickedPerson|null} */
-  person: null,
-  excluded: /** @type {Set<string>} */ (new Set()), // ids anime/japonés (FR-40)
-  hideJapanese: true,
   // Panel lateral: lo que se eligió. Serie: `meta` (episodios) → `season` → `episode`/`videoId`.
-  /** @type {Side|null} */
-  side: null,
+  get side() { return currentSide; },
+  set side(/** @type {Side|null} */ s) { currentSide = s; hooks.side?.(s); },
   /** último StreamsUpdate del video del panel. @type {StreamsUpdate|null} */
   update: null,
   /** clave de video → fila de la biblioteca del núcleo. @type {Map<string, LibraryRow>} */

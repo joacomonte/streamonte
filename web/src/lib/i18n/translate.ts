@@ -1,13 +1,8 @@
-// Traducción con claves en español (como gettext): en español el texto queda igual; en inglés sale de `EN`.
-// Un solo diccionario para la web y el servidor. `{x}` se reemplaza por `vars.x`.
-import EN from './en.ts';
+// Traducción: el diccionario y `translate` son los compartidos con el desktop (packages/ui/src/i18n/); acá queda lo propio de
+// la web (idioma de un pedido por cookies). Import relativo: `node --test` no resuelve el alias `$ui`.
+import type { Lang } from '../../../../packages/ui/src/i18n/translate.ts';
 
-export type Lang = 'es' | 'en';
-
-export function translate(lang: Lang, s: string, vars?: Record<string, string | number>): string {
-	const out = lang === 'en' ? (EN[s] ?? s) : s;
-	return vars ? out.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '')) : out;
-}
+export { translate, locale, type Lang, type Vars } from '../../../../packages/ui/src/i18n/translate.ts';
 
 /** Idioma de un pedido: la cookie `lang` y, si no hay, español (sin mirar el navegador). */
 export const pickLang = (cookie: string | undefined, _accept: string | null): Lang => (cookie === 'en' ? 'en' : 'es');
@@ -21,6 +16,3 @@ export function pickLangs(cookie: (name: string) => string | undefined, accept: 
 	const titles = t === 'es' || t === 'en' ? t : ui;
 	return { ui, titles };
 }
-
-/** Locale para fechas y números. */
-export const locale = (lang: Lang) => (lang === 'en' ? 'en-US' : 'es-AR');

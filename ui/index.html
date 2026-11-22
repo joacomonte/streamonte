@@ -13,18 +13,14 @@
   <header class="topbar">
     <h1 class="brand">Streamonte</h1>
     <div class="actions">
-      <!-- 2026-11-15: menús desplegables (ui/src/top-menus.js) -->
-      <!-- Solo con un magnet en el portapapeles: lo reproduce directo (2026-11-16). -->
-      <button id="btn-clipboard" class="top-btn play-copied" hidden title="Reproducir el magnet copiado (Ctrl+V)"></button>
+      <!-- Magnet copiado: ui/src/components/CopiedMagnet.svelte (lo monta src/main.ts acá). -->
+      <span id="top-copied-host" class="host"></span>
       <!-- Velocidad de internet (2026-11-16, ui/src/speed.js): tocar = medir de nuevo. -->
       <button id="btn-speed" class="top-btn speed" title="Velocidad de internet"></button>
-      <!-- Bajando de fondo (2026-11-17): siempre a la vista, con su % y ▶ para verla ya; ui/src/top-menus.js. -->
-      <span id="top-bg" class="top-bg" hidden></span>
-      <button id="btn-downloads" class="top-btn" aria-haspopup="dialog" aria-expanded="false" title="Lo descargado, lo que se reproduce o baja de fondo, y limpieza">Descargas<span id="downloads-size" class="top-size" hidden></span><span id="downloads-cache" class="top-size" hidden></span><span id="downloads-speed" class="top-speed" hidden></span><span id="downloads-badge" class="top-badge" hidden></span></button>
+      <!-- Bajando de fondo, botón y menú Descargas, barra de progreso: ui/src/components/Downloads.svelte. -->
+      <span id="top-downloads-host" class="host"></span>
       <button id="btn-settings" class="top-btn bare" title="Ajustes" aria-label="Ajustes"></button>
     </div>
-    <!-- Algo bajando (2026-11-17): barra fina al pie del toolbar con el progreso; ui/src/top-menus.js. -->
-    <div id="top-dl" class="top-dl" role="progressbar" aria-label="Descargando" hidden><i></i></div>
   </header>
 
   <main class="layout">
@@ -35,199 +31,7 @@
          fila; carpeta, borrar y log en su menú contextual. -->
   </main>
 
-  <!-- Ajustes (mínimo, F4 completa): API keys de subtítulos y teclas en mpv -->
-  <dialog id="dlg-settings" class="dialog settings" aria-labelledby="set-title">
-    <header class="set-head">
-      <h3 id="set-title">Ajustes</h3>
-      <button id="btn-settings-x" class="set-x" data-close aria-label="Cerrar ajustes" title="Cerrar (Esc)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    </header>
-    <div class="set-body">
-      <!-- Las keys sin configurar van en su sección; las configuradas pasan a "Conectado", al final (2026-11-17). -->
-      <!-- Idiomas (2026-11-20, como la web): app y títulos; las tarjetas las arma ui/src/lang-picker.js. -->
-      <section class="set-card" id="set-lang" aria-labelledby="set-h-lang">
-        <h4 id="set-h-lang">Idioma</h4>
-        <div id="set-lang-picker"></div>
-      </section>
-
-      <section class="set-card" id="set-catalog" aria-labelledby="set-h-catalog">
-        <h4 id="set-h-catalog">Catálogo</h4>
-        <div class="key-row" data-service="tmdb">
-          <div class="key-head">
-            <label for="key-tmdb">TMDB</label><span id="key-tmdb-state" class="key-state"></span>
-            <button id="key-tmdb-change" class="key-change" type="button">Cambiar</button>
-          </div>
-          <div class="key-edit">
-            <p class="hint">Gratis. Filtrá por fecha, votos, idioma y géneros, con pósters que faltan, idioma original, cadena y similares. Sin key, solo lo que está en tendencia.</p>
-            <div class="key-line">
-              <input id="key-tmdb" type="password" placeholder="Pegá la API key (v3)" autocomplete="off">
-              <button id="key-tmdb-save" class="primary" data-save-key="tmdb">Guardar</button>
-            </div>
-            <button id="key-tmdb-page" class="link" data-key-page="tmdb">¿No tenés? Pedila gratis (cuenta → Ajustes → API)</button>
-          </div>
-          <p class="key-done" role="status"></p>
-        </div>
-        <!-- TorBox de Streamonte (2026-11-21): la key del servidor, por la web, con el código de acceso. Apagado, la key propia. -->
-        <div id="torbox-shared">
-          <label class="set-line"><input id="set-torbox-shared" type="checkbox"> Usar TorBox de Streamonte <span id="torbox-code-state" class="key-state"></span></label>
-          <p class="hint">Usa la cuenta de TorBox de Streamonte: pide el código de acceso (el mismo de la web) una sola vez. Apagalo para usar tu propia key.</p>
-          <div id="torbox-code-line" class="key-line">
-            <input id="key-torbox-code" type="password" inputmode="numeric" maxlength="3" placeholder="Código de 3 dígitos" autocomplete="off">
-            <button id="key-torbox-code-save" type="button">Guardar</button>
-          </div>
-          <p id="torbox-code-error" class="hint" role="alert"></p>
-        </div>
-        <!-- TorBox (2026-11-17): marca las opciones que ya están en su caché. -->
-        <div class="key-row" data-service="torbox">
-          <div class="key-head">
-            <label for="key-torbox">TorBox</label><span id="key-torbox-state" class="key-state"></span>
-            <button id="key-torbox-change" class="key-change" type="button">Cambiar</button>
-          </div>
-          <div class="key-edit">
-            <p class="hint">Con tu cuenta de TorBox, marca las opciones que ya tiene en su caché: se pueden ver al instante desde sus servidores, sin depender de los seeds.</p>
-            <div class="key-line">
-              <input id="key-torbox" type="password" placeholder="Pegá tu API key de TorBox" autocomplete="off">
-              <button id="key-torbox-save" class="primary" data-save-key="torbox">Guardar</button>
-            </div>
-            <button id="key-torbox-page" class="link" data-key-page="torbox">¿Dónde está? En tu cuenta de TorBox → Settings → API</button>
-          </div>
-          <p class="key-done" role="status"></p>
-        </div>
-        <div class="set-line">
-          <p class="hint">Fuentes de torrents: los addons que se consultan al abrir una película o episodio.</p>
-          <button id="btn-sources">Ver y activar fuentes</button>
-        </div>
-      </section>
-
-      <!-- Lat-Team (2026-11-18): tracker privado; fuente apagada por defecto y token en el almacén seguro. -->
-      <section class="set-card" id="set-latteam" aria-labelledby="set-h-latteam">
-        <h4 id="set-h-latteam">Lat-Team</h4>
-        <label class="set-line"><input id="set-latteam-on" type="checkbox"> Buscar también en Lat-Team <span id="latteam-state" class="key-state"></span></label>
-        <p class="hint">Tracker privado con audio latino. El API token está en tu perfil de Lat-Team → Ajustes → Seguridad. Tiene reglas de ratio: reproducir desde ahí con el motor de la app puede no estar permitido. Con TorBox no hace ratio.</p>
-        <div class="key-line">
-          <input id="key-latteam" type="password" placeholder="Pegá tu API token de Lat-Team" autocomplete="off">
-          <button id="key-latteam-save" type="button">Guardar</button>
-        </div>
-        <button id="key-latteam-page" class="link" data-key-page="latteam">Abrir Lat-Team</button>
-      </section>
-
-      <section class="set-card keys-only" id="set-subs" aria-labelledby="set-h-subs">
-        <h4 id="set-h-subs">Subtítulos</h4>
-        <p class="hint">Se bajan hasta 5 en español, primero los que trae el torrent. Para buscar más hacen falta estas keys gratuitas.</p>
-        <div class="key-row" data-service="wyzie">
-          <div class="key-head">
-            <label for="key-wyzie">Wyzie Subs</label><span id="key-wyzie-state" class="key-state"></span>
-            <button id="key-wyzie-change" class="key-change" type="button">Cambiar</button>
-          </div>
-          <div class="key-edit">
-            <div class="key-line">
-              <input id="key-wyzie" type="password" placeholder="Pegá la key" autocomplete="off">
-              <button id="key-wyzie-save" data-save-key="wyzie">Guardar</button>
-            </div>
-            <button id="key-wyzie-page" class="link" data-key-page="wyzie">Pedir key (solo email, 1000/día)</button>
-          </div>
-          <p class="key-done" role="status"></p>
-        </div>
-        <div class="key-row" data-service="opensubtitles">
-          <div class="key-head">
-            <label for="key-opensubtitles">OpenSubtitles.com (Premium)</label><span id="key-opensubtitles-state" class="key-state"></span>
-            <button id="key-opensubtitles-change" class="key-change" type="button">Cambiar</button>
-          </div>
-          <div class="key-edit">
-            <div class="key-line">
-              <input id="key-opensubtitles" type="password" placeholder="Pegá la key" autocomplete="off">
-              <button id="key-opensubtitles-save" data-save-key="opensubtitles">Guardar</button>
-            </div>
-            <button id="key-opensubtitles-page" class="link" data-key-page="opensubtitles">Crear key (cuenta gratis, 20 descargas/día)</button>
-          </div>
-          <p class="key-done" role="status"></p>
-        </div>
-        <!-- Cuenta de OpenSubtitles.com (2026-11-18): opcional; con ella se ve la cuota desde el arranque. -->
-        <div class="os-login" id="os-login">
-          <p class="hint">Opcional: con tu cuenta de OpenSubtitles.com se ve cuántas descargas te quedan desde que abrís la app y se baja con la cuota de tu cuenta. Se guarda en el almacén seguro.</p>
-          <div class="key-line">
-            <input id="os-user" type="text" placeholder="Usuario" autocomplete="username" aria-label="Usuario de OpenSubtitles.com">
-            <input id="os-pass" type="password" placeholder="Contraseña" autocomplete="current-password" aria-label="Contraseña de OpenSubtitles.com">
-            <button id="os-login-save" type="button">Guardar</button>
-          </div>
-          <p id="os-login-state" class="hint" role="status"></p>
-        </div>
-      </section>
-
-      <!-- Reproductor (2026-11-17): qué hay en esta compu (cuál usar se pregunta en cada ▶, 2026-11-20) y el ecualizador de mpv. -->
-      <section class="set-card" aria-labelledby="set-h-player">
-        <h4 id="set-h-player">Reproductor</h4>
-        <div class="set-eq" aria-label="Reproductores">
-          <div class="set-eq-opt set-player-opt"><span><b>mpv</b><small id="set-mpv-note">Recomendado: anda mejor y gasta menos.</small></span></div>
-          <div class="set-eq-opt set-player-opt"><span><b>VLC</b><small id="set-vlc-note">Sin subtítulos combinados ni ecualizador.</small></span></div>
-        </div>
-        <small id="set-player-ask" class="set-player-ask">Al reproducir te preguntamos con cuál abrirlo.</small>
-        <div id="set-mpv-missing" class="set-mpv-missing" hidden>
-          <span id="set-mpv-missing-text"></span>
-          <button id="btn-install-mpv"></button>
-        </div>
-        <h5 class="set-sub">Sonido (mpv)</h5>
-        <div class="set-eq" role="radiogroup" aria-label="Sonido">
-          <label class="set-eq-opt"><input id="set-eq-cine" type="radio" name="set-eq" value="cine"><span><svg class="set-eq-curve" viewBox="0 0 120 36" aria-hidden="true"><path class="grid" d="M0 18H120"/><path class="line" d="M0 18 C8 18 10 9 18 9 S30 17 40 18 S60 19 70 14 S82 11 88 15 S100 15 108 13 S116 12 120 13"/></svg><b>Cine</b><small>Graves y voces un poco más presentes.</small></span></label>
-          <label class="set-eq-opt"><input id="set-eq-voices" type="radio" name="set-eq" value="voices"><span><svg class="set-eq-curve" viewBox="0 0 120 36" aria-hidden="true"><path class="grid" d="M0 18H120"/><path class="line" d="M0 18 C20 18 40 18 50 16 S62 8 72 8 S84 13 92 17 S110 18 120 18"/></svg><b>Voces claras</b><small>Diálogos al frente, graves sin tocar.</small></span></label>
-          <label class="set-eq-opt"><input id="set-eq-flat" type="radio" name="set-eq" value="flat"><span><svg class="set-eq-curve" viewBox="0 0 120 36" aria-hidden="true"><path class="grid" d="M0 18H120"/><path class="line" d="M0 18 H120"/></svg><b>Plano</b><small>Tal cual viene el video.</small></span></label>
-        </div>
-      </section>
-
-      <section class="set-card" aria-labelledby="set-h-net">
-        <h4 id="set-h-net">Red</h4>
-        <label class="set-switch"><input id="set-incoming" type="checkbox" role="switch"><span><b>Conexiones entrantes</b><small>Más peers pueden mandarte pedazos: suele bajar más rápido.</small></span></label>
-        <label class="set-switch"><input id="set-upnp" type="checkbox" role="switch"><span><b>Abrir el puerto solo (UPnP)</b><small>Le pide al router que abra el puerto.</small></span></label>
-        <label class="set-switch"><input id="set-announce" type="checkbox" role="switch"><span><b>Testear al elegir un episodio</b><small>En series, testea solas las 15 mejores apenas elegís el episodio. Tu IP queda listada ~30 min en esos enjambres.</small></span></label>
-        <div class="net-check">
-          <button id="btn-net-check">Verificar puerto</button>
-          <span id="net-check-result" class="net-check-result" role="status"></span>
-        </div>
-        <details id="set-net-guide" class="net-guide">
-          <summary>¿No abre el puerto?</summary>
-          <ol class="net-steps">
-            <li><b>Probá con UPnP:</b> dejá activadas las dos primeras opciones y verificá. Si el router lo soporta, abre el puerto solo. Algunos lo rechazan (por ejemplo, los Sagemcom de los cable-módems).</li>
-            <li><b>Si da cerrado, abrí el puerto a mano:</b> entrá al router (suele ser <code>192.168.0.1</code> o <code>192.168.1.1</code>), buscá "Reenvío de puertos", "Port forwarding" o "NAT" y creá una regla: protocolo <b>TCP</b>, puerto externo e interno <b>41850</b>, hacia la IP de esta PC (la muestra "Verificar"). Conviene reservar esa IP en el DHCP del router para que no cambie.</li>
-            <li><b>Firewall:</b> en macOS, Ajustes del Sistema › Red › Firewall › Opciones: permití las conexiones entrantes de Streamonte. En Windows, aceptá el aviso del firewall la primera vez.</li>
-            <li><b>Si aun así da cerrado:</b> tu proveedor puede usar CGNAT (sin IP pública propia). Pedile una IP pública; sin eso no se pueden recibir entrantes.</li>
-          </ol>
-          <p class="hint">Aplica desde la próxima reproducción; si el router lo bloquea, todo sigue andando con conexiones salientes. "Verificar" abre el puerto un momento y le pide a portchecker.io que intente conectarse a tu IP pública (que averigua con api.ipify.org).</p>
-        </details>
-      </section>
-
-      <section class="set-card" aria-labelledby="set-h-keys">
-        <h4 id="set-h-keys">Teclas en el reproductor</h4>
-        <table class="kv keys">
-          <tr><th>1 – 5</th><td>Dejar solo ese subtítulo</td></tr>
-          <tr><th>0</th><td>Ver todos a la vez para comparar</td></tr>
-          <tr><th>S</th><td>Ocultar / mostrar subtítulos</td></tr>
-          <tr><th>Z / X</th><td>La voz llega antes / después (±0,1 s; con Shift ±1 s)</td></tr>
-          <tr><th>R</th><td>Volver la sincronización a cero</td></tr>
-        </table>
-      </section>
-
-      <section class="set-card set-connected" id="set-connected" aria-labelledby="set-h-connected">
-        <h4 id="set-h-connected">Conectado</h4>
-      </section>
-    </div>
-    <footer class="set-foot">
-      <span class="hint">Las keys se guardan en el almacén seguro del sistema y nunca se muestran.</span>
-      <button id="btn-settings-close" data-close>Cerrar</button>
-    </footer>
-  </dialog>
-
-  <!-- FR-15: detalle (log en vivo) de una reproducción -->
-  <dialog id="dlg-log" class="dialog wide">
-    <h3 id="dlg-log-title">Detalle</h3>
-    <pre id="dlg-log-body"></pre>
-    <div class="dialog-actions"><button data-close>Cerrar</button></div>
-  </dialog>
-
-  <!-- Confirmaciones (FR-17 cierre, FR-19 limpiar) -->
-  <dialog id="dlg-confirm" class="dialog">
-    <h3 id="dlg-confirm-title"></h3>
-    <p id="dlg-confirm-text"></p>
-    <div id="dlg-confirm-actions" class="dialog-actions"></div>
-  </dialog>
+  <!-- Ajustes, log y confirmaciones: ui/src/components/ (Svelte, montados por main.ts). -->
 
   <!-- FR-29: barra de estado con progreso -->
   <footer class="statusbar">

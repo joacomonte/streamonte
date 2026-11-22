@@ -3,7 +3,7 @@
 Busca en 6 fuentes gratis en paralelo, rankea, baja hasta 5 (`MAX_SUBTITLES`), los carga en mpv + ASS fusionado, y recuerda la elección por video. Base `/Users/monti/Documents/Dev/streamonte/crates/core/src/`.
 
 ## Mapa
-- `subtitles.rs:42 VideoIdentity` · `:177 movie_hash` · `:247 spanish_natives` · `:304 MatchKind` · `:318 SubtitleCandidate` · `:354 fit_by_timing` · `:374 rank_order` · `:386 top_candidates` · `:462 SubtitleChoice` · `:483 SubtitleMemory`
+- `subtitles.rs:41 VideoIdentity` · `:176 movie_hash` · `:246 spanish_natives` · `:303 MatchKind` · `:317 SubtitleCandidate` · `:353 fit_by_timing` · `:373 rank_order` · `:385 top_candidates` · `:448 SubtitleChoice` · `:469 SubtitleMemory`
 - `subtitles/fetch.rs:49 fetch` · `:334 search_all` · `:368 download_best` · `:414 dedup_by_content` · `:206 load_saved` · `:297 add_saved` · `:307 merge_saved`
 - `subtitles/session.rs:74 prefetch` · `:130 run` · `:153 bind_keys` · `:331 load_merged` · `:408 key_loop` · `:488 remember`
 - `subtitles/merge.rs:36 merge_ass` · `:52 merge_cues` · `:146 parse_srt` · `:199 parse_ass`

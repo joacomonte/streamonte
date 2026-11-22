@@ -56,3 +56,14 @@ export type SeasonScore = { season: number; rating: number; episodes: number };
 
 /** Cuerpo de error de la API. */
 export type ApiError = { message: string };
+
+// Respuestas crudas de la API que lee `webApi.ts` (salen del servidor: no se repiten a mano).
+export type CatalogPageRaw = Awaited<ReturnType<typeof import('./server/tmdb.ts').search>>;
+export type PeopleRaw = Awaited<ReturnType<typeof import('./server/tmdb.ts').people>>;
+export type LinkRaw = Awaited<ReturnType<typeof import('./server/torbox.ts').link>>;
+export type TracksRaw = Awaited<ReturnType<typeof import('./server/torbox.ts').tracks>>;
+export type SubsRaw = Awaited<ReturnType<typeof import('./server/subs.ts').search>>;
+/** `/api/premium` (GET): resultados gratis de buscar + cuota. */
+export type PremiumRaw = { results: Sub[]; quota: QuotaRaw };
+export type QuotaRaw = Awaited<ReturnType<typeof import('./server/subs.ts').premiumQuota>>;
+export type MagnetRaw = Awaited<ReturnType<typeof import('./server/magnet.ts').status>> & { ident?: Ident | null };

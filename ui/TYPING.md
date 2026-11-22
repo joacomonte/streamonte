@@ -1,10 +1,8 @@
 # Tipado de la UI (JS + JSDoc)
 
-Chequeo (desde la raíz del repo; `deno.json` de `ui/` se pasa explícito porque no es ancestro del cwd):
+Chequeo: `cd /Users/monti/Documents/Dev/streamonte/ui && npm run check` (svelte-check + `tsc -p tsconfig.js.json`, ~2 s).
 
-    PATH=/opt/homebrew/bin:$PATH deno check --config ui/deno.json ui/src/MI-ARCHIVO.js   # o ui/src/*.js (~2 s)
-
-Config: `/Users/monti/Documents/Dev/streamonte/ui/deno.json` (lib dom, checkJs, strict). Globales del webview
+Config: `/Users/monti/Documents/Dev/streamonte/ui/tsconfig.js.json` (lib dom, checkJs, strict). Globales del webview
 (`window.__TAURI__`): `/Users/monti/Documents/Dev/streamonte/ui/src/globals.d.ts`. Primera línea de cada archivo: `// @ts-check`.
 
 Convenciones
@@ -23,5 +21,5 @@ Helpers de `dom.js` para tipar el DOM
 - `PlaybackState` y `EntryStatus` son un objeto con campos opcionales (`fraction`, `position_secs`, `message`, `reason`), no unión.
 - Evitar imports circulares con `dom.js` ↔ `activity.js` (activity usa `document.querySelector` a propósito).
 
-Tests: `deno test --no-check --allow-read ui/src` (`*.test.js`; el stub `ui/src/test-stub.js` va PRIMERO en los que importan i18n/format/api).
-Lib `deno.ns` está en `deno.json` solo para que `Deno.test` tipe en los tests.
+Tests: `cd ui && npm test` (`node --test`, `*.test.js`; el stub `ui/src/test-stub.js` va PRIMERO en los que importan i18n/format/api).
+Sin @types/node: los módulos `node:*` que usan los tests se declaran mínimos al final de `globals.d.ts` (`assert` es `any`).

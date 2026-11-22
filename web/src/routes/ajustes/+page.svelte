@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Icon from '#lib/Icon.svelte';
+	import Icon from '$ui/components/Icon.svelte';
 	import { wipe } from '#lib/saved.ts';
 	import { t } from '#lib/i18n.svelte.ts';
-	import LangPicker from '#lib/LangPicker.svelte';
+	import LangPicker from '$ui/components/LangPicker.svelte';
+	import { langOptions } from '#lib/langs.ts';
 	import AdminCode from '#lib/AdminCode.svelte';
 	import { saveNick } from '#lib/nick.ts';
 	import { goto, invalidateAll } from '$app/navigation';
@@ -167,7 +168,7 @@
 
 	<section class="field saved">
 		<span class="lbl">{t('Idioma')}</span>
-		<LangPicker id="settings-lang" />
+		<LangPicker id="settings-lang" {...langOptions()} />
 	</section>
 
 	<section class="field saved">

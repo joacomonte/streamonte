@@ -12,7 +12,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::config::SubtitleLanguage;
@@ -438,19 +437,6 @@ pub fn sync_message(delay: f64) -> String {
     } else {
         format!("Subtítulos {amount} s antes")
     }
-}
-
-/// Sincronización automática contra el audio o un subtítulo de referencia (FR-27, F7).
-#[async_trait]
-pub trait AutoSync: Send + Sync {
-    /// Devuelve el desfase a aplicar (segundos).
-    async fn compute_offset(&self, subtitle: &Path, reference: SyncReference) -> Result<f64>;
-}
-
-pub enum SyncReference {
-    /// URL del motor (audio del video).
-    Audio(String),
-    Subtitle(PathBuf),
 }
 
 // ---------- Memoria por película (FR-28) ----------

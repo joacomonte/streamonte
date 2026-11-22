@@ -4,18 +4,25 @@
 	// buscando" y "Ver todas las opciones"; migas para volver. Por fila: peso, calidad de
 	// imagen, audio y subs en español, y copiar el link https de TorBox. Los subtítulos son de cada torrent: aparecen
 	// al copiar su link (nativos primero; si no trae, se buscan afuera; Premium plegado al final).
-	import Icon from './Icon.svelte';
-	import Sheet from './Sheet.svelte';
-	import Tour from './Tour.svelte';
-	import { castSteps, device } from './tours.ts';
+	import Icon from '$ui/components/Icon.svelte';
+	import Sheet from '$ui/components/Sheet.svelte';
+	import Tour from '$ui/components/Tour.svelte';
+	import { castSteps, device } from '$ui/components/tours.ts';
 	import * as saved from './saved.ts';
 	import { loc, t as tr } from './i18n.svelte.ts';
 	import { untrack } from 'svelte';
-	import { audioOf, latStatus, LAT_BADGE, type Tracks } from './audio.ts';
+	import { audioOf, latStatus, LAT_BADGE, type Tracks } from '$ui/audio.ts';
 	import type { Snippet } from 'svelte';
-	import type { Torrent, Sub } from './types.ts';
+	import type { Torrent } from './types.ts';
 	import { track } from './track.ts';
-	import { QUALITY, byQuality as rankQuality, groupOf, mbpsOf as rankMbps, rank, sourceOf } from './torrent-rank.ts';
+	import { QUALITY, byQuality as rankQuality, optionMbps } from '$ui/rank.ts';
+	import { setApi } from '$ui/context.ts';
+	import SubRow from '$ui/subs/SubRow.svelte';
+	import SubsPicker from '$ui/subs/SubsPicker.svelte';
+	import type { SubsCtx } from '$ui/subs/subs-flow.ts';
+	import { keyOf } from '$ui/subs/subs-logic.ts';
+	import type { SubtitleOption } from '$ui/types.ts';
+	import { webApi } from './webApi.ts';
 
 	interface Props {
 		imdb: string;
@@ -30,9 +37,10 @@
 		given?: Torrent[] | null;
 	}
 	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null }: Props = $props();
+	// SubsPicker lee el Api del contexto (la raíz de la web todavía no lo fija).
+	setApi(webApi);
 
 	type Native = { label: string; kind: string; track: number; url: string };
-	type Quota = { hasKey: boolean; remaining: number | null; perDay: number | null; resetsAt: number | null; login?: string | null };
 	type Choice = { key: string; label: string; url: string };
 	type Video = { fps: number | null; duration: number | null };
 	type FileId = { hash: string; size: string };
@@ -105,16 +113,8 @@
 		burstT = setTimeout(() => burstEl?.hidePopover(), 1500);
 	}
 	let tutorialOpen = $state(false);
-	/** Los encontrados afuera para el torrent copiado (null = no se buscó). */
-	let subs = $state<Sub[] | null>(null);
-	let searching = $state(false);
-	let subsError = $state('');
-	/** El último subtítulo copiado y los que se copiaron antes (no sincronizaron): "Probaste N". */
-	let picked = $state<string | null>(null);
-	let tried = $state<string[]>([]);
-	/** Premium (OpenSubtitles.com): buscar es gratis y corre al abrir la fila; cada copia baja uno (gasta 1). */
-	let prem = $state<{ open: boolean; status: 'idle' | 'loading' | 'ready' | 'empty' | 'error'; results: Sub[]; busy: string | null }>({ open: false, status: 'idle', results: [], busy: null });
-	let quota = $state<Quota | null>(null);
+	/** Buscar subtítulos afuera sin tocar "Buscar más" (se abrió la lista sin que el video traiga en español). */
+	let subsAuto = $state(false);
 
 	// Solo depende del video (`qs`): lo demás va en `untrack`, así nada que llegue
 	// después (subs, cuota, copias) vuelve a disparar el pedido ni vacía la lista que ya se ve.
@@ -127,7 +127,6 @@
 		untrack(() => {
 			error = '';
 			copy = {};
-			resetSubs();
 			match = null;
 			net = null;
 			goStep('net');
@@ -201,7 +200,9 @@
 			if (g === gen) goStep('audio');
 		}, 220);
 	}
-	const mbpsOf = (t: Torrent) => rankMbps(t, runtime);
+	/** Lo que mira el ranking compartido de una opción. */
+	const quality = (t: Torrent) => ({ resolution: t.res, sizeBytes: t.size, source: t.source });
+	const mbpsOf = (t: Torrent) => optionMbps(quality(t), runtime);
 	/** ¿Entra en la conexión elegida? Sin peso no se sabe cuánto pide: no entra (no puede ser el buen match). */
 	const fits = (t: Torrent) => !!t.size && (!net || mbpsOf(t) <= net.mbps);
 
@@ -245,7 +246,7 @@
 	 * confirmar y con algo que lo sugiera (web latina, MULTI / Dual / español sin aclarar); las que no dicen nada de
 	 * idioma no se leen. Audio original: sin saber si trae sub ES. */
 	const unread = (lat: boolean, t: Torrent) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (status(t) === 'likely' || (status(t) === 'check' && t.spa)) : !hasEs(t) && !known(t));
-	const byQuality = (a: Torrent, b: Torrent) => rankQuality(a, b, runtime);
+	const byQuality = (a: Torrent, b: Torrent) => rankQuality(quality(a), quality(b), runtime);
 	/** Lo que entra con el audio elegido (latino: solo las con potencial), de mejor a peor. `byBest`: solo las que entran
 	 * en la conexión (de ahí sale el buen match); `everything`: todas, para "Ver todas". */
 	const everything = $derived((wantLat ? all.filter(potential) : [...all]).sort(byQuality));
@@ -314,14 +315,6 @@
 	});
 	/** El video que copiaste: los subtítulos se ordenan por cuánto calzan con él. */
 	let match = $state<{ hash: string; release: string; natives?: Native[]; file?: FileId; video?: Video } | null>(null);
-	const LEVEL = ['puede desfasar', 'probable', 'muy probable', 'perfecto'].map((x) => () => tr(x));
-	const WHY = ['Otro release: puede ir adelantado o atrasado', 'Mismos fps y misma duración que el video', 'Mismo release: mismo grupo y fuente', 'Hecho para este mismo archivo'].map((x) => () => tr(x));
-	const ranked = $derived(subs ? rank(subs, match) : []);
-	const premRanked = $derived(rank(prem.results, match));
-	/** Encabezado de la fila: grupo del release y "fuente resolución". */
-	const headOf = (sub: Sub) => sub.group || groupOf(sub.release) || (sub.premium ? 'OpenSubtitles' : 'OpenSubtitles.org');
-	const specOf = (sub: Sub) => [sourceOf(sub.release), sub.release.match(/\b(2160p|1080p|720p|480p)\b/i)?.[1]].filter(Boolean).join(' ') || tr('sin release');
-
 	const gb = (b: number | null) => (b == null ? '—' : b >= 1024 ** 3 ? `${(b / 1024 ** 3).toLocaleString(loc(), { maximumFractionDigits: 1, minimumFractionDigits: 1 })} GB` : `${Math.round(b / 1024 ** 2)} MB`);
 
 	/** Link de TorBox recién pedido (uno nuevo en cada copia); `choices` si hay audio en inglés y en latino. */
@@ -410,19 +403,11 @@
 		if (got.choices?.length) audioFor = { t, choices: got.choices };
 		else askWhere(t, got.url);
 	}
-	function resetSubs() {
-		subs = null;
-		searching = false;
-		subsError = '';
-		picked = null;
-		tried = [];
-		prem = { open: false, status: 'idle', results: [], busy: null };
-	}
 	/** Subtítulos de un torrent, con lo que ya trajo su link (sin volver a TorBox). Si el video trae en español lo dice
 	 * `info` (una sola fuente para la opción y este panel); `natives` son esos mismos subs como links del stream (solo
 	 * con streaming en el plan). Buscar afuera es a pedido ("Ver subtítulos disponibles"). */
 	function subsFor(t: Torrent, file?: FileId, natives?: Native[], video?: Video) {
-		resetSubs();
+		subsAuto = false;
 		match = { hash: t.hash, release: t.release, natives, file, video };
 	}
 	/** Abre los subtítulos de `t` y busca afuera. */
@@ -430,29 +415,12 @@
 		if (match?.hash !== t.hash) subsFor(t);
 		linkDone = null;
 		subsOpen = true;
-		if (!subs && !searching) searchSubs();
+		subsAuto = true;
 	}
 	/** Subs en español del video que tiene abierto el panel (de `info`). */
 	const matchInfo = $derived(match ? info[match.hash] : null);
 	/** Cuántos subs en español trae el video del panel (nativos con link o, si no, lo leído). */
 	const esN = $derived(match?.natives?.length || (matchInfo && typeof matchInfo === 'object' ? matchInfo.subs : 0));
-	/** Afuera (OpenSubtitles.org): con el hash del archivo suma los hechos para ese archivo exacto. */
-	async function searchSubs() {
-		const q = qs;
-		const m = match;
-		searching = true;
-		try {
-			const r = await fetch(`/api/subs?${q}${m?.file ? `&${new URLSearchParams(m.file)}` : ''}`);
-			const j = await r.json();
-			if (q !== qs || m !== match) return;
-			if (!r.ok) subsError = j.message;
-			else subs = j;
-		} catch (err) {
-			subsError = (err as Error).message;
-		} finally {
-			searching = false;
-		}
-	}
 	/** Copia ya (Chrome deja unos segundos después del toque); si el navegador no deja, un toque más en la hoja. */
 	async function copyUrl(t: Torrent, url: string) {
 		// Título · calidad · audio elegido · dónde (el panel lo separa por ` · `).
@@ -495,7 +463,7 @@
 		}
 	}
 	/** Link absoluto del .srt (en la LAN, el de la Mac): termina en la extensión para Web Video Caster. */
-	const subUrl = (sub: Sub) =>
+	const subUrl = (sub: SubtitleOption) =>
 		`${location.origin}/api/subs/${sub.id}/${encodeURIComponent(fileName.replace(/[^\p{L}\p{N}]+/gu, '.'))}.es.${sub.format === 'ass' ? 'ass' : 'srt'}`;
 	/** Copia en el mismo toque con un textarea oculto: anda por http, donde no hay `navigator.clipboard`.
 	 * iOS no selecciona texto de un campo de solo lectura (y `execCommand` igual dice que copió): por eso editable,
@@ -519,15 +487,9 @@
 		ta.remove();
 		return ok;
 	}
-	/** Copiar otro cuenta el anterior como probado (no sincronizó). */
-	function pick(key: string) {
-		if (picked && picked !== key && !tried.includes(picked)) tried = [...tried, picked];
-		tried = tried.filter((k) => k !== key);
-		picked = key;
-	}
-	async function copySub(sub: Sub) {
+	async function copySub(sub: SubtitleOption, ctx: SubsCtx) {
 		track('subtítulo', `copiar link · ${sub.release}`);
-		pick(`o${sub.id}`);
+		ctx.pick(keyOf(sub));
 		const url = subUrl(sub);
 		const name = sub.release || tr('Subtítulo');
 		if (copyNow(url)) return void (copied = { kind: 'sub', name });
@@ -540,58 +502,22 @@
 		}
 	}
 	/** Copia un nativo: el video con ese subtítulo puesto. */
-	function copyNative(n: Native) {
-		pick(`n${n.track}`);
+	function copyNative(n: Native, ctx: SubsCtx) {
+		ctx.pick(`n${n.track}`);
 		if (copyNow(n.url)) copied = { kind: 'video', name: tr('Subtítulos del video') };
 		else manual = { url: n.url, release: tr('Subtítulos del video'), kind: 'video' };
 	}
 
-	async function loadQuota() {
-		quota = await fetch('/api/premium/quota').then((r) => r.json()).catch(() => quota);
-	}
-	async function premiumSearch() {
-		prem.status = 'loading';
-		const r = await fetch(`/api/premium?${qs}`).catch(() => null);
-		const j = await r?.json().catch(() => null);
-		if (!r?.ok || !j) return void (prem.status = 'error');
-		prem.results = j.results;
-		quota = j.quota;
-		prem.status = j.results.length ? 'ready' : 'empty';
-	}
-	function togglePremium() {
-		prem.open = !prem.open;
-		if (prem.open && quota?.hasKey && prem.status === 'idle') premiumSearch();
-	}
-	/** "Copiar · 1": baja ese (gasta 1, solo con este toque) y copia el link del .srt servido por la Mac. */
-	async function copyPremium(sub: Sub) {
-		if (prem.busy || quota?.remaining === 0) return;
+	/** Premium ya bajado (gastó 1, solo con el toque): copia el link del .srt servido por la Mac. */
+	function copyPremium(sub: SubtitleOption) {
 		track('subtítulo', `premium · ${sub.release}`);
-		prem.busy = sub.id;
-		try {
-			const r = await fetch(`/api/premium/${sub.id}`, { method: 'POST' });
-			const j = await r.json();
-			if (!r.ok) throw new Error(j.message);
-			quota = j;
-			pick(`p${sub.id}`);
-			const url = `${location.origin}/api/premium/${sub.id}/${encodeURIComponent(fileName.replace(/[^\p{L}\p{N}]+/gu, '.'))}.es.srt`;
-			const name = sub.release || tr('Subtítulo');
-			if (copyNow(url)) copied = { kind: 'sub', name };
-			else manual = { url, release: name, kind: 'sub' };
-		} catch (err) {
-			subsError = (err as Error).message;
-			loadQuota();
-		} finally {
-			prem.busy = null;
-		}
+		const url = `${location.origin}/api/premium/${sub.id}/${encodeURIComponent(fileName.replace(/[^\p{L}\p{N}]+/gu, '.'))}.es.srt`;
+		const name = sub.release || tr('Subtítulo');
+		if (copyNow(url)) copied = { kind: 'sub', name };
+		else manual = { url, release: name, kind: 'sub' };
 	}
-	const quotaText = $derived(
-		!quota ? tr('viendo cuántas descargas quedan…')
-			: quota.login ? quota.login
-			: quota.remaining == null ? tr('no sé cuántas descargas quedan hoy')
-				: quota.remaining === 0 ? tr('usaste las {n} de hoy', { n: quota.perDay ?? '' }) + (quota.resetsAt ? tr(' · vuelven {h}', { h: new Date(quota.resetsAt).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) }) : '')
-					: tr('quedan {n} de {d} descargas hoy', { n: quota.remaining, d: quota.perDay ?? '' })
-	);
-	const epLabel = $derived(s && e ? `S${String(s).padStart(2, '0')}E${String(e).padStart(2, '0')}` : tr('esta película'));
+	/** El video y episodio de los subtítulos. */
+	const subsRef = $derived(s && e ? { kind: 'tv' as const, videoId: `${imdb}:${s}:${e}` } : { kind: 'movie' as const, videoId: imdb });
 
 	const fileName = $derived(name + (s && e ? ` S${String(s).padStart(2, '0')}E${String(e).padStart(2, '0')}` : ''));
 </script>
@@ -883,18 +809,20 @@
 	</ul>
 {/snippet}
 
-<!-- Una fila de subtítulo (ELEGIDA, mobile): grupo + fuente resolución + LAT; debajo, cuánto calza. -->
-{#snippet row(it: { key: string; head: string; spec: string; latino?: boolean; lvl?: number; title?: string }, actions: Snippet)}
-	{@const on = picked === it.key}
-	{@const was = !on && tried.includes(it.key)}
-	<li class="sub" class:on class:tried={was} title={was ? tr('Probado · no sincronizó') : it.title}>
-		<span class="mark">{#if on}<Icon name="check" size={16} />{/if}</span>
-		<span class="sub-text">
-			<span class="l1"><b>{it.head}</b><span class="spec">{it.spec}</span>{#if it.latino}<span class="lat">LAT</span>{/if}{#if was}<span class="why">{tr('probado')}</span>{/if}</span>
-			{#if it.lvl != null}<span class="fit l{it.lvl}" title={WHY[it.lvl]()}><span class="dots" aria-hidden="true">{#each [1, 2, 3] as n (n)}<i class:on={n <= it.lvl}></i>{/each}</span>{LEVEL[it.lvl]()}</span>{/if}
-		</span>
-		{@render actions()}
-	</li>
+<!-- Subtítulos que trae el video: copiar el video con ese subtítulo puesto. -->
+{#snippet nativeRows(ctx: SubsCtx)}
+	{#each match?.natives ?? [] as n (n.track)}
+		<SubRow head={tr(n.label)} spec={tr('{k} · pista {n}', { k: tr(n.kind), n: n.track })} on={ctx.picked === `n${n.track}`} tried={ctx.picked !== `n${n.track}` && ctx.tried.includes(`n${n.track}`)}>
+			{#snippet actions()}
+				<button id="sub-copy-native-{n.track}" type="button" class="iconbtn copy" aria-label={tr('Copiar el video con este subtítulo')} onclick={() => { track('subtítulo', 'incluido en el video'); copyNative(n, ctx); }}><Icon name="copy" size={18} /></button>
+			{/snippet}
+		</SubRow>
+	{/each}
+{/snippet}
+<!-- Dos íconos en la misma fila; lleno el que va con donde se ve (Web Video Caster: pegar el link). -->
+{#snippet foundActions(sub: SubtitleOption, ctx: SubsCtx)}
+	<button id="sub-copy-{sub.id}" type="button" class="iconbtn sa" class:rec={doneWhere === 'wvc'} aria-label={tr('Copiar link')} title={tr('Copiar link')} onclick={() => copySub(sub, ctx)}><Icon name="link" size={18} /></button>
+	<a id="sub-{sub.id}" class="iconbtn sa" class:rec={doneWhere !== 'wvc'} aria-label={tr('Descargar')} title={tr('Descargar')} href="/api/subs/{sub.id}?{new URLSearchParams({ name: fileName, ext: sub.format })}" download onclick={() => track('subtítulo', `bajar · ${sub.release}`)}><Icon name="download" size={18} /></a>
 {/snippet}
 
 <Sheet id="subs-sheet" title={tr('Subtítulos')} open={subsOpen} onclose={() => (subsOpen = false)}>
@@ -915,72 +843,12 @@
 		<button id="subs-tutorial" type="button" class="iconbtn tut" aria-label={tr('Cómo funciona')} title={tr('Cómo funciona')} onclick={() => (tutorialOpen = true)}><Icon name="help" size={20} /></button>
 	</div>
 	<p class="paste-note"><Icon name="link" size={14} />{tr('SenPlayer y Web Video Caster aceptan pegar el link del subtítulo')}</p>
-	<ul class="subs">
-		{#if match?.natives?.length}
-			<li class="grp">{tr('Vienen con el video')}</li>
-			{#each match.natives as n (n.track)}
-				{#snippet nativeActions()}
-					<button id="sub-copy-native-{n.track}" type="button" class="iconbtn copy" aria-label={tr('Copiar el video con este subtítulo')} onclick={() => { track('subtítulo', 'incluido en el video'); copyNative(n); }}><Icon name="copy" size={18} /></button>
-				{/snippet}
-				{@render row({ key: `n${n.track}`, head: tr(n.label), spec: tr('{k} · pista {n}', { k: tr(n.kind), n: n.track }) }, nativeActions)}
-			{/each}
-		{/if}
-
-		{#if match && !subs && !searching && !subsError}
-			<li>
-				<button id="subs-search-more" type="button" class="more" onclick={searchSubs}>
-					<Icon name="search" size={16} /><span><b>{tr('Buscar más subtítulos')}</b><span>{tr('Por si los del video no te sirven')}</span></span>
-				</button>
-			</li>
-		{:else if searching}
-			<li class="msg"><span class="spin"></span>{tr('Buscando en OpenSubtitles.org…')}</li>
-		{:else if subs || subsError}
-			{#if match?.natives?.length}<li class="grp">{tr('Encontrados para vos')}</li>{/if}
-			{#if subsError && !subs}<li class="msg err">{subsError}</li>{:else if !ranked.length}<li class="msg">{tr('No encontré en OpenSubtitles.org')}</li>{/if}
-			{#each ranked as sub (sub.id)}
-				{#snippet foundActions()}
-					<!-- Dos íconos en la misma fila; lleno el que va con donde se ve (Web Video Caster: pegar el link). -->
-					<button id="sub-copy-{sub.id}" type="button" class="iconbtn sa" class:rec={doneWhere === 'wvc'} aria-label={tr('Copiar link')} title={tr('Copiar link')} onclick={() => copySub(sub)}><Icon name="link" size={18} /></button>
-					<a id="sub-{sub.id}" class="iconbtn sa" class:rec={doneWhere !== 'wvc'} aria-label={tr('Descargar')} title={tr('Descargar')} href="/api/subs/{sub.id}?{new URLSearchParams({ name: fileName, ext: sub.format })}" download onclick={() => track('subtítulo', `bajar · ${sub.release}`)}><Icon name="download" size={18} /></a>
-				{/snippet}
-				{@render row({ key: `o${sub.id}`, head: headOf(sub), spec: specOf(sub), latino: sub.latino, lvl: sub.level, title: sub.release }, foundActions)}
-			{/each}
-
-			<!-- Premium, plegado (ELEGIDA): buscar es gratis y corre al abrir; cada "Copiar · 1" baja uno. -->
-			{@const hot = tried.length >= 2 && quota?.hasKey}
-			<li class="sep"></li>
-			<li>
-				<button id="prem-gate" type="button" class="gate" class:hot aria-expanded={prem.open} onclick={async () => { if (!quota) await loadQuota(); togglePremium(); }}>
-					<span class="gi"><Icon name="lock" size={16} /></span>
-					<span>
-						<b>{hot ? tr('¿Ninguno anduvo? Buscá en Premium') : tr('Buscar en Premium')}</b>
-						<span class="gs">{quota && !quota.hasKey ? tr('Necesita tu API key de opensubtitles.com') : hot ? tr('Probaste {n} y no sincronizaron · {q}', { n: tried.length, q: quotaText }) : tr('Último recurso · {q}', { q: quotaText })}</span>
-					</span>
-					<span class="chev" class:up={prem.open}><Icon name="chev" size={16} /></span>
-				</button>
-			</li>
-			{#if prem.open}
-				{#if quota && !quota.hasKey}
-					<li class="msg"><Icon name="lock" size={15} /><span>{tr('Necesita tu API key de opensubtitles.com.')}</span><a id="prem-key" class="btn btn-sm" href="/ajustes">{tr('Ajustes')}</a></li>
-				{:else if prem.status === 'loading' || prem.status === 'idle'}
-					<li class="msg"><span class="spin"></span>{tr('Buscando en opensubtitles.com…')}</li>
-				{:else if prem.status === 'error'}
-					<li class="msg err"><span>{tr('opensubtitles.com no respondió. No se gastó ninguna descarga.')}</span><button id="prem-retry" type="button" class="btn btn-sm" onclick={premiumSearch}>{tr('Reintentar')}</button></li>
-				{:else if prem.status === 'empty'}
-					<li class="msg"><span>{tr('Tampoco hay en español para {x}. No se gastó ninguna descarga.', { x: epLabel })}</span></li>
-				{:else}
-					{#each premRanked as sub (sub.id)}
-						{#snippet premActions()}
-							<button id="prem-copy-{sub.id}" type="button" class="btn btn-sm cost-btn" aria-disabled={quota?.remaining === 0} onclick={() => copyPremium(sub)}>
-								{#if prem.busy === sub.id}<span class="spin"></span>{:else}<Icon name="copy" size={14} />{tr('Copiar')} <span class="cost">· 1</span>{/if}
-							</button>
-						{/snippet}
-						{@render row({ key: `p${sub.id}`, head: headOf(sub), spec: specOf(sub), latino: sub.latino, lvl: sub.level, title: sub.release }, premActions)}
-					{/each}
-				{/if}
-			{/if}
-		{/if}
-	</ul>
+	{#if match}
+		{#key match}
+			<SubsPicker ref={subsRef} option={{ hash: match.hash, release: match.release, file: null }} file={match.file ?? null} match={{ release: match.release, video: match.video }} autoSearch={subsAuto} settingsHref="/ajustes"
+				lead={match.natives?.length ? nativeRows : undefined} actions={foundActions} onUse={copyPremium} useLabel={tr('Copiar')} useIcon="copy" />
+		{/key}
+	{/if}
 </Sheet>
 
 <Sheet id="audio-sheet" title={tr('¿En qué audio?')} open={!!audioFor} onclose={() => (audioFor = null)}>
@@ -1412,49 +1280,8 @@
 	/* Copiar link / Descargar de un subtítulo: íconos de 40 px en la fila; lleno el recomendado. */
 	.iconbtn.sa { border: 1px solid var(--border-strong); color: var(--text); }
 	.iconbtn.sa.rec { border-color: transparent; background: var(--accent); color: var(--accent-text); }
-	.subs { margin-top: 4px; }
-	.grp { padding: 14px 0 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim, var(--muted)); }
-	.msg { display: flex; align-items: center; gap: 8px; padding: 10px 0; font-size: 13px; color: var(--muted); }
-	.msg .btn { margin-left: auto; }
-	.msg.err { color: var(--red); }
-	.sep { height: 1px; margin: 10px 0 6px; background: var(--border); }
-	.sub { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; min-height: 52px; padding: 4px 4px 4px 6px; border-radius: var(--r-md); }
-	.sub.on { background: color-mix(in srgb, var(--accent) 16%, transparent); }
-	.mark { display: grid; place-items: center; color: var(--accent-fg); }
-	.sub-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; color: var(--text); }
-	.l1 { display: flex; align-items: baseline; gap: 7px; min-width: 0; white-space: nowrap; overflow: hidden; }
-	.l1 b { font-size: 14px; font-weight: 650; }
-	.spec { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
-	/* Solo el LAT de la lista de subs: sin acotarlo pisaba el badge `.tag.audio.lat` de las opciones. */
-	.l1 .lat { align-self: center; padding: 0 4px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); }
-	.l1 .why { font-size: 11px; color: var(--muted); }
-	.sub.tried b, .sub.tried .spec { color: var(--muted); text-decoration: line-through; }
-	/* Nivel de match (ELEGIDA): palabra con color; el ámbar queda para lo que cuesta cuota. */
-	.fit { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--muted); }
-	/* Medidor de 3 puntos: cuántos calzan (perfecto = 3, puede desfasar = 0). */
-	.dots { display: inline-flex; gap: 2px; }
-	.dots i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.25; }
-	.dots i.on { opacity: 1; }
-	.fit.l3 { color: light-dark(#12733a, #4ade80); font-weight: 600; }
-	.fit.l2 { color: light-dark(#3d7a55, #b5d86a); }
-	.fit.l1 { color: light-dark(#76681c, #d9a85b); }
 	.iconbtn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--r-md); background: none; color: var(--muted); }
 	.iconbtn.copy { color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-	.cost { color: light-dark(#9a5b00, #f5b041); font-weight: 700; }
-	.cost-btn { grid-column: span 2; display: inline-flex; align-items: center; gap: 6px; }
-	.cost-btn[aria-disabled='true'] { opacity: 0.45; }
-	.more, .gate { display: grid; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: var(--r-card); color: var(--text); text-align: left; }
-	.more { grid-template-columns: 28px minmax(0, 1fr); margin-top: 6px; border: 1px dashed var(--border-strong); background: none; }
-	.more :global(svg) { justify-self: center; color: var(--accent-fg); }
-	.more b, .gate b { display: block; font-size: 14px; }
-	.more span span, .gs { font-size: 12px; color: var(--muted); }
-	/* Premium, último recurso: sin caja; solo se marca cuando ya probaste varios. */
-	.gate { grid-template-columns: 30px minmax(0, 1fr) auto; border: 1px solid transparent; background: none; }
-	.gate:not(.hot) b { font-weight: 600; color: var(--muted); }
-	.gate.hot { border-color: color-mix(in srgb, light-dark(#9a5b00, #f5b041) 70%, var(--border)); background: color-mix(in srgb, light-dark(#9a5b00, #f5b041) 7%, var(--surface)); }
-	.gi { display: grid; place-items: center; width: 30px; height: 30px; color: var(--muted); }
-	.chev { display: inline-flex; color: var(--muted); transition: transform 0.2s var(--ease); }
-	.chev.up { transform: rotate(180deg); }
 	.tut { width: 44px; height: 44px; }
 	/* Festejo "¡Link copiado!": tapa la pantalla 1,5 s y se va solo. */
 	.burst { inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: rgb(0 0 0 / 0.7); display: none; place-items: center; pointer-events: none; }

@@ -5,7 +5,10 @@
 // Traducción con claves en español (como gettext): en español el texto queda igual; en inglés sale de `EN` y lo que
 // falte se muestra en español. `{x}` se reemplaza por `vars.x`.
 import { api } from './api.js';
-import EN from './i18n-en.js';
+// Diccionario único con la web: packages/ui/src/i18n/en.ts (relativo, no `$ui`: `node --test` no resuelve alias).
+import EN from '../../packages/ui/src/i18n/en.ts';
+import { setTranslator } from '../../packages/ui/src/i18n/runtime.ts';
+import { translate } from '../../packages/ui/src/i18n/translate.ts';
 
 /** Los elegidos, guardados en la config del núcleo. Se leen una vez al cargar (todo módulo que importa este espera):
  *  cambiarlos recarga la ventana, así cada texto ya armado sale en el idioma nuevo. */
@@ -15,10 +18,9 @@ export const langs = { app: saved?.app === 'en' ? 'en' : 'es', titles: saved?.ti
 document.documentElement.lang = langs.app;
 
 /** Texto en el idioma de la app. @param {string} s @param {Record<string, string|number|null|undefined>=} vars */
-export function t(s, vars) {
-  const out = langs.app === 'en' ? (EN[s] ?? s) : s;
-  return vars ? out.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '')) : out;
-}
+export const t = (s, vars) => translate(langs.app, s, vars);
+// La lógica compartida (format.ts…) traduce con el idioma de esta app.
+setTranslator(t);
 console.assert(t('{n} de {d}', { n: 1, d: 3 }) === (langs.app === 'en' ? '1 of 3' : '1 de 3') && t('texto sin traducir') === 'texto sin traducir', 'i18n t()');
 
 /** Locale para fechas y números. */

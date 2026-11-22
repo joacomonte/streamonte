@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Icon from '#lib/Icon.svelte';
+	import Icon from '$ui/components/Icon.svelte';
 	import Torrents from '#lib/Torrents.svelte';
 	import { loc, t as tr } from '#lib/i18n.svelte.ts';
 

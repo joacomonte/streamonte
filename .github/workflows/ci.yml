@@ -25,3 +25,28 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
+  ui:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: ui } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: ui/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+  shared-ui:
+    # packages/ui: código compartido web + desktop. Usa el typescript de ui/node_modules (no tiene node_modules propio).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: ui/package-lock.json }
+      - run: npm ci
+        working-directory: ui
+      - run: npm run check
+        working-directory: packages/ui
+      - run: npm test
+        working-directory: packages/ui

@@ -1,0 +1,1155 @@
+[
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 394,
+          "id": "torrentio",
+          "message": null,
+          "ms": 569,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 113,
+          "id": "peerflix",
+          "message": null,
+          "ms": 2034,
+          "name": "Peerflix",
+          "state": "ok"
+        },
+        {
+          "count": 957,
+          "id": "comet",
+          "message": null,
+          "ms": 454,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 87,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 1230,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 4,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 2242,
+          "name": "Hacktorrent",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 3065,
+          "name": "EliteTorrent",
+          "state": "ok"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it"
+          ],
+          "audio_format": [
+            "DTS",
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|40712b59caaee09d17a4337c7f357bb2a57a48d6",
+          "codec": "HEVC",
+          "completed": 26,
+          "file_idx": 0,
+          "file_name": "Fight.Club.1999.1080p.H265.10Bit.BluRay.ITA.DTS.5.1.AC3.5.1.ENG.DTS.XLL.5.1.AC3.5.1.SubS.Ita.Eng.Spa.NU.Ita.NU.Eng.Mux-iDN_CreW.mkv",
+          "hdr": [],
+          "info_hash": "40712b59caaee09d17a4337c7f357bb2a57a48d6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Fight.Club.1999.1080p.H265.10Bit.BluRay.ITA.DTS.5.1.AC3.5.1.ENG.DTS.XLL.5.1.AC3.5.1.SubS.Ita.Eng.Spa.NU.Ita.NU.Eng.Mux-iDN_CreW",
+          "resolution": "1080p",
+          "seeders": 18,
+          "seeders_declared": 40,
+          "sites": [
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 13636521164,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://martin-gebhardt.eu:25/announce",
+            "udp://ttk2.nbaonlineservice.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "cast"
+          ],
+          "audio_format": [
+            "DD"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|x265",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "El club de la lucha [1999][BDRip m-1080p x265 HEVC][Dual AC3 Esp-Eng + Sub].mkv",
+          "hdr": [],
+          "info_hash": "3fa999f5344d961ac164b1a1fdf777d6b55dc002",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "El club de la lucha [1999][BDRip m-1080p x265",
+          "resolution": "1080p",
+          "seeders": 0,
+          "seeders_declared": 1,
+          "sites": [
+            "StremThru",
+            "ThePirateBay",
+            "Peerflix"
+          ],
+          "size_bytes": 3929376991,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": null,
+          "codec": null,
+          "completed": 0,
+          "file_idx": null,
+          "file_name": null,
+          "hdr": [],
+          "info_hash": "f5ca884659fc24cbc8452fdc321b22d4160630b4",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "El club de la lucha (1999).BDrip 1080p (Spanish-English+Subs).mkv",
+          "resolution": "1080p",
+          "seeders": 0,
+          "seeders_declared": 1,
+          "sites": [
+            "Peerflix"
+          ],
+          "size_bytes": null,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "cn"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit",
+          "codec": "HEVC",
+          "completed": 680,
+          "file_idx": 0,
+          "file_name": "Fight.Club.1999.2160p.4K.BluRay.x265.10bit.AAC5.1-[YTS.GG - YTS.BZ].mkv",
+          "hdr": [],
+          "info_hash": "7da52d5473e73707ea15a63019bb05563405cd5a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 18,
+          "release_name": "Fight Club (1999) [REPACK] [2160p] [BluRay] [x265] [10bit] [5.1]",
+          "resolution": "2160p",
+          "seeders": 86,
+          "seeders_declared": 310,
+          "sites": [
+            "StremThru",
+            "EXT",
+            "limetorrent",
+            "Peerflix"
+          ],
+          "size_bytes": 6965467772,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS",
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": 103,
+          "file_idx": 0,
+          "file_name": "Fight Club (1999) (2160p UHD BluRay x265 10bit DV HDR10+ r00t).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "9f86c8af5ea497d231cbb361e870902f6739dd0b",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 12,
+          "release_name": "Fight Club (1999) (2160p UHD BluRay x265 10bit DV HDR10 DTS-HD MA 6.1 r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": 42,
+          "seeders_declared": 55,
+          "sites": [
+            "StremThru",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 35448145892,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "lat",
+            "en",
+            "fr",
+            "pt"
+          ],
+          "audio_format": [
+            "DTS",
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit",
+          "codec": "HEVC",
+          "completed": 28,
+          "file_idx": 0,
+          "file_name": "Fight Club 1999.mkv",
+          "hdr": [],
+          "info_hash": "d557a508c135389b7bd0403fa2315a9cf4fa40aa",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Fight Club 1999 BluRay 2160p Upscaled SDR HEVC 10bits DTS-HD MA 2.0 x265-E",
+          "resolution": "2160p",
+          "seeders": 34,
+          "seeders_declared": 79,
+          "sites": [
+            "Torrentio",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 27687779237,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit",
+          "codec": "HEVC",
+          "completed": 21,
+          "file_idx": 0,
+          "file_name": "Fight Club (1999)  [2160p x265 10bit FS100 Joy].mkv",
+          "hdr": [],
+          "info_hash": "ccef817f7ee54f7c0a04197e31b56c4bcd901b29",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 16,
+          "release_name": "Fight Club (1999) Featurettes (2160p BluRay x265 HEVC AI 10bit AAC 5.1 Joy) [UTR]",
+          "resolution": "2160p",
+          "seeders": 34,
+          "seeders_declared": 42,
+          "sites": [
+            "StremThru",
+            "1337x",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 8408052065,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://9.rarbg.com:2710/announce",
+            "udp://9.rarbg.to:2710/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://tracker.tiny-vps.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "DTS",
+            "5.1",
+            "DTS-HD",
+            "DD+"
+          ],
+          "binge_group": "torrentio|4k|BluRay|h265",
+          "codec": "HEVC",
+          "completed": 10,
+          "file_idx": 0,
+          "file_name": "fight.club.1999.uncut.4k-kc.mkv",
+          "hdr": [],
+          "info_hash": "6d2ca694de35dbc80907bdda0e171c2d2ffd51cd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 6,
+          "release_name": "Fight.Club.1999.UNCUT.BluRay.2160p.Ai.MULTi.DTS-HD.MA.5.1.DDP.H265-KC",
+          "resolution": "2160p",
+          "seeders": 30,
+          "seeders_declared": 74,
+          "sites": [
+            "Torrentio",
+            "TorrentGalaxy",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 40606601521,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|h265",
+          "codec": "HEVC",
+          "completed": 844,
+          "file_idx": 0,
+          "file_name": "Fight Club 1999 2160P.Ai Upscaled.WEB-DL Open Matte.60FPS.H265.SDR.AC5.1.EngSubs_Marjenbo  .mkv",
+          "hdr": [],
+          "info_hash": "8c2afb534051a49568944171f0ea83459a47f679",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 10,
+          "release_name": "Fight Club 1999 2160P.Ai Upscaled.WEB-DL Open Matte.60FPS.H265.SDR.AC5.1.EngSubs_Marjenbo",
+          "resolution": "2160p",
+          "seeders": 27,
+          "seeders_declared": 32,
+          "sites": [
+            "Torrentio",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 54710733688,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "tr"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|x265",
+          "codec": "HEVC",
+          "completed": 322,
+          "file_idx": 0,
+          "file_name": "Fight Club 10th Anniversary Edition 1999 2160p 4K BluRay x265 SDR DuaL-TURKO.mkv",
+          "hdr": [],
+          "info_hash": "8a8dcb2d92ee5e2ef5949830d78cf2c7881fa5a9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 3,
+          "release_name": "www.UIndex.org - Fight Club 10th Anniversary Edition 1999 2160p 4K BluRay x265 SDR DuaL-TURKO",
+          "resolution": "2160p",
+          "seeders": 21,
+          "seeders_declared": 27,
+          "sites": [
+            "StremThru",
+            "Wolfmax4k"
+          ],
+          "size_bytes": 8396207486,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "pl",
+            "cz",
+            "hu",
+            "bg",
+            "rs",
+            "hr",
+            "ua",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "il",
+            "vn",
+            "id",
+            "my",
+            "th"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": 32,
+          "file_idx": 0,
+          "file_name": "Fight.Club.1999.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "f1676ef7d49884f119cbd5eaf1d3dd5494d6cb83",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 10,
+          "release_name": "Fight.Club.1999.2160p.UHD.Bluray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": 20,
+          "seeders_declared": 36,
+          "sites": [
+            "StremThru",
+            "ThePirateBay"
+          ],
+          "size_bytes": 75897599147,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|f1efcb6b7531df1dd9d75266f6ae01f513c137a8",
+          "codec": "HEVC",
+          "completed": 24,
+          "file_idx": 0,
+          "file_name": "Fight.Club.1999.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "f1efcb6b7531df1dd9d75266f6ae01f513c137a8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 6,
+          "release_name": "Fight.Club.1999.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1.mkv",
+          "resolution": "2160p",
+          "seeders": 14,
+          "seeders_declared": 0,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 115469562507,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "http://bt4.t-ru.org/ann?magnet",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|6fa9ce5b9a08cab64dc268b0512f950ac896569d",
+          "codec": "HEVC",
+          "completed": 27,
+          "file_idx": 0,
+          "file_name": "Fight.Club.1999.UHD.Re-Grade.6000nit.2160p.HEVC.HDR.IVA(RUS.UKR.ENG).ExKinoRay.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "6fa9ce5b9a08cab64dc268b0512f950ac896569d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 4,
+          "release_name": "Fight.Club.1999.UHD.Re-Grade.6000nit.2160p.HEVC.HDR.IVA(RUS.UKR.ENG).ExKinoRay.mkv",
+          "resolution": "2160p",
+          "seeders": 11,
+          "seeders_declared": 5,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 112654620492,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://opentor.net:6969",
+            "http://retracker.local/announce",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|x265|10bit",
+          "codec": "HEVC",
+          "completed": 7,
+          "file_idx": 0,
+          "file_name": "Fight.Club.1999.2160p.x265.10bit.DTS-HD.MA.5.1[TheUpscaler].mkv",
+          "hdr": [],
+          "info_hash": "0481ed753f62f03e701f6311fa975578ec43b59e",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Fight.Club.1999.2160p.x265.10bit.DTS-HD.MA.5.1[TheUpscaler]",
+          "resolution": "2160p",
+          "seeders": 10,
+          "seeders_declared": 26,
+          "sites": [
+            "Torrentio",
+            "1337x",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 17900246777,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://opentracker.i2p.rocks:6969/announce",
+            "https://opentracker.i2p.rocks:443/announce",
+            "udp://tracker.openbittorrent.com:6969/announce",
+            "http://tracker.openbittorrent.com:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS",
+            "5.1",
+            "DTS-HD",
+            "DD"
+          ],
+          "binge_group": "torrentio|4k|10bit|HDR",
+          "codec": null,
+          "completed": 20,
+          "file_idx": 0,
+          "file_name": "El club de la Lucha 4Kreescalado2160.atomixhq.one.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "ce71e481b9dd1822433726c6ec018368333b25c6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 4,
+          "release_name": "El club de la Lucha [4K UHDreescaldo][2160p][HDR10][AC3 5.1-DTS 5.1 Castellano-DTS-HD 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": 9,
+          "seeders_declared": 15,
+          "sites": [
+            "Peerflix",
+            "MejorTorrent"
+          ],
+          "size_bytes": 18929124970,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS",
+            "5.1",
+            "DTS-HD",
+            "DD"
+          ],
+          "binge_group": "torrentio|4k|BDRip",
+          "codec": null,
+          "completed": 7,
+          "file_idx": 9,
+          "file_name": "Fight Club.mkv",
+          "hdr": [],
+          "info_hash": "4848b21d0ea70689f03aa03c348ad8e2a1704e7a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 2,
+          "release_name": "Fight Club.1999.BDRip.2160p.UHD.SDR",
+          "resolution": "2160p",
+          "seeders": 8,
+          "seeders_declared": 19,
+          "sites": [
+            "StremThru",
+            "ThePirateBay",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 30395305035,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay REMUX|x265|HDR",
+          "codec": "HEVC",
+          "completed": 4,
+          "file_idx": 0,
+          "file_name": "Fight.Club.1999.4K.HDR.2160p.BDRemux Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a9060d0c3ddafe3e9e264090c8d082d592e34295",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Fight.Club.1999.4K.HDR.2160p.BDRemux Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": 6,
+          "seeders_declared": 9,
+          "sites": [
+            "Torrentio",
+            "1337x"
+          ],
+          "size_bytes": 72809202955,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|1140fb426be75c3263a21010cfe4f41e88890616",
+          "codec": "HEVC",
+          "completed": 52,
+          "file_idx": 0,
+          "file_name": "Fight.Club.1999.UHD.2160p.DV.HDR.HEVC.HYBRID.REMUX.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "1140fb426be75c3263a21010cfe4f41e88890616",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 22,
+          "release_name": "Fight.Club.1999.UHD.2160p.DV.HDR.HEVC.HYBRID.REMUX.mkv",
+          "resolution": "2160p",
+          "seeders": 5,
+          "seeders_declared": 98,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 115796359365,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "http://bt4.t-ru.org/ann?magnet",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio"
+          ],
+          "audio": [
+            "multi",
+            "fr",
+            "en"
+          ],
+          "audio_format": [
+            "DTS",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": 18,
+          "file_idx": null,
+          "file_name": "Fight.Club.1999.MULTi.VFF.2160p.10bit.DV.HDR.BluRay.x265.DTS-HDMA.5.1-XANDER",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "edf58856e541e108d9b57c72b5e377340fea33a3",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 9,
+          "release_name": "Fight.Club.1999.MULTi.VFF.2160p.10bit.DV.HDR.BluRay.x265.DTS-HDMA.5.1-XANDER",
+          "resolution": "2160p",
+          "seeders": 4,
+          "seeders_declared": 2,
+          "sites": [
+            "Torrentio",
+            "EXT"
+          ],
+          "size_bytes": 12401718067,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|1a1e4f9fc4c81bebc199aa143fc5b161321ef9be",
+          "codec": null,
+          "completed": 2,
+          "file_idx": 0,
+          "file_name": "Fight Club (1999) AI UHD - 10th Anniversary Edition + Extras (PROPER).mkv",
+          "hdr": [],
+          "info_hash": "1a1e4f9fc4c81bebc199aa143fc5b161321ef9be",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Fight Club (1999) AI UHD - 10th Anniversary Edition + Extras (PROPER) FIX",
+          "resolution": "2160p",
+          "seeders": 4,
+          "seeders_declared": 4,
+          "sites": [
+            "Torrentio",
+            "TorrentGalaxy",
+            "Peerflix"
+          ],
+          "size_bytes": 231640681,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|be9d793cd7bdfee3b0b60afb8aa372087b0c84f8",
+          "codec": null,
+          "completed": 1,
+          "file_idx": 0,
+          "file_name": "Fight Club (1999) AI UHD - 10th Anniversary Edition + Extras.mkv",
+          "hdr": [],
+          "info_hash": "be9d793cd7bdfee3b0b60afb8aa372087b0c84f8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Fight Club (1999) AI UHD - 10th Anniversary Edition + Extras",
+          "resolution": "2160p",
+          "seeders": 2,
+          "seeders_declared": 3,
+          "sites": [
+            "DMM",
+            "TorrentGalaxy",
+            "Peerflix"
+          ],
+          "size_bytes": 231640681,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": 31,
+          "file_idx": 0,
+          "file_name": "Fight.Club.1999.REPACK.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "b55bccdeb5e4b175b600272a5a952c592fc0b2b3",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 5,
+          "release_name": "Fight.Club.1999.REPACK.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": 1,
+          "seeders_declared": 4,
+          "sites": [
+            "Torrentio",
+            "EXT",
+            "Peerflix"
+          ],
+          "size_bytes": 79918603960,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k",
+          "codec": null,
+          "completed": 21,
+          "file_idx": 0,
+          "file_name": "Fight Club (1999) 4K Special Upscale -35mm colors- no CGI fixes 1.1.mkv",
+          "hdr": [],
+          "info_hash": "afe31f239f4218254a2f60a7d5215b393e33e8a5",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Fight Club (1999) 4K Special Upscale -35mm colors no CGI fixes 1.1",
+          "resolution": "2160p",
+          "seeders": 1,
+          "seeders_declared": 1,
+          "sites": [
+            "StremThru",
+            "EXT",
+            "Peerflix"
+          ],
+          "size_bytes": 52434677456,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|cb49ffd3037863f8bb1c4123b5b752b05aa4e42a",
+          "codec": "HEVC",
+          "completed": 2,
+          "file_idx": 0,
+          "file_name": "Fight Club 1999 2160p UHD BDRip HEVC 10bit HDR DTS-HD.MA.5.1 MUSHR00M.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "cb49ffd3037863f8bb1c4123b5b752b05aa4e42a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 2,
+          "release_name": "Fight Club 1999 2160p UHD BDRip HEVC 10bit HDR DTS-HD.MA.5.1 MUSHR00M.mkv",
+          "resolution": "2160p",
+          "seeders": 1,
+          "seeders_declared": 1,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 24581411924,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|801493b2f7e7d83a6f168e944f31be3b71fdd4d7",
+          "codec": null,
+          "completed": 1,
+          "file_idx": 0,
+          "file_name": "Fight Club (1999) [Open Matte] BDRip AI UPSCALE 2160p HDR.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "801493b2f7e7d83a6f168e944f31be3b71fdd4d7",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 2,
+          "release_name": "Fight Club (1999) [Open Matte] BDRip AI UPSCALE 2160p HDR.mkv",
+          "resolution": "2160p",
+          "seeders": 1,
+          "seeders_declared": 2,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 16813243690,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        }
+      ],
+      "done": true,
+      "video_id": "tt0137523"
+    }
+  }
+]

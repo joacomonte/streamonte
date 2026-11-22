@@ -6,7 +6,8 @@ import { api } from './api.js';
 import { closeWizard, originalAudio, play } from './audio-picker.js';
 import { $, el, icon, setStatus } from './dom.js';
 import { t as tr } from './i18n.js';
-import { ago, humanBytes, mbps, nf, nf1, playbackText } from './format.js';
+import { ago, humanBytes, mbps, nf, nf1 } from '$ui/format.ts';
+import { playbackText } from './format.js';
 import { healthCalibration, notePrediction, speedOf, TRACKER_MIN, trackPlayback } from './health-calib.js';
 import { state as lib } from './state.js';
 import { renderSide } from './catalog-side.js';
@@ -22,7 +23,8 @@ import { crumbs, fitsNet, flowFilter, flowStep, hasResStep, isMatch, moreRow, ne
 /** @typedef {import('./catalog-tests.js').Run} Run */
 /** @typedef {import('./catalog-tests.js').Deep} Deep */
 
-import { healthOf, latOf as latOfRows, mbpsOf as mbpsFor, neededBps as neededBpsFor, QUALITY_STARS, rankOptions, tierOf as tierOfCount, toMbps, typicalMbps } from './options-rank.js';
+import { healthOf } from './options-rank.js';
+import { latOf as latOfRows, mbpsOf as mbpsFor, neededBps as neededBpsFor, QUALITY_STARS, rankOptions, tierOf as tierOfCount, toMbps, typicalMbps } from '$ui/rank.ts';
 
 /** Tooltips del badge HDR (pedido 2026-11-15, en blanco y negro): HDR y Dolby Vision se muestran igual;
  *  el tooltip dice cuál es. */
@@ -31,10 +33,13 @@ export const HDR_TIP = {
   HDR: tr('HDR: más rango de brillo y color. Se aprovecha con pantalla HDR; en una común se ve igual o un poco más apagado.'),
   DV: tr('Dolby Vision: HDR dinámico de Dolby. En pantallas sin Dolby Vision puede verse con colores raros (verde/violeta).'),
 };
-/** Estado del audio latino de una opción ('lat' | 'likely' | 'spain' | 'check' | 'none'): la regla está en `options-rank.js`.
- *  @param {Candidate} c @returns {import('./options-rank.js').LatState}
+/** Estado del audio latino de una opción ('lat' | 'likely' | 'spain' | 'check' | 'none'): la regla está en `packages/ui/src/rank.ts`.
+ *  @param {Candidate} c @returns {import('$ui/types.ts').LatState}
  */
-export const latOf = (c) => latOfRows(c, rowsOf(c.info_hash));
+export const latOf = (c) => latOfRows(
+  { release: c.release_name, file: c.file_name, audio: c.audio },
+  rowsOf(c.info_hash).map((e) => ({ audioRead: !!e.live?.audio?.length, languages: (e.languages ?? []).map((l) => l.code) })),
+);
 /** Dice o trae español sin aclarar cuál (MULTI / Dual / español en el nombre, o una pista en español).
  *  @param {Candidate} c
  */
@@ -238,7 +243,7 @@ export const bySeeds = (a, b) => tierOf(b) - tierOf(a) || (knownSeeds(b) ?? -1) 
 /** ¿Ya se testeó a fondo la resolución abierta? Hasta entonces se ordena solo por conexión y el
  *  selector de orden es una etiqueta (2026-11-17). */
 export const deepTested = () => sideOf()?.deep?.status === 'done' && side().deep.res === view.openRes;
-/** Orden de las opciones (2026-11-17): la regla está en `rankOptions` (`options-rank.js`); acá se le pasa el estado.
+/** Orden de las opciones (2026-11-17): la regla está en `rankOptions` (`packages/ui/src/rank.ts`); acá se le pasa el estado.
  *  Antes del test profundo solo manda la conexión.
  *  @param {Candidate[]} cands
  */
@@ -247,6 +252,7 @@ export function sortOptions(cands) {
     torbox: sideOf()?.flow?.mode === 'torbox',
     mode: deepTested() ? view.optSort : 'fast',
     health, fits, tierOf, knownSeeds, leechersOf, quickGroup, mbpsOf, isMatch, pinPlaying,
+    sizeOf: (c) => c.size_bytes, sourceOf: (c) => c.source,
     reached: (c) => counted.get(c.info_hash)?.reached,
     // Prueba en curso que ya pasó a contar seeds reales (etapa 2/2).
     advancing: (c) => {
@@ -265,7 +271,7 @@ function pinPlaying(list) {
   return [...list.filter((c) => active.has(c.info_hash)), ...list.filter((c) => !active.has(c.info_hash))];
 }
 
-/** Grupo para ordenar (2 analizado a fondo … 0 nadie lo comparte): la regla está en `options-rank.js`.
+/** Grupo para ordenar (2 analizado a fondo … 0 nadie lo comparte): la regla está en `packages/ui/src/rank.ts`.
  *  @param {Candidate} c @returns {number}
  */
 export const tierOf = (c) => tierOfCount(counted.get(c.info_hash));
@@ -683,7 +689,7 @@ export function fileBytes(c) {
 export function neededBps(c) {
   const [, season, episode] = (sideOf()?.videoId ?? '').split(':');
   const e = c.is_pack && episode ? state.library.get(`${c.info_hash}:s${season}e${episode}`) : rowsOf(c.info_hash)[0];
-  return neededBpsFor(fileBytes(c), e, sideOf()?.runtime);
+  return neededBpsFor(fileBytes(c), e?.live?.duration_secs, sideOf()?.runtime);
 }
 /** Mbps que pide una opción para verse sin cortes: peso ÷ duración; sin dato, lo típico de su resolución. */
 /** @param {Candidate} c @returns {number} */

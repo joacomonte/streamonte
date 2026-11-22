@@ -1,11 +1,12 @@
 # packages — código compartido desktop (Rust/Tauri) + web
-CSS compartido y vectores de prueba, sin build propio. Raíz: `/Users/monti/Documents/Dev/streamonte/packages/`; `.vercelignore` los sube a Vercel junto con `web/`.
+CSS compartido, TS compartido (`ui/src/`) y vectores de prueba, sin build propio. Raíz: `/Users/monti/Documents/Dev/streamonte/packages/`; `.vercelignore` los sube a Vercel junto con `web/`.
 
 ## Mapa
 - `ui/css/tokens.css` — `:3 :root` variables (claro) · `:85 @media (prefers-color-scheme: dark)`. Unión de `ui/styles.css` y `web/src/app.css`; si un nombre tenía dos valores, ganó el de la web (ej. `--display`).
 - `ui/css/base.css` — reset, `:13 prefers-reduced-motion`.
 - `ui/css/components.css` — `:4 .btn` · `:46 .chip` · `:69 .pill` · `:84 .badge` · `:99 .surface` · `:102 .list` · `:108 .skel` · `:118 .spin` · `:130 .bar` · `:134 .switch` · `:142 .sheet` · `:166 .menu`.
 - Consumidor: `web/src/app.css:2-4`. Desktop (`ui/styles.css`) aún no adoptó.
+- `ui/src/` — TS compartido (`$ui`) → `ui/CLAUDE.md` en `/Users/monti/Documents/Dev/streamonte/packages/ui/CLAUDE.md` · ← `web/src/lib/webApi.ts`, `ui/src/tauriApi.ts`.
 - `golden/*.json` — `[{ "in", "out", "nota"?, "diverge"? }]`, Rust fuente de verdad. Rust ↔ web:
   - `release.json` — `crates/core/tests/it/golden.rs:15` ↔ `torrents.ts:33 parse`
   - `excluded.json` — `golden.rs:39` ↔ `tmdb.ts:104 detail`
@@ -25,4 +26,4 @@ CSS compartido y vectores de prueba, sin build propio. Raíz: `/Users/monti/Docu
 Cambio en Rust → actualizar `golden/*.json` → `cargo nextest run -p streamonte-core` y `npm test` en `/Users/monti/Documents/Dev/streamonte/web/`.
 
 ## Tests
-Golden web y Rust arriba; CSS sin test.
+Golden web y Rust arriba; `packages/ui`: `cd /Users/monti/Documents/Dev/streamonte/packages/ui && npm test && npm run check`; CSS sin test.

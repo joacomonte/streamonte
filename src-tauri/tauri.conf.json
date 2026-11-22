@@ -6,8 +6,8 @@
   "build": {
     "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../ui/dist",
-    "beforeDevCommand": "cd ui && deno run -A npm:vite",
-    "beforeBuildCommand": "cd ui && deno install && deno run -A npm:vite build"
+    "beforeDevCommand": "cd ui && npm run dev",
+    "beforeBuildCommand": "cd ui && npm ci && npm run build"
   },
   "app": {
     "withGlobalTauri": true,

@@ -1,0 +1,48 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "rules": {
+    "no-undef": "error",
+    "no-unused-vars": "error",
+    "require-await": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
+    "no-empty": "error",
+    "no-throw-literal": "error"
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "*.svelte",
+        "*.svelte.ts"
+      ],
+      "globals": {
+        "$state": "readonly",
+        "$derived": "readonly",
+        "$effect": "readonly",
+        "$props": "readonly",
+        "$bindable": "readonly",
+        "$inspect": "readonly",
+        "$host": "readonly"
+      }
+    }
+  ]
+}

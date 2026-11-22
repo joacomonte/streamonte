@@ -1,0 +1,8 @@
+{
+  "found": [
+    { "key": "wyzie:1", "provider": "Wyzie", "language": "es", "release_name": "Fight.Club.1999.1080p.BluRay.x264-GRP", "downloads": 120, "path": "/tmp/fc1.srt", "level": "release", "latino": true, "head": "GRP", "spec": "BluRay 1080p" },
+    { "key": "subdivx:2", "provider": "Subdivx", "language": "es", "release_name": "Fight.Club.720p.HDTV-XYZ", "downloads": 30, "path": "/tmp/fc2.srt", "level": "none", "latino": false, "head": "XYZ", "spec": "HDTV 720p" }
+  ],
+  "picks": { "chosen": null, "tried": [] },
+  "timing_known": true
+}

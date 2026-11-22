@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
 import { tx } from './lang.ts';
 
-/** Error con texto para mostrar al usuario: el texto en español es la clave del diccionario (i18n/en.ts) y
+/** Error con texto para mostrar al usuario: el texto en español es la clave del diccionario (packages/ui/src/i18n/en.ts) y
  * `vars` completa sus `{x}`; se traduce al idioma del pedido al responder. */
 export class Fail extends Error {
 	status: number;

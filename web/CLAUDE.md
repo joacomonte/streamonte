@@ -8,10 +8,11 @@ Web de Streamonte (celu/tele): catálogo TMDB+IMDb → torrents en caché de Tor
 - `db/schema.sql` — tablas Neon `eventos` e `intentos`, idempotente.
 - `.data/` — cachés locales gitignoreadas (en Vercel van a `/tmp`).
 - `vite.config.ts` — adapter Vercel si `process.env.VERCEL`, si no node; `version.pollInterval` 5 min.
+- `vite.config.ts` también: alias `$ui` → `packages/ui/src` (tipos: `tsconfig.json` `paths`).
 - `package.json` — alias `#lib` → `src/lib/index.ts`, `#lib/*` → `src/lib/*`.
 
 ## Deploy (Vercel)
-- Proyecto `streamonte-web`, linkeado en la RAÍZ del monorepo (`/Users/monti/Documents/Dev/streamonte/.vercel/project.json`, Root Directory=`web`). `web/.vercel/` tiene otro `project.json`: no es el link.
+- Proyecto `streamonte-web`, linkeado en la RAÍZ del monorepo (`/Users/monti/Documents/Dev/streamonte/.vercel/project.json`, Root Directory=`web`).
 - Prod: `vercel deploy --prod --yes` desde la RAÍZ (desde `web/` falla). "push" de la web incluye deploy.
 - `/Users/monti/Documents/Dev/streamonte/.vercelignore` sube solo `web/` y `packages/`. Los tests no corren en Vercel.
 
@@ -20,7 +21,7 @@ Web de Streamonte (celu/tele): catálogo TMDB+IMDb → torrents en caché de Tor
 
 ## Trampas
 - Node 24 (`.nvmrc`), type stripping: imports con extensión `.ts`, sin `enum`/`namespace`/parameter properties, `import type` explícito.
-- Textos de UI en español SON la clave de i18n (`lib/i18n/en.ts`).
+- Textos de UI en español SON la clave de i18n (`packages/ui/src/i18n/en.ts`, compartido con el desktop).
 - Desktop ↔ web deben dar lo mismo vía `packages/golden/*.json`; Rust es la fuente de verdad.
 - Sin dependencias nuevas sin preguntar.
 
