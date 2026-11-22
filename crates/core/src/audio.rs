@@ -599,6 +599,70 @@ mod tests {
         assert!(l("Peli.2014.1080p.WEB", true).0.is_empty());
     }
 
+    /// Palabras de títulos comunes que NO son idioma ("En busca de…", "Cast Away", "Spanish Harlem").
+    #[test]
+    fn titulos_comunes_no_dan_idioma() {
+        for name in [
+            "En busca de la felicidad 2006 1080p",
+            "Cast Away 2000 1080p BluRay",
+        ] {
+            let (audio, subs) = from_release(name, true);
+            assert!(
+                audio.is_empty() && subs.is_empty(),
+                "{name}: {audio:?} {subs:?}"
+            );
+        }
+        // `Spain` en el título cuenta como castellano: la regla es por palabra, no por contexto.
+        assert_eq!(from_release("Spain 2019 1080p", true).0, ["cast"]);
+    }
+
+    #[test]
+    fn banderas_en_el_nombre() {
+        let l = |t: &str| from_release(t, true).0;
+        assert_eq!(
+            l("Peli 🇦🇷 🇨🇱"),
+            ["lat"],
+            "varias banderas latinas = un solo lat"
+        );
+        assert_eq!(l("Peli 🇬🇧"), ["en"]);
+        assert_eq!(l("Peli 🇺🇸 🇬🇧"), ["en"]);
+        assert_eq!(l("Peli 🇯🇵"), ["ja"]);
+        assert_eq!(l("Peli 🇫🇷"), ["fr"]);
+        assert_eq!(
+            l("Peli 🇲🇽 Latino"),
+            ["lat"],
+            "palabra y bandera no se duplican"
+        );
+        // Una bandera suelta (un solo indicador regional) no es país.
+        assert!(l("Peli \u{1F1EA}").is_empty());
+    }
+
+    #[test]
+    fn detalle_de_pista() {
+        let t = |codec: Option<&str>, channels, title: Option<&str>, default| AudioTrack {
+            lang: None,
+            title: title.map(String::from),
+            codec: codec.map(String::from),
+            channels,
+            default,
+        };
+        assert_eq!(track_detail(&t(None, None, None, false)), "");
+        assert_eq!(
+            track_detail(&t(Some("eac3"), Some(6), Some(" Latino "), true)),
+            "EAC3, 5.1, «Latino», por defecto"
+        );
+        assert_eq!(
+            track_detail(&t(Some("aac"), Some(2), None, false)),
+            "AAC, estéreo"
+        );
+        assert_eq!(track_detail(&t(None, Some(1), None, false)), "mono");
+        assert_eq!(track_detail(&t(None, Some(8), None, false)), "7.1");
+        assert_eq!(
+            track_detail(&t(None, Some(3), Some("  "), false)),
+            "3 canales"
+        );
+    }
+
     #[test]
     fn colapsa_espanol_generico() {
         let mut a = vec!["es".to_string(), "lat".to_string(), "en".to_string()];

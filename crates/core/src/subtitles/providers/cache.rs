@@ -110,8 +110,7 @@ mod tests {
 
     #[test]
     fn guarda_en_cache_y_rechaza_basura() {
-        let dir =
-            std::env::temp_dir().join(format!("streamonte-test-subcache-{}", std::process::id()));
+        let dir = crate::fsutil::test_dir("subcache");
         let cand = SubtitleCandidate {
             provider: WYZIE,
             provider_id: "a/b".into(),
@@ -128,6 +127,5 @@ mod tests {
         assert_eq!(cached(&dir, &cand), None);
         let p = save(&dir, &cand, b"1\n00:00:01,000 --> 00:00:02,000\nhola\n").unwrap();
         assert_eq!(cached(&dir, &cand), Some(p));
-        std::fs::remove_dir_all(dir).unwrap();
     }
 }

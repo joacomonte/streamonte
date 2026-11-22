@@ -169,14 +169,48 @@ pub fn biggest_file(dir: &Path) -> Option<(std::path::PathBuf, u64)> {
     best
 }
 
+/// Carpeta temporal de test: `temp_dir()/streamonte-test-{name}-{pid}`, limpia al crearla y borrada en `Drop`
+/// (también si el test falla). `name` único por test dentro del proceso.
+#[cfg(test)]
+pub(crate) fn test_dir(name: &str) -> TestDir {
+    let dir = std::env::temp_dir().join(format!("streamonte-test-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    TestDir(dir)
+}
+
+#[cfg(test)]
+pub(crate) struct TestDir(std::path::PathBuf);
+
+#[cfg(test)]
+impl std::ops::Deref for TestDir {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        &self.0
+    }
+}
+
+#[cfg(test)]
+impl AsRef<Path> for TestDir {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
+#[cfg(test)]
+impl Drop for TestDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn bajado_es_el_maximo_entre_analisis_y_reproduccion_del_mismo_hash() {
-        let root = std::env::temp_dir().join(format!("streamonte-test-dl-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
+        let root = test_dir("dl");
         let write = |dir: &str, name: &str, n: usize| {
             let d = root.join(dir);
             std::fs::create_dir_all(&d).unwrap();
@@ -190,6 +224,5 @@ mod tests {
         // Lo asignado redondea a clusters: ~300 KB, nunca más que el archivo.
         assert!((290_000..=300_000).contains(&got), "{got}");
         assert_eq!(downloaded_in_dirs(&root, "zzz-", "Peli.mkv"), 0);
-        std::fs::remove_dir_all(&root).unwrap();
     }
 }

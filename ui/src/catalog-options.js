@@ -1,3 +1,4 @@
+// @ts-check
 // Opciones de un video (2026-11-17, separado de catalog.js): grupos por resolución, orden, fila de
 // cada torrent, panel de pruebas, reproducir y bajar de fondo. Las pruebas en sí: `catalog-tests.js`.
 
@@ -6,54 +7,55 @@ import { closeWizard, originalAudio, play } from './audio-picker.js';
 import { $, el, icon, setStatus } from './dom.js';
 import { t as tr } from './i18n.js';
 import { ago, humanBytes, mbps, nf, nf1, playbackText } from './format.js';
-import { healthCalibration, MIN_SECS, notePrediction, predict, shownLevel, speedOf, TRACKER_MIN, trackPlayback } from './health-calib.js';
+import { healthCalibration, notePrediction, speedOf, TRACKER_MIN, trackPlayback } from './health-calib.js';
 import { state as lib } from './state.js';
 import { renderSide } from './catalog-side.js';
 import { safeGet, safeSet, showError, state, view } from './catalog-state.js';
 import { isReading, openSubs, readError, readSubsNow, readTracks, readUntil, stopReading, subsScan, subsStep, toggleSubsScan } from './catalog-subs.js';
-import { analysisEta, census, counted, counting, deepDone, liveCount, loadSavedTests, newVideoTests, once, phaseAt, quick, QUICK_ENOUGH, QUICK_LATE_MS, quickGroup, quickLive, quickPending, quickRunning, reanalyze, runCensus, runDeep, skipped, startAnalysis, stopTests, testedAt, toggleBest, TOP, unlikely } from './catalog-tests.js';
+import { analysisEta, census, counted, counting, deepDone, liveCount, loadSavedTests, newVideoTests, once, phaseAt, quick, QUICK_ENOUGH, QUICK_LATE_MS, quickGroup, quickLive, quickPending, quickRunning, reanalyze, runCensus, runDeep, side, sideOf, skipped, startAnalysis, stopTests, testedAt, toggleBest, TOP, unlikely } from './catalog-tests.js';
 import { crumbs, fitsNet, flowFilter, flowStep, hasResStep, isMatch, moreRow, newFlow } from './catalog-flow.js';
+/** @typedef {import('./types.js').StreamCandidate} Candidate */
+/** @typedef {import('./types.js').StreamsUpdate} StreamsUpdate */
+/** @typedef {import('./types.js').LibraryRow} LibraryRow */
+/** @typedef {import('./types.js').PlaybackRow} PlaybackRow */
+/** @typedef {import('./catalog-tests.js').Count} Count */
+/** @typedef {import('./catalog-tests.js').Run} Run */
+/** @typedef {import('./catalog-tests.js').Deep} Deep */
+
+import { healthOf, latOf as latOfRows, mbpsOf as mbpsFor, neededBps as neededBpsFor, QUALITY_STARS, rankOptions, tierOf as tierOfCount, toMbps, typicalMbps } from './options-rank.js';
 
 /** Tooltips del badge HDR (pedido 2026-11-15, en blanco y negro): HDR y Dolby Vision se muestran igual;
  *  el tooltip dice cuál es. */
+/** @type {Record<string, string>} */
 export const HDR_TIP = {
   HDR: tr('HDR: más rango de brillo y color. Se aprovecha con pantalla HDR; en una común se ve igual o un poco más apagado.'),
   DV: tr('Dolby Vision: HDR dinámico de Dolby. En pantallas sin Dolby Vision puede verse con colores raros (verde/violeta).'),
 };
-// Webs de origen dentro del nombre: solo orientan, no confirman (como la web, streamonte-web/src/lib/server/torrents.js).
-const LAT_SITES = ['cinecalidad', 'verpeliculasonline', 'pelisplus', 'cuevana', 'pelispanda', 'pelismart'];
-const SPAIN_SITES = ['mejortorrent', 'wolfmax4k', 'dontorrent', 'divxtotal', 'elitetorrent'];
-/** Estado del audio latino (2026-11-21, única regla, igual que `latStatus` de la web):
- *  - Las pistas leídas ganan cuando dicen cuál español es (latino, castellano) o que no hay español.
- *  - Español sin variante no decide: decide el nombre (LATINO / banderas latinas o castellano) y, si no, la web.
- *  'lat' latino · 'likely' solo la web de origen es latina · 'spain' de España · 'check' no se sabe: probar a mano ·
- *  'none' leído y sin español. */
-export function latOf(c) {
-  const read = rowsOf(c.info_hash).find((e) => e.live?.audio?.length);
-  const codes = read?.languages?.map((l) => l.code) ?? [];
-  if (codes.includes('lat')) return 'lat';
-  if (codes.includes('cast')) return 'spain';
-  if (read && !codes.includes('es')) return 'none';
-  if (c.audio.includes('lat')) return 'lat';
-  if (c.audio.includes('cast')) return 'spain';
-  const name = `${c.release_name} ${c.file_name ?? ''}`.toLowerCase();
-  if (LAT_SITES.some((w) => name.includes(w))) return 'likely';
-  if (SPAIN_SITES.some((w) => name.includes(w))) return 'spain';
-  return 'check';
-}
-/** Dice o trae español sin aclarar cuál (MULTI / Dual / español en el nombre, o una pista en español). */
+/** Estado del audio latino de una opción ('lat' | 'likely' | 'spain' | 'check' | 'none'): la regla está en `options-rank.js`.
+ *  @param {Candidate} c @returns {import('./options-rank.js').LatState}
+ */
+export const latOf = (c) => latOfRows(c, rowsOf(c.info_hash));
+/** Dice o trae español sin aclarar cuál (MULTI / Dual / español en el nombre, o una pista en español).
+ *  @param {Candidate} c
+ */
 const saysSpanish = (c) => c.audio.includes('multi') || c.audio.includes('es')
   || !!rowsOf(c.info_hash).find((e) => e.live?.audio?.length)?.languages?.some((l) => l.code === 'es');
 /** Sin confirmar pero vale la pena leer sus pistas: web latina, o español sin aclarar. Las que no dicen nada de
- *  idioma no se leen. */
+ *  idioma no se leen.
+ *  @param {Candidate} c
+ */
 export const latToCheck = (c) => { const s = latOf(c); return s === 'likely' || (s === 'check' && saysSpanish(c)); };
-/** Con potencial de latino (única regla): latino o vale la pena revisarla. */
+/** Con potencial de latino (única regla): latino o vale la pena revisarla.
+ *  @param {Candidate} c
+ */
 export const latPotential = (c) => latOf(c) === 'lat' || latToCheck(c);
 /** ¿Pidió ver en latino? (paso "¿Necesitás audio latino?" del flujo). Afuera de ese modo, el latino solo se muestra
  *  confirmado. */
-const wantsLatino = () => state.side?.flow?.lat === true;
+const wantsLatino = () => sideOf()?.flow?.lat === true;
 /** ¿Trae subs en español? (2026-11-18): `true` / `false` según las pistas ya leídas (análisis o TorBox, guardadas
- *  por torrent) o un archivo .srt en español en la lista de TorBox (solo dice sí); `null` = no se sabe. */
+ *  por torrent) o un archivo .srt en español en la lista de TorBox (solo dice sí); `null` = no se sabe.
+ *  @param {string} hash @returns {boolean|null}
+ */
 export function hasSpanishSubs(hash) {
   const subs = rowsOf(hash).find((e) => e.native_subs)?.native_subs;
   if (subs) return subs.length > 0;
@@ -62,43 +64,54 @@ export function hasSpanishSubs(hash) {
 /** Globitos de los badges (2026-11-20, como la web): `key` → cuándo apareció. Las filas se recrean en cada redibujo:
  *  el globito sigue donde iba (delay negativo) y no vuelve a salir. */
 const tips = new Map();
-/** Estilo del globito `key` que arranca `delay` ms después de aparecer y dura `ms`; null si ya terminó. */
+/** Estilo del globito `key` que arranca `delay` ms después de aparecer y dura `ms`; null si ya terminó.
+ *  @param {string} key @param {number} delay @param {number} [ms] @returns {string|null}
+ */
 function tipStyle(key, delay, ms = 3000) {
   const now = performance.now();
   if (!tips.has(key)) tips.set(key, now);
   const left = delay - (now - tips.get(key));
   return left + ms > 0 ? `animation-delay:${left}ms` : null;
 }
-/** Un globito con su texto, si todavía le toca verse (con movimiento reducido no hay globitos). */
+/** Un globito con su texto, si todavía le toca verse (con movimiento reducido no hay globitos).
+ *  @param {string} key @param {string} text @param {number} [delay] @returns {HTMLElement|null}
+ */
 function tip(key, text, delay = 500) {
   const style = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : tipStyle(key, delay);
   return style ? el('span', { class: 'cat-tip', style, 'aria-hidden': 'true' }, text) : null;
 }
 /** Badges que ya se explicaron en este video: la primera vez que aparece cada tipo (el de más arriba), un globito
- *  cuenta qué significa; si aparecen varios tipos, de a uno. */
+ *  cuenta qué significa; si aparecen varios tipos, de a uno.
+ *  @param {string} kind @param {string} hash @param {string} text @returns {HTMLElement|null}
+ */
 function explain(kind, hash, text) {
-  const s = state.side;
+  const s = side();
   s.explained ??= new Map();
   if (!s.explained.has(kind)) s.explained.set(kind, { hash, delay: 400 + s.explained.size * 2200 });
-  const x = s.explained.get(kind);
+  const x = /** @type {{hash: string, delay: number}} */ (s.explained.get(kind));
   return x.hash === hash ? tip(`explain|${s.videoId}|${kind}`, text, x.delay) : null;
 }
-/** Badge de audio tocado (Gallego / LAT? / Probar manualmente): su globito sale al toque. */
+/** Badge de audio tocado (Gallego / LAT? / Probar manualmente): su globito sale al toque.
+ *  @type {string|null}
+ */
 let tappedAt = null;
 /** Idioma ya sabido, como badges junto al peso (2026-11-20, todos los estados de la web): audio y subtítulos.
  *  Audio, pidiendo latino: LAT verde (confirmado en las pistas), LAT gris punteado (lo dice el nombre), LAT tachado
  *  (leído, sin latino) o LAT? punteado (sin leer). Con audio original, LAT solo si está confirmado; y ES blanco
  *  ("Gallego" al tocarlo) si es español sin variante en una película hablada en español. Subtítulos: ES verde (trae),
- *  ES gris (se leyó y no trae: se bajan aparte) o ES? punteado (sin leer). La mejor opción explica los suyos. */
+ *  ES gris (se leyó y no trae: se bajan aparte) o ES? punteado (sin leer). La mejor opción explica los suyos.
+ *  @param {Candidate} c @param {boolean|undefined} best
+ */
 function langTags(c, best) {
   const hash = c.info_hash;
   const subs = hasSpanishSubs(hash);
   const native = rowsOf(hash).find((e) => e.native_subs)?.native_subs ?? [];
   const lat = latOf(c);
   const want = wantsLatino();
-  const spokenEs = state.side?.details?.details?.original_language === 'es';
+  const spokenEs = sideOf()?.details?.details?.original_language === 'es';
   // Gallego solo en pelis habladas en español o pidiendo latino; LAT siempre; el resto solo pidiendo latino.
   // Al tocar Gallego / LAT? / Probar manualmente, su globito sale al toque.
+/** @param {string} cls @param {string} text @param {string} title @param {string} tipText @param {...(Node|string)} pre */
   const tappable = (cls, text, title, tipText, ...pre) => el('button', { id: `cat-audio-${hash}`, type: 'button', class: `cat-tag cat-lang es-audio ${cls}`, title,
     onclick: (e) => { e.stopPropagation(); tips.delete(`audio|${hash}`); tappedAt = hash; renderStreamsOnly(); } }, ...pre, text,
     tappedAt === hash || (best && cls === '') ? tip(`audio|${hash}`, tipText, tappedAt === hash ? 0 : 500) : null);
@@ -120,19 +133,23 @@ function langTags(c, best) {
   return [audio, cc];
 }
 /** Lo que falta saber del idioma, como botones de la cápsula del ▶: "¿Trae subs?" y, pidiendo latino, "¿Audio
- *  latino?" (las dos leen las mismas pistas: una lectura responde ambas); "Elegir subs" si se sabe que no trae. */
+ *  latino?" (las dos leen las mismas pistas: una lectura responde ambas); "Elegir subs" si se sabe que no trae.
+ *  @param {Candidate} c
+ */
 function langActions(c) {
   const hash = c.info_hash;
   const subs = hasSpanishSubs(hash);
-  return [
+  return /** @type {HTMLElement[]} */ ([
     subs == null && !wantsLatino() ? checkButton(hash, 'subs') : null,
     wantsLatino() && latToCheck(c) && !rowsOf(hash).some((e) => e.live?.audio?.length) ? checkButton(hash, 'lat') : null,
     subs === false ? el('button', { id: `cat-subfind-${hash}`, type: 'button', class: 'cat-dock-btn', title: tr('No trae subtítulos en español: elegí de afuera (muestra cuáles calzan con este archivo)'),
       onclick: (e) => { e.stopPropagation(); openSubs(hash, !!view.torboxKey && inTorbox.has(hash), e.currentTarget); } }, icon('search', 13), tr('Elegir subs')) : null,
-  ].filter(Boolean);
+  ].filter(Boolean));
 }
 /** Leer las pistas (TorBox: un pedido, segundos; torrent: la prueba rápida, necesita seeds). Leyendo, el mismo botón
- *  queda cargando y otro clic corta la espera (lo leído hasta ahí no se pierde). */
+ *  queda cargando y otro clic corta la espera (lo leído hasta ahí no se pierde).
+ *  @param {string} hash @param {'subs'|'lat'} kind
+ */
 function checkButton(hash, kind) {
   const reading = isReading(hash);
   const error = readError(hash);
@@ -150,15 +167,16 @@ function checkButton(hash, kind) {
     : [icon(ic, 13), text]);
 }
 // ---------- opciones (FR-42–49) ----------
+/** @param {string} videoId @returns {Promise<void>} */
 export async function loadStreams(videoId) {
-  state.side.videoId = videoId;
+  side().videoId = videoId;
   // Análisis profundo de la resolución elegida. `status`: null | 'run' | 'done'.
-  state.side.deep = { status: null, hashes: [] };
-  state.side.tests = newVideoTests();
-  state.side.torbox = null; // null | 'checking' | 'done' | 'error'
+  side().deep = { status: null, hashes: [] };
+  side().tests = newVideoTests();
+  side().torbox = null; // null | 'checking' | 'done' | 'error'
   census.clear();
   // Pasos (2026-11-18): torrent o TorBox → ¿latino? → resolución → lista (`catalog-flow.js`).
-  state.side.flow = newFlow();
+  side().flow = newFlow();
   view.openRes = '';
   view.shownRows = PAGE_ROWS;
   view.onlyHdr = false;
@@ -169,17 +187,18 @@ export async function loadStreams(videoId) {
   renderSide();
   setStatus(tr('Pidiendo torrents a todas las fuentes…'));
   try {
-    await api.catalogStreams(state.side.kind, videoId);
+    await api.catalogStreams(side().kind, videoId);
   } catch (e) { showError(e); }
 }
 
 // Lectura de subs en curso o terminada: el chip "¿Sub ES?" de la fila cambia.
-document.addEventListener('subs-changed', () => { if (state.side?.videoId) renderStreamsOnly(); });
+document.addEventListener('subs-changed', () => { if (sideOf()?.videoId) renderStreamsOnly(); });
 
+/** @param {StreamsUpdate} update @returns {void} */
 export function onStreams(update) {
-  if (update.video_id !== state.side?.videoId) return;
+  if (update.video_id !== sideOf()?.videoId) return;
   state.update = update;
-  const t = state.side.tests;
+  const t = side().tests;
   if (update.done && update.candidates.length) {
     // Censo DHT apenas están las fuentes y los trackers (2026-11-16): una vez por video, en paralelo.
     if (once(t, 'census')) runCensus(update.video_id, update.candidates);
@@ -193,92 +212,85 @@ export function onStreams(update) {
   renderStreamsOnly();
 }
 
-/** Filas de la biblioteca de ese torrent (una por episodio de un pack; el análisis es del torrent). */
+/** Filas de la biblioteca de ese torrent (una por episodio de un pack; el análisis es del torrent).
+ *  @param {string} hash @returns {LibraryRow[]}
+ */
 export function rowsOf(hash) {
   if (view.libByHash) return view.libByHash.get(hash) ?? [];
   return [...state.library.values()].filter((e) => e.info_hash === hash);
 }
 /** Seeders sin análisis profundo: los de los trackers (chequeados recién, al cargar las opciones)
  *  mandan; un 0 de tracker con la fuente diciendo más suele ser un tracker que no conoce el torrent,
- *  y ahí vale la fuente. */
-export const trackersWin = (c) => c.seeders > 0 || (c.seeders === 0 && !(c.seeders_declared > 0));
+ *  y ahí vale la fuente.
+ *  @param {Candidate} c @returns {boolean}
+ */
+export const trackersWin = (c) => (c.seeders ?? 0) > 0 || (c.seeders === 0 && !((c.seeders_declared ?? 0) > 0));
+/** @param {Candidate} c @returns {number|null} */
 export function seedsOf(c) {
   return trackersWin(c) ? c.seeders : c.seeders_declared ?? null;
 }
 
-/** Por seeders, leechers y peso (lo usan los subtítulos y el desempate de `sortOptions`). */
+/** Por seeders, leechers y peso (lo usan los subtítulos y el desempate de `sortOptions`).
+ *  @param {Candidate} a @param {Candidate} b @returns {number}
+ */
 export const bySeeds = (a, b) => tierOf(b) - tierOf(a) || (knownSeeds(b) ?? -1) - (knownSeeds(a) ?? -1) || (leechersOf(b) ?? -1) - (leechersOf(a) ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0);
 
 /** ¿Ya se testeó a fondo la resolución abierta? Hasta entonces se ordena solo por conexión y el
  *  selector de orden es una etiqueta (2026-11-17). */
-export const deepTested = () => state.side?.deep?.status === 'done' && state.side.deep.res === view.openRes;
-/** Orden de las opciones (2026-11-17), recalculado en cada redibujo. Antes del test manda la
- *  conexión: el veredicto de salud y, sin veredicto, la gente que comparte (seeds, después leechers).
- *  "Mejor imagen": arriba las testeadas que andan fluidas, por calidad de imagen (ya se sabe que van a
- *  cargar bien); después todo lo demás por conexión. "Arranca más rápido": todo por conexión. Al final,
- *  siempre: las que no entran en el disco y las que nadie respondió. El peso nunca ordena. Arriba de
- *  todo va lo que se reproduce o baja. `best` = la primera que entra, no es de cine y anda fluida (la
- *  fila confirma que esté testeada). */
+export const deepTested = () => sideOf()?.deep?.status === 'done' && side().deep.res === view.openRes;
+/** Orden de las opciones (2026-11-17): la regla está en `rankOptions` (`options-rank.js`); acá se le pasa el estado.
+ *  Antes del test profundo solo manda la conexión.
+ *  @param {Candidate[]} cands
+ */
 export function sortOptions(cands) {
-  // TorBox (2026-11-17): se ven desde sus servidores, así que seeds y salud no importan.
-  if (state.side?.flow?.mode === 'torbox') {
-    // Por bitrate (2026-11-18): más Mbps = más imagen por segundo; la resolución sola no dice cuánto se comprimió. A
-    // igual bitrate, la de mejor calidad de imagen; la de cine al final.
-    // Sin peso no se sabe cuánto pide: al final, como la de cine (2026-11-18: salía "Mejor opción" sin tamaño).
-    const unknown = (c) => c.size_bytes == null || c.source === 'CAM';
-    const list = [...cands].sort((a, b) => unknown(a) - unknown(b) || mbpsOf(b) - mbpsOf(a) || qualityRank(b) - qualityRank(a));
-    return { list: pinPlaying(list), best: list.find(isMatch) ?? null };
-  }
-  const mode = deepTested() ? view.optSort : 'fast';
-  const lvl = new Map(cands.map((c) => { const h = health(c); return [c, h ? h.shown + (h.probable ? 0.5 : 0) : 1.75]; }));
-  const byConnection = (a, b) => lvl.get(a) - lvl.get(b) || (knownSeeds(b) ?? -1) - (knownSeeds(a) ?? -1) || (leechersOf(b) ?? -1) - (leechersOf(a) ?? -1);
-  const tail = (c) => (tierOf(c) < 1 ? 3 : !fits(c) ? 2 : 0);
-  const proven = (c) => counted.get(c.info_hash)?.reached && lvl.get(c) === 0;
-  // Antes del test profundo (y debajo de las probadas a fondo) manda la prueba rápida: seeds reales.
-  // Prueba en curso que ya pasó a contar seeds reales (etapa 2/2): arriba de todo mientras dura,
-  // con más seeds primero (2026-11-17). Al terminar vuelve a su lugar por el resultado.
-  const advancing = (c) => {
-    const h = c.info_hash;
-    const live = counting.has(h) ? liveCount.get(h) : quickRunning.has(h) && !quick.has(h) ? quickLive.get(h) : null;
-    return live?.reached ? live : null;
-  };
-  const group = (c) => (advancing(c) ? -1 : tail(c) ? 10 + tail(c) : mode === 'quality' && proven(c) ? 0 : 1 + quickGroup(c));
-  const list = [...cands].sort((a, b) => group(a) - group(b)
-    || (group(a) === -1 ? advancing(b).seeds - advancing(a).seeds : 0)
-    || (mode === 'quality' && group(a) === 0 ? qualityRank(b) - qualityRank(a) : 0)
-    || byConnection(a, b));
-  const best = list.find((c) => fits(c) && c.source !== 'CAM' && lvl.get(c) === 0) ?? null;
-  return { list: pinPlaying(list), best };
+  return rankOptions(cands, {
+    torbox: sideOf()?.flow?.mode === 'torbox',
+    mode: deepTested() ? view.optSort : 'fast',
+    health, fits, tierOf, knownSeeds, leechersOf, quickGroup, mbpsOf, isMatch, pinPlaying,
+    reached: (c) => counted.get(c.info_hash)?.reached,
+    // Prueba en curso que ya pasó a contar seeds reales (etapa 2/2).
+    advancing: (c) => {
+      const h = c.info_hash;
+      const live = counting.has(h) ? liveCount.get(h) : quickRunning.has(h) && !quick.has(h) ? quickLive.get(h) : null;
+      return live?.reached ? live : null;
+    },
+  });
 }
 /** Fija arriba (2026-11-18) lo que se reproduce o baja: el resto se reordena debajo sin moverla. Lo que se está
- *  preparando (▶ tocado, eligiendo audio y subtítulos) no se mueve: sube recién al arrancar. */
+ *  preparando (▶ tocado, eligiendo audio y subtítulos) no se mueve: sube recién al arrancar.
+ *  @template {{info_hash: string}} T @param {T[]} list @returns {T[]}
+ */
 function pinPlaying(list) {
   const active = new Set([...lib.playbacks.values()].filter((r) => r.state.kind !== 'failed').map((r) => r.key.split(':')[0]));
   return [...list.filter((c) => active.has(c.info_hash)), ...list.filter((c) => !active.has(c.info_hash))];
 }
 
-/** Grupo para ordenar: 2 = analizado a fondo (arriba), 1 = el resto (trackers, fuente o una
- *  medición vieja de la biblioteca), 0,5 = sin respuesta pero con peers conocidos (no está muerto,
- *  2026-11-16), 0 = nadie lo comparte. */
-export function tierOf(c) {
-  const n = counted.get(c.info_hash);
-  return !n ? 1 : n.reached !== false ? 2 : n.peers ? 0.5 : 0;
-}
+/** Grupo para ordenar (2 analizado a fondo … 0 nadie lo comparte): la regla está en `options-rank.js`.
+ *  @param {Candidate} c @returns {number}
+ */
+export const tierOf = (c) => tierOfCount(counted.get(c.info_hash));
 /** Seeders que se saben de una opción, de lo más confiable a lo menos: contados al analizar
- *  (aunque sea 0), medidos al reproducir o cargar, según los trackers y, por último, la fuente. */
+ *  (aunque sea 0), medidos al reproducir o cargar, según los trackers y, por último, la fuente.
+ *  @param {Candidate} c @returns {number|null}
+ */
 export function knownSeeds(c) {
   const q = quick.get(c.info_hash);
   return seedsCounted(c) ?? (q?.reached ? q.seeds : null) ?? seedsOf(c);
 }
-/** Seeders contados o medidos de una opción (sin los de trackers); null si no hay ninguno. */
+/** Seeders contados o medidos de una opción (sin los de trackers); null si no hay ninguno.
+ *  @param {Candidate} c @returns {number|null}
+ */
 export function seedsCounted(c) {
   const partial = liveCount.get(c.info_hash);
   return counted.get(c.info_hash)?.seeds ?? (partial?.reached ? partial.seeds : null)
-    ?? rowsOf(c.info_hash).find((e) => e.live?.seeds > 0)?.live.seeds ?? null; // un 0 viejo (serde default) no es "0 contados"
+    ?? rowsOf(c.info_hash).find((e) => (e.live?.seeds ?? 0) > 0)?.live?.seeds ?? null; // un 0 viejo (serde default) no es "0 contados"
 }
-/** Leechers (desempate): conectados sin el archivo completo al contar, o los del scrape automático. */
+/** Leechers (desempate): conectados sin el archivo completo al contar, o los del scrape automático.
+ *  @param {Candidate} c @returns {number|null}
+ */
 export function leechersOf(c) {
   const partial = liveCount.get(c.info_hash);
+  /** @type {{reached?: boolean, peers: number, seeds: number}|null|undefined} */
   const n = counted.get(c.info_hash) ?? (partial?.reached ? partial : null) ?? rowsOf(c.info_hash).find((e) => e.live)?.live;
   if (n?.reached === false) return null; // nadie respondió: esos peers solo los conoce la DHT
   return n ? Math.max(0, n.peers - n.seeds) : c.leechers ?? null;
@@ -293,19 +305,22 @@ const torboxSpanishSubs = new Set();
  *  compu, van al final y nunca son "buen match" (2026-11-20). Las últimas 500. */
 const FAILED = 'streamonte.failed';
 export const failedBefore = new Set((() => { try { return JSON.parse(safeGet(FAILED) ?? '[]'); } catch { return []; } })());
+/** @param {string} hash */
 export function markFailed(hash) {
   failedBefore.delete(hash);
   failedBefore.add(hash);
   safeSet(FAILED, JSON.stringify([...failedBefore].slice(-500)));
 }
-/** Una vez por video, apenas está la lista: cuáles están en TorBox. Sin key no pregunta nada. */
+/** Una vez por video, apenas está la lista: cuáles están en TorBox. Sin key no pregunta nada.
+ *  @param {string} video @param {Candidate[]} cands @returns {Promise<void>}
+ */
 export async function loadTorbox(video, cands) {
   if (!view.torboxKey) return;
-  state.side.torbox = 'checking';
+  side().torbox = 'checking';
   const found = await api.catalogTorbox(video, cands.map((c) => c.info_hash)).catch(() => null);
-  if (state.side?.videoId !== video) return;
+  if (sideOf()?.videoId !== video) return;
   // null = TorBox no respondió (la key ya se sabe que está).
-  state.side.torbox = found ? 'done' : 'error';
+  side().torbox = found ? 'done' : 'error';
   found?.hashes.forEach((h) => inTorbox.add(h));
   found?.spanish_subs.forEach((h) => torboxSpanishSubs.add(h));
   // Calidad del archivo de video cuando el nombre del torrent no la dice (sale del mismo pedido).
@@ -325,7 +340,7 @@ api.apiKeys().then((ks) => {
 document.addEventListener('streamonte:torbox-key', async () => {
   const ks = await api.apiKeys().catch(() => []);
   view.torboxKey = ks.some((k) => k.service === 'torbox' && k.configured);
-  if (view.torboxKey && state.update?.done) loadTorbox(state.side.videoId, state.update.candidates);
+  if (view.torboxKey && state.update?.done) loadTorbox(side().videoId, state.update.candidates);
   else renderStreamsOnly();
 });
 // Código rechazado por la web: el núcleo lo borró; hasta cargarlo de nuevo no hay TorBox.
@@ -339,11 +354,13 @@ ctx.hidden = true;
 document.body.append(ctx);
 const closeCtx = () => { ctx.hidden = true; };
 /** Copia el link que todavía se está pidiendo: con `ClipboardItem` + promesa el permiso del clic
- *  sigue valiendo después de esperar al núcleo (WebKit lo pierde con un `await` antes de copiar). */
+ *  sigue valiendo después de esperar al núcleo (WebKit lo pierde con un `await` antes de copiar).
+ *  @param {string} hash @param {boolean} torbox
+ */
 function copyLink(hash, torbox) {
   closeCtx();
-  const f = state.side?.flow;
-  const link = api.catalogLink(hash, torbox, state.side?.details?.details?.original_language ?? null, !!(f?.lat && !f.latOff));
+  const f = sideOf()?.flow;
+  const link = api.catalogLink(hash, torbox, sideOf()?.details?.details?.original_language ?? null, !!(f?.lat && !f.latOff));
   const done = typeof ClipboardItem === 'function'
     ? navigator.clipboard.write([new ClipboardItem({ 'text/plain': link.then((t) => new Blob([t], { type: 'text/plain' })) })])
     : link.then((t) => navigator.clipboard.writeText(t));
@@ -351,28 +368,32 @@ function copyLink(hash, torbox) {
   done.then(() => setStatus(torbox ? tr('Link para castear copiado (stream de TorBox): pegalo en Web Video Caster. Vence en unas horas.') : tr('Magnet copiado.'))).catch(showError);
 }
 document.addEventListener('contextmenu', (ev) => {
-  const row = ev.target.closest?.('.cat-opt[data-hash]');
+  const row = /** @type {HTMLElement|null} */ (/** @type {Element} */ (ev.target).closest?.('.cat-opt[data-hash]'));
   if (!row) return;
   ev.preventDefault();
-  const hash = row.dataset.hash;
+  const hash = /** @type {string} */ (row.dataset.hash);
+/** @param {string} id @param {string} label @param {boolean} torbox */
   const item = (id, label, torbox) => el('button', { id, class: 'cat-ctx-item', role: 'menuitem', type: 'button', onclick: () => copyLink(hash, torbox) }, icon(torbox ? 'external' : 'copy', 14), label);
-  ctx.replaceChildren(...[
+  ctx.replaceChildren(.../** @type {HTMLElement[]} */ ([
     view.torboxKey && inTorbox.has(hash) ? item('cat-ctx-torbox', tr('Copiar link para castear (TorBox)'), true) : null,
     item('cat-ctx-magnet', tr('Copiar magnet'), false),
     el('button', { id: 'cat-ctx-subs', class: 'cat-ctx-item', role: 'menuitem', type: 'button',
       onclick: () => { closeCtx(); openSubs(hash, !!view.torboxKey && inTorbox.has(hash), document.getElementById(`cat-play-${hash}`) ?? row); } }, icon('subs', 14), tr('Subtítulos…')),
-  ].filter(Boolean));
+  ].filter(Boolean)));
   ctx.hidden = false;
   ctx.style.left = `${Math.min(ev.clientX, innerWidth - ctx.offsetWidth - 8)}px`;
   ctx.style.top = `${Math.min(ev.clientY, innerHeight - ctx.offsetHeight - 8)}px`;
-  ctx.querySelector('button').focus({ preventScroll: true });
+  /** @type {HTMLElement} */ (ctx.querySelector('button')).focus({ preventScroll: true });
 });
-document.addEventListener('pointerdown', (ev) => { if (!ctx.hidden && !ctx.contains(ev.target)) closeCtx(); });
+document.addEventListener('pointerdown', (ev) => { if (!ctx.hidden && !ctx.contains(/** @type {Node} */ (ev.target))) closeCtx(); });
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') closeCtx(); });
 document.addEventListener('scroll', closeCtx, { capture: true, passive: true });
 
-/** Filtros de la lista (lo elegido en los pasos y "Solo HDR"): una regla para grupos y filas. */
-const passesFilters = (c) => flowFilter(c) && (!view.onlyHdr || c.hdr.length) && (!view.onlyEs || hasSpanishSubs(c.info_hash) === true);
+/** Filtros de la lista (lo elegido en los pasos y "Solo HDR"): una regla para grupos y filas.
+ *  @param {Candidate} c
+ */
+const passesFilters = (c) => flowFilter(c) && (!view.onlyHdr || c.hdr.length > 0) && (!view.onlyEs || hasSpanishSubs(c.info_hash) === true);
+/** @param {Candidate} c @param {string|null|undefined} res @returns {boolean} */
 export const inScope = (c, res) => (!res || resKey(c) === res) && passesFilters(c);
 
 /** Arriba de la lista: el panel de búsqueda y test, solo (2026-11-17: subtítulos y HDR van aparte). */
@@ -383,7 +404,7 @@ export function optionsHead() {
 
 /** Cómo terminó "bajar la mejor al terminar" (2026-11-17): la elegida ya bajando, o que no hubo. */
 export function autoBar() {
-  const t = state.side.tests, a = t.auto;
+  const t = side().tests, a = t.auto;
   if (!a || !state.update?.done) return null;
   return el('div', { id: 'cat-auto-status', class: `cat-auto-status ${a.step}`, role: 'status' },
     icon(a.step === 'done' ? 'check' : 'ban', 16),
@@ -392,7 +413,9 @@ export function autoBar() {
 }
 
 /** Orden de la lista (2026-11-17), arriba de las opciones del grupo abierto (no junto al panel de
- *  test). Antes del test profundo es solo información. */
+ *  test). Antes del test profundo es solo información.
+ *  @param {Node|null} [extra]
+ */
 export function sortRow(extra = null) {
   // Filtro, a la derecha del orden: es sobre la lista, no sobre el test.
   const hdr = el('button', {
@@ -406,7 +429,7 @@ export function sortRow(extra = null) {
     title: tr('Solo las verificadas que traen subtítulos en español'),
     onclick: () => { view.onlyEs = !view.onlyEs; renderStreamsOnly(); },
   }, view.onlyEs ? icon('check', 12) : icon('subs', 12), tr('Subs ES'));
-  const order = state.side?.flow?.mode === 'torbox' ? el('div', { class: 'cat-sort-row', id: 'cat-sort-info' },
+  const order = sideOf()?.flow?.mode === 'torbox' ? el('div', { class: 'cat-sort-row', id: 'cat-sort-info' },
     el('span', { class: 'cat-sort-label' }, tr('Ordenado por')),
     el('span', { class: 'cat-sort-fixed', title: tr('En TorBox se ven al instante desde sus servidores: los seeds no importan, manda la calidad') },
       icon('monitor', 13), tr('Mejor calidad')))
@@ -416,13 +439,15 @@ export function sortRow(extra = null) {
       icon('gauge', 13), tr('Mejor conexión')))
     : el('div', { class: 'cat-sort-row' }, el('span', { class: 'cat-sort-label', id: 'cat-sort-label' }, tr('Ordenar por')),
     el('div', { class: 'cat-sort', role: 'group', 'aria-labelledby': 'cat-sort-label' },
-      [['quality', tr('Mejor imagen'), tr('Arriba las testeadas que andan fluidas, de mejor a peor calidad de imagen; después el resto por conexión')], ['fast', tr('Arranca más rápido'), tr('Primero las de mejor conexión: las más fluidas y con más seeds')]].map(([k, label, tip]) =>
+      /** @type {['quality'|'fast', string, string][]} */ ([['quality', tr('Mejor imagen'), tr('Arriba las testeadas que andan fluidas, de mejor a peor calidad de imagen; después el resto por conexión')], ['fast', tr('Arranca más rápido'), tr('Primero las de mejor conexión: las más fluidas y con más seeds')]]).map(([k, label, tip]) =>
         el('button', { id: `cat-sort-${k}`, 'aria-pressed': String(view.optSort === k), title: tip,
           onclick: () => { view.optSort = k; safeSet('streamonte.catalog.sort', k); renderStreamsOnly(); } }, label))));
   return el('div', { class: 'cat-list-bar' }, order, el('span', { class: 'cat-list-filters' }, extra, hdr, es));
 }
 /** "Buscar sub ES" (2026-11-18): lee de a una, en el orden de la lista, hasta encontrar una con subtítulos en español
- *  dentro del video; el mismo botón pausa y sigue. Sin pendientes ni resultado, no aparece. */
+ *  dentro del video; el mismo botón pausa y sigue. Sin pendientes ni resultado, no aparece.
+ *  @param {Candidate[]} list
+ */
 function subsScanChip(list) {
   const st = subsScan();
   if (st === 'found' || list.some((c) => hasSpanishSubs(c.info_hash) === true)) return null;
@@ -439,18 +464,21 @@ function subsScanChip(list) {
 /** Cada cuánto cambia la línea de avance aunque no lleguen resultados. */
 const TICK_MS = 3200;
 /** Lo que va pasando, en una línea que cambia cada `TICK_MS` (2026-11-17): para que se vea que avanza
- *  y no que quedó pensando. Sale de los datos que van llegando; sin datos, una frase de lo que hace. */
+ *  y no que quedó pensando. Sale de los datos que van llegando; sin datos, una frase de lo que hace.
+ *  @param {string} res @param {'quick'|'deep'} stage @param {Run|null} run @returns {string}
+ */
 function progressLine(res, stage, run) {
-  const t = state.side.tests;
-  const pick = (lines) => { const ok = lines.filter(Boolean); return ok[Math.floor(Date.now() / TICK_MS) % ok.length]; };
+  const t = side().tests;
+/** @param {(string|number|boolean|null|undefined)[]} lines */
+  const pick = (lines) => { const ok = lines.filter(Boolean); return /** @type {string} */ (ok[Math.floor(Date.now() / TICK_MS) % ok.length]); };
   if (stage === 'quick') {
-    const first = t.first[res]?.hashes ?? [];
-    const results = first.map((h) => quick.get(h) ?? (counted.has(h) ? counted.get(h) : null)).filter(Boolean);
+    const first = /** @type {string[]} */ (t.first[res]?.hashes ?? []);
+    const results = /** @type {Count[]} */ (first.map((h) => quick.get(h) ?? (counted.has(h) ? counted.get(h) : null)).filter(Boolean));
     const alive = results.filter((q) => q.reached && q.seeds > 0).length;
     const deadN = results.length - alive;
     const live = first.filter((h) => quickLive.has(h)).length;
     const asking = first.filter((h) => quickRunning.has(h) && !quick.has(h) && !quickLive.has(h)).length;
-    const seeds = results.reduce((s, q) => s + (q.seeds || 0), 0) + first.reduce((s, h) => s + (quickLive.get(h)?.reached ? quickLive.get(h).seeds : 0), 0);
+    const seeds = results.reduce((s, q) => s + (q.seeds || 0), 0) + first.reduce((s, h) => s + (quickLive.get(h)?.reached ? quickLive.get(h)?.seeds ?? 0 : 0), 0);
     const left = first.length - results.length;
     return pick([
       run?.prev && tr('En {a} ninguna anda sin cortes: sigo con {b}', { a: resLabel(run.prev), b: resLabel(res) }),
@@ -464,10 +492,10 @@ function progressLine(res, stage, run) {
       left && results.length && tr(left === 1 ? 'Me falta 1 para pasar a la etapa 2' : 'Me faltan {n} para pasar a la etapa 2', { n: left }),
     ]) ?? tr('Buscando seeds reales…');
   }
-  const d = state.side.deep;
+  const d = side().deep;
   const hashes = d.hashes ?? [];
   const doneN = hashes.filter((h) => deepDone.has(h)).length;
-  const lives = hashes.map((h) => liveCount.get(h)).filter(Boolean);
+  const lives = /** @type {Count[]} */ (hashes.map((h) => liveCount.get(h)).filter(Boolean));
   const peers = lives.reduce((s, l) => s + (l.peers || 0), 0);
   const counting = lives.filter((l) => l.reached).length;
   const cands = (state.update?.candidates ?? []).filter((c) => hashes.includes(c.info_hash));
@@ -485,10 +513,13 @@ function progressLine(res, stage, run) {
 }
 
 /** Panel de la resolución abierta (2026-11-17, antes arriba de todo): el análisis en curso —
- *  1 de 2 prueba rápida, 2 de 2 análisis profundo — con "Detener", o el resultado con "Testear más". */
+ *  1 de 2 prueba rápida, 2 de 2 análisis profundo — con "Detener", o el resultado con "Testear más".
+ *  @param {string} res
+ */
 export function groupPanel(res) {
-  const u = state.update, d = state.side.deep, t = state.side.tests;
+  const u = /** @type {StreamsUpdate} */ (state.update), d = side().deep, t = side().tests;
   const resText = res === 'other' ? tr('las otras resoluciones') : resLabel(res);
+/** @param {string} cls @param {Node} ic @param {Node} title @param {string} sub @param {...Node} extra */
   const panel = (cls, ic, title, sub, ...extra) => el('div', { id: 'cat-deep', class: `cat-deep ${cls}`, role: 'status' },
     el('span', { class: 'cat-deep-icon', 'aria-hidden': 'true' }, ic),
     el('span', { class: 'cat-deep-text' }, el('span', { class: 'cat-deep-title' }, title), el('span', { class: 'cat-deep-sub' }, sub)), ...extra);
@@ -508,7 +539,7 @@ export function groupPanel(res) {
   const run = t.run?.res === res ? t.run : null;
   const single = !run && d.status === 'run' && d.single;
   if (run || single) {
-    const deepNow = single || run.stage === 'deep';
+    const deepNow = single || run?.stage === 'deep';
     const { done, n, frac } = deepNow ? deepStatus(d) : { done: 0, n: 0, frac: 0 };
     const first = t.first[res];
     const elapsed = first ? Date.now() - first.at : 0;
@@ -516,7 +547,7 @@ export function groupPanel(res) {
     if (!t.tick) t.tick = setTimeout(() => { t.tick = null; scheduleRender(); }, TICK_MS);
     if (first && once(t, `timers-${res}`) && elapsed < QUICK_LATE_MS) setTimeout(scheduleRender, QUICK_LATE_MS + 100 - elapsed);
     const title = single ? tr('Verificando {a} · {done} de {n}', { a: n === 1 ? '1 torrent' : `${n} torrents`, done, n })
-      : run.quickOnly ? tr('Armando la lista de {resText} · estimado ~30 s', { resText })
+      : run?.quickOnly ? tr('Armando la lista de {resText} · estimado ~30 s', { resText })
         : tr('Analizando {resText} · {a}', { resText, a: deepNow ? tr('fase 2 de 2') : tr('fase 1 de 2') });
     return el('div', { id: 'cat-deep', class: 'cat-deep running', role: 'status' },
       el('span', { class: 'cat-deep-icon', 'aria-hidden': 'true' }, el('span', { class: 'cat-radar big' })),
@@ -555,18 +586,20 @@ export function groupPanel(res) {
   }
   const inRes = u.candidates.filter((c) => inScope(c, res));
   const checkedN = inRes.filter((c) => counted.has(c.info_hash)).length;
-  const alive = inRes.filter((c) => counted.get(c.info_hash)?.seeds > 0).length;
+  const alive = inRes.filter((c) => (counted.get(c.info_hash)?.seeds ?? 0) > 0).length;
   // Quedan sin contar (y no muertos): otra tanda, solo si el usuario quiere; primero las que la prueba
   // rápida encontró con seeds reales.
   const { potential } = quickPending(res);
   const more = Math.min(TOP, potential || inRes.filter((c) => !counted.has(c.info_hash) && !unlikely(c)).length);
-  const next = more ? el('button', { id: 'cat-deep-more', class: 'cat-deep-go', onclick: () => runDeep(state.side.videoId, res) }, tr('Testear {more} más', { more }))
+  const next = more ? el('button', { id: 'cat-deep-more', class: 'cat-deep-go', onclick: () => runDeep(side().videoId, res) }, tr('Testear {more} más', { more }))
     : el('button', { id: 'cat-deep-go', class: 'cat-deep-go', onclick: () => startAnalysis(res) }, tr('Repetir'));
   return panel('done', icon('check', 16), el('b', {}, tr('Análisis completo')),
     tr('{resText}: {alive} de {checkedN} con seeds reales{a}', { resText, alive, checkedN, a: potential ? tr(' · {potential} más con seeds reales para testear', { potential }) : '' }), next);
 }
 
-/** Avance del análisis profundo en curso (`runDeep`): cuántos respondieron y fracción 0–1. */
+/** Avance del análisis profundo en curso (`runDeep`): cuántos respondieron y fracción 0–1.
+ *  @param {Deep} d
+ */
 export function deepStatus(d) {
   const n = d.hashes.length;
   const done = d.hashes.filter((h) => deepDone.has(h)).length;
@@ -578,17 +611,21 @@ export function deepStatus(d) {
 /** Barra del análisis (2026-11-16): lo terminado, y delante un tramo que avanza solo y despacio
  *  hacia el próximo torrent (hasta el 90 % de su parte), para que no parezca congelada. El avance
  *  sale del reloj (`animation-delay` negativo): redibujar no lo reinicia; al terminar uno arranca de
- *  nuevo desde ahí, sin retroceder. */
+ *  nuevo desde ahí, sin retroceder.
+ *  @param {Deep} d @param {number} frac @param {number} n
+ */
 export function deepBar(d, frac, n) {
   return el('span', { class: 'cat-deep-bar' },
     el('i', { style: `width:${frac * 100}%` }),
-    frac < 1 ? el('b', { class: 'cat-deep-creep', style: `left:${frac * 100}%;--slice:${(100 / Math.max(1, n)) * 0.9}%;animation-delay:-${Date.now() - d.lastAt}ms` }) : null);
+    frac < 1 ? el('b', { class: 'cat-deep-creep', style: `left:${frac * 100}%;--slice:${(100 / Math.max(1, n)) * 0.9}%;animation-delay:-${Date.now() - /** @type {number} */ (d.lastAt)}ms` }) : null);
 }
 
-/** Línea de tooltip: direcciones que conoce la red (`known` del conteo manda sobre el censo). */
+/** Línea de tooltip: direcciones que conoce la red (`known` del conteo manda sobre el censo).
+ *  @param {string} hash @returns {string|null}
+ */
 export function knownLine(hash) {
   const n = counted.get(hash)?.known || census.get(hash);
-  return n > 0 ? tr('La red conoce ~{n} direcciones (DHT/trackers/PEX); no todas aceptan conexión.', { n }) : null;
+  return (n ?? 0) > 0 ? tr('La red conoce ~{n} direcciones (DHT/trackers/PEX); no todas aceptan conexión.', { n }) : null;
 }
 /** Un solo redibujo cada 400 ms como mucho para lo que llega de las pruebas (progreso y resultados):
  *  con 30 a la vez, redibujar la lista entera por cada uno trababa la compu (2026-11-17). */
@@ -603,7 +640,9 @@ document.addEventListener('visibilitychange', () => {
 /** Filas dibujadas del grupo abierto (de a `PAGE_ROWS`, "Mostrar más"). */
 export const PAGE_ROWS = 25;
 /** Indicador de una prueba en curso: etapa 1 = conseguir los datos del torrent (sin eso no se sabe
- *  quién tiene el archivo completo), etapa 2 = contar los seeds reales. */
+ *  quién tiene el archivo completo), etapa 2 = contar los seeds reales.
+ *  @param {string} hash @param {Count} live @param {boolean} quickMode
+ */
 export function testingPill(hash, live, quickMode) {
   const counting = live.reached;
   const label = counting ? tr('Contando seeds reales · {seeds}', { seeds: live.seeds })
@@ -623,70 +662,64 @@ export const PB_STARTING = new Set(['fetching-metadata', 'preparing']);
  *  episodio si ya se analizó o reprodujo (fila de la biblioteca `hash:sXeY`: el archivo real leído
  *  de los metadatos, `live.file_size`; `video_size` a veces trae el de otra fuente), el que da la fuente si
  *  señala el archivo (`file_name`), o el del pack ÷ los episodios de la temporada. Un pack de varias
- *  temporadas sin más datos: null. */
+ *  temporadas sin más datos: null.
+ *  @param {Candidate} c @returns {number|null}
+ */
 export function fileBytes(c) {
   if (!c.is_pack) return c.size_bytes ?? null;
-  const [, season, episode] = (state.side?.videoId ?? '').split(':');
-  const e = episode && state.library.get(`${c.info_hash}:s${season}e${episode}`);
+  const [, season, episode] = (sideOf()?.videoId ?? '').split(':');
+  const e = episode ? state.library.get(`${c.info_hash}:s${season}e${episode}`) : undefined;
   if (e?.live?.file_size || e?.video_size) return e.live?.file_size || e.video_size;
   if (!c.size_bytes) return null;
   if (c.file_name) return c.size_bytes;
   if (/\bS\d{1,2}\s*-\s*S?\d{1,2}\b|complete\s*series|integral/i.test(c.release_name)) return null;
-  const eps = (state.side?.meta?.episodes ?? []).filter((x) => String(x.season) === season).length;
+  const eps = (sideOf()?.meta?.episodes ?? []).filter((x) => String(x.season) === season).length;
   return eps ? c.size_bytes / eps : null;
 }
 /** Bytes/s que hay que bajar sostenidos para verlo sin cortes = archivo ÷ duración (la real si se
- *  analizó, si no la de la ficha). `null` sin alguno de los dos. */
+ *  analizó, si no la de la ficha). `null` sin alguno de los dos.
+ *  @param {Candidate} c @returns {number|null}
+ */
 export function neededBps(c) {
-  const [, season, episode] = (state.side?.videoId ?? '').split(':');
+  const [, season, episode] = (sideOf()?.videoId ?? '').split(':');
   const e = c.is_pack && episode ? state.library.get(`${c.info_hash}:s${season}e${episode}`) : rowsOf(c.info_hash)[0];
-  const secs = e?.live?.duration_secs ?? (state.side?.runtime && state.side.runtime * 60);
-  const bytes = fileBytes(c);
-  return bytes && secs ? bytes / secs : null;
+  return neededBpsFor(fileBytes(c), e, sideOf()?.runtime);
 }
-/** Mbps típicos por resolución (2026-11-16) cuando no se sabe cuánto pide (pack sin analizar): un
- *  4K web anda en 15–25, un 1080p en 5–10. Mejor una estimación que solo contar seeders. */
-export const TYPICAL_MBPS = { '2160p': 25, '1440p': 14, '1080p': 8, '720p': 4 };
-export const toMbps = (bps) => (bps * 8) / 1e6;
 /** Mbps que pide una opción para verse sin cortes: peso ÷ duración; sin dato, lo típico de su resolución. */
-export const mbpsOf = (c) => { const b = neededBps(c); return b ? toMbps(b) : TYPICAL_MBPS[c.resolution] ?? 3; };
-/** Salud del stream (salud fiel, 2026-11-16): un RANGO de Mbps contra lo que pide (tamaño ÷
- *  duración). Lo que baja ahora manda; si no, `predict` (medición del análisis > el p50 más alto entre
- *  seeders contados y de trackers) corregido con lo aprendido en esta red. `level` = nivel del p50
- *  (0 ≥ 2×, 1 ≥ 1×, 2); `shown` sube uno si el p75 alcanza ("probable"). Null sin seeders conocidos,
- *  si nadie respondió al contar, o si solo hay trackers y esta red todavía no aprendió cuánto se
- *  equivocan (< 5 reproducciones: decisión del usuario; queda "Verificar salud"). */
+/** @param {Candidate} c @returns {number} */
+export const mbpsOf = (c) => mbpsFor(c.resolution, neededBps(c));
+/** Salud del stream: la cuenta está en `healthOf` (`options-rank.js`); acá se juntan los datos. Null sin seeders
+ *  conocidos o si nadie respondió al contar.
+ *  @param {Candidate} c
+ */
 export function health(c) {
   if (knownSeeds(c) == null || counted.get(c.info_hash)?.reached === false) return null;
-  const bps = neededBps(c);
   const cal = view.renderCal ?? healthCalibration(state.library.values());
   const ev = evidenceOf(c.info_hash, c);
   const pb = playbackOf(c.info_hash);
-  const now = pb && speedOf(pb.key);
-  // Lo que baja ahora (reproduciendo o ⤓, ≥ MIN_SECS) es lo real: manda, sin corregir (B6).
-  const nowMbps = now?.n >= MIN_SECS ? toMbps(now.avg) : null;
-  const r = nowMbps ? { kind: 'now', lo: nowMbps, p50: nowMbps, p75: nowMbps, hi: nowMbps, conf: 'alta' } : ev && predict(ev, cal);
-  if (!r || (r.kind === 'tracker' && ev.counted_seeds == null && !(cal.bias?.tracker?.nEff >= TRACKER_MIN))) return null;
-  const need = ev?.need_mbps ?? (bps ? toMbps(bps) : TYPICAL_MBPS[c.resolution] ?? 3);
-  return { ...shownLevel(r, need), range: r, basis: r.kind, conf: r.conf, ratio: r.p50 / need, supply: r.p50, need, exact: !!bps, ev, cal };
+  return healthOf({ resolution: c.resolution, bps: neededBps(c), cal, ev, now: pb && speedOf(pb.key), trackerMin: TRACKER_MIN });
 }
 
 /** Veredicto en palabras (2026-11-17): lo que el usuario quiere saber, sin Mbps. */
 export const HEALTH_WORD = [tr('Fluida'), tr('Puede cortarse'), tr('Se va a trabar')];
+/** @param {number} v */
 export const mbpsN = (v) => nf(v >= 10 ? Math.round(v) : v);
 /** Veredicto de salud (2026-11-17): ícono de señal + palabra; el rango, de dónde sale y cuándo se
- *  testeó van en el tooltip. Tocarlo testea de nuevo. `compact` (reproduciendo): solo el ícono. */
+ *  testeó van en el tooltip. Tocarlo testea de nuevo. `compact` (reproduciendo): solo el ícono.
+ *  @param {Candidate} c @param {boolean} [compact]
+ */
 export function verdict(c, compact = false) {
   const h = health(c);
   if (!h) return null;
-  const { shown, probable, range: r, conf, basis, need, exact, ev, cal } = h;
+  const { shown, probable, range: r, conf, basis, need, exact, cal } = h;
+  const ev = /** @type {import('./types.js').HealthEvidence} */ (h.ev);
   const word = HEALTH_WORD[shown];
   const cls = ['cat-health-good', 'cat-health-fair', 'cat-health-risky'][shown];
   const asks = exact ? tr('pide ~{a}', { a: Math.round(need) }) : tr('un {a} suele pedir ~{b} (el real se sabe al testearlo)', { a: resLabel(resKey(c)), b: Math.round(need) });
-  const k = cal.bias?.[basis]?.factor ?? 1;
+  const k = cal.bias?.[/** @type {import('./types.js').HealthKind} */ (basis)]?.factor ?? 1;
   const learned = Math.abs(k - 1) > 0.05 ? tr(' Corregido ×{a} con lo que anduvieron tus reproducciones en esta red.', { a: nf1(k) }) : '';
   const why = basis === 'now' ? tr('Es lo que está bajando ahora.')
-    : basis === 'measured' ? tr('Medido al analizarlo: {a} Mbps.{learned}', { a: mbpsN(ev.analysis_mbps), learned })
+    : basis === 'measured' ? tr('Medido al analizarlo: {a} Mbps.{learned}', { a: mbpsN(/** @type {number} */ (ev.analysis_mbps)), learned })
       : basis === 'counted' ? tr('{counted_seeds} seeders contados y {a} leechers.{learned}', { counted_seeds: ev.counted_seeds, a: ev.counted_leech ?? 0, learned })
         : tr('{tracker_seeds} seeders y {a} leechers según los trackers (sin testear).{learned}', { tracker_seeds: ev.tracker_seeds, a: ev.tracker_leechers ?? 0, learned });
   const internet = cal.capMbps && r.hi >= cal.capMbps ? tr(' Tope: tu internet, {a} Mbps.', { a: Math.round(cal.capMbps) }) : '';
@@ -699,7 +732,9 @@ export function verdict(c, compact = false) {
   if (compact) return el('button', { ...attrs, class: `cat-verdict compact ${cls}` }, ic);
   return el('button', { ...attrs, class: `cat-verdict ${cls}` }, ic, el('strong', {}, word));
 }
-/** Ícono de señal: `bars` llenas de 3 (0 = sin verificar); `maybe`: la más alta, a medias (probable). */
+/** Ícono de señal: `bars` llenas de 3 (0 = sin verificar); `maybe`: la más alta, a medias (probable).
+ *  @param {number} bars @param {boolean} [maybe] @returns {string}
+ */
 export const signalSvg = (bars, maybe = false) => `<svg viewBox="0 0 16 14" width="16" height="14" aria-hidden="true">${[1, 2, 3].map((b) => `<rect x="${b * 5 - 4}" y="${12 - b * 4}" width="3.4" height="${b * 4}" rx="1" class="${b <= bars ? 'on' : ''}${maybe && b === bars ? ' maybe' : ''}"/>`).join('')}</svg>`;
 
 /** "Cargar en background" (2026-11-15): info_hash → {key, row}; `row` = última fila. La velocidad
@@ -712,37 +747,43 @@ export const BG_YELLOW = 1;
 /** Lo que el análisis sabe de una opción (salud fiel): de los candidatos del panel si está; si no, de
  *  la fila de la biblioteca (análisis `live` y trackers `scrape`). Entrada de `predict` (la salud que
  *  se muestra) y foto que se guarda al tocar ▶/⤓ (`notePrediction`), así se aprende de lo mostrado.
- *  Null si no hay nada que prediga (esa reproducción no enseña). */
+ *  Null si no hay nada que prediga (esa reproducción no enseña).
+ *  @param {string} hash @param {Candidate} [c]
+ */
 export function evidenceOf(hash, c = state.update?.candidates.find((x) => x.info_hash === hash)) {
   const live = rowsOf(hash).find((x) => x.live && !x.live.partial)?.live ?? null;
   const scrape = rowsOf(hash).find((x) => x.scrape)?.scrape ?? null;
   // Un 0 parcial (recién llegan los metadatos) no es "0 contados": taparía a los trackers.
-  const sc0 = c ? seedsCounted(c) : live?.seeds > 0 ? live.seeds : null;
+  const sc0 = c ? seedsCounted(c) : live && live.seeds > 0 ? live.seeds : null;
   const sc = sc0 === 0 && counted.get(hash)?.seeds !== 0 ? null : sc0;
   const tracker = c ? seedsOf(c) : scrape?.seeders ?? null;
-  const analysis = live?.avg_speed_bps > 0 ? toMbps(live.avg_speed_bps) : null;
+  const analysis = live && live.avg_speed_bps > 0 ? toMbps(live.avg_speed_bps) : null;
   if (tracker == null && sc == null && analysis == null) return null;
   const bps = c && neededBps(c);
+  const knownN = counted.get(hash)?.known ?? 0;
   return {
     tracker_seeds: tracker,
     tracker_leechers: c ? c.leechers ?? null : scrape?.leechers ?? null,
     counted_seeds: sc,
-    counted_leech: sc == null ? null : c ? leechersOf(c) ?? 0 : Math.max(0, live.peers - live.seeds),
+    counted_leech: sc == null ? null : c ? leechersOf(c) ?? 0 : Math.max(0, /** @type {import('./types.js').LiveMeasurement} */ (live).peers - /** @type {import('./types.js').LiveMeasurement} */ (live).seeds),
     analysis_mbps: analysis,
-    need_mbps: bps ? toMbps(bps) : c ? TYPICAL_MBPS[c.resolution] ?? 3 : live?.duration_secs ? toMbps(live.file_size / live.duration_secs) : null,
+    need_mbps: bps ? toMbps(bps) : c ? typicalMbps(c.resolution) : live?.duration_secs ? toMbps(live.file_size / live.duration_secs) : null,
     res: c?.resolution ?? null,
-    known: counted.get(hash)?.known > 0 ? counted.get(hash).known : null,
+    known: knownN > 0 ? knownN : null,
     dht: census.get(hash) ?? null,
   };
 }
+/** @param {PlaybackRow} row */
 export function measurePlayback(row) {
   const hash = row.key.split(':')[0];
-  trackPlayback(row, evidenceOf(hash));
+  trackPlayback(row, evidenceOf(hash) ?? undefined);
   const b = [...bgLoads.values()].find((x) => x.key === row.key);
   if (b) b.row = row;
 }
 /** Texto de la card: "2,3× · alcanza" = promedio ÷ bitrate (tamaño ÷ duración). Sin duración
- *  (o pack) solo la velocidad. */
+ *  (o pack) solo la velocidad.
+ *  @param {Candidate} c
+ */
 export function bgText(c) {
   const b = bgLoads.get(c.info_hash);
   if (!b) return null;
@@ -760,17 +801,21 @@ export function bgText(c) {
   return { cls, text: `${done}${nf1(x)}× · ${verdict}`, tip: tr('{a} de promedio ÷ {b} que consume el video.', { a: mbps(avg), b: mbps(need) }) };
 }
 /** Deja bajando de fondo esa opción del video abierto (la usan el botón de la fila y "Elegí la
- *  mejor"). false si no se pudo agregar. */
+ *  mejor"). false si no se pudo agregar.
+ *  @param {string} hash @returns {Promise<boolean>}
+ */
 export async function startBg(hash) {
   notePrediction(hash, evidenceOf(hash));
-  const [row] = await api.catalogAdd(state.side.kind, state.side.videoId, [hash]);
+  const [row] = await api.catalogAdd(side().kind, side().videoId, [hash]);
   if (!row) return false;
   bgLoads.set(hash, { key: row.key, row: null });
   try { await api.playBackground(row.key); } catch (e) { bgLoads.delete(hash); throw e; }
   return true;
 }
 /** Arranca o cancela la carga en background. Cancelar = Detener: lo bajado queda guardado y
- *  Reproducir lo retoma. */
+ *  Reproducir lo retoma.
+ *  @param {string} hash @param {HTMLButtonElement} btn
+ */
 export async function toggleBg(hash, btn) {
   btn.disabled = true;
   const b = bgLoads.get(hash);
@@ -794,6 +839,7 @@ export async function toggleBg(hash, btn) {
 /** Estados en que la opción muestra Detener en vez de ▶. */
 export const PB_LIVE = new Set(['fetching-metadata', 'preparing', 'playing', 'download-paused', 'background', 'ask-after-close']);
 export const PB_RANK = ['playing', 'preparing', 'fetching-metadata', 'download-paused', 'ask-after-close', 'background', 'paused', 'stopping', 'failed'];
+/** @param {string} hash @returns {PlaybackRow|undefined} */
 export function playbackOf(hash) {
   return [...lib.playbacks.values()].filter((r) => r.key.split(':')[0] === hash)
     .sort((a, b) => PB_RANK.indexOf(a.state.kind) - PB_RANK.indexOf(b.state.kind))[0];
@@ -801,19 +847,19 @@ export function playbackOf(hash) {
 
 /** Calidad de imagen por la fuente del release (2026-11-17), en palabras para alguien no técnico:
  *  [nombre, estrellas de 4, explicación]. */
+/** @type {Record<string, [string, number, string]>} */
 export const QUALITY = {
-  REMUX: [tr('Máster'), 4, tr('REMUX: copia exacta del Blu-ray, sin recomprimir. La mejor imagen y sonido posibles; pesa mucho.')],
-  BluRay: [tr('Blu-ray'), 3, tr('Sacada del Blu-ray y comprimida: muy buena y más liviana.')],
-  'WEB-DL': [tr('Streaming'), 2, tr('WEB-DL: bajada de una plataforma de streaming. La calidad que verías ahí.')],
-  WEBRip: [tr('Streaming'), 2, tr('WEBRip: grabada desde una plataforma de streaming. Casi como WEB-DL.')],
-  HDTV: ['TV', 1, tr('HDTV: grabada de la tele.')],
-  DVDRip: ['DVD', 1, tr('Sacada de un DVD: definición baja.')],
-  CAM: [tr('Cine (cámara)'), 1, tr('CAM / TS: alguien la grabó con una cámara en la sala. Se ve movida y el sonido es malo.')],
+  REMUX: [tr('Máster'), QUALITY_STARS.REMUX, tr('REMUX: copia exacta del Blu-ray, sin recomprimir. La mejor imagen y sonido posibles; pesa mucho.')],
+  BluRay: [tr('Blu-ray'), QUALITY_STARS.BluRay, tr('Sacada del Blu-ray y comprimida: muy buena y más liviana.')],
+  'WEB-DL': [tr('Streaming'), QUALITY_STARS['WEB-DL'], tr('WEB-DL: bajada de una plataforma de streaming. La calidad que verías ahí.')],
+  WEBRip: [tr('Streaming'), QUALITY_STARS.WEBRip, tr('WEBRip: grabada desde una plataforma de streaming. Casi como WEB-DL.')],
+  HDTV: ['TV', QUALITY_STARS.HDTV, tr('HDTV: grabada de la tele.')],
+  DVDRip: ['DVD', QUALITY_STARS.DVDRip, tr('Sacada de un DVD: definición baja.')],
+  CAM: [tr('Cine (cámara)'), QUALITY_STARS.CAM, tr('CAM / TS: alguien la grabó con una cámara en la sala. Se ve movida y el sonido es malo.')],
 };
-/** Para "Mejor imagen": las estrellas; sin dato, entre Streaming y Blu-ray; la de cine, la última. */
-export const qualityRank = (c) => (c.source === 'CAM' ? 0 : QUALITY[c.source]?.[1] ?? 2.5);
+/** @param {Candidate} c */
 export function qualityLine(c) {
-  const q = QUALITY[c.source];
+  const q = c.source ? QUALITY[c.source] : undefined;
   // Sin fuente en el nombre (2026-11-17): se dice por qué falta la calidad, en gris y chico.
   const unknown = el('button', { id: `cat-qinfo-${c.info_hash}`, type: 'button', class: 'cat-quality-unknown',
     title: tr('Calidad sin dato: el nombre del torrent no dice de dónde salió el video (Blu-ray, streaming, TV o cámara de cine), así que no se puede saber la calidad de imagen.\nNombre: {release_name}', { release_name: c.release_name }) },
@@ -822,13 +868,17 @@ export function qualityLine(c) {
     q ? el('span', { class: 'cat-quality-q', title: tr('Calidad de imagen: {a}', { a: q[2] }) }, icon('monitor', 13),
       el('span', { class: 'cat-stars', role: 'img', 'aria-label': tr('{a} de 4', { a: q[1] }) }, [1, 2, 3, 4].map((i) => el('i', { class: i <= q[1] ? 'on' : '' }, '★'))), q[0]) : unknown);
 }
-/** ¿Entra en el disco de descargas? (2026-11-17). Sin dato del espacio libre, sí. */
-export const fits = (c) => view.freeBytes == null || !(fileBytes(c) > view.freeBytes);
+/** ¿Entra en el disco de descargas? (2026-11-17). Sin dato del espacio libre, sí.
+ *  @param {Candidate} c @returns {boolean}
+ */
+export const fits = (c) => view.freeBytes == null || !((fileBytes(c) ?? 0) > view.freeBytes);
 
 /** Una opción (2026-11-17, diseño de design/opciones-final.html): a la izquierda peso, calidad de
  *  imagen y si no entra; al medio el veredicto (o testear / testeando / nadie respondió / lo que
  *  hace la reproducción) con la gente debajo; a la derecha bajar de fondo y ▶. Quieto 2 s sobre la
- *  fila, todos los datos del torrent. */
+ *  fila, todos los datos del torrent.
+ *  @param {Candidate} c @param {boolean} [best]
+ */
 export function optionRow(c, best = false) {
   const hash = c.info_hash;
   const bg = bgText(c);
@@ -838,7 +888,7 @@ export function optionRow(c, best = false) {
   const live = rowsOf(hash).find((e) => e.live)?.live ?? null;
   const scraped = counted.get(hash);
   const busy = counting.has(hash);
-  const q = QUALITY[c.source];
+  const q = c.source ? QUALITY[c.source] : undefined;
   const tip = [`${c.release_name}: ${[c.resolution, q?.[0]].filter(Boolean).join(' · ')}`, c.file_name && tr('Archivo: {file_name}', { file_name: c.file_name }), c.is_pack && tr('Pack: varios episodios en un torrent'), tr('Fuentes: {a}{b}', { a: c.addons.join(' + '), b: c.sites.length ? ` (${c.sites.join(', ')})` : '' })].filter(Boolean).join('\n');
   const hdrTip = c.hdr.map((x) => HDR_TIP[x]).filter(Boolean).join('\n');
   const checked = checkedBy(c);
@@ -860,7 +910,7 @@ export function optionRow(c, best = false) {
   const seedsTip = skipped.has(hash) && !scraped ? (skipped.get(hash) === 'dead'
     ? tr('Sin testear: los trackers y la fuente dan 0 seeders y 0 leechers (casi seguro muerto).')
     : tr('Sin testear a fondo: quedó fuera de las {TOP} mejores según la prueba rápida y los trackers.', { TOP }))
-    : scraped && !dead ? tr('Testeado: {seeds} seeders (archivo completo) de {peers} conectados{a}. Al reproducir suelen aparecer algunos más.{b}', { seeds: scraped.seeds, peers: scraped.peers, a: c.seeders != null ? tr(' (los trackers anuncian {seeders}, sin verificar)', { seeders: c.seeders }) : '', b: scraped.incoming > 0 ? tr(' {incoming} se conectaron solos (entrantes).', { incoming: scraped.incoming }) : '' })
+    : scraped && !dead ? tr('Testeado: {seeds} seeders (archivo completo) de {peers} conectados{a}. Al reproducir suelen aparecer algunos más.{b}', { seeds: scraped.seeds, peers: scraped.peers, a: c.seeders != null ? tr(' (los trackers anuncian {seeders}, sin verificar)', { seeders: c.seeders }) : '', b: (scraped.incoming ?? 0) > 0 ? tr(' {incoming} se conectaron solos (entrantes).', { incoming: scraped.incoming }) : '' })
       : quickTip ? quickTip
       : live ? tr('Seeders vistos al analizarlo: {seeds} ({peers} conectados).', { seeds: live.seeds, peers: live.peers })
         : checked === 'trackers' ? tr('{TRACKERS_TIP} {seeders} seeders, {a} leechers.', { TRACKERS_TIP, seeders: c.seeders, a: c.leechers ?? 0 })
@@ -872,13 +922,13 @@ export function optionRow(c, best = false) {
     ? tr('Nadie respondió: la red conoce {peers} direcciones de peers con este torrent, pero ninguna contestó. Pueden estar apagadas o llenas, o tu router y el de ellos tienen el puerto cerrado. No quiere decir que esté muerto: probá de nuevo en un rato o elegí otra.', { peers: scraped.peers })
     : tr('Nadie lo comparte: no apareció nadie con este torrent. Casi seguro está muerto.');
   // "Mejor opción": testeada, fluida segura (B8: lo probable no se recomienda), que entre en el disco y no sea de cine.
-  const confirmed = best && (state.side.flow?.mode === 'torbox' || (state.side.deep?.status === 'done' && isSafeBest(c)));
+  const confirmed = best && (side().flow?.mode === 'torbox' || (side().deep?.status === 'done' && isSafeBest(c)));
   const main = pbStatus ? statusPill(pb, pbStatus)
     : bg ? el('span', { class: `cat-speed bg-${bg.cls}`, title: bg.tip ?? '', role: 'status' }, bg.text)
     // El núcleo prueba de a tandas: los que todavía no arrancaron esperan su lugar (2026-11-17).
     : (busy && !partial) || (quickBusy && !qLive) ? el('span', { class: 'cat-waiting', role: 'status' }, el('span', { class: 'cat-waiting-dot', 'aria-hidden': 'true' }), tr('En espera…'))
-    : busy ? testingPill(hash, partial, false)
-    : quickBusy ? testingPill(hash, qLive, true)
+    : busy ? testingPill(hash, /** @type {Count} */ (partial), false)
+    : quickBusy ? testingPill(hash, /** @type {Count} */ (qLive), true)
     : dead ? el('span', { class: 'cat-failed' },
       el('span', { class: 'cat-failed-msg', title: failedTip, tabindex: 0 }, icon('ban', 14), scraped.peers ? tr('Nadie respondió') : tr('Nadie lo comparte')),
       el('button', { id: `cat-retry-${hash}`, class: 'cat-retry', onclick: () => reanalyze([hash]) }, tr('Reintentar')))
@@ -899,7 +949,7 @@ export function optionRow(c, best = false) {
         hasResStep() || fitsNet(c) || c.size_bytes == null ? null : el('span', { class: 'cat-tag cat-heavy', title: tr('Pide ~{a} Mbps: más de lo que da tu conexión', { a: Math.round(mbpsOf(c)) }) }, tr('Puede cortarse')),
         // Por TorBox ya se eligió en los pasos: el badge solo informa por torrent (2026-11-18).
         failedBefore.has(hash) && !pbStatus ? el('span', { class: 'cat-tag cat-failed-before', title: tr('Esta opción ya falló al reproducirse en esta compu (sin video, archivo roto o el reproductor no la abrió). Va al final de la lista.') }, tr('Falló antes')) : null,
-        inTorbox.has(hash) && state.side?.flow?.mode !== 'torbox' ? el('span', { class: 'cat-tag cat-torbox', title: tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Este ya lo tiene bajado: se ve al instante y sin depender de los seeds, sin bajar nada a tu Mac.') }, 'TorBox') : null,
+        inTorbox.has(hash) && sideOf()?.flow?.mode !== 'torbox' ? el('span', { class: 'cat-tag cat-torbox', title: tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Este ya lo tiene bajado: se ve al instante y sin depender de los seeds, sin bajar nada a tu Mac.') }, 'TorBox') : null,
         langTags(c, confirmed)),
       qualityLine(c),
       big ? el('span', { class: 'cat-nofit', title: tr('No entra en el disco: pesa {a} y en el disco de descargas quedan {b} libres. Se cortaría a mitad: liberá espacio o elegí una más liviana.', { a: humanBytes(fileBytes(c)), b: humanBytes(view.freeBytes) }) },
@@ -913,7 +963,9 @@ export function optionRow(c, best = false) {
 }
 
 /** Bajar de fondo (círculo chico) y ▶ (2026-11-17). Con `acts` (lo que falta saber del idioma), van en una cápsula
- *  junto al ▶ (2026-11-18). Reproduciéndose o bajando: Detener. */
+ *  junto al ▶ (2026-11-18). Reproduciéndose o bajando: Detener.
+ *  @param {Candidate} c @param {HTMLElement[]} [acts]
+ */
 export function playButtons(c, acts = []) {
   const hash = c.info_hash, loading = bgLoads.has(hash), busy = starting.has(hash);
   const pb = playbackOf(hash);
@@ -944,7 +996,9 @@ export function playButtons(c, acts = []) {
     acts.length ? el('span', { class: 'cat-dock' }, el('span', { class: 'cat-dock-acts' }, acts), el('span', { class: 'cat-dock-div', 'aria-hidden': 'true' }), play) : play);
 }
 
-/** Cancelar mientras carga (2026-11-18): corta los pasos y, si el núcleo ya arrancó, lo detiene conservando lo bajado. */
+/** Cancelar mientras carga (2026-11-18): corta los pasos y, si el núcleo ya arrancó, lo detiene conservando lo bajado.
+ *  @param {string} hash @param {PlaybackRow|undefined} pb
+ */
 function cancelPlay(hash, pb) {
   starting.delete(hash);
   closeWizard();
@@ -954,10 +1008,12 @@ function cancelPlay(hash, pb) {
 }
 
 /** Estado de la reproducción de una opción, en grande (2026-11-16): ícono (o barras que se mueven
- *  si se está viendo), el texto y, si va bajando, la barra de lo bajado. */
+ *  si se está viendo), el texto y, si va bajando, la barra de lo bajado.
+ *  @param {PlaybackRow|undefined} pb @param {string} text
+ */
 export function statusPill(pb, text) {
   const k = pb?.state.kind ?? 'preparing';
-  const ic = { paused: 'pause', 'download-paused': 'pause', background: 'download', failed: 'ban', 'ask-after-close': 'pause' }[k];
+  const ic = /** @type {Record<string, string>} */ ({ paused: 'pause', 'download-paused': 'pause', background: 'download', failed: 'ban', 'ask-after-close': 'pause' })[k];
   const lead = k === 'playing' ? el('span', { class: 'cat-eq', 'aria-hidden': 'true' }, el('i'), el('i'), el('i'))
     : ic ? icon(ic, 15) : el('span', { class: 'cat-deep-spin small', 'aria-hidden': 'true' });
   const progress = pb && !pb.stream && ['playing', 'background', 'paused', 'download-paused'].includes(k) ? pb.progress ?? 0 : null;
@@ -970,6 +1026,7 @@ export function statusPill(pb, text) {
  *  (análisis profundo); 'trackers' = chequeados en los trackers al cargar las opciones (lo hace el
  *  núcleo solo, siempre); null = solo lo que dice la fuente. */
 export const TRACKERS_TIP = tr('Chequeado recién en los trackers al cargar las opciones: más fiel que lo que dice la fuente.');
+/** @param {Candidate} c */
 export const checkedBy = (c) => (counted.has(c.info_hash) ? 'deep' : trackersWin(c) ? 'trackers' : null);
 
 /** Qué filas ya se mostraron y en qué orden, por video y grupo abierto (2026-11-18). Vive acá y no en el DOM:
@@ -982,9 +1039,9 @@ const shown = { at: '', order: new Map() };
 export function renderStreamsOnly() {
   const box = $('#cat-streams');
   if (!box) return;
-  const rows = () => [...box.querySelectorAll('.cat-opt[data-hash]')];
+  const rows = () => /** @type {HTMLElement[]} */ ([...box.querySelectorAll('.cat-opt[data-hash]')]);
   const before = new Map(rows().map((n) => [n.dataset.hash, { top: n.getBoundingClientRect().top, seeds: n.querySelector('.cat-people')?.textContent, testing: !!n.querySelector('.cat-testing:not(.quick)') }]));
-  const prevBest = box.querySelector('.cat-opt.best')?.dataset.hash;
+  const prevBest = /** @type {HTMLElement|null} */ (box.querySelector('.cat-opt.best'))?.dataset.hash;
   view.libByHash = new Map();
   for (const e of state.library.values()) {
     const list = view.libByHash.get(e.info_hash);
@@ -992,7 +1049,7 @@ export function renderStreamsOnly() {
   }
   view.renderCal = healthCalibration(state.library.values());
   try { renderStreamsBody(box); } finally { view.libByHash = view.renderCal = null; }
-  const at = `${state.side?.videoId}|${view.openRes}`;
+  const at = `${sideOf()?.videoId}|${view.openRes}`;
   if (shown.at !== at) { shown.at = at; shown.order.clear(); }
   const order = new Map(rows().map((n, i) => [n.dataset.hash, i]));
   const prevOrder = new Map(shown.order);
@@ -1019,7 +1076,7 @@ export function renderStreamsOnly() {
       if (n.classList.contains('best') && prevBest && prevBest !== hash) fx.set(`best|${hash}`, now);
     }
     // Las filas se recrean en cada redibujo: el efecto sigue donde iba (delay negativo).
-    for (const [kind, target, cls, ms] of [['flash', n.querySelector('.cat-people'), 'flash', 900], ['best', n, 'new-best', 1500], ['reveal', n.querySelector('.cat-verdict'), 'reveal', 1000]]) {
+    for (const [kind, target, cls, ms] of /** @type {[string, HTMLElement|null, string, number][]} */ ([['flash', n.querySelector('.cat-people'), 'flash', 900], ['best', n, 'new-best', 1500], ['reveal', n.querySelector('.cat-verdict'), 'reveal', 1000]])) {
       const t = fx.get(`${kind}|${hash}`);
       if (t === undefined || !target) continue;
       if (now - t > ms) { fx.delete(`${kind}|${hash}`); continue; }
@@ -1031,7 +1088,9 @@ export function renderStreamsOnly() {
   }
 }
 /** Festejo de un test que dio "Fluida" (2026-11-17): un brillo verde y papelitos que saltan del ícono.
- *  Van en el panel (la lista se recrea en cada redibujo). */
+ *  Van en el panel (la lista se recrea en cada redibujo).
+ *  @param {HTMLElement} row
+ */
 export function celebrate(row) {
   const list = $('#cat-side');
   const ic = row.querySelector('.cat-verdict .cat-health-ic');
@@ -1053,31 +1112,41 @@ export const fx = new Map();
 
 /** Opciones del video por resolución (respetan los filtros), en el orden de `RES_ORDER`. */
 export function groupsOf(u = state.update) {
-  const list = u.candidates.filter(passesFilters);
+  const list = /** @type {StreamsUpdate} */ (u).candidates.filter(passesFilters);
+  /** @type {Map<string, Candidate[]>} */
   const groups = new Map(RES_ORDER.map((r) => [r, []]));
-  for (const c of list) groups.get(resKey(c)).push(c);
+  for (const c of list) /** @type {Candidate[]} */ (groups.get(resKey(c))).push(c);
   return groups;
 }
-/** La resolución más baja siguiente que tenga opciones ("Otras" no cuenta: SD o sin dato), o null. */
+/** La resolución más baja siguiente que tenga opciones ("Otras" no cuenta: SD o sin dato), o null.
+ *  @param {string} res @param {Map<string, Candidate[]>} [groups] @returns {string|null}
+ */
 export function lowerRes(res, groups = groupsOf()) {
-  return RES_ORDER.slice(RES_ORDER.indexOf(res) + 1).find((r) => r !== 'other' && groups.get(r).length) ?? null;
+  return RES_ORDER.slice(RES_ORDER.indexOf(res) + 1).find((r) => r !== 'other' && groups.get(r)?.length) ?? null;
 }
-/** Abre un grupo de resolución (uno a la vez; '' = todos cerrados), sin scroll (2026-11-17). */
+/** Abre un grupo de resolución (uno a la vez; '' = todos cerrados), sin scroll (2026-11-17).
+ *  @param {string} r
+ */
 export function openGroup(r) {
   view.openRes = r;
   view.shownRows = PAGE_ROWS;
   renderStreamsOnly();
 }
 /** Todas las opciones sin separar por calidad (TorBox): de 4K a "Otras" y, dentro de cada una, el orden de
- *  `sortOptions` (calidad de imagen y peso). */
+ *  `sortOptions` (calidad de imagen y peso).
+ *  @param {Candidate[]} cands
+ */
 export const flatSorted = (cands) => sortOptions(cands).list;
 /** La única que se recomienda ("Mejor opción") o se elige sola ("Elegí la mejor"): testeada a fondo,
- *  fluida segura (lo probable no), que entre en el disco y no sea de cine. */
+ *  fluida segura (lo probable no), que entre en el disco y no sea de cine.
+ *  @param {Candidate} c @returns {boolean}
+ */
 export function isSafeBest(c) {
   const h = health(c);
   return counted.get(c.info_hash)?.reached === true && h?.level === 0 && !h.probable && fits(c) && c.source !== 'CAM';
 }
 
+/** @param {HTMLElement} box */
 export function renderStreamsBody(box) {
   const u = state.update;
   const body = $('#cat-side');
@@ -1091,17 +1160,17 @@ export function renderStreamsBody(box) {
   // Pasos antes de la lista (2026-11-18): buscando → torrent/TorBox → ¿latino? → calidad.
   const step = flowStep();
   if (step) { box.append(step); if (body) body.scrollTop = scroll; return; }
-  const r = view.openRes;
+  const r = /** @type {string} */ (view.openRes);
   const groups = groupsOf(u);
   // Sin paso de calidad (TorBox, "Ver todas las opciones"): una sola lista con todas las calidades, cada fila con la suya.
   const flat = !hasResStep();
-  const cands = flat ? [...groups.values()].flat() : groups.get(r);
+  const cands = flat ? [...groups.values()].flat() : /** @type {Candidate[]} */ (groups.get(/** @type {string} */ (r)));
   const n = cands.length;
   const head = optionsHead();
-  const f = state.side.flow;
+  const f = side().flow;
   // Mientras corre el análisis profundo, el borde de la lista gira (2026-11-16).
-  const analyzing = state.side.deep?.status === 'run';
-  box.append(...[crumbs(), head && el('div', { class: 'cat-sticky' }, head),
+  const analyzing = side().deep?.status === 'run';
+  box.append(.../** @type {Node[]} */ ([crumbs(), head && el('div', { class: 'cat-sticky' }, head),
     el('section', { class: `cat-group open ${analyzing ? 'analyzing' : ''}`, id: `cat-group-${flat ? 'all' : r}`, 'aria-busy': analyzing ? 'true' : null,
       style: analyzing ? `--group-phase:-${Date.now() % 4000}ms` : null },
     el('div', { class: 'cat-group-head', id: `cat-res-${r}` },
@@ -1112,34 +1181,36 @@ export function renderStreamsBody(box) {
       // Analizando (2026-11-17): solo el panel con su avance y "Detener"; sin filas (eran decenas de
       // animaciones a la vez). Al terminar, el resultado y la lista ya ordenada.
       const gp = flat ? null : groupPanel(r);
-      if (!flat && (state.side.tests.run?.res === r || state.side.tests.stopping?.res === r)) return gp;
+      if (!flat && (side().tests.run?.res === r || side().tests.stopping?.res === r)) return gp;
       // Las que todavía se están probando de fondo no se muestran hasta terminar (2026-11-17): se
       // movían y cambiaban sin parar; aparecen ya ordenadas con su resultado.
       const probing = cands.filter((c) => quickRunning.has(c.info_hash) && !quick.has(c.info_hash) && !counting.has(c.info_hash));
       const flatList = flat ? flatSorted(cands) : null;
-      const { list: sortedAll, best } = flat ? { list: flatList, best: flatList.find(isMatch) ?? null } : sortOptions(cands);
+      const { list: sortedAll, best } = flatList ? { list: flatList, best: flatList.find(isMatch) ?? null } : sortOptions(cands);
       const sorted = probing.length ? sortedAll.filter((c) => !probing.includes(c)) : sortedAll;
       // "Buscar sub ES" de la barra (por torrent; en TorBox lo hace "Seguir buscando"): lee de a una solo hasta
       // encontrar una que sirva (sub ES y, si pidió latino, latino confirmado).
       const wantLat = f.lat && !f.latOff;
       const byHash = new Map(sorted.map((c) => [c.info_hash, c]));
-      if (!flat) readUntil(sorted.map((c) => c.info_hash), (h) => hasSpanishSubs(h) === true && (!wantLat || latOf(byHash.get(h)) === 'lat'));
+      if (!flat) readUntil(sorted.map((c) => c.info_hash), (h) => hasSpanishSubs(h) === true && (!wantLat || latOf(/** @type {Candidate} */ (byHash.get(h))) === 'lat'));
       // Solo las primeras (2026-11-17): con 150+ filas redibujar todas trababa la compu; las de
       // abajo casi nunca se eligen y siguen probándose igual.
       const rest = sorted.length - view.shownRows;
-      if (!n) return [gp, sortRow(), noMatches(u.candidates.some((c) => flat || resKey(c) === r)), moreRow()];
+      if (!n) return [gp, sortRow(), noMatches(/** @type {StreamsUpdate} */ (u).candidates.some((c) => flat || resKey(c) === r)), moreRow()];
       return [gp, sortRow(flat ? null : subsScanChip(sorted)), el('ul', { class: 'cat-options' }, sorted.slice(0, view.shownRows).map((c) => optionRow(c, c === best))),
         rest > 0 ? el('button', { id: 'cat-more-rows', class: 'cat-more-rows', onclick: () => { view.shownRows += PAGE_ROWS; renderStreamsOnly(); } },
           tr('Mostrar {a} más · quedan {rest}', { a: Math.min(PAGE_ROWS, rest), rest })) : null,
         probing.length ? el('p', { class: 'cat-probing', role: 'status' }, el('span', { class: 'cat-res-spin', 'aria-hidden': 'true' }),
           tr('Probando {n} más de fondo: aparecen acá cuando terminan', { n: probing.length })) : null,
         moreRow(), flat ? null : lowerSuggestion(r, groups)];
-    })())].filter(Boolean));
+    })())].filter(Boolean)));
   if (body) body.scrollTop = scroll;
 }
 
 /** Lista vacía (2026-11-18): si la resolución tiene torrents que los filtros esconden, lo dice y ofrece sacarlos;
- *  si no tiene ninguno, no hay nada que destrabar. */
+ *  si no tiene ninguno, no hay nada que destrabar.
+ *  @param {boolean} hasCandidates
+ */
 function noMatches(hasCandidates) {
   if (!hasCandidates) return el('p', { class: 'pop-empty', role: 'status' }, tr('No se encontraron torrents.'));
   return el('p', { class: 'pop-empty', role: 'status' }, tr('No hay opciones con estos filtros. '),
@@ -1150,24 +1221,26 @@ function noMatches(hasCandidates) {
 function clearFilters() {
   view.onlyHdr = false;
   view.onlyEs = false;
-  const f = state.side.flow;
+  const f = side().flow;
   if (f?.lat) f.latOff = true;
   if (f?.mode === 'torbox') f.mode = 'torrent';
   renderStreamsOnly();
 }
 
 /** Al final de la lista (2026-11-17, antes en el panel de arriba): con el test de esa resolución
- *  terminado y ninguna fluida, ofrece la siguiente más baja que tenga opciones. */
+ *  terminado y ninguna fluida, ofrece la siguiente más baja que tenga opciones.
+ *  @param {string} res @param {Map<string, Candidate[]>} groups
+ */
 export function lowerSuggestion(res, groups) {
-  const d = state.side.deep;
+  const d = side().deep;
   if (d?.status !== 'done' || d.res !== res) return null;
-  if (groups.get(res).some((c) => counted.get(c.info_hash)?.reached && health(c)?.level === 0)) return null;
+  if (/** @type {Candidate[]} */ (groups.get(res)).some((c) => counted.get(c.info_hash)?.reached && health(c)?.level === 0)) return null;
   const lower = lowerRes(res, groups);
   if (!lower) return null;
-  const fluid = groups.get(lower).filter((c) => health(c)?.shown === 0).length;
+  const fluid = /** @type {Candidate[]} */ (groups.get(lower)).filter((c) => health(c)?.shown === 0).length;
   const go = () => {
     openGroup(lower);
-    reanalyze(groups.get(lower).map((c) => c.info_hash), lower);
+    reanalyze(/** @type {Candidate[]} */ (groups.get(lower)).map((c) => c.info_hash), lower);
   };
   return el('div', { class: 'cat-lower', role: 'status' },
     el('span', { class: 'cat-radar', 'aria-hidden': 'true' }),
@@ -1177,18 +1250,24 @@ export function lowerSuggestion(res, groups) {
 }
 
 /** Grupos de resolución (2026-11-15): 4K, 1440p (2026-11-16), 1080p, 720p y "Otras" (SD y sin dato). */
+/** @type {string[]} */
 export const RES_ORDER = ['2160p', '1440p', '1080p', '720p', 'other'];
-export const resKey = (c) => (RES_ORDER.includes(c.resolution) ? c.resolution : 'other');
-export const resLabel = (r) => ({ '2160p': '4K', '1440p': '2K', other: tr('Otras') }[r] ?? r);
+/** @param {Candidate} c @returns {string} */
+export const resKey = (c) => (c.resolution && RES_ORDER.includes(c.resolution) ? c.resolution : 'other');
+/** @param {string} r @returns {string} */
+export const resLabel = (r) => (/** @type {Record<string, string>} */ ({ '2160p': '4K', '1440p': '2K', other: tr('Otras') }))[r] ?? r;
 /** Reproducir: lo agrega a la biblioteca y lo prepara con el flujo de siempre (audio → subtítulos → reproductor).
- *  Se queda en el catálogo (pedido 2026-11-15). `torbox`: se abre con el link de TorBox en vez del motor. */
+ *  Se queda en el catálogo (pedido 2026-11-15). `torbox`: se abre con el link de TorBox en vez del motor.
+ *  @param {string} hash @param {HTMLButtonElement} btn @param {boolean} [torbox]
+ */
 export async function playOption(hash, btn, torbox = false) {
   btn.disabled = true;
   starting.set(hash, null);
+  /** @type {boolean|undefined} */
   let started = false;
   try {
     notePrediction(hash, evidenceOf(hash));
-    const [row] = await api.catalogAdd(state.side.kind, state.side.videoId, [hash]);
+    const [row] = await api.catalogAdd(side().kind, side().videoId, [hash]);
     if (row && starting.has(hash)) {
       starting.set(hash, row.key);
       // TorBox (2026-11-17): video en línea, sin motor ni fila de reproducción. Sus pistas se leen de TorBox antes de
@@ -1199,19 +1278,20 @@ export async function playOption(hash, btn, torbox = false) {
       }
       const fresh = rowsOf(hash).find((e) => e.key === row.key) ?? row;
       // El último paso: por TorBox (en línea) o por el motor. Si se canceló mientras tanto, no arranca.
+      /** @param {import('./types.js').PlayerKind|null} player @param {{code: string, aid: number|null}|null} audio */
       const start = async (player, audio) => {
         if (!starting.has(hash)) return false;
         if (torbox) {
           setStatus('Pidiéndole el video a TorBox…');
-          await api.playTorbox(state.side.videoId, hash, player, audio);
+          await api.playTorbox(side().videoId, hash, player, audio);
         } else await api.play(row.key, player, null, audio);
         setStatus('Cargando…');
         return true;
       };
       if (starting.has(hash)) {
         // El audio ya se eligió en los pasos del video: original o latino (si está confirmado en las pistas).
-        const lat = state.side.flow?.lat;
-        started = await play(row.key, btn, fresh, originalAudio(state.side.meta?.country, state.side.details?.details?.original_language), subsStep(hash, torbox), start,
+        const lat = side().flow?.lat;
+        started = await play(row.key, btn, fresh, originalAudio(side().meta?.country, side().details?.details?.original_language), subsStep(hash, torbox), start,
           lat === true ? 'lat' : lat === false ? 'original' : null);
       }
     }
@@ -1223,7 +1303,9 @@ export async function playOption(hash, btn, torbox = false) {
   if (state.update) renderStreamsOnly();
 }
 
-/** Suelta el spinner de ▶ cuando esa reproducción arrancó, falló o se cerró. */
+/** Suelta el spinner de ▶ cuando esa reproducción arrancó, falló o se cerró.
+ *  @param {PlaybackRow} row
+ */
 export function onPlaybackRow(row) {
   if (PB_STARTING.has(row.state.kind)) return;
   for (const [hash, key] of starting) if (key === row.key) starting.delete(hash);

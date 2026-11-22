@@ -1,3 +1,4 @@
+// @ts-check
 // Subtítulos de una opción (2026-11-18, docs/mockups/subs-dropdown/ELEGIDA.md): el paso "Subtítulos" del panel de
 // Reproducir (`openWizard`). Son de cada torrent: nada se busca antes de que el usuario los pida, al reproducir, con
 // clic derecho → Subtítulos… o con "Cambiar subtítulo" mientras se ve (se carga en el mpv abierto).
@@ -16,19 +17,36 @@ import { el, icon, setStatus } from './dom.js';
 import { t as tr } from './i18n.js';
 import { closeWizard, openWizard } from './audio-picker.js';
 import { rowsOf } from './catalog-options.js';
-import { quickAnalyze } from './catalog-tests.js';
-import { showError, state } from './catalog-state.js';
+import { quickAnalyze, side, sideOf } from './catalog-tests.js';
+import { showError } from './catalog-state.js';
+
+/** @typedef {import('./types.js').SubtitleFound} SubtitleFound */
+/** @typedef {import('./types.js').SubtitlePicks} SubtitlePicks */
+/** @typedef {import('./types.js').PremiumQuota} PremiumQuota */
+/** @typedef {import('./dom.js').ElChild} ElChild */
+/** @typedef {{open: boolean, status: 'idle'|'loading'|'ready'|'empty'|'error', results: SubtitleFound[], busy: string|null}} Premium */
+/** Lo de una opción en el paso de subtítulos (ver `byHash`). `read`: lectura de sus pistas.
+ *  @typedef {{phase: 'reading'|'searching'|'done'|null, read: 'reading'|'done'|'failed'|'skipped'|null, error: string|null, torbox: boolean,
+ *   found: SubtitleFound[]|null, picks: SubtitlePicks|null, timing?: boolean, premium: Premium}} HashSubs */
+/** El paso abierto: `next` sigue con Reproducir; `live` es el id de la reproducción donde se carga lo elegido.
+ *  @typedef {{hash: string, next: ((value?: unknown) => void)|null, live: number|null}} Active */
+/** "Buscar sub ES" del video: null | 'running' | 'paused' | 'found' | 'none'. @typedef {null|'running'|'paused'|'found'|'none'} ScanState */
 
 /** Por opción (info hash) del video abierto: {phase: 'reading'|'searching'|'done', read: lectura de sus pistas
  *  ('reading'|'done'|'failed'|'skipped'), torbox, found: [SubtitleFound] | null,
  *  picks: {chosen, tried} | null, premium: {open, status, results, busy}}. Se vacía al cambiar de video. */
+/** @type {Map<string, HashSubs>} */
 const byHash = new Map();
+/** @type {string|null|undefined} */
 let forVideo = null;
 /** Progreso de la búsqueda por video: {downloading, done, total} (lo emite el núcleo). */
+/** @type {Map<string, {downloading: boolean, done: number, total: number}>} */
 export const subsProgress = new Map();
 /** Cuota de Premium (una para la app): {has_key, remaining, per_day, resets_at}. */
+/** @type {PremiumQuota|null} */
 let quota = null;
 /** El paso abierto: {hash, next (Reproducir: seguir), live (id de la reproducción: cargarlo en mpv)}. */
+/** @type {Active|null} */
 let active = null;
 /** Avisa al panel que redibuje el paso (lo que muestra cambió). */
 const changed = () => document.dispatchEvent(new Event('subs-changed'));
@@ -37,24 +55,30 @@ const changed = () => document.dispatchEvent(new Event('subs-changed'));
 const READ_WAIT_MS = 120_000;
 /** Lo que se espera a que llegue la fila actualizada después de leerlas por TorBox. */
 const ROW_WAIT_MS = 3_000;
+/** @type {Record<string, [string, (f: SubtitleFound) => string]>} */
 const LEVEL = {
   exact: [tr('perfecto'), () => tr('Hecho para este mismo archivo')],
   release: [tr('muy probable'), (f) => f.spec !== 'sin release' ? tr('Mismo release: grupo {head} y {spec}', { head: f.head, spec: f.spec }) : tr('Mismo release: grupo {head}', { head: f.head })],
   fps: [tr('probable'), () => tr('Mismos fps y misma duración que el video')],
 };
+/** @type {Record<string, string>} */
 const VARIANT = { latino: tr('Latinoamérica'), spain: tr('España'), unknown: tr('Español') };
 
+/** @param {string} hash @returns {HashSubs} */
 function subsOf(hash) {
-  if (forVideo !== state.side?.videoId) { byHash.clear(); forVideo = state.side?.videoId; }
-  return byHash.get(hash) ?? byHash.set(hash, { phase: null, read: null, error: null, torbox: false, found: null, picks: null, premium: { open: false, status: 'idle', results: [], busy: null } }).get(hash);
+  if (forVideo !== sideOf()?.videoId) { byHash.clear(); forVideo = sideOf()?.videoId; }
+  return byHash.get(hash) ?? /** @type {HashSubs} */ (byHash.set(hash, { phase: null, read: null, error: null, torbox: false, found: null, picks: null, premium: { open: false, status: 'idle', results: [], busy: null } }).get(hash));
 }
 /** Los en español que trae esa opción; `null` = todavía no se leyeron sus pistas. */
+/** @param {string} hash */
 const natives = (hash) => rowsOf(hash).find((e) => e.native_subs)?.native_subs ?? null;
+/** @param {number} ms */
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Lee las pistas (audio y subtítulos) de la opción de donde se va a ver, si todavía no se leyeron: `torbox` = su
  *  link de TorBox (el video ya está en sus servidores); si no, la lectura corta del enjambre. Termina siempre: leídas,
  *  falló o se cortó ("No esperar"). Lo usan el paso de audio (TorBox) y el de subtítulos. */
+/** @param {string} hash @param {boolean} torbox @returns {Promise<void>} */
 export async function readTracks(hash, torbox) {
   const s = subsOf(hash);
   if (natives(hash) != null || s.read) return;
@@ -64,11 +88,11 @@ export async function readTracks(hash, torbox) {
   s.error = null;
   let wait = READ_WAIT_MS;
   if (torbox) {
-    try { await api.catalogTorboxTracks(state.side.kind, state.side.videoId, hash); wait = ROW_WAIT_MS; } catch (e) { s.error = e?.message ?? String(e); wait = 0; }
+    try { await api.catalogTorboxTracks(side().kind, side().videoId, hash); wait = ROW_WAIT_MS; } catch (e) { s.error = /** @type {Partial<import('./types.js').UiError>|null} */ (e)?.message ?? String(e); wait = 0; }
   } else quickAnalyze([hash]);
   for (const end = Date.now() + wait; natives(hash) == null && Date.now() < end && s.read === 'reading';) await sleep(250);
   // Sin leer (falló, se pasó el tiempo o "No esperar"): no se reintenta solo; el botón de la fila dice por qué.
-  const skipped = s.read === 'skipped';
+  const skipped = /** @type {HashSubs['read']} */ (s.read) === 'skipped';
   s.read = natives(hash) != null ? 'done' : skipped ? null : 'failed';
   if (s.read === 'failed' && !s.error) s.error = torbox ? tr('TorBox no devolvió sus pistas a tiempo') : tr('Nadie compartió el comienzo del video a tiempo (pocos seeds)');
   changed();
@@ -78,18 +102,23 @@ export async function readTracks(hash, torbox) {
  *  orden de la lista y por el enjambre, solo hasta encontrar una que sirva (`satisfied`: sub ES y, si se pidió, latino
  *  confirmado); saltea las que fallan y se pausa con el mismo botón (`toggleSubsScan`). Lo leído queda guardado por
  *  torrent. */
+/** @type {{video: string|null|undefined, busy: boolean, manual: ScanState}} */
 let auto = { video: null, busy: false, manual: null };
+/** @param {string} hash */
 export const isReading = (hash) => subsOf(hash).read === 'reading';
 /** Por qué no se pudo leer esa opción, o null. */
+/** @param {string} hash @returns {string|null} */
 export const readError = (hash) => (subsOf(hash).read === 'failed' ? subsOf(hash).error : null);
-const forVideo$ = () => { if (auto.video !== state.side?.videoId) auto = { video: state.side?.videoId, busy: false, manual: null }; return auto; };
+const forVideo$ = () => { if (auto.video !== sideOf()?.videoId) auto = { video: sideOf()?.videoId, busy: false, manual: null }; return auto; };
 /** Estado de "Buscar sub ES" del video: null | 'running' | 'paused' | 'found' | 'none'. */
+/** @returns {ScanState} */
 export const subsScan = () => forVideo$().manual;
 export function toggleSubsScan() {
   const a = forVideo$();
   a.manual = a.manual === 'running' ? 'paused' : 'running';
   changed();
 }
+/** @param {string[]} hashes @param {(hash: string) => boolean} satisfied */
 export function readUntil(hashes, satisfied) {
   const a = forVideo$();
   if (a.manual !== 'running') return;
@@ -104,18 +133,21 @@ export function readUntil(hashes, satisfied) {
   });
 }
 /** El botón de la fila: lee esa opción (también si una lectura anterior falló). */
+/** @param {string} hash @param {boolean} [torbox] */
 export function readSubsNow(hash, torbox = true) {
   const s = subsOf(hash);
   if (s.read === 'failed') s.read = null;
   readTracks(hash, torbox);
 }
 /** Corta la espera de una lectura (el botón de la fila, otro clic): queda como no leída y se puede volver a pedir. */
+/** @param {string} hash */
 export function stopReading(hash) {
   const s = subsOf(hash);
   if (s.read === 'reading') s.read = 'skipped';
 }
 
 /** Primer paso: nativos de ESE archivo; si trae en español, listo; si no, busca afuera. */
+/** @param {string} hash @param {boolean} torbox */
 async function prepare(hash, torbox) {
   const s = subsOf(hash);
   if (s.phase) return;
@@ -126,14 +158,15 @@ async function prepare(hash, torbox) {
 }
 
 /** Busca en las fuentes gratis para esa opción (su release ordena). */
+/** @param {string} hash */
 async function search(hash) {
   const s = subsOf(hash);
-  const video = state.side?.videoId;
+  const video = /** @type {string} */ (sideOf()?.videoId);
   s.phase = 'searching';
   changed();
   try {
     const got = await api.catalogSubtitles(video, hash, 'es');
-    if (state.side?.videoId !== video) return;
+    if (sideOf()?.videoId !== video) return;
     s.found = got.found;
     s.picks = got.picks;
     s.timing = got.timing_known;
@@ -144,17 +177,18 @@ async function search(hash) {
 
 /** Usar ese subtítulo: al reproducir esta opción (y, si Reproducir lo esperaba, sigue) o, mientras se ve, ya en el
  *  mpv abierto. `path`: el archivo bajado (no hace falta para una pista del video). */
+/** @param {string} hash @param {string} key @param {string|null} [path] */
 async function useSub(hash, key, path = null) {
   const s = subsOf(hash);
   const step = active;
   try {
     if (step?.live) {
       await api.playbackSubtitle(step.live, key, path);
-      s.picks = { chosen: key, tried: [...(s.picks?.tried ?? []), s.picks?.chosen].filter((k) => k && k !== key) };
+      s.picks = { chosen: key, tried: [...(s.picks?.tried ?? []), s.picks?.chosen].filter(/** @param {string|null|undefined} k @returns {k is string} */ (k) => !!k && k !== key) };
       setStatus(tr('Subtítulo cambiado en el reproductor.'));
       return closeWizard();
     }
-    s.picks = await api.catalogSubtitleUse(state.side.videoId, hash, key);
+    s.picks = await api.catalogSubtitleUse(side().videoId, hash, key);
     setStatus(tr('Listo: se usa ese subtítulo al reproducir.'));
     if (step?.next) return step.next(true);
   } catch (e) { showError(e); }
@@ -166,25 +200,27 @@ async function loadQuota() {
   changed();
 }
 
+/** @param {string} hash */
 async function premiumSearch(hash) {
   const p = subsOf(hash).premium;
   p.status = 'loading';
   changed();
   try {
-    p.results = await api.catalogPremiumSearch(state.side.videoId, hash);
+    p.results = await api.catalogPremiumSearch(side().videoId, hash);
     p.status = p.results.length ? 'ready' : 'empty';
   } catch { p.status = 'error'; }
   changed();
 }
 
 /** "Usar · 1": baja ese (gasta 1) y queda elegido. */
+/** @param {string} hash @param {SubtitleFound} r */
 async function premiumUse(hash, r) {
   const s = subsOf(hash);
   if (s.premium.busy) return;
   s.premium.busy = r.key;
   changed();
   try {
-    const got = await api.catalogPremiumUse(state.side.videoId, hash, { id: Number(r.key.split(':')[1]), release_name: r.release_name, latino: r.latino, level: r.level });
+    const got = await api.catalogPremiumUse(side().videoId, hash, { id: Number(r.key.split(':')[1]), release_name: r.release_name, latino: r.latino, level: r.level });
     s.found = got.found;
     s.picks = got.picks;
     s.timing = got.timing_known;
@@ -201,9 +237,10 @@ async function premiumUse(hash, r) {
 }
 
 /** Copia uno ya bajado a Descargas (`<título> (subtítulos)`) y abre la carpeta. */
+/** @param {SubtitleFound} f */
 async function saveSub(f) {
-  const [, s, e] = (state.side.videoId ?? '').split(':');
-  const title = `${state.side.name ?? tr('Video')}${s ? ` S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : ''}`;
+  const [, s, e] = (side().videoId ?? '').split(':');
+  const title = `${side().name ?? tr('Video')}${s ? ` S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : ''}`;
   try {
     await api.saveSubtitles(title, [{ path: f.path, name: `${f.language.toUpperCase()} - ${f.release_name}` }]);
     setStatus(tr('Subtítulo guardado en Descargas.'));
@@ -212,6 +249,7 @@ async function saveSub(f) {
 
 /** El paso "Subtítulos" de una opción para el panel de Reproducir: `render(next)`. `torbox`: se ve por TorBox (las
  *  pistas se leen de ahí); `live`: id de la reproducción en curso (lo elegido se carga en su mpv). */
+/** @param {string} hash @param {boolean} torbox @param {number|null} [live] @returns {(next: ((value?: unknown) => void)|null) => ElChild} */
 export function subsStep(hash, torbox, live = null) {
   return (next) => {
     active = { hash, next: live ? null : next, live };
@@ -223,6 +261,7 @@ export function subsStep(hash, torbox, live = null) {
 
 /** Clic derecho → Subtítulos… (sin reproducir) o "Cambiar subtítulo" mientras se ve (`live`): el mismo panel, solo
  *  con este paso. */
+/** @param {string} hash @param {boolean} torbox @param {HTMLElement} anchor @param {number|null} [live] */
 export function openSubs(hash, torbox, anchor, live = null) {
   const s = subsStep(hash, torbox, live);
   openWizard(anchor, [{ id: 'subs', title: live ? tr('Cambiar subtítulo') : tr('Subtítulos'), render: () => s(null) }]).then(() => { active = null; });
@@ -236,6 +275,8 @@ function quotaText() {
 }
 
 /** Una fila: clic = usar (`key` null = solo se usa con su botón). `end`: lo de la derecha. */
+/** @param {{id: string, key: string|null, head: string, spec: string, latino?: boolean, src?: string, title: string, end: (Node|null)[], onPick?: (() => unknown)|null}} item
+ *  @param {SubtitlePicks|null} picks */
 function subItem({ id, key, head, spec, latino, src, title, end, onPick }, picks) {
   const on = key && picks?.chosen === key;
   const tried = key && !on && picks?.tried.includes(key);
@@ -250,17 +291,20 @@ function subItem({ id, key, head, spec, latino, src, title, end, onPick }, picks
 }
 
 /** Palabra de cuánto calza (perfecto / muy probable / probable), con el porqué en el tooltip; nada si no calza. */
+/** @param {SubtitleFound} f */
 function fitWord(f) {
   const lvl = LEVEL[f.level];
   return lvl ? el('span', { class: `cat-sub-fit ${f.level}`, title: lvl[1](f), 'aria-label': `${lvl[0]}: ${lvl[1](f)}` }, lvl[0]) : null;
 }
 /** Si ninguno calza, por qué (sin inventar niveles): otro release, o no se saben los fps y la duración del archivo. */
+/** @param {SubtitleFound[]} list @param {boolean|undefined} timing */
 function noFitLine(list, timing) {
   if (!list.length || list.some((f) => LEVEL[f.level])) return null;
   return el('div', { class: 'cat-sub-none' }, timing ? tr('Ninguno es de este release ni de sus mismos fps y duración')
     : tr('Sin fps ni duración de este archivo: solo se reconoce el mismo release'));
 }
 
+/** @param {string} hash @param {SubtitleFound} f @param {number} i @param {SubtitlePicks|null} picks */
 function foundItem(hash, f, i, picks) {
   return subItem({ id: `cat-sub-pick-${i}`, key: f.key, head: f.head, spec: f.language === 'en' ? `${f.spec} · EN` : f.spec, latino: f.latino, src: f.provider, title: f.release_name,
     onPick: () => useSub(hash, f.key, f.path), end: [
@@ -269,9 +313,11 @@ function foundItem(hash, f, i, picks) {
     ] }, picks);
 }
 
+/** @param {Node} ico @param {string} text @param {Node} [btn] @param {boolean} [err] */
 const msg = (ico, text, btn, err = false) => el('div', { class: `cat-sub-msg ${err ? 'err' : ''}` }, ico, el('span', {}, text), btn);
 const spin = () => el('span', { class: 'cat-seeds-spin', 'aria-hidden': 'true' });
 
+/** @param {string} hash @param {Premium} p @param {boolean|undefined} timing */
 function premiumBody(hash, p, timing) {
   if (!quota?.has_key) {
     return msg(icon('lock', 14), tr('Necesita tu API key de opensubtitles.com.'), el('button', { id: 'cat-prem-key', type: 'button', class: 'cat-sub-btn',
@@ -283,7 +329,7 @@ function premiumBody(hash, p, timing) {
       el('button', { id: 'cat-prem-retry', type: 'button', class: 'cat-sub-btn', onclick: () => premiumSearch(hash) }, icon('refresh', 12), tr('Reintentar')), true);
   }
   if (p.status === 'empty') {
-    const [, s, e] = state.side.videoId.split(':');
+    const [, s, e] = side().videoId.split(':');
     return msg(icon('info', 14), tr('Tampoco hay en español para {a}. No se gastó ninguna descarga.', { a: s ? `S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : tr('esta película') }));
   }
   const off = quota.remaining === 0;
@@ -293,6 +339,7 @@ function premiumBody(hash, p, timing) {
         onclick: () => !off && premiumUse(hash, r) }, tr('Usar '), el('span', { class: 'cat-sub-cost' }, '· 1'))] }, null)), noFitLine(p.results, timing)];
 }
 
+/** @param {string} hash @param {HashSubs} s */
 function premiumGate(hash, s) {
   const p = s.premium;
   const tried = s.picks?.tried.length ?? 0;
@@ -313,10 +360,13 @@ function premiumGate(hash, s) {
 }
 
 /** Lo que muestra el paso: los tres grupos. `playing`: dentro de Reproducir (suma "Reproducir sin elegir"). */
+/** @param {string} hash @param {boolean} playing */
 function subsBody(hash, playing) {
   const s = subsOf(hash);
   const nat = natives(hash);
+  /** @param {string} t */
   const grp = (t) => el('div', { class: 'cat-sub-grp' }, t);
+  /** @type {(Node|null)[]} */
   const out = [grp(tr('Vienen con el video'))];
   if (s.read === 'reading') {
     out.push(s.torbox ? msg(spin(), tr('Leyendo sus pistas en TorBox…'))
@@ -327,7 +377,7 @@ function subsBody(hash, playing) {
       onPick: () => useSub(hash, n.key), end: [] }, s.picks)));
   } else out.push(el('div', { class: 'cat-sub-none' }, nat ? tr('Este video no trae en español') : tr('Sin confirmar: no se pudieron leer sus pistas')));
   if (s.phase === 'searching') {
-    const p = subsProgress.get(state.side.videoId);
+    const p = subsProgress.get(side().videoId);
     out.push(grp(tr('Encontrados para vos')), msg(spin(), p?.downloading ? tr('Bajando subtítulos · {done} de {total}', { done: p.done, total: p.total }) : tr('Buscando en Wyzie, Subdivx y OpenSubtitles.org…')));
   } else if (s.found) {
     out.push(grp(tr('Encontrados para vos')), ...(s.found.length ? s.found.map((f, i) => foundItem(hash, f, i, s.picks))

@@ -34,7 +34,11 @@ const ACTION_ERROR: u32 = 3;
 /// BEP 15: como máximo ~74 hashes por scrape (límite de tamaño de paquete).
 const MAX_HASHES_PER_PACKET: usize = 74;
 /// Reenvío si no hubo respuesta (UDP pierde paquetes). El plazo total lo pone el llamador.
+#[cfg(not(test))]
 const RETRANSMIT_EVERY: Duration = Duration::from_millis(2_000);
+/// En tests, corto: las pruebas de reenvío no esperan 2 s reales (UDP real, sin tiempo pausado).
+#[cfg(test)]
+const RETRANSMIT_EVERY: Duration = Duration::from_millis(40);
 
 /// Contadores de un hash según UN tracker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -327,7 +331,7 @@ mod tests {
             }
         });
         let hashes: Vec<InfoHash> = (0..100u8).map(|i| hash(i, 0)).collect();
-        let r = scrape_batch(&hashes, &[url], Duration::from_millis(1500)).await;
+        let r = scrape_batch(&hashes, &[url], Duration::from_millis(300)).await;
         assert_eq!(r.len(), MAX_HASHES_PER_PACKET);
         assert_eq!(r[&hashes[73]].seeders, 73);
     }
@@ -338,9 +342,9 @@ mod tests {
         let mute = UdpSocket::bind("127.0.0.1:0").await.unwrap();
         let url = format!("udp://{}/announce", mute.local_addr().unwrap());
         let started = std::time::Instant::now();
-        let r = scrape_batch(&[hash(1, 1)], &[url], Duration::from_millis(1500)).await;
+        let r = scrape_batch(&[hash(1, 1)], &[url], Duration::from_millis(100)).await;
         assert!(r.is_empty());
-        assert!(started.elapsed() < Duration::from_millis(2500));
+        assert!(started.elapsed() < Duration::from_millis(1000));
     }
 }
 

@@ -1,3 +1,4 @@
+// @ts-check
 // Actividad de fondo (2026-11-14, rev. 2 del usuario: "una bubble minimal con el último comando
 // o proceso que se está haciendo"; 2026-11-15: va en la barra inferior y abre un panel grande con
 // dos vistas: "Resumen" (lo amigable, filtrable por tipo) y "Detallado" (el log del núcleo,
@@ -10,10 +11,19 @@
 import { api } from './api.js';
 import { t as tr } from './i18n.js';
 
+/** Elemento hijo que tiene que existir. @param {Element} parent @param {string} sel @returns {HTMLElement} */
+const $in = (parent, sel) => /** @type {HTMLElement} */ (parent.querySelector(sel));
+
 const KEEP = 300;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/** @typedef {'info'|'warn'|'error'} Level */
+/** @typedef {'hidden'|'mini'|'line'|'open'} PanelState */
+/** @typedef {'friendly'|'detail'} View */
+/** @typedef {{key: string, li: HTMLElement, n: number, text: string, area: string, level: string}} Line */
+
 // Íconos por área (trazo 2, 24×24).
+/** @type {Record<string, [string, string]>} */
 const AREA = {
   analisis: [tr('Análisis'), '<path d="M4.6 18.5a9 9 0 1 1 14.8 0"/><path d="M12 14.5l4.2-5"/>'],
   motor: ['Torrent', '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>'],
@@ -26,7 +36,9 @@ const AREA = {
   general: [tr('General'), '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 2"/>'],
   error: [tr('Error'), '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor"/>'],
 };
+/** @param {string} paths @param {number=} size @returns {string} */
 const svg = (paths, size = 14) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+/** @type {Record<string, string>} */
 const ICON = {
   pin: '<path d="M9 4h6l-1 5 3 3H7l3-3z"/><path d="M12 15v5"/>',
   clear: '<path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13"/>',
@@ -35,6 +47,7 @@ const ICON = {
   refresh: '<path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5"/><path d="M20 4v4.5h-4.5"/>',
 };
 
+/** @template {keyof HTMLElementTagNameMap} K @param {K} tag @param {Record<string, string>=} attrs @param {string=} html @returns {HTMLElementTagNameMap[K]} */
 function h(tag, attrs = {}, html = '') {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -43,6 +56,7 @@ function h(tag, attrs = {}, html = '') {
   if (html) n.innerHTML = html;
   return n;
 }
+/** @param {Date} d @returns {string} */
 const hhmmss = (d) => d.toLocaleTimeString('es-AR', { hour12: false });
 
 const root = h('div', { id: 'act', class: 'act', 'data-state': 'hidden' });
@@ -57,7 +71,9 @@ const panel = h('div', { class: 'act-panel', id: 'act-panel', role: 'region', 'a
 const head = h('div', { class: 'act-h' });
 const title = h('span', { class: 'act-title', id: 'act-title' }, tr('Actividad'));
 const headSum = h('span', { class: 'act-sum' });
+/** @param {string} label @param {string} icon @param {Record<string, string>=} extra */
 const btn = (label, icon, extra = {}) => h('button', { type: 'button', class: 'act-b', 'aria-label': label, 'data-tip': label, ...extra }, svg(ICON[icon]));
+/** @param {string} id @param {string} label */
 const tabBtn = (id, label) => h('button', { type: 'button', id, class: 'act-tab', role: 'tab' }, label);
 const tabFriendly = tabBtn('act-tab-friendly', tr('Resumen'));
 const tabDetail = tabBtn('act-tab-detail', tr('Detallado'));
@@ -80,14 +96,16 @@ const live = h('div', { class: 'sr', 'aria-live': 'polite' });
 panel.append(head, list, detail, newChip);
 root.append(line, panel, live);
 // En la barra inferior, a la derecha del estado (2026-11-15).
-document.querySelector('.statusbar').append(root);
+/** @type {HTMLElement} */ (document.querySelector('.statusbar')).append(root); // sin importar dom.js: dom.js importa este módulo
 
+/** @type {PanelState} */
 let state = 'hidden';
 let pinned = false;
 let busy = '';
 let unseen = 0;
 let lastSaidAt = 0;
 let lastAt = 0;
+/** @type {ReturnType<typeof setTimeout>|undefined} */
 let settleT;
 const RECENT_MS = 8000;
 
@@ -100,9 +118,10 @@ function settle() {
   renderLine(); // pasados los 8 s, del último mensaje al resumen de lo que corre
   if (!busy && recent) settleT = setTimeout(settle, RECENT_MS - (Date.now() - lastAt) + 50);
 }
-/** @type {{key: string, li: HTMLElement, n: number, text: string, area: string, level: string}[]} */
+/** @type {Line[]} */
 let lines = [];
 
+/** @param {PanelState} s */
 function setState(s) {
   if (state === s) return;
   state = s;
@@ -132,6 +151,7 @@ function renderLine() {
 }
 
 const atBottom = () => list.scrollHeight - list.scrollTop - list.clientHeight < 12;
+/** @param {boolean} force */
 function stickToBottom(force) {
   if (force || atBottom()) {
     list.scrollTop = list.scrollHeight;
@@ -142,6 +162,7 @@ function stickToBottom(force) {
 }
 
 /** Anuncio para lectores de pantalla: solo resúmenes, como mucho uno cada 4 s. */
+/** @param {string} text */
 function say(text) {
   const now = Date.now();
   if (now - lastSaidAt < 4000) return;
@@ -151,12 +172,12 @@ function say(text) {
 
 /**
  * Agrega (o actualiza) una línea.
- * @param {{text: string, area?: string, level?: 'info'|'warn'|'error', key?: string, at?: Date, announce?: boolean}} l
+ * @param {{text: string, area?: string, level?: Level, key?: string, at?: Date, announce?: boolean}} l
  * `key`: misma clave = mismo trabajo (p. ej. la velocidad en vivo): se actualiza en su lugar.
  */
 function push(l) {
   const level = l.level ?? 'info';
-  const area = level === 'error' ? 'error' : (l.area in AREA ? l.area : 'general');
+  const area = level === 'error' ? 'error' : (l.area && l.area in AREA ? l.area : 'general');
   const key = l.key ?? `${area}|${l.text}`;
   const at = l.at ?? new Date();
   const lastLine = lines[lines.length - 1];
@@ -165,9 +186,9 @@ function push(l) {
   if (same) {
     same.n = l.key ? same.n : same.n + 1;
     Object.assign(same, { text: l.text, level, area });
-    same.li.querySelector('time').textContent = hhmmss(at);
-    same.li.querySelector('.act-msg').textContent = l.text;
-    same.li.querySelector('.act-rep').textContent = same.n > 1 ? `×${same.n}` : '';
+    $in(same.li, 'time').textContent = hhmmss(at);
+    $in(same.li, '.act-msg').textContent = l.text;
+    $in(same.li, '.act-rep').textContent = same.n > 1 ? `×${same.n}` : '';
     same.li.className = `act-l ${level}`;
     same.li.dataset.area = area;
     // La línea compacta muestra lo último que se movió.
@@ -183,7 +204,7 @@ function push(l) {
     li.append(t, ic, msg, h('span', { class: 'act-rep' }));
     list.append(li);
     lines.push({ key, li, n: 1, text: l.text, area, level });
-    while (lines.length > KEEP) lines.shift().li.remove();
+    while (lines.length > KEEP) lines.shift()?.li.remove();
     if (state !== 'open') unseen++;
     lastAt = Date.now();
     if (l.announce || level !== 'info') say(l.text);
@@ -196,6 +217,7 @@ function push(l) {
 }
 
 /** Resumen de lo que está corriendo ('' = nada): spinner + texto de la línea compacta. */
+/** @param {string} text */
 function setBusy(text) {
   if (busy === text) return;
   busy = text;
@@ -204,11 +226,14 @@ function setBusy(text) {
 }
 
 // ---------- vistas: Resumen (amigable) y Detallado (log del núcleo) ----------
+/** @type {View} */
 let view = 'friendly';
 const LEVELS = [['all', tr('Todos los niveles')], ['warn', tr('Avisos y errores')], ['info', tr('Info')], ['debug', tr('Debug / verbose')]];
 /** Nivel de una línea del log de tracing ("2026-…Z  INFO streamonte_core::…: mensaje"). */
+/** @param {string} l */
 const levelOf = (l) => (/\b(ERROR|WARN)\b/.test(l) ? 'warn' : /\b(DEBUG|TRACE)\b/.test(l) ? 'debug' : 'info');
 
+/** @param {View} v */
 function setView(v) {
   view = v;
   tabFriendly.setAttribute('aria-selected', String(v === 'friendly'));
@@ -217,6 +242,7 @@ function setView(v) {
   detail.hidden = v !== 'detail';
   refreshBtn.hidden = v !== 'detail';
   clearBtn.hidden = v !== 'friendly';
+  /** @type {string[][]} */
   const opts = v === 'friendly'
     ? [['all', tr('Todos los tipos')], ...Object.entries(AREA).filter(([a]) => lines.some((x) => x.area === a)).map(([a, [name]]) => [a, name])]
     : LEVELS;
@@ -230,7 +256,7 @@ function applyFilter() {
     for (const x of lines) x.li.hidden = filter.value !== 'all' && x.area !== filter.value;
     stickToBottom(true);
   } else {
-    for (const li of detail.children) li.hidden = filter.value !== 'all' && li.dataset.level !== filter.value;
+    for (const li of /** @type {HTMLElement[]} */ ([...detail.children])) li.hidden = filter.value !== 'all' && li.dataset.level !== filter.value;
     detail.scrollTop = detail.scrollHeight;
   }
 }
@@ -238,7 +264,9 @@ function applyFilter() {
 /** Trae el log del núcleo; las líneas seguidas con el mismo mensaje se agrupan en una con ×N. */
 async function loadDetail() {
   const raw = await api.logsTail(2000).catch(() => []);
+  /** @param {string} l */
   const msg = (l) => l.replace(/^\S+\s+/, ''); // sin la fecha: así se ven iguales las repetidas
+  /** @type {{line: string, n: number}[]} */
   const groups = [];
   for (const l of raw) {
     const last = groups[groups.length - 1];
@@ -255,12 +283,12 @@ async function loadDetail() {
 
 /** "Descargar logs": el núcleo copia sus logs y esto (lo que se ve en Resumen) a Descargas. */
 async function exportLogs() {
-  const friendly = lines.map((x) => `${x.li.querySelector('time').textContent} [${AREA[x.area][0]}] ${x.text}${x.n > 1 ? ` ×${x.n}` : ''}`).join('\n');
+  const friendly = lines.map((x) => `${$in(x.li, 'time').textContent} [${AREA[x.area][0]}] ${x.text}${x.n > 1 ? ` ×${x.n}` : ''}`).join('\n');
   try {
     const dir = await api.exportLogs(friendly);
     push({ area: 'general', text: tr('Logs guardados en {dir}', { dir }) });
   } catch (e) {
-    push({ area: 'general', level: 'error', text: e?.message ?? String(e) });
+    push({ area: 'general', level: 'error', text: /** @type {{message?: string}} */ (e)?.message ?? String(e) });
   }
 }
 
@@ -270,6 +298,7 @@ filter.addEventListener('change', applyFilter);
 refreshBtn.addEventListener('click', loadDetail);
 exportBtn.addEventListener('click', exportLogs);
 
+/** @param {boolean} refocus */
 function close(refocus) {
   setState('line');
   settle();
@@ -294,7 +323,7 @@ root.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && state === 'open') { ev.stopPropagation(); close(true); }
 });
 document.addEventListener('pointerdown', (ev) => {
-  if (state === 'open' && !pinned && !root.contains(ev.target)) close(false);
+  if (state === 'open' && !pinned && !root.contains(/** @type {Node} */ (ev.target))) close(false);
 }, true);
 
 export const activity = { push, setBusy };

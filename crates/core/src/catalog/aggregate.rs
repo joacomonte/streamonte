@@ -325,6 +325,42 @@ enum Msg {
 /// la tarea que corre esto (el `JoinSet` aborta las suyas al soltarse) y una tarea que entra en
 /// pánico cuenta como addon fallido en vez de dejar la consulta colgada.
 pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
+    run_inner(ctx, emit, true).await
+}
+
+/// Igual que `run` pero sin pedir los títulos a TMDB (esa consulta lee el almacén de claves del
+/// SO y sale a la red): para pruebas herméticas.
+pub async fn run_offline(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
+    run_inner(ctx, emit, false).await
+}
+
+/// Lanza el scrape de los hashes que todavía no se scrapearon; `true` si lanzó uno.
+fn spawn_fresh_scrape(
+    tasks: &mut tokio::task::JoinSet<Msg>,
+    merged: &Merged,
+    scraped: &mut HashSet<InfoHash>,
+    ctx: &RunCtx,
+) -> bool {
+    let fresh: Vec<InfoHash> = merged
+        .hashes()
+        .into_iter()
+        .filter(|h| scraped.insert(*h))
+        .collect();
+    if fresh.is_empty() {
+        return false;
+    }
+    let mut trackers = ctx.trackers.clone();
+    trackers.extend(merged.trackers());
+    trackers.sort();
+    trackers.dedup();
+    let timeout = ctx.scrape_timeout;
+    tasks.spawn(async move {
+        Msg::Scrape(crate::trackers::scrape_batch(&fresh, &trackers, timeout).await)
+    });
+    true
+}
+
+async fn run_inner(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync, fetch_names: bool) {
     let mut tasks = tokio::task::JoinSet::new();
     let mut addon_of: HashMap<tokio::task::Id, usize> = HashMap::new();
     let mut statuses: Vec<AddonStatus> = ctx
@@ -357,7 +393,7 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
     // Películas: títulos y año de TMDB en paralelo con los addons (no demora los primeros
     // resultados); cuando llegan, la lista se rearma sin los de otra película.
     if let VideoId::Movie(imdb) = &ctx.video {
-        if imdb.starts_with("tt") {
+        if fetch_names && imdb.starts_with("tt") {
             let (http, imdb) = (ctx.http.clone(), imdb.clone());
             tasks.spawn(async move {
                 Msg::Names(super::tmdb::names(&http, &imdb, NAMES_TIMEOUT).await)
@@ -437,21 +473,16 @@ pub async fn run(ctx: RunCtx, emit: impl Fn(StreamsUpdate) + Send + Sync) {
                     }
                     Msg::Names(want) => merged.set_want(want),
                 }
+                // Sin tareas pendientes no se espera al próximo tick: antes de terminar se lanza el
+                // scrape de los hashes que llegaron después del último (si no, nunca se scrapean).
+                if tasks.is_empty() && !spawn_fresh_scrape(&mut tasks, &merged, &mut scraped, &ctx) {
+                    break;
+                }
             }
             _ = tick.tick() => {
                 if dirty {
                     // Scrape de los hashes nuevos, en tandas a medida que llegan (FR-48: los 40 con seeders).
-                    let fresh: Vec<InfoHash> = merged.hashes().into_iter().filter(|h| scraped.insert(*h)).collect();
-                    if !fresh.is_empty() {
-                        let mut trackers = ctx.trackers.clone();
-                        trackers.extend(merged.trackers());
-                        trackers.sort();
-                        trackers.dedup();
-                        let timeout = ctx.scrape_timeout;
-                        tasks.spawn(async move {
-                            Msg::Scrape(crate::trackers::scrape_batch(&fresh, &trackers, timeout).await)
-                        });
-                    }
+                    spawn_fresh_scrape(&mut tasks, &merged, &mut scraped, &ctx);
                     flush(&merged, &statuses, false);
                     dirty = false;
                 } else if tasks.is_empty() {

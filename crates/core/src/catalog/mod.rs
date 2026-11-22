@@ -950,6 +950,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn rango_de_fechas() {
+        let d = |y, m, day| chrono::NaiveDate::from_ymd_opt(y, m, day).unwrap();
+        // Bordes incluidos: desde == hasta es válido.
+        assert_eq!(
+            date_range("2024-03-01", Some("2024-03-01")).unwrap(),
+            (d(2024, 3, 1), d(2024, 3, 1))
+        );
+        // Espacios alrededor se ignoran.
+        assert_eq!(
+            date_range(" 2020-01-01 ", Some(" 2020-12-31 ")).unwrap(),
+            (d(2020, 1, 1), d(2020, 12, 31))
+        );
+        // Sin `to` (o vacío): hasta hoy.
+        let today = chrono::Local::now().date_naive();
+        assert_eq!(date_range("2000-01-01", None).unwrap().1, today);
+        assert_eq!(date_range("2000-01-01", Some("  ")).unwrap().1, today);
+        // Invertido: error.
+        assert!(date_range("2024-03-02", Some("2024-03-01")).is_err());
+        // Formato inválido (en cualquiera de los dos).
+        for bad in ["01/03/2024", "2024-13-01", "2024-02-30", "", "x"] {
+            assert!(date_range(bad, Some("2024-12-31")).is_err(), "{bad}");
+        }
+        assert!(date_range("2024-01-01", Some("mañana")).is_err());
+    }
+
+    #[test]
     fn busqueda_lo_mas_votado_primero() {
         let p = |id: &str, name: &str, kind| MetaPreview {
             id: id.into(),

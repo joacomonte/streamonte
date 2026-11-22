@@ -1,3 +1,4 @@
+// @ts-check
 // Catálogo (F4b, spec 09 §11): Buscar / Explorar → al tocar una película o serie se abre un panel
 // a la derecha (pedido 2026-11-15). Película: sus opciones. Serie: Serie › Temporada › Episodio ›
 // opciones, como migas de pan. Cada opción: análisis profundo, cargar en background o Reproducir.
@@ -19,7 +20,20 @@ import { safeGet, safeSet, showError, state, view } from './catalog-state.js';
 import { onSwarmEvent } from './catalog-tests.js';
 import { isTouring } from './welcome.js';
 
+/** @typedef {import('./types.js').CatalogItem} CatalogItem */
+/** @typedef {import('./types.js').SearchPerson} SearchPerson */
+/** @typedef {import('./types.js').MediaKind} MediaKind */
+/** @typedef {import('./types.js').LibraryRow} LibraryRow */
+/** @typedef {import('./catalog-state.js').PickedPerson} PickedPerson */
+/** @typedef {ReturnType<typeof setTimeout>} Timer */
+
+/** Mensaje de un rechazo del núcleo (`UiError`) o de cualquier otro error. @param {unknown} e */
+const errText = (e) => t(/** @type {{message?: string}|null|undefined} */ (e)?.message ?? String(e));
+/** El buscador. */
+const qInput = () => /** @type {HTMLInputElement} */ ($('#cat-q'));
+
 let searchSeq = 0;
+/** @type {Timer|null} */
 let searchTimer = null;
 
 /** Una lista nueva (búsqueda o filtros) arranca desde arriba. */
@@ -30,12 +44,12 @@ export const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)')
 /** Se pide recién cuando se deja de tipear un momento (2026-11-16: no un pedido por letra). */
 const SEARCH_WAIT_MS = 900;
 function onQueryInput() {
-  clearTimeout(searchTimer);
+  clearTimeout(searchTimer ?? undefined);
   searchSeq++; // lo que esté en vuelo ya no se muestra
   // Escribir de nuevo saca al actor o director elegido y vuelve a buscar por texto.
   const hadPerson = !!state.person;
   state.person = null;
-  const raw = $('#cat-q').value;
+  const raw = qInput().value;
   $('#cat-q-clear').hidden = !raw;
   // Un magnet pegado en el buscador va al mismo camino que "Pegados" (2026-11-20), no se busca como texto.
   if (/^\s*magnet:\?/i.test(raw)) { findPeople(''); pasteMagnet(raw.trim()); return; }
@@ -48,14 +62,15 @@ function onQueryInput() {
 
 /** Vuelve al catálogo con los filtros, arriba de todo. */
 function clearSearch() {
-  $('#cat-q').value = '';
+  qInput().value = '';
   onQueryInput();
   toTop();
 }
 
 /** Magnet pegado en el buscador: se agrega a Pegados; con TorBox, además se abre lo que TorBox sabe de él. */
+/** @param {string} raw */
 async function pasteMagnet(raw) {
-  $('#cat-q').value = '';
+  qInput().value = '';
   $('#cat-q-clear').hidden = true;
   if (state.results || state.searching) { state.results = null; state.searching = false; render(); }
   try {
@@ -66,6 +81,7 @@ async function pasteMagnet(raw) {
   } catch (e) { showError(e); }
 }
 
+/** @param {string} q */
 async function search(q) {
   const seq = ++searchSeq;
   setStatus(t('Buscando "{q}"…', { q }));
@@ -85,17 +101,26 @@ async function search(q) {
 /** Sugerencias desde 3 letras, un rato después de la última tecla; una respuesta vieja no pisa a la nueva. */
 const PEOPLE_MIN = 3;
 const PEOPLE_WAIT_MS = 250;
+/** @type {SearchPerson[]} */
 let people = [];
 let peopleSeq = 0;
+/** @type {Timer|null} */
 let peopleTimer = null;
+/** Buscando sugerencias (2026-11-22): la lista muestra filas de carga en vez de quedar vacía. */
+let peopleLoading = false;
+/** @param {string} q */
 function findPeople(q) {
-  clearTimeout(peopleTimer);
+  clearTimeout(peopleTimer ?? undefined);
   const seq = ++peopleSeq;
-  if (q.length < PEOPLE_MIN) { if (people.length) { people = []; renderPeople(); } return; }
+  const was = peopleLoading;
+  peopleLoading = q.length >= PEOPLE_MIN;
+  if (!peopleLoading) { if (people.length || was) { people = []; renderPeople(); } return; }
+  if (!was) renderPeople();
   peopleTimer = setTimeout(async () => {
     const list = await api.catalogPeople(q).catch(() => []);
     if (seq !== peopleSeq) return;
     people = list;
+    peopleLoading = false;
     renderPeople();
   }, PEOPLE_WAIT_MS);
 }
@@ -105,9 +130,15 @@ const closePeople = () => findPeople('');
  *  desenfoca (y la lista no se cierra) antes del clic. */
 function renderPeople() {
   const box = $('#cat-who');
-  const input = $('#cat-q');
-  const open = people.length > 0 && document.activeElement === input && !!input.value.trim();
+  const input = qInput();
+  const open = (peopleLoading || people.length > 0) && document.activeElement === input && !!input.value.trim();
   box.hidden = !open;
+  box.toggleAttribute('aria-busy', open && peopleLoading);
+  if (open && peopleLoading) {
+    box.replaceChildren(...Array.from({ length: 3 }, () => el('li', { class: 'cat-who-row cat-who-skel', 'aria-hidden': 'true' },
+      el('span', { class: 'skel cat-who-face' }), el('span', { class: 'cat-who-name' }, el('span', { class: 'skel line' }), el('span', { class: 'skel line short' })))));
+    return;
+  }
   box.replaceChildren(...(open ? people.map((p, i) => el('li', { style: `--i:${i}` },
     el('button', { id: `cat-person-${p.id}`, type: 'button', class: 'cat-who-row', onpointerdown: (e) => e.preventDefault(), onclick: () => pickPerson(p) },
       p.photo ? el('img', { src: p.photo, alt: '', width: 40, height: 40, loading: 'lazy' }) : el('span', { class: 'cat-who-ph' }, icon('user', 18)),
@@ -117,10 +148,11 @@ function renderPeople() {
 }
 
 /** Elegido un actor o director: lo que actuó o dirigió, sin los filtros (se esconden), con su píldora arriba. */
-async function pickPerson(p) {
-  clearTimeout(searchTimer);
+/** @param {PickedPerson} p */
+export async function pickPerson(p) {
+  clearTimeout(searchTimer ?? undefined);
   closePeople();
-  $('#cat-q').value = '';
+  qInput().value = '';
   $('#cat-q-clear').hidden = true;
   state.person = { id: p.id, name: p.name, photo: p.photo, role: p.role };
   state.results = null;
@@ -149,20 +181,23 @@ function renderPersonChip() {
   const sig = p ? `${p.role}-${p.id}` : '';
   if (chip.dataset.sig === sig) return; // la misma persona: no repite la entrada
   chip.dataset.sig = sig;
-  chip.replaceChildren(...(p ? [
+  chip.replaceChildren(.../** @type {HTMLElement[]} */ (p ? [
     p.photo ? el('img', { src: p.photo, alt: '', width: 28, height: 28 }) : null,
     el('span', {}, t(p.role === 'director' ? 'Dirigidas por {name}' : 'Con {name}', { name: p.name })),
     el('button', { id: 'cat-person-clear', type: 'button', class: 'cat-person-x', 'aria-label': t('Volver al catálogo'), onclick: clearSearch }, icon('close', 12)),
-  ] : []));
+  ].filter(Boolean) : []));
 }
 
 // ---------- tarjetas ----------
 /** Cards ya armadas, por título: re-renderizar no recrea los <img> (no recargan ni parpadean). */
+/** @type {Map<string, HTMLElement>} */
 const cards = new Map();
 /** Entrada de cada tarjeta (2026-11-20, como la web): se da vuelta como una figurita apenas asoma, escalonada con las
  *  que entran juntas, y el puntaje cuenta hasta su valor. Las que llegan scrolleando, una entrada más corta. Solo
  *  transform y opacity; con movimiento reducido, nada. Mientras la bienvenida tapa la portada, esperan. */
+/** @type {Set<Element>} */
 const waiting = new Set();
+/** @type {WeakMap<object, number>} */
 const counting = new WeakMap();
 const seen = new IntersectionObserver((entries) => {
   if (isTouring()) return;
@@ -172,9 +207,10 @@ const seen = new IntersectionObserver((entries) => {
     if (!e.isIntersecting) continue;
     seen.unobserve(e.target);
     waiting.delete(e.target);
-    playEntry(e.target, Math.min(i++, 12), scrolled);
+    playEntry(/** @type {HTMLElement} */ (e.target), Math.min(i++, 12), scrolled);
   }
 });
+/** @param {HTMLElement} card @param {number} i @param {boolean} late */
 function playEntry(card, i, late) {
   card.classList.toggle('late', late);
   card.style.setProperty('--i', String(i));
@@ -183,10 +219,10 @@ function playEntry(card, i, late) {
   setTimeout(() => card.classList.remove('enter', 'late'), (late ? 900 : 2300) + i * 70);
   const text = card.querySelector('.num')?.firstChild;
   const end = Number(text?.nodeValue);
-  if (!(end > 0)) return;
+  if (!text || !(end > 0)) return;
   const start = performance.now() + i * 70 + 500;
   let last = '', wrote = 0;
-  const tick = (now) => {
+  const tick = (/** @type {number} */ now) => {
     const p = Math.min(1, Math.max(0, (now - start) / 700));
     // Solo toca el DOM cuando cambia el número y cada ~60 ms.
     const v = (end * (1 - (1 - p) ** 3)).toFixed(1);
@@ -203,6 +239,7 @@ window.addEventListener('welcome-done', () => {
   setTimeout(() => cat.classList.remove('intro'), 1500);
 });
 
+/** @param {CatalogItem} p */
 function cardFor(p) {
   let card = cards.get(p.id);
   if (!card) {
@@ -219,14 +256,15 @@ function cardFor(p) {
   return card;
 }
 
+/** @param {CatalogItem} p */
 function posterCard(p) {
   // Sin póster (Cinemeta no tiene imagen para muchos títulos nuevos): uno dibujado con el título.
   const hue = [...p.id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
   const noPoster = () => el('div', { class: 'cat-noposter', style: `--hue:${hue}` },
     el('span', { class: 'cat-noposter-title' }, p.name), p.year ? el('span', { class: 'cat-noposter-year' }, p.year) : null);
   // Póster roto → TMDB (si hay key en Ajustes) → uno dibujado.
-  const fallback = async (ev) => {
-    const img = ev.target;
+  const fallback = async (/** @type {Event} */ ev) => {
+    const img = /** @type {HTMLImageElement} */ (ev.target);
     img.onerror = () => img.replaceWith(noPoster());
     const url = await api.catalogPoster(p.id).catch(() => null);
     if (url) img.src = url;
@@ -236,7 +274,8 @@ function posterCard(p) {
     ? el('img', { src: p.poster, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer', onerror: fallback })
     : noPoster();
   const info = el('span', { class: 'cat-card-info', 'aria-hidden': 'true' });
-  let hoverT = null;
+  /** @type {Timer|undefined} */
+  let hoverT;
   return el('button', {
     id: `cat-card-${p.id}`, class: `cat-card ${state.side?.id === p.id ? 'active' : ''}`, 'data-id': p.id,
     onclick: () => openSide(p.kind, p.id, p.name),
@@ -246,7 +285,7 @@ function posterCard(p) {
   },
   // Título y año sobre el póster, con un degradado chico siempre visible (2026-11-16).
   el('span', { class: 'cat-poster' }, img,
-    p.kind === 'movie' && onlyCinema(p.released)
+    p.kind === 'movie' && p.released && onlyCinema(p.released)
       ? el('span', { class: 'cat-cine', title: t('Recién estrenada: probablemente solo haya copias filmadas en el cine') }, icon('film', 11), t('En cines')) : null,
     el('span', { class: 'cat-card-caption' }, el('span', { class: 'cat-card-name' }, p.name),
       el('span', { class: 'cat-card-year' }, p.year,
@@ -256,6 +295,7 @@ function posterCard(p) {
 
 /** Categoría por puntaje de IMDb (2026-11-17, tabla del usuario). Las series puntúan más alto en
  *  IMDb, por eso sus cortes son otros. `[corte película, corte serie, emoji, nombre]`, de mayor a menor. */
+/** @type {[number, number, string, string][]} */
 const RATING_TIERS = [
   [8.5, 9.0, '🎞️', 'Clásico eterno'],
   [8.0, 8.6, '🏆', 'De Óscar'],
@@ -267,6 +307,7 @@ const RATING_TIERS = [
   [4.0, 5.5, '🧩', 'Para fans del género'],
   [-Infinity, -Infinity, '🎉', 'De culto entre amigos'],
 ];
+/** @param {string} kind @param {string|number|null} rating */
 function ratingTier(kind, rating) {
   const r = Number(rating);
   if (!(r > 0)) return null;
@@ -275,6 +316,7 @@ function ratingTier(kind, rating) {
 
 /** Detalles sobre el póster al pasar el mouse (2026-11-16): géneros, puntaje y premios, sobre un degradado a oscuro.
  *  Sale de la ficha (Cinemeta, guardada en la caché de datos). */
+/** @param {HTMLElement} info @param {CatalogItem} p */
 async function fillCardInfo(info, p) {
   info.replaceChildren(el('span', { class: 'skel line' }), el('span', { class: 'skel line' }), el('span', { class: 'skel line short' }));
   const m = await api.catalogMeta(p.kind, p.id).catch(() => null);
@@ -289,18 +331,19 @@ async function fillCardInfo(info, p) {
     api.catalogSeasonRatings(p.id, true).then((r) => seasonsBox.replaceChildren(...seasonMini(r, seasonOutlook(r.status, last)))).catch(() => {});
   }
   // replaceChildren escribe null como texto: se filtran los ausentes.
-  info.replaceChildren(...[
+  info.replaceChildren(.../** @type {HTMLElement[]} */ ([
     m.genres.length ? el('span', { class: 'cat-info-genres' }, m.genres.slice(0, 3).map((g) => el('span', {}, genreName(g)))) : null,
     seasonsBox,
     // Duración solo en películas: en series depende del capítulo.
     el('span', { class: 'cat-info-meta' }, [m.year, m.imdb_rating && `★ ${m.imdb_rating}`, p.kind === 'movie' && m.runtime_min && `${m.runtime_min} min`].filter(Boolean).join(' · ')),
     (() => { const tier = ratingTier(p.kind, m.imdb_rating); return tier ? el('span', { class: 'cat-info-tier' }, `${tier[2]} ${t(tier[3])}`) : null; })(),
-    m.awards ? el('span', { class: 'cat-info-awards' }, icon('award', 13), m.awards) : null].filter(Boolean));
+    m.awards ? el('span', { class: 'cat-info-awards' }, icon('award', 13), m.awards) : null].filter(Boolean)));
 }
 
 /** Resultados de la búsqueda: películas y series juntas, ya ordenadas por el núcleo (lo más popular primero). */
+/** @param {HTMLElement} root */
 function renderResults(root) {
-  const list = state.results.filter((p) => !(state.hideJapanese && (p.excluded || state.excluded.has(p.id))));
+  const list = (state.results ?? []).filter((p) => !(state.hideJapanese && (p.excluded || state.excluded.has(p.id))));
   const empty = state.person ? t('No encontré títulos de {name}.', { name: state.person.name }) : t('Sin resultados para esa búsqueda.');
   root.append(list.length
     ? el('div', { class: 'cat-grid' }, list.map(cardFor))
@@ -325,6 +368,7 @@ function projector() {
 
 // ---------- Fuentes (FR-41) ----------
 async function openSources() {
+  /** @type {HTMLDialogElement} */
   let dlg = $('#dlg-sources');
   if (!dlg) {
     dlg = el('dialog', { id: 'dlg-sources', class: 'dialog wide' });
@@ -348,7 +392,7 @@ async function openSources() {
           const a = await api.catalogAddAddon(input.value);
           setStatus(t('{n} ✓ agregado.', { n: a.name }));
           refresh();
-        } catch (e) { msg.textContent = t(e?.message ?? String(e)); }
+        } catch (e) { msg.textContent = errText(e); }
       } }, t('Agregar'))),
     msg,
     el('div', { class: 'dialog-actions' },
@@ -363,21 +407,30 @@ async function openSources() {
 const PAGE = 20;
 const MIN_YEAR = 1950;
 const thisYear = () => new Date().getFullYear();
+/** @param {Date} d */
 const isoDay = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+/** @param {number} m */
 const monthsAgo = (m) => { const d = new Date(); d.setMonth(d.getMonth() - m); return d; };
 /** Meses hacia atrás que se pueden elegir: hoy, 1…11 meses, después de a 1 año hasta 1950. */
 const BACK_STEPS = [...Array.from({ length: 12 }, (_, i) => i), ...Array.from({ length: thisYear() - MIN_YEAR }, (_, i) => (i + 1) * 12)];
+/** @param {number} m */
 const backLabel = (m) => (m === 0 ? t('hoy') : m < 12 ? t(m === 1 ? 'hace {n} mes' : 'hace {n} meses', { n: m }) : t(m === 12 ? 'hace {n} año' : 'hace {n} años', { n: m / 12 }));
 const VOTE_STEPS = [0, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
+/** @param {number} v */
 const votesLabel = (v) => (v ? t('{n}+ votos', { n: v.toLocaleString(locale()) }) : t('Cualquier cantidad de votos'));
 const LANGS = [['en,es', 'Inglés o español'], ['', 'Cualquier idioma']];
 const KINDS = [['movie', 'Películas', 'film'], ['series', 'Series', 'tv']];
+/** @type {['rating'|'popular', string, string][]} */
 const SORTS = [['rating', 'Mejor puntaje', 'star'], ['popular', 'Más populares', 'flame']];
 const NEEDS_TMDB = 'Key de TMDB: es gratis y en un minuto la tenés. Con ella filtrás por fecha, votos de IMDb, idioma y géneros, y aparecen pósters que faltan.\nClic para cargarla en Ajustes.';
 
 /** Lo que se recuerda entre aperturas (2026-11-16). La primera vez: películas con mejor puntaje de IMDb, del último
  *  año, con 10.000+ votos, en inglés o español, de todos los géneros (como la web). */
+/** @type {{kind: MediaKind, sort: 'popular'|'rating', backFrom: number, backTo: number, minVotes: number, langs: string[], genres: number[]}} */
 const DEFAULTS = { kind: 'movie', sort: 'rating', backFrom: 12, backTo: 0, minVotes: 10000, langs: ['en', 'es'], genres: [] };
+/** @typedef {typeof DEFAULTS & {tmdb: boolean|null, genreList: Record<string, import('./types.js').GenreName[]>, items: CatalogItem[],
+ *   shown: number, skip: number, hasMore: boolean, loading: boolean, error: string|null, gen: number}} Browse */
+/** @type {Browse} */
 const browse = {
   ...structuredClone(DEFAULTS),
   // Hay key de TMDB (se consulta al pedir cada lista nueva). Sin key (2026-11-16) se muestra lo que está en
@@ -390,6 +443,8 @@ const browse = {
 // v2 (2026-11-20): géneros por id de TMDB y sin "documentales" como tipo; lo guardado antes queda afuera.
 const FILTERS_STORE = 'streamonte.catalog.filters.v2';
 /** Valores válidos de cada filtro: algo viejo o roto no rompe la lista. */
+/** `v` viene de JSON.parse del almacenamiento (borde externo): cada chequeo valida su forma.
+ *  @type {Record<string, (v: any) => boolean>} */
 const VALID = {
   kind: (v) => KINDS.some(([k]) => k === v), sort: (v) => SORTS.some(([k]) => k === v),
   backFrom: (v) => BACK_STEPS.indexOf(v) >= 1, backTo: (v) => BACK_STEPS.includes(v), minVotes: (v) => VOTE_STEPS.includes(v),
@@ -397,14 +452,16 @@ const VALID = {
 };
 try {
   const saved = JSON.parse(safeGet(FILTERS_STORE) ?? '{}');
-  for (const k of Object.keys(DEFAULTS)) if (k in saved && VALID[k](saved[k])) browse[k] = saved[k];
+  for (const k of Object.keys(DEFAULTS)) if (k in saved && VALID[k](saved[k])) Object.assign(browse, { [k]: saved[k] });
   if (browse.backTo >= browse.backFrom) browse.backTo = 0;
 } catch { /* guardado ilegible: quedan los de fábrica */ }
-const saveFilters = () => safeSet(FILTERS_STORE, JSON.stringify(Object.fromEntries(Object.keys(DEFAULTS).map((k) => [k, browse[k]]))));
+const saveFilters = () => safeSet(FILTERS_STORE, JSON.stringify(Object.fromEntries(Object.keys(DEFAULTS).map((k) => [k, browse[/** @type {keyof typeof DEFAULTS} */ (k)]]))));
 
 /** Cambios seguidos (géneros, votos) se juntan en un pedido: la lista se pide LOAD_WAIT_MS después del último. */
 const LOAD_WAIT_MS = 400;
+/** @type {Timer|null} */
 let browseTimer = null;
+/** @param {Partial<Browse>} changes */
 function setBrowse(changes) {
   toTop();
   if (changes.kind && changes.kind !== browse.kind) { changes.genres = []; loadGenres(changes.kind); }
@@ -412,7 +469,7 @@ function setBrowse(changes) {
   saveFilters();
   // `gen` invalida lo que esté cargando con el filtro anterior.
   Object.assign(browse, { items: [], shown: 0, skip: 0, hasMore: true, error: null, loading: false, gen: browse.gen + 1 });
-  clearTimeout(browseTimer);
+  clearTimeout(browseTimer ?? undefined);
   browseTimer = setTimeout(() => { browseTimer = null; loadMore(); }, LOAD_WAIT_MS);
   render();
 }
@@ -420,6 +477,7 @@ const resetFilters = () => setBrowse({ minVotes: DEFAULTS.minVotes, langs: [...D
 /** Filtros avanzados que no están en su valor por defecto (el número del botón "Filtros"). */
 const changedFilters = () => Number(browse.minVotes !== DEFAULTS.minVotes) + Number(browse.langs.join(',') !== DEFAULTS.langs.join(',')) + browse.genres.length;
 
+/** @param {MediaKind} kind */
 async function loadGenres(kind) {
   if (browse.genreList[kind] || !browse.tmdb) return;
   const list = await api.catalogGenres(kind).catch(() => null);
@@ -454,7 +512,7 @@ async function loadMore() {
       browse.hasMore = page.has_more && page.items.length > 0;
     } catch (e) {
       if (gen !== browse.gen) return;
-      browse.error = t(e?.message ?? String(e));
+      browse.error = errText(e);
       browse.hasMore = false;
     } finally {
       if (gen === browse.gen) browse.loading = false;
@@ -500,16 +558,22 @@ document.addEventListener('streamonte:tmdb-key', () => {
 const YEAR = thisYear();
 const LAST = BACK_STEPS.length - 1;
 const MAX = BACK_STEPS[LAST];
+/** @type {[number, string][]} */
 const PRESETS = [[3, '3 meses'], [12, '1 año'], [60, '5 años'], [120, '10 años'], [MAX, 'Todo']];
 /** Meses (continuos) → paso más cercano: meses sueltos bajo el año, años enteros arriba. */
+/** @param {number} m */
 const snap = (m) => (m < 11.5 ? Math.max(0, Math.round(m)) : Math.min(MAX, Math.round(m / 12) * 12));
+/** @param {number} m */
 const valueText = (m) => (m < 12 ? backLabel(m) : String(YEAR - m / 12));
 
 function sinceControl() {
   /** Meses mientras se arrastra, desde y hasta (-1 = quieto). */
   let scrub = -1, scrubTo = -1, untilOpen = false;
   /** v: velocidad suavizada (px/ms); stop: este toque frenó una inercia; l/w: la tira; edge: 1 = en el borde izquierdo. */
-  let drag = null, glide = 0, edgeRaf = 0;
+  /** @typedef {{x: number, t: number, m: number, v: number, moved: number, to: boolean, stop: boolean, l: number, w: number, edge: number}} Drag */
+  /** @type {Drag|null} */
+  let drag = null;
+  let glide = 0, edgeRaf = 0;
   const fromM = () => BACK_STEPS[Math.max(1, BACK_STEPS.indexOf(browse.backFrom))];
   const shownM = () => (scrub >= 0 ? scrub : fromM());
   const shownIdx = () => BACK_STEPS.indexOf(shownM());
@@ -517,10 +581,11 @@ function sinceControl() {
   const toIdx = () => BACK_STEPS.indexOf(shownTo());
   const showTo = () => untilOpen || browse.backTo > 0;
   /** Zoom: la tira muestra `span` meses (hoy a la derecha), con aire a la izquierda del valor. */
-  const spanFor = (m) => Math.min(MAX, Math.max(24, m * 2.2));
+  const spanFor = (/** @type {number} */ m) => Math.min(MAX, Math.max(24, m * 2.2));
   let span = spanFor(fromM()), zoomTo = span, zoomRaf = 0;
-  const at = (m) => Math.max(0, 100 * (1 - m / span));
+  const at = (/** @type {number} */ m) => Math.max(0, 100 * (1 - m / span));
   /** Rango del cabezal que se mueve: siempre queda al menos un paso entre hasta y desde. */
+  /** @type {(to: boolean) => [number, number]} */
   const range = (to) => (to ? [0, BACK_STEPS[shownIdx() - 1]] : [BACK_STEPS[toIdx() + 1], MAX]);
 
   const fromSlot = el('span', { class: 'since-from' });
@@ -550,11 +615,13 @@ function sinceControl() {
     el('div', { class: 'since-head' }, el('span', { class: 'since-label' }, t('Estrenos desde')), val, presets), reel);
 
   /** Flechas ±1 paso, Re/Av Pág ±10. */
-  function keyStep(e) {
-    return ({ ArrowLeft: 1, ArrowDown: 1, ArrowRight: -1, ArrowUp: -1, PageDown: 10, PageUp: -10 })[e.key] ?? 0;
+  function keyStep(/** @type {KeyboardEvent} */ e) {
+    /** @type {Record<string, number>} */
+    const steps = { ArrowLeft: 1, ArrowDown: 1, ArrowRight: -1, ArrowUp: -1, PageDown: 10, PageUp: -10 };
+    return steps[e.key] ?? 0;
   }
   /** El texto nuevo entra con su animación (se reemplaza el nodo para que se repita). */
-  function setText(slot, text) {
+  function setText(/** @type {HTMLElement} */ slot, /** @type {string} */ text) {
     if (slot.textContent === text) return;
     slot.replaceChildren(el('b', { class: 'tick-in' }, text));
   }
@@ -572,7 +639,7 @@ function sinceControl() {
       years.dataset.list = ys.join();
       years.replaceChildren(...ys.map((y) => el('span', { class: 'decade', 'data-y': y }, String(y))));
     }
-    for (const d of years.children) d.style.left = `${at((YEAR - Number(d.dataset.y)) * 12)}%`;
+    for (const d of /** @type {HTMLCollectionOf<HTMLElement>} */ (years.children)) d.style.left = `${at((YEAR - Number(d.dataset.y)) * 12)}%`;
   }
   function zoom() {
     const target = spanFor(shownM());
@@ -582,7 +649,7 @@ function sinceControl() {
     if (reduceMotion()) { span = target; paint(); return; }
     reel.classList.add('zooming');
     let t0 = performance.now();
-    const step = (now) => {
+    const step = (/** @type {number} */ now) => {
       span += (zoomTo - span) * (1 - Math.exp(-(now - t0) / 140));
       t0 = now;
       if (Math.abs(zoomTo - span) < 0.3) { span = zoomTo; reel.classList.remove('zooming'); paint(); return; }
@@ -613,7 +680,7 @@ function sinceControl() {
     presetBtns.forEach((b, i) => b.setAttribute('aria-checked', String(!live && browse.backFrom === PRESETS[i][0] && !browse.backTo)));
     // La píldora salta al atajo elegido (necesita el layout: un cuadro después de insertarse).
     requestAnimationFrame(() => {
-      const on = presets.querySelector('[aria-checked="true"]');
+      const on = /** @type {HTMLElement|null} */ (presets.querySelector('[aria-checked="true"]'));
       pill.classList.toggle('on', !!on);
       if (on) { pill.style.setProperty('--x', `${on.offsetLeft}px`); pill.style.setProperty('--w', `${on.offsetWidth}px`); }
     });
@@ -622,7 +689,7 @@ function sinceControl() {
   }
 
   /** Agarra el cabezal más cercano al puntero y congela ambos valores. */
-  function down(e) {
+  function down(/** @type {PointerEvent} */ e) {
     if (e.button !== 0) return;
     reel.setPointerCapture(e.pointerId);
     const r = reel.getBoundingClientRect();
@@ -637,7 +704,7 @@ function sinceControl() {
   }
   /** Mueve el cabezal `dx` px (o `dx` meses si `months`); true si topó con un límite. Se mide en meses, no en píxeles
    *  de la tira, así el zoom no cambia la velocidad. */
-  function nudge(d, dx, months = false) {
+  function nudge(/** @type {Drag} */ d, /** @type {number} */ dx, months = false) {
     const gain = months ? 1 : (d.m < 12 ? 1 : 12) * 0.04 + Math.min(1, Math.abs(d.v) / 2) ** 2 * 3; // meses por px
     const [lo, hi] = range(d.to);
     d.m = Math.min(hi, Math.max(lo, d.m - dx * gain));
@@ -648,7 +715,7 @@ function sinceControl() {
     }
     return d.m === lo || d.m === hi;
   }
-  function move(e) {
+  function move(/** @type {PointerEvent} */ e) {
     if (!drag) return;
     const dx = e.clientX - drag.x;
     // Velocidad suavizada: un tirón suelto no dispara saltos.
@@ -666,7 +733,7 @@ function sinceControl() {
     if (!dir) return;
     const d = drag;
     let t0 = performance.now(), held = 0;
-    const step = (now) => {
+    const step = (/** @type {number} */ now) => {
       held += (now - t0) / 1000;
       const pace = Math.min(30, 3 + 8 * held); // pasos (meses o años) por segundo
       if (nudge(d, (-dir * (d.m < 12 ? 1 : 12) * pace * (now - t0)) / 1000, true)) { edgeRaf = 0; return; }
@@ -682,7 +749,7 @@ function sinceControl() {
     else sync();
   }
   /** Suelta: aplica. Un clic sin arrastrar salta a donde se tocó; soltar rápido sigue de largo frenando de a poco. */
-  function up(e) {
+  function up(/** @type {PointerEvent} */ e) {
     if (!drag) return;
     cancelAnimationFrame(edgeRaf);
     edgeRaf = 0;
@@ -696,7 +763,7 @@ function sinceControl() {
     drag = null;
     if (d.moved >= 4 && Math.abs(d.v) > 0.4 && e.timeStamp - d.t < 80 && !reduceMotion()) {
       let t0 = performance.now();
-      const step = (now) => {
+      const step = (/** @type {number} */ now) => {
         d.v *= Math.exp(-(now - t0) / 325);
         const hit = nudge(d, d.v * (now - t0));
         t0 = now;
@@ -711,6 +778,7 @@ function sinceControl() {
   sync();
   return { node, sync };
 }
+/** @type {{node: HTMLElement, sync: () => void}|null} */
 let since = null;
 
 // ---------- barra de filtros ----------
@@ -719,6 +787,7 @@ let filtersOpen = false;
 /** Tipo recién tocado: solo ese hace el "pop" (al cargar no rebota). */
 let popped = '';
 
+/** @param {string} id @param {string} label @param {string[][]} items @param {string} current @param {(v: string) => void} pick */
 function segment(id, label, items, current, pick) {
   const i = Math.max(0, items.findIndex(([v]) => v === current));
   return el('div', { id, class: 'cat-seg', role: 'radiogroup', 'aria-label': label, style: `--i:${i};--n:${items.length}` },
@@ -729,7 +798,7 @@ function segment(id, label, items, current, pick) {
 
 function filtersPanel() {
   const genres = browse.genreList[browse.kind];
-  const toggleGenre = (id) => setBrowse({ genres: browse.genres.includes(id) ? browse.genres.filter((g) => g !== id) : [...browse.genres, id] });
+  const toggleGenre = (/** @type {number} */ id) => setBrowse({ genres: browse.genres.includes(id) ? browse.genres.filter((g) => g !== id) : [...browse.genres, id] });
   const changed = changedFilters();
   return el('div', { id: 'cat-filters-pop', class: 'cat-pop cat-filters-pop', role: 'dialog', 'aria-label': t('Filtros avanzados') },
     el('h4', { class: 'cat-pop-h first' }, t('Géneros')),
@@ -755,7 +824,7 @@ function renderControls() {
   box.hidden = searching;
   $('#cat-since').hidden = searching || browse.tmdb === false;
   if (searching) return;
-  const kind = segment('cat-kind', t('Tipo'), KINDS, browse.kind, (v) => { popped = v; setBrowse({ kind: v }); });
+  const kind = segment('cat-kind', t('Tipo'), KINDS, browse.kind, (v) => { popped = v; setBrowse({ kind: /** @type {MediaKind} */ (v) }); });
   // Sin key de TMDB: lo que está en tendencia y una invitación a la key para los filtros.
   if (browse.tmdb === false) {
     box.replaceChildren(kind, el('span', { class: 'cat-trending' }, t('En tendencia ahora')),
@@ -782,7 +851,8 @@ function renderControls() {
 }
 // Clic afuera o Escape cierra el desplegable (ignora clics en nodos que un re-render ya sacó).
 document.addEventListener('click', (ev) => {
-  if (filtersOpen && ev.target.isConnected && !ev.target.closest('.cat-dd')) { filtersOpen = false; renderControls(); }
+  const target = /** @type {Element|null} */ (ev.target);
+  if (filtersOpen && target?.isConnected && !target.closest('.cat-dd')) { filtersOpen = false; renderControls(); }
 });
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && filtersOpen) { filtersOpen = false; renderControls(); }
@@ -790,7 +860,7 @@ document.addEventListener('keydown', (ev) => {
 
 function renderFilters() {
   renderControls();
-  if (!$('#cat-since').hidden) since.sync();
+  if (!$('#cat-since').hidden) since?.sync();
 }
 
 // ---------- Pegados ----------
@@ -800,7 +870,7 @@ function pastedSection() {
   const rows = [...state.library.values()].filter((e) => !e.origin)
     .sort((a, b) => String(b.added_at ?? '').localeCompare(String(a.added_at ?? '')));
   if (!rows.length) return null;
-  const name = (e) => {
+  const name = (/** @type {LibraryRow} */ e) => {
     const r = e.release;
     const ep = r?.season != null && r?.episode != null ? ` T${r.season}·E${r.episode}` : '';
     return r?.title ? `${r.title}${ep}` : e.torrent_name || e.name;
@@ -825,6 +895,7 @@ export function refreshPasted() {
   else if (now) $('#cat-body')?.prepend(now);
 }
 
+/** @param {HTMLElement} root */
 function renderBrowse(root) {
   const pasted = pastedSection();
   if (pasted) root.append(pasted);
@@ -873,7 +944,7 @@ async function init() {
             onkeydown: (e) => {
               if (e.key !== 'Escape') return;
               // Esc: primero cierra las sugerencias; después limpia la búsqueda.
-              if (people.length) { e.stopPropagation(); closePeople(); } else if (e.target.value) { e.stopPropagation(); clearSearch(); }
+              if (people.length || peopleLoading) { e.stopPropagation(); closePeople(); } else if (e.target.value) { e.stopPropagation(); clearSearch(); }
             } }),
           el('button', { id: 'cat-q-clear', type: 'button', class: 'cat-q-clear', hidden: true, 'aria-label': t('Limpiar búsqueda'), onclick: clearSearch }, icon('close', 13)),
           // Actores y directores que coinciden: elegir uno trae lo que actuó o dirigió.
@@ -906,7 +977,9 @@ async function init() {
   // `playback-changed` después de guardar). Oír el evento del núcleo directo dibujaba a veces con la
   // fila vieja ("preparando 0 %" reproduciendo, o una pausada ya borrada): el orden entre oyentes
   // no está garantizado.
-  window.addEventListener('playback-changed', ({ detail: event }) => {
+  window.addEventListener('playback-changed', (ev) => {
+    // app.js lo manda con el evento del núcleo ya guardado en `detail`.
+    const event = /** @type {CustomEvent<Extract<import('./types.js').CoreEvent, {type: 'playback-updated' | 'playback-removed'}>>} */ (ev).detail;
     if (event.type === 'playback-removed') { if (state.update) renderStreamsOnly(); return; }
     const n = starting.size;
     onPlaybackRow(event.row);

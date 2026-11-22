@@ -427,12 +427,11 @@ mod tests {
 
     // Red real: `cargo test -p streamonte-core --lib seasons::tests::imdb_real -- --ignored`.
     #[tokio::test]
-    #[ignore]
+    #[ignore = "red real: descarga los datasets públicos de IMDb"]
     async fn imdb_real() {
         let http = Http::new(Duration::from_secs(10));
-        let data = Arc::new(DataCache::new(
-            std::env::temp_dir().join("streamonte-test-seasons-real"),
-        ));
+        let dir = crate::fsutil::test_dir("seasons-real");
+        let data = Arc::new(DataCache::new(dir.to_path_buf()));
         let ratings = TopRated::new(data.clone()).ratings(&http).await.unwrap();
         let gz = imdb_dataset(&http, &data, EPISODES_URL, EPISODES_MAX, "los episodios")
             .await

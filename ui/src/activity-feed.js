@@ -1,3 +1,4 @@
+// @ts-check
 // Qué se cuenta en la burbuja de actividad (ui/src/activity.js es el widget): eventos del núcleo →
 // líneas del log, y el resumen de lo que corre de fondo para su píldora.
 import { activity } from './activity.js';
@@ -5,6 +6,7 @@ import { t as tr } from './i18n.js';
 import { clock, humanBytes, mb, nf } from './format.js';
 import { fullName, state, titleOf } from './state.js';
 
+/** @type {Record<string, string>} */
 const PHASE_TEXT = { connecting: 'conectando', metadata: 'buscando metadatos', preload: 'precargando' };
 
 /** Resumen de lo que corre de fondo para la píldora de la burbuja de actividad. */
@@ -31,7 +33,9 @@ export function renderActivity() {
 
 /** Eventos del núcleo → líneas de la burbuja. Se llama ANTES de actualizar el estado, para
  *  comparar con lo anterior y contar solo los cambios (no cada tic). */
+/** @param {import('./types.js').CoreEvent} ev */
 export function logEvent(ev) {
+  /** @param {string} area @param {string} text @param {{level?: 'info'|'warn'|'error', key?: string, at?: Date, announce?: boolean}=} more */
   const A = (area, text, more = {}) => activity.push({ area, text, ...more });
   switch (ev.type) {
     case 'activity':
@@ -75,7 +79,7 @@ export function logEvent(ev) {
         const size = e.video_size ?? e.live.file_size;
         A('analisis', tr('Datos leídos de {t}: {a}{b}{c}', { t, a: size ? humanBytes(size) : '', b: e.live.duration_secs ? ` · ${clock(e.live.duration_secs)}` : '', c: e.languages?.length ? ` · ${e.languages.map((l) => l.short).join('/')}` : '' }));
       }
-      if (e.live?.avg_speed_bps > 0 && e.live.avg_speed_bps !== old.live?.avg_speed_bps) {
+      if (e.live && e.live.avg_speed_bps > 0 && e.live.avg_speed_bps !== old.live?.avg_speed_bps) {
         A('analisis', tr('{t}: {a} Mbps reales{b}', { t, a: mb(e.live.avg_speed_bps), b: e.score?.margin != null ? ` (${nf(e.score.margin)}×)` : '' }), { announce: true });
       }
       if (e.status?.kind === 'failed' && old.status?.kind !== 'failed') A('analisis', tr('Falló el análisis de {t}: {a}', { t, a: e.status.reason ?? tr('sin detalle') }), { level: 'error' });

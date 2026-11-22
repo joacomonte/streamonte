@@ -104,7 +104,8 @@ mod tests {
         e.remove(h, RemoveOptions { delete_data: false })
             .await
             .unwrap();
-        e.shutdown().await.unwrap();
+        // `shutdown` espera 1 s fijo de librqbit; el Drop ya cancela la sesión.
+        drop(e);
         assert_eq!(std::fs::read(&bitv).unwrap(), [0b1111_0000]);
 
         // 2ª vez con un bitfield que dice "nada": si librqbit re-verificara el disco volvería a
@@ -119,7 +120,7 @@ mod tests {
             .unwrap();
         wait_metadata(&e, h, 30).await.unwrap();
         assert_eq!(std::fs::read(&bitv).unwrap(), [0u8]);
-        e.shutdown().await.unwrap();
+        drop(e); // ver arriba: sin el sleep fijo de `shutdown`
         let _ = std::fs::remove_dir_all(&root);
     }
 }

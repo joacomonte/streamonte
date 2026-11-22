@@ -16,7 +16,7 @@ use crate::Result;
 const API: &str = "https://api.themoviedb.org/3";
 const PHOTO_BASE: &str = "https://image.tmdb.org/t/p/w185";
 /// Sugerencias que entran en la lista bajo el buscador.
-const MAX_PEOPLE: usize = 6;
+const MAX_PEOPLE: usize = 3;
 /// Géneros de TV que no son actuar (talk shows, noticias, realities): ahí aparece como sí mismo.
 const NOT_ACTING: [u32; 3] = [10767, 10763, 10764];
 /// Series donde actuó menos episodios que esto: invitado o cameo (Friends para Brad Pitt), no se muestran.

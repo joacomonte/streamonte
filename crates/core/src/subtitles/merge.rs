@@ -461,9 +461,7 @@ mod tests {
     #[test]
     fn fusion_desde_archivos_y_vacia() {
         assert!(merge_ass(&[]).is_err());
-        let dir =
-            std::env::temp_dir().join(format!("streamonte-test-merge-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = crate::fsutil::test_dir("merge");
         let a = dir.join("a.srt");
         let b = dir.join("b.ass");
         // Latin-1 (subtítulos viejos): "canción" con ó = 0xF3.
@@ -482,6 +480,5 @@ mod tests {
         .unwrap();
         assert!(ass.contains("canción"));
         assert!(ass.contains(",S2,"));
-        std::fs::remove_dir_all(dir).unwrap();
     }
 }

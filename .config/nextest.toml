@@ -1,0 +1,4 @@
+# Los tests de red/plazos duermen más de lo que calculan: más hilos que núcleos acorta la corrida
+# (medido 2026-11-22: 8 hilos 3,9 s, 16 hilos 3,2 s, 32 casi igual).
+[profile.default]
+test-threads = 16

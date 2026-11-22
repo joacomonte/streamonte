@@ -474,10 +474,7 @@ mod tests {
 
     #[test]
     fn lo_guardado_se_reusa_solo_con_el_mismo_idioma_y_sus_archivos() {
-        let dir =
-            std::env::temp_dir().join(format!("streamonte-test-saved-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = crate::fsutil::test_dir("saved");
         let file = dir.join("wyzie_1.srt");
         std::fs::write(&file, b"1\n00:00:01,000 --> 00:00:02,000\nHola\n").unwrap();
         let mut cand = remembered_candidate("wyzie:1", "Peli.2024.1080p", SubtitleLanguage::Es);
@@ -495,6 +492,5 @@ mod tests {
         // Falta un archivo: se busca de nuevo.
         std::fs::remove_file(&file).unwrap();
         assert!(load_saved(&dir, SubtitleLanguage::Es).is_none());
-        let _ = std::fs::remove_dir_all(&dir);
     }
 }

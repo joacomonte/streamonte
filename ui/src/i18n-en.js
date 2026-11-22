@@ -1,6 +1,11 @@
+// @ts-check
 // Inglés de la app (2026-11-20): clave = el texto en español tal cual está en el código (t() / tr(), index.html y los
 // mensajes fijos del núcleo); lo que no esté acá se muestra en español. `{x}` se reemplaza igual en los dos idiomas.
+/** @type {Record<string, string>} */
 export default {
+  "Esta opción ya falló al reproducirse en esta compu (sin video, archivo roto o el reproductor no la abrió). Va al final de la lista.": "This option already failed to play on this computer (no video, broken file, or the player could not open it). It goes to the end of the list.",
+  "Falló antes": "Failed before",
+  "{a} de {n}": "{a} of {n}",
   "{n} probablemente latina": "{n} probably Latin American",
   "{n} probablemente latinas": "{n} probably Latin American",
   "Audio latino: lo dicen las pistas del video o el nombre del torrent": "Latin American audio: the video tracks or the torrent name say so",
@@ -19,6 +24,9 @@ export default {
   "Buscando el mejor torrent para vos": "Finding the best torrent for you",
   "Sinopsis y reparto": "Synopsis and cast",
   "Sinopsis": "Synopsis",
+  "Dirección": "Director",
+  "Ver lo que dirigió": "See what they directed",
+  "Ver lo que actuó": "See what they acted in",
   "Dónde verla": "Where to watch",
   "Buscar con audio original": "Search with original audio",
   "Con subtítulos en español": "With Spanish subtitles",

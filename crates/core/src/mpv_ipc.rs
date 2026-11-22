@@ -241,3 +241,202 @@ impl MpvControl for MpvIpc {
         self.events.subscribe()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::io::{DuplexStream, Lines, ReadHalf, WriteHalf};
+
+    /// El otro lado del canal: hace de mpv (lee pedidos, contesta y emite eventos).
+    struct FakeMpv {
+        lines: Lines<BufReader<ReadHalf<DuplexStream>>>,
+        out: WriteHalf<DuplexStream>,
+    }
+
+    impl FakeMpv {
+        async fn request(&mut self) -> Value {
+            let line = self.lines.next_line().await.unwrap().expect("pedido");
+            serde_json::from_str(&line).unwrap()
+        }
+
+        async fn send(&mut self, msg: Value) {
+            self.out
+                .write_all(format!("{msg}\n").as_bytes())
+                .await
+                .unwrap();
+        }
+    }
+
+    fn pair() -> (Arc<MpvIpc>, FakeMpv) {
+        let (client, mpv) = tokio::io::duplex(8192);
+        let (cr, cw) = tokio::io::split(client);
+        let (mr, mw) = tokio::io::split(mpv);
+        let ipc = MpvIpc::start(Box::new(cr), Box::new(cw));
+        (
+            ipc,
+            FakeMpv {
+                lines: BufReader::new(mr).lines(),
+                out: mw,
+            },
+        )
+    }
+
+    /// Eventos hasta `Shutdown` (el que emite `start` al cerrarse el canal): sirve para probar
+    /// también lo que NO se emitió, sin dormir.
+    async fn until_shutdown(rx: &mut broadcast::Receiver<MpvEvent>) -> Vec<MpvEvent> {
+        let mut out = Vec::new();
+        loop {
+            let e = rx.recv().await.unwrap();
+            if matches!(e, MpvEvent::Shutdown) {
+                return out;
+            }
+            out.push(e);
+        }
+    }
+
+    #[tokio::test]
+    async fn respuestas_se_correlacionan_por_request_id() {
+        let (ipc, mut mpv) = pair();
+        let (a, b) = (ipc.clone(), ipc.clone());
+        let first = tokio::spawn(async move { a.get_property("pause").await });
+        let second = tokio::spawn(async move { b.get_property("volume").await });
+        let (r1, r2) = (mpv.request().await, mpv.request().await);
+        let id_of = |r: &Value, prop: &str| {
+            assert_eq!(r["command"][1], prop);
+            r["request_id"].as_u64().unwrap()
+        };
+        let (pause_id, volume_id) = if r1["command"][1] == "pause" {
+            (id_of(&r1, "pause"), id_of(&r2, "volume"))
+        } else {
+            (id_of(&r2, "pause"), id_of(&r1, "volume"))
+        };
+        assert_ne!(pause_id, volume_id);
+        // Contesta al revés de como llegaron: cada uno recibe lo suyo.
+        mpv.send(json!({"request_id": volume_id, "error": "success", "data": 80}))
+            .await;
+        mpv.send(json!({"request_id": pause_id, "error": "success", "data": true}))
+            .await;
+        assert_eq!(first.await.unwrap().unwrap(), json!(true));
+        assert_eq!(second.await.unwrap().unwrap(), json!(80));
+    }
+
+    #[tokio::test]
+    async fn error_de_mpv_no_es_exito() {
+        let (ipc, mut mpv) = pair();
+        let ipc2 = ipc.clone();
+        let task = tokio::spawn(async move { ipc2.get_property("nada").await });
+        let id = mpv.request().await["request_id"].clone();
+        mpv.send(json!({"request_id": id, "error": "property unavailable"}))
+            .await;
+        let err = task.await.unwrap().unwrap_err().to_string();
+        assert!(err.contains("property unavailable"), "{err}");
+
+        // `success` sin `data` (p. ej. set_property) → Null, no error.
+        let ipc2 = ipc.clone();
+        let task = tokio::spawn(async move { ipc2.set_property("pause", json!(true)).await });
+        let req = mpv.request().await;
+        assert_eq!(req["command"], json!(["set_property", "pause", true]));
+        mpv.send(json!({"request_id": req["request_id"], "error": "success"}))
+            .await;
+        task.await.unwrap().unwrap();
+
+        // Línea que no es JSON y respuesta con id desconocido: se ignoran sin romper el canal.
+        mpv.out.write_all(b"basura\n").await.unwrap();
+        mpv.send(json!({"request_id": 9999, "error": "success"}))
+            .await;
+        let ipc2 = ipc.clone();
+        let task = tokio::spawn(async move { ipc2.get_property("x").await });
+        let id = mpv.request().await["request_id"].clone();
+        mpv.send(json!({"request_id": id, "error": "success", "data": 1}))
+            .await;
+        assert_eq!(task.await.unwrap().unwrap(), json!(1));
+    }
+
+    #[tokio::test]
+    async fn cierre_con_pedidos_pendientes_los_falla() {
+        let (ipc, mut mpv) = pair();
+        let mut events = ipc.events();
+        let ipc2 = ipc.clone();
+        let task = tokio::spawn(async move { ipc2.get_property("pause").await });
+        mpv.request().await;
+        drop(mpv); // mpv se cierra sin contestar
+        let err = task.await.unwrap().unwrap_err().to_string();
+        assert!(err.contains("mpv se cerró"), "{err}");
+        assert!(until_shutdown(&mut events).await.is_empty());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn sin_respuesta_vence_por_timeout() {
+        let (ipc, mut mpv) = pair();
+        let ipc2 = ipc.clone();
+        let task = tokio::spawn(async move { ipc2.get_property("pause").await });
+        mpv.request().await; // llega el pedido y mpv no contesta (queda vivo)
+        let err = task.await.unwrap().unwrap_err();
+        assert!(matches!(err, CoreError::Timeout { secs: 5, .. }), "{err:?}");
+        assert!(ipc.pending.lock().unwrap().is_empty(), "no deja pendientes");
+    }
+
+    #[tokio::test]
+    async fn primera_imagen_necesita_restart_y_video_en_cualquier_orden() {
+        let params =
+            |data: Value| json!({"event": "property-change", "name": "video-params", "data": data});
+        let restart = json!({"event": "playback-restart"});
+        let kinds = |evs: Vec<MpvEvent>| -> Vec<&'static str> {
+            evs.iter()
+                .map(|e| match e {
+                    MpvEvent::FirstFrame => "first",
+                    MpvEvent::PlaybackRestart => "restart",
+                    MpvEvent::PropertyChanged { .. } => "prop",
+                    other => panic!("{other:?}"),
+                })
+                .collect()
+        };
+
+        // restart → video-params con datos: FirstFrame sale al completarse la pareja, una sola vez.
+        let (ipc, mut mpv) = pair();
+        let mut rx = ipc.events();
+        mpv.send(restart.clone()).await;
+        mpv.send(params(json!({"w": 1920}))).await;
+        mpv.send(restart.clone()).await; // un salto: no repite FirstFrame
+        drop(mpv);
+        assert_eq!(
+            kinds(until_shutdown(&mut rx).await),
+            ["restart", "first", "prop", "restart"]
+        );
+
+        // video-params → restart.
+        let (ipc, mut mpv) = pair();
+        let mut rx = ipc.events();
+        mpv.send(params(json!({"w": 1920}))).await;
+        mpv.send(restart.clone()).await;
+        drop(mpv);
+        assert_eq!(
+            kinds(until_shutdown(&mut rx).await),
+            ["prop", "first", "restart"]
+        );
+
+        // Solo audio (video-params vacío o ausente): nunca hay FirstFrame.
+        let (ipc, mut mpv) = pair();
+        let mut rx = ipc.events();
+        mpv.send(params(json!({}))).await;
+        mpv.send(restart).await;
+        drop(mpv);
+        assert_eq!(kinds(until_shutdown(&mut rx).await), ["prop", "restart"]);
+    }
+
+    #[tokio::test]
+    async fn client_message_de_la_app_es_una_tecla() {
+        let (ipc, mut mpv) = pair();
+        let mut rx = ipc.events();
+        let msg = |args: Value| json!({"event": "client-message", "args": args});
+        mpv.send(msg(json!(["streamonte", "sync+", "extra"]))).await;
+        mpv.send(msg(json!(["otro-script", "x"]))).await; // de otro script: se ignora
+        mpv.send(msg(json!(["streamonte"]))).await; // sin acción: se ignora
+        mpv.send(json!({"event": "file-loaded"})).await;
+        drop(mpv);
+        let got = until_shutdown(&mut rx).await;
+        assert_eq!(got.len(), 2, "{got:?}");
+        assert!(matches!(&got[0], MpvEvent::KeyAction(a) if a == "sync+"));
+        assert!(matches!(got[1], MpvEvent::FileLoaded));
+    }
+}

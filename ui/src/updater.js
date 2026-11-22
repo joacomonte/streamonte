@@ -1,3 +1,4 @@
+// @ts-check
 // Autoactualización desde GitHub Releases (tauri-plugin-updater, como monti-git). Al arrancar se
 // pregunta si hay versión nueva; si la hay, un aviso discreto abajo a la izquierda con
 // "Actualizar y reiniciar". Nada se instala sin que el usuario lo pida.

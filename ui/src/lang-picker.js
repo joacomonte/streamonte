@@ -1,15 +1,19 @@
+// @ts-check
 // Idiomas que elige el usuario (2026-11-20, como LangPicker de la web): app y títulos. Uno por paso en la bienvenida,
 // los dos juntos en Ajustes; ES / EN chico en la barra de arriba. Cada cambio recarga la ventana en el idioma nuevo.
 import { el, icon } from './dom.js';
 import { langs, setLangs, t } from './i18n.js';
 
 /** Cada idioma con su bandera y su nombre en su propio idioma. */
+/** @type {['es'|'en', string, string][]} */
 const LANGS = [['es', 'Español', '🇪🇸'], ['en', 'English', '🇺🇸']];
 
 /** Tarjetas grandes: la elegida se llena de color, con su bandera en un disco y un tilde. `only`: un solo grupo
  *  ('app' | 'titles'), más grande (la pregunta ya la hace el título del paso). `onPick(changed)`: avisa la elección
  *  antes de aplicarla (la bienvenida pasa de paso; si cambió, la ventana recarga después). */
+/** @param {string} id @param {'app'|'titles'|null=} only @param {((changed: boolean) => void)|null=} onPick @returns {HTMLElement} */
 export function langPicker(id, only = null, onPick = null) {
+  /** @param {'app'|'titles'} key @param {string} label @param {string} ic */
   const seg = (key, label, ic) => el('div', { class: 'lp-row' },
     el('span', { class: 'lp-lbl', id: `${id}-${key}-lbl` }, icon(ic, 16), label),
     el('div', { class: 'lp-seg', role: 'radiogroup', 'aria-labelledby': `${id}-${key}-lbl` }, LANGS.map(([v, name, flag]) => el('button', {
@@ -26,6 +30,7 @@ export function langPicker(id, only = null, onPick = null) {
 }
 
 /** ES / EN de la app en la barra de arriba (los títulos tienen su propio idioma, en Ajustes). */
+/** @returns {HTMLElement} */
 export function langToggle() {
   return el('div', { id: 'top-lang', class: 'top-lang', role: 'radiogroup', 'aria-label': t('Idioma') }, LANGS.map(([v]) => el('button', {
     id: `top-lang-${v}`, type: 'button', role: 'radio', 'aria-checked': String(langs.app === v), onclick: () => langs.app !== v && setLangs({ app: v }),

@@ -202,17 +202,18 @@ mod tests {
     #[test]
     fn mbps_y_red_estable() {
         assert_eq!(mbps(1_000_000, Duration::from_secs(1)), 8.0);
-        assert_eq!(fnv1a(b"1.2.3.4"), fnv1a(b"1.2.3.4"));
+        // Vectores de referencia de FNV-1a 64 bits.
+        assert_eq!(fnv1a(b""), 0xcbf2_9ce4_8422_2325);
+        assert_eq!(fnv1a(b"a"), 0xaf63_dc4c_8601_ec8c);
         assert_ne!(fnv1a(b"1.2.3.4"), fnv1a(b"1.2.3.5"));
     }
 
     // Red real: `cargo test -p streamonte-core --lib speedtest -- --ignored --nocapture`.
     #[tokio::test]
-    #[ignore]
+    #[ignore = "red real: descarga de Cloudflare para medir ancho de banda"]
     async fn mide_de_verdad() {
-        let file =
-            std::env::temp_dir().join(format!("streamonte-speed-{}.json", std::process::id()));
-        let t = SpeedTest::new(file.clone());
+        let dir = crate::fsutil::test_dir("speed");
+        let t = SpeedTest::new(dir.join("speed.json"));
         let r = t.run(true, &crate::events::NullSink).await.unwrap();
         println!("{r:?}");
         assert!(r.mbps > 1.0);
@@ -221,6 +222,5 @@ mod tests {
             r,
             "misma red: la guardada"
         );
-        let _ = std::fs::remove_file(file);
     }
 }

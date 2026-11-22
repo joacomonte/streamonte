@@ -804,7 +804,10 @@ fn apply_quick(e: &mut crate::library::LibraryEntry, info: &QuickInfo) {
 mod tests {
     use super::*;
 
-    use std::time::{Duration, Instant};
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::time::Duration;
+
+    use tokio::time::Instant;
 
     use async_trait::async_trait;
 
@@ -817,9 +820,36 @@ mod tests {
 
     use std::sync::Mutex;
 
+    /// Medición del Fake: velocidad = 1er byte × 1 MB/s; la parcial siempre 100 kB/s.
+    fn live_of(hash: InfoHash, partial: bool) -> LiveMeasurement {
+        LiveMeasurement {
+            measured_at: chrono::Utc::now(),
+            torrent_name: None,
+            file_index: 0,
+            file_name: "video.mkv".into(),
+            file_size: 1_000_000_000,
+            peers: 3,
+            seeds: 1,
+            partial,
+            measured_secs: 15.0,
+            avg_speed_bps: if partial {
+                100_000.0
+            } else {
+                f64::from(hash.as_bytes()[0]) * 1e6
+            },
+            max_speed_bps: 0.0,
+            duration_secs: Some(888.0),
+            audio: None,
+            subs: None,
+            fps: None,
+        }
+    }
+
     /// Medidor falso: scrape con seeders = 1er byte del hash; medición que tarda `delay`,
     /// falla las primeras `fail_first` veces y devuelve velocidad = 1er byte × 1 MB/s.
+    /// Con `partial` activo, al cortarlo (pausa) o al "terminar ya" devuelve lo medido hasta ahí.
     struct Fake {
+        partial: AtomicBool,
         delay: Duration,
         fail_first: Mutex<u32>,
         measured: Mutex<Vec<InfoHash>>,
@@ -865,7 +895,15 @@ mod tests {
             (ctl.progress)(SpeedProgress::phase(MeasurePhase::Connecting));
             tokio::select! {
                 _ = tokio::time::sleep(self.delay) => {}
-                _ = ctl.cancel.cancelled() => return Err(CoreError::Cancelled),
+                _ = ctl.finish.cancelled() => {
+                    return Ok(live_of(magnet.info_hash, true));
+                }
+                _ = ctl.cancel.cancelled() => {
+                    if self.partial.load(Ordering::SeqCst) {
+                        return Ok(live_of(magnet.info_hash, true));
+                    }
+                    return Err(CoreError::Cancelled);
+                }
             }
             let should_fail = {
                 let mut left = self.fail_first.lock().unwrap();
@@ -877,23 +915,7 @@ mod tests {
                 return Err(CoreError::Engine("falla simulada".into()));
             }
             self.measured.lock().unwrap().push(magnet.info_hash);
-            Ok(LiveMeasurement {
-                measured_at: chrono::Utc::now(),
-                torrent_name: None,
-                file_index: 0,
-                file_name: "video.mkv".into(),
-                file_size: 1_000_000_000,
-                peers: 3,
-                seeds: 1,
-                partial: false,
-                measured_secs: 15.0,
-                avg_speed_bps: f64::from(magnet.info_hash.as_bytes()[0]) * 1e6,
-                max_speed_bps: 0.0,
-                duration_secs: Some(888.0),
-                audio: None,
-                subs: None,
-                fps: None,
-            })
+            Ok(live_of(magnet.info_hash, false))
         }
     }
 
@@ -944,6 +966,7 @@ mod tests {
         // Sin búsquedas reales de subtítulos en las pruebas.
         cfg.subtitles.language = crate::config::SubtitleLanguage::None;
         let fake = Arc::new(Fake {
+            partial: AtomicBool::new(false),
             delay: Duration::from_millis(delay_ms),
             fail_first: Mutex::new(fail_first),
             measured: Mutex::default(),
@@ -970,7 +993,7 @@ mod tests {
 
     impl Setup {
         async fn wait_idle(&self) {
-            let deadline = Instant::now() + Duration::from_secs(10);
+            let deadline = Instant::now() + Duration::from_secs(10); // plazo virtual
             loop {
                 tokio::time::sleep(Duration::from_millis(20)).await;
                 let idle = matches!(
@@ -1028,7 +1051,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn mide_los_que_tienen_seeders_mejores_primero() {
         let s = setup("order", &[2, 0, 9], 10, 0, 0).await;
         s.handle.enqueue(AnalyzeScope::All).await.unwrap();
@@ -1047,7 +1070,7 @@ mod tests {
         s.cleanup();
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn pausa_no_pierde_lo_medido_y_reanuda() {
         let s = setup("pause", &[1, 2, 3], 300, 0, 0).await;
         s.handle.enqueue(AnalyzeScope::All).await.unwrap();
@@ -1090,7 +1113,7 @@ mod tests {
         s.cleanup();
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn pausar_uno_no_frena_a_los_demas_y_se_reanuda_solo() {
         // Orden por seeders: 9, 5, 1. Se pausa el 5 (en cola) mientras se mide el 9.
         let s = setup("hold", &[1, 5, 9], 200, 0, 0).await;
@@ -1121,7 +1144,7 @@ mod tests {
         s.cleanup();
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn analizar_seleccionados_mide_solo_esos() {
         let s = setup("selected", &[1, 5, 9], 5, 0, 0).await;
         s.handle
@@ -1135,7 +1158,7 @@ mod tests {
         s.cleanup();
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn pedir_de_nuevo_lo_que_ya_se_analiza_no_hace_nada_y_la_fase_llega_a_la_ui() {
         let s = setup("twice", &[5, 9], 300, 0, 0).await;
         s.handle.enqueue(AnalyzeScope::One(hash(5))).await.unwrap();
@@ -1182,7 +1205,7 @@ mod tests {
         s.cleanup();
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn reiniciar_corta_lo_que_se_mide_y_lo_pide_de_nuevo() {
         let s = setup("restart", &[5, 9], 300, 0, 0).await;
         s.handle.enqueue(AnalyzeScope::One(hash(5))).await.unwrap();
@@ -1211,7 +1234,7 @@ mod tests {
         s.cleanup();
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn analisis_rapido_no_mide_velocidad() {
         let s = setup("quick-only", &[0, 5], 5, 0, 0).await;
         // Forzado como `One`: también con 0 seeders en el tracker.
@@ -1238,7 +1261,7 @@ mod tests {
         s.cleanup();
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn reintenta_y_despues_marca_fallido() {
         let s = setup("retry", &[5], 5, 2, 2).await;
         s.handle.enqueue(AnalyzeScope::All).await.unwrap();
@@ -1264,7 +1287,7 @@ mod tests {
         assert!(matches!(status, EntryStatus::Failed { .. }), "{status:?}");
         s.cleanup();
     }
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn pausar_y_reanudar_rapido_lo_que_se_mide_basta_un_clic() {
         let s = setup("hold-race", &[5], 300, 0, 0).await;
         s.handle.enqueue(AnalyzeScope::One(hash(5))).await.unwrap();
@@ -1282,17 +1305,26 @@ mod tests {
         s.cleanup();
     }
 
-    #[tokio::test]
-    async fn contadores_coherentes_con_pausas_cancelar_y_reiniciar() {
+    #[tokio::test(start_paused = true)]
+    async fn contador_pausar_uno_en_cola_lo_saca_del_total() {
         // Orden por seeders: 9, 5, 1.
-        let s = setup("counters", &[1, 5, 9], 200, 0, 0).await;
+        let s = setup("cnt-hold", &[1, 5, 9], 200, 0, 0).await;
         s.handle.enqueue(AnalyzeScope::All).await.unwrap();
         s.wait_until("mide el 9", |s| s.counters().contains(&(0, 3)))
             .await;
-        // Pausar uno en cola lo saca del total.
         s.handle.pause_one(hash(5)).await.unwrap();
         s.wait_until("total baja", |s| s.counters().contains(&(0, 2)))
             .await;
+        s.cleanup();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn contador_cancelar_en_pausa_reinicia_la_tanda() {
+        let s = setup("cnt-cancel", &[1, 5, 9], 200, 0, 0).await;
+        s.handle.enqueue(AnalyzeScope::All).await.unwrap();
+        s.wait_until("mide el 9", |s| s.counters().contains(&(0, 3)))
+            .await;
+        s.handle.pause_one(hash(5)).await.unwrap();
         // Pausa general a mitad del 1: queda en cola, nada midiéndose.
         s.wait_until("mide el 1", |s| s.counters().contains(&(1, 2)))
             .await;
@@ -1316,8 +1348,12 @@ mod tests {
         s.handle.enqueue(AnalyzeScope::One(hash(1))).await.unwrap();
         s.wait_idle().await;
         assert_eq!(s.counters()[before], (0, 1), "tanda nueva: 0 de 1");
+        s.cleanup();
+    }
 
-        // Pausar el último que se mide y reanudarlo: 0 de 1, nunca "0 de 0" ni "1 de 0".
+    #[tokio::test(start_paused = true)]
+    async fn contador_pausar_el_ultimo_y_reanudar_es_0_de_1() {
+        let s = setup("cnt-last", &[9], 200, 0, 0).await;
         s.handle.enqueue(AnalyzeScope::One(hash(9))).await.unwrap();
         tokio::time::sleep(Duration::from_millis(50)).await;
         s.handle.pause_one(hash(9)).await.unwrap();
@@ -1325,21 +1361,138 @@ mod tests {
         let before = s.counters().len();
         s.handle.resume_one(hash(9)).await.unwrap();
         s.wait_idle().await;
+        // Nunca "0 de 0" ni "1 de 0".
         assert_eq!(s.counters()[before], (0, 1));
+        s.cleanup();
+    }
 
-        // Reiniciar lo que se mide no lo cuenta dos veces.
+    #[tokio::test(start_paused = true)]
+    async fn contador_reiniciar_lo_que_se_mide_no_lo_cuenta_dos_veces() {
+        let s = setup("cnt-restart", &[9], 200, 0, 0).await;
         s.handle.enqueue(AnalyzeScope::One(hash(9))).await.unwrap();
         tokio::time::sleep(Duration::from_millis(50)).await;
         s.handle.restart(hash(9), false).await.unwrap();
         s.wait_idle().await;
         for (done, total) in s.counters() {
-            assert!(done <= total && total <= 3, "{done} de {total}");
+            assert!(done <= total && total <= 1, "{done} de {total}");
         }
         assert!(s.counters().iter().all(|c| *c != (0, 0)));
         s.cleanup();
     }
 
-    #[tokio::test]
+    /// Entrada de la biblioteca del hash dado.
+    async fn entry(s: &Setup, h: InfoHash) -> crate::library::LibraryEntry {
+        s.library.lock().await.any_of(&h).unwrap().clone()
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn pausa_general_con_medicion_parcial_la_guarda_y_vuelve_al_frente() {
+        // Orden por seeders: 9, 5. Se pausa a mitad del 9: queda primero, no el 5.
+        let s = setup("part-requeue", &[5, 9], 300, 0, 0).await;
+        s.fake.partial.store(true, Ordering::SeqCst);
+        s.handle.enqueue(AnalyzeScope::All).await.unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        s.handle.pause().await.unwrap();
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        assert!(entry(&s, hash(9)).await.live.unwrap().partial);
+        s.fake.partial.store(false, Ordering::SeqCst);
+        s.handle.resume().await.unwrap();
+        s.wait_idle().await;
+        assert_eq!(*s.fake.measured.lock().unwrap(), vec![hash(9), hash(5)]);
+        assert!(
+            !entry(&s, hash(9)).await.live.unwrap().partial,
+            "se completó"
+        );
+        s.cleanup();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn pausar_uno_con_medicion_parcial_lo_retiene_con_lo_medido() {
+        let s = setup("part-hold", &[5, 9], 300, 0, 0).await;
+        s.fake.partial.store(true, Ordering::SeqCst);
+        s.handle.enqueue(AnalyzeScope::All).await.unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        s.handle.pause_one(hash(9)).await.unwrap();
+        s.wait_idle().await;
+        assert_eq!(*s.fake.measured.lock().unwrap(), vec![hash(5)], "el 9 no");
+        assert!(entry(&s, hash(9)).await.live.unwrap().partial);
+        let held = s.sink.0.lock().unwrap().iter().rev().find_map(|e| match e {
+            CoreEvent::AnalyzerQueue { held, .. } => Some(held.clone()),
+            _ => None,
+        });
+        assert_eq!(held, Some(vec![hash(9)]), "retenido hasta Reanudar");
+        s.cleanup();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn terminar_ya_guarda_lo_medido_y_cuenta_como_hecho() {
+        let s = setup("finish", &[5], 300, 0, 0).await;
+        s.handle.enqueue(AnalyzeScope::One(hash(5))).await.unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        s.handle.finish().await.unwrap();
+        s.wait_idle().await;
+        let e = entry(&s, hash(5)).await;
+        assert!(e.live.unwrap().partial, "queda lo medido hasta ahí");
+        assert_eq!(e.status, EntryStatus::Measured);
+        assert!(s.fake.measured.lock().unwrap().is_empty(), "no se repite");
+        s.cleanup();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn medicion_parcial_nunca_pisa_una_completa_anterior() {
+        let s = setup("keep-old", &[5], 300, 0, 0).await;
+        s.handle.enqueue(AnalyzeScope::One(hash(5))).await.unwrap();
+        s.wait_idle().await;
+        assert_eq!(entry(&s, hash(5)).await.live.unwrap().avg_speed_bps, 5e6);
+        // Re-medir y cortar con parcial (100 kB/s): la completa de 5 MB/s se queda.
+        s.fake.partial.store(true, Ordering::SeqCst);
+        s.handle.enqueue(AnalyzeScope::One(hash(5))).await.unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        s.handle.pause_one(hash(5)).await.unwrap();
+        s.wait_idle().await;
+        let live = entry(&s, hash(5)).await.live.unwrap();
+        assert!(!live.partial);
+        assert_eq!(live.avg_speed_bps, 5e6);
+        s.cleanup();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn apply_quick_fusiona_sin_pisar_la_velocidad_medida() {
+        let s = setup("apply-quick", &[5], 5, 0, 0).await;
+        let mut e = entry(&s, hash(5)).await;
+        let info = QuickInfo {
+            torrent_name: Some("peli".into()),
+            file: crate::engine::FileInfo {
+                index: 2,
+                name: "peli.mkv".into(),
+                size: 42,
+                offset: 0,
+            },
+            peers: 7,
+            seeds: 4,
+            duration_secs: Some(100.0),
+            audio: None,
+            subs: None,
+            fps: Some(24.0),
+        };
+        // Sin medición previa: crea la entrada rápida, sin velocidad.
+        apply_quick(&mut e, &info);
+        let live = e.live.clone().unwrap();
+        assert_eq!(
+            (live.avg_speed_bps, live.peers, live.file_index),
+            (0.0, 7, 2)
+        );
+        assert_eq!(e.video_size, Some(42));
+        // Con una medición completa previa: actualiza datos, la velocidad queda.
+        e.live = Some(live_of(hash(5), false));
+        apply_quick(&mut e, &info);
+        let live = e.live.unwrap();
+        assert_eq!(live.avg_speed_bps, 5e6);
+        assert_eq!((live.peers, live.seeds, live.fps), (7, 4, Some(24.0)));
+        s.cleanup();
+    }
+
+    #[tokio::test(start_paused = true)]
     async fn cancelar_uno_solo_corta_ese() {
         // Orden por seeders: 9, 5, 1. Se cancela el 9 (midiéndose) y el 1 (en cola).
         let s = setup("cancel-one", &[1, 5, 9], 200, 0, 0).await;

@@ -293,30 +293,19 @@ mod tests {
         assert_eq!(cmp_sort_keys(&seeded, &nothing), Less);
     }
 
+    /// Las marcas SxxExx / 1x02 / packs se prueban en `release::tests`; acá solo lo propio de `content_kind`.
     #[test]
     fn detecta_episodios() {
         for name in [
-            "Serie.S01E02.1080p.WEB-DL.mkv",
-            "serie s1e2 720p",
-            "Show 1x02 HDTV",
             "Serie - Episodio 3",
             "Show Episode 10",
-            // Antes película: pack de temporada y episodio de 3 dígitos (regla de `release`).
-            "Serie.S01.1080p.WEB-DL",
-            "Show 1x002",
+            "Serie Capítulo 4",
+            "Serie capitulo 4",
+            "Serie.S01E02.1080p.WEB-DL.mkv", // smoke: delega en `release`
         ] {
             assert_eq!(content_kind(name), ContentKind::Episode, "{name}");
         }
-        for name in [
-            "Sintel",
-            "Pelicula.2019.2160p.UHD.BluRay.x265",
-            "Movie 1920x1080",
-            "Masters 2x Edition",
-            "Spaceballs.1987",
-            "Seven.Samurai.1954",
-        ] {
-            assert_eq!(content_kind(name), ContentKind::Movie, "{name}");
-        }
+        assert_eq!(content_kind("Pelicula.2019.2160p.UHD"), ContentKind::Movie);
     }
 
     #[test]

@@ -1,3 +1,4 @@
+// @ts-check
 // Bienvenida por pasos a pantalla completa (2026-11-20, como Tour de la web), una sola vez: idioma de la app →
 // idioma de los títulos → qué es la app → keys (TMDB / TorBox) → reproductor (mpv / VLC, solo informa). Flechas y
 // botones para moverse; Saltar, Listo o Esc la cierran (se agranda apenas y se apaga) y la portada entra animada.
@@ -18,6 +19,8 @@ export const isTouring = () => touring;
 const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** @param {(changed: boolean) => void} pick elegir un idioma pasa al paso siguiente */
+/** @typedef {{icon: string, title: string, body: string, extra?: () => HTMLElement}} Step */
+/** @param {(changed: boolean) => void} pick @returns {Step[]} */
 function steps(pick) {
   return [
     { icon: 'globe', title: t('¿En qué idioma querés la app?'), body: t('Menús, botones y sinopsis. Lo cambiás cuando quieras en Ajustes.'), extra: () => langPicker('welcome-lang', 'app', pick) },
@@ -31,9 +34,11 @@ function steps(pick) {
 /** Keys: para qué sirve cada una, si ya está y dónde pedirla. */
 function keysBox() {
   const box = el('ul', { class: 'tour-list' });
+  /** @param {string} service @param {string} name @param {string} what @param {boolean} has */
   const row = (service, name, what, has) => el('li', { class: 'tour-item' },
     el('span', { class: 'tour-item-text' }, el('b', {}, name, has ? el('span', { class: 'tour-ok' }, icon('check', 12), t('Lista')) : null), el('small', {}, what)),
     has ? null : el('button', { id: `welcome-key-${service}`, type: 'button', onclick: () => api.openKeyPage(service).catch(() => {}) }, icon('external', 14), t('Pedirla')));
+  /** @param {Set<string>} configured */
   const draw = (configured) => box.replaceChildren(
     row('tmdb', t('TMDB · gratis'), t('El catálogo con filtros por fecha, votos, idioma y géneros, pósters que faltan y dónde verla.'), configured.has('tmdb')),
     row('torbox', t('TorBox · pago, opcional'), t('Ve al instante desde sus servidores, sin depender de los seeds, y baja lo que todavía no tiene.'), configured.has('torbox')));
@@ -45,7 +50,9 @@ function keysBox() {
 /** Reproductores de esta compu: solo informa (cuál usar se elige al reproducir; mpv se instala desde Ajustes). */
 function playersBox() {
   const box = el('ul', { class: 'tour-list' });
+  /** @param {string|null|undefined} s */
   const state = (s) => (s === 'bundled' ? t('Incluido en la app') : s ? t('Instalado') : t('No está: lo instalás desde Ajustes → Reproductor'));
+  /** @param {import('./types.js').PlayersStatus|null} p */
   const draw = (p) => box.replaceChildren(
     el('li', { class: 'tour-item' }, el('span', { class: 'tour-item-text' }, el('b', {}, 'mpv', p?.mpv ? el('span', { class: 'tour-ok' }, icon('check', 12), t('Lista')) : null), el('small', {}, p ? state(p.mpv) : '…'))),
     el('li', { class: 'tour-item' }, el('span', { class: 'tour-item-text' }, el('b', {}, 'VLC', p?.vlc ? el('span', { class: 'tour-ok' }, icon('check', 12), t('Lista')) : null), el('small', {}, p ? (p.vlc ? t('Instalado') : t('No está instalado (opcional)')) : '…'))));
@@ -67,19 +74,21 @@ export function openWelcome() {
   const stages = el('div', { class: 'tour-stages' });
   const back = el('button', { id: 'welcome-back', type: 'button', class: 'tour-btn ghost', onclick: () => go(i - 1) }, t('Atrás'));
   const next = el('button', { id: 'welcome-next', type: 'button', class: 'tour-btn primary', onclick: () => (i === list.length - 1 ? exit() : go(i + 1)) });
-  const dlg = el('dialog', { id: 'dlg-welcome', class: 'tour', 'aria-label': t('Bienvenida'),
+  const dlg = /** @type {HTMLDialogElement} */ (el('dialog', { id: 'dlg-welcome', class: 'tour', 'aria-label': t('Bienvenida'),
     oncancel: (e) => { e.preventDefault(); exit(); },
     onkeydown: (e) => { if (e.key === 'ArrowRight') go(i + 1); else if (e.key === 'ArrowLeft') go(i - 1); },
   }, el('div', { class: 'tour-frame' },
     el('header', { class: 'tour-head' }, progress, skip),
     stages,
-    el('footer', { class: 'tour-foot' }, back, next)));
+    el('footer', { class: 'tour-foot' }, back, next))));
 
+  /** @param {Step} s */
   function stage(s) {
     return el('div', { class: 'tour-stage' },
       el('div', { class: 'tour-art', 'aria-hidden': 'true' }, el('span', { class: 'tour-ring' }), el('span', { class: 'tour-ring late' }), el('span', { class: 'tour-disc' }, icon(s.icon, 56))),
       el('h2', { id: 'welcome-title' }, s.title), el('p', {}, s.body), s.extra ? el('div', { class: 'tour-extra' }, s.extra()) : null);
   }
+  /** @param {number} dir */
   function draw(dir) {
     const last = i === list.length - 1;
     progress.setAttribute('aria-valuenow', String(i + 1));
@@ -103,6 +112,7 @@ export function openWelcome() {
     if (dir && !still()) now.animate([{ transform: `translateX(${dir * 48}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 460, easing: 'cubic-bezier(.16, 1, .3, 1)' });
     safeSet(STORE, String(i));
   }
+  /** @param {number} to */
   function go(to) {
     if (to < 0 || to >= list.length || to === i) return;
     const dir = to > i ? 1 : -1;

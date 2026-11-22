@@ -1,3 +1,4 @@
+// @ts-check
 // "Pegar magnet" con TorBox (2026-11-20, como la web): el torrent pegado (Pegados o el buscador). Si TorBox lo tiene,
 // sus videos; si no, "Bajarlo en TorBox" con el avance en vivo. Arriba, la película o serie si se reconoce por el
 // nombre (TMDB), con "Ver ficha". Reproducir sigue siendo el ▶ de Pegados (por torrent).
@@ -5,45 +6,42 @@ import { api } from './api.js';
 import { $, el, icon } from './dom.js';
 import { humanBytes } from './format.js';
 import { t } from './i18n.js';
+import { magnetHash } from './magnet-hash.js';
 import { openSide } from './catalog-side.js';
 
-/** btih de un magnet en hex de 40 (minúsculas); base32 (32) se pasa a hex. null si no es un magnet. */
-export function magnetHash(text) {
-  const m = text.trim().match(/^magnet:\?.*?xt=urn:btih:([0-9a-z]{32,40})/i);
-  if (!m) return null;
-  const h = m[1];
-  if (/^[0-9a-f]{40}$/i.test(h)) return h.toLowerCase();
-  if (!/^[a-z2-7]{32}$/i.test(h)) return null;
-  let bits = '';
-  for (const ch of h.toUpperCase()) bits += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(ch).toString(2).padStart(5, '0');
-  return bits.match(/.{4}/g).map((b) => parseInt(b, 2).toString(16)).join('');
-}
-console.assert(
-  magnetHash('magnet:?xt=urn:btih:C12FE1C06BBA254A9DC9F519B335AA7C1367A88A&dn=x') === 'c12fe1c06bba254a9dc9f519b335aa7c1367a88a'
-    && magnetHash('magnet:?xt=urn:btih:YEX6DQDLXISUVHOJ6UM3GNNKPQJWPKEK') === 'c12fe1c06bba254a9dc9f519b335aa7c1367a88a'
-    && magnetHash('hola') === null && magnetHash('magnet:?xt=urn:btih:xyz') === null,
-  'magnetHash',
-);
+export { magnetHash };
 
-/** El que está abierto: cerrar el diálogo o abrir otro corta su consulta de avance. */
+/** @typedef {import('./types.js').MagnetStatus} MagnetStatus */
+/** @typedef {import('./types.js').Identified} Identified */
+/** @typedef {{hash: string, name: string, st: MagnetStatus|null, ident: Identified|null, error: string, adding: boolean,
+ *   timer: ReturnType<typeof setInterval>|undefined, download?: () => Promise<void>}} OpenMagnet */
+
+/** Mensaje de un rechazo del núcleo (`UiError`) o de cualquier otro error. @param {unknown} e */
+const errText = (e) => t(/** @type {{message?: string}|null|undefined} */ (e)?.message ?? String(e));
+
+/** El que está abierto: cerrar el diálogo o abrir otro corta su consulta de avance.
+ *  @type {OpenMagnet|null} */
 let open = null;
 
+/** @param {string} hash @param {string} name */
 export function openMagnet(hash, name) {
+  /** @type {HTMLDialogElement} */
   let dlg = $('#dlg-magnet');
   if (!dlg) {
-    dlg = el('dialog', { id: 'dlg-magnet', class: 'dialog magnet', onclose: () => { clearInterval(open?.timer); open = null; } });
+    dlg = /** @type {HTMLDialogElement} */ (el('dialog', { id: 'dlg-magnet', class: 'dialog magnet', onclose: () => { clearInterval(open?.timer); open = null; } }));
     document.body.append(dlg);
   }
   clearInterval(open?.timer);
-  const cur = (open = { hash, name, st: null, ident: null, error: '', adding: false, timer: null });
+  /** @type {OpenMagnet} */
+  const cur = (open = { hash, name, st: null, ident: null, error: '', adding: false, timer: undefined });
   const draw = () => { if (open === cur) dlg.replaceChildren(...view(cur, dlg)); };
-  const load = async (who) => {
+  const load = async (/** @type {boolean} */ who) => {
     try {
       const r = await api.torboxMagnet(hash, name, who);
       if (open !== cur) return;
       if (who) cur.ident = r.ident;
       cur.st = r.status;
-    } catch (e) { cur.error = t(e?.message ?? String(e)); }
+    } catch (e) { cur.error = errText(e); }
     // Bajándose en TorBox: se pregunta el avance cada 4 s mientras esté abierto.
     clearInterval(cur.timer);
     if (cur.st?.state === 'downloading') cur.timer = setInterval(() => load(false), 4000);
@@ -53,7 +51,7 @@ export function openMagnet(hash, name) {
     cur.adding = true;
     cur.error = '';
     draw();
-    try { cur.st = await api.torboxMagnetDownload(hash, name); } catch (e) { cur.error = t(e?.message ?? String(e)); }
+    try { cur.st = await api.torboxMagnetDownload(hash, name); } catch (e) { cur.error = errText(e); }
     cur.adding = false;
     clearInterval(cur.timer);
     if (cur.st?.state === 'downloading') cur.timer = setInterval(() => load(false), 4000);
@@ -64,10 +62,14 @@ export function openMagnet(hash, name) {
   load(true);
 }
 
+/** @param {number} b */
 const speed = (b) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB/s` : `${Math.round(b / 1e3)} KB/s`);
+/** @param {number} sec */
 const eta = (sec) => (sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round((sec % 3600) / 60)} min` : sec >= 60 ? `${Math.round(sec / 60)} min` : `${sec} s`);
+/** @param {boolean} moving */
 const cloud = (moving) => el('span', { class: `mag-cloud ${moving ? 'moving' : ''}`, 'aria-hidden': 'true' }, icon('cloud', 54), el('span', { class: 'mag-arrow' }, icon('download', 22)));
 
+/** @param {OpenMagnet} cur @param {HTMLDialogElement} dlg */
 function view(cur, dlg) {
   const { st, ident } = cur;
   const name = ident?.name ?? st?.name ?? cur.name ?? t('Torrent pegado');

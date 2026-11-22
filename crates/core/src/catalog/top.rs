@@ -645,9 +645,10 @@ mod tests {
 
     // Red real: `cargo test -p streamonte-core --lib top::tests::dataset_real -- --ignored`.
     #[tokio::test]
-    #[ignore]
+    #[ignore = "red real: descarga el dataset público de IMDb"]
     async fn dataset_real() {
-        let data = DataCache::new(std::env::temp_dir().join("streamonte-test-top-real"));
+        let dir = crate::fsutil::test_dir("top-real");
+        let data = DataCache::new(dir.to_path_buf());
         let r = TopRated::new(Arc::new(data))
             .ratings(&Http::new(Duration::from_secs(10)))
             .await

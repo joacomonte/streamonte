@@ -174,6 +174,9 @@ pub struct StartOptions {
     pub capture_clipboard: bool,
     /// Carpetas de la app. `None` → las del SO; las pruebas usan `AppPaths::under`.
     pub paths: Option<AppPaths>,
+    /// Descargas de fondo al abrir (puntajes de IMDb, lista compartida de trackers). Las pruebas
+    /// de integración lo apagan para no tocar la red.
+    pub background_fetch: bool,
 }
 
 impl Default for StartOptions {
@@ -181,6 +184,7 @@ impl Default for StartOptions {
         Self {
             capture_clipboard: true,
             paths: None,
+            background_fetch: true,
         }
     }
 }
@@ -313,12 +317,12 @@ impl AppCore {
             data_cache.clone(),
         ));
         // Puntajes de IMDb e índice por temporada, de fondo: la búsqueda y la primera serie no esperan.
-        {
+        if opts.background_fetch {
             let catalog = catalog.clone();
             tokio::spawn(async move { catalog.warm_imdb().await });
         }
         // Lista compartida de trackers, de fondo: la primera reproducción no la espera.
-        {
+        if opts.background_fetch {
             let (config, file) = (config.clone(), paths.shared_trackers_file());
             tokio::spawn(async move {
                 let list = crate::trackers::shared_list(&file).await;

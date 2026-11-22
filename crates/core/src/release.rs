@@ -231,6 +231,30 @@ mod tests {
         assert_eq!(v.release_group, None);
     }
 
+    #[test]
+    fn release_pack_multi_ruta_y_sin_datos() {
+        // Pack completo: la temporada sin episodio corta el título.
+        let v = parse_release_name("Show.Name.S01.COMPLETE.1080p.BluRay.x264-GRP");
+        assert_eq!(v.title.as_deref(), Some("Show Name"));
+        assert_eq!((v.season, v.episode), (Some(1), None));
+        assert_eq!(v.release_group.as_deref(), Some("GRP"));
+
+        // MULTi es marcador: no entra al título.
+        let v = parse_release_name("Peli.Rara.2020.MULTi.1080p.WEB-DL.x264-GRP.mkv");
+        assert_eq!(v.title.as_deref(), Some("Peli Rara"));
+        assert_eq!(v.year, Some(2020));
+
+        // Ruta con `\` (Windows): solo cuenta el último componente.
+        let v = parse_release_name("Pack\\Temporada 1\\Show.S01E03.720p.mkv");
+        assert_eq!(v.file_name, "Show.S01E03.720p.mkv");
+        assert_eq!((v.season, v.episode), (Some(1), Some(3)));
+
+        // Sin año ni grupo: título entero, resto en None.
+        let v = parse_release_name("Mi Pelicula Casera.mp4");
+        assert_eq!(v.title.as_deref(), Some("Mi Pelicula Casera"));
+        assert_eq!((v.year, v.source, v.release_group), (None, None, None));
+    }
+
     /// Las marcas que antes reconocían `ranking::content_kind` y el parser de subtítulos.
     /// Donde no coincidían gana este parser: `S01` (pack) y `1x002`/`4x4` también son episodios.
     #[test]

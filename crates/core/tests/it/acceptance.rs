@@ -1,13 +1,12 @@
 //! Trazabilidad de criterios de aceptación (spec 02 + 06-A).
-//! Cada CA tiene su prueba con nombre `fr_xx_…` / `t_xx_…`; `#[ignore = "Fn"]` indica la fase
-//! en la que se implementa. Una fase no se cierra con pruebas P0 ignoradas (spec 07).
-//! Pruebas de red (T-01..T-06): `cargo test -- --ignored network` en la sesión real (NFR-17, lección 7).
+//! Cada CA tiene su prueba con nombre `fr_xx_…` / `t_xx_…`. Las pruebas de red (T-01..T-06,
+//! NFR-09, FR-25/26) no tienen cuerpo acá: se verifican a mano en la sesión real (NFR-17, lección 7);
+//! la única con código es FR-06 (`#[ignore = "network"]`): `cargo test -- --ignored network`.
 
 // ---------- F2: magnet / biblioteca / análisis ----------
 // La cola del analizador (FR-06 sin red, FR-08 pausa/reanudar/re-analizar/no medidos/reintentos)
 // se prueba con un medidor falso en `analyzer::tests`; acá queda la corrida real (red).
 mod f2 {
-    use std::path::PathBuf;
     use std::time::Duration;
 
     use async_trait::async_trait;
@@ -19,18 +18,12 @@ mod f2 {
     use streamonte_core::ranking::{self, Light, RankInput};
     use tokio::sync::mpsc;
 
-    const SINTEL: &str = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel";
-    const SINTEL_B32: &str = "magnet:?xt=urn:btih:BCW2LJ5GDA5K4HQJ3AY56Z2I2VTASWQQ&dn=Sintel";
-    const BBB: &str =
-        "magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+Buck+Bunny";
-    const TOS: &str =
-        "magnet:?xt=urn:btih:209c8226b299b308beaf2b9cd3fb49212dbd13ec&dn=Tears+of+Steel";
+    use crate::common::{TempRoot, BBB, SINTEL, TOS};
 
-    fn temp_library(name: &str) -> (Library, PathBuf) {
-        let dir =
-            std::env::temp_dir().join(format!("streamonte-acc-{name}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
+    const SINTEL_B32: &str = "magnet:?xt=urn:btih:BCW2LJ5GDA5K4HQJ3AY56Z2I2VTASWQQ&dn=Sintel";
+
+    fn temp_library(name: &str) -> (Library, TempRoot) {
+        let dir = TempRoot::new(name);
         let lib = Library::load(dir.join("library.json")).unwrap();
         (lib, dir)
     }
@@ -44,26 +37,24 @@ mod f2 {
 
     #[test]
     fn fr_01_tres_magnets_uno_repetido_dan_dos_filas() {
-        let (mut lib, dir) = temp_library("fr01a");
+        let (mut lib, _dir) = temp_library("fr01a");
         for text in [SINTEL, BBB, SINTEL] {
             copy(&mut lib, text);
         }
         assert_eq!(lib.len(), 2);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
     fn fr_01_texto_con_varios_magnets_agrega_todos() {
-        let (mut lib, dir) = temp_library("fr01b");
+        let (mut lib, _dir) = temp_library("fr01b");
         let text = format!("mirá estos:\n{SINTEL}\n- {BBB} y <a href=\"{TOS}\">este</a>");
         copy(&mut lib, &text);
         assert_eq!(lib.len(), 3);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
     fn fr_01_hash_hex_y_base32_son_el_mismo() {
-        let (mut lib, dir) = temp_library("fr01c");
+        let (mut lib, _dir) = temp_library("fr01c");
         copy(&mut lib, SINTEL);
         let b32 = Magnet::parse(SINTEL_B32).unwrap();
         assert_eq!(
@@ -71,7 +62,6 @@ mod f2 {
             AddOutcome::AlreadyPresent
         );
         assert_eq!(lib.len(), 1);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
@@ -150,7 +140,6 @@ mod f2 {
         let lib = Library::load(dir.join("library.json")).unwrap();
         assert_eq!(lib.list(Group::PastedNow).len(), 0);
         assert_eq!(lib.list(Group::Previous).len(), 2);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
@@ -168,7 +157,6 @@ mod f2 {
             .collect();
         assert_eq!(now, ["Sintel"]);
         assert_eq!(lib.list(Group::Previous).len(), 1);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     /// Tracker UDP falso (BEP 15): seeders = 1er byte del hash, leechers = 2º, completed = 3º.
@@ -199,11 +187,23 @@ mod f2 {
         format!("udp://{addr}/announce")
     }
 
+    /// Tracker UDP que recibe y nunca responde (a diferencia de un puerto cerrado, que devuelve
+    /// ICMP al instante). El socket vive en una tarea hasta que termina el runtime de la prueba.
+    fn silent_tracker() -> String {
+        let socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+        let addr = socket.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let mut buf = [0u8; 2048];
+            while socket.recv_from(&mut buf).is_ok() {}
+        });
+        format!("udp://{addr}/announce")
+    }
+
     #[tokio::test]
     async fn fr_05_scrape_udp_contra_servidor_falso() {
         let trackers = vec![
             fake_tracker().await,
-            "udp://127.0.0.1:9/announce".to_string(), // no responde
+            silent_tracker(),
             "wss://tracker.webtorrent.dev".to_string(), // no UDP: se ignora
         ];
         let hashes: Vec<InfoHash> = (1..=3u8)
@@ -232,10 +232,13 @@ mod f2 {
                 ])
             })
             .collect();
+        let timeout = Duration::from_millis(150);
         let started = std::time::Instant::now();
-        let r = streamonte_core::trackers::scrape_batch(&hashes, &trackers, Duration::from_secs(3))
-            .await;
-        assert!(started.elapsed() < Duration::from_secs(10), "FR-05: < 10 s");
+        let r = streamonte_core::trackers::scrape_batch(&hashes, &trackers, timeout).await;
+        let elapsed = started.elapsed();
+        // El tracker mudo hace esperar todo el plazo (y no más): el bueno igual aporta.
+        assert!(elapsed >= timeout, "esperó el plazo del mudo: {elapsed:?}");
+        assert!(elapsed < Duration::from_secs(1), "FR-05: {elapsed:?}");
         assert_eq!(r.len(), 3);
         let s = &r[&hashes[2]];
         assert_eq!(
@@ -343,14 +346,13 @@ mod f2 {
     }
 
     /// FR-06 CA con red real (sesión del usuario, lección 7): Sintel → velocidad > 0 y duración 14:48.
-    /// `cargo test -p streamonte-core --test acceptance -- --ignored fr_06 --nocapture`
+    /// `cargo test -p streamonte-core --test it -- --ignored fr_06 --nocapture`
     #[tokio::test(flavor = "multi_thread")]
-    #[ignore = "F2 network"]
+    #[ignore = "network"]
     async fn fr_06_sintel_velocidad_y_duracion_real() {
         use streamonte_core::analyzer::{LiveMeasurer, Measurer};
-        let root = std::env::temp_dir().join(format!("streamonte-acc-fr06-{}", std::process::id()));
-        let paths = streamonte_core::paths::AppPaths::under(&root);
-        paths.ensure_dirs().unwrap();
+        let root = TempRoot::new("fr06");
+        let paths = root.app_paths();
         let cfg = streamonte_core::config::Config::default();
         let measurer = LiveMeasurer::new(paths.clone());
         let m = Magnet::parse(SINTEL).unwrap();
@@ -369,44 +371,22 @@ mod f2 {
         assert!((secs - 888.0).abs() < 1.0, "Sintel dura 14:48, dio {secs}");
         let leftovers = std::fs::read_dir(paths.downloads_dir()).unwrap().count();
         assert_eq!(leftovers, 0, "todo lo bajado se borra (FR-06)");
-        let _ = std::fs::remove_dir_all(root);
     }
 }
-
-// ---------- F1: motor / reproducción (red, sesión real) ----------
-#[test]
-#[ignore = "F1 network"]
-fn t_01_mp4_10gb_indice_al_final_primera_imagen_menos_60s() {}
-#[test]
-#[ignore = "F1 network"]
-fn t_02_mkv_grande_primera_imagen_menos_30s() {}
-#[test]
-#[ignore = "F1 network"]
-fn t_03_magnet_sin_trackers_metadatos_menos_10s() {}
-#[test]
-#[ignore = "F1 network"]
-fn t_04_cerrar_reproductor_motor_detenido_y_carpeta_borrada_menos_10s() {}
-#[test]
-#[ignore = "F1 network"]
-fn t_06_piezas_pedidas_se_completan_antes_que_el_resto() {}
-#[test]
-#[ignore = "F1"]
-fn nfr_09_escritura_al_final_de_20gb_sin_relleno() {}
 
 // ---------- F3: panel / limpieza ----------
 mod f3 {
     use std::collections::HashSet;
     use std::path::PathBuf;
 
-    use streamonte_core::cleanup::{Cleanup, OwnerRecord, OWNER_FILE};
+    use streamonte_core::cleanup::Cleanup;
     use streamonte_core::paths::AppPaths;
 
-    fn setup(name: &str) -> (PathBuf, AppPaths) {
-        let root =
-            std::env::temp_dir().join(format!("streamonte-acc-f3-{name}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
-        let paths = AppPaths::under(&root);
-        paths.ensure_dirs().unwrap();
+    use crate::common::{write_owner, TempRoot};
+
+    fn setup(name: &str) -> (TempRoot, AppPaths) {
+        let root = TempRoot::new(name);
+        let paths = root.app_paths();
         (root, paths)
     }
 
@@ -414,13 +394,7 @@ mod f3 {
         let d = paths.downloads_dir().join(name);
         std::fs::create_dir_all(d.join("pieces")).unwrap();
         std::fs::write(d.join("pieces").join("0"), vec![1u8; 4096]).unwrap();
-        let owner = OwnerRecord {
-            app_pid,
-            engine_pid: None,
-            player_pid: None,
-            started_at: chrono::Utc::now(),
-        };
-        std::fs::write(d.join(OWNER_FILE), serde_json::to_vec(&owner).unwrap()).unwrap();
+        write_owner(&d, app_pid);
         d
     }
 
@@ -428,7 +402,7 @@ mod f3 {
     /// al reabrir; la de un dueño vivo no. La parte con un proceso real matado se verifica a mano.
     #[test]
     fn t_05_proceso_matado_limpia_restos_al_reabrir() {
-        let (root, paths) = setup("t05");
+        let (_root, paths) = setup("t05");
         let muerta = download_dir(&paths, "de-app-muerta", u32::MAX - 11);
         let viva = download_dir(&paths, "de-app-viva", std::process::id());
         let report = Cleanup::new(paths.clone())
@@ -437,13 +411,12 @@ mod f3 {
         assert_eq!(report.dirs_removed, 1);
         assert!(report.bytes_freed >= 4096);
         assert!(!muerta.exists() && viva.exists());
-        std::fs::remove_dir_all(root).unwrap();
     }
 
     /// FR-19: "Limpiar temporales" nunca toca reproducciones activas ni el historial.
     #[test]
     fn fr_19_limpiar_no_toca_reproducciones_activas() {
-        let (root, paths) = setup("fr19");
+        let (_root, paths) = setup("fr19");
         std::fs::write(paths.library_file(), b"[]").unwrap();
         let activa = download_dir(&paths, "activa", std::process::id());
         let vieja = download_dir(&paths, "detenida", std::process::id());
@@ -453,62 +426,39 @@ mod f3 {
         assert_eq!(report.dirs_removed, 1);
         assert!(activa.exists() && !vieja.exists());
         assert!(paths.library_file().exists(), "el historial no se toca");
-        std::fs::remove_dir_all(root).unwrap();
     }
 }
 
 // ---------- FR-06d: lo bajado al analizar sirve de precarga ----------
 mod fr06d {
-    use std::path::{Path, PathBuf};
+    use std::path::PathBuf;
     use std::sync::Arc;
-    use std::time::{Duration, Instant};
 
     use streamonte_core::app::{AppCore, StartOptions};
-    use streamonte_core::cleanup::{OwnerRecord, OWNER_FILE};
-    use streamonte_core::events::NullSink;
+    use streamonte_core::cleanup::KEPT_FILE;
+    use streamonte_core::events::CoreEvent;
     use streamonte_core::library::Library;
     use streamonte_core::magnet::Magnet;
     use streamonte_core::paths::AppPaths;
 
-    const SINTEL: &str = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel";
-    const BBB: &str =
-        "magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+Buck+Bunny";
-    const TOS: &str =
-        "magnet:?xt=urn:btih:209c8226b299b308beaf2b9cd3fb49212dbd13ec&dn=Tears+of+Steel";
+    use crate::common::{channel_sink, wait_event, write_owner, TempRoot, BBB, SINTEL, TOS};
 
     /// Carpeta de análisis de una sesión anterior (dueño muerto), con una pieza bajada.
     fn analysis_dir(paths: &AppPaths, magnet: &Magnet) -> PathBuf {
         let d = paths.analysis_dir(&magnet.info_hash);
         std::fs::create_dir_all(&d).unwrap();
         std::fs::write(d.join("video.mp4"), vec![1u8; 4096]).unwrap();
-        let owner = OwnerRecord {
-            app_pid: u32::MAX - 11,
-            engine_pid: None,
-            player_pid: None,
-            started_at: chrono::Utc::now(),
-        };
-        std::fs::write(d.join(OWNER_FILE), serde_json::to_vec(&owner).unwrap()).unwrap();
+        write_owner(&d, u32::MAX - 11);
         d
-    }
-
-    async fn wait_gone(dir: &Path) -> bool {
-        let t0 = Instant::now();
-        while dir.exists() && t0.elapsed() < Duration::from_secs(10) {
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-        !dir.exists()
     }
 
     /// Reabrir la app borra todo lo analizado, también lo de los magnets que siguen en la lista
     /// (2026-11-15: "no quiero que vaya dejando basura por la PC"). Lo guardado a propósito
-    /// (`.streamonte-kept.json`) no es análisis y no entra acá.
+    /// (`.streamonte-kept.json`) no es análisis y no entra acá: aunque su dueño haya muerto, se conserva.
     #[tokio::test]
     async fn fr_06d_lo_analizado_se_borra_al_abrir() {
-        let root =
-            std::env::temp_dir().join(format!("streamonte-acc-fr06d-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
-        let paths = AppPaths::under(&root);
-        paths.ensure_dirs().unwrap();
+        let root = TempRoot::new("fr06d");
+        let paths = root.app_paths();
         let [sintel, bbb, tos] = [SINTEL, BBB, TOS].map(|m| Magnet::parse(m).unwrap());
         {
             let mut lib = Library::load(paths.library_file()).unwrap();
@@ -519,31 +469,34 @@ mod fr06d {
         let d_sintel = analysis_dir(&paths, &sintel);
         let d_bbb = analysis_dir(&paths, &bbb);
         let d_tos = analysis_dir(&paths, &tos); // ya no está en la lista
+                                                // Descarga guardada por el usuario, con dueño muerto: la limpieza no la toca.
+        let d_kept = paths.downloads_dir().join("guardada");
+        std::fs::create_dir_all(&d_kept).unwrap();
+        std::fs::write(d_kept.join("video.mp4"), vec![1u8; 4096]).unwrap();
+        std::fs::write(d_kept.join(KEPT_FILE), b"{}").unwrap();
+        write_owner(&d_kept, u32::MAX - 11);
 
+        let (sink, mut events) = channel_sink();
         let core = AppCore::start_with(
-            Arc::new(NullSink),
+            Arc::new(sink),
             StartOptions {
                 capture_clipboard: false,
                 paths: Some(paths.clone()),
+                background_fetch: false,
             },
         )
         .await
         .unwrap();
-        assert!(wait_gone(&d_tos).await, "huérfano borrado al abrir");
-        assert!(
-            wait_gone(&d_sintel).await,
-            "lo de la lista también se borra"
-        );
-        assert!(wait_gone(&d_bbb).await, "lo de la lista también se borra");
+        // Al terminar de limpiar, la app avisa "Se limpiaron restos…".
+        wait_event(
+            &mut events,
+            |e| matches!(e, CoreEvent::Status { message, .. } if message.starts_with("Se limpiaron restos")),
+        )
+        .await;
+        assert!(!d_tos.exists(), "huérfano borrado al abrir");
+        assert!(!d_sintel.exists(), "lo de la lista también se borra");
+        assert!(!d_bbb.exists(), "lo de la lista también se borra");
+        assert!(d_kept.join("video.mp4").exists(), "lo guardado no se borra");
         drop(core);
-        let _ = std::fs::remove_dir_all(root);
     }
 }
-
-// ---------- F5/F6: subtítulos ----------
-#[test]
-#[ignore = "F5"]
-fn fr_26_mensaje_de_sincronizacion_en_lenguaje_claro() {}
-#[test]
-#[ignore = "F6"]
-fn fr_25_fusion_ass_de_cinco_subtitulos() {}

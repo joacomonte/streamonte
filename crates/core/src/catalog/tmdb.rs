@@ -128,6 +128,24 @@ pub struct Details {
     /// varios sin título ni orden: el primero puede ser de la última temporada.
     #[serde(default)]
     pub trailer: Option<String>,
+    /// Quién la hizo (2026-11-22): en películas el director primero; después los 3 actores principales.
+    #[serde(default)]
+    pub people: Vec<Person>,
+    /// Productoras (hasta 2).
+    #[serde(default)]
+    pub companies: Vec<String>,
+}
+
+/// Alguien de los créditos de la ficha; tocarlo abre lo que actuó o dirigió.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Person {
+    pub id: u64,
+    pub name: String,
+    pub photo: Option<String>,
+    /// `cast` o `director`, como en [`super::people`].
+    pub role: String,
+    /// Personaje (actores).
+    pub note: Option<String>,
 }
 
 /// Un servicio donde está el título, con su logo.
@@ -178,6 +196,52 @@ struct RawDetails {
     videos: Option<Videos>,
     #[serde(rename = "watch/providers")]
     providers: Option<WatchProviders>,
+    credits: Option<Credits>,
+    #[serde(default)]
+    production_companies: Vec<Named>,
+}
+
+#[derive(Deserialize, Default)]
+struct Credits {
+    #[serde(default)]
+    cast: Vec<Credit>,
+    #[serde(default)]
+    crew: Vec<Credit>,
+}
+
+#[derive(Deserialize)]
+struct Credit {
+    id: u64,
+    name: String,
+    profile_path: Option<String>,
+    character: Option<String>,
+    job: Option<String>,
+}
+
+const PHOTO_BASE: &str = "https://image.tmdb.org/t/p/w185";
+
+/// Director (solo películas) y los 3 primeros del reparto, en ese orden.
+fn people(c: Credits, kind: MediaKind) -> Vec<Person> {
+    let person = |x: Credit, role: &str, note: Option<String>| Person {
+        id: x.id,
+        name: super::normalize::clean(&x.name),
+        photo: x.profile_path.map(|p| format!("{PHOTO_BASE}{p}")),
+        role: role.into(),
+        note: note
+            .map(|n| super::normalize::clean(&n))
+            .filter(|n| !n.is_empty()),
+    };
+    let director = c
+        .crew
+        .into_iter()
+        .filter(|x| kind == MediaKind::Movie && x.job.as_deref() == Some("Director"))
+        .take(1)
+        .map(|x| person(x, "director", None));
+    let cast = c.cast.into_iter().take(3).map(|x| {
+        let note = x.character.clone();
+        person(x, "cast", note)
+    });
+    director.chain(cast).collect()
 }
 
 #[derive(Deserialize)]
@@ -301,9 +365,9 @@ pub async fn details(
             details: None,
         };
     };
-    // v4: con dónde verla y los textos en los idiomas elegidos (uno por combinación).
+    // v5: con reparto y productoras (v4: dónde verla y los textos en los idiomas elegidos, uno por combinación).
     let file = format!(
-        "tmdb-detalle-v4-{}-{imdb_id}-{}-{}.json",
+        "tmdb-detalle-v5-{}-{imdb_id}-{}-{}.json",
         kind.as_str(),
         langs.titles.tmdb(),
         langs.app.tmdb()
@@ -455,7 +519,7 @@ async fn fetch_details(
     // Los videos en inglés (o sin idioma), como antes de pedir en el idioma de los títulos.
     let raw = get(
         langs.titles,
-        "&append_to_response=videos,watch/providers&include_video_language=en,null",
+        "&append_to_response=videos,watch/providers,credits&include_video_language=en,null",
     )
     .await?;
     // Sinopsis y géneros siempre en el idioma de la app: un pedido más solo si difiere.
@@ -489,6 +553,13 @@ async fn fetch_details(
             .map(|n| super::normalize::clean(&n.name))
             .collect(),
         trailer: first_trailer(raw.videos.map(|v| v.results).unwrap_or_default()),
+        people: people(raw.credits.unwrap_or_default(), kind),
+        companies: raw
+            .production_companies
+            .into_iter()
+            .take(2)
+            .map(|c| super::normalize::clean(&c.name))
+            .collect(),
     })
 }
 
@@ -858,6 +929,34 @@ mod tests {
         .unwrap();
         let names: Vec<String> = providers_ar(Some(p)).into_iter().map(|x| x.name).collect();
         assert_eq!(names, ["Cine.ar", "Netflix"]);
+    }
+
+    #[test]
+    fn director_primero_y_tres_actores() {
+        let c: Credits = serde_json::from_str(
+            r#"{"cast":[{"id":1,"name":"Edward Norton","character":"Narrator","profile_path":"/e.jpg"},
+              {"id":2,"name":"Brad Pitt","character":""},{"id":3,"name":"Helena"},{"id":4,"name":"Meat Loaf"}],
+              "crew":[{"id":9,"name":"Jim Uhls","job":"Screenplay"},{"id":7,"name":"David Fincher","job":"Director"}]}"#,
+        )
+        .unwrap();
+        let p = people(c, MediaKind::Movie);
+        let got: Vec<(&str, &str, Option<&str>)> = p
+            .iter()
+            .map(|x| (x.name.as_str(), x.role.as_str(), x.note.as_deref()))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                ("David Fincher", "director", None),
+                ("Edward Norton", "cast", Some("Narrator")),
+                ("Brad Pitt", "cast", None),
+                ("Helena", "cast", None)
+            ]
+        );
+        assert_eq!(
+            p[1].photo.as_deref(),
+            Some("https://image.tmdb.org/t/p/w185/e.jpg")
+        );
     }
 
     #[test]

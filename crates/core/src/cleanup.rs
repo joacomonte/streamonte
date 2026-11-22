@@ -370,18 +370,14 @@ mod tests {
     use super::*;
 
     struct Fixture {
-        root: PathBuf,
+        root: crate::fsutil::TestDir,
         cleanup: Cleanup,
         downloads: PathBuf,
     }
 
     impl Fixture {
         fn new(name: &str) -> Self {
-            let root = std::env::temp_dir().join(format!(
-                "streamonte-test-cleanup-{name}-{}",
-                std::process::id()
-            ));
-            let _ = std::fs::remove_dir_all(&root);
+            let root = crate::fsutil::test_dir(&format!("cleanup-{name}"));
             let paths = AppPaths::under(&root);
             paths.ensure_dirs().unwrap();
             let downloads = paths.downloads_dir();
@@ -400,12 +396,6 @@ mod tests {
                 crate::fsutil::write_json_atomic(&d.join(OWNER_FILE), &o).unwrap();
             }
             d
-        }
-    }
-
-    impl Drop for Fixture {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.root);
         }
     }
 
@@ -505,7 +495,8 @@ mod tests {
             .unwrap();
         let d = f.dir_with("analisis", None, 10);
         assert!(f.cleanup.try_reserve(&d));
-        let wait = Duration::from_millis(200);
+        // Sin espera: igual prueba "ocupada → None" y "libre → borra" sin dormir.
+        let wait = Duration::ZERO;
         assert_eq!(
             rt.block_on(f.cleanup.remove_dir_when_free(&d, wait))
                 .unwrap(),

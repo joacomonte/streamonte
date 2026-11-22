@@ -339,21 +339,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn under_pone_todo_bajo_la_raiz() {
-        let root = std::env::temp_dir().join("streamonte-test-paths");
-        let p = AppPaths::under(&root);
-        for dir in [&p.data_dir, &p.cache_dir, &p.temp_dir, &p.log_dir] {
-            assert!(dir.starts_with(&root));
-        }
-        assert!(p.library_file().starts_with(&p.data_dir));
-        assert!(p.downloads_dir().starts_with(&p.cache_dir));
-    }
-
-    #[test]
     fn migra_descargas_de_temporales_a_la_cache() {
-        let root =
-            std::env::temp_dir().join(format!("streamonte-test-migrate-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
+        let root = crate::fsutil::test_dir("migrate");
         let p = AppPaths::under(&root);
         p.ensure_dirs().unwrap();
         let old = p.temp_dir.join("downloads").join("abc-analisis");
@@ -368,18 +355,23 @@ mod tests {
             .is_file());
         assert!(!p.temp_dir.join("downloads").exists());
         p.migrate_downloads_from_temp(); // sin nada que mover: no falla
-        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]
     fn ensure_dirs_crea_las_carpetas() {
-        let root =
-            std::env::temp_dir().join(format!("streamonte-test-ensure-{}", std::process::id()));
+        let root = crate::fsutil::test_dir("ensure");
         let p = AppPaths::under(&root);
         p.ensure_dirs().unwrap();
-        assert!(p.downloads_dir().is_dir());
-        assert!(p.torrent_cache_dir().is_dir());
-        std::fs::remove_dir_all(&root).unwrap();
+        for dir in [
+            &p.data_dir,
+            &p.cache_dir,
+            &p.temp_dir,
+            &p.log_dir,
+            &p.torrent_cache_dir(),
+            &p.downloads_dir(),
+        ] {
+            assert!(dir.is_dir(), "{}", dir.display());
+        }
     }
 
     #[test]

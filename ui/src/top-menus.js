@@ -1,3 +1,4 @@
+// @ts-check
 // Barra superior: el botón del magnet copiado (2026-11-16) y el menú Descargas (en un solo lugar:
 // lo que se reproduce o baja de fondo, lo pausado, el análisis y el espacio en disco, con todo lo
 // que se puede detener, borrar o limpiar).
@@ -11,7 +12,7 @@ import { state, titleOf } from './state.js';
 
 const pop = el('div', { id: 'top-pop', class: 'top-pop', role: 'dialog', hidden: true });
 document.body.append(pop);
-/** Menú abierto: `{ btn, render }`, o `null`. */
+/** Menú abierto: `{ btn, render }`, o `null`. @type {{btn: HTMLElement, render: () => unknown}|null} */
 let open = null;
 
 function closePop() {
@@ -24,13 +25,14 @@ function closePop() {
 }
 
 /** Abre (o cierra, si ya estaba) el menú de `btn`; `render` llena `pop`. También lo usa `speed.js`. */
+/** @param {HTMLElement} btn @param {() => unknown} render */
 export async function togglePop(btn, render) {
   if (open?.btn === btn) { closePop(); return; }
   closePop();
   open = { btn, render };
   btn.setAttribute('aria-expanded', 'true');
   btn.classList.add('active');
-  pop.setAttribute('aria-label', btn.textContent.trim());
+  pop.setAttribute('aria-label', (btn.textContent ?? '').trim());
   const r = btn.getBoundingClientRect();
   pop.style.top = `${r.bottom + 8}px`;
   pop.style.right = `${Math.max(12, window.innerWidth - r.right)}px`;
@@ -39,20 +41,24 @@ export async function togglePop(btn, render) {
 }
 
 document.addEventListener('pointerdown', (ev) => {
-  if (open && !pop.contains(ev.target) && !open.btn.contains(ev.target) && !ev.target.closest('dialog')) closePop();
+  const target = /** @type {Element} */ (ev.target);
+  if (open && !pop.contains(target) && !open.btn.contains(target) && !target.closest('dialog')) closePop();
 });
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && open && !document.querySelector('dialog[open]')) closePop(); });
 window.addEventListener('resize', closePop);
 
 /** El elemento del menú abierto si es el de `btnId` (para redibujarlo), o null. */
+/** @param {string} btnId @returns {HTMLElement|null} */
 export const popFor = (btnId) => (open?.btn.id === btnId ? pop : null);
 
+/** @param {string} title @param {import('./dom.js').ElChild[]} children */
 const section = (title, ...children) => el('section', { class: 'pop-section' }, el('h4', {}, title), ...children);
 
 // ---------- Magnet copiado (2026-11-16) ----------
 // El botón aparece solo si lo último copiado es un magnet, y lo reproduce directo, sin análisis ni
 // preguntas: es la app usada como reproductor de magnets.
-let copied = null; // {raw, info_hash, name} o null
+/** @type {import('./types.js').CopiedMagnet|null} */
+let copied = null;
 
 export async function refreshCopied() {
   copied = await api.copiedMagnet().catch(() => null);
@@ -60,14 +66,14 @@ export async function refreshCopied() {
   btn.hidden = !copied;
   if (!copied) return;
   btn.replaceChildren(icon('play', 15), el('span', {}, 'Reproducir magnet copiado'),
-    copied.name ? el('span', { class: 'top-size play-copied-name' }, `· ${copied.name}`) : null);
+    ...(copied.name ? [el('span', { class: 'top-size play-copied-name' }, `· ${copied.name}`)] : []));
   btn.title = `Reproducir ${copied.name ?? 'el magnet copiado'} (Ctrl+V)`;
 }
 
 export async function playCopied() {
   if (!copied) return;
   const { raw, info_hash: key } = copied;
-  const btn = $('#btn-clipboard');
+  const btn = /** @type {HTMLButtonElement} */ ($('#btn-clipboard'));
   btn.disabled = true;
   try {
     await api.addSelected([raw]);
@@ -77,11 +83,16 @@ export async function playCopied() {
 }
 
 // ---------- Descargas ----------
-let usage = null; // TempUsage al abrir el menú (y después de limpiar)
-let dataBytes = null; // tamaño de la caché de datos, igual que `usage`
+/** TempUsage al abrir el menú (y después de limpiar). @type {import('./types.js').TempUsage|null} */
+let usage = null;
+/** Tamaño de la caché de datos, igual que `usage`. @type {number|null} */
+let dataBytes = null;
+/** @param {import('./types.js').PlaybackRow} r */
 const ACTIVE = (r) => !['paused', 'failed'].includes(r.state.kind);
+/** @param {import('./types.js').PlaybackRow} r @param {import('./types.js').PlaybackAction} action */
 const act = (r, action) => () => api.playbackAction(r.id, action).catch(showError);
 
+/** @param {import('./types.js').PlaybackRow} r */
 function playbackItem(r) {
   const pct = Math.floor((r.progress ?? 0) * 100);
   const speed = r.speed_bps > 0 ? ` · ${mbps(r.speed_bps)}` : '';
@@ -105,7 +116,7 @@ function analyzerSection() {
   if (!s || s.kind === 'idle') return null;
   const queued = state.queued?.length ?? 0;
   const what = s.kind === 'paused' ? tr('En pausa')
-    : s.kind === 'measuring' ? tr('Midiendo {a}', { a: titleOf(s.current) })
+    : s.kind === 'measuring' ? tr('Midiendo {a}', { a: titleOf(s.current ?? '') })
       : s.kind === 'scraping' ? tr('Consultando trackers') : tr('Leyendo metadatos');
   return section(tr('Análisis'),
     el('div', { class: 'pop-item' },
@@ -122,6 +133,7 @@ function renderDownloads() {
   const rows = [...state.playbacks.values()];
   const running = rows.filter(ACTIVE);
   const kept = rows.filter((r) => !ACTIVE(r));
+  /** @param {() => Promise<unknown>} fn */
   const afterClean = async (fn) => {
     await fn();
     [usage, dataBytes] = await Promise.all([api.tempUsage().catch(() => usage), api.dataCacheSize().catch(() => dataBytes)]);
@@ -129,7 +141,7 @@ function renderDownloads() {
     if (open?.btn.id === 'btn-downloads') renderDownloads();
   };
   const total = usage && dataBytes != null ? humanBytes(usage.bytes + dataBytes) : '…';
-  pop.replaceChildren(...[
+  pop.replaceChildren(.../** @type {(HTMLElement|null)[]} */ ([
     el('div', { class: 'pop-head' },
       el('div', {}, el('h3', {}, tr('Descargas')), el('p', { class: 'pop-sub' }, tr('{total} en disco', { total }))),
       el('button', { id: 'dl-open-folder', class: 'pop-btn', onclick: () => api.openDownloadsFolder().catch(showError) }, icon('folder', 15), tr('Abrir carpeta'))),
@@ -150,7 +162,7 @@ function renderDownloads() {
     // Solo hace algo distinto de "Borrar caché" cuando hay reproducciones o descargas guardadas.
     rows.length ? el('div', { class: 'pop-foot' },
       el('button', { id: 'dl-stop-all', class: 'pop-btn danger', title: tr('Detiene todo y borra todo lo descargado, también lo pausado'), onclick: () => afterClean(stopAllAndClean) }, tr('Detener y borrar todo'))) : null,
-  ].filter(Boolean));
+  ]).filter(/** @returns {x is HTMLElement} */ (x) => x != null));
 }
 
 export async function toggleDownloads() {
@@ -196,7 +208,7 @@ function showTransfer() {
   const pct = Math.round((rows.reduce((t, r) => t + (r.progress ?? 0), 0) / rows.length) * 100);
   speed.textContent = `↓ ${mbps(bps)}`;
   bar.classList.toggle('waiting', pct === 0); // conectando o sin metadatos: barra que corre
-  bar.firstElementChild.style.width = `${Math.max(pct, 2)}%`;
+  /** @type {HTMLElement} */ (bar.firstElementChild).style.width = `${Math.max(pct, 2)}%`;
   bar.setAttribute('aria-valuenow', String(pct));
   bar.title = tr('Bajando {a} · {pct} % · {b}', { a: rows.length === 1 ? rows[0].name : `${rows.length} videos`, pct, b: mbps(bps) });
 }

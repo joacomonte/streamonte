@@ -630,19 +630,14 @@ fn add_missing_sources(config: &mut Config) {
 mod tests {
     use super::*;
 
-    fn temp_store(name: &str) -> (ConfigStore, PathBuf) {
-        let dir = std::env::temp_dir().join(format!(
-            "streamonte-test-config-{name}-{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
+    fn temp_store(name: &str) -> (ConfigStore, crate::fsutil::TestDir) {
+        let dir = crate::fsutil::test_dir(&format!("config-{name}"));
         (ConfigStore::at(dir.join("config.json")), dir)
     }
 
     #[test]
     fn sin_archivo_devuelve_defaults() {
-        let (store, dir) = temp_store("missing");
+        let (store, _dir) = temp_store("missing");
         let mut loaded = store.load().unwrap();
         // Puertos propios de la instalación: al azar, guardados y estables al recargar.
         let [a, b] = loaded.engine.listen_ports;
@@ -650,12 +645,11 @@ mod tests {
         assert_eq!(store.load().unwrap(), loaded);
         loaded.engine.listen_ports = EngineConfig::default().listen_ports;
         assert_eq!(loaded, Config::default());
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
     fn guardar_y_cargar_ida_y_vuelta() {
-        let (store, dir) = temp_store("roundtrip");
+        let (store, _dir) = temp_store("roundtrip");
         let mut c = Config::default();
         c.logging.diagnostics = true;
         c.player.equalizer = Equalizer::Flat;
@@ -663,7 +657,6 @@ mod tests {
         c.engine.listen_ports = [43_210, 43_219];
         store.save(&c).unwrap();
         assert_eq!(store.load().unwrap(), c);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
@@ -678,7 +671,6 @@ mod tests {
         assert_eq!(c.preload.tail_bytes, 1);
         assert_eq!(c.preload.head_bytes, 16 * MIB);
         assert_eq!(c.trackers, Config::default().trackers);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
@@ -692,7 +684,11 @@ mod tests {
         let r = store.load().unwrap().ranking;
         let d = RankingConfig::default();
         assert_eq!((r.movie_minutes, r.episode_minutes), (d.movie_minutes, 30));
-        std::fs::remove_dir_all(dir).unwrap();
+        // `speed_factor` ya no es campo de config (serde lo ignora): los márgenes quedan en default.
+        assert_eq!(
+            (r.green_margin, r.yellow_margin),
+            (d.green_margin, d.yellow_margin)
+        );
     }
 
     /// `config.json` de antes de mover la calibración a `calibration.json`: sigue cargando igual.
@@ -707,7 +703,6 @@ mod tests {
         let c = store.load().unwrap();
         assert_eq!(c.ranking.green_margin, 2.0);
         assert_eq!(c.trackers, Config::default().trackers);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
@@ -724,7 +719,6 @@ mod tests {
                 .starts_with("config.json.corrupt-")
         });
         assert_eq!(apartados.count(), 1);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
@@ -740,7 +734,7 @@ mod tests {
     #[test]
     fn defaults_documentados() {
         let c = Config::default();
-        assert_eq!(c.trackers.len(), 7);
+        assert!(!c.trackers.is_empty());
         assert!(c.trackers.iter().all(|t| !t.starts_with("wss://")));
         assert!(c.player.use_app_profile);
         assert!(

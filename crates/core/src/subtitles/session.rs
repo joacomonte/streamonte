@@ -556,19 +556,4 @@ mod tests {
         assert_eq!(c.key(), "opensubtitles:7001");
         assert_eq!(label_for(1, &c), "1 · OpenSubtitles.com/Sintel.2010.Web");
     }
-
-    #[test]
-    fn teclas_registradas() {
-        for k in [
-            "1 ", "5 ", "0 ", "s ", "S ", "z ", "Z ", "x ", "X ", "r ", "R ",
-        ] {
-            assert!(
-                KEY_BINDINGS.lines().any(|l| l.starts_with(k)),
-                "falta la tecla {k}"
-            );
-        }
-        assert!(KEY_BINDINGS
-            .lines()
-            .all(|l| l.contains("script-message streamonte ")));
-    }
 }

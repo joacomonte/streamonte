@@ -256,5 +256,8 @@ mod tests {
     fn cloudflare_se_detecta() {
         let m = status_message(403, b"<title>Just a moment...</title>");
         assert!(m.contains("Cloudflare"));
+        // 403 normal (API key mala): no es Cloudflare.
+        let m = status_message(403, br#"{"message":"bad key"}"#);
+        assert!(!m.contains("Cloudflare") && m.contains("API key"), "{m}");
     }
 }

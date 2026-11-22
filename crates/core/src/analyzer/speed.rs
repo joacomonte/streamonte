@@ -256,9 +256,16 @@ mod tests {
         let mut subiendo: Vec<f64> = vec![5e6; 10];
         subiendo.extend((1..=10).map(|i| 5e6 + f64::from(i) * 1e6));
         assert!(!is_stable(&subiendo), "todavía sube: seguir midiendo");
+        // Con ruido fuerte no corta antes: o la cola parece subir o los últimos 10 s no están cerca de
+        // la mediana sostenida. Mide hasta el tope; el número informado sigue siendo la mediana.
         let mut ruidosa = vec![5e6; 10];
         ruidosa.extend([1e6, 9e6, 1e6, 9e6, 1e6, 9e6, 1e6, 9e6, 1e6, 9e6]);
-        let _ = is_stable(&ruidosa); // no debe entrar en pánico con ruido
+        assert!(!is_stable(&ruidosa), "termina en alza: parece que sube");
+        ruidosa.push(1e6);
+        assert!(
+            !is_stable(&ruidosa),
+            "termina en baja: los últimos 10 s lejos de lo sostenido"
+        );
     }
 
     #[test]

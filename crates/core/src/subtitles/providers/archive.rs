@@ -105,8 +105,7 @@ mod tests {
 
     #[tokio::test]
     async fn descomprime_o_pasa_tal_cual() {
-        let dir =
-            std::env::temp_dir().join(format!("streamonte-test-subarchive-{}", std::process::id()));
+        let dir = crate::fsutil::test_dir("subarchive");
         // Un archivo que no es comprimido pasa tal cual.
         let raw = extract_if_archive("x", b"texto".to_vec(), &dir.join("w"))
             .await
@@ -118,6 +117,5 @@ mod tests {
             .await
             .is_err());
         assert!(!work.exists());
-        let _ = std::fs::remove_dir_all(dir);
     }
 }

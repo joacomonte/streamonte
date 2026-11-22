@@ -122,8 +122,8 @@ mod tests {
 
     #[test]
     fn guarda_lee_poda_y_borra() {
-        let dir = std::env::temp_dir().join(format!("streamonte-datacache-{}", std::process::id()));
-        let cache = DataCache::new(dir.clone());
+        let dir = crate::fsutil::test_dir("datacache");
+        let cache = DataCache::new(dir.to_path_buf());
         assert!(cache.get::<Vec<u32>>("nada.json").is_none());
         cache.put("a.json", &vec![1u32, 2, 3]);
         let (v, age) = cache.get::<Vec<u32>>("a.json").unwrap();
@@ -136,13 +136,18 @@ mod tests {
             "la clave se sanea"
         );
         // a.json (7 bytes) + b (40) = 47 > 45: se va lo más viejo (a.json) y queda b.
-        std::thread::sleep(Duration::from_millis(20));
         cache.write("b/c:d", &[0u8; 40]);
+        // Fecha fija en vez de dormir: a.json es de hace una hora.
+        std::fs::File::options()
+            .write(true)
+            .open(dir.join("a.json"))
+            .unwrap()
+            .set_modified(SystemTime::now() - Duration::from_secs(3600))
+            .unwrap();
         cache.prune(45);
         assert!(cache.read("a.json").is_none());
         assert!(cache.read("b/c:d").is_some());
         assert_eq!(cache.clear().unwrap(), 40);
         assert_eq!(cache.size(), 0);
-        let _ = std::fs::remove_dir_all(dir);
     }
 }

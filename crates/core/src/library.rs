@@ -693,12 +693,11 @@ mod tests {
         }
     }
 
-    fn temp_path(name: &str) -> PathBuf {
-        let dir =
-            std::env::temp_dir().join(format!("streamonte-test-lib-{name}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        dir.join("library.json")
+    /// La carpeta (se borra al soltarla: mantenerla viva en el test) y el `library.json` dentro.
+    fn temp_path(name: &str) -> (crate::fsutil::TestDir, PathBuf) {
+        let dir = crate::fsutil::test_dir(&format!("lib-{name}"));
+        let path = dir.join("library.json");
+        (dir, path)
     }
 
     fn measured(speed: f64, size: u64) -> LiveMeasurement {
@@ -762,7 +761,7 @@ mod tests {
 
     #[test]
     fn alta_duplicado_y_movimiento_entre_grupos() {
-        let path = temp_path("groups");
+        let (_dir, path) = temp_path("groups");
         let mut lib = Library::load(path.clone()).unwrap();
         let a = magnet(1, "A");
         assert_eq!(lib.add_or_touch(&a, "magnet:a"), AddOutcome::Added);
@@ -780,12 +779,11 @@ mod tests {
         );
         assert_eq!(lib.list(Group::PastedNow).len(), 1);
         assert_eq!(lib.any_of(&a.info_hash).unwrap().magnet, "magnet:a");
-        std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 
     #[test]
     fn lista_en_orden_por_defecto_y_estado_a_medias_se_asienta() {
-        let path = temp_path("order");
+        let (_dir, path) = temp_path("order");
         let mut lib = Library::load(path.clone()).unwrap();
         for (i, name) in [(1u8, "lento"), (2, "rapido"), (3, "sin medir")] {
             lib.add_or_touch(&magnet(i, name), "m");
@@ -812,7 +810,6 @@ mod tests {
             lib.view(lib.any_of(&h(2)).unwrap()).score.margin.is_some(),
             "puntaje recalculado al cargar"
         );
-        std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 
     fn origin(season: u32, episode: u32, file_idx: Option<usize>) -> CatalogOrigin {
@@ -832,7 +829,7 @@ mod tests {
     /// análisis (por torrent) llega a las dos; pegar el magnet suelto es otra fila más.
     #[test]
     fn dos_episodios_del_mismo_pack_son_dos_filas() {
-        let path = temp_path("pack");
+        let (_dir, path) = temp_path("pack");
         let mut lib = Library::load(path.clone()).unwrap();
         let pack = magnet(4, "The.Bear.S03.1080p");
         let hash = pack.info_hash;
@@ -885,7 +882,6 @@ mod tests {
         );
         assert!(lib.remove(&e1));
         assert!(lib.has_torrent(&hash), "quedan otros episodios del torrent");
-        std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 
     /// `library.json` de antes (una fila por hash, sin `key`; o con los campos calculados que
@@ -894,7 +890,7 @@ mod tests {
     /// entero.
     #[test]
     fn library_json_viejo_carga() {
-        let path = temp_path("old");
+        let (_dir, path) = temp_path("old");
         let (a, b) = ("0a".repeat(20), "0b".repeat(20));
         let old = format!(
             r#"[
@@ -932,14 +928,13 @@ mod tests {
         ] {
             assert!(!saved.contains(derived), "{derived} no se persiste");
         }
-        std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 
     /// La vista de cada fila: bytes en disco de SU video (el episodio medido sí, otro episodio
     /// del mismo pack no hereda ese número) y la clave de orden del núcleo.
     #[test]
     fn vista_de_fila_bytes_por_video_y_clave_de_orden() {
-        let path = temp_path("view");
+        let (_dir, path) = temp_path("view");
         let downloads = path.parent().unwrap().join("downloads");
         let mut lib = Library::load(path.clone()).unwrap();
         lib.set_downloads_dir(downloads.clone());
@@ -1004,6 +999,5 @@ mod tests {
         let prov = live.score(3e6);
         assert_eq!(prov.len(), 2, "una por fila del torrent");
         assert_eq!(prov[0].score, v1.score);
-        std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 }

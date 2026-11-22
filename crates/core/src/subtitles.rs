@@ -776,36 +776,114 @@ mod tests {
         assert_eq!(movie.video_id(), "tt0944947");
     }
 
-    #[test]
-    fn archivos_de_subtitulo_del_torrent() {
-        let f = |index, name: &str, size| FileInfo {
-            index,
-            name: name.into(),
-            size,
-            offset: 0,
-        };
-        let meta = Metadata {
+    fn torrent_meta(files: &[(&str, u64)]) -> Metadata {
+        Metadata {
             info_hash: InfoHash::from_bytes([0; 20]),
             name: "Sintel".into(),
-            files: vec![
-                f(0, "Sintel/Sintel.de.srt", 1000),
-                f(1, "Sintel/Sintel.es.srt", 1000),
-                f(2, "Sintel/Sintel.mp4", 129_000_000),
-                f(3, "Sintel/poster.jpg", 1000),
-            ],
+            files: files
+                .iter()
+                .enumerate()
+                .map(|(index, (name, size))| FileInfo {
+                    index,
+                    name: (*name).into(),
+                    size: *size,
+                    offset: 0,
+                })
+                .collect(),
             piece_length: 1,
             piece_count: 1,
             torrent_bytes: None,
-        };
+        }
+    }
+
+    fn names(files: Vec<FileInfo>) -> Vec<String> {
+        files.into_iter().map(|f| f.name).collect()
+    }
+
+    #[test]
+    fn archivos_de_subtitulo_del_torrent() {
+        let meta = torrent_meta(&[
+            ("Sintel/Sintel.de.srt", 1000),
+            ("Sintel/Sintel.es.srt", 1000),
+            ("Sintel/Sintel.mp4", 129_000_000),
+            ("Sintel/poster.jpg", 1000),
+            ("Sintel/Sintel.en.SRT", 1000), // extensión en mayúsculas
+            ("Sintel/Sintel.fr.srt", 3 * 1024 * 1024), // > 2 MB: no es un subtítulo de texto
+        ]);
         let subs = subtitle_files_for(&meta, &meta.files[2]);
-        assert_eq!(subs.len(), 2);
+        // Sin filtrar idioma (eso lo hace quien lo muestra), en el orden del torrent.
+        assert_eq!(
+            names(subs),
+            [
+                "Sintel/Sintel.de.srt",
+                "Sintel/Sintel.es.srt",
+                "Sintel/Sintel.en.SRT"
+            ]
+        );
+    }
+
+    #[test]
+    fn subtitulos_de_un_pack_solo_los_del_video_elegido() {
+        let meta = torrent_meta(&[
+            ("Serie.S01E01.mkv", 500_000_000),
+            ("Serie.S01E02.mkv", 500_000_000),
+            ("Subs/Serie.S01E01.es.srt", 1000),
+            ("Subs/Serie.S01E02.es.srt", 1000),
+            ("Subs/Serie.S01E01.en.ass", 1000),
+            ("Subs/otro.srt", 1000), // no lleva el nombre de ningún video
+        ]);
+        assert_eq!(
+            names(subtitle_files_for(&meta, &meta.files[0])),
+            ["Subs/Serie.S01E01.es.srt", "Subs/Serie.S01E01.en.ass"]
+        );
+        assert_eq!(
+            names(subtitle_files_for(&meta, &meta.files[1])),
+            ["Subs/Serie.S01E02.es.srt"]
+        );
+    }
+
+    #[test]
+    fn nativos_en_espanol() {
+        let hash = InfoHash::from_bytes([1; 20]);
+        let sub =
+            |sid, file: Option<&str>, lang: Option<&str>, codec: Option<&str>, forced| NativeSub {
+                sid,
+                file: file.map(String::from),
+                lang: lang.map(String::from),
+                title: None,
+                codec: codec.map(String::from),
+                forced,
+            };
+        let subs = [
+            sub(Some(1), None, Some("spa"), Some("subrip"), true), // forzados: al final
+            sub(None, Some("Sintel/Sintel.es.srt"), None, None, false),
+            sub(Some(2), None, Some("spa"), Some("subrip"), false),
+            sub(Some(3), None, Some("es"), Some("hdmv_pgs_subtitle"), false),
+            sub(Some(4), None, Some("eng"), Some("subrip"), false), // inglés: se descarta
+            sub(None, Some("Sintel/Sintel.en.srt"), None, None, false),
+            sub(None, Some("Sintel/Sintel.de.srt"), None, None, false),
+            sub(None, None, Some("spa"), None, false), // ni pista ni archivo
+        ];
+        let got = spanish_natives(&subs, hash);
+        let summary: Vec<(&str, &str, &str)> = got
+            .iter()
+            .map(|n| (n.key.as_str(), n.kind.as_str(), n.place.as_str()))
+            .collect();
+        let file_key = providers::torrent_key(hash, "Sintel/Sintel.es.srt");
+        assert_eq!(
+            summary,
+            [
+                (file_key.as_str(), "SRT", "Sintel.es.srt"),
+                ("embedded:2", "SRT", "pista 2"),
+                ("embedded:3", "PGS", "pista 3"),
+                ("embedded:1", "forzados", "pista 1"),
+            ]
+        );
     }
 
     #[test]
     fn memoria_por_pelicula_ida_y_vuelta() {
-        let dir =
-            std::env::temp_dir().join(format!("streamonte-test-submem-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
+        let dir = crate::fsutil::test_dir("submem");
         let mem = SubtitleMemory::new(dir.join("subtitles-memory.json"));
         let h = VideoKey::whole(InfoHash::from_bytes([7; 20]));
         assert_eq!(mem.get(&h).unwrap(), None);
@@ -841,14 +919,11 @@ mod tests {
         let old: SubtitleChoice =
             serde_json::from_str(r#"{"subtitle":"wyzie:1","delay_secs":0.0}"#).unwrap();
         assert_eq!(old.language, SubtitleLanguage::Es);
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
     fn elegir_otro_cuenta_el_anterior_como_probado() {
-        let dir =
-            std::env::temp_dir().join(format!("streamonte-test-probados-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
+        let dir = crate::fsutil::test_dir("probados");
         let mem = SubtitleMemory::new(dir.join("subtitles-memory.json"));
         let es = SubtitleLanguage::Es;
         let k = VideoKey::whole(InfoHash::from_bytes([3; 20]));
@@ -863,6 +938,5 @@ mod tests {
         assert_eq!(c.tried, vec!["wyzie:3".to_string()]);
         let otro = VideoKey::whole(InfoHash::from_bytes([4; 20]));
         assert_eq!(mem.get(&otro).unwrap(), None, "es por opción");
-        std::fs::remove_dir_all(dir).unwrap();
     }
 }

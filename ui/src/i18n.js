@@ -1,3 +1,4 @@
+// @ts-check
 // Idiomas (2026-11-20, como la web): la app en español o inglés, y los títulos de películas, series y capítulos en
 // el suyo (TMDB los pide el núcleo en ese idioma; sinopsis y géneros siguen a la app). Los subtítulos no dependen de
 // esto: siempre priorizan español.
@@ -9,11 +10,11 @@ import EN from './i18n-en.js';
 /** Los elegidos, guardados en la config del núcleo. Se leen una vez al cargar (todo módulo que importa este espera):
  *  cambiarlos recarga la ventana, así cada texto ya armado sale en el idioma nuevo. */
 const saved = await api.config().then((c) => c.language, () => null);
-/** @type {{app: 'es'|'en', titles: 'es'|'en'}} */
+/** @type {import('./types.js').LanguageConfig} */
 export const langs = { app: saved?.app === 'en' ? 'en' : 'es', titles: saved?.titles === 'en' ? 'en' : 'es' };
 document.documentElement.lang = langs.app;
 
-/** Texto en el idioma de la app. @param {string} s @param {Record<string, string|number>=} vars */
+/** Texto en el idioma de la app. @param {string} s @param {Record<string, string|number|null|undefined>=} vars */
 export function t(s, vars) {
   const out = langs.app === 'en' ? (EN[s] ?? s) : s;
   return vars ? out.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '')) : out;
@@ -24,6 +25,7 @@ console.assert(t('{n} de {d}', { n: 1, d: 3 }) === (langs.app === 'en' ? '1 of 3
 export const locale = () => (langs.app === 'en' ? 'en-US' : 'es-AR');
 
 /** Cambia uno o los dos idiomas y recarga la ventana (el núcleo sigue corriendo: descargas y reproducciones quedan). */
+/** @param {Partial<import('./types.js').LanguageConfig>} next */
 export async function setLangs(next) {
   await api.setLanguage({ ...langs, ...next });
   location.reload();
@@ -31,10 +33,12 @@ export async function setLangs(next) {
 
 /** El HTML fijo de index.html: textos y `title` / `placeholder` / `aria-label` que estén en el diccionario. Se
  *  traduce una vez al arrancar; lo que arma el JS pasa por `t()`. */
+/** @param {ParentNode} root */
 export function translateStatic(root) {
   if (langs.app === 'es') return;
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const walker = document.createTreeWalker(/** @type {Node} */ (root), NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeValue == null) continue;
     const text = n.nodeValue.replace(/\s+/g, ' ').trim();
     if (text && EN[text]) n.nodeValue = n.nodeValue.replace(/^(\s*)[^]*?(\s*)$/, `$1${EN[text]}$2`);
   }

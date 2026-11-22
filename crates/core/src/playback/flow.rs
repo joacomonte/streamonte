@@ -634,7 +634,7 @@ fn spawn_first_frame_watcher(
 mod tests {
     use super::*;
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn al_cerrar_el_reproductor_sigue_bajando_solo_si_se_eligio() {
         let answer = tokio::sync::Notify::new();
         let cancel = CancellationToken::new();

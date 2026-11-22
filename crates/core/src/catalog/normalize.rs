@@ -607,4 +607,91 @@ mod tests {
         assert_eq!(parse_size("700 MB"), Some(734_003_200));
         assert_eq!(parse_size("x GB"), None);
     }
+
+    #[test]
+    fn tamanos_unidades_y_bordes() {
+        const GIB: u64 = 1 << 30;
+        for (text, want) in [
+            ("1 TB", Some(GIB * 1024)),
+            ("1 GiB", Some(GIB)),
+            ("1,5 GB", Some(GIB + GIB / 2)), // coma decimal
+            ("10 KB", Some(10 * 1024)),
+            ("5 B", Some(5)),
+            ("0 MB", Some(0)),
+            ("-1 GB", None),
+            ("NaN GB", None),
+            ("inf GB", None),
+            ("1.5", None), // sin unidad
+            ("1 XB", None),
+            ("", None),
+        ] {
+            assert_eq!(parse_size(text), want, "{text}");
+        }
+    }
+
+    fn tags(text: &str) -> Tags {
+        release_tags(text, &crate::release::ReleaseName::default())
+    }
+
+    #[test]
+    fn tags_de_resolucion() {
+        for (text, want) in [
+            ("Movie 4K HDR", Some("2160p")),
+            ("Movie UHD BluRay", Some("2160p")),
+            ("Movie 2160p", Some("2160p")),
+            ("Movie 1440p", Some("1440p")),
+            ("Movie 1080i", Some("1080p")),
+            ("Movie 576p", Some("480p")),
+            ("Movie SD", Some("480p")),
+            ("Movie 360p", Some("480p")),
+            ("Movie sin calidad", None),
+        ] {
+            assert_eq!(tags(text).resolution.as_deref(), want, "{text}");
+        }
+    }
+
+    #[test]
+    fn tags_de_hdr_y_codec() {
+        for (text, hdr) in [
+            ("Movie 2160p HDR10+", vec!["HDR"]), // HDR10+ no implica Dolby Vision
+            ("Movie 2160p HDR10Plus", vec!["HDR"]),
+            ("Movie 2160p DoVi", vec!["DV"]),
+            ("Movie 2160p DV HDR", vec!["HDR", "DV"]),
+            ("Movie 2160p Dolby Vision", vec!["DV"]),
+            ("Movie 1080p", vec![]),
+        ] {
+            assert_eq!(tags(text).hdr, hdr, "{text}");
+        }
+        for (text, codec) in [
+            ("Movie x265", Some("HEVC")),
+            ("Movie h265", Some("HEVC")),
+            ("Movie H.265", None), // ojo: el punto parte el token en `h` + `265`; hoy no se detecta
+            ("Movie x264", Some("H.264")),
+            ("Movie AV1", Some("AV1")),
+            ("Movie", None),
+        ] {
+            assert_eq!(tags(text).codec.as_deref(), codec, "{text}");
+        }
+    }
+
+    #[test]
+    fn tags_de_audio() {
+        for (text, want) in [
+            ("Movie DTS 5.1", vec!["DTS", "5.1"]),
+            ("Movie DTS-HD MA 7.1", vec!["DTS-HD", "7.1"]),
+            ("Movie DTS-X", vec!["DTS-HD"]),
+            ("Movie DTSX", vec!["DTS-HD"]),
+            ("Movie DD5.1", vec!["DD", "5.1"]),
+            ("Movie AC3", vec!["DD"]),
+            ("Movie DD+ 5.1", vec!["DD+", "5.1"]),
+            ("Movie DDP5.1", vec!["DD+", "5.1"]),
+            ("Movie EAC3", vec!["DD+"]),
+            ("Movie AAC2.0", vec!["AAC"]),
+            ("Movie TrueHD Atmos 7.1", vec!["Atmos", "TrueHD", "7.1"]),
+            ("Movie DDP5.1 Atmos", vec!["Atmos", "DD+", "5.1"]),
+            ("Movie sin audio", vec![]),
+        ] {
+            assert_eq!(tags(text).audio_format, want, "{text}");
+        }
+    }
 }

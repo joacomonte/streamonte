@@ -1,3 +1,4 @@
+// @ts-check
 // ---------- tooltip propio: burbuja animada en hover y foco de teclado (2026-11-14) ----------
 // Reemplaza también los `title` nativos de toda la app (los pasa a `data-tip` al pasar por
 // encima, antes de que el sistema muestre el suyo). Formato: "Título: explicación" → título en
@@ -9,12 +10,17 @@ const tip = el('div', { id: 'tip', class: 'tip', role: 'tooltip' });
 const canPopover = typeof tip.showPopover === 'function';
 if (canPopover) tip.setAttribute('popover', 'manual'); else tip.hidden = true;
 document.body.append(tip);
+/** @type {ReturnType<typeof setTimeout>|undefined} */
 let tipT;
+/** @type {ReturnType<typeof setTimeout>|undefined} */
 let tipOffT;
+/** @type {HTMLElement|null} */
 let tipEl = null;
+/** @type {HTMLElement|null} */
 let tipFor = null;
 /** Con el selector de audio abierto no se muestran tooltips (lo maneja `audio-picker.js`). */
 let blocked = false;
+/** @param {boolean} on */
 export function blockTips(on) { blocked = on; }
 
 const tipOpen = () => (canPopover ? tip.matches(':popover-open') : !tip.hidden);
@@ -31,19 +37,23 @@ function hideTip() {
 
 const KEY_RE = /\((Ctrl\+[^)]{1,12}|Shift\+[^)]{1,12}|Alt\+[^)]{1,12}|F\d{1,2}|Enter|Esc|Supr|Espacio)\)/g;
 /** Texto con atajos de teclado como <kbd> (siempre como texto: puede traer nombres de torrents). */
+/** @param {string} text @returns {(string|HTMLElement)[]} */
 function withKeys(text) {
+  /** @type {(string|HTMLElement)[]} */
   const out = [];
   let last = 0;
   for (const m of text.matchAll(KEY_RE)) {
     out.push(text.slice(last, m.index), el('kbd', {}, m[1]));
-    last = m.index + m[0].length;
+    last = (m.index ?? 0) + m[0].length;
   }
   out.push(text.slice(last));
   return out.filter((x) => x !== '');
 }
+/** @param {string} text */
 function fillTip(text) {
   const paras = text.split('\n').map((p) => p.trim()).filter(Boolean);
   const m = paras[0]?.match(/^([^:\n]{2,42}):\s+(.+)$/);
+  /** @type {HTMLElement[]} */
   const parts = [];
   if (m && !/https?$/.test(m[1])) {
     parts.push(el('strong', { class: 'tip-h' }, ...withKeys(m[1])));
@@ -55,16 +65,18 @@ function fillTip(text) {
 }
 
 /** `title` nativo → `data-tip` (y nombre accesible si el botón es solo un ícono). */
+/** @param {HTMLElement} n */
 function adoptTitle(n) {
   const t = n.getAttribute('title');
   if (t == null) return;
   n.removeAttribute('title');
   if (!t.trim()) return;
   n.dataset.tip = t;
-  if (!n.hasAttribute('aria-label') && n.textContent.trim().length <= 2) n.setAttribute('aria-label', t);
+  if (!n.hasAttribute('aria-label') && (n.textContent ?? '').trim().length <= 2) n.setAttribute('aria-label', t);
 }
 
 /** Muestra el tooltip de `target` tras una pausa (o lo oculta con `null`). */
+/** @param {HTMLElement|null} target */
 export function wantTip(target) {
   if (target === tipEl) return;
   tipEl = target;
@@ -93,8 +105,9 @@ export function wantTip(target) {
     requestAnimationFrame(() => tip.classList.add('on'));
   }, Number(target.dataset.tipDelay) || (tip.classList.contains('on') ? 60 : 380)); // `data-tip-delay`: espera propia (fila de opción: 2 s)
 }
+/** @param {EventTarget|null} t @returns {HTMLElement|null} */
 function tipScope(t) {
-  const n = t.closest?.('[data-tip], [title]');
+  const n = /** @type {HTMLElement|null} */ ((/** @type {Element} */ (t)).closest?.('[data-tip], [title]'));
   if (n?.hasAttribute('title')) adoptTitle(n);
   return n?.dataset.tip ? n : null;
 }
