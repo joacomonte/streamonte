@@ -1,0 +1,39 @@
+{
+ "app": "web",
+ "cookies": {
+  "nick": "Test"
+ },
+ "storage": {
+  "tour:welcome": "1"
+ },
+ "live": true,
+ "url": "/t/movie/550",
+ "setup": [
+  {
+   "click": "#net-high"
+  },
+  {
+   "click": "#audio-any"
+  },
+  {
+   "click": "[id^=copy-]",
+   "timeout": 90000
+  },
+  {
+   "click": "#where-app"
+  },
+  {
+   "click": "#see-subs",
+   "timeout": 30000
+  }
+ ],
+ "must": [
+  {
+   "sel": "#subs-sheet"
+  },
+  {
+   "sel": "[id^=sub-copy-]",
+   "count": 1
+  }
+ ]
+}

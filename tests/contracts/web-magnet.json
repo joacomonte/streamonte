@@ -1,0 +1,17 @@
+{
+ "app": "web",
+ "cookies": {
+  "nick": "Test"
+ },
+ "storage": {
+  "tour:welcome": "1"
+ },
+ "url": "/m/0123456789abcdef0123456789abcdef01234567",
+ "setup": [],
+ "must": [
+  {
+   "sel": "#mag-download",
+   "text": "TorBox"
+  }
+ ]
+}

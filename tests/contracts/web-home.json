@@ -1,0 +1,55 @@
+{
+ "app": "web",
+ "cookies": {
+  "nick": "Test"
+ },
+ "storage": {
+  "tour:welcome": "1"
+ },
+ "url": "/",
+ "setup": [],
+ "must": [
+  {
+   "sel": "#cat-q"
+  },
+  {
+   "sel": "#cat-kind-movie"
+  },
+  {
+   "sel": "#cat-kind-tv"
+  },
+  {
+   "sel": "#go-settings"
+  },
+  {
+   "sel": "#lang-es"
+  },
+  {
+   "sel": "#lang-en"
+  },
+  {
+   "sel": "#since-slider"
+  },
+  {
+   "sel": "#since-12",
+   "text": "1 año"
+  },
+  {
+   "sel": "#sort-rating"
+  },
+  {
+   "sel": "#sort-popular"
+  },
+  {
+   "sel": "#open-filters"
+  },
+  {
+   "sel": "#filters-summary",
+   "text": "votos"
+  },
+  {
+   "sel": "[id^=cat-card-]",
+   "count": 10
+  }
+ ]
+}

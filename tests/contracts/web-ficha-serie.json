@@ -1,0 +1,49 @@
+{
+ "app": "web",
+ "cookies": {
+  "nick": "Test"
+ },
+ "storage": {
+  "tour:welcome": "1"
+ },
+ "url": "/t/tv/1396",
+ "setup": [],
+ "must": [
+  {
+   "sel": "#back"
+  },
+  {
+   "sel": "#poster"
+  },
+  {
+   "sel": "#imdb-link"
+  },
+  {
+   "sel": "#trailer-link"
+  },
+  {
+   "sel": "#person-17419",
+   "text": "Cranston"
+  },
+  {
+   "sel": "#about-toggle",
+   "text": "Sinopsis"
+  },
+  {
+   "sel": "[id^=score-s]",
+   "count": 5
+  },
+  {
+   "sel": "[id^=season-]",
+   "count": 5
+  },
+  {
+   "sel": "#season-1",
+   "text": "Temporada 1"
+  },
+  {
+   "sel": "#season-next",
+   "text": "Serie terminada"
+  }
+ ]
+}
