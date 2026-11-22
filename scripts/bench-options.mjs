@@ -36,7 +36,7 @@ function rng(seed) {
 const hex = (r, n) => Array.from({ length: n }, () => Math.floor(r() * 16).toString(16)).join('');
 // Candidatos reales grabados (`ui/mock/events__catalog_streams__movie_tt0137523.json`): se clonan en ciclo con hash nuevo, sufijo en el
 // nombre y seeders/leechers variados. Todos pasan a 1080p: así el desktop (que muestra un grupo de resolución a la vez) dibuja las N.
-const recorded = JSON.parse(readFileSync(new URL('../ui/mock/events__catalog_streams__movie_tt0137523.json', import.meta.url), 'utf8')).find((e) => e.type === 'catalog-streams').update;
+const recorded = JSON.parse(readFileSync(new URL('../ui/mock/events__catalog_streams__movie_tt0137523.json', import.meta.url), 'utf8')).findLast((e) => e.type === 'catalog-streams').update; // el último: la lista completa (el mock es progresivo)
 function base(n) {
   const r = rng(42);
   return Array.from({ length: n }, (_, i) => {
@@ -198,12 +198,12 @@ async function web(browser, url, n) {
   await page.waitForSelector('#see-all, #see-all-rest');
   const m0 = await metrics(cdp);
   await timedClick(page, '#see-all, #see-all-rest');
-  await page.waitForSelector('li.opt');
+  await page.waitForSelector('li.cat-opt');
   const first = await page.evaluate(() => window.__raf2().then((t) => t - window.__t));
-  await page.waitForFunction((k) => document.querySelectorAll('li.opt').length >= k, n);
+  await page.waitForFunction((k) => document.querySelectorAll('li.cat-opt').length >= k, n);
   const full = await page.evaluate(() => window.__raf2().then((t) => t - window.__t));
   const build_work_ms = round(delta(m0, await metrics(cdp)).work);
-  const rows = await page.evaluate(() => document.querySelectorAll('li.opt').length);
+  const rows = await page.evaluate(() => document.querySelectorAll('li.cat-opt').length);
   const res = await runLive(page, cdp, list, 'web');
   const nodes = await domNodes(page);
   await ctx.close();

@@ -52,8 +52,10 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			},
 			link: async (ref, o: TorrentOption, opts) =>
 				adapt.link(await json<LinkRaw>(`/api/link?${episodeQuery(ref)}&${new URLSearchParams({ hash: o.hash, name: o.release, file: o.file ?? '', orig: opts?.orig ?? '' })}`)),
-			tracks: async (ref, o: TorrentOption) =>
-				adapt.tracks(await json<TracksRaw>(`/api/tracks?${episodeQuery(ref)}&${new URLSearchParams({ hash: o.hash, name: o.release, file: o.file ?? '' })}`))
+			tracks: async (ref, o: TorrentOption, opts) => {
+				const ids: Record<string, string> = opts?.ids ? { tid: String(opts.ids.tid), fid: String(opts.ids.fid) } : {};
+				return adapt.tracks(await json<TracksRaw>(`/api/tracks?${episodeQuery(ref)}&${new URLSearchParams({ hash: o.hash, name: o.release, file: o.file ?? '', ...ids })}`));
+			}
 		},
 		subs: {
 			find: async (ref, _o, opts) => {

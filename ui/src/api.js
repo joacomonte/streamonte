@@ -25,6 +25,25 @@ const invoke = (cmd, args) => tauri.core.invoke(cmd, args).catch((/** @type {Par
   throw e;
 });
 
+/** Ficha y detalles de un título: el panel (`catalog-side.js`) y la ficha compartida (`TitleView`, por `tauriApi.ts`) los piden
+ *  a la vez al abrirlo; una sola invocación por título (la misma promesa hasta 10 s después de responder).
+ *  @type {Map<string, {p: Promise<unknown>, at: number}>} */
+const recent = new Map();
+/** @template T @param {string} cmd @param {Record<string, unknown>} args @returns {Promise<T>} */
+function once(cmd, args) {
+  const key = `${cmd}|${JSON.stringify(args)}`;
+  const hit = recent.get(key);
+  if (hit && Date.now() - hit.at < 10_000) return /** @type {Promise<T>} */ (hit.p);
+  /** @type {Promise<T>} */
+  const p = invoke(cmd, args);
+  const entry = { p, at: Infinity };
+  recent.set(key, entry);
+  p.then(() => { entry.at = Date.now(); }, () => recent.delete(key));
+  return p;
+}
+/** Key de TMDB nueva: la ficha cambia; lo llama `catalog.js` antes de volver a pedirla. */
+export const forgetTitles = () => recent.clear();
+
 export const api = {
   // Biblioteca (FR-01–04)
   /** @returns {Promise<import('./types.js').LibraryView>} */
@@ -133,7 +152,7 @@ export const api = {
   /** "Bajarlo en TorBox": lo agrega aunque no esté en caché; devuelve el estado nuevo. @param {InfoHash} hash @param {string} name @returns {Promise<import('./types.js').MagnetStatus>} */
   torboxMagnetDownload: (hash, name) => invoke('torbox_magnet_download', { hash, name }),
   /** Ficha de TMDB (sinopsis, reparto, plataformas…). @param {MediaKind} kind @param {string} imdbId @returns {Promise<import('./types.js').DetailsView>} */
-  catalogDetails: (kind, imdbId) => invoke('catalog_details', { kind, imdbId }),
+  catalogDetails: (kind, imdbId) => once('catalog_details', { kind, imdbId }),
   /** @param {MediaKind} kind @param {string} imdbId @returns {Promise<import('./types.js').Similar[]>} */
   catalogSimilar: (kind, imdbId) => invoke('catalog_similar', { kind, imdbId }),
   /** Puntaje promedio por temporada y estado de la serie. quick: no espera al índice de IMDb si se está armando (solo el estado).
@@ -153,7 +172,7 @@ export const api = {
   /** Abre la ficha de IMDb del título en el navegador. @param {string} imdbId @returns {Promise<void>} */
   catalogOpenImdb: (imdbId) => invoke('catalog_open_imdb', { imdbId }),
   /** FR-38/39: ficha con episodios. @param {MediaKind} kind @param {string} id @returns {Promise<import('./types.js').Meta>} */
-  catalogMeta: (kind, id) => invoke('catalog_meta', { kind, id }),
+  catalogMeta: (kind, id) => once('catalog_meta', { kind, id }),
   /** FR-42: los streams llegan por el evento catalog-streams. @param {MediaKind} kind @param {string} videoId @returns {Promise<void>} */
   catalogStreams: (kind, videoId) => invoke('catalog_streams', { kind, videoId }),
   /** @returns {Promise<void>} */

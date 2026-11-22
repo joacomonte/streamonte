@@ -6,7 +6,7 @@
 import { api } from './api.js';
 import { setStatus } from './dom.js';
 import { t as tr } from './i18n.js';
-import { currentNetwork } from './health-calib.js';
+import { currentNetwork } from './health-store.ts';
 import { bgLoads, groupsOf, health, inScope, isSafeBest, knownSeeds, lowerRes, openGroup, renderStreamsOnly, RES_ORDER, resLabel, scheduleRender, seedsOf, sortOptions, startBg } from './catalog-options.js';
 import { cancelFlowWork } from './catalog-flow.js';
 import { safeGet, safeSet, showError, state } from './catalog-state.js';

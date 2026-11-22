@@ -7,15 +7,15 @@ JS vanilla `// @ts-check` + JSDoc, migrando a Svelte 5 + TS por "islas". Habla c
 - `styles.css` (704): tokens `:root`, topbar, diálogos/Ajustes · `catalog.css` (~800): tokens que faltan al catálogo compartido, panel lateral `.catalog.side-open` (:5), filas de opción. Secciones por comentario `/* … */`.
 - En `/Users/monti/Documents/Dev/streamonte/ui/src/`:
 - `tauriApi.ts:20 createTauriApi` · `:142 createDesktopApi` (único: lo crea `main.ts:30`) → `api.js`, `tauri-adapt.ts` (`kindOf:11` `titleDetails:47` `optionsUpdate:126` `apiEvent:185`) · ← `packages/ui/src/api.ts` (`Api`). `types.d.ts`: tipos serde (antes `types.js`).
-- `api.js:28` `api` (espejo 1:1 de commands.rs) · `:23` `invoke` (dispara `streamonte:torbox-code`) · `:230` `onCoreEvent`. `types.d.ts` (serde del core + `CoreEvent`).
+- `api.js:47` `api` (espejo 1:1 de commands.rs) · `:23` `invoke` (dispara `streamonte:torbox-code`) · `:32 once` (`catalogMeta`/`catalogDetails`: una invocación por título; `forgetTitles` ← `catalog.js`) · `onCoreEvent`. `types.d.ts` (serde del core + `CoreEvent`).
 - `live.ts` (puro, con test): `Live:6` `reduce:26` `loaded:46` `titleOf:64` · `live.svelte.ts`: `live:13` (`$state.raw`) `activityLog:35` `activity:55` `startLive:59` (única suscripción de app.js) → `live.ts`, `activity-feed.ts` · ← `state.js` (fachada `state`/`titleOf` para audio-picker, dialog-flows, catalog-options, speed), `components/{CopiedMagnet,Downloads,Activity}.svelte` (← `main.ts`).
 - `app.js`: `onShortcut:21` `onEvent:33` (lo no migrado; recibe `prev`) · `startLive(onEvent):83`.
 - `catalog.js`: lo que queda del catálogo en JS — `pickPerson:34` `pasteMagnet` `askTmdbKey` `setPastedHost:126` `refreshPasted:128` `openSources` · listener de eventos del núcleo en `init`. Grilla/filtros/buscador = `packages/ui/src/catalog/` montado por `catalog-mount.ts:17 mountCatalog(api)` (→ `catalog-side.js:openSide`; ← `main.ts:32`). `catalog-store.test.ts` (fixtures `mock/`).
 - `catalog-state.js`: `showError` `safeGet` `state` (`side` con gancho `hooks.side` → `catalog-mount.ts`) `view` (sin imports del catálogo).
 - `catalog-side.js`: dueño de `state.side` — `openSide:42` `closeSide:76` `goSeason:88` `renderSide:107` (→ `side-panel.svelte.ts`) · `Object.assign(actions):119` · ← `catalog-mount.ts`, `catalog-magnet.js`, `catalog-options.js`.
 - `side-panel.svelte.ts` `panel` `actions` (puente JS↔Svelte) · `SidePanel.svelte` (cerrar, migas, `#cat-streams`) → `$ui/title/TitleView.svelte` · montado en `#cat-side` por `main.ts` con el mismo `Api`.
-- `catalog-options.js` (1312): `loadStreams:171` `onStreams:198` `sortOptions:245` `loadTorbox:317` `groupPanel:519` · bajar de fondo `api.playBackground:812` · ▶ `api.playTorbox:1286`/`api.play:1287`.
-- `options-rank.js`: `healthOf:25` (el resto del ranking: `/Users/monti/Documents/Dev/streamonte/packages/ui/src/rank.ts`).
+- `catalog-options.js`: `loadStreams:126` `onStreams:153` `sortOptions:200` `loadTorbox:273` `groupPanel:475` `rowView:807` `playButtons:890` `renderStreamsOnly:954` · bajar de fondo `api.playBackground:760` · ▶ `api.playTorbox:1204`/`api.play:1205` → fila `$ui/options/row.ts` + `options-mount.svelte.ts`.
+- `options-mount.svelte.ts` `optionsList(name, rows)` (lista compartida `$ui/options/OptionsList.svelte` montada una vez por lugar) `flushOptions` · ← `catalog-options.js`, `catalog-flow.js`.
 - `catalog-flow.js`: `newFlow:30` `flowFilter:88` `cancelFlowWork:184` `flowStep:250`.
 - `catalog-tests.js`: `toggleBest:87` `runCensus:186` `runQuick:261` `runDeep:395` `onSwarmEvent:431`.
 - `catalog-subs.js`: `subsProgress:34` `readTracks:64` `readSubsNow:119` `subsStep:198` `openSubs:211` → `mount-shared.ts`, `SubsStep.svelte` (→ `packages/ui/src/subs/SubsPicker.svelte`).
@@ -26,13 +26,13 @@ JS vanilla `// @ts-check` + JSDoc, migrando a Svelte 5 + TS por "islas". Habla c
 - `components/`: `Dialogs.svelte` (monta `Settings` `LogDialog` `ConfirmDialog`; `main.ts` lo monta ANTES de `app.js`) · `Settings.svelte` → `settings-model.ts` (con test) → `desktopApi.ts` (`DesktopApi`/`desktop`: comandos solo desktop, no están en `Api`).
 - `top-menus.js`: `togglePop` `popFor` `closePop` (popover de speed.js; ← `components/Downloads.svelte` lo cierra).
 - `activity.js` (re-export de `activity` para dom.js/audio-picker.js) · `activity-feed.ts` (puro, con test): `mergeLine:33` `busyText:50` `eventLines:70`.
-- `speed.js`: `onSpeedEvent` `initSpeed` → `speed-instance.ts` → `speed-store.ts` + `speed-model.ts` (con test) · `components/SpeedButton.svelte` `SpeedPanel.svelte` `Gauge.svelte` · `health-calib.js` (con test): `learnBias:131` `predict:184` `trackPlayback:274` `incomingStatus:376`.
+- `speed.js`: `onSpeedEvent` `initSpeed` → `speed-instance.ts` → `speed-store.ts` + `speed-model.ts` (con test) · `components/SpeedButton.svelte` `SpeedPanel.svelte` `Gauge.svelte` · `health-store.ts` (localStorage + red; cuentas en `$ui/options/health.ts`): `setLinkMbps` `healthCalibration` `trackPlayback` `speedOf` `notePrediction` `incomingStatus`.
 - `Welcome.svelte` (Tour compartido, pasos del desktop) · `welcome-state.js`: `isTouring` `setTouring` `STORE` (← `catalog.js`) · `SettingsLang.svelte` (LangPicker compartido en `#set-lang-picker`) · `lang-picker.js`: `langToggle` (cambiar idioma recarga) · `updater.js:8` (plugin updater).
 - `dom.js`: `el:35` `icon` (paths ← `packages/ui/src/components/icons.ts`) `setStatus:106` `showError:114` · `format.js`: `playbackText:8` (resto ← `packages/ui/src/format.ts`) · `season` ← `packages/ui/src/season.ts` · `tooltip.js` (se instala solo) · `i18n.js`: `t` `translateStatic` (diccionario ← `packages/ui/src/i18n/en.ts`) · `test-stub.js` (stub de webview, no es test).
 
 ## Flujo
 - Búsqueda: `catalog.js:85` `search` → `api.js:116` `catalogSearch` → `commands.rs:435` → `AppCore::catalog_search` (`crates/core/src/app.rs:1375`) → `state.results` → `render`.
-- Torrents: `catalog-options.js:171` `loadStreams` → `api.js:158` `catalogStreams` → `commands.rs:460` → `app.rs:1539` → evento `catalog-streams` → `catalog.js:998` → `onStreams`; swarm/census → `catalog-swarm-*` → `onSwarmEvent`.
+- Torrents: `catalog-options.js:126` `loadStreams` → `api.js:158` `catalogStreams` → `commands.rs:460` → `app.rs:1539` → evento `catalog-streams` → `catalog.js:998` → `onStreams`; swarm/census → `catalog-swarm-*` → `onSwarmEvent`.
 - Reproducir: `audio-picker.js:223` `play` → `api.play` → evento `playback-updated` → `live.svelte.ts:59` → `live.v.playbacks` → `app.js:33`; `app.js` avisa con CustomEvent `playback-changed` y `catalog.js:980` lo escucha.
 - Cierre: evento `confirm-close` → `app.js:66` → `dialog-flows.ts` `onConfirmClose` → `api` `on_close`.
 

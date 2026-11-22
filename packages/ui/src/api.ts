@@ -2,7 +2,7 @@
 // desktop con `invoke` de Tauri (`ui/src/tauriApi.ts`). Métodos de dominio: devuelven el modelo de `types.ts`.
 import type {
 	ApiEvent, BrowseFilters, Capabilities, CatalogItem, CatalogPage, Episode, Genre, Kind, MagnetStatus, MagnetView, OptionLink, OptionRef,
-	OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings, SimilarItem, SubtitleOption, TitleDetails, TorrentOption, TorrentTracks, Unsubscribe
+	OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings, SimilarItem, SubtitleOption, TitleDetails, TorboxIds, TorrentOption, TorrentTracks, Unsubscribe
 } from './types.ts';
 
 /** `url`: de dónde bajar el subtítulo (web); null si la app ya lo aplicó (desktop). */
@@ -34,7 +34,8 @@ export interface Api {
 		/** La web emite una actualización final con `done: true` (más las de progreso); el desktop, una por tanda de fuentes. */
 		load(ref: OptionRef): AsyncIterable<OptionsUpdate>;
 		link(ref: OptionRef, option: TorrentOption, opts?: { orig?: string | null; latino?: boolean }): Promise<OptionLink>;
-		tracks(ref: OptionRef, option: TorrentOption): Promise<TorrentTracks>;
+		/** `ids` (web): de un link ya pedido, un solo pedido a TorBox. */
+		tracks(ref: OptionRef, option: TorrentOption, opts?: { ids?: TorboxIds | null }): Promise<TorrentTracks>;
 	};
 	subs: {
 		find(ref: OptionRef, option: SubsOption, opts?: { file?: SubsFileId | null }): Promise<SubtitleOption[]>;

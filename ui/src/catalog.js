@@ -4,7 +4,7 @@
 // "Pegados", "Fuentes", los atajos, la biblioteca y el despacho de eventos del núcleo hacia las opciones/pruebas/subtítulos.
 // Todo texto que viene de Cinemeta o de los addons entra como texto, nunca como HTML (NFR-24).
 
-import { api, onCoreEvent } from './api.js';
+import { api, forgetTitles, onCoreEvent } from './api.js';
 import { play } from './audio-picker.js';
 import { openSettings } from './dialogs.js';
 import { $, el, icon, setStatus } from './dom.js';
@@ -53,6 +53,7 @@ export async function askTmdbKey() {
 /** Cambió la key de TMDB en Ajustes (2026-11-17): la lista se vuelve a pedir ya (con o sin sus filtros) y, si hay un
  *  título abierto, sus datos de TMDB. */
 document.addEventListener('streamonte:tmdb-key', () => {
+  forgetTitles();
   store?.relang();
   const s = state.side;
   if (s) {

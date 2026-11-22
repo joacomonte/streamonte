@@ -1,6 +1,6 @@
 // El medidor de esta app: lo comparten `speed.js` (eventos, arranque) y los componentes.
 import { desktop } from './desktopApi.ts';
-import { setLinkMbps } from './health-calib.js';
+import { setLinkMbps } from './health-store.ts';
 import { createSpeedStore } from './speed-store.ts';
 
 export const speedStore = createSpeedStore({ speedTest: (force) => desktop.speedTest(force), setLinkMbps });

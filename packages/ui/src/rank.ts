@@ -4,7 +4,7 @@ import type { LatHint, LatState } from './types.ts';
 
 // ---------- Calidad y bitrate ----------
 /** Calidad de imagen por la fuente del release: [nombre, estrellas de 4]. */
-export const QUALITY: Record<string, [string, number]> = {
+const QUALITY: Record<string, [string, number]> = {
 	REMUX: ['Máster', 4],
 	BluRay: ['Blu-ray', 3],
 	'WEB-DL': ['Streaming', 2],
