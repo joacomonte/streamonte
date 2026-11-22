@@ -1,0 +1,49 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "type": "#cat-q",
+   "text": "fight club",
+   "after": 1500
+  },
+  {
+   "click": "#cat-card-tt0137523",
+   "after": 2000
+  },
+  {
+   "click": "#cat-flow-lat-no"
+  },
+  {
+   "click": "#cat-flow-res-1080p"
+  },
+  {
+   "hover": ".cat-opt[data-hash=\"f5ca884659fc24cbc8452fdc321b22d4160630b4\"]",
+   "after": 600
+  },
+  {
+   "contextmenu": ".cat-opt[data-hash=\"f5ca884659fc24cbc8452fdc321b22d4160630b4\"]"
+  },
+  {
+   "click": "#cat-ctx-subs"
+  },
+  {
+   "click": "#cat-subs-noread",
+   "after": 1500
+  }
+ ],
+ "must": [
+  {
+   "sel": "#subs-picker .en",
+   "text": "^EN$"
+  },
+  {
+   "sel": "#subs-picker",
+   "text": "Wyzie"
+  },
+  {
+   "sel": "#subs-nofit",
+   "text": "Sin fps ni duración"
+  }
+ ]
+}

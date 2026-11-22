@@ -16,7 +16,7 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
 - `audio.ts` `:13 audioOf` `:23 latStatus` `:30 LAT_BADGE` → `types.ts` · ← `web/src/lib/Torrents.svelte`.
 - `magnet-hash.ts` `:4 magnetHash` · ← `ui/src/catalog-magnet.js`.
 - `context.ts` `:16 apiContext` (mount desde JS) · ← `ui/src/mount-shared.ts`.
-- `subs/` — `SubsPicker.svelte` (`ref` `option` `file` `match` `lead` `actions` `onUse`) → `subs-flow.ts` `:25 SubsFlow` · `subs-logic.ts` `:11 rankSubs` `:34 keyOf` · `SubRow.svelte` → `components/Icon.svelte`, `getApi().subs/.premium` · ← `web/src/lib/Torrents.svelte`, `ui/src/SubsStep.svelte` · test `subs/subs.test.ts`.
+- `subs/` — `SubsPicker.svelte` (`ref` `option` `file` `match` `lead` `actions` `onUse`) → `subs-flow.ts` `:25 SubsFlow` · `subs-logic.ts` `:11 rankSubs` `srcOf` `timingOf` `noFitText` `keyOf` · `SubRow.svelte` → `components/Icon.svelte`, `getApi().subs/.premium` · ← `web/src/lib/Torrents.svelte`, `ui/src/SubsStep.svelte` · test `subs/subs.test.ts`.
 - `magnet/` — `MagnetView.svelte` (`hash` `name` `titleHref`|`onTitle` `ready`) → `magnet-flow.ts` `:9 MagnetFlow` · `magnet-logic.ts` `:15 magnetTitle` `getApi().magnet` · ← `web/src/routes/m/[hash]/+page.svelte`, `ui/src/catalog-magnet.js` (vía `mount-shared.ts`) · test `magnet/magnet.test.ts`.
 - `i18n/en.ts` (diccionario único es→en) · ← `i18n/translate.ts`.
 - `i18n/translate.ts` `:8 translate` `:14 locale` → `en.ts` · ← `web/src/lib/i18n/translate.ts`, `ui/src/i18n.js`.

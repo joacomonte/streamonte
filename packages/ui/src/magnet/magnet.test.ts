@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Api } from '../api.ts';
 import type { Identified, MagnetStatus, MagnetView } from '../types.ts';
@@ -37,17 +37,29 @@ test('MagnetFlow: identifica una vez y deja de consultar al terminar de bajar', 
 		{ status: status({ state: 'downloading', progress: 0.9 }), ident: null },
 		{ status: status({ state: 'ready' }), ident: null }
 	]);
-	const flow = new MagnetFlow(api, 'a'.repeat(40), 'dn', () => {}, 5);
-	await flow.load(true);
-	assert.equal(flow.view.ident?.title, 'Breaking Bad');
-	await new Promise((r) => setTimeout(r, 60));
-	assert.equal(flow.view.status?.state, 'ready');
-	assert.equal(flow.view.ident?.title, 'Breaking Bad');
-	const n = calls.length;
-	await new Promise((r) => setTimeout(r, 30));
-	assert.equal(calls.length, n);
-	assert.deepEqual(calls.slice(0, 2), ['status:true', 'status:false']);
-	flow.dispose();
+	// Reloj falso: cada tick dispara una consulta; `settle` deja resolver las promesas (sin esperar tiempo real).
+	mock.timers.enable({ apis: ['setInterval'] });
+	const settle = () => new Promise((r) => setTimeout(r, 0));
+	try {
+		const flow = new MagnetFlow(api, 'a'.repeat(40), 'dn', () => {}, 5);
+		await flow.load(true);
+		assert.equal(flow.view.ident?.title, 'Breaking Bad');
+		mock.timers.tick(5);
+		await settle();
+		assert.equal(flow.view.status?.progress, 0.9);
+		mock.timers.tick(5);
+		await settle();
+		assert.equal(flow.view.status?.state, 'ready');
+		assert.equal(flow.view.ident?.title, 'Breaking Bad');
+		const n = calls.length;
+		mock.timers.tick(50);
+		await settle();
+		assert.equal(calls.length, n);
+		assert.deepEqual(calls.slice(0, 2), ['status:true', 'status:false']);
+		flow.dispose();
+	} finally {
+		mock.timers.reset();
+	}
 });
 
 test('MagnetFlow: error inicial se muestra; download pasa a downloading', async () => {

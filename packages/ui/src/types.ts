@@ -165,6 +165,11 @@ export type SubtitleOption = {
 	/** Desktop: lo que el núcleo ya recuerda de este video (elegido / probado antes). */
 	chosen?: boolean;
 	tried?: boolean;
+	/** Desktop: nombre del proveedor (Wyzie, Subdivx…) e idioma ('es' | 'en'). */
+	provider?: string | null;
+	language?: string | null;
+	/** Desktop: el núcleo conoce fps y duración del archivo (si no, solo se reconoce el mismo release). */
+	timingKnown?: boolean;
 };
 export type PremiumQuota = { hasKey: boolean; remaining: number | null; perDay: number | null; resetsAt: number | null; loginError: string | null };
 

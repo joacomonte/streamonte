@@ -16,6 +16,20 @@ export function rankSubs(list: SubtitleOption[], match: Match | null): RankedSub
 
 /** Encabezado de la fila: grupo del release. */
 export const headOf = (sub: SubtitleOption): string => sub.group || groupOf(sub.release) || (sub.premium ? 'OpenSubtitles' : 'OpenSubtitles.org');
+/** Lo de la derecha del release: proveedor (gratis) o descargas (Premium); nada si no se sabe. */
+export const srcOf = (sub: SubtitleOption): string | null =>
+	sub.premium ? (sub.downloads > 0 ? `${sub.downloads.toLocaleString('es-AR')} ↓` : null) : sub.provider || null;
+
+/** ¿Se conocen fps y duración del archivo? Web: del video copiado; desktop: lo que dijo el núcleo. `undefined` = no se sabe. */
+export const timingOf = (list: SubtitleOption[], match: Match | null): boolean | undefined =>
+	match ? !!match.video?.fps : list.find((s) => s.timingKnown !== undefined)?.timingKnown;
+
+/** Si ninguno calza, por qué (sin inventar niveles): otro release, o no se saben fps y duración. Null si alguno calza o no hay dato. */
+export function noFitText(list: RankedSub[], timing: boolean | undefined): string | null {
+	if (!list.length || timing === undefined || list.some((r) => r.lvl > 0)) return null;
+	return timing ? t('Ninguno es de este release ni de sus mismos fps y duración') : t('Sin fps ni duración de este archivo: solo se reconoce el mismo release');
+}
+
 /** "fuente resolución" del release. */
 export const specOf = (sub: SubtitleOption): string =>
 	[sourceOf(sub.release), sub.release.match(/\b(2160p|1080p|720p|480p)\b/i)?.[1]].filter(Boolean).join(' ') || t('sin release');
