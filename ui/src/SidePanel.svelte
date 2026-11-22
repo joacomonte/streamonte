@@ -79,6 +79,6 @@
 {#snippet teaser()}
 	<div class="side-tmdb-teaser">
 		<p><b>{t('Más datos con TMDB')}</b>{t('Idioma original (elige mejor el audio), dónde verla, cadena de la serie y títulos similares. La key es gratis.')}</p>
-		<button id="cat-tmdb-setup" type="button" class="pop-btn" onclick={actions.setupTmdb}>{t('Configurar')}</button>
+		<button id="cat-tmdb-setup" type="button" class="btn btn-sm btn-pill pop-btn" onclick={actions.setupTmdb}>{t('Configurar')}</button>
 	</div>
 {/snippet}

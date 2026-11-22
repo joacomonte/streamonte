@@ -1,6 +1,5 @@
 // Monta el catálogo compartido (grilla, buscador, filtros) en #cat-root, con el `Api` del desktop. `catalog.js` conserva
 // Pegados, Fuentes y el panel lateral; acá solo se los conecta.
-import '../../packages/ui/css/components.css';
 import { createRawSnippet, mount } from 'svelte';
 import Catalog from '../../packages/ui/src/catalog/Catalog.svelte';
 import { createCatalogStore } from '../../packages/ui/src/catalog/catalog.svelte.ts';

@@ -1,9 +1,5 @@
 /* Catálogo (F4b, spec 09 §11). Separado de styles.css: usa sus variables y .lang/.dialog/.empty. */
 
-/* Tokens que usa el catálogo compartido (packages/ui) y styles.css todavía no define. */
-:root { --r-xs: 5px; --r-sm: 8px; --r-md: 10px; --r-card: 12px; --raised: #ffffff; --fs-xs: 12px; --fs-sm: 13px; --fs-md: 14px; --sp-2: 8px; --sp-3: 12px; --tint-2: 18%; }
-@media (prefers-color-scheme: dark) { :root { --raised: #2c3440; } }
-
 /* Grilla a la izquierda; al elegir un título, panel de opciones a la derecha (2026-11-15). */
 .catalog { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; background: var(--bg); }
 .catalog.side-open { grid-template-columns: minmax(0, 1fr) min(620px, 52vw); }
@@ -27,22 +23,14 @@
 .cat-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cat-add-url { flex: 1; }
 
-/* Carga: cards y filas con brillo que pasa (2026-11-15). */
-.skel { display: block; border-radius: 10px; background: linear-gradient(100deg, var(--surface) 30%, color-mix(in srgb, var(--text) 9%, var(--surface)) 50%, var(--surface) 70%) 0 0 / 300% 100%; animation: skel 1.3s ease-in-out infinite; }
-@keyframes skel { from { background-position: 100% 0; } to { background-position: 0 0; } }
-.skel.poster { aspect-ratio: 2 / 3; border-radius: var(--radius); }
-.skel.line { height: 14px; width: 80%; }
-.skel.line.short { width: 40%; }
-@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
-
 /* Migas de pan de la serie: píldoras (2026-11-15). */
 .crumbs { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.crumb-up { flex: none; width: 36px; height: 36px; padding: 0; border-radius: 999px; font-size: 16px; }
+.crumb-up { flex: none; width: 36px; height: 36px; padding: 0; border-radius: var(--r-pill); font-size: 16px; }
 .crumb-up:hover { border-color: var(--accent); }
-.crumb-path { display: flex; align-items: center; gap: 0; margin: 0; padding: 4px; list-style: none; min-width: 0; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); }
+.crumb-path { display: flex; align-items: center; gap: 0; margin: 0; padding: 4px; list-style: none; min-width: 0; border-radius: var(--r-pill); background: var(--bg); border: 1px solid var(--border); }
 .crumb-path li { display: flex; align-items: center; min-width: 0; }
 .crumb-path li + li::before { content: ""; width: 7px; height: 7px; margin: 0 8px 0 4px; border-top: 2px solid var(--muted); border-right: 2px solid var(--muted); transform: rotate(45deg); opacity: .6; flex: none; }
-.crumb { height: 32px; display: inline-block; line-height: 32px; min-width: 0; padding: 0 14px; border-radius: 999px; border: none; background: none; color: var(--muted); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.crumb { height: 32px; display: inline-block; line-height: 32px; min-width: 0; padding: 0 14px; border-radius: var(--r-pill); border: none; background: none; color: var(--muted); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
 button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--text) 7%, transparent); }
 .crumb.current { color: var(--accent-text); background: var(--accent); }
 .crumb.root:not(.current) { color: var(--text); }
@@ -67,7 +55,7 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-group { border-radius: 16px; border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 60%, var(--surface)); scroll-margin-top: 70px; }
 .cat-group + .cat-group { margin-top: 10px; }
 /* Detener una opción que se reproduce o baja (2026-11-16). */
-.cat-stop { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); font-weight: 700; }
+.cat-stop { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 20px; border-radius: var(--r-pill); border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); font-weight: 700; }
 .cat-stop:hover { border-color: #e5534b; color: #e5534b; }
 .cat-deep.warn .cat-deep-icon { color: #d29922; }
 /* Análisis profundo en curso (2026-11-16): una línea azul corta recorre el borde del grupo abierto,
@@ -87,7 +75,7 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-chev { margin-left: auto; display: inline-flex; color: var(--muted); transition: transform .2s var(--out); transform: rotate(-90deg); }
 .cat-group.open .cat-chev { transform: none; color: var(--accent); }
 .cat-group .cat-options { padding: 0 10px 10px; }
-.cat-icon-btn { position: relative; width: 42px; height: 42px; padding: 0; display: inline-grid; place-items: center; border-radius: 999px; background: var(--surface); color: var(--text); }
+.cat-icon-btn { position: relative; width: 42px; height: 42px; padding: 0; display: inline-grid; place-items: center; border-radius: var(--r-pill); background: var(--surface); color: var(--text); }
 .cat-icon-btn:hover { border-color: var(--accent); color: var(--accent); }
 .cat-icon-btn.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
 .cat-icon-btn.primary:hover { filter: brightness(1.12); color: var(--accent-text); }
@@ -111,7 +99,7 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-pasted { margin-bottom: 28px; }
 .cat-pasted h3 { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .cat-pasted ul { display: grid; gap: 8px; }
-.cat-pasted-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.cat-pasted-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; }
 .cat-pasted-name { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cat-pasted-size { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
@@ -120,10 +108,10 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-best-tags { position: absolute; top: -10px; left: 14px; z-index: 1; display: flex; align-items: center; gap: 6px; }
 /* Aire para la etiqueta "Mejor opción" de la primera fila. */
 .cat-group .cat-options { padding-top: 8px; }
-.cat-best-tag { padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .04em; background: var(--green); color: #fff; }
+.cat-best-tag { padding: 1px 8px; border-radius: var(--r-pill); font-size: 10px; font-weight: 800; letter-spacing: .04em; background: var(--green); color: #fff; }
 /* Cerrar el panel: grande, arriba a la derecha, sobre la cabecera (2026-11-15). */
 .side-open .cat-side { position: relative; }
-.side-close { position: sticky; top: 14px; align-self: flex-end; margin: 14px 14px -62px 0; z-index: 5; width: 48px; height: 48px; padding: 0; border-radius: 999px; font-size: 20px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); box-shadow: 0 6px 20px rgb(0 0 0 / .35); }
+.side-close { position: sticky; top: 14px; align-self: flex-end; margin: 14px 14px -62px 0; z-index: 5; width: 48px; height: 48px; padding: 0; border-radius: var(--r-pill); font-size: 20px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); box-shadow: 0 6px 20px rgb(0 0 0 / .35); }
 .side-close:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
 .side-head { padding-right: 76px; }
 
@@ -164,7 +152,7 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-status.st-playing .cat-status-line { color: var(--green); }
 .cat-status.st-paused .cat-status-line, .cat-status.st-download-paused .cat-status-line { color: var(--muted); }
 .cat-status.st-failed .cat-status-line { color: #e5534b; }
-.cat-status-bar { height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; }
+.cat-status-bar { height: 4px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; }
 .cat-status-bar i { display: block; height: 100%; border-radius: inherit; background: currentColor; color: var(--accent); transition: width .5s var(--ease); }
 .cat-status.st-playing .cat-status-bar i { color: var(--green); }
 .cat-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 13px; }
@@ -189,7 +177,7 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-deep-title { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; min-width: 0; }
 .cat-deep-title b { font-size: 14px; font-weight: 750; letter-spacing: -.005em; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cat-deep-sub { font-size: 12px; color: var(--muted); line-height: 1.4; text-wrap: pretty; }
-.cat-deep-go { flex: none; height: 32px; padding: 0 16px; border-radius: 999px; border: none; font-size: 13px; font-weight: 700; background: var(--accent); color: var(--accent-text); transition: transform .12s var(--ease), filter .12s; }
+.cat-deep-go { flex: none; height: 32px; padding: 0 16px; border-radius: var(--r-pill); border: none; font-size: 13px; font-weight: 700; background: var(--accent); color: var(--accent-text); transition: transform .12s var(--ease), filter .12s; }
 .cat-deep-go:hover { transform: translateY(-1px); filter: brightness(1.1); }
 .cat-deep-go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cat-deep.done { border-color: color-mix(in srgb, var(--green) 40%, var(--border)); background: linear-gradient(120deg, color-mix(in srgb, var(--green) 11%, var(--bg)), var(--bg) 75%); }
@@ -222,10 +210,10 @@ button.crumb:hover { color: var(--text); background: color-mix(in srgb, var(--te
 .cat-tag.cat-lang.no { color: var(--dim); border-color: var(--border-strong); }
 
 /* Lo que falta saber del idioma: cápsula con 1 o 2 botones junto al ▶. */
-.cat-dock { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 6px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+.cat-dock { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 6px; border-radius: var(--r-pill); background: var(--surface-2); border: 1px solid var(--border); }
 .cat-dock-acts { display: flex; align-items: center; gap: 2px; }
 .cat-dock-div { width: 1px; height: 22px; margin: 0 2px; background: var(--border-strong); }
-.cat-dock-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 8px; border-radius: 999px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; transition: background .15s var(--ease), color .15s var(--ease); }
+.cat-dock-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 8px; border-radius: var(--r-pill); border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; transition: background .15s var(--ease), color .15s var(--ease); }
 .cat-dock-btn:hover, .cat-dock-btn:focus-visible { background: var(--surface-3); color: var(--text); outline: none; }
 .cat-dock-btn .ico { color: var(--accent-fg); }
 /* Leyendo: el mismo botón, ícono → spinner; con el mouse encima, ■ Cancelar. */
@@ -307,7 +295,7 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 @keyframes sbar-pulse { 0%, 100% { transform: scaleY(.45); opacity: .5; } 50% { transform: scaleY(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .sbars.loading i { animation: none; } .sbar-track i { transition: none; } }
 /* Estreno con fecha (tarjeta): cuenta regresiva en un chip verde. */
-.cat-mini-soon { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px; font-weight: 800;
+.cat-mini-soon { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 800;
   color: #0b1a10; background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent); }
 .cat-mini-next.soon { gap: 8px; }
 
@@ -352,12 +340,12 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-test:hover .cat-radar::after, .cat-testing .cat-radar::after, .cat-lower .cat-radar::after, .cat-deep .cat-radar::after { animation: cat-ping 1.3s var(--out) infinite; }
 .cat-radar.big { width: 18px; height: 18px; }
 @keyframes cat-ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
-.cat-test { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px 0 10px; border-radius: 999px; border: 0; background: var(--surface-3); color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; transition: background .2s, transform .15s var(--out); }
+.cat-test { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px 0 10px; border-radius: var(--r-pill); border: 0; background: var(--surface-3); color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; transition: background .2s, transform .15s var(--out); }
 .cat-test:hover { background: var(--border-strong); }
 .cat-test:active { transform: scale(.97); }
 .cat-testing { display: grid; gap: 5px; min-width: 200px; height: 30px; align-content: center; }
 .cat-testing-line { display: flex; align-items: center; gap: 8px; color: var(--accent-fg); font-size: 13px; font-weight: 700; white-space: nowrap; }
-.cat-testing-bar { height: 4px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.cat-testing-bar { height: 4px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
 /* Sin avance real por torrent: la barra llena en lo que suele tardar (~70 s); la fase sale de `--t`. */
 .cat-testing-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-fg)); animation: cat-fill 70s cubic-bezier(.2, .6, .4, 1) var(--t, 0ms) both; }
 /* Esperando lugar en la tanda (2026-11-17): quieto y apagado, para no parecer que ya prueba. */
@@ -369,7 +357,7 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-testing.phase-count .cat-testing-bar i { animation-duration: 85s; }
 .cat-testing.quick.phase-meta .cat-testing-bar i { animation-duration: 12s; animation-timing-function: linear; }
 .cat-testing.quick.phase-count .cat-testing-bar i { animation-duration: 18s; animation-timing-function: linear; }
-.cat-testing-step { padding: 1px 6px; border-radius: 999px; background: var(--surface-3); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.cat-testing-step { padding: 1px 6px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 /* Calidad sin dato: gris y chico, el porqué en el tooltip. */
 .cat-quality-unknown { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; cursor: help; opacity: .8; }
 .cat-quality-unknown:hover, .cat-quality-unknown:focus-visible { opacity: 1; }
@@ -377,7 +365,7 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-failed { display: inline-flex; align-items: center; gap: 8px; height: 30px; }
 .cat-failed-msg { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; font-weight: 700; cursor: help; white-space: nowrap; }
 .cat-failed-msg .ico { color: var(--red); }
-.cat-retry { height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--border-strong); background: none; color: var(--text); font-size: 12px; font-weight: 700; }
+.cat-retry { height: 26px; padding: 0 10px; border-radius: var(--r-pill); border: 1px solid var(--border-strong); background: none; color: var(--text); font-size: 12px; font-weight: 700; }
 .cat-retry:hover { border-color: var(--accent); }
 .cat-mid .cat-speed { font-size: 13px; font-weight: 700; color: var(--muted); }
 .cat-mid .cat-speed.bg-green { color: var(--green); }
@@ -399,14 +387,14 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-list-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 0 12px 10px 18px; }
 .cat-sort-row { display: flex; align-items: center; gap: 10px; }
 /* Solo HDR: filtro de la lista, a la derecha del orden. */
-.cat-hdr-filter { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 12px; border-radius: 999px; border: 1px dashed var(--border-strong); background: none; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .02em; transition: color .15s, border-color .15s, background .15s; }
+.cat-hdr-filter { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 12px; border-radius: var(--r-pill); border: 1px dashed var(--border-strong); background: none; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .02em; transition: color .15s, border-color .15s, background .15s; }
 .cat-hdr-filter:hover { color: var(--text); border-color: var(--text); }
 .cat-hdr-filter[aria-pressed="true"] { border-style: solid; border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 
 .cat-sort-label { font-size: 12px; font-weight: 600; color: var(--muted); }
-.cat-sort-fixed { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px 0 8px; border-radius: 999px; background: var(--sunk); border: 1px solid var(--border); color: var(--text); font-size: 12px; font-weight: 600; cursor: help; }
-.cat-sort { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--sunk); border: 1px solid var(--border); }
-.cat-sort button { height: 26px; padding: 0 11px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; transition: background .2s var(--out), color .2s; }
+.cat-sort-fixed { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px 0 8px; border-radius: var(--r-pill); background: var(--sunk); border: 1px solid var(--border); color: var(--text); font-size: 12px; font-weight: 600; cursor: help; }
+.cat-sort { display: inline-flex; padding: 3px; border-radius: var(--r-pill); background: var(--sunk); border: 1px solid var(--border); }
+.cat-sort button { height: 26px; padding: 0 11px; border: 0; border-radius: var(--r-pill); background: none; color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; transition: background .2s var(--out), color .2s; }
 .cat-sort button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
 .cat-sort button:hover:not([aria-pressed="true"]) { color: var(--text); }
 
@@ -415,7 +403,7 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-lower-text { flex: 1; display: grid; gap: 2px; }
 .cat-lower-text b { font-size: 14px; }
 .cat-lower-text span { color: var(--muted); font-size: 12.5px; }
-.cat-lower button { height: 34px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--accent); color: var(--accent-text); font-weight: 700; white-space: nowrap; }
+.cat-lower button { height: 34px; padding: 0 14px; border-radius: var(--r-pill); border: 0; background: var(--accent); color: var(--accent-text); font-weight: 700; white-space: nowrap; }
 .cat-lower button:hover { filter: brightness(1.12); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -430,7 +418,7 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-opt { content-visibility: auto; contain-intrinsic-size: auto 92px; }
 /* content-visibility recorta lo que sobresale: la etiqueta "Mejor opción" (arriba de la fila) quedaba cortada. */
 .cat-opt.best { content-visibility: visible; }
-.cat-more-rows { justify-self: center; margin: 4px auto 0; padding: 8px 16px; border: 1px solid var(--border); border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.cat-more-rows { justify-self: center; margin: 4px auto 0; padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--r-pill); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .cat-more-rows:hover { color: var(--text); border-color: var(--accent); }
 
 /* Primera tanda de la prueba rápida: se llena pareja en ~30 s (lo máximo que dura cada una). */
@@ -474,7 +462,7 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 
 /* "Dejar bajando el mejor": texto sutil que es botón; prendido, en acento. */
 .cat-deep-icons { align-items: center; }
-.cat-best-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: color .15s var(--ease), background .15s var(--ease); }
+.cat-best-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; border-radius: var(--r-pill); background: none; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: color .15s var(--ease), background .15s var(--ease); }
 .cat-best-toggle:hover { color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent); }
 .cat-best-toggle.on { color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .cat-best-toggle:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
@@ -509,7 +497,7 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-menu-text { display: grid; gap: 2px; min-width: 0; }
 .cat-menu-text b { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
 .cat-menu-text > span { font-size: 12px; color: var(--muted); }
-.cat-menu-badge { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--green) 18%, transparent); color: color-mix(in srgb, var(--green) 85%, var(--text)); font-size: 10.5px; font-weight: 800; letter-spacing: .03em; }
+.cat-menu-badge { padding: 1px 8px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--green) 18%, transparent); color: color-mix(in srgb, var(--green) 85%, var(--text)); font-size: 10.5px; font-weight: 800; letter-spacing: .03em; }
 .cat-menu-item.deep { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 /* Más grandes que las del menú (pedido 2026-11-18): son la decisión del paso, se tocan de una. */
 .cat-choice { grid-template-columns: 60px minmax(0, 1fr); gap: 20px; min-height: 108px; padding: 22px 26px; border: 1px solid var(--border); border-radius: 18px; }
@@ -538,7 +526,7 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-flow-wait > span:last-child { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .cat-flow .cat-deep { margin: 0; }
 .cat-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 8px; font-size: 12.5px; }
-.cat-crumb { padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; background: none; color: var(--text); font: inherit; cursor: pointer; transition: background .15s var(--ease), border-color .15s var(--ease); }
+.cat-crumb { padding: 3px 10px; border: 1px solid var(--border); border-radius: var(--r-pill); background: none; color: var(--text); font: inherit; cursor: pointer; transition: background .15s var(--ease), border-color .15s var(--ease); }
 .cat-crumb:hover, .cat-crumb:focus-visible { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); outline: none; }
 .cat-crumb.current { border-color: transparent; color: var(--muted); cursor: default; }
 .cat-crumb-sep { color: var(--muted); }
@@ -572,13 +560,12 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 
 /* Acciones al pie del resultado de TorBox (2026-11-18): botones secundarios, no links sueltos. */
 .cat-flow-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 14px; }
-.cat-flow-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: border-color .15s var(--ease), background .15s var(--ease), transform .15s var(--ease); }
+.cat-flow-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--border); border-radius: var(--r-pill); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: border-color .15s var(--ease), background .15s var(--ease), transform .15s var(--ease); }
 .cat-flow-btn .ico { color: var(--muted); }
 .cat-flow-btn:hover, .cat-flow-btn:focus-visible { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); background: color-mix(in srgb, var(--accent) 8%, var(--surface-2)); outline: none; }
 .cat-flow-btn:active { transform: scale(.98); }
-.cat-flow-count { padding: 1px 8px; border-radius: 999px; background: var(--surface-3); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.cat-flow-count { padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .cat-flow-btn { transition: none; } }
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- Opciones: badges de idioma con todos sus estados y globitos (2026-11-20) ---------- */
 .cat-tag.cat-lang.es-audio.likely { border-style: dashed; color: var(--green); border-color: color-mix(in srgb, var(--green) 55%, transparent); }
@@ -612,8 +599,7 @@ button.sbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 .cat-hunt-radar .core { fill: var(--accent); transform-box: fill-box; transform-origin: center; filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--accent) 45%, transparent)); animation: cat-core 2.4s ease-in-out infinite; }
 .cat-hunt-radar .core-play { fill: #fff; }
 .cat-hunt-title { font-size: 16px; text-wrap: balance; }
-.cat-hunt-bar { width: min(260px, 80%); height: 6px; margin-top: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
-.cat-hunt-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .4s cubic-bezier(.16, 1, .3, 1); }
+.cat-hunt-bar { width: min(260px, 80%); margin-top: 6px; }
 .cat-hunt-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .cat-hunt .cat-flow-btn { margin-top: 8px; }
 @keyframes cat-sweep { to { transform: rotate(360deg); } }

@@ -1,5 +1,11 @@
 // Entrada de Vite: el JS viejo se carga igual que antes (efectos de módulo) y se monta una isla Svelte aparte.
 import { mount, unmount } from 'svelte';
+// CSS compartido (tokens → base → componentes) y luego el de las pantallas del desktop.
+import '../../packages/ui/css/tokens.css';
+import '../../packages/ui/css/base.css';
+import '../../packages/ui/css/components.css';
+import '../styles.css';
+import '../catalog.css';
 
 // El mock (solo sin Tauri) tiene que estar antes que app.js; los import estáticos se evalúan primero, por eso son dinámicos.
 if (!('__TAURI__' in window)) await import('./mock-tauri');

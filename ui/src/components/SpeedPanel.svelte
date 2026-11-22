@@ -95,7 +95,7 @@
     <span class="conn-big">{view.kind === 'done' || measuring ? t('{a} Mbps', { a: fmtMbps(view.mbps ?? 0) }) : t('Sin medir')}</span>
     <span class="conn-sub">{#if measuring}{t('Midiendo tu internet…')}{:else if view.kind === 'done'}{t('Tu internet en esta red · medida {a}', { a: ago(view.at) })}{:else if view.kind === 'failed'}{view.message}{:else}{t('Todavía no se midió')}{/if}</span>
   </span>
-  <button id="speed-retest" class="pop-btn" disabled={measuring} onclick={() => speedStore.measure(true)}>{measuring ? t('Midiendo…') : t('Medir de nuevo')}</button>
+  <button id="speed-retest" class="btn btn-sm btn-pill pop-btn" disabled={measuring} onclick={() => speedStore.measure(true)}>{measuring ? t('Midiendo…') : t('Medir de nuevo')}</button>
 </div>
 
 <div class="conn-card">
@@ -122,11 +122,11 @@
   {#if snap.editing}
     <span class="conn-edit">
       <input id="speed-seed-input" type="number" min="0.1" step="0.5" inputmode="decimal" aria-label={t('Mbps por seeder')} bind:value={seedInput}>
-      <button id="speed-seed-fix" class="pop-btn" onclick={fixSeed}>{t('Fijar')}</button>
-      {#if cal.source === 'manual'}<button id="speed-seed-auto" class="pop-btn" onclick={useMeasured}>{t('Usar lo medido')}</button>{/if}
+      <button id="speed-seed-fix" class="btn btn-sm btn-pill pop-btn" onclick={fixSeed}>{t('Fijar')}</button>
+      {#if cal.source === 'manual'}<button id="speed-seed-auto" class="btn btn-sm btn-pill pop-btn" onclick={useMeasured}>{t('Usar lo medido')}</button>{/if}
     </span>
   {:else}
-    <button id="speed-seed-edit" class="pop-btn" onclick={startEdit}>{t('Cambiar')}</button>
+    <button id="speed-seed-edit" class="btn btn-sm btn-pill pop-btn" onclick={startEdit}>{t('Cambiar')}</button>
   {/if}
 </div>
 
