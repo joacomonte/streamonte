@@ -50,3 +50,19 @@ jobs:
         working-directory: packages/ui
       - run: npm test
         working-directory: packages/ui
+  visual:
+    # Regresión visual (scripts/visual.mjs). macOS: las baselines se graban en el Mac del dev y acá el render de
+    # fuentes es el mismo; en Linux las fuentes del sistema son otras y todo diferiría. Chrome ya viene en el runner.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: npm ci
+        working-directory: ui
+      - run: npm ci
+        working-directory: web
+      - run: node scripts/visual.mjs --out visual-diffs
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: visual-diffs, path: visual-diffs }
