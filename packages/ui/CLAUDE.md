@@ -29,8 +29,9 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
 - `i18n/runtime.ts` `:9 setTranslator` `:10 t` → `translate.ts` · ← `format.ts`; fijado por `web/src/lib/i18n.svelte.ts`, `ui/src/i18n.js`.
 - `components/` (compartidos web ↔ desktop; sin `$app`/Tauri):
   - `icons.ts` `:3 ICONS` `IconName` · ← `Icon.svelte`, `ui/src/dom.js:icon`.
-  - `Icon.svelte` · `Sheet.svelte` (`<dialog>`; props `footer` `titleId` `closeId` `maxWidth` `closable`; ← desktop `ui/src/components/{Settings,LogDialog,ConfirmDialog}.svelte`) · `LangPicker.svelte` (`onpick`; `flags`) → `icons.ts`, `i18n/runtime.ts`.
-  - `Tour.svelte` (`index` bindable, `onnick`, `langs`, snippet `extra`) → `tour-state.ts` (`guardStep` `resumeIndex` `Step` `LangOptions`), `LangPicker.svelte` · ← `web/src/routes/+layout.svelte`, `web/src/lib/Torrents.svelte`, `ui/src/Welcome.svelte`.
+  - `Icon.svelte` · `Sheet.svelte` (`<dialog>`; props `footer` `titleId` `closeId` `maxWidth` `closable`; ← desktop `ui/src/components/{Settings,LogDialog,ConfirmDialog}.svelte`) · `LangPicker.svelte` (Ajustes; `onpick`; `flags`) → `icons.ts`, `i18n/runtime.ts`.
+  - `Tour.svelte` (`index` bindable, `onnick`, `langs`, snippet `extra`, `confetti`; paso `nick` con fondo de vidrio y "Hola, …") → `tour-state.ts` (`guardStep` `resumeIndex` `Step` `LangOptions`), `TourLang.svelte` · ← `web/src/routes/+layout.svelte`, `web/src/lib/Torrents.svelte`, `ui/src/Welcome.svelte`.
+  - `TourLang.svelte` (`only` app|titles: banderas SVG / póster + segmentado) · ← `Tour.svelte`.
   - `tours.ts` `welcomeSteps` `castSteps` `device` `seen` `markSeen` → `tour-state.ts` · ← web.
 - `catalog/` (catálogo compartido):
   - `filters.ts` `:46 toBrowse` `:62 parseSaved` (`KINDS` `SORTS` `LANGS` `VOTES` `BACK` `backLabel` `changedCount`) → `types.ts` · ← `store.ts`, `Since.svelte`, `Catalog.svelte`.

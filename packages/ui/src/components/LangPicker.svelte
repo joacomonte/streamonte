@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Los idiomas que elige el usuario (app y títulos): uno por paso en el tutorial, los dos juntos en Ajustes.
+	// Los idiomas que elige el usuario (app y títulos), los dos juntos en Ajustes (el tutorial usa TourLang).
 	// Qué pasa al elegir lo decide cada app (`onpick`, también si es el idioma ya elegido): la web aplica al toque, el desktop recarga la ventana.
 	import { t } from '../i18n/runtime.ts';
 	import type { IconName } from './icons.ts';
@@ -11,10 +11,8 @@
 
 	interface Props extends LangOptions {
 		id: string;
-		/** Muestra un solo grupo (el tutorial pregunta de a uno); sin él, los dos. */
-		only?: 'app' | 'titles';
 	}
-	let { id, only, app, titles, onpick, flags = false, appIcon = 'phone' }: Props = $props();
+	let { id, app, titles, onpick, flags = false, appIcon = 'phone' }: Props = $props();
 </script>
 
 {#snippet seg(key: 'app' | 'titles', label: string, icon: IconName, value: LangCode)}
@@ -32,13 +30,9 @@
 	</div>
 {/snippet}
 
-<div class="lp" class:big={only}>
-	{#if only !== 'titles'}
+<div class="lp">
 	{@render seg('app', t('Idioma de la app'), appIcon, app)}
-	{/if}
-	{#if only !== 'app'}
 	{@render seg('titles', t('Títulos de pelis, series y capítulos'), 'film', titles)}
-	{/if}
 </div>
 
 <style>
@@ -75,7 +69,6 @@
 		transition: background 0.25s var(--ease), color 0.25s var(--ease), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 	.code.flag { font-size: 26px; font-weight: 400; line-height: 1; }
-	.big .code.flag { font-size: 34px; }
 	.name { font-size: 15.5px; font-weight: 700; }
 	.tick {
 		position: absolute;
@@ -92,10 +85,6 @@
 		transform: scale(0.4);
 		transition: opacity 0.2s var(--ease), transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
-	/* Solo, en el tutorial: tarjetas más grandes, que la pregunta ya la hace el título. */
-	.big .seg button { min-height: 148px; gap: 10px; padding-top: 22px; border-radius: 22px; }
-	.big .code { width: 60px; height: 60px; font-size: 20px; }
-	.big .name { font-size: 17px; }
 	.seg button[aria-checked='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) var(--tint-3), transparent); }
 	.seg button[aria-checked='true'] .code { background: var(--accent-text); color: var(--accent); transform: scale(1.08); }
 	.seg button[aria-checked='true'] .tick { opacity: 1; transform: none; }

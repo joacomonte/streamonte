@@ -4,7 +4,7 @@
 	import type { Snippet } from 'svelte';
 	import { t } from '../i18n/runtime.ts';
 	import Icon from './Icon.svelte';
-	import LangPicker from './LangPicker.svelte';
+	import TourLang from './TourLang.svelte';
 	import { guardStep, type LangOptions, type Step, type StoreLink } from './tour-state.ts';
 
 	interface Props {
@@ -26,8 +26,10 @@
 		onclose: () => void;
 		/** Arranca la salida (lo de atrás ya puede entrar mientras el tutorial se apaga). */
 		onleave?: () => void;
+		/** Confeti al terminar con Listo en el último paso. */
+		confetti?: boolean;
 	}
-	let { id, label, open, steps, index = $bindable(0), start = 0, nick = null, onnick, langs, extra, onclose, onleave }: Props = $props();
+	let { id, label, open, steps, index = $bindable(0), start = 0, nick = null, onnick, langs, extra, onclose, onleave, confetti = false }: Props = $props();
 	let dlg = $state<HTMLDialogElement>();
 	let leaving = $state(false);
 	let dir = $state(1);
@@ -72,12 +74,12 @@
 	}
 
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-	/** Entra desde el lado hacia donde se avanza. */
+	/** Entra desde el lado hacia donde se avanza (curva tipo cubic-bezier(.16,1,.3,1)). */
 	const enter = (_: Element, { dir }: { dir: number }) => ({
-		duration: still() ? 0 : 460,
+		duration: still() ? 0 : 500,
 		css: (t: number) => {
-			const e = 1 - Math.pow(1 - t, 4);
-			return `transform: translateX(${(1 - e) * dir * 48}px); opacity: ${e};`;
+			const e = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+			return `transform: translateX(${(1 - e) * dir * 56}px); opacity: ${Math.min(1, t * 2.5)};`;
 		}
 	});
 	/** Sale hacia el lado contrario, rápido. */
@@ -104,9 +106,37 @@
 	/** Siguiente/Listo: en el paso del apodo, primero lo guarda. */
 	function next() {
 		if (step.nick) submitNick();
-		else if (last) exit();
-		else go(index + 1);
+		else if (last) {
+			if (confetti) burst();
+			exit();
+		} else go(index + 1);
 	}
+	/** 40 papelitos que saltan desde abajo y caen (~1 s). Van en el body: el tutorial se apaga mientras tanto. */
+	function burst() {
+		if (still()) return;
+		const css = getComputedStyle(document.documentElement);
+		const colors = ['--accent', '--green', '--red', '--yellow', '--amber'].map((c) => css.getPropertyValue(c).trim() || '#2563eb');
+		for (let n = 0; n < 40; n++) {
+			const p = document.createElement('i');
+			const w = 6 + Math.random() * 6;
+			p.style.cssText = `position:fixed;left:50%;bottom:18%;width:${w}px;height:${w * 1.6}px;border-radius:2px;background:${colors[n % colors.length]};pointer-events:none;z-index:2147483647;`;
+			document.body.append(p);
+			const x = (Math.random() - 0.5) * innerWidth * 0.9;
+			const y = -(innerHeight * (0.35 + Math.random() * 0.4));
+			const r = (Math.random() - 0.5) * 900;
+			p.animate(
+				[
+					{ transform: 'translate(0, 0) rotate(0)', opacity: 1 },
+					{ transform: `translate(${x * 0.8}px, ${y}px) rotate(${r / 2}deg)`, opacity: 1, offset: 0.45 },
+					{ transform: `translate(${x}px, ${y * 0.55}px) rotate(${r}deg)`, opacity: 0 }
+				],
+				{ duration: 900 + Math.random() * 300, easing: 'cubic-bezier(.2,.7,.4,1)' }
+			).finished.finally(() => p.remove());
+		}
+	}
+	/** El apodo achica la letra si es largo, para entrar en una línea (el input no hace salto de línea). */
+	const nickSize = $derived(Math.min(40, Math.floor(560 / Math.max(1, nickValue.length))));
+	const nickTyped = $derived(nickValue.trim() !== '');
 	const initials = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2);
 </script>
 
@@ -138,11 +168,23 @@
 		</span>
 		<span class="app-text"><strong>{l.label}</strong><small>{l.store}</small></span>
 	{/snippet}
+	{#if step.nick}
+		<!-- Fondo del paso del apodo: columnas diagonales de tarjetas de vidrio que suben y bajan, con un velo. -->
+		<div class="glass" aria-hidden="true">
+			<div class="cols">
+				{#each [0, 1, 2, 3, 4] as c (c)}
+					<div class="col">
+						{#each { length: 12 } as _, n (n)}<span></span>{/each}
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 	<div class="frame">
 		<header>
 			<div class="progress" role="progressbar" aria-label={t('Paso {n} de {d}', { n: index + 1, d: steps.length })} aria-valuemin="1" aria-valuemax={steps.length} aria-valuenow={index + 1}>
 				{#each steps as s, n (s.title)}
-					<button id="{id}-dot-{n}" type="button" class="seg" class:done={n <= index} aria-label={t('Ir al paso {n}', { n: n + 1 })} onclick={() => go(n)}><span></span></button>
+					<button id="{id}-dot-{n}" type="button" class="dot" class:done={n < index} class:on={n === index} aria-label={t('Ir al paso {n}', { n: n + 1 })} onclick={() => go(n)}><span></span></button>
 				{/each}
 			</div>
 			{#if !last && !(step.nick && !nickOk)}
@@ -152,25 +194,38 @@
 
 		<div class="stages">
 			{#key index}
-				<div class="stage" in:enter={{ dir }} out:leave={{ dir }}>
-					<div class="art" aria-hidden="true">
-						<span class="ring"></span>
-						<span class="ring late"></span>
-						<span class="disc"><Icon name={step.icon} size={56} /></span>
-					</div>
-					<h2 id="{id}-title">{step.title}</h2>
-					<p>{step.body}</p>
+				<div class="stage" class:nickstage={step.nick} in:enter={{ dir }} out:leave={{ dir }}>
+					{#if !(step.picker && langs) && !step.nick}
+						<div class="art" aria-hidden="true">
+							<span class="ring"></span>
+							<span class="ring late"></span>
+							<span class="disc"><Icon name={step.icon} size={56} /></span>
+						</div>
+					{/if}
 					{#if step.nick}
+						<!-- "Hola," y el apodo se escribe debajo, con la misma letra: el input real va encima del espejo
+						     (texto y caret transparentes) y el espejo dibuja cada letra que entra y un caret propio. -->
 						<form id="{id}-nick-form" class="nick" novalidate onsubmit={(e) => {
 							e.preventDefault();
-							submitNick();
+							if (nickTyped) submitNick();
 						}}>
-							<input id="{id}-nick" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="done" placeholder="Joaco" aria-label={t('Tu apodo')} aria-invalid={!!nickError} aria-describedby="{id}-nick-error" bind:value={nickValue} oninput={() => (nickError = '')} />
-							<p id="{id}-nick-error" class="nick-error" role="alert">{nickError}</p>
+							<label class="hello" for="{id}-nick">{t('Hola')},</label>
+							<div class="typed" style="--fs: {nickSize}px">
+								<span class="mirror" aria-hidden="true">{#each [...nickValue] as ch, n (n)}<span class="ch">{ch}</span>{/each}<span class="caret"></span>{#if !nickValue}<span class="ph">{t('tu apodo')}</span>{/if}</span>
+								<!-- svelte-ignore a11y_autofocus (el paso es escribir el apodo; el <dialog> abre con foco en él) -->
+								<input id="{id}-nick" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-invalid={!!nickError} aria-describedby="{id}-nick-error" bind:value={nickValue} oninput={() => (nickError = '')} autofocus />
+							</div>
+							<p id="{id}-nick-error" class="hint" class:err={!!nickError} class:gone={nickTyped && !nickError} role="alert">{nickError || `${step.title} · ${t('obligatorio')}`}</p>
+							<button id="{id}-nick-go" type="submit" class="go" class:show={nickTyped} disabled={nickSaving} tabindex={nickTyped ? 0 : -1} aria-hidden={!nickTyped}>
+								<span class="go-label">{t('Seguir')}</span><Icon name="arrow" size={22} />
+							</button>
 						</form>
+					{:else}
+						<h2 id="{id}-title" class:center={step.picker && langs}>{step.title}</h2>
+						{#if step.body}<p>{step.body}</p>{/if}
 					{/if}
 					{#if step.picker}
-						{#if langs}<div class="picker"><LangPicker id="{id}-lang" only={step.picker} {...langs} /></div>{/if}
+						{#if langs}<div class="picker"><TourLang id="{id}-lang" only={step.picker} {...langs} /></div>{/if}
 					{/if}
 					{#if step.extra && extra}<div class="extra">{@render extra(step.extra)}</div>{/if}
 					{#if step.links?.length}
@@ -193,7 +248,7 @@
 			{/key}
 		</div>
 
-		<footer>
+		<footer class:hidden={step.nick}>
 			{#if index > 0}
 				<button id="{id}-back" type="button" class="ghost" onclick={() => go(index - 1)}>{t('Atrás')}</button>
 			{/if}
@@ -230,23 +285,15 @@
 	@keyframes away { to { opacity: 0; transform: scale(1.06); } }
 	@keyframes away-bg { to { opacity: 0; } }
 
-	.frame { height: 100%; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; }
+	.frame { position: relative; height: 100%; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; }
 
 	header { display: flex; align-items: center; gap: 12px; padding: 12px 20px 0; min-height: 56px; flex: none; }
-	.progress { flex: 1; display: flex; gap: 6px; }
-	.seg { flex: 1; height: 32px; padding: 0; border: 0; background: none; display: grid; align-items: center; cursor: pointer; }
-	.seg span { display: block; height: 5px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; position: relative; }
-	.seg span::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		border-radius: inherit;
-		background: var(--accent);
-		transform: scaleX(0);
-		transform-origin: left;
-		transition: transform 0.5s var(--out);
-	}
-	.seg.done span::after { transform: scaleX(1); }
+	/* Puntos: el del paso actual se estira; los ya vistos quedan del color de acento. */
+	.progress { flex: 1; display: flex; align-items: center; }
+	.dot { height: 32px; padding: 0 4px; border: 0; background: none; display: grid; align-items: center; cursor: pointer; }
+	.dot span { display: block; width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--border-strong); transition: width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s var(--ease); }
+	.dot.done span { background: color-mix(in srgb, var(--accent) 55%, var(--border-strong)); }
+	.dot.on span { width: 26px; background: var(--accent); }
 	.skip { min-height: 44px; margin-right: -10px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: none; color: var(--muted); font-size: 15px; font-weight: 600; }
 	.skip:active { background: var(--surface-2); }
 
@@ -286,25 +333,76 @@
 	p { margin: 0; font-size: 17px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
 
 	.picker { margin-top: 28px; }
-	.nick { margin-top: 28px; display: flex; flex-direction: column; align-items: stretch; }
-	.nick input {
-		height: 64px;
-		padding: 0 16px;
-		border: 2px solid var(--border-strong);
-		border-radius: var(--r-lg);
-		background: var(--surface);
-		color: var(--text);
-		font-size: 26px;
-		font-weight: 650;
-		text-align: center;
-		letter-spacing: -0.01em;
+	h2.center { text-align: center; }
+
+	/* Paso del apodo: abajo a la izquierda, sobre el fondo de vidrio. */
+	.glass { position: absolute; inset: 0; overflow: hidden; pointer-events: none; animation: fade 0.5s var(--out); }
+	.glass::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 38%, color-mix(in srgb, var(--bg) 60%, transparent) 68%, color-mix(in srgb, var(--bg) 6%, transparent)); }
+	.cols { position: absolute; inset: -120px -80px; display: flex; gap: 12px; transform: rotate(-14deg); }
+	.col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; animation: col-up 34s linear infinite; }
+	.col:nth-child(even) { animation-name: col-down; animation-duration: 40s; }
+	.col:nth-child(3) { animation-duration: 30s; }
+	.col span { flex: none; aspect-ratio: 2 / 3; border-radius: 12px; background: color-mix(in srgb, var(--text) 4%, transparent); border: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
+	@keyframes col-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+	@keyframes col-down { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+	.stage.nickstage > :last-child { margin-bottom: 0; }
+	.stage.nickstage { padding-bottom: 20px; }
+	.nick { display: flex; flex-direction: column; align-items: flex-start; }
+	.hello, .typed { font-size: 40px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.08; }
+	.hello { color: var(--muted); }
+	.typed { position: relative; width: 100%; min-height: 1.08em; color: var(--text); }
+	.typed .mirror, .typed input { font-size: var(--fs); }
+	.mirror { display: flex; align-items: center; white-space: pre; min-height: 43px; }
+	.ch { display: inline-block; animation: letter 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+	@keyframes letter { from { filter: blur(6px); transform: translateY(6px); opacity: 0; } }
+	.caret { flex: none; width: 3px; height: 0.95em; margin: 0 2px; border-radius: 2px; background: var(--accent-fg); animation: blink 1s steps(1) infinite; }
+	@keyframes blink { 50% { opacity: 0; } }
+	.ph { color: var(--border-strong); }
+	.typed input {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: transparent;
+		caret-color: transparent;
+		font-family: inherit;
+		font-weight: inherit;
+		letter-spacing: inherit;
 		outline: none;
-		transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
 	}
-	.nick input::placeholder { color: var(--muted); opacity: 0.5; font-weight: 500; }
-	.nick input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); }
-	.nick input[aria-invalid='true'] { border-color: var(--red); }
-	.nick-error { min-height: 1.5em; margin-top: 8px; font-size: 14.5px; color: var(--red); text-align: center; }
+	.hint { min-height: 1.5em; margin-top: 14px; font-size: 14.5px; color: var(--dim); transition: opacity 0.3s var(--ease); }
+	.hint.gone { opacity: 0; }
+	.hint.err { color: var(--red); }
+	/* Seguir: aparece con texto (cuadrado con flecha que sube con resorte) y se estira a todo el ancho. */
+	.go {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		width: 50px;
+		height: 50px;
+		margin-top: 18px;
+		padding: 0;
+		overflow: hidden;
+		white-space: nowrap;
+		border: 0;
+		border-radius: 14px;
+		background: var(--accent);
+		color: var(--accent-text);
+		font-size: 17px;
+		font-weight: 650;
+		opacity: 0;
+		transform: translateY(20px) scale(0.6);
+		pointer-events: none;
+		transition: opacity 0.3s var(--ease), transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+	}
+	.go-label { display: none; }
+	.go.show { width: 100%; opacity: 1; transform: none; pointer-events: auto; }
+	.go.show .go-label { display: inline; }
+	.go:disabled { opacity: 0.6; }
+	footer.hidden { display: none; }
 	.stores { list-style: none; margin: 28px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 	.stores li { animation: up 0.6s var(--out) both; }
 	.stores li:nth-child(2) { animation-delay: 90ms; }
@@ -354,8 +452,9 @@
 		.skip:hover { color: var(--text); }
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.tour[open], .tour.leaving, .tour.leaving::backdrop, .stage > *, .stores li, .disc, .ring { animation: none; }
+		.tour[open], .tour.leaving, .tour.leaving::backdrop, .stage > *, .stores li, .disc, .ring, .glass, .col, .ch, .caret { animation: none; }
+		.go, .hint { transition: none; }
 		.ring { display: none; }
-		.seg span::after { transition: none; }
+		.dot span { transition: none; }
 	}
 </style>

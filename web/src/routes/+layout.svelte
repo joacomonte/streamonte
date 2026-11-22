@@ -45,7 +45,7 @@
 		if (r.nick) invalidateAll();
 		return r;
 	};
-	// Se rearma al cambiar el idioma en el primer paso: el resto del tutorial ya sale en el elegido.
+	// Se rearma al cambiar el idioma en su paso: el resto del tutorial ya sale en el elegido.
 	const welcome = $derived(welcomeOpen ? welcomeSteps(device()) : null);
 
 	// Grilla ↔ ficha con View Transitions: el póster tocado vuela a su lugar en la ficha y, al volver, a su casilla.
@@ -121,7 +121,7 @@
 {/if}
 
 {#if welcome}
-	<Tour id="welcome" label={t('Bienvenida')} open steps={welcome} nick={data.nick} {onnick} langs={langOptions()} onleave={() => (touring = false)} onclose={() => { markSeen('welcome'); welcomeOpen = touring = false; }} />
+	<Tour id="welcome" label={t('Bienvenida')} open steps={welcome} nick={data.nick} {onnick} langs={langOptions()} confetti onleave={() => (touring = false)} onclose={() => { markSeen('welcome'); welcomeOpen = touring = false; }} />
 {/if}
 
 {#if nickOpen}
