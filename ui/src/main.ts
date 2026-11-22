@@ -22,16 +22,19 @@ uiHost.showSpeedPanel = (pop) => {
 };
 await import('./app.js');
 await import('./catalog.js');
-await (await import('./catalog-mount.ts')).mountCatalog();
-// Panel lateral: la ficha compartida (`TitleView`) dentro de #cat-side, que crea catalog.js.
+// El único `Api` del desktop: se crea acá y llega a cada montaje por contexto (`mount-shared.ts`, `catalog-mount.ts`, panel lateral).
+const { langs, locale } = await import('./i18n.js');
 const { createDesktopApi } = await import('./tauriApi.ts');
 const { apiContext } = await import('$ui/context.ts');
-const { langs, locale } = await import('./i18n.js');
+const { provideApi } = await import('./mount-shared.ts');
+const api = await createDesktopApi(() => langs.titles);
+provideApi(api);
+(await import('./catalog-mount.ts')).mountCatalog(api);
+// Panel lateral: la ficha compartida (`TitleView`) dentro de #cat-side, que crea catalog.js.
 const { genreName } = await import('./catalog-side.js');
 const { default: SidePanel } = await import('./SidePanel.svelte');
 const sideHost = document.getElementById('cat-side');
 if (sideHost) {
-  const api = await createDesktopApi(() => (langs.app === 'en' ? 'en' : 'es'));
   mount(SidePanel, { target: sideHost, context: apiContext(api), props: { locale: locale(), genreLabel: genreName } });
 }
 const { default: Island } = await import('./Island.svelte'); // mismo orden de evaluación que antes (evita ciclos)

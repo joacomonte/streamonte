@@ -16,13 +16,11 @@
 	import type { Torrent } from './types.ts';
 	import { track } from './track.ts';
 	import { QUALITY, byQuality as rankQuality, optionMbps } from '$ui/rank.ts';
-	import { setApi } from '$ui/context.ts';
 	import SubRow from '$ui/subs/SubRow.svelte';
 	import SubsPicker from '$ui/subs/SubsPicker.svelte';
 	import type { SubsCtx } from '$ui/subs/subs-flow.ts';
 	import { keyOf } from '$ui/subs/subs-logic.ts';
 	import type { SubtitleOption } from '$ui/types.ts';
-	import { webApi } from './webApi.ts';
 
 	interface Props {
 		imdb: string;
@@ -38,7 +36,6 @@
 	}
 	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null }: Props = $props();
 	// SubsPicker lee el Api del contexto (la raíz de la web todavía no lo fija).
-	setApi(webApi);
 
 	type Native = { label: string; kind: string; track: number; url: string };
 	type Choice = { key: string; label: string; url: string };

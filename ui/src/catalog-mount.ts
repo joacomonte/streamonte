@@ -2,6 +2,7 @@
 // Pegados, Fuentes y el panel lateral; acá solo se los conecta.
 import '../../packages/ui/css/components.css';
 import { createRawSnippet, mount } from 'svelte';
+import type { Api } from '../../packages/ui/src/api.ts';
 import Catalog from '../../packages/ui/src/catalog/Catalog.svelte';
 import { createCatalogStore } from '../../packages/ui/src/catalog/catalog.svelte.ts';
 import { apiContext } from '../../packages/ui/src/context.ts';
@@ -10,13 +11,10 @@ import { hooks } from './catalog-state.js';
 import { openSide } from './catalog-side.js';
 import { openSettings } from './dialogs.js';
 import { setStatus } from './dom.js';
-import { langs } from './i18n.js';
 import { rawKind } from './tauri-adapt.ts';
-import { createDesktopApi } from './tauriApi.ts';
 import { isTouring } from './welcome-state.js';
 
-export async function mountCatalog(): Promise<void> {
-	const api = await createDesktopApi(() => langs.titles);
+export function mountCatalog(api: Api): void {
 	const store = createCatalogStore(api, { storageKey: 'streamonte.catalog.filters.v3', searchWait: 900, minQuery: 2, filterWait: 400, onstatus: setStatus });
 	attachStore(store);
 	store.st.covered = isTouring();

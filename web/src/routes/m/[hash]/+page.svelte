@@ -5,15 +5,12 @@
 	import { t as tr } from '#lib/i18n.svelte.ts';
 	import { torrentOf } from '#lib/web-adapt.ts';
 	import { page } from '$app/state';
-	import { setApi } from '$ui/context.ts';
 	import MagnetView from '$ui/magnet/MagnetView.svelte';
-	import { webApi } from '#lib/webApi.ts';
 
 	const hash = $derived(page.params.hash?.toLowerCase() ?? '');
 	const dn = $derived(page.url.searchParams.get('dn') ?? '');
 	let title = $state('');
 	// La raíz de la web todavía no fija el Api.
-	setApi(webApi);
 </script>
 
 <svelte:head><title>{title || tr('Torrent pegado')} · Streamonte</title></svelte:head>

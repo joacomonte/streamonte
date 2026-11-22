@@ -79,5 +79,15 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 	};
 }
 
-/** `Api` de la web para el navegador (usa el `fetch` global). */
-export const webApi: Api = createWebApi();
+/** Catálogo y géneros quedan guardados un día: al volver a entrar se ve al instante. */
+const cachedFetch: Fetch = async (input, init) => {
+	const url = String(input);
+	if (init?.method || !/^\/api\/(catalog|genres)\?/.test(url)) return fetch(input, init);
+	// Import dinámico: `saved.ts` arrastra `i18n.svelte.ts`, que `node --test` (web-adapt.test.ts) no puede cargar.
+	const { json, DAY } = await import('./saved.ts');
+	const { ok, status, data } = await json(fetch, url, DAY);
+	return new Response(JSON.stringify(data), { status: ok ? 200 : status });
+};
+
+/** El único `Api` de la web: se fija una vez en `routes/+layout.svelte` (`setApi`). */
+export const webApi: Api = createWebApi(cachedFetch);
