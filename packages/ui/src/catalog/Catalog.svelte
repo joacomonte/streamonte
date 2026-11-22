@@ -212,7 +212,8 @@
 		background: color-mix(in srgb, var(--bg) 96%, transparent);
 		border-bottom: 1px solid var(--border);
 	}
-	.head.pinned { top: 0; }
+	/* El scroller del desktop tiene `--bleed-top` de padding: la barra se pega arriba de todo (si no, deja un hueco por donde asoman las tarjetas). */
+	.head.pinned { top: var(--bleed-top, 0px); background: var(--bg); }
 	.inner { max-width: 1200px; margin: 0 auto; }
 	.head-top { padding-bottom: 2px; }
 	/* Entrada después de la bienvenida: cada bloque de arriba sube escalonado. */

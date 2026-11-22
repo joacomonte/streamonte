@@ -8,7 +8,7 @@ import type * as Raw from './types.js';
 
 /** Lo que usa el adaptador de `api.js`. */
 export type CoreApi = Pick<typeof import('./api.js').api,
-	| 'apiKeys' | 'catalogBrowseTop' | 'catalogTrending' | 'catalogSearch' | 'catalogPeople' | 'catalogPersonTitles' | 'catalogGenres' | 'catalogMeta' | 'catalogDetails'
+	| 'apiKeys' | 'catalogBrowseTop' | 'catalogTrending' | 'catalogSearch' | 'catalogPeople' | 'catalogPersonTitles' | 'catalogGenres' | 'catalogMeta' | 'catalogDetails' | 'catalogPoster'
 	| 'catalogSimilar' | 'catalogEpisodes' | 'catalogSeasonRatings' | 'catalogStreams' | 'catalogLink' | 'catalogTorboxTracks' | 'library' | 'catalogSubtitles'
 	| 'catalogSubtitleUse' | 'catalogPremiumUse' | 'catalogPremiumSearch' | 'premiumQuota' | 'torboxMagnet' | 'torboxMagnetDownload'>;
 export type Core = { api: CoreApi; listen: (handler: (e: Raw.CoreEvent) => void) => Promise<() => void>; lang: () => Lang };
@@ -54,7 +54,8 @@ export function createTauriApi(core: Core): Api {
 			search: async (q, page) => (page > 1 ? EMPTY : { items: adapt.catalogItems(await api.catalogSearch(q)), hasMore: false }),
 			people: async (q) => adapt.personHits(await api.catalogPeople(q)),
 			personTitles: async (id, role) => adapt.catalogItems(await api.catalogPersonTitles(id, role)),
-			genres: async (kind) => adapt.genres(await api.catalogGenres(adapt.rawKind(kind)))
+			genres: async (kind) => adapt.genres(await api.catalogGenres(adapt.rawKind(kind))),
+			poster: async (id) => (await api.catalogPoster(id).catch(() => null)) ?? null
 		},
 		title: {
 			async details(kind, id): Promise<TitleDetails> {
@@ -68,7 +69,7 @@ export function createTauriApi(core: Core): Api {
 				const [m, texts] = await Promise.all([meta('series', id), api.catalogEpisodes(id, season).catch((): Raw.EpisodeText[] => [])]);
 				return adapt.episodes(m.episodes, texts, season);
 			},
-			seasonRatings: async (imdb) => adapt.seasonRatings(await api.catalogSeasonRatings(imdb))
+			seasonRatings: async (imdb, quick) => adapt.seasonRatings(await api.catalogSeasonRatings(imdb, quick))
 		},
 		options: {
 			async *load(ref): AsyncGenerator<OptionsUpdate> {

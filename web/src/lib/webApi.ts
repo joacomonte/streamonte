@@ -32,7 +32,9 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			search: async (q, page) => adapt.catalogPage(await json<CatalogPageRaw>(`/api/catalog?${new URLSearchParams({ q, page: String(page) })}`)),
 			people: async (q) => adapt.people(await json<PeopleRaw>(`/api/people?${new URLSearchParams({ q })}`)),
 			personTitles: async (id, role) => adapt.catalogPage(await json<CatalogPageRaw>(`/api/catalog?${new URLSearchParams({ person: String(id), role })}`)).items,
-			genres: async (kind: Kind) => adapt.genres(await json<Genres>(`/api/genres?kind=${kind}`))
+			genres: async (kind: Kind) => adapt.genres(await json<Genres>(`/api/genres?kind=${kind}`)),
+			// Los pósters de la web ya son de TMDB: no hay otro para reintentar.
+			poster: async () => null
 		},
 		title: {
 			details: async (kind, id) => adapt.titleDetails(await json<Title>(`/api/title/${kind}/${id}`)),

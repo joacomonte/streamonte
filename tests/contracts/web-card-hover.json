@@ -1,0 +1,30 @@
+{
+ "app": "web",
+ "cookies": {
+  "nick": "Test"
+ },
+ "storage": {
+  "tour:welcome": "1"
+ },
+ "url": "/",
+ "setup": [],
+ "must": [
+  {
+   "sel": "[id^=cat-card-]",
+   "count": 10
+  },
+  {
+   "sel": "[id^=cat-info-] [class*=genres]",
+   "text": "\\w",
+   "hover": "[id^=cat-card-]",
+   "timeout": 6000,
+   "note": "hover: géneros"
+  },
+  {
+   "sel": "[id^=cat-info-] [class*=meta]",
+   "text": "\\d",
+   "hover": "[id^=cat-card-]",
+   "note": "hover: año · puntaje · duración"
+  }
+ ]
+}
