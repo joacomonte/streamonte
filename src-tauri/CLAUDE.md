@@ -21,3 +21,5 @@ Crea la ventana, arranca `AppCore`, expone comandos y reenvía eventos. Sin lóg
 
 ## Tests
 Sin tests propios; `cd /Users/monti/Documents/Dev/streamonte && sh scripts/check.sh` (fmt + clippy + JS), `full` suma nextest. Eventos `CoreEvent`: `/Users/monti/Documents/Dev/streamonte/crates/core/src/events.rs`.
+
+@AGENTS.md

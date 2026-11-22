@@ -10,6 +10,7 @@
 
 # Locales: memoria de mem, planes y basura de macOS (2026-11-17)
 mem.db*
+mem2.db*
 /docs/plans/
 .DS_Store
 
