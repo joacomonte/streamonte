@@ -9,6 +9,10 @@
 		head: string;
 		spec: string;
 		latino?: boolean;
+		/** Idioma inglés: se marca con `EN`. */
+		en?: boolean;
+		/** Proveedor o descargas, tras el spec. */
+		src?: string | null;
 		/** 0-3; null = sin medidor. */
 		lvl?: number | null;
 		on?: boolean;
@@ -16,13 +20,13 @@
 		title?: string;
 		actions?: Snippet;
 	}
-	let { head, spec, latino = false, lvl = null, on = false, tried = false, title = '', actions }: Props = $props();
+	let { head, spec, latino = false, en = false, src = null, lvl = null, on = false, tried = false, title = '', actions }: Props = $props();
 </script>
 
 <li class="sub" class:on class:tried title={tried ? t('Probado · no sincronizó') : title}>
 	<span class="mark">{#if on}<Icon name="check" size={16} />{/if}</span>
 	<span class="sub-text">
-		<span class="l1"><b>{head}</b><span class="spec">{spec}</span>{#if latino}<span class="lat">LAT</span>{/if}{#if tried}<span class="why">{t('probado')}</span>{/if}</span>
+		<span class="l1"><b>{head}</b><span class="spec">{spec}</span>{#if latino}<span class="lat">LAT</span>{/if}{#if en}<span class="lat en">EN</span>{/if}{#if src}<span class="src">· {src}</span>{/if}{#if tried}<span class="why">{t('probado')}</span>{/if}</span>
 		{#if lvl != null}<span class="fit l{lvl}" title={levelWhy(lvl)}><span class="dots" aria-hidden="true">{#each [1, 2, 3] as n (n)}<i class:on={n <= lvl}></i>{/each}</span>{levelWord(lvl)}</span>{/if}
 	</span>
 	{@render actions?.()}
@@ -37,6 +41,7 @@
 	.l1 b { font-size: 14px; font-weight: 650; }
 	.spec { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
 	.lat { align-self: center; padding: 0 4px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); }
+	.src { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
 	.why { font-size: 11px; color: var(--muted); }
 	.sub.tried b, .sub.tried .spec { color: var(--muted); text-decoration: line-through; }
 	/* Nivel de match: palabra con color; el ámbar queda para lo que cuesta cuota. */

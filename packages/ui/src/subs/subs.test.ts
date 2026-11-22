@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import type { Api } from '../api.ts';
 import type { PremiumQuota, SubtitleOption } from '../types.ts';
 import { SubsFlow } from './subs-flow.ts';
-import { episodeLabel, headOf, keyOf, pickKey, quotaText, rankSubs, specOf } from './subs-logic.ts';
+import { episodeLabel, headOf, keyOf, noFitText, pickKey, quotaText, rankSubs, specOf, srcOf, timingOf } from './subs-logic.ts';
 
 const sub = (id: string, over: Partial<SubtitleOption> = {}): SubtitleOption => ({ id, release: 'Peli.2024.1080p.WEB-DL-GRP', latino: false, format: 'srt', downloads: 1, level: 'none', premium: false, fps: null, last: null, group: null, ...over });
 const quota = (over: Partial<PremiumQuota> = {}): PremiumQuota => ({ hasKey: true, remaining: 3, perDay: 5, resetsAt: null, loginError: null, ...over });
@@ -81,4 +81,25 @@ test('SubsFlow.dispose: lo que llega tarde se descarta', async () => {
 	flow.dispose();
 	await p;
 	assert.equal(flow.view.status, 'searching');
+});
+
+test('fila: proveedor (gratis) o descargas (Premium); EN viene de language', () => {
+	assert.equal(srcOf(sub('a', { provider: 'Wyzie' })), 'Wyzie');
+	assert.equal(srcOf(sub('a')), null);
+	assert.equal(srcOf(sub('a', { premium: true, downloads: 1200 })), `${(1200).toLocaleString('es-AR')} ↓`);
+	assert.equal(srcOf(sub('a', { premium: true, downloads: 0 })), null);
+});
+
+test('noFitText: solo si ninguno calza y se sabe si hay fps/duración', () => {
+	const none = rankSubs([sub('a'), sub('b')], null);
+	const some = rankSubs([sub('a'), sub('b', { level: 'fps' })], null);
+	assert.equal(noFitText(none, true), 'Ninguno es de este release ni de sus mismos fps y duración');
+	assert.equal(noFitText(none, false), 'Sin fps ni duración de este archivo: solo se reconoce el mismo release');
+	assert.equal(noFitText(none, undefined), null);
+	assert.equal(noFitText(some, true), null);
+	assert.equal(noFitText([], true), null);
+	assert.equal(timingOf([sub('a'), sub('b', { timingKnown: false })], null), false);
+	assert.equal(timingOf([sub('a')], null), undefined);
+	assert.equal(timingOf([], { release: 'r', video: { fps: 24, duration: 100 } }), true);
+	assert.equal(timingOf([], { release: 'r' }), false);
 });

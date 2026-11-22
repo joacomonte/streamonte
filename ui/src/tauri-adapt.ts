@@ -134,7 +134,7 @@ export function optionsUpdate(u: Raw.StreamsUpdate, spanishSubs?: ReadonlySet<st
 	};
 }
 
-export const subtitle = (s: Raw.SubtitleFound, premium = false, picks?: Raw.SubtitlePicks): SubtitleOption => ({
+export const subtitle = (s: Raw.SubtitleFound, premium = false, picks?: Raw.SubtitlePicks, timingKnown?: boolean): SubtitleOption => ({
 	id: s.key,
 	release: s.release_name,
 	latino: s.latino,
@@ -147,7 +147,10 @@ export const subtitle = (s: Raw.SubtitleFound, premium = false, picks?: Raw.Subt
 	group: null,
 	path: s.path || null,
 	chosen: picks?.chosen === s.key,
-	tried: picks?.tried.includes(s.key) ?? false
+	tried: picks?.tried.includes(s.key) ?? false,
+	provider: s.provider || null,
+	language: s.language,
+	timingKnown
 });
 
 export const quota = (q: Raw.PremiumQuota): PremiumQuota => ({

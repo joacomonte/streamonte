@@ -11,7 +11,7 @@
 	import type { OptionRef, SubtitleOption } from '../types.ts';
 	import SubRow from './SubRow.svelte';
 	import { SubsFlow, type SubsCtx } from './subs-flow.ts';
-	import { episodeLabel, headOf, keyOf, quotaText, rankSubs, specOf } from './subs-logic.ts';
+	import { episodeLabel, headOf, keyOf, noFitText, quotaText, rankSubs, specOf, srcOf, timingOf } from './subs-logic.ts';
 
 	interface Props {
 		ref: OptionRef;
@@ -45,6 +45,9 @@
 
 	const ranked = $derived(rankSubs(view.list, match));
 	const premRanked = $derived(rankSubs(view.prem.results, match));
+	const timing = $derived(timingOf(view.list, match));
+	const noFit = $derived(noFitText(ranked, timing));
+	const premNoFit = $derived(noFitText(premRanked, timing));
 	const hour = (ms: number) => new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 	const quotaLine = $derived(quotaText(view.quota, hour));
 	const hot = $derived(view.tried.length >= 2 && !!view.quota?.hasKey);
@@ -91,10 +94,11 @@
 			<li class="msg">{t('No encontré en OpenSubtitles.org')}</li>
 		{/if}
 		{#each ranked as { sub, lvl } (keyOf(sub))}
-			<SubRow head={headOf(sub)} spec={specOf(sub)} latino={sub.latino} lvl={match || lvl > 0 ? lvl : null} on={view.picked === keyOf(sub)} tried={view.picked !== keyOf(sub) && view.tried.includes(keyOf(sub))} title={sub.release}>
+			<SubRow head={headOf(sub)} spec={specOf(sub)} latino={sub.latino} en={sub.language === 'en'} src={srcOf(sub)} lvl={match || lvl > 0 ? lvl : null} on={view.picked === keyOf(sub)} tried={view.picked !== keyOf(sub) && view.tried.includes(keyOf(sub))} title={sub.release}>
 				{#snippet actions()}{@render rowActions?.(sub, ctx)}{/snippet}
 			</SubRow>
 		{/each}
+		{#if noFit}<li class="msg none" id="subs-nofit">{noFit}</li>{/if}
 		{#if view.error && view.status === 'ready'}<li class="msg err" role="alert">{view.error}</li>{/if}
 
 		{#if premiumOn}
@@ -124,7 +128,7 @@
 					<li class="msg"><span>{t('Tampoco hay en español para {x}. No se gastó ninguna descarga.', { x: episodeLabel(ref.videoId) ?? t('esta película') })}</span></li>
 				{:else}
 					{#each premRanked as { sub, lvl } (keyOf(sub))}
-						<SubRow head={headOf(sub)} spec={specOf(sub)} latino={sub.latino} lvl={match || lvl > 0 ? lvl : null} on={view.picked === keyOf(sub)} tried={view.picked !== keyOf(sub) && view.tried.includes(keyOf(sub))} title={sub.release}>
+						<SubRow head={headOf(sub)} spec={specOf(sub)} latino={sub.latino} en={sub.language === 'en'} src={srcOf(sub)} lvl={match || lvl > 0 ? lvl : null} on={view.picked === keyOf(sub)} tried={view.picked !== keyOf(sub) && view.tried.includes(keyOf(sub))} title={sub.release}>
 							{#snippet actions()}
 								<button id="prem-use-{sub.id}" type="button" class="btn btn-sm cost-btn" aria-disabled={off} title={off ? t('Sin descargas por hoy') : t('Gasta 1 descarga de hoy')} onclick={() => useFromRow(sub)}>
 									{#if view.prem.busy === sub.id}<span class="spin"></span>{:else}{#if useIcon}<Icon name={useIcon} size={14} />{/if}{useLabel ?? t('Usar')} <span class="cost">· 1</span>{/if}
@@ -132,6 +136,7 @@
 							{/snippet}
 						</SubRow>
 					{/each}
+					{#if premNoFit}<li class="msg none" id="prem-nofit">{premNoFit}</li>{/if}
 				{/if}
 			{/if}
 		{/if}
@@ -143,6 +148,7 @@
 	.grp { padding: 14px 0 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim, var(--muted)); }
 	.msg { display: flex; align-items: center; gap: 8px; padding: 10px 0; font-size: 13px; color: var(--muted); }
 	.msg .btn { margin-left: auto; }
+	.msg.none { font-size: 12px; }
 	.msg.err { color: var(--red); }
 	.sep { height: 1px; margin: 10px 0 6px; background: var(--border); }
 	.cost { color: light-dark(#9a5b00, #f5b041); font-weight: 700; }

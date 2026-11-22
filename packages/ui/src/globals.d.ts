@@ -2,6 +2,7 @@
 declare module 'node:test' {
   export function test(name: string, fn: () => unknown): void;
   export function afterEach(fn: () => unknown): void;
+  export const mock: { timers: { enable(opts: { apis: string[] }): void; tick(ms: number): void; reset(): void } };
 }
 declare module 'node:assert/strict' {
   interface Assert {

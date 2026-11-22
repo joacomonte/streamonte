@@ -58,15 +58,11 @@
   },
   {
    "sel": "#subs-picker",
-   "text": "Wyzie",
-   "status": "regressed",
-   "note": "fuente del sub (· Wyzie / · Subdivx) en cada fila (catalog-subs.js subItem src)"
+   "text": "Wyzie"
   },
   {
    "sel": "#subs-picker",
-   "text": "Subdivx",
-   "status": "regressed",
-   "note": "fuente del sub"
+   "text": "Subdivx"
   }
  ]
 }

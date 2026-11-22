@@ -1,0 +1,8 @@
+{
+  "found": [
+    { "key": "wyzie:3", "provider": "Wyzie", "language": "en", "release_name": "Fight.Club.1999.4K.WEB-DL-OTRO", "downloads": 80, "path": "/tmp/fc3.srt", "level": "none", "latino": false, "head": "OTRO", "spec": "WEB" },
+    { "key": "subdivx:4", "provider": "Subdivx", "language": "es", "release_name": "Fight.Club.DVDRip-ABC", "downloads": 12, "path": "/tmp/fc4.srt", "level": "none", "latino": false, "head": "ABC", "spec": "DVD" }
+  ],
+  "picks": { "chosen": null, "tried": [] },
+  "timing_known": false
+}

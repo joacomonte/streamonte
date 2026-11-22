@@ -106,7 +106,7 @@ export function createTauriApi(core: Core): Api {
 		subs: {
 			find: async (ref, o) => {
 				const r = await api.catalogSubtitles(ref.videoId, o.hash, 'es');
-				return r.found.map((s) => adapt.subtitle(s, false, r.picks));
+				return r.found.map((s) => adapt.subtitle(s, false, r.picks, r.timing_known));
 			},
 			async get(ref, o, sub) {
 				if (!sub.premium) {

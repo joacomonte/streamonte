@@ -974,6 +974,8 @@ const EN: Record<string, string> = {
 	"opensubtitles.com rechazó la key: revisala en Ajustes.": "opensubtitles.com rejected the key: check it in Settings.",
 	"probado": "tried",
 	"puede desfasar": "may drift",
+	"Ninguno es de este release ni de sus mismos fps y duración": "None is from this release or has the same fps and duration",
+	"Sin fps ni duración de este archivo: solo se reconoce el mismo release": "No fps or duration for this file: only the same release is recognized",
 	"quedan {n} de {d} descargas hoy": "{n} of {d} downloads left today",
 	"sin id": "no id",
 	"sin release": "no release",
