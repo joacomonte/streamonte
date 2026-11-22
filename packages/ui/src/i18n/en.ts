@@ -524,6 +524,8 @@ const EN: Record<string, string> = {
 	"No encontré títulos de {name}.": "No titles found for {name}.",
 	"Limpiar búsqueda": "Clear search",
 	"Ver sugerencias": "See suggestions",
+	"Film de": "A film by",
+	"Serie de": "A series by",
 	"Opciones": "Options",
 	"Detalle — {name}": "Details — {name}",
 	"La caché está vacía.": "The cache is empty.",

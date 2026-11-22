@@ -117,6 +117,9 @@
 	}
 
 	const people = $derived(d ? pickPeople(d.people) : []);
+	// El director va junto al título ("Film de …"); la píldora y el carrusel quedan para los actores.
+	const director = $derived(people.find((p) => p.role === 'director'));
+	const cast = $derived(people.filter((p) => p.role !== 'director'));
 	const provs = $derived(d ? providerView(d.providers, providersOpen) : { shown: [], more: 0 });
 	const tiles = $derived(d ? seasonTiles(d.seasons, ratings) : []);
 	const outlook = $derived(d ? outlookOf(d, ratings) : null);
@@ -131,7 +134,7 @@
 	});
 	const rows = $derived(episodeRows(episodes ?? [], today));
 	const heroLine = $derived(d ? [d.year, d.runtimeMin ? `${d.runtimeMin} min` : '', d.kind === 'tv' && d.seasons.length ? t(d.seasons.length === 1 ? '{n} temporada' : '{n} temporadas', { n: d.seasons.length }) : ''].filter(Boolean).join(' · ') : '');
-	const genres = $derived((d?.genres ?? []).map(genreLabel).join(' · '));
+	const genres = $derived((d?.genres ?? []).map(genreLabel));
 	const seasonName = (n: number, name: string | null) => name || (n === 0 ? t('Especiales') : t('Temporada {n}', { n }));
 	const aboutTitle = $derived(d?.overview ? t('Sinopsis') : t('Idioma original'));
 
@@ -184,6 +187,10 @@
 						{#if d.poster}<img id={ids.poster} class="poster" src={d.poster} alt="" width="342" height="513" referrerpolicy="no-referrer" onerror={hide} />{/if}
 						<div class="facts">
 							<h1 class="name" bind:this={titleEl}>{d.title}</h1>
+							{#if director}
+								{@const dir = director}
+								<p class="by">{t(d.kind === 'tv' ? 'Serie de' : 'Film de')} <button id={ids.person(dir)} type="button" class="by-link" title={t('Ver lo que dirigió')} onclick={() => onPerson(dir)}>{dir.name}</button></p>
+							{/if}
 							<p class="muted line">
 								{heroLine}
 								<!-- IMDb (con su puntaje) y tráiler como píldoras junto a los datos; sin IMDb, la estrella sola. -->
@@ -198,18 +205,18 @@
 									<a id={ids.trailer} class="ext" href="https://www.youtube.com/watch?v={yt}" target="_blank" rel="noopener noreferrer" title={t('Ver el tráiler en YouTube')} onclick={(e) => { if (onOpenTrailer) { e.preventDefault(); onOpenTrailer(yt); } }}><Icon name="play" size={11} />{t('Tráiler')}</a>
 								{/if}
 							</p>
-							{#if genres}<p class="genres">{genres}</p>{/if}
+							{#if genres.length}<p class="genres">{#each genres as g (g)}<span class="genre">{g}</span>{/each}</p>{/if}
 							{#if d.companies.length}<p class="companies">{d.companies.join(' · ')}</p>{/if}
 						</div>
 					</div>
 				</div>
 
-				{#if d.providers.length || people.length}
+				{#if d.providers.length || cast.length}
 					<div class="inner acts">
 						<!-- Reparto: caras apiladas como las plataformas; al tocar se abre el carrusel con nombres. -->
-						{#if people.length}
+						{#if cast.length}
 							<button id={ids.cast} type="button" class="providers" class:on={castOpen} aria-expanded={castOpen} aria-label={t('Reparto')} onclick={() => (castOpen = !castOpen)}>
-								{#each people as p (p.role + p.id)}
+								{#each cast as p (p.id)}
 									<span class="prov">{#if p.photo}<img src={p.photo} alt="" width="28" height="28" referrerpolicy="no-referrer" onerror={hide} />{:else}<span class="prov-empty" aria-hidden="true"><Icon name="user" size={14} /></span>{/if}</span>
 								{/each}
 							</button>
@@ -229,14 +236,14 @@
 					</div>
 				{/if}
 
-				{#if people.length && castOpen}
+				{#if cast.length && castOpen}
 					<ul class="inner people" aria-label={t('Reparto')}>
-						{#each people as p (p.role + p.id)}
-							<li class:dir={p.role === 'director'}>
-								<button id={ids.person(p)} type="button" class="person" onclick={() => onPerson(p)} title={t(p.role === 'director' ? 'Ver lo que dirigió' : 'Ver lo que actuó')}>
+						{#each cast as p (p.id)}
+							<li>
+								<button id={ids.person(p)} type="button" class="person" onclick={() => onPerson(p)} title={t('Ver lo que actuó')}>
 									{#if p.photo}<img src={p.photo} alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer" />{:else}<span class="face-empty" aria-hidden="true"><Icon name="user" size={22} /></span>{/if}
 									<span class="p-name">{p.name}</span>
-									<span class="p-note">{p.role === 'director' ? t('Director') : p.note ?? ''}</span>
+									<span class="p-note">{p.note ?? ''}</span>
 								</button>
 							</li>
 						{/each}
@@ -394,7 +401,12 @@
 	.name { margin: 0 0 4px; font-size: 24px; line-height: 1.15; letter-spacing: -0.015em; text-wrap: balance; }
 	.line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; font-size: 13.5px; }
 	.rate { display: inline-flex; align-items: center; gap: 3px; color: var(--yellow); font-weight: 650; }
-	.genres { margin: 6px 0 0; font-size: 13px; color: var(--muted); letter-spacing: 0.01em; }
+	.by { margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
+	.by-link { padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-weight: 650; cursor: pointer; }
+	@media (hover: hover) { .by-link:hover { text-decoration: underline; } }
+	/* Géneros: píldoras como las de reparto y plataformas. */
+	.genres { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+	.genre { padding: 4px 10px; border-radius: var(--r-pill, 999px); background: var(--surface-2); color: var(--text); font-size: 12.5px; font-weight: 600; }
 	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
 	.cine-wrap { padding-top: 12px; }
 	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: var(--r-card, 14px); background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
@@ -423,9 +435,6 @@
 	.people { display: flex; gap: 4px; padding-top: 14px; padding-bottom: 2px; list-style: none; margin-block: 0; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
 	.people::-webkit-scrollbar { display: none; }
 	.people li { flex: none; scroll-snap-align: start; }
-	.people li.dir:not(:last-child) { display: flex; gap: 4px; }
-	.people li.dir:not(:last-child)::after { content: ''; align-self: center; width: 1px; height: 64px; background: var(--border); }
-	.dir .p-note { color: var(--yellow); font-weight: 600; }
 	.person { display: flex; flex-direction: column; align-items: center; width: 84px; padding: 6px 2px; border: 0; border-radius: var(--r-card, 14px); background: none; color: var(--text); font: inherit; text-align: center; cursor: pointer; }
 	.person img, .face-empty { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--surface-2); transition: transform 0.2s var(--out); }
 	.face-empty { display: grid; place-items: center; color: var(--muted); }
@@ -508,8 +517,9 @@
 	.ep-skel { height: 68px; border-radius: var(--r-sm, 8px); margin-top: 10px; }
 	/* Entrada: el fondo se enfoca desde un zoom y el texto sube en cascada. */
 	.hero::before { animation: backdrop-in 0.9s var(--out) backwards; will-change: transform; }
-	.name, .line, .genres, .companies, .acts, .people, .body { animation: rise 0.7s var(--out) backwards; }
+	.name, .by, .line, .genres, .companies, .acts, .people, .body { animation: rise 0.7s var(--out) backwards; }
 	.name { animation-delay: 0.12s; }
+	.by { animation-delay: 0.16s; }
 	.line { animation-delay: 0.2s; }
 	.genres { animation-delay: 0.24s; }
 	.companies { animation-delay: 0.26s; }
@@ -519,7 +529,7 @@
 	@keyframes backdrop-in { from { opacity: 0; transform: scale(1.18); } }
 	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 	@media (prefers-reduced-motion: reduce) {
-		.hero::before, .name, .line, .genres, .companies, .acts, .people, .body { animation: none; }
+		.hero::before, .name, .by, .line, .genres, .companies, .acts, .people, .body { animation: none; }
 		.ext, .providers, .person img, .about-body, .about-chev, .intro { transition: none; }
 	}
 </style>
