@@ -1,0 +1,49 @@
+{
+  "has_key": true,
+  "details": {
+    "title": "Breaking Bad",
+    "overview": "Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of only two years left to live. He becomes filled with a sense of fearlessness and an unrelenting desire to secure his family's financial future at any cost as he enters the dangerous world of drug",
+    "genres": [
+      "Drama",
+      "Crime"
+    ],
+    "providers": [
+      {
+        "name": "Netflix",
+        "logo": "https://image.tmdb.org/t/p/w92/rK1KljqmbvO9HQa1PBFLILWah72.png"
+      }
+    ],
+    "original_language": "en",
+    "networks": [
+      "AMC"
+    ],
+    "trailer": "VFkjBy2b50Q",
+    "people": [
+      {
+        "id": 17419,
+        "name": "Bryan Cranston",
+        "photo": "https://image.tmdb.org/t/p/w185/7Jahy5LZX2Fo8fGJltMreAI49hC.jpg",
+        "role": "cast",
+        "note": "Walter White"
+      },
+      {
+        "id": 84497,
+        "name": "Aaron Paul",
+        "photo": "https://image.tmdb.org/t/p/w185/8Ac9uuoYwZoYVAIJfRLzzLsGGJn.jpg",
+        "role": "cast",
+        "note": "Jesse Pinkman"
+      },
+      {
+        "id": 134531,
+        "name": "Anna Gunn",
+        "photo": "https://image.tmdb.org/t/p/w185/adppyeu1a4REN3khtgmXusrapFi.jpg",
+        "role": "cast",
+        "note": "Skyler White"
+      }
+    ],
+    "companies": [
+      "Sony Pictures Television",
+      "High Bridge Productions"
+    ]
+  }
+}

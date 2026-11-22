@@ -1,0 +1,29 @@
+{
+  "id": "tt0137523",
+  "kind": "movie",
+  "name": "Fight Club",
+  "year": "1999",
+  "runtime_min": 139,
+  "country": "United States, Germany",
+  "genres": [
+    "Crime",
+    "Drama",
+    "Thriller"
+  ],
+  "imdb_rating": "8.8",
+  "description": "An insomniac office worker and a devil-may-care soap maker form an underground fight club that evolves into much more.",
+  "poster": "https://images.metahub.space/poster/small/tt0137523/img",
+  "background": "https://images.metahub.space/background/medium/tt0137523/img",
+  "episodes": [],
+  "excluded": false,
+  "status": null,
+  "cast": [
+    "Brad Pitt",
+    "Edward Norton",
+    "Meat Loaf"
+  ],
+  "awards": "1 nominación al Óscar · 12 premios",
+  "released": "1999-10-15",
+  "trailer": "dfeUzm6KF4g",
+  "imdb_votes": 2685605
+}

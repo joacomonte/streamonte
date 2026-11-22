@@ -1,0 +1,28 @@
+{
+  "id": "tt45368240",
+  "kind": "movie",
+  "name": "You Can See Everything",
+  "year": "2026",
+  "runtime_min": 175,
+  "country": "United States",
+  "genres": [
+    "Documentary",
+    "Biography"
+  ],
+  "imdb_rating": "9.0",
+  "description": "Thirty-four days before she's sent to prison, notorious Theranos founder Elizabeth Holmes invites a skeptical film crew to document her every move. What begins as an intimate portrait becomes a mind-bending three-year journey.",
+  "poster": "https://images.metahub.space/poster/small/tt45368240/img",
+  "background": "https://images.metahub.space/background/medium/tt45368240/img",
+  "episodes": [],
+  "excluded": false,
+  "status": null,
+  "cast": [
+    "Billy Evans",
+    "Nathan Fielder",
+    "Elizabeth Holmes"
+  ],
+  "awards": null,
+  "released": null,
+  "trailer": "IEx8D1Wb__U",
+  "imdb_votes": 38596
+}

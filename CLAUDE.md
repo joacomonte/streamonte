@@ -24,4 +24,6 @@ Web: página → `web/src/routes/**/+page.server.ts` o `api/**/+server.ts` → `
 - `sh scripts/check.sh` (~3 s: fmt, clippy, lint/tipos UI) · `sh scripts/check.sh full` (~6 s: + nextest, deno test, web check+test).
 - Node 24 (nvm) primero en PATH: la web usa type stripping nativo; el node de Homebrew es viejo.
 - Desktop dev: `cd ui && deno run -A npm:vite` + `cargo run -p streamonte` (sin Vite la ventana queda en blanco).
+- Verificar UI sin mirar a ojo: `node scripts/shot.mjs <url> [--sel CSS] [--click SEL] [--only mobile|desktop] [--theme light|dark] [--out DIR]` → 4 PNG (celu/escritorio × claro/oscuro, sin animaciones) + 1 línea JSON por captura con posición de cada `id` y errores de consola; exit 1 si la página falla.
+- Desktop sin Tauri (en el navegador): `cd ui && deno run -A npm:vite` → http://127.0.0.1:1420 responde con `ui/mock/*.json` (`ui/src/mock-tauri.ts`); regrabar: `cargo run -p streamonte-core --example record_fixtures`. Sin eventos en vivo (análisis, velocidad, reproducción).
 - Deploy web: `vercel deploy --prod --yes` desde ESTA raíz (Root Directory=web, `.vercelignore` sube solo `web/` y `packages/`).

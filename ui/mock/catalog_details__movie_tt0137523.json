@@ -1,0 +1,74 @@
+{
+  "has_key": true,
+  "details": {
+    "title": "El club de la pelea",
+    "overview": "A ticking-time-bomb insomniac and a slippery soap salesman channel primal male aggression into a shocking new form of therapy. Their concept catches on, with underground \"fight clubs\" forming in every town, until an eccentric gets in the way and ignites an out-of-control spiral toward oblivion.",
+    "genres": [
+      "Drama",
+      "Thriller"
+    ],
+    "providers": [
+      {
+        "name": "Netflix",
+        "logo": "https://image.tmdb.org/t/p/w92/rK1KljqmbvO9HQa1PBFLILWah72.png"
+      },
+      {
+        "name": "Amazon Prime Video",
+        "logo": "https://image.tmdb.org/t/p/w92/gMZdpavHmxFNnLpMHwVxfqeux2g.png"
+      },
+      {
+        "name": "Disney Plus",
+        "logo": "https://image.tmdb.org/t/p/w92/5eZ872CghnHFLB1j8grszbrx0dx.png"
+      },
+      {
+        "name": "Paramount Plus",
+        "logo": "https://image.tmdb.org/t/p/w92/pkx3klJlwW5JdtaulvDx6hDNtch.png"
+      },
+      {
+        "name": "MovistarTV",
+        "logo": "https://image.tmdb.org/t/p/w92/kxUmV9TCZHfukpVOMuN90Jibbnm.png"
+      },
+      {
+        "name": "Paramount+ Amazon Channel",
+        "logo": "https://image.tmdb.org/t/p/w92/bxX0YVOCY7bI85BKRlJAAQ2EjUR.png"
+      }
+    ],
+    "original_language": "en",
+    "networks": [],
+    "trailer": "BdJKm16Co6M",
+    "people": [
+      {
+        "id": 7467,
+        "name": "David Fincher",
+        "photo": "https://image.tmdb.org/t/p/w185/tpEczFclQZeKAiCeKZZ0adRvtfz.jpg",
+        "role": "director",
+        "note": null
+      },
+      {
+        "id": 819,
+        "name": "Edward Norton",
+        "photo": "https://image.tmdb.org/t/p/w185/8nytsqL59SFJTVYVrN72k6qkGgJ.jpg",
+        "role": "cast",
+        "note": "Narrator"
+      },
+      {
+        "id": 287,
+        "name": "Brad Pitt",
+        "photo": "https://image.tmdb.org/t/p/w185/ajNaPmXVVMJFg9GWmu6MJzTaXdV.jpg",
+        "role": "cast",
+        "note": "Tyler Durden"
+      },
+      {
+        "id": 1283,
+        "name": "Helena Bonham Carter",
+        "photo": "https://image.tmdb.org/t/p/w185/hJMbNSPJ2PCahsP3rNEU39C8GWU.jpg",
+        "role": "cast",
+        "note": "Marla Singer"
+      }
+    ],
+    "companies": [
+      "Fox 2000 Pictures",
+      "Regency Enterprises"
+    ]
+  }
+}

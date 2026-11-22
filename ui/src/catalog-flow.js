@@ -78,7 +78,7 @@ const pool = () => (state.update?.candidates ?? [])
 /** @returns {Candidate[]} */
 const scope = () => pool().filter((c) => !hasResStep() || !view.openRes || resKey(c) === view.openRes);
 /** Potencial de latino: la regla vive en catalog-options.js (`latPotential`). */
-const hasPotential = latPotential;
+const hasPotential = (/** @type {Candidate} */ c) => latPotential(c); // función: `= latPotential` falla en dev (ciclo con catalog-options)
 /** Única regla de "buen match" en TorBox: pidiendo latino, latino confirmado en sus pistas (los subs no importan); con
  *  audio original, subtítulos en español nativos (dentro del video o .srt en la lista de TorBox). De cine, nunca. */
 /** @param {Candidate} c @returns {boolean} */
