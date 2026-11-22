@@ -13,8 +13,8 @@
 
   const saved = safeGet(STORE);
   const steps: Step[] = [
-    { icon: 'globe', title: t('¿En qué idioma querés la app?'), body: t('Menús, botones y sinopsis. Lo cambiás cuando quieras en Ajustes.'), picker: 'app' },
-    { icon: 'film', title: t('¿En qué idioma querés ver los títulos de pelis y series?'), body: t('Puede ser distinto del de la app. También lo cambiás en Ajustes.'), picker: 'titles' },
+    { icon: 'globe', title: t('Idioma de la app'), body: '', picker: 'app' },
+    { icon: 'film', title: t('Títulos'), body: '', picker: 'titles' },
     { icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio y lo mirás al instante en esta compu: por torrent o desde TorBox, con audio latino o el original y subtítulos en español.') },
     { icon: 'key', title: t('Dos keys para sacarle todo'), body: t('Se pegan en Ajustes y quedan en el almacén seguro del sistema.'), extra: 'keys' },
     { icon: 'monitor', title: t('Se ve en mpv o VLC'), body: t('Los videos se abren en un reproductor de esta compu. mpv viene recomendado: anda mejor, gasta menos y combina subtítulos.'), extra: 'players' },
@@ -71,8 +71,9 @@
     {steps}
     start={resumeIndex(saved, steps.length)}
     bind:index
-    langs={{ app: langs.app, titles: langs.titles, onpick: pick, flags: true, appIcon: 'monitor' }}
+    langs={{ app: langs.app, titles: langs.titles, onpick: pick }}
     {extra}
+    confetti
     onleave={() => {
       setTouring(false);
       safeSet(STORE, 'done');

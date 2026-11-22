@@ -19,8 +19,10 @@ test('resumeIndex: acota lo guardado', () => {
 	assert.equal(resumeIndex('-2', 5), 0);
 });
 
-test('welcomeSteps: tiene un solo paso de apodo, antes de lo que sigue', () => {
+test('welcomeSteps: apodo primero (único), después idioma de la app y de los títulos', () => {
 	const steps = welcomeSteps('android');
 	assert.equal(steps.filter((s) => s.nick).length, 1);
-	assert.ok(steps.findIndex((s) => s.nick) < steps.length - 1);
+	assert.deepEqual(steps.slice(0, 3).map((s) => (s.nick ? 'nick' : s.picker)), ['nick', 'app', 'titles']);
+	// Sin apodo no se pasa del primer paso.
+	assert.equal(guardStep(1, 0, false), 0);
 });

@@ -23,7 +23,7 @@ export function device(): Device {
 const casterFor = (d: Device): StoreLink[] => (d === 'ios' ? [WVC_IOS] : d === 'android' ? [WVC_ANDROID] : [WVC_IOS, WVC_ANDROID]);
 
 /** El paso del apodo: en la bienvenida y solo, para quien ya la vio sin tener apodo. */
-export const nickStep = (): Step => ({ icon: 'user', title: t('¿Cómo te decimos?'), body: t('Tu apodo para saludarte. Lo cambiás en Ajustes.'), nick: true });
+export const nickStep = (): Step => ({ icon: 'user', title: t('¿Cómo te decimos?'), body: '', nick: true });
 
 /** Bienvenida: qué es, con qué verlo en el celu (según el dispositivo) y qué hace falta para la tele.
  */
@@ -35,9 +35,9 @@ export function welcomeSteps(d: Device): Step[] {
 				? { title: t('Para verlo en el celular vas a necesitar bajar {app}', { app: 'Just Player' }), body: t('Gratis y sin publicidad. Abrís el link copiado y elegís el audio y los subtítulos.'), links: [JUST_PLAYER] }
 				: { title: t('Para verlo en el celular vas a necesitar bajar SenPlayer (iPhone) o Just Player (Android)'), body: t('Abrís el link copiado y elegís el audio y los subtítulos.'), links: [SENPLAYER, JUST_PLAYER] };
 	return [
-		{ icon: 'globe', title: t('¿En qué idioma querés la app?'), body: t('Menús, botones y sinopsis. Lo cambiás cuando quieras en Ajustes.'), picker: 'app' },
 		nickStep(),
-		{ icon: 'film', title: t('¿En qué idioma querés ver los títulos de pelis y series?'), body: t('Puede ser distinto del de la app. También lo cambiás en Ajustes.'), picker: 'titles' },
+		{ icon: 'globe', title: t('Idioma de la app'), body: '', picker: 'app' },
+		{ icon: 'film', title: t('Títulos'), body: '', picker: 'titles' },
 		{ icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.') },
 		{ icon: 'phone', ...player },
 		{
