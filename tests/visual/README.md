@@ -7,3 +7,4 @@
 - Claves de fixtures: se ignoran `from`, `to` y `l` (idioma; si la web agrega otro parámetro que no cambia la respuesta, sumarlo en `apiFile`). `/packages/*` (logo) se sirve desde disco: el dev server lo devuelve como HTML. La ficha de la app espera el texto final de los streams, no un sleep fijo.
 - Plataforma: las baselines son de macOS (fuentes del sistema). CI corre en `macos-latest`, no en Linux, con `--threshold 0.25` (texto suavizado distinto entre versiones de macOS). Si CI difiere por render del runner, regrabar `--update` allá y bajar el diff del artifact `visual-diffs`; si el cambio de macOS lo rompe seguido, subir `--tol`.
 - Límite: 0,1 % no ve un cambio muy chico (p. ej. un color en un botón diminuto); bajar `--threshold` si hace falta.
+- `web-ajustes-mobile-*` salen del CI (artifact `visual-diffs`): los títulos en negrita de la fuente del sistema se dibujan distinto en macOS 27 (local) y en el runner; en local esas dos pueden dar ~0,5 %.
