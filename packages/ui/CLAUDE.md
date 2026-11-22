@@ -32,7 +32,8 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
   - `Icon.svelte` · `Sheet.svelte` (`<dialog>`; props `footer` `titleId` `closeId` `maxWidth` `closable`; ← desktop `ui/src/components/{Settings,LogDialog,ConfirmDialog}.svelte`) · `LangPicker.svelte` (Ajustes; `onpick`; `flags`) → `icons.ts`, `i18n/runtime.ts`.
   - `Tour.svelte` (`index` bindable, `onnick`, `langs`, snippet `extra`, `confetti`; paso `nick` con fondo de vidrio y "Hola, …") → `tour-state.ts` (`guardStep` `resumeIndex` `Step` `LangOptions`), `TourLang.svelte` · ← `web/src/routes/+layout.svelte`, `web/src/lib/Torrents.svelte`, `ui/src/Welcome.svelte`.
   - `TourLang.svelte` (`only` app|titles: banderas SVG / póster + segmentado) · ← `Tour.svelte`.
-  - `tours.ts` `welcomeSteps` `castSteps` `device` `seen` `markSeen` → `tour-state.ts` · ← web.
+  - `type-fx.ts` `installTypeFx` (letras que entran desenfocadas en todo input de texto; espejo encima; sin contraseñas ni `data-typefx="off"`) · ← `web/src/routes/+layout.svelte`, `ui/src/main.ts`.
+  - `tours.ts` `welcomeSteps` `castSteps` `casterFor` `device` `seen` `markSeen` → `tour-state.ts` · ← web (`castSteps`: ayuda de subs en `Torrents.svelte`; `casterFor`/`device`: `web/src/lib/CastVideo.svelte`).
 - `catalog/` (catálogo compartido):
   - `filters.ts` `:46 toBrowse` `:62 parseSaved` (`KINDS` `SORTS` `LANGS` `VOTES` `BACK` `backLabel` `changedCount`) → `types.ts` · ← `store.ts`, `Since.svelte`, `Catalog.svelte`.
   - `store.ts` `:53 initialState` `:69 createCatalog` (estado + acciones, sin Svelte) → `api.ts`, `filters.ts` · ← `catalog.svelte.ts`, `ui/src/catalog-store.test.ts`.
@@ -40,5 +41,6 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
   - `Catalog.svelte` (props `store` `onopen` `href` `header` `top` `onmagnet` `onlog` `pinned` `cardMin`) → `Search` `Segmented` `Since` `Grid` `FiltersSheet` · ← `web/src/routes/+page.svelte`, `ui/src/catalog-mount.ts`.
   - `CardInfo.svelte` (hover de la tarjeta: géneros, duración, categoría, premios, barras de temporada; lo monta `Grid.svelte` tras 250 ms con mouse) → `card-info.ts` `:22 ratingTier` `:30 cardSeasons` (test `card-info.test.ts`, fixtures `ui/mock/`), `getApi().title.details/seasonRatings(imdb, quick)`; `Grid.svelte` reintenta el póster roto con `getApi().catalog.poster` (web: null).
   - `Search.svelte` · `Segmented.svelte` · `Since.svelte` · `Grid.svelte` · `FiltersSheet.svelte` → `components/Icon.svelte`, `components/Sheet.svelte`.
+- `assets/logo.svg` (ícono completo: favicon web) · `assets/logo-mark.svg` (solo el triángulo: encabezado web/desktop y paso de bienvenida de `Tour.svelte`).
 - `globals.d.ts` tipos mínimos `node:test`, `node:assert/strict`, `node:fs` (sin @types/node).
 - Tests junto al código: `*.test.ts`; `i18n/i18n.test.ts` escanea `web/src`, `ui/src`, `packages/ui/src` y `ui/index.html`.

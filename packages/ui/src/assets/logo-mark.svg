@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="580" viewBox="324 220 520 584">
+<defs>
+
+<linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2f6b"/><stop offset=".45" stop-color="#c2577a"/><stop offset=".72" stop-color="#f59a62"/><stop offset=".9" stop-color="#ffd59a"/></linearGradient>
+<radialGradient id="sun1" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff4d6"/><stop offset=".55" stop-color="#ffe3a8"/><stop offset="1" stop-color="#ffd08a" stop-opacity="0"/></radialGradient>
+<clipPath id="pc1"><path d="M380.5,254.5 Q330,226 330.0,284.0 L330.0,740.0 Q330,798 380.5,769.5 L787.5,540.5 Q838,512 787.5,483.5 Z"/></clipPath>
+</defs>
+<g clip-path="url(#pc1)">
+  <rect x="300" y="200" width="560" height="620" fill="url(#sky1)"/>
+  <circle cx="500" cy="560" r="110" fill="url(#sun1)"/>
+  <circle cx="500" cy="560" r="54" fill="#fff6e0"/>
+  <path d="M300,610 L420,560 L560,500 L700,580 L860,540 V820 H300Z" fill="#8f4268"/>
+  <path d="M300,700 L440,610 L520,640 L640,570 L860,700 V820 H300Z" fill="#2a1834"/>
+</g>
+<path d="M380.5,254.5 Q330,226 330.0,284.0 L330.0,740.0 Q330,798 380.5,769.5 L787.5,540.5 Q838,512 787.5,483.5 Z" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="4"/>
+</svg>

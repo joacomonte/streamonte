@@ -26,4 +26,4 @@ export const GET = route(async ({ url }) => {
 		genres: set(p.get('genres'), /^\d{1,6}$/, 5),
 		page
 	});
-});
+}, { cdn: 3600, perLang: true });

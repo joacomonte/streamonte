@@ -4,8 +4,9 @@
 	import type { Snippet } from 'svelte';
 	import { t } from '../i18n/runtime.ts';
 	import Icon from './Icon.svelte';
+	import logo from '../assets/logo-mark.svg';
 	import TourLang from './TourLang.svelte';
-	import { guardStep, type LangOptions, type Step, type StoreLink } from './tour-state.ts';
+	import { guardStep, type LangOptions, type Step, type StoreLink, type LangCode } from './tour-state.ts';
 
 	interface Props {
 		id: string;
@@ -104,6 +105,13 @@
 		else go(index + 1);
 	}
 	/** Siguiente/Listo: en el paso del apodo, primero lo guarda. */
+	// Elegir un idioma ya es la respuesta del paso: lo aplica y pasa al siguiente tras ver la elección (~0,35 s).
+	function pickLang(kind: 'app' | 'titles', v: LangCode) {
+		langs?.onpick(kind, v);
+		const at = index;
+		setTimeout(() => index === at && go(index + 1), 350);
+	}
+
 	function next() {
 		if (step.nick) submitNick();
 		else if (last) {
@@ -182,6 +190,7 @@
 	{/if}
 	<div class="frame">
 		<header>
+			<button id="{id}-back" type="button" class="back" class:gone={index === 0} tabindex={index === 0 ? -1 : 0} aria-hidden={index === 0} aria-label={t('Atrás')} onclick={() => go(index - 1)}><Icon name="back" size={22} /></button>
 			<div class="progress" role="progressbar" aria-label={t('Paso {n} de {d}', { n: index + 1, d: steps.length })} aria-valuemin="1" aria-valuemax={steps.length} aria-valuenow={index + 1}>
 				{#each steps as s, n (s.title)}
 					<button id="{id}-dot-{n}" type="button" class="dot" class:done={n < index} class:on={n === index} aria-label={t('Ir al paso {n}', { n: n + 1 })} onclick={() => go(n)}><span></span></button>
@@ -199,7 +208,7 @@
 						<div class="art" aria-hidden="true">
 							<span class="ring"></span>
 							<span class="ring late"></span>
-							<span class="disc"><Icon name={step.icon} size={56} /></span>
+							{#if step.logo}<img class="logo" src={logo} alt="" width="96" height="108" />{:else}<span class="disc"><Icon name={step.icon} size={56} /></span>{/if}
 						</div>
 					{/if}
 					{#if step.nick}
@@ -211,21 +220,23 @@
 						}}>
 							<label class="hello" for="{id}-nick">{t('Hola')},</label>
 							<div class="typed" style="--fs: {nickSize}px">
+								<span class="field">
 								<span class="mirror" aria-hidden="true">{#each [...nickValue] as ch, n (n)}<span class="ch">{ch}</span>{/each}<span class="caret"></span>{#if !nickValue}<span class="ph">{t('tu apodo')}</span>{/if}</span>
 								<!-- svelte-ignore a11y_autofocus (el paso es escribir el apodo; el <dialog> abre con foco en él) -->
-								<input id="{id}-nick" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-invalid={!!nickError} aria-describedby="{id}-nick-error" bind:value={nickValue} oninput={() => (nickError = '')} autofocus />
+								<input id="{id}-nick" data-typefx="off" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-invalid={!!nickError} aria-describedby="{id}-nick-error" bind:value={nickValue} oninput={() => ((nickError = ''), (nickValue = nickValue.charAt(0).toUpperCase() + nickValue.slice(1)))} autofocus />
+								</span>
+								<button id="{id}-nick-go" type="submit" class="go" class:show={nickTyped} disabled={nickSaving} tabindex={nickTyped ? 0 : -1} aria-hidden={!nickTyped} aria-label={t('Seguir')}>
+									<svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
+								</button>
 							</div>
 							<p id="{id}-nick-error" class="hint" class:err={!!nickError} class:gone={nickTyped && !nickError} role="alert">{nickError || `${step.title} · ${t('obligatorio')}`}</p>
-							<button id="{id}-nick-go" type="submit" class="go" class:show={nickTyped} disabled={nickSaving} tabindex={nickTyped ? 0 : -1} aria-hidden={!nickTyped}>
-								<span class="go-label">{t('Seguir')}</span><Icon name="arrow" size={22} />
-							</button>
 						</form>
 					{:else}
 						<h2 id="{id}-title" class:center={step.picker && langs}>{step.title}</h2>
 						{#if step.body}<p>{step.body}</p>{/if}
 					{/if}
 					{#if step.picker}
-						{#if langs}<div class="picker"><TourLang id="{id}-lang" only={step.picker} {...langs} /></div>{/if}
+						{#if langs}<div class="picker"><TourLang id="{id}-lang" only={step.picker} {...langs} onpick={pickLang} /></div>{/if}
 					{/if}
 					{#if step.extra && extra}<div class="extra">{@render extra(step.extra)}</div>{/if}
 					{#if step.links?.length}
@@ -248,14 +259,13 @@
 			{/key}
 		</div>
 
-		<footer class:hidden={step.nick}>
-			{#if index > 0}
-				<button id="{id}-back" type="button" class="ghost" onclick={() => go(index - 1)}>{t('Atrás')}</button>
+		<footer class:hidden={step.nick || (!!step.picker && !!langs && !last)}>
+			{#if !(step.picker && langs) || last}
+				<button id="{id}-next" type="button" class="primary" disabled={step.nick && nickSaving} onclick={next}>
+					{last ? t('Listo') : t('Siguiente')}
+					{#if !last}<Icon name="next" size={20} />{/if}
+				</button>
 			{/if}
-			<button id="{id}-next" type="button" class="primary" disabled={step.nick && nickSaving} onclick={next}>
-				{last ? t('Listo') : t('Siguiente')}
-				{#if !last}<Icon name="next" size={20} />{/if}
-			</button>
 		</footer>
 	</div>
 </dialog>
@@ -288,6 +298,9 @@
 	.frame { position: relative; height: 100%; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; }
 
 	header { display: flex; align-items: center; gap: 12px; padding: 12px 20px 0; min-height: 56px; flex: none; }
+	.back { display: grid; place-items: center; width: 40px; height: 40px; margin-left: -10px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); transition: opacity 0.25s var(--ease), color 0.2s var(--ease), background 0.2s var(--ease); }
+	.back:hover, .back:focus-visible { color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent); outline: none; }
+	.back.gone { opacity: 0; pointer-events: none; }
 	/* Puntos: el del paso actual se estira; los ya vistos quedan del color de acento. */
 	.progress { flex: 1; display: flex; align-items: center; }
 	.dot { height: 32px; padding: 0 4px; border: 0; background: none; display: grid; align-items: center; cursor: pointer; }
@@ -312,6 +325,8 @@
 
 	.art { position: relative; width: 132px; height: 132px; margin-bottom: 32px; display: grid; place-items: center; }
 	.art > * { grid-area: 1 / 1; }
+	.logo { position: relative; display: block; width: 96px; height: 108px; filter: drop-shadow(0 18px 36px rgb(194 87 122 / 0.35)); animation: float 4s ease-in-out infinite; }
+	@keyframes float { 50% { transform: translateY(-6px); } }
 	.disc {
 		width: 112px;
 		height: 112px;
@@ -333,11 +348,11 @@
 	p { margin: 0; font-size: 17px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
 
 	.picker { margin-top: 28px; }
-	h2.center { text-align: center; }
+	h2.center { font-size: 40px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.08; }
 
 	/* Paso del apodo: abajo a la izquierda, sobre el fondo de vidrio. */
 	.glass { position: absolute; inset: 0; overflow: hidden; pointer-events: none; animation: fade 0.5s var(--out); }
-	.glass::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 38%, color-mix(in srgb, var(--bg) 60%, transparent) 68%, color-mix(in srgb, var(--bg) 6%, transparent)); }
+	.glass::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, var(--bg) 8%, color-mix(in srgb, var(--bg) 92%, transparent) 42%, color-mix(in srgb, var(--bg) 45%, transparent) 72%, color-mix(in srgb, var(--bg) 10%, transparent)); }
 	.cols { position: absolute; inset: -120px -80px; display: flex; gap: 12px; transform: rotate(-14deg); }
 	.col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; animation: col-up 34s linear infinite; }
 	.col:nth-child(even) { animation-name: col-down; animation-duration: 40s; }
@@ -345,8 +360,9 @@
 	.col span { flex: none; aspect-ratio: 2 / 3; border-radius: 12px; background: color-mix(in srgb, var(--text) 4%, transparent); border: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
 	@keyframes col-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
 	@keyframes col-down { from { transform: translateY(-50%); } to { transform: translateY(0); } }
-	.stage.nickstage > :last-child { margin-bottom: 0; }
-	.stage.nickstage { padding-bottom: 20px; }
+	/* Apodo arriba (a ~12% del alto): el teclado del celu abre abajo sin tapar ni mover nada. */
+	.stage.nickstage > :first-child { margin-top: 12vh; }
+	.stage.nickstage > :last-child { margin-bottom: auto; }
 	.nick { display: flex; flex-direction: column; align-items: flex-start; }
 	.hello, .typed { font-size: 40px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.08; }
 	.hello { color: var(--muted); }
@@ -375,33 +391,33 @@
 	.hint { min-height: 1.5em; margin-top: 14px; font-size: 14.5px; color: var(--dim); transition: opacity 0.3s var(--ease); }
 	.hint.gone { opacity: 0; }
 	.hint.err { color: var(--red); }
-	/* Seguir: aparece con texto (cuadrado con flecha que sube con resorte) y se estira a todo el ancho. */
+	/* Seguir: flecha pegada al apodo (lo sigue mientras se escribe); entra deslizando, empuja suave mientras espera. */
+	.typed { display: flex; align-items: center; gap: 0.12em; }
+	.field { position: relative; display: inline-block; padding-right: 0.12em; min-width: 1em; }
 	.go {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 8px;
-		width: 50px;
-		height: 50px;
-		margin-top: 18px;
+		flex: none;
+		display: grid;
+		place-items: center;
+		width: 1.2em;
+		height: 1.2em;
 		padding: 0;
-		overflow: hidden;
-		white-space: nowrap;
 		border: 0;
-		border-radius: 14px;
-		background: var(--accent);
-		color: var(--accent-text);
-		font-size: 17px;
-		font-weight: 650;
+		background: none;
+		color: var(--accent-fg);
+		font-size: var(--fs);
 		opacity: 0;
-		transform: translateY(20px) scale(0.6);
+		transform: translateX(-12px);
 		pointer-events: none;
-		transition: opacity 0.3s var(--ease), transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+		transition: opacity 0.3s var(--ease), transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s var(--ease);
 	}
-	.go-label { display: none; }
-	.go.show { width: 100%; opacity: 1; transform: none; pointer-events: auto; }
-	.go.show .go-label { display: inline; }
-	.go:disabled { opacity: 0.6; }
+	.arr { width: 0.75em; height: 0.75em; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.3s var(--out); }
+	.go.show { opacity: 1; transform: none; pointer-events: auto; }
+	.go.show .arr { animation: nudge 2s var(--ease) 0.6s infinite; }
+	@keyframes nudge { 0%, 60%, 100% { transform: none; } 30% { transform: translateX(5px); } }
+	.go.show:hover, .go.show:focus-visible { color: var(--text); outline: none; }
+	.go.show:hover .arr, .go.show:focus-visible .arr { animation: none; transform: translateX(6px); }
+	.go.show:active .arr { transform: translateX(10px); }
+	.go:disabled { opacity: 0.5; }
 	footer.hidden { display: none; }
 	.stores { list-style: none; margin: 28px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 	.stores li { animation: up 0.6s var(--out) both; }
@@ -452,8 +468,9 @@
 		.skip:hover { color: var(--text); }
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.tour[open], .tour.leaving, .tour.leaving::backdrop, .stage > *, .stores li, .disc, .ring, .glass, .col, .ch, .caret { animation: none; }
+		.tour[open], .tour.leaving, .tour.leaving::backdrop, .stage > *, .stores li, .disc, .ring, .glass, .logo, .col, .ch, .caret { animation: none; }
 		.go, .hint { transition: none; }
+		.go.show .arr { animation: none; }
 		.ring { display: none; }
 		.dot span { transition: none; }
 	}

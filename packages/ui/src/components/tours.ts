@@ -20,32 +20,29 @@ export function device(): Device {
 	return /Android/.test(ua) ? 'android' : 'desktop';
 }
 
-const casterFor = (d: Device): StoreLink[] => (d === 'ios' ? [WVC_IOS] : d === 'android' ? [WVC_ANDROID] : [WVC_IOS, WVC_ANDROID]);
+export const casterFor = (d: Device): StoreLink[] => (d === 'ios' ? [WVC_IOS] : d === 'android' ? [WVC_ANDROID] : [WVC_IOS, WVC_ANDROID]);
 
 /** El paso del apodo: en la bienvenida y solo, para quien ya la vio sin tener apodo. */
 export const nickStep = (): Step => ({ icon: 'user', title: t('¿Cómo te decimos?'), body: '', nick: true });
 
-/** Bienvenida: qué es, con qué verlo en el celu (según el dispositivo) y qué hace falta para la tele.
- */
-export function welcomeSteps(d: Device): Step[] {
+/** Con qué verlo en el celu según el dispositivo (va al copiar un video, no en la bienvenida). */
+export function playerStep(d: Device): Step {
 	const player =
 		d === 'ios'
 			? { title: t('Para verlo en el celular vas a necesitar bajar {app}', { app: 'SenPlayer' }), body: t('Abrís el link copiado y lo ves en 4K y HDR, con el audio y los subtítulos que elijas.'), links: [SENPLAYER] }
 			: d === 'android'
 				? { title: t('Para verlo en el celular vas a necesitar bajar {app}', { app: 'Just Player' }), body: t('Gratis y sin publicidad. Abrís el link copiado y elegís el audio y los subtítulos.'), links: [JUST_PLAYER] }
 				: { title: t('Para verlo en el celular vas a necesitar bajar SenPlayer (iPhone) o Just Player (Android)'), body: t('Abrís el link copiado y elegís el audio y los subtítulos.'), links: [SENPLAYER, JUST_PLAYER] };
+	return { icon: 'phone', ...player };
+}
+
+/** Bienvenida: apodo, idiomas y qué es (con qué verlo en el celu y la tele va al copiar un video). */
+export function welcomeSteps(): Step[] {
 	return [
 		nickStep(),
 		{ icon: 'globe', title: t('Idioma de la app'), body: '', picker: 'app' },
 		{ icon: 'film', title: t('Títulos'), body: '', picker: 'titles' },
-		{ icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.') },
-		{ icon: 'phone', ...player },
-		{
-			icon: 'cast',
-			title: t('Para verlo en la tele tenés que bajar Web Video Caster'),
-			body: t('Va en el celu y en la tele: el celu le manda el video. Chromecast, Samsung y LG la encuentran solas; en Android TV o Fire TV instalá el Receiver.'),
-			links: [...casterFor(d), wvcReceiver()]
-		}
+		{ icon: 'play', logo: true, title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.') },
 	];
 }
 

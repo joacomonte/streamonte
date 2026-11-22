@@ -1,6 +1,6 @@
 import type { Handle } from '@sveltejs/kit/hooks';
-import { pickLangs } from '#lib/i18n/translate.ts';
-import { langStore, tx } from '#lib/server/lang.ts';
+import { pickLangs, type Lang, type Langs } from '#lib/i18n/translate.ts';
+import { LANG_PARAM, langStore, tx } from '#lib/server/lang.ts';
 import { attempt } from '#lib/server/intentos.ts';
 
 // Candado rústico: si hay APP_PASSWORD (en Vercel), pide un código de 3 dígitos y lo guarda en una cookie.
@@ -67,7 +67,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Se vuelve a poner siempre: así también pasa a legible la que quedó httpOnly de la primera versión.
 	if (!event.url.pathname.startsWith('/api/')) event.cookies.set('dev', event.cookies.get('dev') ?? crypto.randomUUID(), { path: '/', maxAge: 60 * 60 * 24 * 365 * 5, httpOnly: false, sameSite: 'lax', secure: event.url.protocol === 'https:' });
 	// Idiomas del pedido (cookies o el del navegador): la app y los errores en `ui`; los títulos de TMDB en `titles`.
-	const langs = pickLangs((n) => event.cookies.get(n), event.request.headers.get('accept-language'));
+	// En los GET cacheables el idioma viene en la URL (`l`, ver lib/server/lang.ts) y manda sobre la cookie.
+	const inUrl = event.url.searchParams.get('l')?.match(LANG_PARAM);
+	const langs: Langs = inUrl ? { titles: inUrl[1] as Lang, ui: inUrl[2] as Lang } : pickLangs((n) => event.cookies.get(n), event.request.headers.get('accept-language'));
 	const lang = langs.ui;
 	event.locals.langs = langs;
 	return langStore.run(langs, async () => {

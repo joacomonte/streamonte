@@ -7,6 +7,7 @@
 	import Icon from '$ui/components/Icon.svelte';
 	import Sheet from '$ui/components/Sheet.svelte';
 	import Tour from '$ui/components/Tour.svelte';
+	import CastVideo from './CastVideo.svelte';
 	import { castSteps, device } from '$ui/components/tours.ts';
 	import * as saved from './saved.ts';
 	import { loc, t as tr } from './i18n.svelte.ts';
@@ -116,6 +117,8 @@
 		burstT = setTimeout(() => burstEl?.hidePopover(), 1500);
 	}
 	let tutorialOpen = $state(false);
+	/** Tutorial animado de Web Video Caster (CastVideo), tras copiar el link. */
+	let videoOpen = $state(false);
 	/** Buscar subtítulos afuera sin tocar "Buscar más" (se abrió la lista sin que el video traiga en español). */
 	let subsAuto = $state(false);
 
@@ -278,15 +281,6 @@
 	const spanish = $derived(all.filter((t) => status(t) === 'spain').sort(byQuality));
 	/** "Ver todas las opciones": todas, sin el filtro de audio, de mejor a peor (solo los chips HDR / Subs ES). */
 	const list = $derived([...all].sort(byQuality).filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
-	/** "¿Se cortó?": baja un nivel de conexión y busca de nuevo con el tope nuevo. */
-	function lighter() {
-		track('se cortó', 'pide una más liviana');
-		const i = NET.findIndex((n) => n.key === net?.key);
-		if (i <= 0) return;
-		net = NET[i - 1];
-		linkDone = null;
-		chooseAudio(wantLat);
-	}
 	/** Qué se ve en el paso de resultado: buscando el primer match, el resultado o todas. */
 	const screen = $derived(step === 'net' || step === 'audio' ? step : showAll ? 'all' : showSpain ? 'spain' : reading && !found.length ? 'search' : 'match');
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -822,14 +816,10 @@
 	</div>
 </Sheet>
 
-<!-- Al copiar el link de un video: confirmación, si trae subs en español (de `info`) y, abajo, el tutorial. -->
+<!-- Al copiar el link de un video: solo el dibujo (celu → tele) y el tutorial; "¡Link copiado!" ya lo dijo el festejo. -->
 <!-- "En este dispositivo" no la abre: alcanza con el festejo (y, sin subs, la lista de subs). -->
 <Sheet id="copied-sheet" title={tr('¡Link copiado!')} open={!!linkDone && doneWhere !== 'app'} onclose={() => (linkDone = null)}>
 	{#if linkDone}
-		{@const v = info[linkDone.hash]}
-		{@const k = known(linkDone)}
-		{@const subsN = k?.subs ?? 0}
-		<!-- Arriba, la idea en un dibujo: el link sale del celu y llega a donde se va a ver. -->
 		<div class="done-hero">
 			<svg class="art done-art" viewBox="0 0 160 84" aria-hidden="true">
 				<rect class="phone" x="10" y="20" width="26" height="46" rx="6" />
@@ -846,31 +836,11 @@
 				<circle class="ok-dot" cx="146" cy="16" r="10" />
 				<path class="ok-tick" d="M141 16l3.5 3.5L151 12" />
 			</svg>
-			<p class="done-where">{doneWhere === 'wvc' ? tr('Pegalo en Web Video Caster') : tr('Pegalo en tu reproductor')}</p>
 		</div>
-
-		<!-- Subtítulos: si el video los trae, solo esa confirmación; si no, se abre la lista de subs (noSubsCheck). -->
-		{#if v === 'busy'}
-			<p class="subs-line"><span class="spin"></span>{tr('Revisando subs…')}</p>
-		{:else if (k?.subs ?? 0) > 0 || linkDone.subFile}
-			<p class="subs-line yes"><Icon name="subs" size={16} />{tr('Con subtítulos incluidos')}</p>
-		{:else if !k}
-			<button id="see-subs" type="button" class="subs-line act" onclick={() => linkDone && showSubs(linkDone)}><Icon name="subs" size={16} />{tr('Ver subtítulos')}</button>
-		{/if}
-
-		<!-- Atajos: más liviana si se corta, y cómo mandarlo a la tele. -->
-		<div class="done-tiles" class:single={!net || net.key === NET[0].key}>
-			{#if net && net.key !== NET[0].key}
-				<button id="lighter" type="button" class="tile" onclick={lighter}>
-					<svg class="art tile-art" viewBox="0 0 48 32" aria-hidden="true"><path class="gauge" d="M8 26a16 16 0 0 1 32 0" /><path class="needle" d="M24 26l-8-9" /><circle class="hub" cx="24" cy="26" r="2.5" /></svg>
-					<b>{tr('¿Se cortó?')}</b><small>{tr('Una más liviana')}</small>
-				</button>
-			{/if}
-			<button id="cast-line" type="button" class="tile" onclick={() => { linkDone = null; tutorialOpen = true; }}>
-				<svg class="art tile-art" viewBox="0 0 48 32" aria-hidden="true"><rect class="tv" x="14" y="4" width="30" height="20" rx="3" /><path class="wave w1" d="M4 22a4 4 0 0 1 4 4" /><path class="wave w2" d="M4 16a10 10 0 0 1 10 10" /></svg>
-				<b>{tr('A la tele')}</b><small>{tr('Cómo mandarlo')}</small>
-			</button>
-		</div>
+		<button id="watch-tutorial" type="button" class="watch" onclick={() => { linkDone = null; videoOpen = true; }}>
+			<span class="watch-play"><Icon name="play" size={22} /></span>
+			<span class="watch-text"><b>{tr('Ver tutorial')}</b><small>{tr('Cómo verlo en la tele · 15 s')}</small></span>
+		</button>
 	{/if}
 </Sheet>
 
@@ -903,9 +873,12 @@
 		<strong>{tr('Link copiado')}</strong>
 		<span>{copied?.kind === 'sub' ? tr('Pegalo en Web Video Caster: CC → link') : tr('Pegalo en Web Video Caster')}</span>
 	</span>
-	<button id="toast-tutorial" type="button" class="toast-btn" onclick={() => { copied = null; tutorialOpen = true; }}>{tr('Tutorial')}</button>
+	<button id="toast-tutorial" type="button" class="toast-btn" onclick={() => { copied = null; videoOpen = true; }}>{tr('Tutorial')}</button>
 </div>
 
+{#if videoOpen}
+	<CastVideo onclose={() => (videoOpen = false)} />
+{/if}
 {#if tutorialOpen}
 	<Tour id="cast-tour" label={tr('Cómo verlo en la tele')} open steps={castSteps(device())} onclose={() => (tutorialOpen = false)} />
 {/if}
@@ -967,7 +940,6 @@
 	@keyframes lat-in { from { transform: scale(0.4) rotate(-16deg); opacity: 0; } 60% { transform: scale(1.12) rotate(5deg); opacity: 1; } }
 	@keyframes lat-talk { 0%, 82%, 100% { transform: none; } 88% { transform: rotate(-7deg) scale(1.05); } 94% { transform: rotate(5deg); } }
 	.net .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-	/* padding/borde en 0: la regla `.tile` de la hoja de copiado también matchea este span y lo descentraba. */
 	.net .tile { flex: none; display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 0; border-radius: var(--r-card); background: color-mix(in srgb, var(--lvl) 14%, transparent); color: var(--lvl); transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.15s var(--out); }
 	.net.primary .tile { background: color-mix(in srgb, var(--accent-text) var(--tint-2), transparent); color: var(--accent-text); }
 	.net .bar { opacity: 0.25; transform-box: fill-box; transform-origin: bottom; }
@@ -1101,29 +1073,28 @@
 	/* Hoja "¡Link copiado!" */
 	/* "¿Dónde lo vas a ver?": dos tarjetas con dibujo animado y casi sin texto. */
 	/* Hoja "¡Link copiado!" (2026-11-18): un dibujo en vez de párrafos, los subs de un vistazo y dos atajos. */
-	.done-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0 2px; }
-	.done-art { max-width: 200px; }
+	:global(#copied-sheet > header) { position: absolute; top: 4px; right: 4px; z-index: 1; padding: 0; border: 0; }
+	:global(#copied-sheet > header h2) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+	.done-hero { display: flex; justify-content: center; padding: 28px 0 6px; }
+	.art.done-art { max-width: 240px; }
 	.done-art .chain { stroke: var(--accent-fg); stroke-width: 3; }
 	.done-art .link-fly { stroke: color-mix(in srgb, var(--accent-fg) var(--tint-3), transparent); stroke-width: 3; stroke-dasharray: 4 6; animation: fly 1.2s linear infinite; }
 	@keyframes fly { to { stroke-dashoffset: -20; } }
 	.done-art .ok-dot { fill: var(--green); transform-box: fill-box; transform-origin: center; animation: ring 0.45s 0.15s var(--out) both; }
 	.done-art .ok-tick { stroke: #fff; stroke-width: 3; stroke-dasharray: 16; stroke-dashoffset: 16; animation: draw 0.3s 0.45s var(--out) forwards; }
-	.done-where { margin: 0; font-size: 16px; font-weight: 650; text-align: center; text-wrap: balance; }
-	.subs-line { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 10px 0 0; min-height: 36px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; }
-	.subs-line.yes { color: var(--green); font-weight: 600; }
-	.subs-line.act { color: var(--accent-fg); font-weight: 600; }
-	.done-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-	.done-tiles.single { grid-template-columns: 1fr; }
-	.tile { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 12px 8px; border: 1px solid var(--border); border-radius: var(--r-lg); background: none; color: var(--text); font: inherit; transition: transform 0.15s var(--out), border-color 0.2s var(--ease); }
-	.tile:active { transform: scale(0.97); border-color: var(--accent-fg); }
-	.tile b { font-size: 14px; margin-top: 4px; }
-	.tile small { font-size: 12px; color: var(--muted); }
-	.tile-art { max-width: 48px; }
-	.tile-art .gauge { stroke: var(--muted); stroke-width: 3; }
-	.tile-art .needle { stroke: var(--accent-fg); stroke-width: 3; transform-box: view-box; transform-origin: 24px 26px; animation: needle 2.4s var(--ease) infinite; }
-	.tile-art .hub { fill: var(--accent-fg); }
-	@keyframes needle { 0%, 100% { transform: rotate(40deg); } 50% { transform: rotate(0deg); } }
-	@media (prefers-reduced-motion: reduce) { .done-art .link-fly, .tile-art .needle { animation: none; } .done-art .ok-tick { stroke-dashoffset: 0; } }
+	/* "Ver tutorial": grande, con un brillo que la recorre y el play que late. */
+	.watch { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; margin-top: 14px; padding: 14px 18px; border: 1px solid color-mix(in srgb, var(--accent-fg) 45%, transparent); border-radius: 20px; background: color-mix(in srgb, var(--accent-fg) 12%, var(--surface, transparent)); color: var(--text); font: inherit; text-align: left; overflow: hidden; animation: watch-in 0.5s 0.25s var(--out) both; transition: transform 0.15s var(--out); }
+	.watch::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--accent-fg) 30%, transparent) 50%, transparent 65%); transform: translateX(-100%); animation: shine 2.6s 0.9s var(--ease) infinite; pointer-events: none; }
+	.watch:active { transform: scale(0.98); }
+	.watch-play { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: var(--accent-fg); color: var(--bg); animation: beat 1.6s var(--ease) infinite; }
+	.watch-text { display: flex; flex-direction: column; gap: 2px; }
+	.watch-text b { font-size: 18px; }
+	.watch-text small { font-size: 13px; color: var(--muted); }
+	@keyframes watch-in { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } }
+	@keyframes shine { 60%, 100% { transform: translateX(100%); } }
+	@keyframes beat { 0%, 70%, 100% { transform: scale(1); } 80% { transform: scale(1.1); } 90% { transform: scale(0.96); } }
+	@media (prefers-reduced-motion: reduce) { .watch::after, .watch-play { animation: none; } }
+	@media (prefers-reduced-motion: reduce) { .done-art .link-fly { animation: none; } .done-art .ok-tick { stroke-dashoffset: 0; } }
 	.where { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 0 6px; }
 	.spot {
 		display: flex;

@@ -5,4 +5,4 @@ import { route } from '#lib/server/http.ts';
 export const GET = route(async ({ url }) => {
 	const q = url.searchParams.get('q')?.trim().slice(0, 60) ?? '';
 	return q.length < 2 ? [] : people(q);
-});
+}, { cdn: 86400, perLang: true });

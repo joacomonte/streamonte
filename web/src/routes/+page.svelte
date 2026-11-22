@@ -2,6 +2,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount, getContext } from 'svelte';
+	import logo from '$ui/assets/logo-mark.svg';
 	import Catalog from '$ui/catalog/Catalog.svelte';
 	import Icon from '$ui/components/Icon.svelte';
 	import type { CatalogItem } from '$ui/types.ts';
@@ -40,7 +41,7 @@
 {#snippet header()}
 	<div class="row">
 		<div class="brand-row">
-			<h1 class="brand">Streamonte</h1>
+			<h1 class="brand"><img src={logo} alt="Streamonte" width="24" height="27" /></h1>
 			{#if page.data.nick}
 				<p class="hello"><span class="hi">{t('Hola')}</span><b>{page.data.nick}</b><span>!</span><span class="wave" aria-hidden="true">👋</span></p>
 			{/if}
@@ -73,11 +74,12 @@
 	.lang button { position: relative; min-width: 34px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--r-pill); background: none; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: 0.04em; transition: background 0.2s var(--ease), color 0.2s var(--ease); }
 	.lang button::after { content: ''; position: absolute; inset: -8px -2px; }
 	.lang button[aria-checked='true'] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px var(--shadow); }
-	.brand { margin: 0; font-size: 28px; font-weight: 750; letter-spacing: -0.025em; flex: none; }
+	.brand { margin: 0; flex: none; line-height: 0; align-self: center; }
+	.brand img { display: block; width: 24px; height: 27px; }
 	/* En el celu más chica: entra "Streamonte  Hola Joaco! 👋" junto a los botones. */
-	@media (max-width: 480px) { .brand { font-size: 22px; } }
+	@media (max-width: 480px) { .brand img { width: 22px; height: 25px; } }
 	/* Marca y saludo en la misma línea; el saludo se recorta con … si el apodo no entra (375 px). */
-	.brand-row { display: flex; align-items: baseline; gap: 8px; min-width: 0; flex: 1; }
+	.brand-row { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 	/* Solo el apodo se recorta (con …): "Hola", el signo y la mano quedan siempre. */
 	.hello { display: flex; align-items: baseline; min-width: 0; margin: 0; font-size: 14.5px; color: var(--muted); white-space: nowrap; animation: hello-in 0.6s var(--out) 0.25s both; }
 	.hello > * { flex: none; }

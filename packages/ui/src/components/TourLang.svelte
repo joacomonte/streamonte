@@ -2,6 +2,7 @@
 	// Idiomas en la bienvenida, con dibujo en vez de texto: banderas que ondean (app) y un póster cuyo título se da
 	// vuelta al cambiar (títulos). Banderas en SVG: los emoji de bandera no se ven en Windows.
 	import { t } from '../i18n/runtime.ts';
+	import Icon from './Icon.svelte';
 	import type { LangCode, LangOptions } from './tour-state.ts';
 
 	interface Props extends LangOptions {
@@ -9,6 +10,8 @@
 		only: 'app' | 'titles';
 	}
 	let { id, only, app, titles, onpick }: Props = $props();
+	// Las dos tarjetas arrancan iguales: el idioma actual es solo el de por defecto, se marca recién al tocarlo.
+	let picked = $state<LangCode | null>(null);
 
 	const LANGS = [['es', 'Español'], ['en', 'English']] as const;
 	const POSTER: Record<LangCode, string> = { es: 'LA ODISEA', en: 'THE ODYSSEY' };
@@ -32,7 +35,7 @@
 </script>
 
 {#snippet flag(v: LangCode)}
-	<svg viewBox="0 0 64 44" width="64" height="44" aria-hidden="true">
+	<svg viewBox="10 0 44 44" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
 		{#if v === 'es'}
 			<rect width="64" height="44" fill="#74acdf" />
 			<rect y="14.67" width="64" height="14.67" fill="#fff" />
@@ -62,9 +65,10 @@
 {#if only === 'app'}
 	<div class="cards" role="radiogroup" aria-label={t('Idioma de la app')}>
 		{#each LANGS as [v, name] (v)}
-			<button id="{id}-app-{v}" type="button" role="radio" class="card" aria-checked={app === v} onclick={() => onpick('app', v)}>
+			<button id="{id}-app-{v}" type="button" role="radio" class="card" aria-checked={app === v} class:on={picked === v} onclick={() => ((picked = v), onpick('app', v))}>
 				<span class="flag">{@render flag(v)}</span>
-				<span class="name">{name}</span>
+				<span class="name">{name}<small>{v === 'es' ? 'Latinoamérica' : 'United States'}</small></span>
+				<span class="go"><Icon name={picked === v ? 'check' : 'next'} size={24} /></span>
 			</button>
 		{/each}
 	</div>
@@ -96,44 +100,45 @@
 
 <style>
 	/* Idioma de la app: dos tarjetas; la elegida sube con resorte y su bandera ondea más rápido. */
-	.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+	.cards { display: grid; gap: 14px; }
 	.card {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
-		gap: 14px;
-		padding: 26px 8px 20px;
-		border: 2px solid var(--border-strong);
-		border-radius: 22px;
-		background: var(--surface);
+		gap: 20px;
+		min-height: 112px;
+		padding: 20px 26px 20px 22px;
+		border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+		border-radius: 28px;
+		background: color-mix(in srgb, var(--surface) 80%, transparent);
+		backdrop-filter: blur(12px);
 		color: var(--text);
-		font-size: 17px;
-		font-weight: 700;
-		transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s var(--ease), background 0.25s var(--ease), box-shadow 0.25s var(--ease);
+		text-align: left;
+		transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s var(--ease), background 0.25s var(--ease), box-shadow 0.3s var(--ease);
 	}
-	.card[aria-checked='true'] {
-		transform: translateY(-6px);
-		border-color: var(--accent);
-		background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-		box-shadow: 0 14px 30px -14px color-mix(in srgb, var(--accent) var(--tint-4), transparent);
-	}
-	.card:active { transform: scale(0.97); }
 	.flag {
+		flex: none;
 		display: block;
 		width: 64px;
-		height: 44px;
-		border-radius: 5px;
+		height: 64px;
+		border-radius: 50%;
 		overflow: hidden;
-		box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 6px 14px -6px rgb(0 0 0 / 0.35);
-		transform-origin: left center;
-		animation: wave 3.2s ease-in-out infinite;
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 8%, transparent), 0 10px 24px -10px rgb(0 0 0 / 0.6);
+		transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s var(--ease);
 	}
-	.flag svg { display: block; }
-	.card[aria-checked='true'] .flag { animation-duration: 1.3s; }
-	@keyframes wave {
-		25% { transform: skewY(2deg) scaleX(0.97); }
-		75% { transform: skewY(-1.5deg) scaleX(1.01); }
+	.flag svg { display: block; width: 100%; height: 100%; }
+	.name { flex: 1; display: grid; gap: 2px; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+	.name small { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--dim); }
+	.go { color: var(--muted); opacity: 0.5; transition: opacity 0.25s var(--ease), transform 0.35s var(--out), color 0.2s var(--ease); }
+	@media (hover: hover) {
+		.card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--accent) 70%, transparent); }
+		.card:hover .flag { transform: scale(1.08) rotate(-6deg); }
+		.card:hover .go { opacity: 1; transform: translateX(4px); color: var(--text); }
 	}
+	.card:focus-visible { outline: none; border-color: var(--accent); }
+	.card.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+	.card.on .flag { box-shadow: 0 0 0 3px var(--accent), 0 10px 24px -10px rgb(0 0 0 / 0.6); }
+	.card.on .go { opacity: 1; color: var(--accent-fg); }
+	.card:active { transform: scale(0.98); }
 
 	/* Idioma de los títulos: un póster dibujado y su título. */
 	.poster {
@@ -204,6 +209,6 @@
 
 	@media (prefers-reduced-motion: reduce) {
 		.card, .ttl, .ttl.flipping, .knob, .seg button { transition: none; }
-		.flag, .sun { animation: none; }
+		.sun { animation: none; }
 	}
 </style>

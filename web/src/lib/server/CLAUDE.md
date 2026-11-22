@@ -2,7 +2,7 @@
 TMDB, IMDb, addons de torrents, TorBox, OpenSubtitles y Neon. Los endpoints de `/Users/monti/Documents/Dev/streamonte/web/src/routes/api/` son delgados y llaman acá.
 
 ## Mapa
-- `http.ts` — `:7 Fail` · `:19 route` · `:33 get` (timeout 12 s; `HTTP_FIXTURES` → `:42 fixture` graba/responde TMDB, addons y OS.org). `lang.ts` — `:8 langStore` · `:12 tx`. `params.ts:2 episode`.
+- `http.ts` — `:7 Fail` · `:21 Cache` · `:25 route(fn, cache?)` (con `cache`: `Cache-Control` CDN `s-maxage` + `stale-while-revalidate`; `perLang` solo si la URL trae `l=<ui>.<títulos>`, que agrega `webApi.ts cachedFetch` y `hooks.server.ts` usa en vez de la cookie) · `:42 get` (timeout 12 s; `HTTP_FIXTURES` → `:51 fixture` graba/responde TMDB, addons y OS.org). `lang.ts` — `:8 langStore` · `:11 LANG_PARAM` · `:15 tx`. `params.ts:2 episode`.
 - `keys.ts` — `:15 ENV` · `:17 keys` · `:24 setKeys`.
 - `tmdb.ts` — `:42 tmdb` · `:72 keep` · `:80 DIR` · `:90 VOTES` · `:104 detail` · `:119 fillDetails` · `:141 candidates` · `:166 build` · `:185 discover` · `:198 search` · `:216 people` · `:239 personTitles` · `:260 genres` · `:269 providersAr` · `:279 peopleOf` · `:287 showStatus` · `:294 firstTrailer` · `:303 title` · `:347 namesOf` · `:362 season`.
 - `imdb.ts` — `:59 ratings` · `:74 imdbOf` · `:88 buildIndex` · `:132 seasonScores`.

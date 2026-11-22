@@ -6,7 +6,7 @@
 	import { onlyCinema } from '../format.ts';
 	import { t } from '../i18n/runtime.ts';
 	import type { CatalogItem } from '../types.ts';
-	import CardInfo from './CardInfo.svelte';
+	import CardInfo, { loadDetails, loadRatings } from './CardInfo.svelte';
 	import { changedCount } from './filters.ts';
 	import type { CatalogStore } from './store.ts';
 
@@ -54,6 +54,43 @@
 		if (canHover && !asked.includes(it.id)) hoverT = setTimeout(() => asked.push(it.id), 250);
 	};
 	const leaveCard = () => clearTimeout(hoverT);
+
+	/** Precarga los datos del hover de las tarjetas que quedan a la vista ~0,4 s (no las que pasan scrolleando ni las de
+	 * abajo), de a 3 pedidos a la vez; quedan en la caché de CardInfo y el hover sale al instante. Solo con mouse. */
+	const warmQueue: CatalogItem[] = [];
+	let warming = 0;
+	function pump(): void {
+		while (warming < 3 && warmQueue.length) {
+			const it = warmQueue.shift() as CatalogItem;
+			warming++;
+			loadDetails(api, it.kind, it.id)
+				.then((d) => (it.kind === 'tv' && d?.imdb ? loadRatings(api, d.imdb) : null))
+				.finally(() => (warming--, pump()));
+		}
+	}
+	const dwell = new Map<Element, ReturnType<typeof setTimeout>>();
+	const visibleObs =
+		canHover && typeof IntersectionObserver !== 'undefined'
+			? new IntersectionObserver(
+					(entries) => {
+						for (const e of entries) {
+							clearTimeout(dwell.get(e.target));
+							if (!e.isIntersecting) continue;
+							dwell.set(e.target, setTimeout(() => {
+								visibleObs?.unobserve(e.target);
+								const id = (e.target as HTMLElement).dataset.id;
+								const it = items.find((i) => i.id === id);
+								if (it) (warmQueue.push(it), pump());
+							}, 400));
+						}
+					},
+					{ threshold: 0.6 }
+				)
+			: null;
+	function warm(node: HTMLElement) {
+		visibleObs?.observe(node);
+		return { destroy: () => (visibleObs?.unobserve(node), clearTimeout(dwell.get(node))) };
+	}
 	const click = (e: MouseEvent, it: CatalogItem) => {
 		if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 		e.preventDefault();
@@ -152,9 +189,9 @@
 		{#each items as it (`${it.kind}${it.id}`)}
 			<li>
 				{#if href}
-					<a id="cat-card-{it.id}" class="card" class:active={st.activeId === it.id} data-id={it.id} href={href(it)} data-sveltekit-preload-data="tap" onmouseenter={() => enterCard(it)} onmouseleave={leaveCard} onclick={(e) => click(e, it)} use:enter>{@render face(it)}</a>
+					<a id="cat-card-{it.id}" class="card" class:active={st.activeId === it.id} data-id={it.id} href={href(it)} data-sveltekit-preload-data="tap" onmouseenter={() => enterCard(it)} onmouseleave={leaveCard} onclick={(e) => click(e, it)} use:enter use:warm>{@render face(it)}</a>
 				{:else}
-					<button id="cat-card-{it.id}" type="button" class="card" class:active={st.activeId === it.id} data-id={it.id} onmouseenter={() => enterCard(it)} onmouseleave={leaveCard} onclick={() => onopen(it)} use:enter>{@render face(it)}</button>
+					<button id="cat-card-{it.id}" type="button" class="card" class:active={st.activeId === it.id} data-id={it.id} onmouseenter={() => enterCard(it)} onmouseleave={leaveCard} onclick={() => onopen(it)} use:enter use:warm>{@render face(it)}</button>
 				{/if}
 			</li>
 		{/each}

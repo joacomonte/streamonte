@@ -83,10 +83,14 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 	};
 }
 
+/** GET que el CDN de Vercel cachea por idioma: llevan `l=<títulos>.<app>` (ver web/src/lib/server/lang.ts). */
+const PER_LANG = /^\/api\/(catalog|genres|people|title|season)[/?]/;
+
 /** Catálogo y géneros quedan guardados un día: al volver a entrar se ve al instante. */
 const cachedFetch: Fetch = async (input, init) => {
-	const url = String(input);
-	if (init?.method || !/^\/api\/(catalog|genres)\?/.test(url)) return fetch(input, init);
+	let url = String(input);
+	if (!init?.method && PER_LANG.test(url)) url += `${url.includes('?') ? '&' : '?'}l=${(await import('./i18n.svelte.ts')).contentKey()}`;
+	if (init?.method || !/^\/api\/(catalog|genres)\?/.test(url)) return fetch(url, init);
 	// Import dinámico: `saved.ts` arrastra `i18n.svelte.ts`, que `node --test` (web-adapt.test.ts) no puede cargar.
 	const { json, DAY } = await import('./saved.ts');
 	const { ok, status, data } = await json(fetch, url, DAY);

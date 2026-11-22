@@ -37,6 +37,8 @@ const { provideApi } = await import('./mount-shared.ts');
 const api = await createDesktopApi(() => langs.titles);
 provideApi(api);
 (await import('./catalog-mount.ts')).mountCatalog(api);
+// Letras que entran desenfocadas al escribir, en todos los campos de texto.
+(await import('$ui/components/type-fx.ts')).installTypeFx();
 // Panel lateral: la ficha compartida (`TitleView`) dentro de #cat-side, que crea catalog.js.
 const { genreName } = await import('./catalog-side.js');
 const { default: SidePanel } = await import('./SidePanel.svelte');

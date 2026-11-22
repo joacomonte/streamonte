@@ -6,6 +6,9 @@ import { translate } from '../i18n/translate.ts';
 import type { Lang, Langs } from '../i18n/translate.ts';
 
 export const langStore = new AsyncLocalStorage<Langs>();
+/** `?l=<títulos>.<app>` (`contentKey()` del navegador) en los GET cacheables: el idioma va en la URL y no en la cookie,
+ * así el CDN guarda una respuesta por idioma (http.ts `route` con `perLang`). */
+export const LANG_PARAM = /^(es|en)\.(es|en)$/;
 const now = (): Langs => langStore.getStore() ?? { ui: 'es', titles: 'es' };
 export const lang = (): Lang => now().ui;
 export const titlesLang = (): Lang => now().titles;

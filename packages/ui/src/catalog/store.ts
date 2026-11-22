@@ -48,7 +48,7 @@ export type CatalogOptions = {
 };
 
 const PEOPLE_MIN = 3;
-const PEOPLE_WAIT = 250;
+const PEOPLE_WAIT = 500;
 
 export function initialState(storage: CatalogOptions['storage'], key: string): CatalogState {
 	let raw: string | null = null;
@@ -67,7 +67,7 @@ const keyOf = (i: CatalogItem) => `${i.kind}${i.id}`;
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export function createCatalog(api: Api, st: CatalogState, opts: CatalogOptions) {
-	const { searchWait = 350, minQuery = 1, filterWait = 0, onstatus, storage = null, storageKey } = opts;
+	const { searchWait = 600, minQuery = 2, filterWait = 0, onstatus, storage = null, storageKey } = opts;
 	/** Cada lista nueva sube `gen`: lo que venga de una lista anterior se descarta. */
 	let gen = 0;
 	let timer: ReturnType<typeof setTimeout> | undefined;

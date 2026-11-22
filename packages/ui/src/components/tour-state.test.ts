@@ -20,7 +20,7 @@ test('resumeIndex: acota lo guardado', () => {
 });
 
 test('welcomeSteps: apodo primero (único), después idioma de la app y de los títulos', () => {
-	const steps = welcomeSteps('android');
+	const steps = welcomeSteps();
 	assert.equal(steps.filter((s) => s.nick).length, 1);
 	assert.deepEqual(steps.slice(0, 3).map((s) => (s.nick ? 'nick' : s.picker)), ['nick', 'app', 'titles']);
 	// Sin apodo no se pasa del primer paso.

@@ -6,7 +6,7 @@ import type { IconName } from './icons.ts';
 export type StoreLink = { label: string; store: string; href?: string; icon: string };
 /** `picker`: muestra ese grupo del selector de idiomas. `nick`: pide el apodo (obligatorio: sin apodo válido no se
  * avanza ni se sale). `extra`: clave de contenido propio de la app (Tour lo pide con su snippet `extra`). */
-export type Step = { icon: IconName; title: string; body: string; links?: StoreLink[]; picker?: 'app' | 'titles'; nick?: boolean; extra?: string };
+export type Step = { icon: IconName; title: string; body: string; links?: StoreLink[]; picker?: 'app' | 'titles'; nick?: boolean; extra?: string; logo?: boolean };
 
 export type LangCode = 'es' | 'en';
 /** Idiomas elegidos y qué hacer al elegir uno (cada app decide: la web aplica al toque, el desktop recarga). */

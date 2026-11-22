@@ -1,9 +1,9 @@
 <script lang="ts">
 	import '../app.css';
 	import type { LayoutProps } from './$types';
-	import favicon from '#lib/assets/favicon.svg';
+	import favicon from '$ui/assets/logo.svg';
 	import Tour from '$ui/components/Tour.svelte';
-	import { device, markSeen, nickStep, seen, welcomeSteps } from '$ui/components/tours.ts';
+	import { markSeen, nickStep, seen, welcomeSteps } from '$ui/components/tours.ts';
 	import { i18n, t } from '#lib/i18n.svelte.ts';
 	import { updated } from '$app/state';
 	import { beforeNavigate, invalidateAll, onNavigate } from '$app/navigation';
@@ -14,6 +14,10 @@
 	import { track } from '#lib/track.ts';
 	import { langOptions } from '#lib/langs.ts';
 	import { saveNick } from '#lib/nick.ts';
+	import { installTypeFx } from '$ui/components/type-fx.ts';
+
+	// Letras que entran desenfocadas al escribir, en todos los campos de texto.
+	$effect(() => installTypeFx());
 
 	let { data, children }: LayoutProps = $props();
 	setApi(webApi);
@@ -46,7 +50,7 @@
 		return r;
 	};
 	// Se rearma al cambiar el idioma en su paso: el resto del tutorial ya sale en el elegido.
-	const welcome = $derived(welcomeOpen ? welcomeSteps(device()) : null);
+	const welcome = $derived(welcomeOpen ? welcomeSteps() : null);
 
 	// Grilla ↔ ficha con View Transitions: el póster tocado vuela a su lugar en la ficha y, al volver, a su casilla.
 	// Sin soporte, navegación normal; sin el póster de destino (o con movimiento reducido), solo un fundido.
