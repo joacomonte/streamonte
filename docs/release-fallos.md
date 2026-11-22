@@ -20,3 +20,12 @@
 2. Script local `scripts/release-check.sh`: `cd ui && pnpm install --frozen-lockfile && pnpm build` + `cargo build --release -p streamonte`, para correr antes de taggear.
 3. Evitar que los tags `v*` disparen `ci.yml` con jobs flaky (o hacer que `visual` no corra en tags), y que el visual tolere diferencias de runner (umbral ~1 % o baselines generadas en CI) y no dependa de red para posters (mock de imágenes).
 4. Regla: no taggear hasta que ci de main esté verde (excepto visual conocido) y release-check pase.
+
+## CI visual: diagnóstico y arreglo (2026-11-22)
+- Diagnóstico (artifact `visual-diffs` de los runs 45076700288 y 45073843442, y reproducido en local): NO era red ni Mac vs runner. CI ya corre en macos-latest. Causas reales, todas en datos/script:
+  1. Baselines viejas: la web agregó `l=es.es` a `/api/*` y el hash de la clave de fixture cambió, así que `web-home` no tenía fixture (404, sin cards: el timeout de `a[href^="/t/"] img`). También fallaban en local. Además la UI de la web cambió (saludo, filtros) y las baselines web estaban desactualizadas.
+  2. Logo `ui/index.html` (`../packages/ui/...`): el dev server lo devuelve como HTML, imagen rota; su alt lo dibuja distinto cada SO (el baseline tenía texto, el runner un ícono roto). Era el ~0,083 % fijo de todas las pantallas app-*.
+  3. `app-ficha-fight-club` esperaba un sleep fijo de 2,5 s: el baseline quedó a mitad de carga ("llegando…") y el runner terminó (0,726 %).
+  4. Resto (~0,03-0,05 %): suavizado de texto entre versiones de macOS.
+- Arreglo: `scripts/visual.mjs` ignora `l` en la clave de fixtures, sirve `/packages/*` desde disco y espera el texto final de streams; baselines app-* y web-* regrabadas; CI con `--threshold 0.25`. Local: 14/14 en 0,000 % (2 corridas).
+- Sin verificar: el run real de CI. Si aun así difiere por render del runner: descargar `visual-diffs`, mirar el `.diff.png` y, si es solo texto, subir `--threshold`; para regrabar en el runner, correr `node scripts/visual.mjs --update --out visual-diffs` en un workflow manual y commitear los PNG del artifact.

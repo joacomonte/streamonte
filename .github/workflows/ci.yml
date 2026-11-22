@@ -62,7 +62,8 @@ jobs:
         working-directory: ui
       - run: corepack enable && pnpm install --frozen-lockfile
         working-directory: web
-      - run: node scripts/visual.mjs --out visual-diffs
+      # 0,25 %: el runner trae otra versión de macOS/Chrome que el Mac del dev y suaviza el texto distinto (medido ~0,05 %); un cambio real mueve bloques enteros.
+      - run: node scripts/visual.mjs --out visual-diffs --threshold 0.25
       - if: failure()
         uses: actions/upload-artifact@v4
         with: { name: visual-diffs, path: visual-diffs }

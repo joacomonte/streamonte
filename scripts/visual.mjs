@@ -68,7 +68,8 @@ const SCREENS = [
     await p.fill('#cat-q', 'fight club');
     await p.click('#cat-card-tt0137523');
     await p.waitForSelector('#cat-about-toggle');
-    await settle(p, 2500); // el mock reenvía los 25 streams con 50 ms entre cada uno
+    await p.getByText('Analizá o reproducí una.').waitFor({ timeout: 30000 }); // estado final de los streams (un sleep fijo cae distinto en cada máquina)
+    await settle(p, 1500);
   } },
   { name: 'app-temporadas-breaking-bad', app: 'ui', vp: 'desktop', path: '/', run: async (p) => {
     await p.click('#cat-kind-tv');
@@ -95,12 +96,15 @@ const SCREENS = [
 const PLACEHOLDER = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450"><rect width="300" height="450" fill="#8a94a6"/></svg>';
 const apiFile = (url) => {
   const u = new URL(url);
-  u.searchParams.delete('from'); u.searchParams.delete('to'); // fechas relativas a hoy: cambian cada día
+  for (const k of ['from', 'to', 'l']) u.searchParams.delete(k); // from/to: fechas relativas a hoy; l: clave de caché de idioma que la web agrega sola (no cambia la respuesta)
   return `${fixDir}/${u.pathname.slice(1).replace(/[^a-z0-9]+/gi, '-')}-${createHash('sha1').update(u.search).digest('hex').slice(0, 8)}.json`;
 };
 async function stubNetwork(ctx, appOrigin) {
   await ctx.route('**/*', async (route) => {
     const req = route.request(), url = new URL(req.url());
+    if (url.origin === appOrigin && req.resourceType() === 'image' && url.pathname.startsWith('/packages/')) { // ui/index.html: el dev server devuelve HTML en vez del SVG (imagen rota, cuyo alt cada SO dibuja distinto)
+      return route.fulfill({ contentType: 'image/svg+xml', body: readFileSync(root + url.pathname.slice(1)) });
+    }
     if (url.origin !== appOrigin) {
       if (req.resourceType() === 'image') return route.fulfill({ contentType: 'image/svg+xml', body: PLACEHOLDER });
       return route.abort(); // fuentes/scripts externos: nada de red
