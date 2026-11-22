@@ -6,8 +6,7 @@
   "build": {
     "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../ui/dist",
-    "beforeDevCommand": "cd ui && corepack pnpm dev",
-    "beforeBuildCommand": "cd ui && corepack pnpm install --frozen-lockfile && corepack pnpm build"
+    "beforeDevCommand": "cd ui && corepack pnpm dev"
   },
   "app": {
     "withGlobalTauri": true,

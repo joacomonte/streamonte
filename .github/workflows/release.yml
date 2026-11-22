@@ -53,7 +53,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
-      # Node 24: beforeBuildCommand (tauri.conf.json) builds ui/ with npm, and tauri-action installs the Tauri CLI.
+      # Node 24: builds ui/ (Vite + pnpm, step below) and runs the Tauri CLI that tauri-action installs.
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -65,6 +65,10 @@ jobs:
           workspaces: ". -> target" # cargo workspace at the repo root
       # Official mpv for this platform into src-tauri/mpv (bundle.resources), checksum-pinned.
       - run: sh scripts/fetch-mpv.sh ${{ matrix.mpv }}
+        shell: bash
+      # UI build here, not in tauri.conf.json's beforeBuildCommand: the Tauri CLI runs that from a directory it picks
+      # (not the repo root), so `cd ui` failed on every platform in v2.0.0.
+      - run: npm i -g pnpm@10.34.9 && cd ui && pnpm install --frozen-lockfile && pnpm build
         shell: bash
       - uses: tauri-apps/tauri-action@v1
         env:
