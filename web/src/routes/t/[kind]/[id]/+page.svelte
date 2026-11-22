@@ -127,6 +127,9 @@
 
 {#if t.providers.length || t.trailer || t.imdb}
 	<div class="wrap acts">
+		<!-- IMDb y tráiler primero; las plataformas siguen (si no hay, no queda un hueco). -->
+		{#if t.imdb}<a id="imdb-link" class="round imdb" href="https://www.imdb.com/title/{t.imdb}/" target="_blank" rel="noopener noreferrer" title="IMDb">IMDb</a>{/if}
+		{#if t.trailer}<a id="trailer-link" class="round" href="https://www.youtube.com/watch?v={t.trailer}" target="_blank" rel="noopener noreferrer" aria-label={tr('Tráiler')} title={tr('Tráiler')}><Icon name="play" size={16} /></a>{/if}
 		{#if t.providers.length}
 			<!-- Dónde verla: logos apilados; al tocar se abre con los nombres. -->
 			<button id="providers-toggle" type="button" class="providers" class:open={showProviders} aria-expanded={showProviders} aria-label={tr('Dónde verla')} title={tr('Para ver en Argentina')} onclick={() => (showProviders = !showProviders)}>
@@ -139,9 +142,6 @@
 				{#if !showProviders && t.providers.length > 3}<span class="prov-more">+{t.providers.length - 3}</span>{/if}
 			</button>
 		{/if}
-		<span class="acts-gap"></span>
-		{#if t.trailer}<a id="trailer-link" class="round" href="https://www.youtube.com/watch?v={t.trailer}" target="_blank" rel="noopener noreferrer" aria-label={tr('Tráiler')} title={tr('Tráiler')}><Icon name="play" size={16} /></a>{/if}
-		{#if t.imdb}<a id="imdb-link" class="round imdb" href="https://www.imdb.com/title/{t.imdb}/" target="_blank" rel="noopener noreferrer" title="IMDb">IMDb</a>{/if}
 	</div>
 {/if}
 
@@ -282,7 +282,6 @@
 	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
 	/* Fila de acciones: plataformas a la izquierda, tráiler e IMDb redondos a la derecha. */
 	.acts { display: flex; align-items: flex-start; gap: 8px; padding: 12px 16px 0; }
-	.acts-gap { flex: 1; }
 	.providers { display: flex; flex-wrap: wrap; align-items: center; gap: 0; min-height: 40px; padding: 4px; border: 0; border-radius: 22px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: background 0.2s var(--ease); }
 	.providers:has(.prov-more) { padding-right: 12px; }
 	.providers:not(.open) .prov + .prov { margin-left: -10px; }

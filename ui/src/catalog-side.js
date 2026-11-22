@@ -207,9 +207,11 @@ function actions(m, s) {
   !open && providers.length > 3 ? el('span', { class: 'side-prov-more' }, `+${providers.length - 3}`) : null) : null;
   // El de TMDB (el más viejo: temporada 1) si hay; si no, el primero de Cinemeta.
   const yt = s.details?.details?.trailer ?? m.trailer;
-  return el('div', { class: 'side-acts' }, pill, el('span', { class: 'side-acts-gap' }),
+  // IMDb y tráiler primero; las plataformas siguen (si no hay, no queda un hueco).
+  return el('div', { class: 'side-acts' },
+    el('button', { id: 'cat-open-imdb', type: 'button', class: 'side-round imdb', title: t('Ver en IMDb'), onclick: () => api.catalogOpenImdb(m.id).catch(showError) }, 'IMDb'),
     yt ? el('button', { id: 'cat-open-trailer', type: 'button', class: 'side-round', title: t('Ver el tráiler en YouTube'), 'aria-label': t('Tráiler'), onclick: () => api.catalogOpenTrailer(yt).catch(showError) }, icon('play', 15)) : null,
-    el('button', { id: 'cat-open-imdb', type: 'button', class: 'side-round imdb', title: t('Ver en IMDb'), onclick: () => api.catalogOpenImdb(m.id).catch(showError) }, 'IMDb'));
+    pill);
 }
 
 /** Director y reparto principal con foto; tocar a alguien muestra lo que actuó o dirigió. */
