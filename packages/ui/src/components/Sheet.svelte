@@ -11,8 +11,17 @@
 		open: boolean;
 		onclose: () => void;
 		children: Snippet;
+		/** Pie fijo debajo del cuerpo que scrollea (el desktop lo usa en Ajustes). */
+		footer?: Snippet;
+		/** Ids de los que dependen tests y atajos; por defecto `{id}-title` y `{id}-close`. */
+		titleId?: string;
+		closeId?: string;
+		/** Ancho máximo en pantallas anchas (CSS); por defecto el de `.sheet`. */
+		maxWidth?: string;
+		/** false: sin ✕ ni cierre al tocar el fondo (confirmaciones); Esc sigue cerrando. */
+		closable?: boolean;
 	}
-	let { id, title, open, onclose, children }: Props = $props();
+	let { id, title, open, onclose, children, footer, titleId = `${id}-title`, closeId = `${id}-close`, maxWidth, closable = true }: Props = $props();
 	let dlg = $state<HTMLDialogElement>();
 
 	$effect(() => {
@@ -25,17 +34,21 @@
 	{id}
 	bind:this={dlg}
 	class="sheet"
-	aria-labelledby="{id}-title"
+	aria-labelledby={titleId}
+	style:max-width={maxWidth}
 	onclose={onclose}
-	onclick={(e) => e.target === dlg && dlg?.close()}
+	onclick={(e) => closable && e.target === dlg && dlg?.close()}
 >
 	<header>
-		<h2 id="{id}-title">{title}</h2>
-		<button id="{id}-close" class="x" type="button" aria-label={t('Cerrar')} onclick={() => dlg?.close()}>
-			<Icon name="close" />
-		</button>
+		<h2 id={titleId}>{title}</h2>
+		{#if closable}
+			<button id={closeId} class="x" type="button" aria-label={t('Cerrar')} onclick={() => dlg?.close()}>
+				<Icon name="close" />
+			</button>
+		{/if}
 	</header>
 	<div class="body">{@render children()}</div>
+	{@render footer?.()}
 </dialog>
 
 <style>

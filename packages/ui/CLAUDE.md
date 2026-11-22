@@ -29,7 +29,7 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
 - `i18n/runtime.ts` `:9 setTranslator` `:10 t` → `translate.ts` · ← `format.ts`; fijado por `web/src/lib/i18n.svelte.ts`, `ui/src/i18n.js`.
 - `components/` (compartidos web ↔ desktop; sin `$app`/Tauri):
   - `icons.ts` `:3 ICONS` `IconName` · ← `Icon.svelte`, `ui/src/dom.js:icon`.
-  - `Icon.svelte` · `Sheet.svelte` (`<dialog>`) · `LangPicker.svelte` (`onpick`; `flags`) → `icons.ts`, `i18n/runtime.ts`.
+  - `Icon.svelte` · `Sheet.svelte` (`<dialog>`; props `footer` `titleId` `closeId` `maxWidth` `closable`; ← desktop `ui/src/components/{Settings,LogDialog,ConfirmDialog}.svelte`) · `LangPicker.svelte` (`onpick`; `flags`) → `icons.ts`, `i18n/runtime.ts`.
   - `Tour.svelte` (`index` bindable, `onnick`, `langs`, snippet `extra`) → `tour-state.ts` (`guardStep` `resumeIndex` `Step` `LangOptions`), `LangPicker.svelte` · ← `web/src/routes/+layout.svelte`, `web/src/lib/Torrents.svelte`, `ui/src/Welcome.svelte`.
   - `tours.ts` `welcomeSteps` `castSteps` `device` `seen` `markSeen` → `tour-state.ts` · ← web.
 - `catalog/` (catálogo compartido):

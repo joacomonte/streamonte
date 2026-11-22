@@ -43,9 +43,7 @@
   },
   {
    "sel": "[id^=cat-season-bar-]",
-   "count": 5,
-   "status": "regressed",
-   "note": "gráfico de puntaje por temporada: la mock no trae catalog_season_ratings con quick=false; falta fixture"
+   "count": 5
   }
  ]
 }

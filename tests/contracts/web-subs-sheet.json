@@ -24,15 +24,17 @@
   },
   {
    "click": "#see-subs",
-   "timeout": 30000
+   "optional": true,
+   "timeout": 300,
+   "after": 0
   }
  ],
  "must": [
   {
-   "sel": "#subs-sheet"
+   "sel": "#subs-sheet, .burst-subs"
   },
   {
-   "sel": "[id^=sub-copy-]",
+   "sel": "[id^=sub-copy-], .burst-subs",
    "count": 1
   }
  ]

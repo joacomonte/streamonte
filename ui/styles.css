@@ -167,25 +167,16 @@ button.danger { color: var(--red); }
 .dialog::backdrop { background: rgb(0 0 0 / .35); }
 .dialog h3 { margin: 0 0 8px; }
 #dlg-confirm-text { white-space: pre-line; overflow-wrap: anywhere; }
-.dialog pre { max-height: 50vh; overflow: auto; font-size: 12px; background: var(--bg); padding: 8px; border-radius: var(--radius); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 
 /* Ajustes */
-.dialog h4 { margin: 14px 0 6px; font-size: 13px; }
-/* Ajustes (2026-11-17): alto acotado; encabezado con ✕ y pie con Cerrar siempre a la vista, el
-   medio scrollea. Las keys configuradas bajan a "Conectado". */
-.settings { width: min(640px, 92vw); max-height: min(760px, 86vh); padding: 0; overflow: hidden; }
-.settings[open] { display: flex; flex-direction: column; animation: set-in .22s var(--out); }
-@keyframes set-in { from { opacity: 0; transform: translateY(8px) scale(.985); } }
-.set-head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 12px 22px; border-bottom: 1px solid var(--border); }
-.dialog .set-head h3 { margin: 0; font-size: 18px; flex: 1; }
-.set-x { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 0; background: none; color: var(--muted); }
-.set-x:hover { background: var(--surface-3); color: var(--text); }
-.set-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px 18px 6px; }
+.sheet h4 { margin: 14px 0 6px; font-size: 13px; }
+/* Ajustes (2026-11-17): la hoja compartida (`Sheet`) pone el encabezado con ✕ y el cuerpo que scrollea; el pie con Cerrar queda fijo.
+   Las keys configuradas bajan a "Conectado". */
 .set-foot { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--border); background: var(--surface); }
 .set-foot .hint { flex: 1; margin: 0; }
 .set-card { display: grid; gap: 12px; margin: 0 0 12px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); }
-.dialog .set-card h4 { margin: 0; font-size: 14px; }
+.sheet .set-card h4 { margin: 0; font-size: 14px; }
 .set-card .hint { margin: 0; line-height: 1.45; }
 .set-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .set-line .hint { flex: 1 1 260px; }
@@ -251,7 +242,7 @@ button.danger { color: var(--red); }
 .set-switch span { display: grid; gap: 1px; }
 .set-switch b { font-size: 13.5px; }
 .set-switch small { font-size: 12px; color: var(--muted); line-height: 1.4; }
-@media (prefers-reduced-motion: reduce) { .settings[open], .key-row.saved .key-done, .key-done svg * { animation: none; stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .key-row.saved .key-done, .key-done svg * { animation: none; stroke-dashoffset: 0; } }
 .net-guide summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
 .net-guide[open] summary { margin-bottom: 4px; color: var(--text); }
 /* Ajustes › Red: guía del router y verificación del puerto (2026-11-15). */
@@ -262,17 +253,10 @@ button.danger { color: var(--red); }
 .net-check-result { font-size: 12.5px; color: var(--muted); }
 .net-check-result.ok { color: var(--green); }
 .net-check-result.bad { color: var(--red); }
-/* Panel de calibración en Ajustes (2026-11-15). */
-.calib-panel { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-.calib-panel h5 { margin: 6px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-.calib-status { margin: 0; font-weight: 600; }
-.calib-bar { height: 6px; border-radius: var(--r-pill); background: var(--border); overflow: hidden; }
-.calib-bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
 .calib-list { display: grid; gap: 6px; max-height: 180px; overflow: auto; font-size: 12.5px; }
 .calib-list li { display: grid; gap: 1px; }
 .calib-list b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .calib-list span { color: var(--muted); }
-.calib-note { font-size: 11.5px; }
 button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; font-size: 12px; text-decoration: underline; }
 .kv.keys th { width: 90px; font-family: ui-monospace, monospace; }
 

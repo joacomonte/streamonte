@@ -1,5 +1,5 @@
 <!-- Menú "Tu conexión": velocidad de internet, aporte por seeder (calibración), entrantes, fidelidad y mediciones.
-     Se monta dentro del popover de top-menus.js y se redibuja con el medidor y con `health-calib-changed`. -->
+     Se monta dentro del popover de top-menus.ts y se redibuja con el medidor y con `health-calib-changed`. -->
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { ago, mbps, nf1 } from '$ui/format.ts';

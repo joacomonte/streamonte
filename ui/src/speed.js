@@ -4,7 +4,7 @@
 // Al abrir la app se pide la velocidad de esta red (el núcleo mide solo si no tiene una medición); "Medir de nuevo" la fuerza.
 import { $ } from './dom.js';
 import { speedStore } from './speed-instance.ts';
-import { popFor, togglePop } from './top-menus.js';
+import { popFor, togglePop } from './top-menus.ts';
 import { host } from './ui-host.ts';
 
 /** @param {import('./types.js').SpeedState} s  evento `speed-test` del núcleo */

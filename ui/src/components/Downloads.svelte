@@ -10,7 +10,7 @@
   import { t as tr } from '../i18n.js';
   import { humanBytes, mbps } from '$ui/format.ts';
   import { playbackText } from '../format.js';
-  import { closePop } from '../top-menus.js';
+  import { closePop } from '../top-menus.ts';
   import { live } from '../live.svelte.ts';
   import { titleOf } from '../live.ts';
   import type { PlaybackAction, PlaybackRow, TempUsage } from '../types.js';
@@ -58,7 +58,7 @@
 
   async function toggle(): Promise<void> {
     if (open) { open = false; return; }
-    closePop(); // el menú de Velocidad (top-menus.js), si estaba abierto
+    closePop(); // el menú de Velocidad (top-menus.ts), si estaba abierto
     const r = btn.getBoundingClientRect();
     pos = { top: r.bottom + 8, right: Math.max(12, window.innerWidth - r.right) };
     open = true;
