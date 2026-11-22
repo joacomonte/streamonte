@@ -63,7 +63,7 @@ export async function load({ cookies, url, getClientAddress }) {
 	]);
 	return {
 		locked: false,
-		resumen: /** @type {{entradas: number, hoy: number, usuarios: number, activos: number, reproducciones: number}} */ (/** @type {any[]} */ (resumen)[0]),
+		resumen: /** @type {{entradas: number, hoy: number, usuarios: number, activos: number, reproducciones: number}} */ (/** @type {unknown[]} */ (resumen)[0]),
 		dias: /** @type {{dia: string, entradas: number, usuarios: number}[]} */ (dias),
 		usuarios: /** @type {{apodo: string | null, dispositivo: string | null, equipo: string | null, pantalla: string | null, ultimo: string | null, ultima: string, reproducciones: number, dispositivos: number}[]} */ (usuarios),
 		equipos: /** @type {{dispositivo: string, equipo: string | null, lugar: string | null, zona: string | null, modelo: string | null, pantalla: string | null, primera: string, ultima: string, reproducciones: number, entradas: number, acciones: number}[]} */ (equipos),

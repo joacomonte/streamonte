@@ -23,14 +23,6 @@ export function parseName(name) {
 	const season = flat.match(/\bs(\d{1,2})\b/i);
 	return { q, year, s: ep ? String(Number(ep[1])) : season ? String(Number(season[1])) : null, e: ep ? String(Number(ep[2])) : null };
 }
-console.assert(
-	(() => {
-		const a = parseName('The.Bear.S03E02.1080p.WEB-DL.mkv');
-		const b = parseName('Spider-Man.Brand.New.Day.2026.2160p.WEB-DL.DV.mkv');
-		return a.q === 'The Bear' && a.s === '3' && a.e === '2' && b.q === 'Spider-Man Brand New Day' && b.year === '2026';
-	})(),
-	'parseName'
-);
 
 /** La película o serie del nombre, o null: busca en TMDB por título y, si el nombre trae año, prefiere esa. Con
  * capítulo (o temporada), solo series. @param {string} name */
@@ -38,9 +30,8 @@ export async function identify(name) {
 	const p = parseName(name);
 	if (p.q.length < 2) return null;
 	const { items } = await search(p.q, 1).catch(() => ({ items: [] }));
-	/** @type {any[]} */
-	const fit = items.filter((/** @type {any} */ x) => (p.s ? x.kind === 'tv' : true));
-	const best = (p.year && fit.find((/** @type {any} */ x) => String(x.year) === p.year)) || fit[0];
+	const fit = items.filter((x) => (p.s ? x.kind === 'tv' : true));
+	const best = (p.year && fit.find((x) => String(x.year) === p.year)) || fit[0];
 	if (!best) return null;
 	const t = await title(best.kind, best.id).catch(() => null);
 	if (!t?.imdb) return null;

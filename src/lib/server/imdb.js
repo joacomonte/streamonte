@@ -149,6 +149,3 @@ export async function seasonScores(imdb) {
 	}
 	return (index?.get(Number(imdb.slice(2))) ?? []).map(([season, rating, episodes]) => ({ season, rating, episodes }));
 }
-
-// Self-check del empaquetado.
-console.assert(imdbOf(1, new Map([[1, 5000 * 1000 + 84]]))?.rating === 8.4 && imdbOf('tt1', new Map([[1, 5000 * 1000 + 84]]))?.votes === 5000);

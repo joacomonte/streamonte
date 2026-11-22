@@ -12,6 +12,7 @@
 		"build": "vite build",
 		"preview": "vite preview --host",
 		"prepare": "svelte-kit sync || echo ''",
+		"test": "node --test \"src/**/*.test.js\"",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
 	},

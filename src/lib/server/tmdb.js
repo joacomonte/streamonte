@@ -10,7 +10,17 @@ import { translate } from '../i18n/translate.js';
 const API = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p/';
 
-/** @param {string} path @param {Record<string, unknown>} [params] @param {'es' | 'en'} [language] por defecto, el de los títulos */
+// Respuestas de TMDB: solo los campos que se leen.
+/** @typedef {{id: number, title?: string, name?: string, release_date?: string, first_air_date?: string, poster_path?: string | null, original_language?: string, media_type?: 'movie' | 'tv' | 'person', popularity?: number, genre_ids?: number[], job?: string, episode_count?: number}} TmdbItem */
+/** @typedef {{results: TmdbItem[], page: number, total_pages: number}} TmdbPage */
+/** @typedef {{id: number, name: string, profile_path?: string | null, character?: string, job?: string}} TmdbPerson */
+/** @typedef {{provider_id: number, provider_name: string, logo_path?: string | null, display_priority: number}} TmdbProvider */
+/** @typedef {{key: string, site: string, type: string, official?: boolean, published_at?: string}} TmdbVideo */
+/** @typedef {{season_number: number, episode_count: number, name: string, air_date?: string | null}} TmdbSeason */
+/** @typedef {TmdbItem & {imdb_id?: string | null, external_ids?: {imdb_id?: string | null}, origin_country?: string[], production_countries?: {iso_3166_1: string}[], genres?: {id: number, name: string}[], backdrop_path?: string | null, overview: string, runtime?: number | null, episode_run_time?: number[], status?: string, production_companies?: {name: string}[], credits?: {cast?: TmdbPerson[], crew?: TmdbPerson[]}, videos?: {results?: TmdbVideo[]}, 'watch/providers'?: {results?: Record<string, {flatrate?: TmdbProvider[], ads?: TmdbProvider[], free?: TmdbProvider[]}>}, next_episode_to_air?: {air_date?: string, season_number: number, episode_number: number} | null, seasons?: TmdbSeason[]}} TmdbTitle */
+
+/** @param {string} path @param {Record<string, unknown>} [params] @param {'es' | 'en'} [language] por defecto, el de los títulos
+ * @returns {Promise<unknown>} cada llamada lo acota al tipo de su endpoint. */
 async function tmdb(path, params = {}, language = titlesLang()) {
 	const key = (await keys()).tmdb;
 	if (!key) throw new Fail(428, 'Falta la key de TMDB: cargala en Ajustes.');
@@ -24,7 +34,7 @@ async function tmdb(path, params = {}, language = titlesLang()) {
 	return r.json();
 }
 
-/** @param {any} r @param {'movie' | 'tv'} kind */
+/** @param {TmdbItem} r @param {'movie' | 'tv'} kind */
 const card = (r, kind) => ({
 	id: r.id,
 	kind,
@@ -36,13 +46,13 @@ const card = (r, kind) => ({
 	rating: null
 });
 
-/** Card con el puntaje de IMDb (mismo criterio en explorar y búsqueda). `r` es null si IMDb no lo tiene. @param {any} c @param {'movie' | 'tv'} kind @param {{rating: number} | null} r */
+/** Card con el puntaje de IMDb (mismo criterio en explorar y búsqueda). `r` es null si IMDb no lo tiene. @param {TmdbItem} c @param {'movie' | 'tv'} kind @param {{rating: number} | null} r */
 const scored = (c, kind, r) => ({ ...card(c, kind), rating: r ? r.rating.toFixed(1) : null });
 /** Géneros de series de TMDB que juntan dos, como `GENRES` del desktop (streamonte/crates/core/src/catalog/top.rs). @type {Record<number, string[]>} */
 const TV_GENRES = { 10759: ['Acción', 'Aventura'], 10765: ['Ciencia ficción', 'Fantasía'], 10768: ['Bélica'] };
 
-/** Como el desktop: sin anime/japonés. @param {any} r */
-const keep = (r) => r.original_language !== 'ja';
+/** Como el desktop: sin anime/japonés. @param {TmdbItem} r */
+export const keep = (r) => r.original_language !== 'ja';
 
 /** TMDB tiene ~100 veces menos votos que IMDb: se piden candidatas con un piso 2,5 veces más bajo para no perder ninguna. */
 const TMDB_VOTE_RATIO = 250;
@@ -63,7 +73,7 @@ const MAX_NAMES = 500;
 export const VOTES = [0, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
 /** Guarda en un Map con tope: al pasarse, borra la entrada más vieja (los Map recorren en orden de inserción).
  * @template K, V @param {Map<K, V>} map @param {K} key @param {V} value @param {number} max */
-function capped(map, key, value, max) {
+export function capped(map, key, value, max) {
 	map.delete(key);
 	map.set(key, value);
 	if (map.size > max) map.delete(/** @type {K} */ (map.keys().next().value));
@@ -72,16 +82,16 @@ function capped(map, key, value, max) {
 /** @typedef {{imdb: number | null, lang: string | null, excluded: boolean, at: number}} Detail */
 /** "movie:123" → ficha. @type {Record<string, Detail> | null} */
 let details = null;
-/** @type {Map<string, {at: number, list: Promise<any[]>}>} */
+/** @type {Map<string, {at: number, list: Promise<ReturnType<typeof scored>[]>}>} */
 const lists = new Map();
 
-/** @param {any} raw @returns {Detail} */
-function detail(raw) {
-	const tt = raw.imdb_id ?? raw.external_ids?.imdb_id;
-	const countries = raw.origin_country ?? raw.production_countries?.map((/** @type {any} */ c) => c.iso_3166_1) ?? [];
-	const anim = (raw.genres ?? []).some((/** @type {any} */ g) => g.id === 16);
+/** @param {Partial<TmdbTitle>} raw @returns {Detail} */
+export function detail(raw) {
+	const tt = raw.imdb_id ?? raw.external_ids?.imdb_id ?? '';
+	const countries = raw.origin_country ?? raw.production_countries?.map((c) => c.iso_3166_1) ?? [];
+	const anim = (raw.genres ?? []).some((g) => g.id === 16);
 	return {
-		imdb: /^tt\d+$/.test(tt ?? '') ? Number(tt.slice(2)) : null,
+		imdb: /^tt\d+$/.test(tt) ? Number(tt.slice(2)) : null,
 		// Idioma original, no los hablados.
 		lang: raw.original_language ?? null,
 		// Como `is_excluded` del desktop: de Japón, o con Japón y animación.
@@ -100,7 +110,7 @@ async function fillDetails(kind, ids) {
 	const worker = async () => {
 		for (let id; (id = queue.shift()) != null; ) {
 			try {
-				all[`${kind}:${id}`] = detail(await tmdb(`/${kind}/${id}`, kind === 'tv' ? { append_to_response: 'external_ids' } : {}));
+				all[`${kind}:${id}`] = detail(/** @type {TmdbTitle} */ (await tmdb(`/${kind}/${id}`, kind === 'tv' ? { append_to_response: 'external_ids' } : {})));
 			} catch (e) {
 				if (e instanceof Fail && e.status === 401) throw e;
 			}
@@ -117,8 +127,8 @@ async function candidates(f) {
 	const date = f.kind === 'movie' ? 'primary_release_date' : 'first_air_date';
 	const genres = f.genres.join('|');
 	/** @param {number} page */
-	const page = (page) =>
-		tmdb(`/discover/${f.kind}`, {
+	const page = async (page) =>
+		/** @type {TmdbPage} */ (await tmdb(`/discover/${f.kind}`, {
 			sort_by: 'vote_count.desc',
 			include_adult: false,
 			include_video: false,
@@ -128,7 +138,7 @@ async function candidates(f) {
 			with_original_language: f.lang.split(',').filter(Boolean).join('|'),
 			with_genres: genres,
 			page
-		});
+		}));
 	const first = await page(1);
 	const out = [...first.results];
 	const rest = Array.from({ length: Math.min(first.total_pages, MAX_PAGES) - 1 }, (_, i) => i + 2);
@@ -174,9 +184,8 @@ export async function discover(f) {
 
 /** @param {string} q @param {number} page */
 export async function search(q, page) {
-	const j = await tmdb('/search/multi', { query: q, page, include_adult: false });
-	/** @type {any[]} */
-	const found = j.results.filter((/** @type {any} */ r) => (r.media_type === 'movie' || r.media_type === 'tv') && keep(r));
+	const j = /** @type {TmdbPage} */ (await tmdb('/search/multi', { query: q, page, include_adult: false }));
+	const found = /** @type {(TmdbItem & {media_type: 'movie' | 'tv'})[]} */ (j.results.filter((r) => (r.media_type === 'movie' || r.media_type === 'tv') && keep(r)));
 	const [table, movies, shows] = await Promise.all([
 		ratings(),
 		fillDetails('movie', found.filter((r) => r.media_type === 'movie').map((r) => r.id)),
@@ -190,18 +199,18 @@ export async function search(q, page) {
 	return { items, page: j.page, pages: j.total_pages };
 }
 
-/** Sugerencias de actores y directores para el buscador: hasta 6 (los demás oficios no), con foto, rol y por qué se
+/** Sugerencias de actores y directores para el buscador: hasta 3 (los demás oficios no), con foto, rol y por qué se
  * lo conoce. @param {string} q @returns {Promise<{id: number, name: string, photo: string | null, known: string, role: 'cast' | 'director'}[]>} */
 export async function people(q) {
-	const j = await tmdb('/search/person', { query: q, include_adult: false });
+	const j = /** @type {{results: {id: number, name: string, profile_path?: string | null, known_for?: TmdbItem[], known_for_department?: string}[]}} */ (await tmdb('/search/person', { query: q, include_adult: false }));
 	return j.results
-		.filter((/** @type {any} */ r) => r.known_for?.length && (r.known_for_department === 'Acting' || r.known_for_department === 'Directing'))
-		.slice(0, 6)
-		.map((/** @type {any} */ r) => ({
+		.filter((r) => r.known_for?.length && (r.known_for_department === 'Acting' || r.known_for_department === 'Directing'))
+		.slice(0, 3)
+		.map((r) => ({
 			id: r.id,
 			name: r.name,
 			photo: r.profile_path ? `${IMG}w185${r.profile_path}` : null,
-			known: r.known_for.slice(0, 2).map((/** @type {any} */ k) => k.title ?? k.name).filter(Boolean).join(', '),
+			known: (r.known_for ?? []).slice(0, 2).map((k) => k.title ?? k.name).filter(Boolean).join(', '),
 			role: /** @type {'cast' | 'director'} */ (r.known_for_department === 'Directing' ? 'director' : 'cast')
 		}));
 }
@@ -216,15 +225,14 @@ const MAX_CREDITS = 80;
 /** Lo que actuó (`cast`) o dirigió (`director`) una persona, películas y series, de más a menos popular, sin filtros:
  * una sola página. @param {number} id @param {'cast' | 'director'} role */
 export async function personTitles(id, role) {
-	const j = await tmdb(`/person/${id}/combined_credits`);
+	const j = /** @type {{cast: TmdbItem[], crew: TmdbItem[]}} */ (await tmdb(`/person/${id}/combined_credits`));
 	const seen = new Set();
-	/** @type {any[]} */
-	const credits = role === 'director' ? j.crew.filter((/** @type {any} */ r) => r.job === 'Director') : j.cast;
-	const cast = credits
-		.filter((/** @type {any} */ r) => (r.media_type === 'movie' || r.media_type === 'tv') && keep(r) && !r.genre_ids?.some((/** @type {number} */ g) => NOT_ACTING.includes(g)) && (r.media_type === 'movie' || role === 'director' || (r.episode_count ?? 0) >= MIN_EPISODES))
-		.filter((/** @type {any} */ r) => !seen.has(`${r.media_type}${r.id}`) && seen.add(`${r.media_type}${r.id}`))
-		.sort((/** @type {any} */ a, /** @type {any} */ b) => b.popularity - a.popularity)
-		.slice(0, MAX_CREDITS);
+	const credits = role === 'director' ? j.crew.filter((r) => r.job === 'Director') : j.cast;
+	const cast = /** @type {(TmdbItem & {media_type: 'movie' | 'tv'})[]} */ (credits
+		.filter((r) => (r.media_type === 'movie' || r.media_type === 'tv') && keep(r) && !r.genre_ids?.some((g) => NOT_ACTING.includes(g)) && (r.media_type === 'movie' || role === 'director' || (r.episode_count ?? 0) >= MIN_EPISODES))
+		.filter((r) => !seen.has(`${r.media_type}${r.id}`) && seen.add(`${r.media_type}${r.id}`))
+		.sort((a, b) => /** @type {number} */ (b.popularity) - /** @type {number} */ (a.popularity))
+		.slice(0, MAX_CREDITS));
 	const [table, movies, shows] = await Promise.all([
 		ratings(),
 		fillDetails('movie', cast.filter((r) => r.media_type === 'movie').map((r) => r.id)),
@@ -239,18 +247,21 @@ export async function personTitles(id, role) {
 
 /** @param {'movie' | 'tv'} kind */
 export async function genres(kind) {
-	const j = await tmdb(`/genre/${kind}/list`, {}, lang());
-	return j.genres.map((/** @type {any} */ g) => ({ id: String(g.id), name: g.name }));
+	const j = /** @type {{genres: {id: number, name: string}[]}} */ (await tmdb(`/genre/${kind}/list`, {}, lang()));
+	return j.genres.map((g) => ({ id: String(g.id), name: g.name }));
 }
 
-/** Ficha: datos, IMDb id (para los torrents) y temporadas. @param {'movie' | 'tv'} kind @param {string} id */
+/** Persona de los créditos de la ficha. @param {TmdbPerson} c @param {'cast' | 'director'} role @param {string | null} note personaje (actores) */
+const person = (c, role, note) => ({ id: c.id, name: c.name, photo: c.profile_path ? `${IMG}w185${c.profile_path}` : null, role, note });
+
+/** Ficha: datos, IMDb id (para los torrents) y temporadas. @param {'movie' | 'tv'} kind @param {string | number} id */
 export async function title(kind, id) {
 	// Sinopsis y géneros siempre en el idioma de la app: un pedido más (si difiere de los títulos), en paralelo.
 	// El dataset de IMDb se espera junto con TMDB: en una instancia recién creada todavía no está cargado y el puntaje
 	// salía vacío. Si no se puede bajar, la ficha sale igual, sin puntaje.
 	const [r, info, table] = await Promise.all([
-		tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits,videos', include_video_language: 'es,en,null' }),
-		lang() !== titlesLang() ? tmdb(`/${kind}/${id}`, {}, lang()) : null,
+		/** @type {Promise<TmdbTitle>} */ (tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits,videos', include_video_language: 'es,en,null' })),
+		lang() !== titlesLang() ? /** @type {Promise<TmdbTitle>} */ (tmdb(`/${kind}/${id}`, {}, lang())) : null,
 		ratings().catch(() => null)
 	]);
 	const about = info ?? r;
@@ -258,9 +269,9 @@ export async function title(kind, id) {
 	const ar = r['watch/providers']?.results?.AR ?? {};
 	const seen = new Set();
 	const providers = [...(ar.flatrate ?? []), ...(ar.ads ?? []), ...(ar.free ?? [])]
-		.filter((/** @type {any} */ p) => !seen.has(p.provider_id) && seen.add(p.provider_id))
-		.sort((/** @type {any} */ a, /** @type {any} */ b) => a.display_priority - b.display_priority)
-		.map((/** @type {any} */ p) => ({ name: p.provider_name, logo: p.logo_path ? `${IMG}w92${p.logo_path}` : null }));
+		.filter((p) => !seen.has(p.provider_id) && seen.add(p.provider_id))
+		.sort((a, b) => a.display_priority - b.display_priority)
+		.map((p) => ({ name: p.provider_name, logo: p.logo_path ? `${IMG}w92${p.logo_path}` : null }));
 	const langName = r.original_language ? new Intl.DisplayNames([lang()], { type: 'language' }).of(r.original_language) : null;
 	const imdb = r.imdb_id ?? r.external_ids?.imdb_id ?? null;
 	const real = table ? imdbOf(imdb, table) : null;
@@ -271,9 +282,14 @@ export async function title(kind, id) {
 		overview: about.overview,
 		runtime: r.runtime ?? r.episode_run_time?.[0] ?? null,
 		// Los de series que juntan dos (y TMDB devuelve en inglés) se parten como en el desktop.
-		genres: [...new Set((about.genres ?? []).flatMap((/** @type {any} */ g) => TV_GENRES[g.id]?.map((x) => translate(lang(), x)) ?? [g.name]))],
+		genres: [...new Set((about.genres ?? []).flatMap((g) => TV_GENRES[g.id]?.map((x) => translate(lang(), x)) ?? [g.name]))],
 		providers,
-		cast: (r.credits?.cast ?? []).slice(0, 3).map((/** @type {any} */ c) => c.name),
+		// Quién la hizo: en películas el director primero; después los 3 actores principales con su personaje.
+		people: [
+			...(kind === 'movie' ? (r.credits?.crew ?? []).filter((c) => c.job === 'Director').slice(0, 1) : []).map((c) => person(c, 'director', null)),
+			...(r.credits?.cast ?? []).slice(0, 3).map((c) => person(c, 'cast', c.character || null))
+		],
+		companies: (r.production_companies ?? []).slice(0, 2).map((c) => c.name),
 		lang: langName ? langName[0].toUpperCase() + langName.slice(1) : null,
 		// Código ISO 639-1 del idioma original (`en`, `ja`…): el audio por defecto del video.
 		origLang: r.original_language ?? null,
@@ -284,11 +300,11 @@ export async function title(kind, id) {
 		// Tráiler de YouTube: el más viejo (en series, el de la temporada 1), oficial primero; como en el desktop.
 		trailer:
 			(r.videos?.results ?? [])
-				.filter((/** @type {any} */ v) => v.site === 'YouTube' && v.type === 'Trailer')
-				.sort((/** @type {any} */ a, /** @type {any} */ b) => Number(b.official) - Number(a.official) || String(a.published_at).localeCompare(String(b.published_at)))[0]?.key ?? null,
+				.filter((v) => v.site === 'YouTube' && v.type === 'Trailer')
+				.sort((a, b) => Number(b.official) - Number(a.official) || String(a.published_at).localeCompare(String(b.published_at)))[0]?.key ?? null,
 		seasons: (r.seasons ?? [])
-			.filter((/** @type {any} */ s) => s.season_number > 0 && s.episode_count > 0)
-			.map((/** @type {any} */ s) => ({ n: s.season_number, name: s.name, count: s.episode_count, year: String(s.air_date ?? '').slice(0, 4) || null }))
+			.filter((s) => s.season_number > 0 && s.episode_count > 0)
+			.map((s) => ({ n: s.season_number, name: s.name, count: s.episode_count, year: String(s.air_date ?? '').slice(0, 4) || null }))
 	};
 }
 
@@ -298,7 +314,7 @@ const names = new Map();
 /** @param {string} imdb */
 export function namesOf(imdb) {
 	if (!names.has(imdb)) {
-		const find = (/** @type {'es' | 'en'} */ l) => tmdb(`/find/${imdb}`, { external_source: 'imdb_id' }, l).then((r) => r.movie_results?.[0] ?? null);
+		const find = (/** @type {'es' | 'en'} */ l) => /** @type {Promise<{movie_results?: (TmdbItem & {original_title?: string})[]}>} */ (tmdb(`/find/${imdb}`, { external_source: 'imdb_id' }, l)).then((r) => r.movie_results?.[0] ?? null);
 		const p = Promise.all([find('en'), find('es')]).then(([en, es]) => {
 			const m = en ?? es;
 			if (!m) return null;
@@ -313,8 +329,8 @@ export function namesOf(imdb) {
 
 /** @param {string} id @param {string} n */
 export async function season(id, n) {
-	const r = await tmdb(`/tv/${id}/season/${n}`);
-	return r.episodes.map((/** @type {any} */ e) => ({
+	const r = /** @type {{episodes: {episode_number: number, name: string, air_date: string | null, still_path?: string | null}[]}} */ (await tmdb(`/tv/${id}/season/${n}`));
+	return r.episodes.map((e) => ({
 		n: e.episode_number,
 		name: e.name,
 		date: e.air_date,

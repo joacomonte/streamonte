@@ -39,6 +39,8 @@
 	let peopleT;
 	/** Solo la última respuesta cuenta (escribe rápido: llegan desordenadas). */
 	let peopleGen = 0;
+	/** Buscando sugerencias: la lista muestra filas de carga en vez de quedar vacía. */
+	let peopleLoading = $state(false);
 	/** Resumen de lo aplicado, debajo de los chips (ni el idioma ni las fechas, que ya muestra el selector de años). */
 	const summary = $derived(
 		[
@@ -301,6 +303,7 @@
 		clearTimeout(peopleT);
 		peopleGen++;
 		people = [];
+		peopleLoading = false;
 		cat.person = null;
 		cat.q = '';
 		reset();
@@ -340,11 +343,14 @@
 		clearTimeout(peopleT);
 		const q = cat.q.trim();
 		const my = ++peopleGen;
-		if (q.length < 3) return void (people = []);
+		peopleLoading = q.length >= 3;
+		if (!peopleLoading) return void (people = []);
 		peopleT = setTimeout(async () => {
 			const r = await fetch(`/api/people?${new URLSearchParams({ q })}`).catch(() => null);
 			const list = r?.ok ? await r.json() : [];
-			if (my === peopleGen) people = list;
+			if (my !== peopleGen) return;
+			people = list;
+			peopleLoading = false;
 		}, 250);
 	}
 	/** Elegido un actor o director: el catálogo muestra lo que actuó o dirigió, sin filtros. @param {{id: number, name: string, photo: string | null, role: 'cast' | 'director'}} p */
@@ -353,6 +359,7 @@
 		clearTimeout(logged);
 		peopleGen++;
 		people = [];
+		peopleLoading = false;
 		cat.q = '';
 		cat.person = { id: p.id, name: p.name, photo: p.photo, role: p.role };
 		reset();
@@ -477,13 +484,19 @@
 			<div class="finder">
 				<label class="search">
 					<Icon name="search" size={18} />
-					<input id="cat-q" type="search" placeholder={t('Título, actor/actriz o director')} autocomplete="off" enterkeyhint="search" bind:value={cat.q} oninput={onSearch} onfocus={() => (qFocus = true)} onblur={() => (qFocus = false)} onkeydown={(e) => e.key === 'Escape' && (people.length ? (people = []) : cat.q && clearSearch())} />
+					<input id="cat-q" type="search" placeholder={t('Título, actor/actriz o director')} autocomplete="off" enterkeyhint="search" bind:value={cat.q} oninput={onSearch} onfocus={() => (qFocus = true)} onblur={() => (qFocus = false)} onkeydown={(e) => e.key === 'Escape' && (people.length || peopleLoading ? (peopleGen++, (people = []), (peopleLoading = false)) : cat.q && clearSearch())} />
 					{#if cat.q || cat.person}
 						<button id="cat-q-clear" type="button" class="clear-q" aria-label={t('Limpiar búsqueda')} onclick={clearSearch}><Icon name="close" size={14} /></button>
 					{/if}
 				</label>
 				<!-- Actores y directores que coinciden: tocar uno trae lo que actuó o dirigió. pointerdown sin foco: el input no se cierra antes del clic. -->
-				{#if qFocus && people.length && cat.q.trim()}
+				{#if qFocus && peopleLoading && cat.q.trim()}
+					<ul id="people-loading" class="people" aria-busy="true" aria-label={t('Buscando actores y directores…')}>
+						{#each Array(3) as _, i (i)}
+							<li class="person skel-row" aria-hidden="true"><span class="skel sk-face"></span><span class="who"><span class="skel sk-line"></span><span class="skel sk-line short"></span></span></li>
+						{/each}
+					</ul>
+				{:else if qFocus && people.length && cat.q.trim()}
 					<ul id="people-list" class="people" aria-label={t('Actores y directores')}>
 						{#each people as p, i (p.id)}
 							<li style:--i={i}>
@@ -796,6 +809,11 @@
 	.who b { font-size: 15px; font-weight: 650; }
 	.who .role { color: var(--accent-fg); font-weight: 600; }
 	.who small { overflow: hidden; color: var(--muted); font-size: 12.5px; white-space: nowrap; text-overflow: ellipsis; }
+	.skel-row { cursor: default; }
+	.sk-face { flex: none; width: 40px; height: 40px; border-radius: 50%; }
+	.skel-row .who { gap: 7px; }
+	.sk-line { height: 11px; width: 55%; border-radius: 6px; }
+	.sk-line.short { width: 80%; height: 9px; }
 	@keyframes drop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
 	@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
 	/* Actor elegido: una píldora dice de quién son los resultados y se quita con la cruz. */

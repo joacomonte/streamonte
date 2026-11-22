@@ -15,15 +15,6 @@ export function audioOf(audios) {
 		.map((a) => (/^es-419/i.test(a.language) || /lat|latino|latam|419|mex/i.test(a.title) ? 'lat' : /^es-es/i.test(a.language) || /cast|españa|espana|spain|europe/i.test(a.title) ? 'spain' : 'es'));
 	return kinds.includes('lat') ? 'lat' : kinds.includes('es') ? 'es' : kinds.includes('spain') ? 'spain' : 'none';
 }
-console.assert(
-	audioOf([{ language: 'spa', title: 'Latino DD 5.1' }]) === 'lat' &&
-		audioOf([{ language: 'es-419', title: '' }]) === 'lat' &&
-		audioOf([{ language: 'spa', title: 'Castellano' }]) === 'spain' &&
-		audioOf([{ language: 'spa', title: 'AC3 5.1' }]) === 'es' &&
-		audioOf([{ language: 'eng', title: '' }]) === 'none',
-	'audioOf'
-);
-
 
 /** Estado del audio latino de una opción: la única regla (la usan los badges, el buen match y las listas).
  * - Las pistas leídas ganan cuando dicen cuál español es (latino, de España) o que no hay español.
@@ -37,14 +28,6 @@ export function latStatus(t, info) {
 	if (read === 'lat' || read === 'spain' || read === 'none') return read;
 	return t.hint ?? 'check';
 }
-console.assert(
-	latStatus({ hint: 'lat' }, { subs: 0, audio: 'es' }) === 'lat' &&
-		latStatus({ hint: 'lat' }, { subs: 0, audio: 'spain' }) === 'spain' &&
-		latStatus({ hint: null }, { subs: 0, audio: 'es' }) === 'check' &&
-		latStatus({ hint: 'likely' }, null) === 'likely',
-	'latStatus'
-);
-
 /** Texto, explicación corta (globito) y larga (title) de cada estado. */
 export const LAT_BADGE = {
 	lat: { text: 'LAT', tip: 'Tiene audio latino', title: 'Audio latino: lo dicen las pistas del video o el nombre del torrent' },

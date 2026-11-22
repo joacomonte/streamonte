@@ -8,9 +8,10 @@
 
 	const hash = $derived(page.params.hash?.toLowerCase() ?? '');
 	const dn = $derived(page.url.searchParams.get('dn') ?? '');
-	/** @typedef {{state: 'cached' | 'downloading' | 'ready' | 'missing', name: string | null, progress?: number, speed?: number, seeds?: number, eta?: number, files: any[], ident?: any}} Status */
+	/** @typedef {{state: 'cached' | 'downloading' | 'ready' | 'missing', name: string | null, progress?: number, speed?: number, seeds?: number, eta?: number, files: import('#lib/types.js').Torrent[], ident?: Ident | null}} Status */
+	/** @typedef {import('#lib/types.js').Ident} Ident */
 	let st = $state(/** @type {Status | null} */ (null));
-	let ident = $state(/** @type {any} */ (null));
+	let ident = $state(/** @type {Ident | null} */ (null));
 	let error = $state('');
 	let adding = $state(false);
 

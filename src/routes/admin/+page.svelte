@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import AdminCode from '#lib/AdminCode.svelte';
 
+	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
 
 	let loading = $state(false);

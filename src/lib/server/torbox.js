@@ -13,10 +13,15 @@ const SPANISH = new Set(['es', 'spa', 'spanish', 'español', 'espanol', 'esp', '
  * @param {string} path */
 export const isSpanishSub = (path) =>
 	SUB.test(path) && (path.split('/').pop() ?? '').toLowerCase().replace(SUB, '').split(/[^a-z0-9ñ]+/).some((w) => SPANISH.has(w));
-console.assert(
-	isSpanishSub('Subs/2_Spanish.srt') && isSpanishSub('x.es-419.srt') && isSpanishSub('Show.S01E02.spa.ass') && !isSpanishSub('Les.Miserables.eng.srt') && !isSpanishSub('x.spa.mkv'),
-	'isSpanishSub'
-);
+
+/** Respuestas de TorBox: solo los campos que se leen. `data` cambia según el endpoint (`T`).
+ * @template T @typedef {{data?: T, detail?: string, error?: string}} TbRes */
+/** @typedef {{id: number, name: string, short_name?: string, size: number}} TbFile */
+/** @typedef {{hash?: string, name?: string, files?: TbFile[]}} TbCached */
+/** @typedef {{hash: string, name?: string, files?: TbFile[], download_finished?: boolean, download_state?: string, progress?: number, download_speed?: number, seeds?: number, eta?: number}} TbTorrent */
+/** @typedef {{language?: string, title?: string}} TbSub */
+/** @typedef {{language: string, title?: string}} TbAudio */
+/** @typedef {{metadata?: {audios?: TbAudio[], subtitles?: TbSub[], video?: {duration?: string, frame_rate?: string | number}}, hls_url?: string, open_subtitles_hash?: string, size?: number}} TbStream */
 
 async function key() {
 	const k = (await keys()).torbox;
@@ -27,10 +32,10 @@ async function key() {
 /** @param {string} path @param {RequestInit} [init] */
 const tb = (path, init = {}) => tbRoot(`/v1/api/torrents${path}`, init);
 
-/** @param {string} path ruta desde `/v1/api` (incluida) @param {RequestInit} [init] */
+/** @param {string} path ruta desde `/v1/api` (incluida) @param {RequestInit} [init] @returns {Promise<TbRes<unknown>>} */
 async function tbRoot(path, init = {}) {
 	const r = await get(ROOT + path, { ...init, headers: { authorization: `Bearer ${await key()}` } }, 20_000);
-	const j = await r.json().catch(() => ({}));
+	const j = /** @type {TbRes<unknown>} */ (await r.json().catch(() => ({})));
 	// 403 también es "tu plan no incluye esto" (el streaming): no es la key.
 	if (j.error === 'PLAN_RESTRICTED_FEATURE') throw new Fail(403, 'Tu plan de TorBox no incluye streaming: no se pueden leer las pistas del video.');
 	if (r.status === 401 || r.status === 403) throw new Fail(401, 'TorBox rechazó la key: revisala en Ajustes.');
@@ -39,7 +44,7 @@ async function tbRoot(path, init = {}) {
 }
 
 /** Nombre de archivo del capítulo `s`×`e` (S01E02, 1x02). @param {string} s @param {string} e */
-const episodeRe = (s, e) => new RegExp(`(s0*${s}[ ._-]?e0*${e}|\\b0*${s}x0*${e})(?!\\d)`, 'i');
+export const episodeRe = (s, e) => new RegExp(`(s0*${s}[ ._-]?e0*${e}|\\b0*${s}x0*${e})(?!\\d)`, 'i');
 
 /** Hashes (en minúscula) que TorBox tiene en caché con un video suelto; en series, con el del capítulo.
  * Los que solo traen .rar/.iso/extras o un pack sin ese capítulo quedan afuera: TorBox no daría link.
@@ -51,13 +56,13 @@ export async function cached(hashes, s = null, e = null) {
 	const out = new Map();
 	const batches = [];
 	for (let i = 0; i < hashes.length; i += 80) batches.push(hashes.slice(i, i + 80));
-	const pages = await Promise.all(batches.map((b) => tb(`/checkcached?hash=${b.join(',')}&format=object&list_files=true`)));
+	const pages = /** @type {TbRes<TbCached[] | Record<string, TbCached>>[]} */ (await Promise.all(batches.map((b) => tb(`/checkcached?hash=${b.join(',')}&format=object&list_files=true`))));
 	for (const j of pages) {
 		const d = j.data;
 		for (const x of Array.isArray(d) ? d : Object.values(d ?? {})) {
 			// Sin lista de archivos (formato distinto): se deja, como antes.
 			/** @type {string[] | null} */
-			const files = Array.isArray(x.files) ? x.files.map((/** @type {any} */ f) => String(f.name ?? '')) : null;
+			const files = Array.isArray(x.files) ? x.files.map((f) => String(f.name ?? '')) : null;
 			const videos = files?.filter((f) => VIDEO.test(f));
 			// Un solo video sirve aunque no diga S01E02: el addon ya lo dio para ese capítulo.
 			const ok = !videos || (ep ? videos.length === 1 || videos.some((f) => ep.test(f.split('/').pop() ?? '')) : videos.length > 0);
@@ -92,7 +97,7 @@ export async function link(t) {
  * @param {{tid: number, fid: number} | null} [ids]
  * @returns {Promise<{subs: {label: string, kind: string, track: number}[], audios: {language: string, title: string}[]}>} */
 export async function tracks(t, ids = null) {
-	const { id, file } = ids ? { id: ids.tid, file: { id: ids.fid, name: '' } } : await added(t);
+	const { id, file } = ids ? { id: ids.tid, file: { id: ids.fid, name: '', size: 0 } } : await added(t);
 	const all = await tracksOf(await download(id, file));
 	if (!all) throw new Fail(422, 'No pude leer las pistas de este video.');
 	const subs = all.filter((x) => x.type === 17);
@@ -107,12 +112,12 @@ export async function tracks(t, ids = null) {
 }
 
 /** Latinoamérica, España o Español, por el nombre o el código de la pista. @param {string} name @param {string} lang */
-const spanishVariant = (name, lang) =>
+export const spanishVariant = (name, lang) =>
 	/lat|419/i.test(name) || /^es-419/i.test(lang) ? 'Latinoamérica' : /spain|españa|castellano|es-es/i.test(name) || /^es-ES/.test(lang) ? 'España' : 'Español';
 
 /** Subtítulos en español de la metadata de createstream, los forzados al final; `i` es su posición entre todos.
- * @param {any[] | undefined} subtitles */
-function spanishSubs(subtitles) {
+ * @param {TbSub[] | undefined} subtitles */
+export function spanishSubs(subtitles) {
 	return (subtitles ?? [])
 		.map((x, i) => ({ x, i, forced: /forced|forzad/i.test(x.title ?? '') }))
 		.filter(({ x }) => x.language === 'spa')
@@ -128,15 +133,15 @@ function spanishSubs(subtitles) {
 /** Para "Pegar magnet": el torrent en la caché de TorBox con su nombre y archivos, o null. @param {string} hash
  * @returns {Promise<{name: string, files: {name: string, size: number}[]} | null>} */
 export async function checkFiles(hash) {
-	const j = await tb(`/checkcached?hash=${hash}&format=object&list_files=true`);
+	const j = /** @type {TbRes<TbCached[] | Record<string, TbCached>>} */ (await tb(`/checkcached?hash=${hash}&format=object&list_files=true`));
 	const d = j.data;
 	const x = (Array.isArray(d) ? d : Object.values(d ?? {}))[0];
-	return x ? { name: String(x.name ?? ''), files: (x.files ?? []).map((/** @type {any} */ f) => ({ name: String(f.name ?? ''), size: Number(f.size) || 0 })) } : null;
+	return x ? { name: String(x.name ?? ''), files: (x.files ?? []).map((f) => ({ name: String(f.name ?? ''), size: Number(f.size) || 0 })) } : null;
 }
 /** Para "Pegar magnet": ese torrent en la cuenta (bajándose o bajado), con su avance, o null. @param {string} hash */
 export async function mine(hash) {
-	const j = await tb('/mylist?bypass_cache=true');
-	const x = (j.data ?? []).find((/** @type {any} */ t) => String(t.hash).toLowerCase() === hash);
+	const j = /** @type {TbRes<TbTorrent[]>} */ (await tb('/mylist?bypass_cache=true'));
+	const x = (j.data ?? []).find((t) => String(t.hash).toLowerCase() === hash);
 	if (!x) return null;
 	return {
 		name: String(x.name ?? ''),
@@ -145,14 +150,14 @@ export async function mine(hash) {
 		speed: Number(x.download_speed) || 0,
 		seeds: Number(x.seeds) || 0,
 		eta: Number(x.eta) || 0,
-		files: (x.files ?? []).map((/** @type {any} */ f) => ({ name: String(f.name ?? ''), size: Number(f.size) || 0 }))
+		files: (x.files ?? []).map((f) => ({ name: String(f.name ?? ''), size: Number(f.size) || 0 }))
 	};
 }
 /** Para "Pegar magnet": lo agrega a la cuenta aunque no esté en caché (TorBox lo baja). @param {string} magnet */
 export async function addMagnet(magnet) {
 	const fd = new FormData();
 	fd.set('magnet', magnet);
-	const created = await tb('/createtorrent', { method: 'POST', body: fd });
+	const created = /** @type {TbRes<{torrent_id?: number, hash?: string}>} */ (await tb('/createtorrent', { method: 'POST', body: fd }));
 	if (!created.data?.torrent_id && !created.data?.hash) throw new Fail(409, 'TorBox no lo agregó: {d}', { d: created.detail ?? 'sin id' });
 }
 
@@ -161,16 +166,16 @@ async function added(t) {
 	const fd = new FormData();
 	fd.set('magnet', `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(t.name)}`);
 	fd.set('add_only_if_cached', 'true');
-	const created = await tb('/createtorrent', { method: 'POST', body: fd });
+	const created = /** @type {TbRes<{torrent_id?: number}>} */ (await tb('/createtorrent', { method: 'POST', body: fd }));
 	const id = created.data?.torrent_id;
 	if (!id) throw new Fail(409, 'TorBox no lo agregó: {d}', { d: created.detail ?? 'sin id' });
 	// Recién agregado, TorBox a veces todavía no lista los archivos: hasta 3 intentos, 1 s entre cada uno.
-	/** @type {any[]} */
+	/** @type {TbFile[]} */
 	let files = [];
 	for (let i = 0; i < 3 && !files.length; i++) {
 		if (i) await new Promise((ok) => setTimeout(ok, 1000));
-		const list = await tb(`/mylist?id=${id}&bypass_cache=true`);
-		files = (list.data?.files ?? []).filter((/** @type {any} */ f) => VIDEO.test(f.name ?? ''));
+		const list = /** @type {TbRes<{files?: TbFile[]}>} */ (await tb(`/mylist?id=${id}&bypass_cache=true`));
+		files = (list.data?.files ?? []).filter((f) => VIDEO.test(f.name ?? ''));
 	}
 	const file = pick(files, t);
 	if (!file) throw new Fail(409, 'TorBox todavía no tiene el archivo de video.');
@@ -195,17 +200,20 @@ const ISO3 = /** @type {Record<string, string[]>} */ ({
 async function hls(id, fileId, release, orig) {
 	try {
 		const base = `/v1/api/stream/createstream?id=${id}&file_id=${fileId}&type=torrent`;
-		const first = await tbRoot(base);
-		const audios = /** @type {any[]} */ (first.data?.metadata?.audios ?? []);
+		/** @param {string} q */
+		const stream = async (q) => /** @type {TbRes<TbStream>} */ (await tbRoot(q));
+		const first = await stream(base);
+		const audios = first.data?.metadata?.audios ?? [];
 		// `chosen_audio_index` es la posición entre los audios (el que viene por defecto es 0).
 		/** @param {number} i @param {number} [sub] posición del subtítulo a poner en el video */
 		const at = async (i, sub) =>
-			String((i > 0 || sub != null ? await tbRoot(`${base}&chosen_audio_index=${Math.max(i, 0)}${sub != null ? `&chosen_subtitle_index=${sub}` : ''}`) : first).data?.hls_url ?? '');
+			String((i > 0 || sub != null ? await stream(`${base}&chosen_audio_index=${Math.max(i, 0)}${sub != null ? `&chosen_subtitle_index=${sub}` : ''}`) : first).data?.hls_url ?? '');
 		// Subtítulos en español del propio video (siempre en sync), los forzados al final.
 		const spaSubs = spanishSubs(first.data?.metadata?.subtitles);
 		const subsEs = spaSubs.length;
 		const d = first.data ?? {};
-		const file = /^[0-9a-f]{16}$/.test(d.open_subtitles_hash ?? '') && d.size ? { hash: d.open_subtitles_hash, size: String(d.size) } : undefined;
+		const osHash = d.open_subtitles_hash ?? '';
+		const file = /^[0-9a-f]{16}$/.test(osHash) && d.size ? { hash: osHash, size: String(d.size) } : undefined;
 		const v = d.metadata?.video ?? {};
 		const dur = String(v.duration ?? '').match(/^(\d+):(\d+):(\d+)/);
 		const video = { fps: Number(v.frame_rate) || null, duration: dur ? Number(dur[1]) * 3600 + Number(dur[2]) * 60 + Number(dur[3]) : null };
@@ -244,7 +252,7 @@ async function hls(id, fileId, release, orig) {
  * latino y castellano, el orden en que el nombre los nombra (`ENG.LATINO.CASTELLANO` → el primero).
  * shortcut: supone que los audios siguen el orden del nombre; si falla, mirar la pista en el reproductor.
  * @template T @param {T[]} spa @param {string} release @returns {T | null} */
-function latinoByName(spa, release) {
+export function latinoByName(spa, release) {
 	const lat = release.search(/latino|\blat\b|latam|dual-lat/i);
 	if (lat < 0 || !spa.length) return null;
 	if (spa.length === 1) return spa[0];
@@ -253,7 +261,7 @@ function latinoByName(spa, release) {
 }
 
 /** Link de descarga (respaldo): termina en la extensión para ayudar a los reproductores que miran la URL.
- * @param {number} id @param {any} file */
+ * @param {number} id @param {TbFile} file */
 async function download(id, file) {
 	const dl = await tb(`/requestdl?token=${await key()}&torrent_id=${id}&file_id=${file.id}&zip_link=false`);
 	if (!String(dl.data ?? '').startsWith('https://')) throw new Fail(502, 'TorBox no dio el link.');
@@ -262,9 +270,9 @@ async function download(id, file) {
 }
 
 /** El archivo del addon; si no, el del episodio (packs de temporada); si no, el más grande.
- * @param {any[]} files @param {{file: string | null, s: string | null, e: string | null}} t */
-function pick(files, t) {
-	const name = (/** @type {any} */ f) => String(f.short_name ?? f.name).toLowerCase();
+ * @param {TbFile[]} files @param {{file: string | null, s: string | null, e: string | null}} t */
+export function pick(files, t) {
+	const name = (/** @type {TbFile} */ f) => String(f.short_name ?? f.name).toLowerCase();
 	if (t.file) {
 		const f = files.find((x) => name(x).endsWith(t.file?.toLowerCase() ?? ''));
 		if (f) return f;
@@ -274,5 +282,5 @@ function pick(files, t) {
 		const f = files.find((x) => re.test(name(x)));
 		if (f) return f;
 	}
-	return files.reduce((a, b) => (!a || b.size > a.size ? b : a), null);
+	return files.reduce((/** @type {TbFile | null} */ a, b) => (!a || b.size > a.size ? b : a), null);
 }

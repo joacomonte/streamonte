@@ -5,10 +5,12 @@
 	import { track } from '#lib/track.js';
 	import { onlyCinema } from '#lib/cinema.js';
 	import * as saved from '#lib/saved.js';
+	import { cat, reset } from '#lib/catalog.svelte.js';
 	import { loc, t as tr } from '#lib/i18n.svelte.js';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
+	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
 	const t = $derived(data.t);
 	const isTv = $derived(t.kind === 'tv');
@@ -22,10 +24,12 @@
 	const dir = $derived(season == null ? -1 : 1);
 	/** IMDb por temporada (la misma respuesta guardada que usa el gráfico: no suma pedidos). */
 	let scores = $state(/** @type {Record<number, number>} */ ({}));
-	/** @type {{n: number, name: string, date: string | null, still: string | null}[] | null} */
+	/** @type {{n: number, name: string, date?: string | null, still: string | null}[] | null} */
 	let episodes = $state(null);
 	let epError = $state('');
 	let more = $state(false);
+	/** Pastilla de plataformas abierta: logos con nombre en vez de apilados. */
+	let showProviders = $state(false);
 	const today = new Date().toISOString().slice(0, 10);
 	/** @param {string} d ISO (AAAA-MM-DD) */
 	const fecha = (d) => new Date(`${d}T00:00`).toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric' });
@@ -45,13 +49,23 @@
 	$effect(() => {
 		t.id;
 		more = false;
+		showProviders = false;
 	});
 	$effect(() => {
 		if (!isTv || !t.imdb) return;
 		saved.json(fetch, `/api/scores/${t.imdb}`, saved.DAY).then((r) => {
-			if (r.ok) scores = Object.fromEntries(r.data.map((/** @type {{season: number, rating: number}} */ x) => [x.season, x.rating]));
+			if (r.ok) scores = Object.fromEntries(/** @type {import('#lib/types.js').SeasonScore[]} */ (r.data).map((x) => [x.season, x.rating]));
 		}).catch(() => {});
 	});
+	/** Tocar a alguien del reparto abre el catálogo con lo que actuó o dirigió (como elegirlo en el buscador).
+	 * @param {{id: number, name: string, photo: string | null, role: 'cast' | 'director'}} p */
+	function openPerson(p) {
+		cat.q = '';
+		cat.person = { id: p.id, name: p.name, photo: p.photo, role: p.role };
+		reset();
+		track(p.role === 'director' ? 'director' : 'actor', p.name);
+		goto('/');
+	}
 	/** Se entró a la temporada desde la lista de esta página: volver es ir atrás en el historial. */
 	let fromList = false;
 	/** @param {number} n */
@@ -82,8 +96,8 @@
 		let alive = true;
 		saved.json(fetch, `/api/season/${t.id}/${n}`, saved.DAY).then(({ ok, data }) => {
 			if (!alive) return;
-			if (!ok) epError = data.message;
-			else episodes = data;
+			if (!ok) epError = /** @type {import('#lib/types.js').ApiError} */ (data).message;
+			else episodes = /** @type {import('#lib/types.js').Episodes} */ (data);
 		});
 		return () => (alive = false);
 	});
@@ -108,34 +122,56 @@
 				{#if t.rating}<span class="rate"><Icon name="star" size={13} />{t.rating}</span>{/if}
 			</p>
 			{#if t.genres.length}<p class="genres">{t.genres.join(' · ')}</p>{/if}
-			{#if t.imdb || t.trailer}
-				<p class="links">
-					{#if t.trailer}<a id="trailer-link" class="ext" href="https://www.youtube.com/watch?v={t.trailer}" target="_blank" rel="noopener noreferrer"><Icon name="play" size={13} />{tr('Tráiler')}</a>{/if}
-					{#if t.imdb}<a id="imdb-link" class="ext" href="https://www.imdb.com/title/{t.imdb}/" target="_blank" rel="noopener noreferrer"><Icon name="link" size={13} />IMDb</a>{/if}
-				</p>
-			{/if}
+			{#if t.companies.length}<p class="companies">{t.companies.join(' · ')}</p>{/if}
 		</div>
 	</div>
 </div>
 
-{#if onlyCinema(t.released)}
-	<div class="wrap cine-wrap"><p id="cine-note" class="cine-note"><Icon name="film" size={15} /><span>{tr('Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.')}</span></p></div>
-{/if}
-{#if t.providers.length}
-	<div class="wrap tags" aria-label={tr('Dónde verla')}>
-		{#each t.providers as p (p.name)}
-			<span class="tag provider" title={tr('Para ver en Argentina')}>{#if p.logo}<img src={p.logo} alt="" width="20" height="20" />{/if}{p.name}</span>
-		{/each}
+{#if t.providers.length || t.trailer || t.imdb}
+	<div class="wrap acts">
+		{#if t.providers.length}
+			<!-- Dónde verla: logos apilados; al tocar se abre con los nombres. -->
+			<button id="providers-toggle" type="button" class="providers" class:open={showProviders} aria-expanded={showProviders} aria-label={tr('Dónde verla')} title={tr('Para ver en Argentina')} onclick={() => (showProviders = !showProviders)}>
+				{#each showProviders ? t.providers : t.providers.slice(0, 3) as p (p.name)}
+					<span class="prov">
+						{#if p.logo}<img src={p.logo} alt="" width="28" height="28" />{:else}<span class="prov-empty" aria-hidden="true">{p.name[0]}</span>{/if}
+						{#if showProviders}<span class="prov-name">{p.name}</span>{/if}
+					</span>
+				{/each}
+				{#if !showProviders && t.providers.length > 3}<span class="prov-more">+{t.providers.length - 3}</span>{/if}
+			</button>
+		{/if}
+		<span class="acts-gap"></span>
+		{#if t.trailer}<a id="trailer-link" class="round" href="https://www.youtube.com/watch?v={t.trailer}" target="_blank" rel="noopener noreferrer" aria-label={tr('Tráiler')} title={tr('Tráiler')}><Icon name="play" size={16} /></a>{/if}
+		{#if t.imdb}<a id="imdb-link" class="round imdb" href="https://www.imdb.com/title/{t.imdb}/" target="_blank" rel="noopener noreferrer" title="IMDb">IMDb</a>{/if}
 	</div>
 {/if}
 
+{#if t.people.length}
+	<ul class="wrap people" aria-label={tr('Reparto')}>
+		{#each t.people as p (p.role + p.id)}
+			<li>
+				<button id="person-{p.id}" type="button" class="person" onclick={() => openPerson(p)} title={tr(p.role === 'director' ? 'Ver lo que dirigió' : 'Ver lo que actuó')}>
+					{#if p.photo}<img src={p.photo} alt="" width="56" height="56" loading="lazy" />{:else}<span class="face-empty" aria-hidden="true"><Icon name="user" size={22} /></span>{/if}
+					<span class="p-name">{p.name}</span>
+					<span class="p-note">{p.role === 'director' ? tr('Dirección') : p.note ?? ''}</span>
+				</button>
+			</li>
+		{/each}
+	</ul>
+{/if}
+
+{#if onlyCinema(t.released)}
+	<div class="wrap cine-wrap"><p id="cine-note" class="cine-note"><Icon name="film" size={15} /><span>{tr('Probablemente todavía no haya torrents de buena calidad: se estrenó hace pocas semanas y por ahora suele haber solo copias filmadas en el cine.')}</span></p></div>
+{/if}
+
 <main class="wrap">
-	<!-- Sinopsis y reparto, plegados: una fila con la primera línea; al tocarla se despliega. -->
-	{#if t.overview || t.cast.length || t.lang}
+	<!-- Sinopsis plegada: una fila con la primera línea; al tocarla se despliega. -->
+	{#if t.overview || t.lang}
 		<section class="about" class:open={more}>
 			<button id="about-toggle" type="button" class="about-head" aria-expanded={more} aria-controls="about-body" onclick={() => (more = !more)}>
 				<span class="about-text">
-					<b>{t.overview && t.cast.length ? tr('Sinopsis y reparto') : t.overview ? tr('Sinopsis') : tr('Reparto')}</b>
+					<b>{t.overview ? tr('Sinopsis') : tr('Idioma original')}</b>
 					{#if t.overview}<span class="about-peek">{t.overview}</span>{/if}
 				</span>
 				<span class="about-chev" aria-hidden="true"><Icon name="chev" size={16} /></span>
@@ -143,12 +179,7 @@
 			<div id="about-body" class="about-body" inert={!more}>
 				<div class="about-in">
 					{#if t.overview}<p class="ov-text">{t.overview}</p>{/if}
-					{#if t.cast.length || t.lang}
-						<dl class="info">
-							{#if t.cast.length}<dt>{tr('Reparto')}</dt><dd>{t.cast.join(', ')}</dd>{/if}
-							{#if t.lang}<dt>{tr('Idioma original')}</dt><dd>{t.lang}</dd>{/if}
-						</dl>
-					{/if}
+					{#if t.lang}<dl class="info"><dt>{tr('Idioma original')}</dt><dd>{t.lang}</dd></dl>{/if}
 				</div>
 			</div>
 		</section>
@@ -157,7 +188,7 @@
 	{#if !t.imdb}
 		<p class="error">{tr('TMDB no tiene el IMDb id de este título: no puedo buscar torrents.')}</p>
 	{:else if !isTv}
-		<Torrents imdb={t.imdb} name={t.title} orig={t.origLang} runtime={t.runtime} />
+		<Torrents imdb={t.imdb ?? ''} name={t.title ?? ''} orig={t.origLang} runtime={t.runtime} />
 	{:else}
 		<SeasonChart imdb={t.imdb} status={t.status} next={t.next} current={season} onpick={pickSeason} />
 		{#key season}
@@ -250,9 +281,35 @@
 	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: 12px; background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
 	.cine-note :global(svg) { flex: none; margin-top: 1px; color: var(--amber, #f5a524); }
 	.small { font-size: 12.5px; }
-	.links { display: flex; gap: 8px; margin: 10px 0 0; }
-	.ext { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 650; color: var(--text); text-decoration: none; background: color-mix(in srgb, var(--text) 9%, transparent); border: 1px solid var(--border); }
-	.ext:hover { background: color-mix(in srgb, var(--text) 15%, transparent); }
+	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+	/* Fila de acciones: plataformas a la izquierda, tráiler e IMDb redondos a la derecha. */
+	.acts { display: flex; align-items: flex-start; gap: 8px; padding: 12px 16px 0; }
+	.acts-gap { flex: 1; }
+	.providers { display: flex; flex-wrap: wrap; align-items: center; gap: 0; min-height: 40px; padding: 4px; border: 0; border-radius: 22px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: background 0.2s var(--ease); }
+	.providers:has(.prov-more) { padding-right: 12px; }
+	.providers:not(.open) .prov + .prov { margin-left: -10px; }
+	.providers.open { gap: 6px 14px; padding: 6px 14px 6px 6px; border-radius: 20px; }
+	.prov { display: inline-flex; align-items: center; gap: 8px; }
+	.prov img, .prov-empty { width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface-2); object-fit: cover; }
+	.providers.open .prov img, .providers.open .prov-empty { border-radius: 8px; }
+	.prov-empty { display: grid; place-items: center; background: var(--border); font-size: 12px; font-weight: 700; }
+	.prov-name { font-size: 13.5px; font-weight: 600; }
+	.prov-more { margin-left: 8px; font-size: 13px; font-weight: 650; color: var(--muted); font-variant-numeric: tabular-nums; }
+	.round { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); color: var(--text); text-decoration: none; transition: background 0.2s var(--ease), transform 0.15s; }
+	.round.imdb { font-size: 11px; font-weight: 800; letter-spacing: -0.02em; }
+	.round:active, .providers:active { transform: scale(0.96); }
+	@media (hover: hover) { .round:hover, .providers:hover { background: var(--surface-3, var(--border)); } }
+	/* Quién la hizo: carrusel horizontal (en desktop entra entero). */
+	.people { display: flex; gap: 4px; margin: 0 auto; padding: 14px 16px 2px; list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+	.people::-webkit-scrollbar { display: none; }
+	.people li { flex: none; scroll-snap-align: start; }
+	.person { display: flex; flex-direction: column; align-items: center; width: 84px; padding: 6px 2px; border: 0; border-radius: 12px; background: none; color: var(--text); font: inherit; text-align: center; cursor: pointer; }
+	.person img, .face-empty { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--surface-2); transition: transform 0.2s var(--out); }
+	.face-empty { display: grid; place-items: center; color: var(--muted); }
+	.person:active img { transform: scale(0.94); }
+	@media (hover: hover) { .person:hover img { transform: scale(1.05); } }
+	.p-name { margin-top: 6px; font-size: 12.5px; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+	.p-note { margin-top: 2px; font-size: 11.5px; color: var(--muted); line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 	.rate { display: inline-flex; align-items: center; gap: 3px; color: var(--yellow); font-weight: 650; }
 	main { padding: 4px 16px calc(32px + var(--safe-bottom)); }
 	.genres { margin: 6px 0 0; font-size: 13px; color: var(--muted); letter-spacing: 0.01em; }
@@ -309,27 +366,24 @@
 	.ep-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 	.ep-name { font-weight: 600; font-size: 14px; }
 	.chev { color: var(--muted); }
-	.tags { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px 2px; }
-	.tag { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; background: var(--surface-2); font-size: 13.5px; font-weight: 650; }
-	.tag.provider { padding-left: 6px; color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent-fg) 55%, transparent); }
-	.tag.provider:not(:has(img)) { padding-left: 12px; }
-	.tag img { width: 20px; height: 20px; border-radius: 5px; }
 	.info { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; padding-bottom: 14px; font-size: 14px; }
 	.info dt { color: var(--muted); }
 	.info dd { margin: 0; }
 	.ep-skel { height: 68px; border-radius: 8px; margin-top: 10px; }
 	/* Entrada: el fondo se enfoca desde un zoom y el texto sube en cascada mientras el póster llega volando. */
 	.hero::before { animation: backdrop-in 0.9s var(--out) backwards; will-change: transform; }
-	.name, .line, .genres, .links, .tags, main { animation: rise 0.7s var(--out) backwards; }
+	.name, .line, .genres, .companies, .acts, .people, main { animation: rise 0.7s var(--out) backwards; }
 	.name { animation-delay: 0.12s; }
 	.line { animation-delay: 0.2s; }
 	.genres { animation-delay: 0.24s; }
-	.links { animation-delay: 0.28s; }
-	.tags { animation-delay: 0.28s; }
+	.companies { animation-delay: 0.26s; }
+	.acts { animation-delay: 0.28s; }
+	.people { animation-delay: 0.32s; }
 	main { animation-delay: 0.36s; }
 	@keyframes backdrop-in { from { opacity: 0; transform: scale(1.18); } }
 	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 	@media (prefers-reduced-motion: reduce) {
-		.hero::before, .name, .line, .genres, .links, .tags, main { animation: none; }
+		.hero::before, .name, .line, .genres, .companies, .acts, .people, main { animation: none; }
+		.round, .providers, .person img { transition: none; }
 	}
 </style>

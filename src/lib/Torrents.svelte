@@ -13,31 +13,20 @@
 	import { untrack } from 'svelte';
 	import { audioOf, latStatus, LAT_BADGE } from './audio.js';
 	import { track } from './track.js';
+	import { QUALITY, byQuality as rankQuality, groupOf, mbpsOf as rankMbps, rank, sourceOf } from './torrent-rank.js';
 
 	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. `runtime`: duración en minutos (de la
 	 * ficha), para el bitrate. `given`: las opciones ya armadas ("Pegar magnet": los videos de ese torrent); sin pasos
-	 * ni búsqueda, directo a la lista. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null, runtime?: number | null, given?: any[] | null}} */
+	 * ni búsqueda, directo a la lista. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null, runtime?: number | null, given?: Torrent[] | null}} */
 	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null } = $props();
 
-	/** @typedef {{hash: string, release: string, file: string | null, res: string | null, hdr: string[], source: string | null, hint: 'lat' | 'likely' | 'spain' | null, multi: boolean, spa: boolean, size: number | null, seeds: number, addons: string[], subFile: boolean}} Torrent */
-	/** @typedef {{id: string, release: string, latino: boolean, format: string, downloads: number, exact?: boolean, fps?: number | null, last?: number | null, group?: string, premium?: boolean}} Sub */
+	/** @typedef {import('./types.js').Torrent} Torrent */
+	/** @typedef {import('./types.js').Sub} Sub */
 	/** @typedef {{label: string, kind: string, track: number, url: string}} Native */
 	/** @typedef {{hasKey: boolean, remaining: number | null, perDay: number | null, resetsAt: number | null, login?: string | null}} Quota */
 
 	/** Resoluciones de mejor a peor; `other` junta lo que no es 4K/1080p/720p (o no lo dice). */
 	const RES = ['2160p', '1080p', '720p', 'other'];
-	/** @param {Torrent} t */
-	const resOf = (t) => (t.res === '2160p' || t.res === '1080p' || t.res === '720p' ? t.res : 'other');
-	/** Calidad de imagen por la fuente del release, como el desktop (streamonte/ui/src/catalog-options.js): [nombre, estrellas de 4]. */
-	const QUALITY = /** @type {Record<string, [string, number]>} */ ({
-		REMUX: ['Máster', 4],
-		BluRay: ['Blu-ray', 3],
-		'WEB-DL': ['Streaming', 2],
-		WEBRip: ['Streaming', 2],
-		WEB: ['Streaming', 2],
-		HDTV: ['TV', 1],
-		DVDRip: ['DVD', 1]
-	});
 	const qs = $derived(new URLSearchParams({ imdb, ...(s && e ? { s: String(s), e: String(e) } : {}) }).toString());
 
 	let data = $state(/** @type {{list: Torrent[], found: number, sources: number} | null} */ (null));
@@ -138,7 +127,7 @@
 			showAll = false;
 			progress = { done: 0, total: 0, torbox: false };
 			// Lista guardada 1 hora (saved.js): se pinta en este mismo cuadro, sin pasar por la búsqueda.
-			data = given ? { list: given, found: given.length, sources: 1 } : hit;
+			data = given ? { list: given, found: given.length, sources: 1 } : /** @type {typeof data} */ (hit);
 			// Torrent pegado: ya se sabe qué torrent es, no hay conexión ni audio para elegir.
 			if (given) { step = 'list'; showAll = true; }
 		});
@@ -205,10 +194,8 @@
 			if (g === gen) goStep('audio');
 		}, 220);
 	}
-	/** Mbps típicos por resolución cuando no se sabe la duración (como el desktop, catalog-options.js `TYPICAL_MBPS`). */
-	const TYPICAL = /** @type {Record<string, number>} */ ({ '2160p': 25, '1080p': 8, '720p': 4, other: 3 });
-	/** Bitrate que pide el video, en Mbps: peso ÷ duración (la de la ficha); sin alguno de los dos, lo típico. @param {Torrent} t */
-	const mbpsOf = (t) => (t.size && runtime ? (t.size * 8) / (runtime * 60) / 1e6 : TYPICAL[resOf(t)]);
+	/** @param {Torrent} t */
+	const mbpsOf = (t) => rankMbps(t, runtime);
 	/** ¿Entra en la conexión elegida? Sin peso no se sabe cuánto pide: no entra (no puede ser el buen match). @param {Torrent} t */
 	const fits = (t) => !!t.size && (!net || mbpsOf(t) <= net.mbps);
 
@@ -255,11 +242,8 @@
 	 * confirmar y con algo que lo sugiera (web latina, MULTI / Dual / español sin aclarar); las que no dicen nada de
 	 * idioma no se leen. Audio original: sin saber si trae sub ES. @param {boolean} lat @param {Torrent} t */
 	const unread = (lat, t) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (status(t) === 'likely' || (status(t) === 'check' && t.spa)) : !hasEs(t) && !known(t));
-	/** @param {Torrent} t */
-	const qualityRank = (t) => (t.source ? QUALITY[t.source]?.[1] : null) ?? 2.5;
-	/** De mejor a peor: más bitrate (más imagen por segundo; la resolución sola no dice cuánto se comprimió), y a igual
-	 * bitrate la de mejor calidad de imagen. @param {Torrent} a @param {Torrent} b */
-	const byQuality = (a, b) => Number(!a.size) - Number(!b.size) || mbpsOf(b) - mbpsOf(a) || qualityRank(b) - qualityRank(a);
+	/** @param {Torrent} a @param {Torrent} b */
+	const byQuality = (a, b) => rankQuality(a, b, runtime);
 	/** Lo que entra con el audio elegido (latino: solo las con potencial), de mejor a peor. `byBest`: solo las que entran
 	 * en la conexión (de ahí sale el buen match); `everything`: todas, para "Ver todas". */
 	const everything = $derived((wantLat ? all.filter(potential) : [...all]).sort(byQuality));
@@ -329,32 +313,10 @@
 	});
 	/** El video que copiaste: los subtítulos se ordenan por cuánto calzan con él. */
 	let match = $state(/** @type {{hash: string, release: string, natives?: Native[], file?: {hash: string, size: string}, video?: {fps: number | null, duration: number | null}} | null} */ (null));
-	/** Fuente del release: HDTV, web y Blu-ray del mismo capítulo pueden tener otro corte. @param {string} x */
-	const sourceOf = (x) =>
-		/web[ ._-]?dl|web[ ._-]?rip|\bweb\b|amzn|\bnf\b|hmax|dsnp/i.test(x) ? 'WEB' : /blu-?ray|bdrip|brrip|remux/i.test(x) ? 'BluRay' : /hdtv/i.test(x) ? 'HDTV' : /dvd/i.test(x) ? 'DVD' : null;
-	/** Grupo del release (`…-KILLERS`). @param {string} x */
-	const groupOf = (x) => x.match(/-([a-z0-9]+)(?:\.[a-z0-9]{2,4})?$/i)?.[1] ?? '';
-	/** Cuánto calza con el video copiado, como el desktop (crates/core/src/subtitles.rs): 3 hecho para ese archivo,
-	 * 2 mismo release (grupo y, si se sabe, fuente), 1 mismos fps y termina dentro del video, 0 nada. @param {Sub} sub */
-	function level(sub) {
-		if (sub.exact) return 3;
-		const rel = match?.release ?? '';
-		const g = groupOf(rel).toLowerCase();
-		const [a, b] = [sourceOf(rel), sourceOf(sub.release)];
-		if (g && ((sub.group ?? '').toLowerCase() === g || groupOf(sub.release).toLowerCase() === g) && (!a || !b || a === b)) return 2;
-		const v = match?.video;
-		const ends = !v?.duration || !sub.last || (sub.last >= v.duration * 0.8 && sub.last <= v.duration + 5);
-		return v?.fps && sub.fps && Math.abs(v.fps - sub.fps) < 0.05 && ends ? 1 : 0;
-	}
-	console.assert((() => { const s = { id: '', latino: false, format: '', downloads: 0 }; const old = match; match = { hash: '', release: 'X.WEB-DL-NTb', video: { fps: 23.976, duration: 3000 } };
-		const r = level({ ...s, release: 'X.1080p.WEB-DL-NTb' }) === 2 && level({ ...s, release: 'X.BluRay-NTb' }) === 0 && level({ ...s, release: 'X.BluRay-DEMAND', fps: 23.976, last: 2900 }) === 1; match = old; return r; })());
 	const LEVEL = ['puede desfasar', 'probable', 'muy probable', 'perfecto'].map((x) => () => tr(x));
 	const WHY = ['Otro release: puede ir adelantado o atrasado', 'Mismos fps y misma duración que el video', 'Mismo release: mismo grupo y fuente', 'Hecho para este mismo archivo'].map((x) => () => tr(x));
-	/** Exacto → mismo release → mismos fps y duración → resto; adentro, latinos y más bajados. @param {Sub[]} list */
-	const rank = (list) => list.map((sub) => ({ ...sub, level: level(sub) }))
-		.sort((a, b) => b.level - a.level || Number(b.latino) - Number(a.latino) || b.downloads - a.downloads);
-	const ranked = $derived(subs ? rank(subs) : []);
-	const premRanked = $derived(rank(prem.results));
+	const ranked = $derived(subs ? rank(subs, match) : []);
+	const premRanked = $derived(rank(prem.results, match));
 	/** Encabezado de la fila: grupo del release y "fuente resolución". @param {Sub} sub */
 	const headOf = (sub) => sub.group || groupOf(sub.release) || (sub.premium ? 'OpenSubtitles' : 'OpenSubtitles.org');
 	/** @param {Sub} sub */
@@ -403,7 +365,7 @@
 	 * Es del torrent y no cambia: se guarda para siempre (saved.remember). */
 	let info = $state(/** @type {Record<string, import('./audio.js').Tracks | 'busy' | 'err' | null>} */ ({}));
 	$effect(() => {
-		for (const t of data?.list ?? []) if (!(t.hash in info)) info[t.hash] = saved.recall(`tracks:${t.hash}`);
+		for (const t of data?.list ?? []) if (!(t.hash in info)) info[t.hash] = /** @type {import('./audio.js').Tracks | null} */ (saved.recall(`tracks:${t.hash}`));
 	});
 	/** @param {string} hash @param {import('./audio.js').Tracks} v */
 	function know(hash, v) {
@@ -870,7 +832,7 @@
 				<div class="info">
 				<div class="top">
 					<span class="size">{gb(t.size)}</span>
-					{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res}</span>{/if}
+					{#if t.res}<span class="tag res">{t.res === '2160p' ? '4K' : t.res === '1440p' ? '2K' : t.res}</span>{/if}
 					{#if t.size && !fits(t)}<span class="tag heavy" title={tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) })}>{tr('Puede cortarse')}</span>{/if}
 					{#if t.hdr.length}<span class="tag hdr">HDR</span>{/if}
 					<!-- Gallego solo si la peli es hablada en español o se pide latino; LAT siempre; el resto solo pidiendo latino. -->

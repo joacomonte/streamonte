@@ -86,11 +86,12 @@ export async function loadMore() {
 	}
 	try {
 		// Cada página queda guardada un día: al volver a entrar se ve al instante.
-		const { ok, data: j } = await cache.json(fetch, `/api/catalog?${p}`, cache.DAY);
+		const { ok, data } = await cache.json(fetch, `/api/catalog?${p}`, cache.DAY);
 		if (gen !== cat.gen) return;
-		if (!ok) throw new Error(j.message);
+		if (!ok) throw new Error(/** @type {{message: string}} */ (data).message);
+		const j = /** @type {{items: typeof cat.items, page: number, pages: number}} */ (data);
 		const seen = new Set(cat.items.map((i) => `${i.kind}${i.id}`));
-		cat.items.push(...j.items.filter((/** @type {any} */ i) => !seen.has(`${i.kind}${i.id}`)));
+		cat.items.push(...j.items.filter((i) => !seen.has(`${i.kind}${i.id}`)));
 		cat.page = j.page;
 		cat.done = j.page >= j.pages;
 	} catch (e) {
@@ -126,5 +127,5 @@ export function relang() {
 export async function loadGenres(kind) {
 	if (cat.genreList[kind]) return;
 	const r = await cache.json(fetch, `/api/genres?kind=${kind}`, cache.DAY);
-	if (r.ok) cat.genreList[kind] = r.data;
+	if (r.ok) cat.genreList[kind] = /** @type {import('./types.js').Genres} */ (r.data);
 }

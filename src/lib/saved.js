@@ -17,7 +17,7 @@ const keyOf = (url) => {
 	return `${kind}@${V[kind] ?? 0}:${contentKey()}${url}`;
 };
 
-/** Lo guardado si todavía está vigente; si no, null. @param {string} key @returns {any} */
+/** Lo guardado si todavía está vigente; si no, null. @param {string} key @returns {unknown} */
 export function get(key) {
 	try {
 		const v = JSON.parse(localStorage.getItem(PREFIX + key) ?? 'null');
@@ -45,7 +45,7 @@ export function put(key, data, ttl) {
 }
 
 /** La respuesta guardada y vigente de una URL de la API, ya (sin esperar): para pintar sin un cuadro de carga
- * intermedio. null si no hay. @param {string} url @returns {any} */
+ * intermedio. null si no hay. @param {string} url @returns {unknown} */
 export const peek = (url) => get(keyOf(url));
 
 /** Guarda la respuesta de una URL de la API (la que se armó leyendo un stream). @param {string} url @param {unknown} data @param {number} ttl */
@@ -53,7 +53,7 @@ export const store = (url, data, ttl) => put(keyOf(url), data, ttl);
 
 /** GET a la API con caché: si hay una respuesta vigente la devuelve sin pedir; si no, pide y guarda solo las ok.
  * @param {typeof fetch} f el `fetch` de SvelteKit en un `load`, o el global @param {string} url @param {number} ttl
- * @returns {Promise<{ok: boolean, status: number, data: any}>} */
+ * @returns {Promise<{ok: boolean, status: number, data: unknown}>} */
 export async function json(f, url, ttl) {
 	const key = keyOf(url);
 	const hit = get(key);
@@ -68,7 +68,7 @@ export async function json(f, url, ttl) {
 const cachedKeys = () => Object.keys(localStorage).filter((k) => k.startsWith(PREFIX));
 
 /** Para siempre (datos que no cambian, como qué subtítulos trae un torrent): otro prefijo, así el borrado de lo
- * vencido no los toca. @param {string} key @returns {any} */
+ * vencido no los toca. @param {string} key @returns {unknown} */
 export function recall(key) {
 	try {
 		return JSON.parse(localStorage.getItem(KEEP + key) ?? 'null');

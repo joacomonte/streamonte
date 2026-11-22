@@ -27,14 +27,14 @@ async function rpc(method, params) {
 }
 
 /** Miembros simples de un `<struct>` (los anidados se ignoran). @param {string} xml */
-function members(xml) {
+export function members(xml) {
 	/** @type {Record<string, string>} */
 	const out = {};
 	for (const m of xml.matchAll(/<member>\s*<name>([^<]*)<\/name>\s*<value>\s*(?:<(?:string|int|double)>)?([^<]*)/g)) out[m[1].trim()] = unesc(m[2]);
 	return out;
 }
 /** @param {string} xml */
-const results = (xml) => {
+export const results = (xml) => {
 	const i = xml.indexOf('<name>data</name>');
 	return i < 0 ? [] : xml.slice(i).split('<struct>').slice(1).map(members);
 };
@@ -83,7 +83,7 @@ export async function search(imdb, s, e, file = null) {
 }
 
 /** `hh:mm:ss` → segundos (null si no viene). @param {string | undefined} ts */
-function seconds(ts) {
+export function seconds(ts) {
 	const m = ts?.match(/^(\d+):(\d+):(\d+)/);
 	return m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) : null;
 }
@@ -135,7 +135,7 @@ async function osSession() {
 	if (rejected?.who === who) throw new Fail(401, rejected.message);
 	const r = await get(`${OS_API}/login`, { method: 'POST', headers: { ...osHeaders(await osKey()), 'content-type': 'application/json' },
 		body: JSON.stringify({ username: k.opensubtitles_user, password: k.opensubtitles_pass }) }, 20_000).catch(() => null);
-	const j = await r?.json().catch(() => null);
+	const j = /** @type {{token?: string, base_url?: string} | null | undefined} */ (await r?.json().catch(() => null));
 	if (!r?.ok || !j?.token) {
 		// Usuario o contraseña mal: no reintentar. Caída de la red o del servidor: se reintenta en el próximo toque.
 		if (r && r.status < 500) {
@@ -158,10 +158,10 @@ export async function premiumQuota() {
 			const s = await osSession();
 			if (s) {
 				const r = await get(`${s.api}/infos/user`, { headers: { ...osHeaders(await osKey()), authorization: `Bearer ${s.token}` } }, 15_000);
-				const d = (await r.json().catch(() => ({}))).data ?? {};
+				const d = /** @type {{data?: {remaining_downloads?: number, allowed_downloads?: number, reset_time_utc?: string}}} */ (await r.json().catch(() => ({}))).data ?? {};
 				if (r.status === 401) account = null;
 				else if (Number.isFinite(d.remaining_downloads)) {
-					quota = { remaining: Math.max(0, d.remaining_downloads), perDay: Number(d.allowed_downloads) || 0, resetsAt: Date.parse(d.reset_time_utc ?? '') || null };
+					quota = { remaining: Math.max(0, /** @type {number} */ (d.remaining_downloads)), perDay: Number(d.allowed_downloads) || 0, resetsAt: Date.parse(d.reset_time_utc ?? '') || null };
 					quotaAt = Date.now();
 				}
 			}
@@ -181,17 +181,17 @@ export async function premiumSearch(imdb, s, e, file = null) {
 	const r = await get(`${OS_API}/subtitles?${q}`, { headers: osHeaders(await osKey()) }, 20_000);
 	if (r.status === 401 || r.status === 403) throw new Fail(401, 'opensubtitles.com rechazó la key: revisala en Ajustes.');
 	if (!r.ok) throw new Fail(502, 'opensubtitles.com no respondió. No se gastó ninguna descarga.');
-	const j = await r.json();
-	return /** @type {any[]} */ (j.data ?? []).flatMap((item) => {
+	const j = /** @type {{data?: {attributes?: {files?: {file_id?: number}[], language?: string, release?: string, download_count?: number, moviehash_match?: boolean, fps?: number}}[]}} */ (await r.json());
+	return (j.data ?? []).flatMap((item) => {
 		const a = item.attributes ?? {};
 		const id = a.files?.[0]?.file_id;
-		if (!id || !['ea', 'es', 'sp'].includes(a.language)) return [];
+		if (!id || !['ea', 'es', 'sp'].includes(a.language ?? '')) return [];
 		return [{ id: String(id), release: String(a.release ?? ''), latino: a.language === 'ea', format: 'srt', downloads: Number(a.download_count) || 0,
 			exact: a.moviehash_match === true, fps: Number(a.fps) || null, last: null, group: '', premium: true }];
 	});
 }
 
-/** Descargas en curso: un doble toque no gasta dos. @type {Map<string, Promise<any>>} */
+/** Descargas en curso: un doble toque no gasta dos. @type {Map<string, ReturnType<typeof premiumQuota>>} */
 const inflight = new Map();
 
 /** Baja UNO (gasta 1 de la cuota) y lo guarda para servirlo. Lo ya bajado no vuelve a gastar. @param {string} id */
@@ -214,7 +214,7 @@ async function fetchPremium(id) {
 	const r = await get(`${s?.api ?? OS_API}/download`, { method: 'POST', headers: { ...osHeaders(key), ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ file_id: Number(id) }) }, 20_000);
 	if (r.status === 401 && s) account = null;
 	quotaAt = Date.now();
-	const j = await r.json().catch(() => ({}));
+	const j = /** @type {{requests?: number, reset_time_utc?: string, link?: string, remaining?: number}} */ (await r.json().catch(() => ({})));
 	const used = Number(j.requests) || 0;
 	const resetsAt = Date.parse(j.reset_time_utc ?? '') || null;
 	if (r.status === 406) {
@@ -222,7 +222,7 @@ async function fetchPremium(id) {
 		throw new Fail(429, 'No quedan descargas de Premium por hoy.');
 	}
 	if (!r.ok || !j.link) throw new Fail(502, 'opensubtitles.com no dio el subtítulo.');
-	if (Number.isFinite(j.remaining)) quota = { remaining: Math.max(0, j.remaining), perDay: used + Math.max(0, j.remaining), resetsAt };
+	if (typeof j.remaining === 'number' && Number.isFinite(j.remaining)) quota = { remaining: Math.max(0, j.remaining), perDay: used + Math.max(0, j.remaining), resetsAt };
 	const file = await get(j.link, {}, 20_000);
 	if (!file.ok) throw new Fail(502, 'opensubtitles.com no dio el subtítulo.');
 	const bytes = new Uint8Array(await file.arrayBuffer());
@@ -238,7 +238,7 @@ export async function premiumFile(id) {
 }
 
 /** Bytes de un subtítulo → texto UTF-8 (muchos vienen en Windows-1252), sin BOM. @param {Uint8Array} bytes */
-function utf8(bytes) {
+export function utf8(bytes) {
 	let text;
 	try {
 		text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);

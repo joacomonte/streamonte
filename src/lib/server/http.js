@@ -14,7 +14,7 @@ export class Fail extends Error {
 
 /** Envuelve un endpoint: devuelve JSON y, si falla, `{message}` con el status (nunca la URL, que puede llevar keys).
  * @param {(event: import('@sveltejs/kit').RequestEvent<Record<string, string>>) => Promise<unknown>} fn */
-export const route = (fn) => async (/** @type {any} */ event) => {
+export const route = (fn) => async (/** @type {import('@sveltejs/kit').RequestEvent<Record<string, string>>} */ event) => {
 	try {
 		const out = await fn(event);
 		return out instanceof Response ? out : json(out);

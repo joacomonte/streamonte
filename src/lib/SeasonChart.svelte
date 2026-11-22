@@ -20,7 +20,7 @@
 		saved.json(fetch, `/api/scores/${id}`, saved.DAY)
 			.then((r) => {
 				if (!alive) return;
-				if (r.ok) scores = r.data;
+				if (r.ok) scores = /** @type {import('./types.js').SeasonScore[]} */ (r.data);
 				else failed = true;
 			})
 			.catch(() => alive && (failed = true));

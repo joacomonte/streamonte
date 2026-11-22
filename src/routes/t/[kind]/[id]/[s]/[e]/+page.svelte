@@ -3,6 +3,7 @@
 	import Torrents from '#lib/Torrents.svelte';
 	import { loc, t as tr } from '#lib/i18n.svelte.js';
 
+	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
 	const t = $derived(data.t);
 	const code = $derived(tr('T{s} · E{e}', { s: data.s, e: data.e }));
@@ -36,7 +37,7 @@
 	{#if !t.imdb}
 		<p class="error">{tr('TMDB no tiene el IMDb id de esta serie: no puedo buscar torrents.')}</p>
 	{:else}
-		<Torrents imdb={t.imdb} s={data.s} e={data.e} name={t.title} orig={t.origLang} runtime={t.runtime} />
+		<Torrents imdb={t.imdb ?? ''} s={data.s} e={data.e} name={t.title ?? ''} orig={t.origLang} runtime={t.runtime} />
 	{/if}
 </main>
 
