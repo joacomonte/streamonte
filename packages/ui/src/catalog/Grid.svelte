@@ -2,9 +2,11 @@
 	// Grilla del catálogo: tarjetas con su entrada animada, esqueletos, proyector de la primera carga, estados vacío/error y el
 	// centinela del scroll infinito.
 	import Icon from '../components/Icon.svelte';
+	import { getApi } from '../context.ts';
 	import { onlyCinema } from '../format.ts';
 	import { t } from '../i18n/runtime.ts';
 	import type { CatalogItem } from '../types.ts';
+	import CardInfo from './CardInfo.svelte';
 	import { changedCount } from './filters.ts';
 	import type { CatalogStore } from './store.ts';
 
@@ -33,6 +35,25 @@
 	/** Póster dibujado cuando no hay imagen (o se rompió): matiz por id. */
 	const hue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 	let broken = $state<string[]>([]);
+	const api = getApi();
+	/** Póster alternativo por id (cuando el de la tarjeta no carga); cada id se reintenta una sola vez. */
+	let swapped = $state<Record<string, string>>({});
+	const retried = new Set<string>();
+	async function onbroken(it: CatalogItem) {
+		if (retried.has(it.id)) return void broken.push(it.id);
+		retried.add(it.id);
+		const url = await api.catalog.poster(it.id).catch(() => null);
+		if (url) swapped[it.id] = url;
+		else broken.push(it.id);
+	}
+	/** Detalles al detenerse un momento sobre la tarjeta (no al pasar de largo). Solo con mouse: en el celu el toque abre el título. */
+	const canHover = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
+	let asked = $state<string[]>([]);
+	let hoverT: ReturnType<typeof setTimeout> | undefined;
+	const enterCard = (it: CatalogItem) => {
+		if (canHover && !asked.includes(it.id)) hoverT = setTimeout(() => asked.push(it.id), 250);
+	};
+	const leaveCard = () => clearTimeout(hoverT);
 	const click = (e: MouseEvent, it: CatalogItem) => {
 		if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 		e.preventDefault();
@@ -112,10 +133,11 @@
 
 {#snippet face(it: CatalogItem)}
 	{#if it.poster && !broken.includes(it.id)}
-		<img src={it.poster} alt="" loading="lazy" decoding="async" width="342" height="513" referrerpolicy="no-referrer" onerror={() => broken.push(it.id)} />
+		<img src={swapped[it.id] ?? it.poster} alt="" loading="lazy" decoding="async" width="342" height="513" referrerpolicy="no-referrer" onerror={() => onbroken(it)} />
 	{:else}
 		<div class="noposter" style:--hue={hue(it.id)}>{it.title}</div>
 	{/if}
+	{#if asked.includes(it.id)}<CardInfo item={it} />{/if}
 	{#if onlyCinema(it.released)}<span class="cine" title={t('Recién estrenada: probablemente solo haya copias filmadas en el cine')}><Icon name="film" size={11} />{t('En cines')}</span>{/if}
 	<div class="meta">
 		<span class="title">{it.title}</span>
@@ -130,9 +152,9 @@
 		{#each items as it (`${it.kind}${it.id}`)}
 			<li>
 				{#if href}
-					<a id="cat-card-{it.id}" class="card" class:active={st.activeId === it.id} data-id={it.id} href={href(it)} data-sveltekit-preload-data="tap" onclick={(e) => click(e, it)} use:enter>{@render face(it)}</a>
+					<a id="cat-card-{it.id}" class="card" class:active={st.activeId === it.id} data-id={it.id} href={href(it)} data-sveltekit-preload-data="tap" onmouseenter={() => enterCard(it)} onmouseleave={leaveCard} onclick={(e) => click(e, it)} use:enter>{@render face(it)}</a>
 				{:else}
-					<button id="cat-card-{it.id}" type="button" class="card" class:active={st.activeId === it.id} data-id={it.id} onclick={() => onopen(it)} use:enter>{@render face(it)}</button>
+					<button id="cat-card-{it.id}" type="button" class="card" class:active={st.activeId === it.id} data-id={it.id} onmouseenter={() => enterCard(it)} onmouseleave={leaveCard} onclick={() => onopen(it)} use:enter>{@render face(it)}</button>
 				{/if}
 			</li>
 		{/each}

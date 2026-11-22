@@ -20,12 +20,15 @@ export interface Api {
 		people(query: string): Promise<PersonHit[]>;
 		personTitles(id: number, role: PersonRole): Promise<CatalogItem[]>;
 		genres(kind: Kind): Promise<Genre[]>;
+		/** Póster alternativo cuando el de la tarjeta no carga (desktop: TMDB); null si no hay otro. */
+		poster(id: string): Promise<string | null>;
 	};
 	title: {
 		details(kind: Kind, id: string): Promise<TitleDetails>;
 		similar(kind: Kind, imdb: string): Promise<SimilarItem[]>;
 		episodes(id: string, season: number): Promise<Episode[]>;
-		seasonRatings(imdb: string): Promise<SeasonRatings>;
+		/** `quick`: sin ir a IMDb (rápido; para los detalles de la tarjeta). La web lo ignora. */
+		seasonRatings(imdb: string, quick?: boolean): Promise<SeasonRatings>;
 	};
 	options: {
 		/** La web emite una actualización final con `done: true` (más las de progreso); el desktop, una por tanda de fuentes. */

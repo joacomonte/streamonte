@@ -16,21 +16,18 @@
    "sel": "#cat-card-tt0903747",
    "text": "Crimen|Crime",
    "hover": "#cat-card-tt0903747",
-   "status": "regressed",
    "note": "hover: géneros"
   },
   {
-   "sel": "#cat-card-tt0903747 [class*=sbar]",
-   "count": 3,
+   "sel": "#cat-card-tt0903747",
+   "text": "Serie terminada|Series ended",
    "hover": "#cat-card-tt0903747",
-   "status": "regressed",
-   "note": "hover: barras de temporadas"
+   "note": "hover: estado de la serie (la fixture quick no trae puntajes: sin barras)"
   },
   {
    "sel": "#cat-card-tt0903747",
    "text": "Emmy",
    "hover": "#cat-card-tt0903747",
-   "status": "regressed",
    "note": "hover: premios"
   }
  ]

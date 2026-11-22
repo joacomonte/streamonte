@@ -1069,5 +1069,14 @@ const EN: Record<string, string> = {
 	"mpv instalado: se usa desde la próxima reproducción.": "mpv installed: it's used from the next playback.",
 	"Abrí la guía de instalación de mpv.": "Open the mpv install guide.",
 	"Usar": "Use",
+	"Clásico eterno": "Timeless classic",
+	"De Óscar": "Oscar-worthy",
+	"Ovación de pie": "Standing ovation",
+	"Vale la entrada": "Worth the ticket",
+	"Pochoclera": "Popcorn flick",
+	"Peli de domingo": "Sunday movie",
+	"Depende del gusto": "Matter of taste",
+	"Para fans del género": "For genre fans",
+	"De culto entre amigos": "Cult favorite among friends",
 };
 export default EN;
