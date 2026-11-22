@@ -12,12 +12,12 @@ JS vanilla `// @ts-check` + JSDoc, migrando a Svelte 5 + TS por "islas". Habla c
 - `app.js`: `onShortcut:21` `onEvent:33` (lo no migrado; recibe `prev`) · `startLive(onEvent):83`.
 - `catalog.js`: lo que queda del catálogo en JS — `pickPerson:34` `pasteMagnet` `askTmdbKey` `setPastedHost:126` `refreshPasted:128` `openSources` · listener de eventos del núcleo en `init`. Grilla/filtros/buscador = `packages/ui/src/catalog/` montado por `catalog-mount.ts:17 mountCatalog(api)` (→ `catalog-side.js:openSide`; ← `main.ts:32`). `catalog-store.test.ts` (fixtures `mock/`).
 - `catalog-state.js`: `showError` `safeGet` `state` (`side` con gancho `hooks.side` → `catalog-mount.ts`) `view` (sin imports del catálogo).
-- `catalog-side.js`: dueño de `state.side` — `openSide:42` `closeSide:76` `goSeason:88` `renderSide:107` (→ `side-panel.svelte.ts`) · `Object.assign(actions):119` · ← `catalog-mount.ts`, `catalog-magnet.js`, `catalog-options.js`.
+- `catalog-side.js`: dueño de `state.side` — `openSide:42` `closeSide:76` `goSeason:88` `renderSide:107` (→ `side-panel.svelte.ts`) · `Object.assign(actions):119` · ← `catalog-mount.ts`, `catalog-magnet.js`, `catalog-options.ts`.
 - `side-panel.svelte.ts` `panel` `actions` (puente JS↔Svelte) · `SidePanel.svelte` (cerrar, migas, `#cat-streams`) → `$ui/title/TitleView.svelte` · montado en `#cat-side` por `main.ts` con el mismo `Api`.
-- `catalog-options.js`: `loadStreams:126` `onStreams:153` `sortOptions:200` `loadTorbox:273` `groupPanel:475` `rowView:807` `playButtons:890` `renderStreamsOnly:954` · bajar de fondo `api.playBackground:760` · ▶ `api.playTorbox:1204`/`api.play:1205` → fila `$ui/options/row.ts` + `options-mount.svelte.ts`.
-- `options-mount.svelte.ts` `optionsList(name, rows)` (lista compartida `$ui/options/OptionsList.svelte` montada una vez por lugar) `flushOptions` · ← `catalog-options.js`, `catalog-flow.js`.
-- `catalog-flow.js`: `newFlow:30` `flowFilter:88` `cancelFlowWork:184` `flowStep:250`.
-- `catalog-tests.js`: `toggleBest:87` `runCensus:186` `runQuick:261` `runDeep:395` `onSwarmEvent:431`.
+- `catalog-options.ts`: `loadStreams:122` `onStreams:150` `sortOptions:180` `loadTorbox:237` `groupPanel:406` `startBg:625` `rowView:669` `playButtons:759` `renderStreamsOnly:822` (arma la vista + FLIP) `streamsView:933` `playOption:1025` → `options-logic.ts`, `streams-panel.svelte.ts`, fila `$ui/options/row.ts` · ← `catalog.js`, `catalog-side.js`, `app.js`.
+- `streams-panel.svelte.ts` `showStreams:17` (monta `StreamsPanel.svelte` en `#cat-streams`) `openCtxMenu:35` (`CtxMenu.svelte`) · modelo de vista `streams-view.ts` · `StreamsPanel.svelte` → `GroupPanel.svelte`, `FlowScreen.svelte`, `Crumbs.svelte`, `MoreRow.svelte`, `$ui/options/OptionsList.svelte` · ← `catalog-options.ts`.
+- `catalog-flow.ts`: `newFlow:36` `flowFilter:82` `cancelFlowWork:174` `crumbs:218` `flowStep:236` (→ `FlowView`) `moreRow:409` · ← `catalog-options.ts`, `catalog-tests.ts`.
+- `catalog-tests.ts` (estado de pruebas en módulo): `startAnalysis:75` `toggleBest:94` `runCensus:182` `runQuick:234` `runDeep:369` `onSwarmEvent:407` · `options-logic.ts` (puro, test `options-logic.test.ts` con `mock/`): `quickGroupOf` `seedsOf` `fileBytesOf` `playbackFor` `pinActive` `topFinalists`.
 - `catalog-subs.js`: `subsProgress:34` `readTracks:64` `readSubsNow:119` `subsStep:198` `openSubs:211` → `mount-shared.ts`, `SubsStep.svelte` (→ `packages/ui/src/subs/SubsPicker.svelte`).
 - `catalog-magnet.js:18` `openMagnet` → `mount-shared.ts` `mountMagnet` (→ `packages/ui/src/magnet/MagnetView.svelte`) · `magnetHash` ← `packages/ui/src/magnet-hash.ts`.
 - `mount-shared.ts` `mountSubsStep` `mountMagnet` `provideApi:11` (lo llama `main.ts:31`) → `packages/ui/src/context.ts` `apiContext` · ← `catalog-subs.js`, `catalog-magnet.js`.
@@ -32,7 +32,7 @@ JS vanilla `// @ts-check` + JSDoc, migrando a Svelte 5 + TS por "islas". Habla c
 
 ## Flujo
 - Búsqueda: `catalog.js:85` `search` → `api.js:116` `catalogSearch` → `commands.rs:435` → `AppCore::catalog_search` (`crates/core/src/app.rs:1375`) → `state.results` → `render`.
-- Torrents: `catalog-options.js:126` `loadStreams` → `api.js:158` `catalogStreams` → `commands.rs:460` → `app.rs:1539` → evento `catalog-streams` → `catalog.js:998` → `onStreams`; swarm/census → `catalog-swarm-*` → `onSwarmEvent`.
+- Torrents: `catalog-options.ts:122` `loadStreams` → `api.js:158` `catalogStreams` → `commands.rs:460` → `app.rs:1539` → evento `catalog-streams` → `catalog.js:998` → `onStreams`; swarm/census → `catalog-swarm-*` → `onSwarmEvent`.
 - Reproducir: `audio-picker.js:223` `play` → `api.play` → evento `playback-updated` → `live.svelte.ts:59` → `live.v.playbacks` → `app.js:33`; `app.js` avisa con CustomEvent `playback-changed` y `catalog.js:980` lo escucha.
 - Cierre: evento `confirm-close` → `app.js:66` → `dialog-flows.ts` `onConfirmClose` → `api` `on_close`.
 

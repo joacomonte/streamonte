@@ -11,12 +11,12 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
 - `title/TitleView.svelte` (ficha única) → `context.ts` (`getApi().title.*`), `SeasonChart.svelte`, `title-state.ts`, `components/Icon.svelte` · ← `web/src/routes/t/[kind]/[id]/+page.svelte`, `ui/src/SidePanel.svelte`. Props: `details?` `season` `episode` `onSeason` `onEpisode` `onPerson` `onOpenTitle` `options` (snippet torrents) `between` `teaser` `ids`.
 - `title/SeasonChart.svelte` → `title-state.ts:43 chartModel` · ← `TitleView.svelte`.
 - `title/title-state.ts` `:12 pickPeople` `:19 providerView` `:26 seasonTiles` `:34 outlookOf` `:43 chartModel` `:59 episodeRows` `:62 showCineNote` `:83 WEB_IDS` `:88 DESKTOP_IDS` → `season.ts`, `format.ts` · test `title/title-state.test.ts` (fixtures `ui/mock/`).
-- `rank.ts` `:17 QUALITY_STARS` `:20 TYPICAL_MBPS` `:25 mbpsOf` `:29 neededBps` `:37 optionMbps` `:44 byQuality` `:60 hintOf` `:71 latOf` `:84 tierOf` `:113 rankOptions` → `types.ts` · ← `web/src/lib/Torrents.svelte`, `ui/src/catalog-options.js`, `ui/src/tauri-adapt.ts`.
+- `rank.ts` `:17 QUALITY_STARS` `:20 TYPICAL_MBPS` `:25 mbpsOf` `:29 neededBps` `:37 optionMbps` `:44 byQuality` `:60 hintOf` `:71 latOf` `:84 tierOf` `:113 rankOptions` → `types.ts` · ← `web/src/lib/Torrents.svelte`, `ui/src/catalog-options.ts`, `ui/src/tauri-adapt.ts`.
 - `options/` — lista de opciones de torrents (web ↔ desktop; CSS `packages/ui/css/options.css`):
-  - `OptionsList.svelte` (`rows` por hash) → `OptionRow.svelte` (`row`) → `since.ts` `:6 since`, `components/Icon.svelte` · ← `web/src/lib/Torrents.svelte`, `ui/src/options-mount.svelte.ts`.
-  - `row.ts` `:58 OptionRowView` (`Mid`/`Action` desktop-only = `capabilities.speedTests`) `:83 RES_ORDER` `:101 qualityOf` `:117 TipBook` `:174 langTags` `:196 sizeText` → `audio.ts`, `rank.ts` · ← `ui/src/catalog-options.js`, `Torrents.svelte`.
+  - `OptionsList.svelte` (`rows` por hash) → `OptionRow.svelte` (`row`) → `since.ts` `:6 since`, `components/Icon.svelte` · ← `web/src/lib/Torrents.svelte`, `ui/src/StreamsPanel.svelte`, `ui/src/FlowScreen.svelte`.
+  - `row.ts` `:58 OptionRowView` (`Mid`/`Action` desktop-only = `capabilities.speedTests`) `:83 RES_ORDER` `:101 qualityOf` `:117 TipBook` `:174 langTags` `:196 sizeText` → `audio.ts`, `rank.ts` · ← `ui/src/catalog-options.ts`, `Torrents.svelte`.
   - `options-load.ts` `:20 applyUpdate` `:32 loadOptions` → `getApi().options.load` · ← `Torrents.svelte`.
-  - `health.ts` (salud estimada, puro) `:131 rawPrediction` `:154 learnBias` `:201 predict` `:210 shownLevel` `:219 fidelity` `:268 calibration` `:305 healthOf` · ← `ui/src/health-store.ts`, `ui/src/catalog-options.js`; tipos re-exportados en `ui/src/types.d.ts`.
+  - `health.ts` (salud estimada, puro) `:131 rawPrediction` `:154 learnBias` `:201 predict` `:210 shownLevel` `:219 fidelity` `:268 calibration` `:305 healthOf` · ← `ui/src/health-store.ts`, `ui/src/catalog-options.ts`; tipos re-exportados en `ui/src/types.d.ts`.
   - tests `options/options.test.ts` (fixture `ui/mock/events__catalog_streams__*`), `options/health.test.ts`.
 - `sub-match.ts` `:9 sourceOf` `:13 groupOf` `:16 level` `:28 rank` · ← `web/src/lib/Torrents.svelte`.
 - `audio.ts` `:13 audioOf` `:23 latStatus` `:30 LAT_BADGE` → `types.ts` · ← `web/src/lib/Torrents.svelte`.

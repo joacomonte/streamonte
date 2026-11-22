@@ -22,9 +22,9 @@ export const safeSet = (/** @type {string} */ k, /** @type {string} */ v) => { t
 /** @typedef {import('./types.js').SeasonRatings} SeasonRatings */
 /** @typedef {import('./types.js').StreamsUpdate} StreamsUpdate */
 /** @typedef {import('./types.js').LibraryRow} LibraryRow */
-/** @typedef {import('./catalog-tests.js').VideoTests} VideoTests */
-/** @typedef {import('./catalog-tests.js').Deep} Deep */
-/** @typedef {import('./catalog-flow.js').Flow} Flow */
+/** @typedef {import('./catalog-tests.ts').VideoTests} VideoTests */
+/** @typedef {import('./catalog-tests.ts').Deep} Deep */
+/** @typedef {import('./catalog-flow.ts').Flow} Flow */
 /** Lo que se eligió en el panel lateral. Los campos opcionales se van llenando al abrir la ficha, las temporadas, etc.
  *  `similar`: undefined = sin pedir, null = cargando.
  *  @typedef {{kind: import('./types.js').MediaKind, id: string, name: string, meta: Meta|null, season: number|null, episode: number|null,
@@ -81,7 +81,7 @@ export const view = {
   /** Hay key de TorBox: null = todavía no se sabe (se pregunta al arrancar). */
   /** @type {boolean|null} */
   torboxKey: null,
-  /** Resolución de la lista (paso 'list' de `catalog-flow.js`); '' = todavía en los pasos. */
+  /** Resolución de la lista (paso 'list' de `catalog-flow.ts`); '' = todavía en los pasos. */
   /** @type {string|null} */
   openRes: null,
 };

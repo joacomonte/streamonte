@@ -1,4 +1,4 @@
-// Benchmark repetible del render de la lista de opciones de torrents (desktop `ui/src/catalog-options.js` vs web `web/src/lib/Torrents.svelte`).
+// Benchmark repetible del render de la lista de opciones de torrents (desktop `ui/src/catalog-options.ts` vs web `web/src/lib/Torrents.svelte`).
 // Uso: node scripts/bench-options.mjs [--target desktop,web] [--n 25,100,300] [--rate 10] [--secs 5] [--rows 3] [--runs 1] [--dev] [--profile] [--out FILE]
 // Levanta `vite preview` (build de producción; `--dev`: `vite dev`) de ui y de web en puertos libres, carga la lista con N opciones sintéticas (misma base en ambos)
 // y empuja `rate` actualizaciones por segundo durante `secs`, cada una cambiando `rows` filas al azar. Una línea JSON por escenario.

@@ -27,7 +27,7 @@ export type PanelActions = {
 	imdb: (imdb: string) => void;
 	trailer: (youtube: string) => void;
 	setupTmdb: () => void;
-	/** La lista de opciones (`catalog-options.js`) se dibuja en `#cat-streams`: avisa que ya existe. */
+	/** La lista de opciones (`catalog-options.ts`) se dibuja en `#cat-streams`: avisa que ya existe. */
 	optionsMounted: () => void;
 };
 const noop = (): void => {};

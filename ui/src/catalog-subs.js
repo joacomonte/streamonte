@@ -11,8 +11,8 @@ import { openSettings } from './dialogs.js';
 import { el, setStatus } from './dom.js';
 import { t as tr } from './i18n.js';
 import { closeWizard, openWizard } from './audio-picker.js';
-import { rowsOf } from './catalog-options.js';
-import { quickAnalyze, side, sideOf } from './catalog-tests.js';
+import { rowsOf } from './catalog-options.ts';
+import { quickAnalyze, side, sideOf } from './catalog-tests.ts';
 import { showError } from './catalog-state.js';
 import { mountSubsStep } from './mount-shared.ts';
 

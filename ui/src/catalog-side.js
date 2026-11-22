@@ -1,15 +1,15 @@
 // @ts-check
 // Panel lateral del catálogo (separado de catalog.js, 2026-11-17): dueño de `state.side` (ficha elegida, temporada, episodio). Lo que se
 // ve lo dibuja `SidePanel.svelte` con la `TitleView` compartida con la web, a través de `side-panel.svelte.ts`; las opciones del video
-// elegido las dibuja `catalog-options.js` en `#cat-streams`. Acá quedan también los helpers de las tarjetas (`seasonMini`, `genreName`).
+// elegido las dibuja `catalog-options.ts` en `#cat-streams`. Acá quedan también los helpers de las tarjetas (`seasonMini`, `genreName`).
 
 import { api } from './api.js';
 import { openSettings } from './dialogs.js';
 import { $, el, icon, setStatus } from './dom.js';
 import { langs, locale, t } from './i18n.js';
-import { loadStreams, renderStreamsOnly } from './catalog-options.js';
+import { loadStreams, renderStreamsOnly } from './catalog-options.ts';
 import { showError, state, view } from './catalog-state.js';
-import { leaveTests } from './catalog-tests.js';
+import { leaveTests } from './catalog-tests.ts';
 import { pickPerson, reduceMotion } from './catalog.js';
 import { actions, panel } from './side-panel.svelte.ts';
 /** @typedef {import('./catalog-state.js').Side} Side */

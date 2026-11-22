@@ -7,7 +7,7 @@ import { askAfterClose, onConfirmClose, openSettings } from './dialogs.js';
 import { $, $button, icon, setStatus, showError } from './dom.js';
 import { translateStatic } from './i18n.js';
 import { langToggle } from './lang-picker.js';
-import { markFailed } from './catalog-options.js';
+import { markFailed } from './catalog-options.ts';
 import { initSpeed, onSpeedEvent } from './speed.js';
 import { state } from './state.js';
 import { startLive } from './live.svelte.ts';
