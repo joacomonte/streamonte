@@ -1,21 +1,17 @@
 <!-- Diálogo de confirmación único (cola en `confirm-queue.ts`): texto o barra de progreso, y los botones del pedido. -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Sheet from '$ui/components/Sheet.svelte';
   import { t } from '../i18n.js';
   import { answerConfirm, currentConfirm, subscribeConfirm, type ConfirmRequest } from '../confirm-queue.ts';
 
-  let dlg: HTMLDialogElement;
   let req = $state<ConfirmRequest | null>(currentConfirm());
 
   onMount(() => subscribeConfirm(() => (req = currentConfirm())));
-  $effect(() => {
-    if (req && !dlg.open) dlg.showModal();
-  });
 
   function choose(value: unknown): void {
     if (!req) return;
     req.closing = true;
-    dlg.close();
     answerConfirm(value);
   }
   // Esc (o cerrar sin elegir) = null.
@@ -24,8 +20,7 @@
   }
 </script>
 
-<dialog id="dlg-confirm" class="dialog" bind:this={dlg} {onclose}>
-  <h3 id="dlg-confirm-title">{req?.title ?? ''}</h3>
+<Sheet id="dlg-confirm" title={req?.title ?? ''} open={req !== null} {onclose} closable={false} maxWidth="460px">
   <p id="dlg-confirm-text">
     {#if typeof req?.body === 'string'}{req.body}{:else if req}
       <span class="close-dl">
@@ -40,4 +35,4 @@
       <button id={b.id} class:primary={b.primary} class:danger={b.danger} autofocus={b.primary} onclick={() => choose(b.value)}>{b.label}</button>
     {/each}
   </div>
-</dialog>
+</Sheet>

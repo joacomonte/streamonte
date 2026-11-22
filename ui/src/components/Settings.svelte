@@ -3,6 +3,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { fly } from 'svelte/transition';
+  import Sheet from '$ui/components/Sheet.svelte';
   import { desktop } from '../desktopApi.ts';
   import { setStatus, showError } from '../dom.js';
   import { t } from '../i18n.js';
@@ -27,7 +28,7 @@
     { id: 'flat', label: 'Plano', note: 'Tal cual viene el video.', path: 'M0 18 H120' }
   ];
 
-  let dlg: HTMLDialogElement;
+  let isOpen = $state(false);
   let keys = $state<Raw.ApiKeyStatus[]>([]);
   let shared = $state(false);
   let eq = $state<Raw.Equalizer>('cine');
@@ -82,7 +83,7 @@
     } catch (e) {
       showError(e);
     }
-    dlg.showModal();
+    isOpen = true;
   }
 
   async function onSaveKey(service: KeyService): Promise<void> {
@@ -217,7 +218,7 @@
   onMount(() => {
     host.openSettings = open;
     const onWrongCode = async (): Promise<void> => {
-      if (!dlg.open) await open();
+      if (!isOpen) await open();
       codeError = t('Código incorrecto');
       document.getElementById('key-torbox-code')?.focus();
     };
@@ -250,12 +251,7 @@
   </div>
 {/snippet}
 
-<dialog id="dlg-settings" class="dialog settings" aria-labelledby="set-title" bind:this={dlg}>
-  <header class="set-head">
-    <h3 id="set-title">{t('Ajustes')}</h3>
-    <button id="btn-settings-x" class="set-x" aria-label={t('Cerrar ajustes')} title={t('Cerrar (Esc)')} onclick={() => dlg.close()}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-  </header>
-  <div class="set-body">
+<Sheet id="dlg-settings" title={t('Ajustes')} titleId="set-title" closeId="btn-settings-x" open={isOpen} onclose={() => (isOpen = false)} maxWidth="min(640px, 92vw)">
     <section class="set-card" id="set-lang" aria-labelledby="set-h-lang">
       <h4 id="set-h-lang">{t('Idioma')}</h4>
       <div id="set-lang-picker"></div>
@@ -366,9 +362,10 @@
       <h4 id="set-h-connected">{t('Conectado')}</h4>
       {#each connected as row (row.service)}{@render keyRow(row)}{/each}
     </section>
-  </div>
-  <footer class="set-foot">
-    <span class="hint">{t('Las keys se guardan en el almacén seguro del sistema y nunca se muestran.')}</span>
-    <button id="btn-settings-close" onclick={() => dlg.close()}>{t('Cerrar')}</button>
-  </footer>
-</dialog>
+  {#snippet footer()}
+    <footer class="set-foot">
+      <span class="hint">{t('Las keys se guardan en el almacén seguro del sistema y nunca se muestran.')}</span>
+      <button id="btn-settings-close" onclick={() => (isOpen = false)}>{t('Cerrar')}</button>
+    </footer>
+  {/snippet}
+</Sheet>

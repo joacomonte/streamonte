@@ -1,24 +1,28 @@
 <!-- Detalle (log en vivo) de una reproducción. El cuerpo lo va completando `app.js` línea a línea (evento `playback-log`). -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Sheet from '$ui/components/Sheet.svelte';
   import { t } from '../i18n.js';
   import { host } from '../ui-host.ts';
 
-  let dlg: HTMLDialogElement;
-  let pre: HTMLPreElement;
+  let pre = $state<HTMLPreElement>();
+  let open = $state(false);
   let title = $state(t('Detalle'));
 
   onMount(() => {
     host.openLog = (name, lines) => {
       title = name;
-      pre.textContent = lines.join('\n');
-      dlg.showModal();
+      open = true;
+      // El <pre> existe aunque la hoja esté cerrada; se completa antes de abrir.
+      if (pre) pre.textContent = lines.join('\n');
     };
   });
 </script>
 
-<dialog id="dlg-log" class="dialog wide" bind:this={dlg}>
-  <h3 id="dlg-log-title">{title}</h3>
+<Sheet id="dlg-log" {title} {open} onclose={() => (open = false)} maxWidth="min(860px, 92vw)">
   <pre id="dlg-log-body" bind:this={pre}></pre>
-  <div class="dialog-actions"><button id="dlg-log-close" onclick={() => dlg.close()}>{t('Cerrar')}</button></div>
-</dialog>
+</Sheet>
+
+<style>
+  pre { margin: 0; max-height: 50vh; overflow: auto; font-size: 12px; background: var(--bg); padding: 8px; border-radius: var(--radius); }
+</style>

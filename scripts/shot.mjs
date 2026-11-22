@@ -1,7 +1,7 @@
 // Capturas + posiciones de elementos con id en 1 comando.
 // Uso: node scripts/shot.mjs <url> [--out DIR] [--sel CSS] [--only mobile|desktop] [--theme light|dark] [--click CSS]...
 // Contrato de pantalla: node scripts/shot.mjs --contract tests/contracts/X.json --base http://host:puerto [--all]
-//   Contrato = {app, url, viewport?, cookies?, storage?, setup:[{click|type+text|hover|contextmenu|wait, after?, timeout?}],
+//   Contrato = {app, url, viewport?, cookies?, storage?, setup:[{click|type+text|hover|contextmenu|wait, after?, timeout?, optional? (click: se saltea si no aparece)}],
 //   must:[{sel, text?(regex), count?(>=), hover?(selector a pasar el mouse antes), status?:'regressed', note?}]}.
 //   Imprime {contract, passed, failed, regressed, fixed?}; exit 1 si falla algo que no es `regressed` (--all: también esos).
 import { createRequire } from 'node:module';
@@ -86,6 +86,7 @@ async function runContract(file, base, all) {
       else if (st.type) await page.fill(st.type, st.text);
       else if (st.contextmenu) await page.dispatchEvent(st.contextmenu, 'contextmenu', { bubbles: true, cancelable: true, clientX: 300, clientY: 300 });
       else if (st.hover) await page.hover(st.hover);
+      else if (st.optional) { try { await page.click(st.click, { timeout: st.timeout ?? 15000 }); } catch { /* el estado alternativo no trae este botón */ } }
       else await page.click(st.click, { timeout: st.timeout ?? 15000 });
       await page.waitForTimeout(st.after ?? 400);
     }
