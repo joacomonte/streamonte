@@ -29,4 +29,4 @@ Web de Streamonte (celu/tele): catálogo TMDB+IMDb → torrents en caché de Tor
 home `/` → `/api/catalog` → ficha `/t/[kind]/[id]` → `<Torrents>` → `/api/torrents` → `/api/link` → copiar (+ `/api/subs`).
 
 ## Tests
-`npm test` (`node --test`), `npm run check`; todo el repo: `/Users/monti/Documents/Dev/streamonte/scripts/check.sh`.
+`pnpm test` (`node --test`), `pnpm check`; todo el repo: `/Users/monti/Documents/Dev/streamonte/scripts/check.sh`.

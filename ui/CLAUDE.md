@@ -47,4 +47,4 @@ JS vanilla `// @ts-check` + JSDoc, migrando a Svelte 5 + TS por "islas". Habla c
 - Tests que importan i18n/format/api: `import './test-stub.js'` PRIMERO.
 
 ## Tests
-`cd /Users/monti/Documents/Dev/streamonte/ui && npm test` (`node --test`); `npm run lint` (oxlint); `npm run check` (svelte-check + tsc de los JS); `sh scripts/check.sh` (full suma tests). Dev: `npm run dev` + `cargo run -p streamonte`.
+`cd /Users/monti/Documents/Dev/streamonte/ui && pnpm test` (`node --test`); `pnpm lint` (oxlint); `pnpm check` (svelte-check + tsc de los JS); `sh scripts/check.sh` (full suma tests). Dev: `pnpm dev` + `cargo run -p streamonte`.

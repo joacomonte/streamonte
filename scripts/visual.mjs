@@ -2,6 +2,7 @@
 // Uso: node scripts/visual.mjs [--update] [--only TEXTO] [--threshold PCT=0.1] [--tol CANAL=16] [--out DIR]
 //                              [--record]  (web: graba /api/* reales en tests/visual/fixtures/web/; corré el server con TMDB_KEY y pasá --web-url)
 //                              [--ui-url URL] [--web-url URL]  (usar servers ya levantados en vez de levantar los propios)
+//                              [--changed]  (solo las pantallas de la app que tocan los cambios sin commitear vs HEAD; packages/ = ambas)
 // Sin red: desktop = ui con mock-tauri (ui/mock/*.json); web = /api/* respondido con fixtures; imágenes remotas = placeholder.
 // El diff de píxeles lo hace el propio Chrome (canvas): sin dependencias. Detalle y decisión de CI: tests/visual/README.md.
 import { createRequire } from 'node:module';
@@ -20,6 +21,18 @@ const update = flag('update'), record = flag('record');
 const threshold = Number(opt('threshold', 0.1)); // % de píxeles distintos tolerado
 const tol = Number(opt('tol', 16)); // diferencia máxima por canal (0-255) para contar un píxel como igual: absorbe antialiasing
 const only = flag('only') ? opt('only') : '';
+// --changed: qué app tocan los archivos modificados/nuevos (ui/ → desktop, web/ → web, packages/ → las dos).
+const touched = new Set();
+if (flag('changed')) {
+  const { execSync } = await import('node:child_process');
+  const files = execSync('git diff --name-only HEAD && git ls-files --others --exclude-standard', { cwd: root, encoding: 'utf8' }).split('\n');
+  for (const f of files) {
+    if (f.startsWith('ui/src/') || f.startsWith('ui/index.html') || f.startsWith('ui/mock/')) touched.add('ui');
+    if (f.startsWith('web/src/')) touched.add('web');
+    if (f.startsWith('packages/ui/')) { touched.add('ui'); touched.add('web'); }
+  }
+  if (!touched.size) { console.log('visual: sin cambios de UI, nada que capturar'); process.exit(0); }
+}
 const baseDir = `${root}tests/visual/baseline`;
 const fixDir = `${root}tests/visual/fixtures/web`;
 const outDir = opt('out', `${tmpdir()}/streamonte-visual`);
@@ -76,7 +89,7 @@ const SCREENS = [
     await settle(p, 1500);
   } },
   { name: 'web-ajustes', app: 'web', vp: 'mobile', path: '/ajustes', run: (p) => settle(p, 1000) },
-].filter((s) => s.name.includes(only));
+].filter((s) => s.name.includes(only) && (!flag('changed') || touched.has(s.app)));
 
 // ── red: imágenes remotas = placeholder fijo; /api/* de la web = fixtures (o grabación con --record)
 const PLACEHOLDER = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450"><rect width="300" height="450" fill="#8a94a6"/></svg>';

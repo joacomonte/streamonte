@@ -219,8 +219,8 @@ try {
     const port = await freePort();
     const dir = `${root}${target === 'desktop' ? 'ui' : 'web'}`;
     // Por defecto build de producción + `vite preview` (el dev de Svelte suma get_stack/get_error a cada lectura de estado); `--dev` usa `vite dev`.
-    if (!dev) spawnSync('npm', ['run', 'build'], { cwd: dir, env, stdio: 'ignore' });
-    const srv = await serve('npm', ['exec', 'vite', '--', dev ? 'dev' : 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], dir, port);
+    if (!dev) spawnSync('corepack', ['pnpm', 'run', 'build'], { cwd: dir, env, stdio: 'ignore' });
+    const srv = await serve('node', ['node_modules/vite/bin/vite.js', dev ? 'dev' : 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], dir, port);
     servers.push(srv);
     for (const n of sizes) {
       const all = [];

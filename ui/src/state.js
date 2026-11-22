@@ -1,6 +1,6 @@
 // @ts-check
 // Fachada del estado en vivo (live.svelte.ts) para los JS que todavía no migraron (audio-picker.js, dialogs.js,
-// catalog-options.js, speed.js): solo lectura de `entries`/`playbacks`; `logs`/`logOpenFor` son del diálogo de log.
+// catalog-options.ts, speed.js): solo lectura de `entries`/`playbacks`; `logs`/`logOpenFor` son del diálogo de log.
 import { live } from './live.svelte.ts';
 import { titleOf as titleIn } from './live.ts';
 

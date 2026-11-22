@@ -20,14 +20,14 @@ run() { name=$1; shift; ( "$@" >"$tmp/$name.log" 2>&1 || touch "$tmp/$name.fail"
 run fmt cargo fmt --all --check
 run clippy env CARGO_TARGET_DIR="$CLIPPY_TARGET" cargo clippy --workspace $CLIPPY_TARGETS -q -- -D warnings
 # oxlint (ui/.oxlintrc.json: globales del navegador, no-undef) y tsc con checkJs estricto (svelte-check + ui/tsconfig.js.json).
-run js sh -c 'cd ui && npm run -s lint >/dev/null && npm run -s check >/dev/null'
+run js sh -c 'cd ui && corepack pnpm -s lint >/dev/null && corepack pnpm -s check >/dev/null'
 # packages/ui (código compartido web + desktop): tsc estricto con el typescript de ui/node_modules.
-run uipkg sh -c 'cd packages/ui && npm run -s check'
+run uipkg sh -c 'cd packages/ui && corepack pnpm -s check'
 if [ "$1" = "full" ]; then
-  run uipkgtest sh -c 'cd packages/ui && npm test --silent'
-  run uitest sh -c 'cd ui && npm test --silent'
+  run uipkgtest sh -c 'cd packages/ui && corepack pnpm -s test'
+  run uitest sh -c 'cd ui && corepack pnpm -s test'
   # Web (monorepo, 2026-11-22): tipos y tests, en paralelo con el resto.
-  run web sh -c 'cd web && npm run -s check >/dev/null && npm test --silent'
+  run web sh -c 'cd web && corepack pnpm -s check >/dev/null && corepack pnpm -s test'
   # --lib --tests: sin compilar los ejemplos (los compila clippy de arriba).
   cargo nextest run -p streamonte-core --lib --tests --no-fail-fast --status-level fail --final-status-level fail || touch "$tmp/nextest.fail"
 fi

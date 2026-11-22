@@ -3,7 +3,8 @@
 # corre cada contrato con `shot.mjs --contract` y apaga los servidores. Exit 1 si falla algo que no es `regressed`.
 #   sh scripts/contracts.sh [--all] [nombre...]    # --all: los `regressed` también fallan; nombre = web-home, desktop-ajustes…
 #   LIVE=1 sh scripts/contracts.sh                 # suma los contratos `"live": true` (TorBox real: lentos)
-# La web necesita web/.env.local y web/.data/keys.json (TMDB real); sin ellos web-* fallan.
+# La web responde TMDB/addons/OS.org desde tests/fixtures/web-http (graba lo que falte; borrar la carpeta para refrescar).
+# Sin fixture grabada necesita web/.env.local y web/.data/keys.json; TorBox (LIVE) siempre es real.
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH"
 ALL=""; NAMES=""
@@ -15,7 +16,7 @@ tmp=$(mktemp -d)
 pids=""
 stop() { for p in $pids; do kill "$p" 2>/dev/null; done; rm -rf "$tmp"; }
 trap stop EXIT INT TERM
-(cd web && exec npx vite dev --port "$PW" --strictPort >"$tmp/web.log" 2>&1) & pids="$pids $!"
+(cd web && HTTP_FIXTURES="$PWD/../tests/fixtures/web-http" exec node node_modules/vite/bin/vite.js dev --port "$PW" --strictPort >"$tmp/web.log" 2>&1) & pids="$pids $!"
 (cd ui && exec node node_modules/vite/bin/vite.js --port "$PD" --strictPort >"$tmp/ui.log" 2>&1) & pids="$pids $!"
 for p in $PW $PD; do
   i=0; until curl -s -o /dev/null "http://127.0.0.1:$p/" || [ $i -ge 60 ]; do sleep 0.5; i=$((i + 1)); done
@@ -30,8 +31,12 @@ run() {
   [ "$app" = web ] && base="http://localhost:$PW" || base="http://127.0.0.1:$PD"
   node scripts/shot.mjs --contract "$f" --base "$base" $ALL >"$tmp/$n.out" 2>"$tmp/$n.err"; echo $? >"$tmp/$n.rc"
 }
-jobs=""
-for f in tests/contracts/*.json; do run "$f" & jobs="$jobs $!"; done
+# De a 4: un Chrome por contrato y los 18 juntos saturan la Mac (carga ~190) y los goto vencen al azar.
+jobs=""; n=0
+for f in tests/contracts/*.json; do
+  run "$f" & jobs="$jobs $!"; n=$((n + 1))
+  [ $((n % ${JOBS:-4})) = 0 ] && { wait $jobs; jobs=""; }
+done
 wait $jobs # solo los contratos: un `wait` pelado esperaría también a los servidores
 
 rc=0

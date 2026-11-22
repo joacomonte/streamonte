@@ -24,7 +24,7 @@ CSS compartido, TS compartido (`ui/src/`) y vectores de prueba, sin build propio
 - CSS sin prefijo: cuidado con colisiones; el layout de cada pantalla va scoped en su componente.
 
 ## Flujo
-Cambio en Rust → actualizar `golden/*.json` → `cargo nextest run -p streamonte-core` y `npm test` en `/Users/monti/Documents/Dev/streamonte/web/`.
+Cambio en Rust → actualizar `golden/*.json` → `cargo nextest run -p streamonte-core` y `pnpm test` en `/Users/monti/Documents/Dev/streamonte/web/`.
 
 ## Tests
-Golden web y Rust arriba; `packages/ui`: `cd /Users/monti/Documents/Dev/streamonte/packages/ui && npm test && npm run check`; CSS sin test.
+Golden web y Rust arriba; `packages/ui`: `cd /Users/monti/Documents/Dev/streamonte/packages/ui && pnpm test && pnpm check`; CSS sin test.

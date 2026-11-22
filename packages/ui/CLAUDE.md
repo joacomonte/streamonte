@@ -1,5 +1,5 @@
 # packages/ui — código compartido web ↔ desktop (TS estricto, sin `any`)
-Base `/Users/monti/Documents/Dev/streamonte/packages/ui/` · alias `$ui` → `src/` (web: `/Users/monti/Documents/Dev/streamonte/web/vite.config.ts`, desktop: `/Users/monti/Documents/Dev/streamonte/ui/vite.config.ts`) · sin node_modules (usa los de `ui/`) · `npm run check` · `npm test`.
+Base `/Users/monti/Documents/Dev/streamonte/packages/ui/` · alias `$ui` → `src/` (web: `/Users/monti/Documents/Dev/streamonte/web/vite.config.ts`, desktop: `/Users/monti/Documents/Dev/streamonte/ui/vite.config.ts`) · sin node_modules (usa los de `ui/`) · `pnpm check` · `pnpm test`.
 Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se importan por ruta relativa, no `$ui`.
 
 ## `src/` (→ usa · ← usado por)
