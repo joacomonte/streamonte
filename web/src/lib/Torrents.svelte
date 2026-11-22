@@ -70,10 +70,55 @@
 	let whereFor = $state<{ t: Torrent; url: string } | null>(null);
 	/** A dónde se copió el último video (null = no se preguntó): con 'app' no hay hoja "¡Link copiado!", solo el festejo. */
 	let doneWhere = $state<'wvc' | 'app' | null>(null);
-	/** El stream (.m3u8) anda igual en todos: se copia directo; el de descarga pregunta. */
+	/** El stream (.m3u8) anda igual en todos: se copia directo; el de descarga pregunta. Si el navegador castea solo
+	 * (Chromecast/AirPlay), pregunta también con el stream, que es lo que mejor anda en la tele. */
 	function askWhere(t: Torrent, url: string) {
-		if (/\.tb-cdn\./.test(url) && !/\.m3u8/.test(url)) whereFor = { t, url };
-		else copyUrl(t, url);
+		if (/\.tb-cdn\./.test(url) && (!/\.m3u8/.test(url) || canCast)) {
+			whereFor = { t, url };
+			if (canCast && !casting) castSrc = url;
+		} else copyUrl(t, url);
+	}
+	/** "Mandar a la tele" del navegador: Remote Playback API (Chrome → Chromecast; Safari → AirPlay) o, en Safari
+	 * viejo, `webkitShowPlaybackTargetPicker`. Un <video> oculto carga el link al abrir la hoja y el toque abre el
+	 * selector (pide el gesto: nada de await antes). Si falla, queda Web Video Caster en la misma hoja. */
+	type AirPlayVideo = HTMLVideoElement & { webkitShowPlaybackTargetPicker?: () => void; webkitCurrentPlaybackTargetIsWireless?: boolean };
+	let canCast = $state(false);
+	$effect(() => {
+		canCast = 'remote' in HTMLMediaElement.prototype || 'webkitShowPlaybackTargetPicker' in HTMLMediaElement.prototype;
+	});
+	let castEl = $state<AirPlayVideo>();
+	let castSrc = $state<string | null>(null);
+	let casting = $state(false);
+	let castFail = $state(false);
+	function castOn(v: AirPlayVideo) {
+		casting = true;
+		whereFor = null;
+		v.play().catch(() => {});
+	}
+	function castNative() {
+		const v = castEl;
+		if (!v) return;
+		castFail = false;
+		const remote = v.remote as RemotePlayback | undefined;
+		if (remote) {
+			remote.onconnect = () => castOn(v);
+			remote.ondisconnect = () => (casting = false);
+			// Cancelar el selector (NotAllowedError) no es un error: la hoja sigue abierta.
+			remote.prompt().catch((err: DOMException) => (castFail = err.name !== 'NotAllowedError'));
+		} else {
+			v.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', () => {
+				if (v.webkitCurrentPlaybackTargetIsWireless) castOn(v);
+				else casting = false;
+			});
+			v.webkitShowPlaybackTargetPicker?.();
+		}
+	}
+	function castStop() {
+		casting = false;
+		castSrc = null;
+		castEl?.pause();
+		castEl?.removeAttribute('src');
+		castEl?.load();
 	}
 	function copyWhere(where: 'wvc' | 'app') {
 		if (!whereFor) return;
@@ -83,7 +128,7 @@
 		doneWhere = where;
 		// `d`: el dispositivo, para que el panel sepa que se abrió en la tele (ese navegador no tiene la cookie).
 		const dev = document.cookie.match(/(?:^|; )dev=([^;]+)/)?.[1] ?? '';
-		copyUrl(t, where === 'wvc' ? `${location.origin}/play.html?d=${dev}#${encodeURIComponent(url)}` : url);
+		copyUrl(t, where === 'wvc' && !/\.m3u8/.test(url) ? `${location.origin}/play.html?d=${dev}#${encodeURIComponent(url)}` : url);
 	}
 	let subsOpen = $state(false);
 	/** Hoja de "Link copiado": qué se copió (video o subtítulo) y su nombre. */
@@ -786,8 +831,23 @@
 </Sheet>
 
 <!-- Antes de copiar un link de descarga: ¿Web Video Caster o un reproductor? (cada uno necesita otro link). -->
-<Sheet id="where-sheet" title={tr('¿Dónde lo vas a ver?')} open={!!whereFor} onclose={() => (whereFor = null)}>
+<Sheet id="where-sheet" title={tr('¿Dónde lo vas a ver?')} open={!!whereFor} onclose={() => { whereFor = null; castFail = false; if (!casting) castSrc = null; }}>
 	<div class="where">
+		{#if canCast}
+			<button id="where-cast" type="button" class="spot cast" onclick={castNative}>
+				<!-- Tele con el ícono de casteo. -->
+				<svg class="art" viewBox="0 0 120 80" aria-hidden="true">
+					<rect class="tv" x="23" y="8" width="74" height="50" rx="6" />
+					<path class="tv" d="M49 70h22M60 58v12" />
+					<path class="wave w1" d="M34 46a4 4 0 0 1 4 4" />
+					<path class="wave w2" d="M34 40a10 10 0 0 1 10 10" />
+					<path class="wave w3" d="M34 34a16 16 0 0 1 16 16" />
+				</svg>
+				<b>{tr('Mandar a la tele')}</b>
+				<small>Chromecast · AirPlay</small>
+			</button>
+			{#if castFail}<p class="muted cast-fail">{tr('No se encontró una tele. Probá con Web Video Caster.')}</p>{/if}
+		{/if}
 		<button id="where-wvc" type="button" class="spot" onclick={() => copyWhere('wvc')}>
 			<!-- Celu que manda ondas a la tele. -->
 			<svg class="art" viewBox="0 0 120 80" aria-hidden="true">
@@ -814,6 +874,16 @@
 			<small>SenPlayer · VLC</small>
 		</button>
 	</div>
+</Sheet>
+
+<!-- El <video> que castea (oculto: se ve en la tele). -->
+<!-- svelte-ignore a11y_media_has_caption -->
+<video bind:this={castEl} src={castSrc ?? undefined} preload="metadata" {...{ 'x-webkit-airplay': 'allow' }} playsinline hidden></video>
+
+<Sheet id="cast-sheet" title={tr('Reproduciendo en la tele')} open={casting} onclose={castStop}>
+	<button id="cast-stop" type="button" class="watch" onclick={castStop}>
+		<span class="watch-text"><b>{tr('Cortar')}</b></span>
+	</button>
 </Sheet>
 
 <!-- Al copiar el link de un video: solo el dibujo (celu → tele) y el tutorial; "¡Link copiado!" ya lo dijo el festejo. -->
@@ -1110,6 +1180,8 @@
 		transition: transform 0.15s var(--out), border-color 0.2s var(--ease);
 	}
 	.spot + .spot { animation-delay: 0.08s; }
+	.spot.cast, .cast-fail { grid-column: 1 / -1; }
+	.cast-fail { margin: 0; font-size: 13px; text-align: center; }
 	.spot:active { transform: scale(0.96); border-color: var(--accent-fg); }
 	.spot b { font-size: 15.5px; margin-top: 6px; }
 	.spot small { font-size: 12px; color: var(--muted); }
