@@ -8,12 +8,15 @@
 	import { updated } from '$app/state';
 	import { beforeNavigate, invalidateAll, onNavigate } from '$app/navigation';
 	import { setContext } from 'svelte';
+	import { setApi } from '$ui/context.ts';
+	import { webApi } from '#lib/webApi.ts';
 	import Icon from '$ui/components/Icon.svelte';
 	import { track } from '#lib/track.ts';
 	import { langOptions } from '#lib/langs.ts';
 	import { saveNick } from '#lib/nick.ts';
 
 	let { data, children }: LayoutProps = $props();
+	setApi(webApi);
 	// Con versión nueva, los chunks viejos ya no existen: navegar con carga completa en vez de client-side.
 	beforeNavigate(({ willUnload, to, cancel }) => {
 		if (updated.current && !willUnload && to?.url) { cancel(); location.href = to.url.href; }

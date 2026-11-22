@@ -2,9 +2,9 @@
 Páginas `+page.svelte` que pegan a `/api/*` (`+server.ts` delgados: validan con `params.ts episode()` y llaman a `lib/server/`). Candado y cookies globales en `../hooks.server.ts:64`.
 
 ## Mapa (`/Users/monti/Documents/Dev/streamonte/web/src/routes/`)
-- `+layout.server.ts:5 load` (langs, nick) · `+layout.svelte` — `i18n` antes del 1er render, Tour de bienvenida, aviso de versión, solo dev `/api/dev-stamp :83`.
+- `+layout.server.ts:5 load` (langs, nick) · `+layout.svelte` — `setApi(webApi) :19`, `i18n` antes del 1er render, Tour de bienvenida, aviso de versión, solo dev `/api/dev-stamp :83`.
 - `+page.svelte` (home, delgada) — monta `$ui/catalog/Catalog.svelte` con `webCatalog()`: `header` (marca, ES/EN), `top` (`/api/keys` → `#keys-cta`), `onmagnet` → `/m/…`, `onlog` → `track`.
-- `t/[kind]/[id]/` — `+page.ts:6 load` (`/api/title`, caché `saved.DAY`) · `+page.svelte` — monta `<TitleView> :69` (`$ui/title/`, `setApi(webApi)`; scores/episodios por `getApi()`), `<Torrents> :84` en su snippet `options`.
+- `t/[kind]/[id]/` — `+page.ts:6 load` (`/api/title`, caché `saved.DAY`) · `+page.svelte` — monta `<TitleView> :69` (`$ui/title/`, `getApi()`; scores/episodios por `getApi()`), `<Torrents> :84` en su snippet `options`.
 - `t/[kind]/[id]/[s]/[e]/` — `+page.ts:7 load` valida s/e · `+page.svelte` `<Torrents s e> :41` (solo `tv`).
 - `m/[hash]/+page.svelte` — "Pegar magnet": `<MagnetView>` (`$ui/magnet/`) ← `getApi().magnet` → `/api/magnet` GET/POST; `<Torrents given> :26` vía `web-adapt.ts torrentOf`.
 - `ajustes/+page.svelte` — idioma, apodo, keys `/api/keys :67-93`, borrar caché, `AdminCode`.

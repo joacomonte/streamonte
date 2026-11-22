@@ -6,9 +6,7 @@
 	import { track } from '#lib/track.ts';
 	import { webCatalog } from '#lib/catalog.svelte.ts';
 	import { loc, t as tr } from '#lib/i18n.svelte.ts';
-	import { webApi } from '#lib/webApi.ts';
 	import { titleDetails } from '#lib/web-adapt.ts';
-	import { setApi } from '$ui/context.ts';
 	import TitleView from '$ui/title/TitleView.svelte';
 	import type { Person } from '$ui/types.ts';
 	import { goto } from '$app/navigation';
@@ -16,7 +14,6 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	setApi(webApi);
 	const t = $derived(data.t);
 	const details = $derived(titleDetails(t));
 	$effect(() => track('ver', `${t.kind === 'tv' ? 'Serie' : 'Peli'}: ${t.title}`));
