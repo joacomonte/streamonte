@@ -39,7 +39,7 @@ test('options.load: eventos catalog-streams → actualizaciones hasta done', asy
 		seen.push(up.done);
 		count = up.options.length;
 	}
-	assert.deepEqual(seen, [true]);
+	assert.equal(seen.at(-1), true, 'el último update es el final');
 	assert.ok(count > 0);
 	assert.deepEqual(calls, ['streams movie tt0137523']);
 });

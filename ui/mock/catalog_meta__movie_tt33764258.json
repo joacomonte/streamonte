@@ -1,0 +1,29 @@
+{
+  "id": "tt33764258",
+  "kind": "movie",
+  "name": "The Odyssey",
+  "year": "2026",
+  "runtime_min": 173,
+  "country": "United Kingdom, United States, Canada, New Zealand, Iceland",
+  "genres": [
+    "Action",
+    "Adventure",
+    "Drama"
+  ],
+  "imdb_rating": "8.4",
+  "description": "After the Trojan War, Odysseus faces a dangerous voyage back to Ithaca, meeting creatures like the Cyclops Polyphemus, Sirens, and Calypso along the way.",
+  "poster": "https://images.metahub.space/poster/small/tt33764258/img",
+  "background": "https://images.metahub.space/background/medium/tt33764258/img",
+  "episodes": [],
+  "excluded": false,
+  "status": null,
+  "cast": [
+    "Matt Damon",
+    "Tom Holland",
+    "Anne Hathaway"
+  ],
+  "awards": "4 premios",
+  "released": "2026-07-17",
+  "trailer": "AyIZ9tiiN8I",
+  "imdb_votes": 585220
+}

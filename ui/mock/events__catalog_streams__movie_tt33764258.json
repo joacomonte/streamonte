@@ -1,0 +1,5864 @@
+[
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 0,
+          "id": "torrentio",
+          "message": null,
+          "ms": null,
+          "name": "Torrentio",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "peerflix",
+          "message": null,
+          "ms": null,
+          "name": "Peerflix",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "comet",
+          "message": null,
+          "ms": null,
+          "name": "Comet",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": null,
+          "name": "TorrentsDB",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": null,
+          "name": "Hacktorrent",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": null,
+          "name": "EliteTorrent",
+          "state": "pending"
+        }
+      ],
+      "candidates": [],
+      "done": false,
+      "video_id": "tt33764258"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 341,
+          "id": "torrentio",
+          "message": null,
+          "ms": 83,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "peerflix",
+          "message": null,
+          "ms": null,
+          "name": "Peerflix",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "comet",
+          "message": null,
+          "ms": null,
+          "name": "Comet",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": null,
+          "name": "TorrentsDB",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": null,
+          "name": "Hacktorrent",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": null,
+          "name": "EliteTorrent",
+          "state": "pending"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "pl",
+            "cz",
+            "ua"
+          ],
+          "audio_format": [
+            "TrueHD",
+            "DTS"
+          ],
+          "binge_group": "torrentio|4k|hevc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": null,
+          "file_name": null,
+          "hdr": [],
+          "info_hash": "f94265c9acd6575439729130ca34699562418965",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey IMAX ∞ BD/4K/SDR HEVC/TrueHD/DTS/DolbyAtmos/AC·3 EN/ES/CZ/DE/FR/HI/IT/PL/PT/RU/SK/UK/TA/TE + SUB",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 110,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 30311731691,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS",
+            "DD+"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|x264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3.mkv",
+          "hdr": [],
+          "info_hash": "7083cabe66ee466c5a1b432ebe3748df8f623392",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 8235599790,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "38e1db1c08b3312238c94813a0bf61104dbaab03",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1053,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 88250840514,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "es",
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "La Odisea (2026) [4k 2160p][Esp].mkv",
+          "hdr": [],
+          "info_hash": "4e897433f753bfc54313fb75df1b70cfed331c61",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "La Odisea (2026) [4k 2160p][Esp]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 991,
+          "sites": [
+            "Wolfmax4k"
+          ],
+          "size_bytes": 33264521707,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10+ r00t).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "f3414b222b6949474127f3391a46f1b953e29207",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10 DTS-HD MA 5.1 English French Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 812,
+          "sites": [
+            "1337x"
+          ],
+          "size_bytes": 26048976650,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|10bit|DV|HDR10+",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "183121572b5d08e56225181d8e504eebc9c5a140",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi.DTS.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 711,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 97925254348,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD"
+          ],
+          "binge_group": "torrentio|4k|h265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 DV iTA EnG AC3 Sub iTA EnG-MIRCrew.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "04d7b2b9559056637cb0cbe62048b3186a4b8cdd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 iTA EnG AC3 Sub iTA EnG-MIRCrew",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 578,
+          "sites": [
+            "1337x"
+          ],
+          "size_bytes": 6828998000,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Odyssea (2026) UHDRDV cz en.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "ab09858a0ecea17cff94a4b26c9013969f03286c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10/DV][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 420,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 8171175280,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c8aca99b5117bf0cb3cc38ef80c0d6fcf0204da1",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 410,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 5443871047,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "ua",
+            "dk",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a3b33f58a5c81f6901c5bab217b1688c9f320e7f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi.LAT.FRE.DTS-HD.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 387,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 92663919411,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR r00t).mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "9c720169ab0575f185a48126a4ac35bc4f26fa54",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR DTS-HD MA 5.1 English + French + Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 355,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 25973814722,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DD+",
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "www.1TamilMV.io - The Odyssey (2026) BluRay - 4K SDR - 2160p HQ - HEVC - [Tamil + Telugu + Hindi + Eng] - (DD+5.1 - 640Kbps & AAC 2.0).mkv",
+          "hdr": [],
+          "info_hash": "4ad867ebf978c80fe86662e5f4a91341e3026f50",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) BluRay - 4K SDR - 2160p HQ - HEVC - [Tamil + Telugu + Hindi + Eng] - (DD+5.1 - 640Kbps & AAC 2.0)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 254,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 10812580167,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": null,
+          "file_name": null,
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "68ce264b6a30ee25774f2fb7e0f93e4fa72610e6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 213,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 5937792286,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": null,
+          "hdr": [],
+          "info_hash": "cf1356dd4448aa05d66e026c93afdc913a8586b1",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2160p)(CZ/EN)(2026)(Exclusive)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 190,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 8761733283,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr",
+            "sa"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) (UHD BDRip IMAX 1080p AV1 HDR10 DTS) [OEP][371C3665].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "55cde8ba92ab6197b689702a4d5b4d33e95ade89",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) (UHD BDRip IMAX 1080p AV1 HDR10 DTS) [OEP][371C3665].mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 163,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 9910637035,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|DV|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "The.Odyssey.2026.2160p.MA.WEB-DL.DV.HDR.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "65b1f2a6f2c800179884c62022b48fb9dab0164c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.WEB-DL.DV.HDR.MULTi.LAT.FRE.GER.ITA.HINDI.RUS.DTS.MA-BTM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 162,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 46890305454,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "AAC"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "3d1427684ff8b6ec0ebba9bc006d93b9f59f15cb",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 149,
+          "sites": [
+            "1337x"
+          ],
+          "size_bytes": 6506875453,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Odyssea (2026) UHDR cz en.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "e17f911670b0a1e22fb197887cdce5f5b35c923a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 143,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 8074538516,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.odyssey.2026.2160p.x265.hdr.5.1-dual-lat-cinecalidad.my.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "735aa22e250b5820d6b0956ef995f32527389c48",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.odyssey.2026.2160p.x265.hdr.5.1-dual-lat-cinecalidad.my.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 138,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 12820477378,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|h265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.MULTi.VFQ.2160p.HDR.BluRay.H265.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "faa7b1af9e35d994b2c8e28d413ef95e1764a0eb",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)[2160p][HDR]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 129,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 14098230149,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "es",
+            "fr"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay REMUX|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": null,
+          "file_name": null,
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "8df8bee6c01e19816dd8a5e8fff9519bc12f3ed5",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.4K.HDR.2160p.BDRemux Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 108,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 89013197209,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.4K.BluRay.x265.10bit.AAC5.1-[YTS.GG - YTS.BZ].mkv",
+          "hdr": [],
+          "info_hash": "e504c0e31a1854f83758e5564575e219fe115e13",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) [2160p] [BluRay] [x265] [10bit] [5.1]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 100,
+          "sites": [
+            "UIndex"
+          ],
+          "size_bytes": 8396661063,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "pl"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey 2026.MULTi.2160p.UHD.BluRay.H264.HDR.HEVC.DTS-HD.MA.5.1-MAXX.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a3716575b8d15d04098543ea68171d9d4c809d06",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey 2026.MULTi.2160p.UHD.BluRay.H264.HDR.HEVC.DTS-HD.MA.5.1-MAXX",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 95,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 36260261396,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) CZ 4K.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "de8895cb34d4eae304d6f6a780d388a787a4ed36",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 93,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 50970524385,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay REMUX",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.(2026).BDRemux.2160p.2xUkr.Eng.v2.mkv",
+          "hdr": [],
+          "info_hash": "4fd1f6608dbc447ea7d7c5bbfde35d33da2224dd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.(2026).BDRemux.2160p.2xUkr.Eng.v2",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 91,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 89238682992,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        }
+      ],
+      "done": false,
+      "video_id": "tt33764258"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 341,
+          "id": "torrentio",
+          "message": null,
+          "ms": 83,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "peerflix",
+          "message": null,
+          "ms": null,
+          "name": "Peerflix",
+          "state": "pending"
+        },
+        {
+          "count": 794,
+          "id": "comet",
+          "message": null,
+          "ms": 617,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 135,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 1056,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": null,
+          "name": "Hacktorrent",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": null,
+          "name": "EliteTorrent",
+          "state": "pending"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "pl",
+            "cz",
+            "ua",
+            "cast"
+          ],
+          "audio_format": [
+            "TrueHD",
+            "DTS",
+            "Atmos"
+          ],
+          "binge_group": "torrentio|4k|hevc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": null,
+          "file_name": "The Odyssey IMAX ∞ BD/4K/SDR HEVC/TrueHD/DTS/DolbyAtmos/AC·3 EN/ES/CZ/DE/FR/HI/IT/PL/PT/RU/SK/UK/TA/TE + SUB",
+          "hdr": [],
+          "info_hash": "f94265c9acd6575439729130ca34699562418965",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey IMAX ∞ BD/4K/SDR HEVC/TrueHD/DTS/DolbyAtmos/AC·3 EN/ES/CZ/DE/FR/HI/IT/PL/PT/RU/SK/UK/TA/TE + SUB",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 110,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 30311731691,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS",
+            "DD+"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|x264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3.mkv",
+          "hdr": [],
+          "info_hash": "7083cabe66ee466c5a1b432ebe3748df8f623392",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 8232926573,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "38e1db1c08b3312238c94813a0bf61104dbaab03",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1053,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 88246893816,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "La Odisea (2026) [4k 2160p][Esp].mkv",
+          "hdr": [],
+          "info_hash": "4e897433f753bfc54313fb75df1b70cfed331c61",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "La Odisea (2026) [4k 2160p][Esp]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 991,
+          "sites": [
+            "Wolfmax4k",
+            "Peerflix"
+          ],
+          "size_bytes": 33260747992,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10+ r00t).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "f3414b222b6949474127f3391a46f1b953e29207",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10 DTS-HD MA 5.1 English French Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 812,
+          "sites": [
+            "1337x",
+            "Torrentio"
+          ],
+          "size_bytes": 26052677294,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|10bit|DV|HDR10+",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "183121572b5d08e56225181d8e504eebc9c5a140",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi.DTS.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 711,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "1337x"
+          ],
+          "size_bytes": 97921926465,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD"
+          ],
+          "binge_group": "torrentio|4k|h265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 DV iTA EnG AC3 Sub iTA EnG-MIRCrew.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "04d7b2b9559056637cb0cbe62048b3186a4b8cdd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 iTA EnG AC3 Sub iTA EnG-MIRCrew",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 578,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 6829898662,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Odyssea (2026) UHDRDV cz en.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "ab09858a0ecea17cff94a4b26c9013969f03286c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10/DV][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 463,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "sktorrent"
+          ],
+          "size_bytes": 8175644708,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337",
+            "udp://ipv4announce.sktorrent.eu:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c8aca99b5117bf0cb3cc38ef80c0d6fcf0204da1",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 410,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 5444395433,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "ua",
+            "dk",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a3b33f58a5c81f6901c5bab217b1688c9f320e7f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi.LAT.FRE.DTS-HD.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 387,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "limetorrent"
+          ],
+          "size_bytes": 92667718363,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR r00t).mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "9c720169ab0575f185a48126a4ac35bc4f26fa54",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR DTS-HD MA 5.1 English + French + Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 355,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "1337x"
+          ],
+          "size_bytes": 25975124335,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) [2160p] [HEVC].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "68ce264b6a30ee25774f2fb7e0f93e4fa72610e6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 255,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 5941545454,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DD+",
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "www.1TamilMV.io - The Odyssey (2026) BluRay - 4K SDR - 2160p HQ - HEVC - [Tamil + Telugu + Hindi + Eng] - (DD+5.1 - 640Kbps & AAC 2.0).mkv",
+          "hdr": [],
+          "info_hash": "4ad867ebf978c80fe86662e5f4a91341e3026f50",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) BluRay - 4K SDR - 2160p HQ - HEVC - [Tamil + Telugu + Hindi + Eng] - (DD+5.1 - 640Kbps & AAC 2.0)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 254,
+          "sites": [
+            "EXT",
+            "1tamilmv"
+          ],
+          "size_bytes": 10812580167,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.dler.com:6969/announce",
+            "http://tracker.bt4g.com:2095/announce",
+            "udp://tracker-udp.gbitt.info:80/announce",
+            "http://ipv4announce.sktorrent.eu:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "The Odyssey.mkv",
+          "hdr": [],
+          "info_hash": "cf1356dd4448aa05d66e026c93afdc913a8586b1",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2160p)(CZ/EN)(2026)(Exclusive)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 190,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 8763805478,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr",
+            "sa"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) (UHD BDRip IMAX 1080p AV1 HDR10 DTS) [OEP][371C3665].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "55cde8ba92ab6197b689702a4d5b4d33e95ade89",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) (UHD BDRip IMAX 1080p AV1 HDR10 DTS) [OEP][371C3665].mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 163,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "ThePirateBay"
+          ],
+          "size_bytes": 9909555574,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|DV|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "The.Odyssey.2026.2160p.MA.WEB-DL.DV.HDR.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "65b1f2a6f2c800179884c62022b48fb9dab0164c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.WEB-DL.DV.HDR.MULTi.LAT.FRE.GER.ITA.HINDI.RUS.DTS.MA-BTM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 162,
+          "sites": [
+            "EXT",
+            "StremThru"
+          ],
+          "size_bytes": 46894877732,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "AAC"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "3d1427684ff8b6ec0ebba9bc006d93b9f59f15cb",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 149,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 6512223771,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Odyssea (2026) UHDR cz en.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "e17f911670b0a1e22fb197887cdce5f5b35c923a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 143,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 8074538516,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.odyssey.2026.2160p.x265.hdr.5.1-dual-lat-cinecalidad.my.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "735aa22e250b5820d6b0956ef995f32527389c48",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.odyssey.2026.2160p.x265.hdr.5.1-dual-lat-cinecalidad.my.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 138,
+          "sites": [
+            "EXT",
+            "StremThru"
+          ],
+          "size_bytes": 12817632655,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "cz",
+            "fr"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|h265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.MULTi.VFQ.2160p.HDR.BluRay.H265.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "faa7b1af9e35d994b2c8e28d413ef95e1764a0eb",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)[2160p][HDR]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 129,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "sktorrent"
+          ],
+          "size_bytes": 14098765794,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337",
+            "udp://ipv4announce.sktorrent.eu:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.IMAX.UHD.2160p.10bit.Blu-Ray.SDR.DTS.5.1.HEVC.ESub-NmCT.mkv",
+          "hdr": [],
+          "info_hash": "ac2c3416a4042c764e1326b842b98b24d6db968d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.IMAX.UHD.2160p.10bit.Blu-Ray.SDR.DTS.5.1.HEVC.ESub-NmCT",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 121,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 34392940038,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "es",
+            "fr"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay REMUX|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.4K.HDR.2160p.BDRemux Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "8df8bee6c01e19816dd8a5e8fff9519bc12f3ed5",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.4K.HDR.2160p.BDRemux Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 108,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "1337x"
+          ],
+          "size_bytes": 89015494136,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.4K.BluRay.x265.10bit.AAC5.1-[YTS.GG - YTS.BZ].mkv",
+          "hdr": [],
+          "info_hash": "e504c0e31a1854f83758e5564575e219fe115e13",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) [2160p] [BluRay] [x265] [10bit] [5.1]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 100,
+          "sites": [
+            "UIndex",
+            "Torrentio",
+            "YTS"
+          ],
+          "size_bytes": 8394178080,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "pl"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey 2026.MULTi.2160p.UHD.BluRay.H264.HDR.HEVC.DTS-HD.MA.5.1-MAXX.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a3716575b8d15d04098543ea68171d9d4c809d06",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey 2026.MULTi.2160p.UHD.BluRay.H264.HDR.HEVC.DTS-HD.MA.5.1-MAXX",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 95,
+          "sites": [
+            "EXT",
+            "StremThru"
+          ],
+          "size_bytes": 36255231127,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) CZ 4K.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "de8895cb34d4eae304d6f6a780d388a787a4ed36",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 93,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "sktorrent"
+          ],
+          "size_bytes": 50967467485,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337",
+            "udp://ipv4announce.sktorrent.eu:6969/announce"
+          ]
+        }
+      ],
+      "done": false,
+      "video_id": "tt33764258"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 341,
+          "id": "torrentio",
+          "message": null,
+          "ms": 83,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 271,
+          "id": "peerflix",
+          "message": null,
+          "ms": 1416,
+          "name": "Peerflix",
+          "state": "ok"
+        },
+        {
+          "count": 794,
+          "id": "comet",
+          "message": null,
+          "ms": 617,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 135,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 1056,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": null,
+          "name": "Hacktorrent",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 1564,
+          "name": "EliteTorrent",
+          "state": "ok"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "pl",
+            "cz",
+            "ua",
+            "cast"
+          ],
+          "audio_format": [
+            "TrueHD",
+            "DTS",
+            "Atmos"
+          ],
+          "binge_group": "torrentio|4k|hevc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": null,
+          "file_name": "The Odyssey IMAX ∞ BD/4K/SDR HEVC/TrueHD/DTS/DolbyAtmos/AC·3 EN/ES/CZ/DE/FR/HI/IT/PL/PT/RU/SK/UK/TA/TE + SUB",
+          "hdr": [],
+          "info_hash": "f94265c9acd6575439729130ca34699562418965",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey IMAX ∞ BD/4K/SDR HEVC/TrueHD/DTS/DolbyAtmos/AC·3 EN/ES/CZ/DE/FR/HI/IT/PL/PT/RU/SK/UK/TA/TE + SUB",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 110,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 30311731691,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS",
+            "DD+"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|x264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3.mkv",
+          "hdr": [],
+          "info_hash": "7083cabe66ee466c5a1b432ebe3748df8f623392",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 8232926573,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BDRip|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey 2026 2160p UHD BDRip HEVC 10bit HDR DTS-HD.MA.5.1 MUSHR00M.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "478a2a33365e8702d9b195547b111bb367ac494a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey 2026 2160p UHD BDRip HEVC 10bit HDR DTS-HD.MA.5.1 MUSHR00M",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 2492,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "limetorrent",
+            "Peerflix"
+          ],
+          "size_bytes": 30765780646,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.4K.BluRay.x265.10bit.AAC5.1-[YTS.GG - YTS.BZ].mkv",
+          "hdr": [],
+          "info_hash": "e504c0e31a1854f83758e5564575e219fe115e13",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) [2160p] [BluRay] [x265] [10bit] [5.1]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 2370,
+          "sites": [
+            "UIndex",
+            "Torrentio",
+            "YTS",
+            "Peerflix"
+          ],
+          "size_bytes": 8394178080,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.  2160p.AI Enhanced.IMAX.BluRay.48FPS.AV1.SDR.DTS-HD.MA.5.1MultiSubs_Marjenbo .mkv",
+          "hdr": [],
+          "info_hash": "87dd3f2625448578f4521c8041aeb567ad9cc7b6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026. 2160p.AI Enhanced.IMAX.BluRay.48FPS.AV1.SDR.DTS-HD.MA.5.1MultiSubs_Marjenbo",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1603,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 78328153947,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "ace6ee112446904ea51a44756caa819153ae242f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey 2026 2160p UHD Blu-ray Remux HDR HEVC DTS-HD MA 5 1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1123,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 88246893816,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "38e1db1c08b3312238c94813a0bf61104dbaab03",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1053,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 88246893816,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "La Odisea (2026) [4k 2160p][Esp].mkv",
+          "hdr": [],
+          "info_hash": "4e897433f753bfc54313fb75df1b70cfed331c61",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "La Odisea (2026) [4k 2160p][Esp]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1000,
+          "sites": [
+            "Wolfmax4k",
+            "Peerflix"
+          ],
+          "size_bytes": 33260747992,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10+ r00t).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "f3414b222b6949474127f3391a46f1b953e29207",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10 DTS-HD MA 5.1 English French Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 812,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 26052677294,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|10bit|DV|HDR10+",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "183121572b5d08e56225181d8e504eebc9c5a140",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi.DTS.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 711,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 97921926465,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|4c3ffd1d4fb89d65f8e672dee2010fa73c0f65cd",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR.x265.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "4c3ffd1d4fb89d65f8e672dee2010fa73c0f65cd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR.x265.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 667,
+          "sites": [
+            "StremThru",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 25777506350,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://opentor.net:6969",
+            "http://bt3.t-ru.org/ann",
+            "http://retracker.local/announce",
+            "http://tracker.grepler.com:6969/announce",
+            "udp://tracker.dler.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey 2026.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "27dec5da8892eff0cfbcbad7903839e723f1f117",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey 2026 UHD BluRay 2160p HDR10 HEVC DTS-HD MA 5.1 x265-E",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 638,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 40169700866,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD"
+          ],
+          "binge_group": "torrentio|4k|h265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 DV iTA EnG AC3 Sub iTA EnG-MIRCrew.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "04d7b2b9559056637cb0cbe62048b3186a4b8cdd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 iTA EnG AC3 Sub iTA EnG-MIRCrew",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 578,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6829898662,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Odyssea (2026) UHDRDV cz en.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "ab09858a0ecea17cff94a4b26c9013969f03286c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10/DV][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 463,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "sktorrent"
+          ],
+          "size_bytes": 8175644708,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337",
+            "udp://ipv4announce.sktorrent.eu:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c8aca99b5117bf0cb3cc38ef80c0d6fcf0204da1",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 410,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 5444395433,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "ua",
+            "dk",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a3b33f58a5c81f6901c5bab217b1688c9f320e7f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi.LAT.FRE.DTS-HD.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 387,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "limetorrent",
+            "Peerflix"
+          ],
+          "size_bytes": 92667718363,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|4b9142488daace57b6beba8b763c6f4dffe223cd",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "4b9142488daace57b6beba8b763c6f4dffe223cd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 384,
+          "sites": [
+            "Torrentio",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 90941156524,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://opentor.net:6969",
+            "http://retracker.local/announce",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.UHD.BluRay.2160p.DDP.5.1.HDR.x265-hallowed.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "0a0d6476856dcdc4a893881e30947e6a4661d613",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey 2026 UHD BluRay 2160p DDP 5.1 HDR x265-hallowed",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 382,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 24190561519,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR r00t).mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "9c720169ab0575f185a48126a4ac35bc4f26fa54",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR DTS-HD MA 5.1 English + French + Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 370,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 25975124335,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1",
+            "7.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey [2026] 2160p HDR UHD BluRay AAC 5.1 HEVC-Vyndros.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "dcf6718bbac2b87e23c2156d4c753d25279d9a5f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) (2160p HDR BluRay x265 HEVC 10bit AAC 5.1 Vyndros)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 356,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 10627518573,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|c6254fce4ec054104d1bd1184e0f69be598d2741",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c6254fce4ec054104d1bd1184e0f69be598d2741",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 263,
+          "sites": [
+            "Torrentio",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 95500856283,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) [2160p] [HEVC].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "68ce264b6a30ee25774f2fb7e0f93e4fa72610e6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2026)(CZ/EN)[2160p][HDR10][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 255,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 5941545454,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DD+",
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "www.1TamilMV.io - The Odyssey (2026) BluRay - 4K SDR - 2160p HQ - HEVC - [Tamil + Telugu + Hindi + Eng] - (DD+5.1 - 640Kbps & AAC 2.0).mkv",
+          "hdr": [],
+          "info_hash": "4ad867ebf978c80fe86662e5f4a91341e3026f50",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The Odyssey (2026) BluRay - 4K SDR - 2160p HQ - HEVC - [Tamil + Telugu + Hindi + Eng] - (DD+5.1 - 640Kbps & AAC 2.0)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 254,
+          "sites": [
+            "EXT",
+            "1tamilmv"
+          ],
+          "size_bytes": 10812580167,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.dler.com:6969/announce",
+            "http://tracker.bt4g.com:2095/announce",
+            "udp://tracker-udp.gbitt.info:80/announce",
+            "http://ipv4announce.sktorrent.eu:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|67e5542379353c9dc04df8a58f22075ab677da36",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR10.x265.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "67e5542379353c9dc04df8a58f22075ab677da36",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR10.x265.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 203,
+          "sites": [
+            "Torrentio",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 39287910325,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "The Odyssey.mkv",
+          "hdr": [],
+          "info_hash": "cf1356dd4448aa05d66e026c93afdc913a8586b1",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Odyssea / The Odyssey (2160p)(CZ/EN)(2026)(Exclusive)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 190,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 8763805478,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        }
+      ],
+      "done": false,
+      "video_id": "tt33764258"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 341,
+          "id": "torrentio",
+          "message": null,
+          "ms": 83,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 271,
+          "id": "peerflix",
+          "message": null,
+          "ms": 1416,
+          "name": "Peerflix",
+          "state": "ok"
+        },
+        {
+          "count": 794,
+          "id": "comet",
+          "message": null,
+          "ms": 617,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 135,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 1056,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 7,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 2284,
+          "name": "Hacktorrent",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 1564,
+          "name": "EliteTorrent",
+          "state": "ok"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "pl",
+            "cz",
+            "ua",
+            "cast"
+          ],
+          "audio_format": [
+            "TrueHD",
+            "DTS",
+            "Atmos"
+          ],
+          "binge_group": "torrentio|4k|hevc",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": null,
+          "file_name": "The Odyssey IMAX ∞ BD/4K/SDR HEVC/TrueHD/DTS/DolbyAtmos/AC·3 EN/ES/CZ/DE/FR/HI/IT/PL/PT/RU/SK/UK/TA/TE + SUB",
+          "hdr": [],
+          "info_hash": "f94265c9acd6575439729130ca34699562418965",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 120,
+          "release_name": "The Odyssey IMAX ∞ BD/4K/SDR HEVC/TrueHD/DTS/DolbyAtmos/AC·3 EN/ES/CZ/DE/FR/HI/IT/PL/PT/RU/SK/UK/TA/TE + SUB",
+          "resolution": "2160p",
+          "seeders": 2,
+          "seeders_declared": 110,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 30311731691,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS",
+            "DD+"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|x264",
+          "codec": "H.264",
+          "completed": 14,
+          "file_idx": 0,
+          "file_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3.mkv",
+          "hdr": [],
+          "info_hash": "7083cabe66ee466c5a1b432ebe3748df8f623392",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 12,
+          "release_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3",
+          "resolution": "1080p",
+          "seeders": 1,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 8232926573,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BDRip|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 37533,
+          "file_idx": 0,
+          "file_name": "The Odyssey 2026 2160p UHD BDRip HEVC 10bit HDR DTS-HD.MA.5.1 MUSHR00M.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "478a2a33365e8702d9b195547b111bb367ac494a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 6093,
+          "release_name": "The Odyssey 2026 2160p UHD BDRip HEVC 10bit HDR DTS-HD.MA.5.1 MUSHR00M",
+          "resolution": "2160p",
+          "seeders": 2327,
+          "seeders_declared": 2492,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "limetorrent",
+            "Peerflix"
+          ],
+          "size_bytes": 30765780646,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit",
+          "codec": "HEVC",
+          "completed": 51247,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.4K.BluRay.x265.10bit.AAC5.1-[YTS.GG - YTS.BZ].mkv",
+          "hdr": [],
+          "info_hash": "e504c0e31a1854f83758e5564575e219fe115e13",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 557,
+          "release_name": "The Odyssey (2026) [2160p] [BluRay] [x265] [10bit] [5.1]",
+          "resolution": "2160p",
+          "seeders": 1992,
+          "seeders_declared": 2370,
+          "sites": [
+            "UIndex",
+            "Torrentio",
+            "YTS",
+            "Peerflix"
+          ],
+          "size_bytes": 8394178080,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": 9479,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "ace6ee112446904ea51a44756caa819153ae242f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 2095,
+          "release_name": "The Odyssey 2026 2160p UHD Blu-ray Remux HDR HEVC DTS-HD MA 5 1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": 1132,
+          "seeders_declared": 1123,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 88246893816,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1",
+          "codec": "AV1",
+          "completed": 12132,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.  2160p.AI Enhanced.IMAX.BluRay.48FPS.AV1.SDR.DTS-HD.MA.5.1MultiSubs_Marjenbo .mkv",
+          "hdr": [],
+          "info_hash": "87dd3f2625448578f4521c8041aeb567ad9cc7b6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 728,
+          "release_name": "The.Odyssey.2026. 2160p.AI Enhanced.IMAX.BluRay.48FPS.AV1.SDR.DTS-HD.MA.5.1MultiSubs_Marjenbo",
+          "resolution": "2160p",
+          "seeders": 1079,
+          "seeders_declared": 1603,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 78328153947,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": 10850,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "38e1db1c08b3312238c94813a0bf61104dbaab03",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1137,
+          "release_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": 879,
+          "seeders_declared": 1053,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 88246893816,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": 6889,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10+ r00t).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "f3414b222b6949474127f3391a46f1b953e29207",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1430,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10 DTS-HD MA 5.1 English French Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": 690,
+          "seeders_declared": 812,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 26052677294,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|4c3ffd1d4fb89d65f8e672dee2010fa73c0f65cd",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR.x265.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "4c3ffd1d4fb89d65f8e672dee2010fa73c0f65cd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR.x265.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 667,
+          "sites": [
+            "StremThru",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 25777506350,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://opentor.net:6969",
+            "http://bt3.t-ru.org/ann",
+            "http://retracker.local/announce",
+            "http://tracker.grepler.com:6969/announce",
+            "udp://tracker.dler.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|10bit|DV|HDR10+",
+          "codec": "HEVC",
+          "completed": 4709,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "183121572b5d08e56225181d8e504eebc9c5a140",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1160,
+          "release_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi.DTS.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": 600,
+          "seeders_declared": 711,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 97921926465,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD"
+          ],
+          "binge_group": "torrentio|4k|h265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 12887,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 DV iTA EnG AC3 Sub iTA EnG-MIRCrew.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "04d7b2b9559056637cb0cbe62048b3186a4b8cdd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1450,
+          "release_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 iTA EnG AC3 Sub iTA EnG-MIRCrew",
+          "resolution": "2160p",
+          "seeders": 555,
+          "seeders_declared": 578,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6829898662,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k",
+          "codec": null,
+          "completed": 4221,
+          "file_idx": 0,
+          "file_name": "La Odisea (2026) [4k 2160p][Esp].mkv",
+          "hdr": [],
+          "info_hash": "4e897433f753bfc54313fb75df1b70cfed331c61",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 451,
+          "release_name": "La Odisea (2026) [4k 2160p][Esp]",
+          "resolution": "2160p",
+          "seeders": 430,
+          "seeders_declared": 1000,
+          "sites": [
+            "Wolfmax4k",
+            "Peerflix"
+          ],
+          "size_bytes": 33260747992,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|4b9142488daace57b6beba8b763c6f4dffe223cd",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "4b9142488daace57b6beba8b763c6f4dffe223cd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 384,
+          "sites": [
+            "Torrentio",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 90941156524,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://opentor.net:6969",
+            "http://retracker.local/announce",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "ua",
+            "dk",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|HDR",
+          "codec": "HEVC",
+          "completed": 5682,
+          "file_idx": 2,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a3b33f58a5c81f6901c5bab217b1688c9f320e7f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 571,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi.LAT.FRE.DTS-HD.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": 357,
+          "seeders_declared": 387,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "limetorrent",
+            "Peerflix"
+          ],
+          "size_bytes": 92667718363,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|HDR",
+          "codec": "HEVC",
+          "completed": 6776,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.UHD.BluRay.2160p.DDP.5.1.HDR.x265-hallowed.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "0a0d6476856dcdc4a893881e30947e6a4661d613",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 312,
+          "release_name": "The Odyssey 2026 UHD BluRay 2160p DDP 5.1 HDR x265-hallowed",
+          "resolution": "2160p",
+          "seeders": 314,
+          "seeders_declared": 382,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 24190561519,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 7254,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c8aca99b5117bf0cb3cc38ef80c0d6fcf0204da1",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1865,
+          "release_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA",
+          "resolution": "2160p",
+          "seeders": 305,
+          "seeders_declared": 410,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 5444395433,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1",
+            "7.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 6496,
+          "file_idx": 0,
+          "file_name": "The Odyssey [2026] 2160p HDR UHD BluRay AAC 5.1 HEVC-Vyndros.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "dcf6718bbac2b87e23c2156d4c753d25279d9a5f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 545,
+          "release_name": "The Odyssey (2026) (2160p HDR BluRay x265 HEVC 10bit AAC 5.1 Vyndros)",
+          "resolution": "2160p",
+          "seeders": 293,
+          "seeders_declared": 356,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 10627518573,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 5526,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR r00t).mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "9c720169ab0575f185a48126a4ac35bc4f26fa54",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 296,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR DTS-HD MA 5.1 English + French + Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": 289,
+          "seeders_declared": 370,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 25975124335,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|c6254fce4ec054104d1bd1184e0f69be598d2741",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c6254fce4ec054104d1bd1184e0f69be598d2741",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 263,
+          "sites": [
+            "Torrentio",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 95500856283,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr",
+            "sa"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": 6527,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) (UHD BDRip IMAX 1080p AV1 HDR10 DTS) [OEP][371C3665].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "55cde8ba92ab6197b689702a4d5b4d33e95ade89",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 2142,
+          "release_name": "The Odyssey (2026) (UHD BDRip IMAX 1080p AV1 HDR10 DTS) [OEP][371C3665].mkv",
+          "resolution": "2160p",
+          "seeders": 218,
+          "seeders_declared": 163,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "ThePirateBay",
+            "Peerflix"
+          ],
+          "size_bytes": 9909555574,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|67e5542379353c9dc04df8a58f22075ab677da36",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR10.x265.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "67e5542379353c9dc04df8a58f22075ab677da36",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR10.x265.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 203,
+          "sites": [
+            "Torrentio",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 39287910325,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265",
+          "codec": "HEVC",
+          "completed": 4213,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.BluRay.AAC5.1.SDR.x265-LAMA.mkv",
+          "hdr": [],
+          "info_hash": "47b4dca3903f8be6c71ea436b0e463554831d41c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 446,
+          "release_name": "The Odyssey 2026 2160p BluRay AAC5.1 SDR x265-LAMA",
+          "resolution": "2160p",
+          "seeders": 164,
+          "seeders_declared": 160,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 8394178080,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "AAC"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|HDR",
+          "codec": "HEVC",
+          "completed": 3752,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "3d1427684ff8b6ec0ebba9bc006d93b9f59f15cb",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 340,
+          "release_name": "The.Odyssey.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "resolution": "2160p",
+          "seeders": 152,
+          "seeders_declared": 149,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6512223771,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|DV|HDR",
+          "codec": null,
+          "completed": 1979,
+          "file_idx": 2,
+          "file_name": "The.Odyssey.2026.2160p.MA.WEB-DL.DV.HDR.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "65b1f2a6f2c800179884c62022b48fb9dab0164c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 314,
+          "release_name": "The.Odyssey.2026.2160p.WEB-DL.DV.HDR.MULTi.LAT.FRE.GER.ITA.HINDI.RUS.DTS.MA-BTM",
+          "resolution": "2160p",
+          "seeders": 151,
+          "seeders_declared": 167,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 46894877732,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 1239,
+          "file_idx": 0,
+          "file_name": "The Odyssey 2026.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "27dec5da8892eff0cfbcbad7903839e723f1f117",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 890,
+          "release_name": "The Odyssey 2026 UHD BluRay 2160p HDR10 HEVC DTS-HD MA 5.1 x265-E",
+          "resolution": "2160p",
+          "seeders": 148,
+          "seeders_declared": 638,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 40169700866,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        }
+      ],
+      "done": false,
+      "video_id": "tt33764258"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 341,
+          "id": "torrentio",
+          "message": null,
+          "ms": 83,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 271,
+          "id": "peerflix",
+          "message": null,
+          "ms": 1416,
+          "name": "Peerflix",
+          "state": "ok"
+        },
+        {
+          "count": 794,
+          "id": "comet",
+          "message": null,
+          "ms": 617,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 135,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 1056,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 7,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 2284,
+          "name": "Hacktorrent",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 1564,
+          "name": "EliteTorrent",
+          "state": "ok"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "pl",
+            "cz",
+            "ua",
+            "cast"
+          ],
+          "audio_format": [
+            "TrueHD",
+            "DTS",
+            "Atmos"
+          ],
+          "binge_group": "torrentio|4k|hevc",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": null,
+          "file_name": "The Odyssey IMAX ∞ BD/4K/SDR HEVC/TrueHD/DTS/DolbyAtmos/AC·3 EN/ES/CZ/DE/FR/HI/IT/PL/PT/RU/SK/UK/TA/TE + SUB",
+          "hdr": [],
+          "info_hash": "f94265c9acd6575439729130ca34699562418965",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 120,
+          "release_name": "The Odyssey IMAX ∞ BD/4K/SDR HEVC/TrueHD/DTS/DolbyAtmos/AC·3 EN/ES/CZ/DE/FR/HI/IT/PL/PT/RU/SK/UK/TA/TE + SUB",
+          "resolution": "2160p",
+          "seeders": 2,
+          "seeders_declared": 110,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 30311731691,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS",
+            "DD+"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|x264",
+          "codec": "H.264",
+          "completed": 14,
+          "file_idx": 0,
+          "file_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3.mkv",
+          "hdr": [],
+          "info_hash": "7083cabe66ee466c5a1b432ebe3748df8f623392",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 12,
+          "release_name": "La.odisea.(IMAX).(2026).(Spanish.English.Subs).BDRip.1080p.x264-DTS.EAC3",
+          "resolution": "1080p",
+          "seeders": 1,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 8232926573,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC"
+          ],
+          "binge_group": "torrentsdb|2160p|bluray|x265",
+          "codec": "HEVC",
+          "completed": 3376944906,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.Special.Features.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "6e93030dfa0ed78b1fa5a267e3b2365b0f2b9b04",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 526361511,
+          "release_name": "The.Odyssey.Special.Features.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "resolution": "2160p",
+          "seeders": 2132269102,
+          "seeders_declared": 87,
+          "sites": [
+            "1337x"
+          ],
+          "size_bytes": 2576980377,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BDRip|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 37533,
+          "file_idx": 0,
+          "file_name": "The Odyssey 2026 2160p UHD BDRip HEVC 10bit HDR DTS-HD.MA.5.1 MUSHR00M.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "478a2a33365e8702d9b195547b111bb367ac494a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 6093,
+          "release_name": "The Odyssey 2026 2160p UHD BDRip HEVC 10bit HDR DTS-HD.MA.5.1 MUSHR00M",
+          "resolution": "2160p",
+          "seeders": 2327,
+          "seeders_declared": 2492,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "limetorrent",
+            "Peerflix"
+          ],
+          "size_bytes": 30765780646,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit",
+          "codec": "HEVC",
+          "completed": 51247,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.4K.BluRay.x265.10bit.AAC5.1-[YTS.GG - YTS.BZ].mkv",
+          "hdr": [],
+          "info_hash": "e504c0e31a1854f83758e5564575e219fe115e13",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 557,
+          "release_name": "The Odyssey (2026) [2160p] [BluRay] [x265] [10bit] [5.1]",
+          "resolution": "2160p",
+          "seeders": 1992,
+          "seeders_declared": 2370,
+          "sites": [
+            "UIndex",
+            "Torrentio",
+            "YTS",
+            "Peerflix"
+          ],
+          "size_bytes": 8394178080,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": 9479,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "ace6ee112446904ea51a44756caa819153ae242f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 2095,
+          "release_name": "The Odyssey 2026 2160p UHD Blu-ray Remux HDR HEVC DTS-HD MA 5 1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": 1132,
+          "seeders_declared": 1123,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 88246893816,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1",
+          "codec": "AV1",
+          "completed": 12132,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.  2160p.AI Enhanced.IMAX.BluRay.48FPS.AV1.SDR.DTS-HD.MA.5.1MultiSubs_Marjenbo .mkv",
+          "hdr": [],
+          "info_hash": "87dd3f2625448578f4521c8041aeb567ad9cc7b6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 728,
+          "release_name": "The.Odyssey.2026. 2160p.AI Enhanced.IMAX.BluRay.48FPS.AV1.SDR.DTS-HD.MA.5.1MultiSubs_Marjenbo",
+          "resolution": "2160p",
+          "seeders": 1079,
+          "seeders_declared": 1603,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 78328153947,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|HDR",
+          "codec": "HEVC",
+          "completed": 10850,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "38e1db1c08b3312238c94813a0bf61104dbaab03",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1137,
+          "release_name": "The.Odyssey.2026.2160p.UHD.Blu-ray.Remux.HDR.HEVC.DTS-HD.MA.5.1-CiNEPHiLES",
+          "resolution": "2160p",
+          "seeders": 879,
+          "seeders_declared": 1053,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 88246893816,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": 6889,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10+ r00t).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "f3414b222b6949474127f3391a46f1b953e29207",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1430,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit DV HDR10 DTS-HD MA 5.1 English French Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": 690,
+          "seeders_declared": 812,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 26052677294,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "multi",
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|10bit|DV|HDR10+",
+          "codec": "HEVC",
+          "completed": 4709,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "183121572b5d08e56225181d8e504eebc9c5a140",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1160,
+          "release_name": "The.Odyssey.2026.2160p.Hybrid.UHD.BluRay.REMUX.DV.HDR10+.MULTi.DTS.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": 600,
+          "seeders_declared": 711,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 97921926465,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD"
+          ],
+          "binge_group": "torrentio|4k|h265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 12887,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 DV iTA EnG AC3 Sub iTA EnG-MIRCrew.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "04d7b2b9559056637cb0cbe62048b3186a4b8cdd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1450,
+          "release_name": "The Odyssey (2026) iMAX 2160p H265 HDR10 iTA EnG AC3 Sub iTA EnG-MIRCrew",
+          "resolution": "2160p",
+          "seeders": 555,
+          "seeders_declared": 578,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6829898662,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k",
+          "codec": null,
+          "completed": 4221,
+          "file_idx": 0,
+          "file_name": "La Odisea (2026) [4k 2160p][Esp].mkv",
+          "hdr": [],
+          "info_hash": "4e897433f753bfc54313fb75df1b70cfed331c61",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 451,
+          "release_name": "La Odisea (2026) [4k 2160p][Esp]",
+          "resolution": "2160p",
+          "seeders": 430,
+          "seeders_declared": 1000,
+          "sites": [
+            "Wolfmax4k",
+            "Peerflix"
+          ],
+          "size_bytes": 33260747992,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|4c3ffd1d4fb89d65f8e672dee2010fa73c0f65cd",
+          "codec": "HEVC",
+          "completed": 11961,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR.x265.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "4c3ffd1d4fb89d65f8e672dee2010fa73c0f65cd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 667,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR.x265.mkv",
+          "resolution": "2160p",
+          "seeders": 379,
+          "seeders_declared": 667,
+          "sites": [
+            "StremThru",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 25777506350,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://opentor.net:6969",
+            "http://bt3.t-ru.org/ann",
+            "http://retracker.local/announce",
+            "http://tracker.grepler.com:6969/announce",
+            "udp://tracker.dler.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "ua",
+            "dk",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|h265|HDR",
+          "codec": "HEVC",
+          "completed": 5682,
+          "file_idx": 2,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a3b33f58a5c81f6901c5bab217b1688c9f320e7f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 571,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BluRay.Remux.HDR.MULTi.LAT.FRE.DTS-HD.MA.H265-BTM",
+          "resolution": "2160p",
+          "seeders": 357,
+          "seeders_declared": 387,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "limetorrent",
+            "Peerflix"
+          ],
+          "size_bytes": 92667718363,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|HDR",
+          "codec": "HEVC",
+          "completed": 6776,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.UHD.BluRay.2160p.DDP.5.1.HDR.x265-hallowed.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "0a0d6476856dcdc4a893881e30947e6a4661d613",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 312,
+          "release_name": "The Odyssey 2026 UHD BluRay 2160p DDP 5.1 HDR x265-hallowed",
+          "resolution": "2160p",
+          "seeders": 314,
+          "seeders_declared": 382,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 24190561519,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 7254,
+          "file_idx": 1,
+          "file_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c8aca99b5117bf0cb3cc38ef80c0d6fcf0204da1",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1865,
+          "release_name": "The.Odyssey.2026.2160p.10bit.HDR.BluRay.6CH.x265.HEVC-PSA",
+          "resolution": "2160p",
+          "seeders": 305,
+          "seeders_declared": 410,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 5444395433,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1",
+            "7.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 6496,
+          "file_idx": 0,
+          "file_name": "The Odyssey [2026] 2160p HDR UHD BluRay AAC 5.1 HEVC-Vyndros.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "dcf6718bbac2b87e23c2156d4c753d25279d9a5f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 545,
+          "release_name": "The Odyssey (2026) (2160p HDR BluRay x265 HEVC 10bit AAC 5.1 Vyndros)",
+          "resolution": "2160p",
+          "seeders": 293,
+          "seeders_declared": 356,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 10627518573,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 5526,
+          "file_idx": 4,
+          "file_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR r00t).mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "9c720169ab0575f185a48126a4ac35bc4f26fa54",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 296,
+          "release_name": "The Odyssey (2026) (2160p UHD BluRay x265 10bit HDR DTS-HD MA 5.1 English + French + Spanish r00t) [QxR]",
+          "resolution": "2160p",
+          "seeders": 289,
+          "seeders_declared": 370,
+          "sites": [
+            "EXT",
+            "Torrentio",
+            "1337x",
+            "Peerflix"
+          ],
+          "size_bytes": 25975124335,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|c6254fce4ec054104d1bd1184e0f69be598d2741",
+          "codec": null,
+          "completed": 1205,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c6254fce4ec054104d1bd1184e0f69be598d2741",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 169,
+          "release_name": "The.Odyssey.2026.BDRemux.2160p.HDR.mkv",
+          "resolution": "2160p",
+          "seeders": 280,
+          "seeders_declared": 263,
+          "sites": [
+            "Torrentio",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 95500856283,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "fr",
+            "sa"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "torrentio|1080p|BDRip|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": 6527,
+          "file_idx": 0,
+          "file_name": "The Odyssey (2026) (UHD BDRip IMAX 1080p AV1 HDR10 DTS) [OEP][371C3665].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "55cde8ba92ab6197b689702a4d5b4d33e95ade89",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 2142,
+          "release_name": "The Odyssey (2026) (UHD BDRip IMAX 1080p AV1 HDR10 DTS) [OEP][371C3665].mkv",
+          "resolution": "2160p",
+          "seeders": 218,
+          "seeders_declared": 163,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "ThePirateBay",
+            "Peerflix"
+          ],
+          "size_bytes": 9909555574,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|67e5542379353c9dc04df8a58f22075ab677da36",
+          "codec": "HEVC",
+          "completed": 1688,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR10.x265.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "67e5542379353c9dc04df8a58f22075ab677da36",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 187,
+          "release_name": "The.Odyssey.2026.2160p.UHD.BDRip.HDR10.x265.mkv",
+          "resolution": "2160p",
+          "seeders": 197,
+          "seeders_declared": 203,
+          "sites": [
+            "Torrentio",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 39287910325,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|cfd641be8a248984b720e8026ce8aa22a5340a54",
+          "codec": "HEVC",
+          "completed": 970,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.Hybrid.2160p.UHD.Blu-ray.Remux.DV.HDR10P.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "hdr": [
+            "DV"
+          ],
+          "info_hash": "cfd641be8a248984b720e8026ce8aa22a5340a54",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 219,
+          "release_name": "The.Odyssey.2026.Hybrid.2160p.UHD.Blu-ray.Remux.DV.HDR10P.HEVC.DTS-HD.MA.5.1-CiNEPHiLES.mkv",
+          "resolution": "2160p",
+          "seeders": 169,
+          "seeders_declared": 143,
+          "sites": [
+            "StremThru",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 92730105346,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://opentor.net:6969",
+            "http://bt2.t-ru.org/ann",
+            "http://retracker.local/announce",
+            "http://tracker.grepler.com:6969/announce",
+            "udp://tracker.dler.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265",
+          "codec": "HEVC",
+          "completed": 4213,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.BluRay.AAC5.1.SDR.x265-LAMA.mkv",
+          "hdr": [],
+          "info_hash": "47b4dca3903f8be6c71ea436b0e463554831d41c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 446,
+          "release_name": "The Odyssey 2026 2160p BluRay AAC5.1 SDR x265-LAMA",
+          "resolution": "2160p",
+          "seeders": 164,
+          "seeders_declared": 160,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 8394178080,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "AAC"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|HDR",
+          "codec": "HEVC",
+          "completed": 3752,
+          "file_idx": 0,
+          "file_name": "The.Odyssey.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "3d1427684ff8b6ec0ebba9bc006d93b9f59f15cb",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 340,
+          "release_name": "The.Odyssey.2026.2160p.HDR.ITA-ENG.BluRay.x265.AAC-V3SP4EV3R.mkv",
+          "resolution": "2160p",
+          "seeders": 152,
+          "seeders_declared": 149,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6512223771,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "lat",
+            "multi",
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "in",
+            "cz",
+            "bg",
+            "rs",
+            "hr",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|DV|HDR",
+          "codec": null,
+          "completed": 1979,
+          "file_idx": 2,
+          "file_name": "The.Odyssey.2026.2160p.MA.WEB-DL.DV.HDR.MULTi[Ben The Men].mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "65b1f2a6f2c800179884c62022b48fb9dab0164c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 314,
+          "release_name": "The.Odyssey.2026.2160p.WEB-DL.DV.HDR.MULTi.LAT.FRE.GER.ITA.HINDI.RUS.DTS.MA-BTM",
+          "resolution": "2160p",
+          "seeders": 151,
+          "seeders_declared": 167,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 46894877732,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        }
+      ],
+      "done": true,
+      "video_id": "tt33764258"
+    }
+  }
+]

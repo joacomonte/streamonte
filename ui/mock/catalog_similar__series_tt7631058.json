@@ -1,0 +1,66 @@
+[
+  {
+    "id": "tt4254242",
+    "name": "Magicians",
+    "year": "2015",
+    "poster": "https://image.tmdb.org/t/p/w500/A66dZN98BPEYeFQAhNdNCIXa57d.jpg",
+    "rating": 7.6,
+    "tmdb_rating": 7.588
+  },
+  {
+    "id": "tt0331744",
+    "name": "He-Man y los Amos del Universo",
+    "year": "2002",
+    "poster": "https://image.tmdb.org/t/p/w500/gBFQzgZzu9nx6tzqyUuk7Rbwabx.jpg",
+    "rating": 7.5,
+    "tmdb_rating": 7.648
+  },
+  {
+    "id": "tt0197154",
+    "name": "Gormenghast",
+    "year": "2000",
+    "poster": "https://image.tmdb.org/t/p/w500/6JCGZ9IT6oRhYpedhq85nxDuQFa.jpg",
+    "rating": 7.2,
+    "tmdb_rating": 6.9
+  },
+  {
+    "id": "tt2802008",
+    "name": "Érase una vez en el País de las Maravillas",
+    "year": "2013",
+    "poster": "https://image.tmdb.org/t/p/w500/phNi30kcE6XykglRPzKRAwhISes.jpg",
+    "rating": 6.9,
+    "tmdb_rating": 6.8
+  },
+  {
+    "id": "tt10313176",
+    "name": "Nancy Drew",
+    "year": "2019",
+    "poster": "https://image.tmdb.org/t/p/w500/cBXeSqUE4reXkGvs3lUls8M9J72.jpg",
+    "rating": 6.8,
+    "tmdb_rating": 7.66
+  },
+  {
+    "id": "tt17720272",
+    "name": "Escalofríos: La serie",
+    "year": "2023",
+    "poster": "https://image.tmdb.org/t/p/w500/xwEJNfeNBvjn9nhVECtCQB92JTB.jpg",
+    "rating": 6.7,
+    "tmdb_rating": 7.1
+  },
+  {
+    "id": "tt2705602",
+    "name": "Atlantis",
+    "year": "2013",
+    "poster": "https://image.tmdb.org/t/p/w500/bmdlBu7y0pZq3KZwtFFHzWPEsbP.jpg",
+    "rating": 6.5,
+    "tmdb_rating": 6.446
+  },
+  {
+    "id": "tt10278918",
+    "name": "Willow",
+    "year": "2022",
+    "poster": "https://image.tmdb.org/t/p/w500/sAq3tJOTj7UQUgV1Mz22BCQvh6S.jpg",
+    "rating": 5.7,
+    "tmdb_rating": 6.6
+  }
+]

@@ -63,7 +63,7 @@ test('restaurar: lo guardado vale, lo roto vuelve a su valor por defecto', () =>
 });
 
 test('paginado: la página 2 se suma sin repetir y termina con hasMore false', async () => {
-	const { api, calls } = fakeApi({ browse: (_f, page) => Promise.resolve(page === 1 ? { items: trending.items, hasMore: true } : { items: [...trending.items.slice(0, 2), ...top.items.slice(0, 1)], hasMore: false }) });
+	const { api, calls } = fakeApi({ browse: (_f, page) => Promise.resolve(page === 1 ? { items: trending.items, hasMore: true } : { items: [...trending.items.slice(0, 2), ...top.items.filter((i) => !trending.items.some((t) => t.id === i.id)).slice(0, 1)], hasMore: false }) });
 	const { store, st } = make(api);
 	await store.loadMore();
 	assert.equal(st.items.length, trending.items.length);

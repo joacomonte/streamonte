@@ -1,0 +1,550 @@
+{
+  "id": "tt7631058",
+  "kind": "series",
+  "name": "The Lord of the Rings: The Rings of Power",
+  "year": "2022–",
+  "runtime_min": 67,
+  "country": "United States, New Zealand, Canada",
+  "genres": [
+    "Action",
+    "Adventure",
+    "Drama"
+  ],
+  "imdb_rating": "6.8",
+  "description": "Epic drama set thousands of years before the events of J.R.R. Tolkien's 'The Hobbit' and 'The Lord of the Rings' follows an ensemble cast of characters, both familiar and new, as they confront the long-feared re-emergence of evil ...",
+  "poster": "https://images.metahub.space/poster/small/tt7631058/img",
+  "background": "https://images.metahub.space/background/medium/tt7631058/img",
+  "episodes": [
+    {
+      "id": "tt7631058:1:1",
+      "season": 1,
+      "episode": 1,
+      "title": "A Shadow of the Past",
+      "released": "2022-09-01",
+      "overview": "Galadriel is disturbed by signs of an ancient evil’s return; Arondir makes an unsettling discovery; Elrond is presented with an intriguing new venture; Nori breaks the Harfoot community’s most deeply-held rule.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/1/1/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:1:2",
+      "season": 1,
+      "episode": 2,
+      "title": "Adrift",
+      "released": "2022-09-01",
+      "overview": "Galadriel finds a new ally; Elrond faces a cold reception from an old friend; Nori endeavors to help a Stranger; Arondir searches for answers while Bronwyn warns her people of a threat.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/1/2/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:1:3",
+      "season": 1,
+      "episode": 3,
+      "title": "Adar",
+      "released": "2022-09-09",
+      "overview": "Arondir finds himself a captive; Galadriel and Halbrand explore a legendary kingdom; Elendil is given a new assignment; Nori faces the consequences.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/1/3/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:1:4",
+      "season": 1,
+      "episode": 4,
+      "title": "The Great Wave",
+      "released": "2022-09-16",
+      "overview": "Queen Regent Míriel’s faith is tested; Isildur finds himself at a crossroads; Elrond uncovers a secret; Arondir is given an ultimatum; Theo disobeys Bronwyn.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/1/4/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:1:5",
+      "season": 1,
+      "episode": 5,
+      "title": "Partings",
+      "released": "2022-09-23",
+      "overview": "Nori questions her instincts; Elrond struggles to stay true to his oath; Halbrand weighs his destiny; The Southlanders brace for attack.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/1/5/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:1:6",
+      "season": 1,
+      "episode": 6,
+      "title": "Udûn",
+      "released": "2022-09-30",
+      "overview": "Adar and his army march on Ostirith.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/1/6/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:1:7",
+      "season": 1,
+      "episode": 7,
+      "title": "The Eye",
+      "released": "2022-10-07",
+      "overview": "Survivors of a cataclysm try to find safety; the Harfoots confront evil; Durin is torn between friendship and duty; Adar considers a new name.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/1/7/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:1:8",
+      "season": 1,
+      "episode": 8,
+      "title": "Alloyed",
+      "released": "2022-10-14",
+      "overview": "New alliances are forged.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/1/8/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:2:1",
+      "season": 2,
+      "episode": 1,
+      "title": "Elven Kings Under the Sky",
+      "released": "2024-08-29",
+      "overview": "Sauron bargains with Adar. The Stranger and Nori venture into new lands. The Three Elven Rings face judgment.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/2/1/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:2:2",
+      "season": 2,
+      "episode": 2,
+      "title": "Where the Stars are Strange",
+      "released": "2024-08-29",
+      "overview": "Darkness falls over Khazad-dûm. Sauron and Galadriel each seek new allies. The Stranger and Harfoots encounter a growing threat.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/2/2/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:2:3",
+      "season": 2,
+      "episode": 3,
+      "title": "The Eagle and the Sceptre",
+      "released": "2024-08-29",
+      "overview": "Isildur and an old friend reunite. Arondir grapples with change. Míriel faces rising opposition. Annatar counsels Celebrimbor.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/2/3/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:2:4",
+      "season": 2,
+      "episode": 4,
+      "title": "Eldest",
+      "released": "2024-09-05",
+      "overview": "The Stranger finds what he’s been searching for. Arondir and Isildur search for Theo. Galadriel and Elrond walk into a trap.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/2/4/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:2:5",
+      "season": 2,
+      "episode": 5,
+      "title": "Halls of Stone",
+      "released": "2024-09-12",
+      "overview": "When Durin grows suspicious of the Dwarven Rings, Celebrimbor must reassess his priorities. Amidst Númenor’s shifting currents, Elendil searches for hope.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/2/5/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:2:6",
+      "season": 2,
+      "episode": 6,
+      "title": "Where Is He?",
+      "released": "2024-09-19",
+      "overview": "Galadriel considers a proposition. Elendil faces judgment. The Stranger finds himself at a crossroads. Sauron’s plans bear fruit.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/2/6/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:2:7",
+      "season": 2,
+      "episode": 7,
+      "title": "Doomed to Die",
+      "released": "2024-09-26",
+      "overview": "Eregion’s fate is decided.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/2/7/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:2:8",
+      "season": 2,
+      "episode": 8,
+      "title": "Shadow and Flame",
+      "released": "2024-10-03",
+      "overview": "The free peoples of Middle-earth struggle against the forces of darkness.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/2/8/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:3:1",
+      "season": 3,
+      "episode": 1,
+      "title": "Marnûkh",
+      "released": "2026-11-11",
+      "overview": "War rages between the Elves and Sauron. Galadriel remembers a long-lost love. Durin welcomes home his brother… and another unexpected guest.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/3/1/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:3:2",
+      "season": 3,
+      "episode": 2,
+      "title": "The Gift of Men",
+      "released": "2026-11-11",
+      "overview": "Tumult grips Númenor. Theo is offered a new path. The Dwarves weigh their options. The Elves learn of Sauron's plan - and debate a perilous mission.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/3/2/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:3:3",
+      "season": 3,
+      "episode": 3,
+      "title": "The Secret Fire",
+      "released": "2026-11-11",
+      "overview": "Gandalf works to keep Rhûn out of the war. Elendil hunts a spy. Marnûkh leads Galadriel and Arondir to Gundabad as Sauron questions the orc's agenda.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/3/3/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:3:4",
+      "season": 3,
+      "episode": 4,
+      "title": "Gundabad",
+      "released": "2026-11-11",
+      "overview": "At Gundabad, our heroes find less than they came for and more than they expected. Elrond brings Gil-galad an urgent mission. Durin defends his throne.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/3/4/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:3:5",
+      "season": 3,
+      "episode": 5,
+      "title": "The Lady of Lórien",
+      "released": "2026-11-18",
+      "overview": "Galadriel catches up with a lost love; Sauron catches up to her. Elrond & Gil-galad reach Númenor. Gandalf seeks peace but gets a little carried away.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/3/5/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:3:6",
+      "season": 3,
+      "episode": 6,
+      "title": "From Valinor",
+      "released": "2026-11-18",
+      "overview": "Galadriel finds unexpected help. Sauron presses his advantage. Númenor's tensions spark a surprising proposal. Thrain grows ruthless in his pursuit.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/3/6/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:3:7",
+      "season": 3,
+      "episode": 7,
+      "title": "TBA",
+      "released": "2026-11-25",
+      "overview": "",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/3/7/w780.jpg",
+      "available": false
+    },
+    {
+      "id": "tt7631058:3:8",
+      "season": 3,
+      "episode": 8,
+      "title": "TBA",
+      "released": "2026-11-25",
+      "overview": "",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/3/8/w780.jpg",
+      "available": false
+    },
+    {
+      "id": "tt7631058:0:1",
+      "season": 0,
+      "episode": 1,
+      "title": "Stories from the Legendarium Featurette",
+      "released": "2022-08-03",
+      "overview": "Every good quest needs a fellowship. Join the excitement as Patrick McKay, JD Payne, Morfydd Clark and Ismael Cruz Córdova reveal what to expect in The Lord of the Rings: The Rings Of Power.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/1/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:10",
+      "season": 0,
+      "episode": 10,
+      "title": "Stories of the Second Age – Lindon",
+      "released": "2022-09-05",
+      "overview": "Enter the capital of the High Elves and learn from cast how these immortal beings deal with the rising evil in Middle-earth.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/10/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:11",
+      "season": 0,
+      "episode": 11,
+      "title": "Stories of the Second Age – Númenor",
+      "released": "2022-09-05",
+      "overview": "Cast explore the breathtaking island kingdom of Númenor and share background on a society at the height of its power.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/11/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:12",
+      "season": 0,
+      "episode": 12,
+      "title": "Stories of the Second Age – The Southlands",
+      "released": "2022-09-05",
+      "overview": "Paying the price for decisions made generations ago, The Southlanders must now face a new evil might on lurking on their horizon.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/12/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:13",
+      "season": 0,
+      "episode": 13,
+      "title": "Stories of the Second Age – Rhovanion",
+      "released": "2022-09-05",
+      "overview": "Cast provide a behind-the-scenes glimpse at the Harfoots, a mysterious band of early hobbits hidden from sight until now.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/13/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:14",
+      "season": 0,
+      "episode": 14,
+      "title": "Stories of the Second Age – Khazad-dûm",
+      "released": "2022-09-05",
+      "overview": "Learn about the secretive realm of the dwarves as cast discuss what mysteries might lie beneath the Misty Mountains.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/14/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:15",
+      "season": 0,
+      "episode": 15,
+      "title": "The Making of The Rings of Power - Episode 1",
+      "released": "2022-11-21",
+      "overview": "Go behind-the-scenes of The Lord of the Rings: The Rings of Power, season 1 and see how this epic world was brought to life.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/15/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:16",
+      "season": 0,
+      "episode": 16,
+      "title": "The Making of The Rings of Power - Episode 2",
+      "released": "2022-11-21",
+      "overview": "",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/16/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:17",
+      "season": 0,
+      "episode": 17,
+      "title": "The Making of The Rings of Power - Episode 3",
+      "released": "2022-11-21",
+      "overview": "",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/17/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:18",
+      "season": 0,
+      "episode": 18,
+      "title": "The Making of The Rings of Power - Episode 4",
+      "released": "2022-11-21",
+      "overview": "",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/18/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:19",
+      "season": 0,
+      "episode": 19,
+      "title": "The Making of The Rings of Power - Episode 5",
+      "released": "2022-11-21",
+      "overview": "",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/19/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:20",
+      "season": 0,
+      "episode": 20,
+      "title": "The Making of The Rings of Power - Episode 6",
+      "released": "2022-11-21",
+      "overview": "",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/20/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:21",
+      "season": 0,
+      "episode": 21,
+      "title": "The Making of The Rings of Power - Episode 7",
+      "released": "2022-11-21",
+      "overview": "",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/21/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:22",
+      "season": 0,
+      "episode": 22,
+      "title": "The Making of The Rings of Power - Episode 8",
+      "released": "2022-11-21",
+      "overview": "",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/22/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:23",
+      "season": 0,
+      "episode": 23,
+      "title": "Inside The Rings of Power S2 E1",
+      "released": "2024-08-29",
+      "overview": "Charlie Vickers and Benjamin Walker welcome us back to Middle-earth. Go behind-the-scenes of the dark new season with the cast as they discuss The Rings of Power Season 2, Episode 1 with Felicia Day.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/23/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:24",
+      "season": 0,
+      "episode": 24,
+      "title": "Inside The Rings of Power S2 E2",
+      "released": "2024-08-29",
+      "overview": "Charles Edwards, Sophia Nomvete, Owain Arthur, and more discuss the events of Season 2, Episode 2 of The Rings of Power.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/24/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:25",
+      "season": 0,
+      "episode": 25,
+      "title": "Inside The Rings of Power S2 E3",
+      "released": "2024-08-29",
+      "overview": "Go behind-the-scenes of Season 2, Episode 3 of The Rings of Power with Númenóreans Cynthia Addai-Robinson, Trystan Gravelle, and Ema Horvath.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/25/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:26",
+      "season": 0,
+      "episode": 26,
+      "title": "Inside The Rings of Power S2 E4",
+      "released": "2024-09-05",
+      "overview": "Ismael Cruz Cordova, Maxim Baldry, Rory Kinnear and more guests unpack Season 2, Episode 4 of The Rings of Power.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/26/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:27",
+      "season": 0,
+      "episode": 27,
+      "title": "Inside The Rings of Power S2 E5",
+      "released": "2024-09-12",
+      "overview": "Lloyd Owen, Owain Arthur, and more guests discuss the mounting tension across the realms in Season 2, Episode 5 of The Rings of Power.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/27/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:28",
+      "season": 0,
+      "episode": 28,
+      "title": "Inside The Rings of Power S2 E6",
+      "released": "2024-09-19",
+      "overview": "Composer Bear McCreary and director Sanaa Hamri discuss Season 2, Episode 6 of The Rings of Power with Felicia Day.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/28/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:29",
+      "season": 0,
+      "episode": 29,
+      "title": "Inside The Rings of Power S2 E7",
+      "released": "2024-09-26",
+      "overview": "Join Morfydd Clark, Robert Aramayo, Sam Hazeldine, and many more guests, as they go inside the epic making of Season 2, Episode 7 of The Rings of Power.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/29/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:30",
+      "season": 0,
+      "episode": 30,
+      "title": "Inside The Rings of Power S2 E8",
+      "released": "2024-10-03",
+      "overview": "Showrunners J.D. Payne and Patrick McKay discuss the intense finale of The Rings of Power Season 2 with Felicia Day and special guests.",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/30/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:31",
+      "season": 0,
+      "episode": 31,
+      "title": "The Forging Of Season 3. Episode 1",
+      "released": "2026-11-11",
+      "overview": "Making of Season 3 Episode 1",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/31/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:32",
+      "season": 0,
+      "episode": 32,
+      "title": "The Forging Of Season 3. Episode 2",
+      "released": "2026-11-11",
+      "overview": "Making Of Season 3 Episode 2",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/32/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:33",
+      "season": 0,
+      "episode": 33,
+      "title": "The Forging Of Season 3. Episode 3",
+      "released": "2026-11-11",
+      "overview": "Making Of Season 3 Episode 3",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/33/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:34",
+      "season": 0,
+      "episode": 34,
+      "title": "The Forging Of Season 3. Episode 4",
+      "released": "2026-11-11",
+      "overview": "Making of Season 3 Episode 4",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/34/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:35",
+      "season": 0,
+      "episode": 35,
+      "title": "The Forging Of Season 3. Episode 5",
+      "released": "2026-11-18",
+      "overview": "The Forging Of Season 3. Episode 5",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/35/w780.jpg",
+      "available": true
+    },
+    {
+      "id": "tt7631058:0:36",
+      "season": 0,
+      "episode": 36,
+      "title": "The Forging Of Season 3. Episode 6",
+      "released": "2026-11-18",
+      "overview": "The Forging Of Season 3. Episode 6",
+      "thumbnail": "https://episodes.metahub.space/tt7631058/0/36/w780.jpg",
+      "available": true
+    }
+  ],
+  "excluded": false,
+  "status": "Continuing",
+  "cast": [
+    "Morfydd Clark",
+    "Ismael Cruz Cordova",
+    "Robert Aramayo"
+  ],
+  "awards": "7 nominaciones al Emmy · 23 premios",
+  "released": "2022-09-01",
+  "trailer": "x8UAUAuKNcU",
+  "imdb_votes": 452173
+}

@@ -24,7 +24,7 @@ const defaults: Record<string, unknown> = {
 type Listener = (e: { payload: unknown }) => void;
 const listeners: Listener[] = [];
 function replay(events: unknown) {
-  (events as unknown[]).forEach((payload, i) => setTimeout(() => listeners.forEach((cb) => cb({ payload })), 50 * (i + 1)));
+  (events as unknown[]).forEach((payload, i) => setTimeout(() => listeners.forEach((cb) => cb({ payload })), 500 * (i + 1)));
 }
 
 function invoke(cmd: string, args?: Record<string, unknown>): Promise<unknown> {

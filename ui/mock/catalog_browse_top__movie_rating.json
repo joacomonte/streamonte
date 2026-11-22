@@ -1,28 +1,6 @@
 {
   "items": [
     {
-      "id": "tt45368240",
-      "kind": "movie",
-      "name": "Puedes verlo todo",
-      "year": "2026",
-      "imdb_rating": "9.0",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/lxv8IU6AU5FcqXimC3izkbRip7D.jpg",
-      "released": "2026-10-16",
-      "popularity": 67.4938
-    },
-    {
-      "id": "tt2056785",
-      "kind": "movie",
-      "name": "Wildwood: El bosque salvaje",
-      "year": "2026",
-      "imdb_rating": "8.6",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/3AxfnEViGaVspgifEag5au5bVJc.jpg",
-      "released": "2026-10-19",
-      "popularity": 71.6351
-    },
-    {
       "id": "tt33764258",
       "kind": "movie",
       "name": "La Odisea",
@@ -43,28 +21,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/cWpvRQcppLnXD0Kno4OZUzkA05R.jpg",
       "released": "2026-03-15",
       "popularity": 108.993
-    },
-    {
-      "id": "tt35511966",
-      "kind": "movie",
-      "name": "La bola negra",
-      "year": "2026",
-      "imdb_rating": "8.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/t1azKLExwUxKj6v6m2L535evuRa.jpg",
-      "released": "2026-09-25",
-      "popularity": 110.4386
-    },
-    {
-      "id": "tt15799564",
-      "kind": "movie",
-      "name": "Caballo salvaje nueve",
-      "year": "2026",
-      "imdb_rating": "8.1",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/ulvGcZer26aBaNG0s4IEJGyyLIq.jpg",
-      "released": "2026-10-30",
-      "popularity": 53.4977
     },
     {
       "id": "tt22084616",
@@ -133,17 +89,6 @@
       "popularity": 11.2749
     },
     {
-      "id": "tt35522483",
-      "kind": "movie",
-      "name": "Nirvanna the Band the Show the Movie",
-      "year": "2026",
-      "imdb_rating": "7.6",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/A7ufN6VrbFEK21oW1uDAxZNb82X.jpg",
-      "released": "2026-02-02",
-      "popularity": 5.712
-    },
-    {
       "id": "tt32916440",
       "kind": "movie",
       "name": "Marty Supremo",
@@ -166,17 +111,6 @@
       "popularity": 65.1015
     },
     {
-      "id": "tt31450459",
-      "kind": "movie",
-      "name": "Digger",
-      "year": "2026",
-      "imdb_rating": "7.5",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/txe65aR0g5JiYnHKPjX3E49M5td.jpg",
-      "released": "2026-09-28",
-      "popularity": 23.2619
-    },
-    {
       "id": "tt35538033",
       "kind": "movie",
       "name": "Resident Evil: Noche cero",
@@ -197,28 +131,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/dvMLCv3u989LO1tLLDYMJcK8TZo.jpg",
       "released": "2026-06-25",
       "popularity": 18.9571
-    },
-    {
-      "id": "tt6262770",
-      "kind": "movie",
-      "name": "Tenzing: Conquistando el Everest",
-      "year": "2026",
-      "imdb_rating": "7.4",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/wqLaFFN8Qd88Y5QpfvKu82Kw5iD.jpg",
-      "released": "2026-10-09",
-      "popularity": 17.0025
-    },
-    {
-      "id": "tt36583977",
-      "kind": "movie",
-      "name": "La isla olvidada",
-      "year": "2026",
-      "imdb_rating": "7.4",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/clw1EmN6OA0AtogU6iFCwBZSCp1.jpg",
-      "released": "2026-09-10",
-      "popularity": 64.7617
     },
     {
       "id": "tt14364480",
@@ -287,28 +199,6 @@
       "popularity": 56.1695
     },
     {
-      "id": "tt32547691",
-      "kind": "movie",
-      "name": "El Día D: Bajo presión",
-      "year": "2026",
-      "imdb_rating": "7.3",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/vynvVBgzwLZX5KtwOqfK5bRElo4.jpg",
-      "released": "2026-05-28",
-      "popularity": 13.1767
-    },
-    {
-      "id": "tt30343021",
-      "kind": "movie",
-      "name": "Song Sung Blue: Sueño inquebrantable",
-      "year": "2025",
-      "imdb_rating": "7.3",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/8Dv7zkEzH7xLFE9Mj87kS1d37iq.jpg",
-      "released": "2025-12-15",
-      "popularity": 3.6606
-    },
-    {
       "id": "tt1757678",
       "kind": "movie",
       "name": "Avatar: Fuego y ceniza",
@@ -375,61 +265,6 @@
       "popularity": 27.712
     },
     {
-      "id": "tt33095251",
-      "kind": "movie",
-      "name": "Tony",
-      "year": "2026",
-      "imdb_rating": "7.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/uwZF5guNR5EnXkjIVTk4UPTVGiS.jpg",
-      "released": "2026-08-07",
-      "popularity": 10.0008
-    },
-    {
-      "id": "tt42863533",
-      "kind": "movie",
-      "name": "Instinto maternal",
-      "year": "2026",
-      "imdb_rating": "7.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/jiW2OSaZwYHzIXlVMzFnd7mQPmB.jpg",
-      "released": "2026-06-11",
-      "popularity": 3.8555
-    },
-    {
-      "id": "tt13609648",
-      "kind": "movie",
-      "name": "Sensatez y sentimiento",
-      "year": "2026",
-      "imdb_rating": "7.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/xmfC7mUIZWyc0Mez55qwoHTQUNJ.jpg",
-      "released": "2026-09-23",
-      "popularity": 45.5959
-    },
-    {
-      "id": "tt29028515",
-      "kind": "movie",
-      "name": "Wasteman",
-      "year": "2026",
-      "imdb_rating": "7.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/bfM6FvDN9JnWTO4IIIQplMMjgWG.jpg",
-      "released": "2026-02-20",
-      "popularity": 9.1168
-    },
-    {
-      "id": "tt38773219",
-      "kind": "movie",
-      "name": "Ebenezer: Los fantasmas de Navidad",
-      "year": "2026",
-      "imdb_rating": "7.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/ekfB30eDEJAHHEW7yI4gLcq0k3A.jpg",
-      "released": "2026-11-11",
-      "popularity": 108.8828
-    },
-    {
       "id": "tt33071426",
       "kind": "movie",
       "name": "El Drama",
@@ -483,17 +318,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/42XLds5SzXyurb6zh62LCHJhgn8.jpg",
       "released": "2025-11-28",
       "popularity": 4.5384
-    },
-    {
-      "id": "tt39792948",
-      "kind": "movie",
-      "name": "Louis Theroux: Dentro de la machosfera",
-      "year": "2026",
-      "imdb_rating": "6.9",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/i5fTSyMsY93tdyYLJ3B2jlu35S.jpg",
-      "released": "2026-03-10",
-      "popularity": 4.3964
     },
     {
       "id": "tt32430579",
@@ -551,17 +375,6 @@
       "popularity": 8.7779
     },
     {
-      "id": "tt32104007",
-      "kind": "movie",
-      "name": "El Joven Washington",
-      "year": "2026",
-      "imdb_rating": "6.8",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/cpY0vz53hWon3N7zJ4XTSkxAEUd.jpg",
-      "released": "2026-07-02",
-      "popularity": 8.0308
-    },
-    {
       "id": "tt26657236",
       "kind": "movie",
       "name": "Backrooms: Sin salida",
@@ -617,50 +430,6 @@
       "popularity": 25.7718
     },
     {
-      "id": "tt28083456",
-      "kind": "movie",
-      "name": "¿Está funcionando esto?",
-      "year": "2025",
-      "imdb_rating": "6.7",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/fQBKFzmuGEaVH5FYwodesWfu9Z4.jpg",
-      "released": "2025-12-19",
-      "popularity": 4.3529
-    },
-    {
-      "id": "tt35766629",
-      "kind": "movie",
-      "name": "Adiós, June",
-      "year": "2025",
-      "imdb_rating": "6.7",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/c6b7JgxtmN1ADVzFPeeY3J11kWt.jpg",
-      "released": "2025-12-12",
-      "popularity": 2.3339
-    },
-    {
-      "id": "tt37510326",
-      "kind": "movie",
-      "name": "El poder de la red",
-      "year": "2026",
-      "imdb_rating": "6.7",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/ls1KWflioSJgCcKhDr6ykvYmgbI.jpg",
-      "released": "2026-10-07",
-      "popularity": 16.369
-    },
-    {
-      "id": "tt32267691",
-      "kind": "movie",
-      "name": "Letras Robadas",
-      "year": "2026",
-      "imdb_rating": "6.7",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/1WKC0csxnncUMgXPpZE0MkDWc9.jpg",
-      "released": "2026-05-18",
-      "popularity": 4.8023
-    },
-    {
       "id": "tt39390497",
       "kind": "movie",
       "name": "La captura",
@@ -705,50 +474,6 @@
       "popularity": 20.3447
     },
     {
-      "id": "tt37281055",
-      "kind": "movie",
-      "name": "Buddy",
-      "year": "2026",
-      "imdb_rating": "6.6",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/1BdZbNvl1SfrrX8J9X5tQzN6Ivu.jpg",
-      "released": "2026-08-27",
-      "popularity": 86.7338
-    },
-    {
-      "id": "tt32306991",
-      "kind": "movie",
-      "name": "Solo Mio",
-      "year": "2026",
-      "imdb_rating": "6.6",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/3iOvz9wXGvUCb4no5aIvCq2HmlH.jpg",
-      "released": "2026-02-05",
-      "popularity": 6.5296
-    },
-    {
-      "id": "tt28535715",
-      "kind": "movie",
-      "name": "La caída de la ballena",
-      "year": "2026",
-      "imdb_rating": "6.6",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/5d8BZCZQaO3gCdP9JaA5B5qGFsH.jpg",
-      "released": "2026-10-14",
-      "popularity": 45.8154
-    },
-    {
-      "id": "tt30827810",
-      "kind": "movie",
-      "name": "I Love Boosters",
-      "year": "2026",
-      "imdb_rating": "6.6",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/4pNKIUFy7tkZiBx0rnSmG9ysRy.jpg",
-      "released": "2026-05-21",
-      "popularity": 5.4661
-    },
-    {
       "id": "tt15574124",
       "kind": "movie",
       "name": "Peaky Blinders: El hombre inmortal",
@@ -791,28 +516,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/r8sQzfQyT6dXqlW49pV16MfuhXj.jpg",
       "released": "2025-12-01",
       "popularity": 4.5417
-    },
-    {
-      "id": "tt40792117",
-      "kind": "movie",
-      "name": "El choque",
-      "year": "2026",
-      "imdb_rating": "6.5",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/mTN9baARVvqjS8ZuMUQeFBW6z2l.jpg",
-      "released": "2026-05-14",
-      "popularity": 3.4811
-    },
-    {
-      "id": "tt34384900",
-      "kind": "movie",
-      "name": "El amor de tu vida",
-      "year": "2026",
-      "imdb_rating": "6.5",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/nqeDR6qGU8mqguQHRkAUg2ySBZv.jpg",
-      "released": "2026-10-07",
-      "popularity": 22.6697
     },
     {
       "id": "tt15047880",
@@ -870,39 +573,6 @@
       "popularity": 14.5444
     },
     {
-      "id": "tt39143902",
-      "kind": "movie",
-      "name": "Leviticus: Ritual de sangre",
-      "year": "2026",
-      "imdb_rating": "6.4",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/gS8Z2lepduus8x6Crwzb85F6Gli.jpg",
-      "released": "2026-06-17",
-      "popularity": 16.41
-    },
-    {
-      "id": "tt29008225",
-      "kind": "movie",
-      "name": "Fackham Hall",
-      "year": "2025",
-      "imdb_rating": "6.4",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/3NO6IIAJ6RZ450CKpobAbvYag9T.jpg",
-      "released": "2025-12-05",
-      "popularity": 3.1844
-    },
-    {
-      "id": "tt15181326",
-      "kind": "movie",
-      "name": "La negociación",
-      "year": "2026",
-      "imdb_rating": "6.4",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/s3jwAo3eqhfjcqwaztGXUfRk8aJ.jpg",
-      "released": "2026-01-09",
-      "popularity": 5.4107
-    },
-    {
       "id": "tt33714084",
       "kind": "movie",
       "name": "No te olvidaré",
@@ -912,17 +582,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/a1SB2whRLcf7tveetg9NOP6CYkl.jpg",
       "released": "2026-03-11",
       "popularity": 13.0208
-    },
-    {
-      "id": "tt34819091",
-      "kind": "movie",
-      "name": "El testimonio de Anne Lee",
-      "year": "2025",
-      "imdb_rating": "6.4",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/oRsgnrHz1MJp9VJwWM6U59bY6Qw.jpg",
-      "released": "2025-12-25",
-      "popularity": 4.5462
     },
     {
       "id": "tt33612209",
@@ -1013,17 +672,6 @@
       "popularity": 50.144
     },
     {
-      "id": "tt32358390",
-      "kind": "movie",
-      "name": "The Cycle",
-      "year": "2026",
-      "imdb_rating": "6.3",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/n5gSNf55KWfDc9hqP4H1KCCSutE.jpg",
-      "released": "2026-09-24",
-      "popularity": 16.4076
-    },
-    {
       "id": "tt31050594",
       "kind": "movie",
       "name": "Sin piedad",
@@ -1068,17 +716,6 @@
       "popularity": 22.0647
     },
     {
-      "id": "tt6933238",
-      "kind": "movie",
-      "name": "UNABOMBER",
-      "year": "2026",
-      "imdb_rating": "6.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/crV6ba2FVfHW64PzjJehMxUj9e7.jpg",
-      "released": "2026-09-25",
-      "popularity": 14.3027
-    },
-    {
       "id": "tt21285562",
       "kind": "movie",
       "name": "La guerra de los últimos",
@@ -1121,17 +758,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/f2qc3mE7V8R7yAXBBB822mVZblo.jpg",
       "released": "2026-09-10",
       "popularity": 20.4664
-    },
-    {
-      "id": "tt39316472",
-      "kind": "movie",
-      "name": "Jackass: La última y nos vamos",
-      "year": "2026",
-      "imdb_rating": "6.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/15Hs6RG2V4zOEJKi8zRazYqQ5PQ.jpg",
-      "released": "2026-06-25",
-      "popularity": 10.6713
     },
     {
       "id": "tt16431404",
@@ -1189,28 +815,6 @@
       "popularity": 28.0441
     },
     {
-      "id": "tt27419420",
-      "kind": "movie",
-      "name": "Street Fighter",
-      "year": "2026",
-      "imdb_rating": "6.1",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/j9Ukn1hRqSyv5qhHgDHd1s1Dhsg.jpg",
-      "released": "2026-10-13",
-      "popularity": 70.0372
-    },
-    {
-      "id": "tt33499146",
-      "kind": "movie",
-      "name": "The Dink: Pasión por el pickleball",
-      "year": "2026",
-      "imdb_rating": "6.1",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/8zKenqYB6vP8LltnOxfWptpH0vG.jpg",
-      "released": "2026-07-23",
-      "popularity": 4.7977
-    },
-    {
       "id": "tt32261958",
       "kind": "movie",
       "name": "Verity: La sombra de un engaño",
@@ -1244,17 +848,6 @@
       "popularity": 70.2065
     },
     {
-      "id": "tt32273171",
-      "kind": "movie",
-      "name": "La muerte de Robin Hood",
-      "year": "2026",
-      "imdb_rating": "6.0",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/k1kZXvpVusYQzi56VLuu0AgxTdB.jpg",
-      "released": "2026-06-18",
-      "popularity": 24.3389
-    },
-    {
       "id": "tt32588798",
       "kind": "movie",
       "name": "Hechizo de amor: La magia continúa",
@@ -1266,17 +859,6 @@
       "popularity": 30.9918
     },
     {
-      "id": "tt37853455",
-      "kind": "movie",
-      "name": "Solo por una noche",
-      "year": "2026",
-      "imdb_rating": "6.0",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/dfuqSiCp3Y24nO1z1YembfTrrtn.jpg",
-      "released": "2026-08-06",
-      "popularity": 12.3096
-    },
-    {
       "id": "tt35892608",
       "kind": "movie",
       "name": "Undertone: Frecuencia maldita",
@@ -1286,17 +868,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/85OfcPsWIpERIr7yRWOUr7S1g8b.jpg",
       "released": "2026-03-12",
       "popularity": 8.2924
-    },
-    {
-      "id": "tt37209937",
-      "kind": "movie",
-      "name": "Noche de pizza",
-      "year": "2026",
-      "imdb_rating": "5.9",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/sy9Z3rdGCRnG4uYSVicfp4LSwYa.jpg",
-      "released": "2026-03-13",
-      "popularity": 5.6343
     },
     {
       "id": "tt32537226",
@@ -1319,17 +890,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/xhei2GX9L2H1eQlrHeFw44VNLd1.jpg",
       "released": "2026-06-24",
       "popularity": 27.5703
-    },
-    {
-      "id": "tt34611082",
-      "kind": "movie",
-      "name": "Las damas primero",
-      "year": "2026",
-      "imdb_rating": "5.8",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/DP6nB3O96NToxLAR3V26DErgCX.jpg",
-      "released": "2026-05-21",
-      "popularity": 5.6897
     },
     {
       "id": "tt33028778",
@@ -1363,72 +923,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/uJNKHZLgnvWqveB4uai0kaWom6M.jpg",
       "released": "2026-07-08",
       "popularity": 54.2128
-    },
-    {
-      "id": "tt14181714",
-      "kind": "movie",
-      "name": "El engaño",
-      "year": "2026",
-      "imdb_rating": "5.8",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/y8ADH1i7Ti1A0WLWjMCTEN6s4F8.jpg",
-      "released": "2026-02-17",
-      "popularity": 7.2921
-    },
-    {
-      "id": "tt26678938",
-      "kind": "movie",
-      "name": "Lindas y Letales",
-      "year": "2026",
-      "imdb_rating": "5.8",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/cmZqxJQ9MdNQEoD49HYghOXsiwH.jpg",
-      "released": "2026-03-13",
-      "popularity": 12.7169
-    },
-    {
-      "id": "tt24852126",
-      "kind": "movie",
-      "name": "Un robo muy navideño",
-      "year": "2025",
-      "imdb_rating": "5.8",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/1DIgVqN9EhFJr9ogtA3Atzid6cV.jpg",
-      "released": "2025-11-25",
-      "popularity": 3.3264
-    },
-    {
-      "id": "tt32654916",
-      "kind": "movie",
-      "name": "Soulm8te",
-      "year": "2026",
-      "imdb_rating": "5.8",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/aRfFP8stzodl0bo8ywoNZXdaVwo.jpg",
-      "released": "2026-07-31",
-      "popularity": 10.6393
-    },
-    {
-      "id": "tt14619456",
-      "kind": "movie",
-      "name": "Faces of Death",
-      "year": "2026",
-      "imdb_rating": "5.8",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/glKgsnUSBAb1IRBE7nwmBi6y3P4.jpg",
-      "released": "2026-04-10",
-      "popularity": 4.8583
-    },
-    {
-      "id": "tt35519455",
-      "kind": "movie",
-      "name": "El final",
-      "year": "2026",
-      "imdb_rating": "5.8",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/ifMur4sjsVUmtJMxOS6gsLrsQpx.jpg",
-      "released": "2026-08-21",
-      "popularity": 9.4026
     },
     {
       "id": "tt35309713",
@@ -1497,37 +991,15 @@
       "popularity": 86.3462
     },
     {
-      "id": "tt2012616",
+      "id": "tt23572848",
       "kind": "movie",
-      "name": "Motor City",
-      "year": "2026",
-      "imdb_rating": "5.7",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/mZJ0K8RGWA4YMCErwN9jJSIP4Ve.jpg",
-      "released": "2026-07-23",
-      "popularity": 20.4243
-    },
-    {
-      "id": "tt37540875",
-      "kind": "movie",
-      "name": "Compañeras de cuarto",
-      "year": "2026",
-      "imdb_rating": "5.7",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/eW1s6omXIfVkTlmKVe9y9Dwwt4u.jpg",
-      "released": "2026-04-13",
-      "popularity": 5.9368
-    },
-    {
-      "id": "tt35219851",
-      "kind": "movie",
-      "name": "El secreto de Santa",
+      "name": "Bob Esponja: En busca de los pantalones cuadrados",
       "year": "2025",
       "imdb_rating": "5.7",
       "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/aR4JhzROYwxYp1D6EvyGFrSLo80.jpg",
-      "released": "2025-12-02",
-      "popularity": 2.8987
+      "poster": "https://image.tmdb.org/t/p/w500/s19EZefg4g1EOWx0zA11tQJjHe2.jpg",
+      "released": "2025-12-16",
+      "popularity": 10.3792
     },
     {
       "id": "tt30851137",
@@ -1550,17 +1022,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/cwUGHWaazG1nwsxsa7EEmvJa6lF.jpg",
       "released": "2026-01-01",
       "popularity": 5.1639
-    },
-    {
-      "id": "tt28498219",
-      "kind": "movie",
-      "name": "Matchbox: La película",
-      "year": "2026",
-      "imdb_rating": "5.6",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/ev2GnYar3LUyui8sOu4gqeMXvLi.jpg",
-      "released": "2026-10-05",
-      "popularity": 52.4979
     },
     {
       "id": "tt33244668",
@@ -1640,28 +1101,6 @@
       "popularity": 12.6715
     },
     {
-      "id": "tt27200708",
-      "kind": "movie",
-      "name": "Mother Mary",
-      "year": "2026",
-      "imdb_rating": "5.4",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/icFriZyktJO96UX9BMqEFJU3J7P.jpg",
-      "released": "2026-04-16",
-      "popularity": 8.3055
-    },
-    {
-      "id": "tt36586020",
-      "kind": "movie",
-      "name": "Madre siniestra",
-      "year": "2026",
-      "imdb_rating": "5.3",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/vnQtwToGRWTuHdLltq3hNdbXkii.jpg",
-      "released": "2026-10-07",
-      "popularity": 320.2749
-    },
-    {
       "id": "tt31192372",
       "kind": "movie",
       "name": "Vértigo 2: Punto muerto",
@@ -1673,17 +1112,6 @@
       "popularity": 104.5338
     },
     {
-      "id": "tt31998881",
-      "kind": "movie",
-      "name": "¡Vaya Navidad!",
-      "year": "2025",
-      "imdb_rating": "5.3",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/uNmyZChmLKqxROmbsylj5sbzGUR.jpg",
-      "released": "2025-12-02",
-      "popularity": 4.2249
-    },
-    {
       "id": "tt14850054",
       "kind": "movie",
       "name": "El día del fin del mundo: Migración",
@@ -1693,17 +1121,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/uoFJ6nGGvf8moZGpharm8Qyrpzm.jpg",
       "released": "2026-01-07",
       "popularity": 22.1271
-    },
-    {
-      "id": "tt16478058",
-      "kind": "movie",
-      "name": "Las Mejores",
-      "year": "2026",
-      "imdb_rating": "5.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/jBEkfgru8B8m2vzHgS1l3VgepT2.jpg",
-      "released": "2026-09-18",
-      "popularity": 5.5356
     },
     {
       "id": "tt29550683",
@@ -1739,17 +1156,6 @@
       "popularity": 7.0533
     },
     {
-      "id": "tt43655467",
-      "kind": "movie",
-      "name": "Ali G: ¿Kién Ez Yo?",
-      "year": "2026",
-      "imdb_rating": "5.0",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/mgsw0NVOn5VX9rA6An8ijwUFX7q.jpg",
-      "released": "2026-10-22",
-      "popularity": 17.4003
-    },
-    {
       "id": "tt32093575",
       "kind": "movie",
       "name": "Scary Movie: Terroríficamente incorrecta",
@@ -1783,17 +1189,6 @@
       "popularity": 7.3804
     },
     {
-      "id": "tt23724682",
-      "kind": "movie",
-      "name": "Outcome",
-      "year": "2026",
-      "imdb_rating": "4.5",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/9uriReigJBf5zVBNaHj5C9kDDTe.jpg",
-      "released": "2026-04-06",
-      "popularity": 5.2773
-    },
-    {
       "id": "tt34564059",
       "kind": "movie",
       "name": "Carrera contra el tiempo",
@@ -1805,28 +1200,6 @@
       "popularity": 15.3172
     },
     {
-      "id": "tt13570066",
-      "kind": "movie",
-      "name": "Guerrero del Desierto",
-      "year": "2026",
-      "imdb_rating": "4.2",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/s4t38wzj653DzZiMI1zHAYmxDzk.jpg",
-      "released": "2026-04-23",
-      "popularity": 7.4261
-    },
-    {
-      "id": "tt36893729",
-      "kind": "movie",
-      "name": "El heladero: Dulce sabor a muerte",
-      "year": "2026",
-      "imdb_rating": "4.1",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/gLGX7pZO8Xe29yOG5Tjt0AiUYh6.jpg",
-      "released": "2026-08-03",
-      "popularity": 19.9136
-    },
-    {
       "id": "tt22868010",
       "kind": "movie",
       "name": "Terror en Silent Hill: Regreso al infierno",
@@ -1836,17 +1209,6 @@
       "poster": "https://image.tmdb.org/t/p/w500/8JcaYXZYlT2nYlsgo1Uv7RH9FP.jpg",
       "released": "2026-01-21",
       "popularity": 15.0903
-    },
-    {
-      "id": "tt35291758",
-      "kind": "movie",
-      "name": "Melania",
-      "year": "2026",
-      "imdb_rating": "1.6",
-      "excluded": false,
-      "poster": "https://image.tmdb.org/t/p/w500/xG3v5b3rIgudFoV2ceMiWE01F0q.jpg",
-      "released": "2026-01-30",
-      "popularity": 3.5743
     }
   ],
   "has_more": false
