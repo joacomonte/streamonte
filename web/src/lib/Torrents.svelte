@@ -73,9 +73,9 @@
 	/** El stream (.m3u8) anda igual en todos: se copia directo; el de descarga pregunta. Si el navegador castea solo
 	 * (Chromecast/AirPlay), pregunta también con el stream, que es lo que mejor anda en la tele. */
 	function askWhere(t: Torrent, url: string) {
-		if (/\.tb-cdn\./.test(url) && (!/\.m3u8/.test(url) || canCast)) {
+		if (/\.tb-cdn\./.test(url) && (!/\.m3u8/.test(url) || castShown)) {
 			whereFor = { t, url };
-			if (canCast && !casting) castSrc = url;
+			if (castShown && !casting) castSrc = url;
 		} else copyUrl(t, url);
 	}
 	/** "Mandar a la tele" del navegador: Remote Playback API (Chrome → Chromecast; Safari → AirPlay) o, en Safari
@@ -83,8 +83,21 @@
 	 * selector (pide el gesto: nada de await antes). Si falla, queda Web Video Caster en la misma hoja. */
 	type AirPlayVideo = HTMLVideoElement & { webkitShowPlaybackTargetPicker?: () => void; webkitCurrentPlaybackTargetIsWireless?: boolean };
 	let canCast = $state(false);
+	/** Safari (iPhone/Mac) solo castea por AirPlay: Google no deja mandar a un Chromecast desde una página en iOS. */
+	let airplay = $state(false);
+	/** Safari avisa si hay un dispositivo AirPlay en la red; sin ninguno, el botón no aparece. */
+	let airplayNear = $state(false);
+	const castShown = $derived(canCast && (!airplay || airplayNear));
 	$effect(() => {
 		canCast = 'remote' in HTMLMediaElement.prototype || 'webkitShowPlaybackTargetPicker' in HTMLMediaElement.prototype;
+		airplay = 'WebKitPlaybackTargetAvailabilityEvent' in window;
+	});
+	$effect(() => {
+		const v = castEl;
+		if (!v || !airplay) return;
+		const on = (e: Event) => (airplayNear = (e as Event & { availability?: string }).availability === 'available');
+		v.addEventListener('webkitplaybacktargetavailabilitychanged', on);
+		return () => v.removeEventListener('webkitplaybacktargetavailabilitychanged', on);
 	});
 	let castEl = $state<AirPlayVideo>();
 	let castSrc = $state<string | null>(null);
@@ -833,7 +846,7 @@
 <!-- Antes de copiar un link de descarga: ¿Web Video Caster o un reproductor? (cada uno necesita otro link). -->
 <Sheet id="where-sheet" title={tr('¿Dónde lo vas a ver?')} open={!!whereFor} onclose={() => { whereFor = null; castFail = false; if (!casting) castSrc = null; }}>
 	<div class="where">
-		{#if canCast}
+		{#if castShown}
 			<button id="where-cast" type="button" class="spot cast" onclick={castNative}>
 				<!-- Tele con el ícono de casteo. -->
 				<svg class="art" viewBox="0 0 120 80" aria-hidden="true">
@@ -844,7 +857,7 @@
 					<path class="wave w3" d="M34 34a16 16 0 0 1 16 16" />
 				</svg>
 				<b>{tr('Mandar a la tele')}</b>
-				<small>Chromecast · AirPlay</small>
+				<small>{airplay ? 'AirPlay' : 'Chromecast'}</small>
 			</button>
 			{#if castFail}<p class="muted cast-fail">{tr('No se encontró una tele. Probá con Web Video Caster.')}</p>{/if}
 		{/if}
