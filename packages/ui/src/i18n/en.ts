@@ -22,7 +22,6 @@ const EN: Record<string, string> = {
 	"{n} opciones, sin filtros · de mejor a peor calidad": "{n} options, no filters · best to worst quality",
 	"Buscando el mejor torrent para vos": "Finding the best torrent for you",
 	"Sinopsis": "Synopsis",
-	"Dirección": "Director",
 	"Ver lo que dirigió": "See what they directed",
 	"Ver lo que actuó": "See what they acted in",
 	"Dónde verla": "Where to watch",

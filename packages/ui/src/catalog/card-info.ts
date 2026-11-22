@@ -26,11 +26,6 @@ export function ratingTier(kind: Kind, rating: string | number | null): Tier | n
 	return hit ? { emoji: hit[2], name: hit[3] } : null;
 }
 
-/** "1999 · ★ 8.8 · 139 min". La duración solo en películas: en series depende del capítulo. */
-export function cardMeta(d: Pick<TitleDetails, 'kind' | 'year' | 'rating' | 'runtimeMin'>): string {
-	return [d.year, d.rating && `★ ${d.rating}`, d.kind === 'movie' && d.runtimeMin && `${d.runtimeMin} min`].filter(Boolean).join(' · ');
-}
-
 /** Mini gráfico de temporadas de una serie y qué pasa con la próxima. `lastSeason`: última numerada (de `details.seasons`). */
 export function cardSeasons(d: Pick<TitleDetails, 'status' | 'seasons'>, ratings: SeasonRatings): { chart: Chart | null; outlook: Outlook | null } {
 	const lastSeason = Math.max(0, ...d.seasons.map((s) => s.number));

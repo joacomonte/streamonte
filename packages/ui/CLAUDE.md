@@ -37,7 +37,7 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
   - `store.ts` `:53 initialState` `:69 createCatalog` (estado + acciones, sin Svelte) → `api.ts`, `filters.ts` · ← `catalog.svelte.ts`, `ui/src/catalog-store.test.ts`.
   - `catalog.svelte.ts` `:8 createCatalogStore` (`$state` + `store.ts`) · ← `web/src/lib/catalog.svelte.ts`, `ui/src/catalog-mount.ts`.
   - `Catalog.svelte` (props `store` `onopen` `href` `header` `top` `onmagnet` `onlog` `pinned` `cardMin`) → `Search` `Segmented` `Since` `Grid` `FiltersSheet` · ← `web/src/routes/+page.svelte`, `ui/src/catalog-mount.ts`.
-  - `CardInfo.svelte` (hover de la tarjeta: géneros, duración, categoría, premios, barras de temporada; lo monta `Grid.svelte` tras 250 ms con mouse) → `card-info.ts` `:25 ratingTier` `:32 cardMeta` `:38 cardSeasons` (test `card-info.test.ts`, fixtures `ui/mock/`), `getApi().title.details/seasonRatings(imdb, quick)`; `Grid.svelte` reintenta el póster roto con `getApi().catalog.poster` (web: null).
+  - `CardInfo.svelte` (hover de la tarjeta: géneros, duración, categoría, premios, barras de temporada; lo monta `Grid.svelte` tras 250 ms con mouse) → `card-info.ts` `:22 ratingTier` `:30 cardSeasons` (test `card-info.test.ts`, fixtures `ui/mock/`), `getApi().title.details/seasonRatings(imdb, quick)`; `Grid.svelte` reintenta el póster roto con `getApi().catalog.poster` (web: null).
   - `Search.svelte` · `Segmented.svelte` · `Since.svelte` · `Grid.svelte` · `FiltersSheet.svelte` → `components/Icon.svelte`, `components/Sheet.svelte`.
 - `globals.d.ts` tipos mínimos `node:test`, `node:assert/strict`, `node:fs` (sin @types/node).
 - Tests junto al código: `*.test.ts`; `i18n/i18n.test.ts` escanea `web/src`, `ui/src`, `packages/ui/src` y `ui/index.html`.

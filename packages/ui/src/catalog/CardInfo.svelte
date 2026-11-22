@@ -24,7 +24,7 @@
 	import type { Outlook } from '../season.ts';
 	import type { Chart } from '../title/title-state.ts';
 	import type { CatalogItem } from '../types.ts';
-	import { cardMeta, cardSeasons, ratingTier } from './card-info.ts';
+	import { cardSeasons, ratingTier } from './card-info.ts';
 
 	let { item }: { item: CatalogItem } = $props();
 	const api = getApi();
@@ -42,62 +42,78 @@
 	});
 </script>
 
-<span id="cat-info-{item.id}" class="info" aria-hidden="true">
-	{#if d === undefined}
-		<span class="skel line"></span><span class="skel line"></span><span class="skel line short"></span>
-	{:else if d}
-		{#if d.genres.length}<span class="genres">{#each d.genres.slice(0, 3) as g (g)}<span>{g}</span>{/each}</span>{/if}
-		{#if item.kind === 'tv'}
-			<span class="seasons">
-				{#if seasons === undefined}
-					<span class="skel line"></span>
-				{:else if seasons}
-					{#if seasons.chart}
-						<span class="sbars">
-							{#each seasons.chart.bars as b (b.season)}
-								<span class="sbar {b.tone}"><i style:height="{b.height}%"></i></span>
-							{/each}
-						</span>
-					{/if}
-					{#if seasons.outlook?.tone === 'go'}
-						{@const o = seasons.outlook}
-						<span class="next soon">
-							<span class="when"><Icon name="clock" size={12} />{o.days <= 1 ? t(o.days ? 'mañana' : 'hoy') : t('en {n} días', { n: o.days })}</span>
-							T{o.season}{o.episode > 1 ? ` E${o.episode}` : ''} · {day(o.date)}
-						</span>
-					{:else if seasons.outlook}
-						{@const o = seasons.outlook}
-						<span class="next {o.tone}">
-							<span class="dot"></span>
-							{#if o.tone === 'done' || o.tone === 'stop'}{t(o.tone === 'done' ? 'Serie terminada' : 'Serie cancelada')}{:else}{t('{s} · sin fecha', { s: t(o.label) })}{/if}
-						</span>
-					{/if}
+<!-- Sin ficha no hay velo: nada que mostrar encima del póster. -->
+{#if d !== null}
+	<span id="cat-info-{item.id}" class="info" aria-hidden="true">
+		<span class="body">
+			{#if d === undefined}
+				<span class="skel line"></span><span class="skel line short"></span>
+			{:else}
+				{#if d.genres.length}<span class="genres">{d.genres.slice(0, 3).join(' · ')}</span>{/if}
+				<!-- La duración solo en películas: en series depende del capítulo. -->
+				<span class="meta">{#if d.year}<span>{d.year}</span>{/if}{#if d.rating}<span class="star">★ {d.rating}</span>{/if}{#if d.kind === 'movie' && d.runtimeMin}<span class="dim">{d.runtimeMin} min</span>{/if}</span>
+				{#if d.awards}<span class="awards"><Icon name="award" size={13} />{d.awards}</span>{/if}
+				{#if tier}<span class="tier">{tier.emoji} {t(tier.name)}</span>{/if}
+				{#if item.kind === 'tv'}
+					<span class="seasons">
+						{#if seasons === undefined}
+							<span class="skel line"></span>
+						{:else if seasons}
+							{#if seasons.chart}
+								<span class="sbars">
+									{#each seasons.chart.bars as b (b.season)}
+										<span class="sbar {b.tone}"><i style:height="{b.height}%"></i></span>
+									{/each}
+								</span>
+							{/if}
+							{#if seasons.outlook?.tone === 'go'}
+								{@const o = seasons.outlook}
+								<span class="next soon">
+									<span class="when"><Icon name="clock" size={12} />{o.days <= 1 ? t(o.days ? 'mañana' : 'hoy') : t('en {n} días', { n: o.days })}</span>
+									T{o.season}{o.episode > 1 ? ` E${o.episode}` : ''} · {day(o.date)}
+								</span>
+							{:else if seasons.outlook}
+								{@const o = seasons.outlook}
+								<span class="next {o.tone}">
+									<span class="dot"></span>
+									{#if o.tone === 'done' || o.tone === 'stop'}{t(o.tone === 'done' ? 'Serie terminada' : 'Serie cancelada')}{:else}{t('{s} · sin fecha', { s: t(o.label) })}{/if}
+								</span>
+							{/if}
+						{/if}
+					</span>
 				{/if}
-			</span>
-		{/if}
-		<span class="meta">{cardMeta(d)}</span>
-		{#if tier}<span class="tier">{tier.emoji} {t(tier.name)}</span>{/if}
-		{#if d.awards}<span class="awards"><Icon name="award" size={13} />{d.awards}</span>{/if}
-	{/if}
-</span>
+			{/if}
+		</span>
+	</span>
+{/if}
 
 <style>
-	/* Cubre solo el póster (2:3), no el título de abajo. */
-	.info { position: absolute; top: 0; left: 0; right: 0; aspect-ratio: 2 / 3; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; padding: 14px 12px; border-radius: var(--r-md); pointer-events: none; color: #fff;
-		background: linear-gradient(to top, rgb(8 10 14 / 0.96) 0%, rgb(8 10 14 / 0.88) 45%, rgb(8 10 14 / 0.35) 75%, transparent 100%);
-		opacity: 0; transform: translateY(6px); transition: opacity 0.22s ease-out, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+	/* Velo a sangre: mismo recuadro y radio que el póster (2:3), no el título de abajo. Solo se funde; nunca se mueve
+	 * por su cuenta (antes subía 6 px y no acompañaba el "apretar" del póster: quedaba una caja corrida). */
+	.info { position: absolute; top: 0; left: 0; right: 0; aspect-ratio: 2 / 3; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px 11px; border-radius: var(--r-md); pointer-events: none; color: #fff;
+		background: linear-gradient(to top, rgb(6 8 12 / 0.94) 0%, rgb(6 8 12 / 0.8) 38%, rgb(6 8 12 / 0.4) 70%, rgb(6 8 12 / 0.22) 100%);
+		opacity: 0; transition: opacity 0.22s ease-out, transform 0.15s var(--ease); }
+	.body { display: flex; flex-direction: column; gap: 5px; transform: translateY(6px); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 	/* Solo con mouse: en el celu un toque no tiene que "hacer hover" (en iOS el primer toque se gastaría ahí). */
-	@media (hover: hover) { :global(.card:hover) .info, :global(.card:focus-visible) .info { opacity: 1; transform: none; } }
-	.line { height: 10px; border-radius: 4px; opacity: 0.5; }
+	@media (hover: hover) {
+		:global(.card:hover) .info, :global(.card:focus-visible) .info { opacity: 1; }
+		:global(.card:hover) .body, :global(.card:focus-visible) .body { transform: none; }
+	}
+	/* Acompaña al póster cuando se aprieta (Grid.svelte: .card:active img). */
+	:global(.card:active) .info { transform: scale(0.97); }
+	.line { height: 9px; border-radius: 4px; opacity: 0.5; }
 	.short { width: 60%; }
-	.genres { display: flex; flex-wrap: wrap; gap: 5px; }
-	.genres span { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: rgb(255 255 255 / 0.14); border: 1px solid rgb(255 255 255 / 0.18); }
-	.meta { font-size: 12px; font-weight: 600; color: rgb(255 255 255 / 0.75); font-variant-numeric: tabular-nums; }
-	.tier { font-size: 12.5px; font-weight: 700; }
-	.awards { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: #f2c94c; }
-	.seasons { display: grid; gap: 5px; }
+	.genres { font-size: 11.5px; font-weight: 600; line-height: 1.3; color: rgb(255 255 255 / 0.82); }
+	.meta { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.meta > span + span::before { content: ' · '; color: rgb(255 255 255 / 0.5); font-weight: 600; }
+	.star { color: #f2c94c; }
+	.dim { color: rgb(255 255 255 / 0.6); font-weight: 600; }
+	.tier { font-size: 12px; font-weight: 700; }
+	.awards { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; color: #f2c94c; }
+	.awards :global(svg) { flex: none; }
+	.seasons { display: grid; gap: 5px; margin-top: 2px; }
 	.seasons:empty { display: none; }
-	.sbars { display: flex; align-items: stretch; gap: 3px; height: 26px; }
+	.sbars { display: flex; align-items: stretch; gap: 3px; height: 24px; }
 	.sbar { flex: 1 0 auto; max-width: 14px; display: flex; align-items: flex-end; border-radius: 3px 3px 1px 1px; }
 	.sbar i { display: block; width: 100%; border-radius: inherit; }
 	.great i { background: var(--green); }
@@ -109,5 +125,5 @@
 	.dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: rgb(255 255 255 / 0.5); }
 	.wait .dot { background: var(--yellow); }
 	.stop .dot { background: var(--red); }
-	@media (prefers-reduced-motion: reduce) { .info { transition: opacity 0.15s; transform: none; } }
+	@media (prefers-reduced-motion: reduce) { .info { transition: opacity 0.15s; } .body { transition: none; transform: none; } }
 </style>

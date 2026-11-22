@@ -185,7 +185,17 @@
 							<h1 class="name" bind:this={titleEl}>{d.title}</h1>
 							<p class="muted line">
 								{heroLine}
-								{#if d.rating}<span class="rate"><Icon name="star" size={13} />{d.rating}</span>{/if}
+								<!-- IMDb (con su puntaje) y tráiler como píldoras junto a los datos; sin IMDb, la estrella sola. -->
+								{#if d.imdb}
+									{@const imdb = d.imdb}
+									<a id={ids.imdb} class="ext" href="https://www.imdb.com/title/{imdb}/" target="_blank" rel="noopener noreferrer" title={t('Ver en IMDb')} onclick={(e) => { if (onOpenImdb) { e.preventDefault(); onOpenImdb(imdb); } }}><span class="imdb-seal">IMDb</span>{d.rating ?? ''}</a>
+								{:else if d.rating}
+									<span class="rate"><Icon name="star" size={13} />{d.rating}</span>
+								{/if}
+								{#if d.trailer}
+									{@const yt = d.trailer}
+									<a id={ids.trailer} class="ext" href="https://www.youtube.com/watch?v={yt}" target="_blank" rel="noopener noreferrer" title={t('Ver el tráiler en YouTube')} onclick={(e) => { if (onOpenTrailer) { e.preventDefault(); onOpenTrailer(yt); } }}><Icon name="play" size={11} />{t('Tráiler')}</a>
+								{/if}
 							</p>
 							{#if genres}<p class="genres">{genres}</p>{/if}
 							{#if d.companies.length}<p class="companies">{d.companies.join(' · ')}</p>{/if}
@@ -193,40 +203,29 @@
 					</div>
 				</div>
 
-				{#if d.providers.length || d.trailer || d.imdb}
+				{#if d.providers.length}
 					<div class="inner acts">
-						<!-- IMDb y tráiler primero; las plataformas siguen (si no hay, no queda un hueco). -->
-						{#if d.imdb}
-							{@const imdb = d.imdb}
-							<a id={ids.imdb} class="round imdb" href="https://www.imdb.com/title/{imdb}/" target="_blank" rel="noopener noreferrer" title={t('Ver en IMDb')} onclick={(e) => { if (onOpenImdb) { e.preventDefault(); onOpenImdb(imdb); } }}>IMDb</a>
-						{/if}
-						{#if d.trailer}
-							{@const yt = d.trailer}
-							<a id={ids.trailer} class="round" href="https://www.youtube.com/watch?v={yt}" target="_blank" rel="noopener noreferrer" aria-label={t('Tráiler')} title={t('Ver el tráiler en YouTube')} onclick={(e) => { if (onOpenTrailer) { e.preventDefault(); onOpenTrailer(yt); } }}><Icon name="play" size={16} /></a>
-						{/if}
-						{#if d.providers.length}
-							<!-- Dónde verla: logos apilados; al tocar se abre con los nombres. -->
-							<button id={ids.providers} type="button" class="providers" class:open={providersOpen} aria-expanded={providersOpen} aria-label={t('Dónde verla')} title={t('Para ver en Argentina')} onclick={() => (providersOpen = !providersOpen)}>
-								{#each provs.shown as p, i (p.name)}
-									<span id={ids.provider(i)} class="prov">
-										{#if p.logo}<img src={p.logo} alt="" width="28" height="28" referrerpolicy="no-referrer" onerror={hide} />{:else}<span class="prov-empty" aria-hidden="true">{p.name[0]}</span>{/if}
-										{#if providersOpen}<span class="prov-name">{p.name}</span>{/if}
-									</span>
-								{/each}
-								{#if provs.more}<span class="prov-more">+{provs.more}</span>{/if}
-							</button>
-						{/if}
+						<!-- Dónde verla: logos apilados; al tocar se abre con los nombres. -->
+						<button id={ids.providers} type="button" class="providers" class:open={providersOpen} aria-expanded={providersOpen} aria-label={t('Dónde verla')} title={t('Para ver en Argentina')} onclick={() => (providersOpen = !providersOpen)}>
+							{#each provs.shown as p, i (p.name)}
+								<span id={ids.provider(i)} class="prov">
+									{#if p.logo}<img src={p.logo} alt="" width="28" height="28" referrerpolicy="no-referrer" onerror={hide} />{:else}<span class="prov-empty" aria-hidden="true">{p.name[0]}</span>{/if}
+									{#if providersOpen}<span class="prov-name">{p.name}</span>{/if}
+								</span>
+							{/each}
+							{#if provs.more}<span class="prov-more">+{provs.more}</span>{/if}
+						</button>
 					</div>
 				{/if}
 
 				{#if people.length}
 					<ul class="inner people" aria-label={t('Reparto')}>
 						{#each people as p (p.role + p.id)}
-							<li>
+							<li class:dir={p.role === 'director'}>
 								<button id={ids.person(p)} type="button" class="person" onclick={() => onPerson(p)} title={t(p.role === 'director' ? 'Ver lo que dirigió' : 'Ver lo que actuó')}>
 									{#if p.photo}<img src={p.photo} alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer" />{:else}<span class="face-empty" aria-hidden="true"><Icon name="user" size={22} /></span>{/if}
 									<span class="p-name">{p.name}</span>
-									<span class="p-note">{p.role === 'director' ? t('Dirección') : p.note ?? ''}</span>
+									<span class="p-note">{p.role === 'director' ? t('Director') : p.note ?? ''}</span>
 								</button>
 							</li>
 						{/each}
@@ -389,7 +388,12 @@
 	.cine-wrap { padding-top: 12px; }
 	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: var(--r-card, 14px); background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
 	.cine-note :global(svg) { flex: none; margin-top: 1px; color: var(--amber, #f5a524); }
-	/* Fila de acciones: IMDb y tráiler redondos y, a su lado, las plataformas. */
+	/* IMDb y tráiler: píldoras chicas en la línea de datos. */
+	.ext { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 4px; border-radius: var(--r-pill, 999px); background: var(--surface-2); color: var(--text); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: none; transition: background 0.2s var(--ease); }
+	.ext:not(:has(.imdb-seal)) { padding-left: 9px; }
+	.imdb-seal { padding: 2px 4px; border-radius: 4px; background: #f5c518; color: #000; font-size: 10px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; }
+	@media (hover: hover) { .ext:hover { background: var(--surface-3, var(--border)); } }
+	/* Fila de plataformas. */
 	.acts { display: flex; align-items: flex-start; gap: 8px; padding-top: 12px; }
 	.providers { display: flex; flex-wrap: wrap; align-items: center; gap: 0; min-height: 40px; padding: 4px; border: 0; border-radius: 22px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: background 0.2s var(--ease); }
 	.providers:has(.prov-more) { padding-right: 12px; }
@@ -401,14 +405,15 @@
 	.prov-empty { display: grid; place-items: center; background: var(--border); font-size: 12px; font-weight: 700; }
 	.prov-name { font-size: 13.5px; font-weight: 600; }
 	.prov-more { margin-left: 8px; font-size: 13px; font-weight: 650; color: var(--muted); font-variant-numeric: tabular-nums; }
-	.round { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); color: var(--text); text-decoration: none; transition: background 0.2s var(--ease), transform 0.15s; }
-	.round.imdb { font-size: 11px; font-weight: 800; letter-spacing: -0.02em; }
-	.round:active, .providers:active { transform: scale(0.96); }
-	@media (hover: hover) { .round:hover, .providers:hover { background: var(--surface-3, var(--border)); } }
-	/* Quién la hizo: carrusel horizontal (director + 3 actores). */
+	.providers:active { transform: scale(0.96); }
+	@media (hover: hover) { .providers:hover { background: var(--surface-3, var(--border)); } }
+	/* Quién la hizo: carrusel horizontal (director, un separador fino y 3 actores). */
 	.people { display: flex; gap: 4px; padding-top: 14px; padding-bottom: 2px; list-style: none; margin-block: 0; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
 	.people::-webkit-scrollbar { display: none; }
 	.people li { flex: none; scroll-snap-align: start; }
+	.people li.dir:not(:last-child) { display: flex; gap: 4px; }
+	.people li.dir:not(:last-child)::after { content: ''; align-self: center; width: 1px; height: 64px; background: var(--border); }
+	.dir .p-note { color: var(--yellow); font-weight: 600; }
 	.person { display: flex; flex-direction: column; align-items: center; width: 84px; padding: 6px 2px; border: 0; border-radius: var(--r-card, 14px); background: none; color: var(--text); font: inherit; text-align: center; cursor: pointer; }
 	.person img, .face-empty { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--surface-2); transition: transform 0.2s var(--out); }
 	.face-empty { display: grid; place-items: center; color: var(--muted); }
@@ -503,6 +508,6 @@
 	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 	@media (prefers-reduced-motion: reduce) {
 		.hero::before, .name, .line, .genres, .companies, .acts, .people, .body { animation: none; }
-		.round, .providers, .person img, .about-body, .about-chev, .intro { transition: none; }
+		.ext, .providers, .person img, .about-body, .about-chev, .intro { transition: none; }
 	}
 </style>
