@@ -278,7 +278,7 @@ function scanScreen() {
   return screen(null,
     el('div', { class: 'cat-hunt', role: 'status', 'aria-live': 'polite' }, radar,
       el('b', { class: 'cat-hunt-title' }, tr('Buscando el mejor torrent para vos')),
-      el('span', { class: 'cat-hunt-bar' }, el('i', { style: `width:${Math.max(4, (s.done / s.total) * 100)}%` })),
+      el('span', { class: 'bar cat-hunt-bar' }, el('i', { class: 'bar-fill', style: `width:${Math.max(4, (s.done / s.total) * 100)}%` })),
       el('span', { class: 'cat-hunt-count' }, tr('{a} de {n}', { a: Math.min(s.done + 1, s.total), n: s.total })),
       el('button', { id: 'cat-flow-stop', type: 'button', class: 'cat-flow-btn', title: tr('Detener: muestro las de mejor calidad con lo leído hasta ahora'),
         onclick: () => { stopScan(); renderStreamsOnly(); } }, icon('stop', 14), tr('Detener'))));

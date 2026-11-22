@@ -111,7 +111,7 @@ function pastedSection() {
   };
   return el('section', { id: 'cat-pasted', class: 'cat-pasted', 'aria-label': t('Pegados') },
     el('h3', {}, t('Pegados')),
-    el('ul', {}, rows.map((e) => el('li', { class: 'cat-pasted-row' },
+    el('ul', {}, rows.map((e) => el('li', { class: 'surface cat-pasted-row' },
       el('span', { class: 'cat-pasted-name', title: e.torrent_name || e.name }, name(e)),
       e.video_size ? el('span', { class: 'cat-pasted-size' }, humanBytes(e.video_size)) : null,
       view.torboxKey ? el('button', { id: `cat-pasted-torbox-${e.key}`, class: 'cat-icon-btn', title: t('Ver en TorBox: si lo tiene, al instante; si no, bajarlo en sus servidores'), 'aria-label': t('Ver en TorBox'),

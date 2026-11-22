@@ -103,11 +103,11 @@
       {#if !still}<span class="pop-bar"><i style:width="{pct}%"></i></span>{/if}
     </div>
     <div class="pop-actions">
-      {#if paused}<button id="dl-resume-{r.id}" class="pop-btn" onclick={() => play(r.key, null)}>Retomar</button>{/if}
-      {#if ACTIVE(r)}<button id="dl-stop-{r.id}" class="pop-btn" title="Cierra mpv y el motor; lo bajado queda guardado" onclick={act(r, 'stop')}>Detener</button>{/if}
-      <button id="dl-folder-{r.id}" class="pop-btn icon" title="Abrir carpeta" aria-label="Abrir carpeta" onclick={act(r, 'open-folder')}>📂</button>
-      <button id="dl-log-{r.id}" class="pop-btn icon" title="Ver log" aria-label="Ver log" onclick={() => openLog(r)}>≡</button>
-      <button id="dl-delete-{r.id}" class="pop-btn danger" title="Detener y borrar lo descargado" onclick={act(r, 'stop-and-delete')}>Borrar</button>
+      {#if paused}<button id="dl-resume-{r.id}" class="btn btn-sm btn-pill pop-btn" onclick={() => play(r.key, null)}>Retomar</button>{/if}
+      {#if ACTIVE(r)}<button id="dl-stop-{r.id}" class="btn btn-sm btn-pill pop-btn" title="Cierra mpv y el motor; lo bajado queda guardado" onclick={act(r, 'stop')}>Detener</button>{/if}
+      <button id="dl-folder-{r.id}" class="btn btn-sm btn-pill pop-btn icon" title="Abrir carpeta" aria-label="Abrir carpeta" onclick={act(r, 'open-folder')}>📂</button>
+      <button id="dl-log-{r.id}" class="btn btn-sm btn-pill pop-btn icon" title="Ver log" aria-label="Ver log" onclick={() => openLog(r)}>≡</button>
+      <button id="dl-delete-{r.id}" class="btn btn-sm btn-pill pop-btn danger" title="Detener y borrar lo descargado" onclick={act(r, 'stop-and-delete')}>Borrar</button>
     </div>
   </li>
 {/snippet}
@@ -140,13 +140,13 @@
   <div id="downloads-pop" class="top-pop" role="dialog" aria-label={tr('Descargas')} style:top="{pos.top}px" style:right="{pos.right}px" bind:this={pop} {@attach toBody}>
     <div class="pop-head">
       <div><h3>{tr('Descargas')}</h3><p class="pop-sub">{tr('{total} en disco', { total })}</p></div>
-      <button id="dl-open-folder" class="pop-btn" onclick={() => api.openDownloadsFolder().catch(showError)}>{@html icon('folder', 15).outerHTML}{tr('Abrir carpeta')}</button>
+      <button id="dl-open-folder" class="btn btn-sm btn-pill pop-btn" onclick={() => api.openDownloadsFolder().catch(showError)}>{@html icon('folder', 15).outerHTML}{tr('Abrir carpeta')}</button>
     </div>
     <ul class="disk-list">
       <li class="disk-row">
         <span class="disk-row-text"><b>{tr('Caché')}</b><span>{tr('Lo analizado y restos sin uso')}</span></span>
         <span class="disk-row-size">{usage ? humanBytes(usage.bytes) : '…'}</span>
-        <button id="dl-clean" class="pop-btn" title={tr('Borra lo analizado y los restos que no están en uso (no toca lo activo ni lo guardado)')}
+        <button id="dl-clean" class="btn btn-sm btn-pill pop-btn" title={tr('Borra lo analizado y los restos que no están en uso (no toca lo activo ni lo guardado)')}
           disabled={usage?.bytes === 0} onclick={() => afterClean(cleanTemp)}>{tr('Borrar')}</button>
       </li>
     </ul>
@@ -174,9 +174,9 @@
           </div>
           <div class="pop-actions">
             {#if analyzer.kind === 'paused'}
-              <button id="dl-analyzer-resume" class="pop-btn" onclick={() => api.analyzerResume().catch(showError)}>{tr('Reanudar')}</button>
+              <button id="dl-analyzer-resume" class="btn btn-sm btn-pill pop-btn" onclick={() => api.analyzerResume().catch(showError)}>{tr('Reanudar')}</button>
             {:else}
-              <button id="dl-analyzer-pause" class="pop-btn" title={tr('Corta lo que se está midiendo y pausa la cola')} onclick={() => api.analyzerPause().catch(showError)}>{tr('Pausar')}</button>
+              <button id="dl-analyzer-pause" class="btn btn-sm btn-pill pop-btn" title={tr('Corta lo que se está midiendo y pausa la cola')} onclick={() => api.analyzerPause().catch(showError)}>{tr('Pausar')}</button>
             {/if}
           </div>
         </div>
@@ -185,7 +185,7 @@
     <!-- Solo hace algo distinto de "Borrar caché" cuando hay reproducciones o descargas guardadas. -->
     {#if rows.length}
       <div class="pop-foot">
-        <button id="dl-stop-all" class="pop-btn danger" title={tr('Detiene todo y borra todo lo descargado, también lo pausado')} onclick={() => afterClean(stopAllAndClean)}>{tr('Detener y borrar todo')}</button>
+        <button id="dl-stop-all" class="btn btn-sm btn-pill pop-btn danger" title={tr('Detiene todo y borra todo lo descargado, también lo pausado')} onclick={() => afterClean(stopAllAndClean)}>{tr('Detener y borrar todo')}</button>
       </div>
     {/if}
   </div>

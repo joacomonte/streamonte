@@ -330,9 +330,9 @@
 
     <section class="set-card" aria-labelledby="set-h-net">
       <h4 id="set-h-net">{t('Red')}</h4>
-      <label class="set-switch"><input id="set-incoming" type="checkbox" role="switch" checked={net.incoming} onchange={(e) => onNet('incoming', e.currentTarget.checked)}><span><b>{t('Conexiones entrantes')}</b><small>{t('Más peers pueden mandarte pedazos: suele bajar más rápido.')}</small></span></label>
-      <label class="set-switch"><input id="set-upnp" type="checkbox" role="switch" checked={net.upnp} disabled={!net.incoming} onchange={(e) => onNet('upnp', e.currentTarget.checked)}><span><b>{t('Abrir el puerto solo (UPnP)')}</b><small>{t('Le pide al router que abra el puerto.')}</small></span></label>
-      <label class="set-switch"><input id="set-announce" type="checkbox" role="switch" checked={net.announce} disabled={!net.incoming} onchange={(e) => onNet('announce', e.currentTarget.checked)}><span><b>{t('Testear al elegir un episodio')}</b><small>{t('En series, testea solas las 15 mejores apenas elegís el episodio. Tu IP queda listada ~30 min en esos enjambres.')}</small></span></label>
+      <label class="switch set-switch"><input id="set-incoming" type="checkbox" role="switch" checked={net.incoming} onchange={(e) => onNet('incoming', e.currentTarget.checked)}><span><b>{t('Conexiones entrantes')}</b><small>{t('Más peers pueden mandarte pedazos: suele bajar más rápido.')}</small></span></label>
+      <label class="switch set-switch"><input id="set-upnp" type="checkbox" role="switch" checked={net.upnp} disabled={!net.incoming} onchange={(e) => onNet('upnp', e.currentTarget.checked)}><span><b>{t('Abrir el puerto solo (UPnP)')}</b><small>{t('Le pide al router que abra el puerto.')}</small></span></label>
+      <label class="switch set-switch"><input id="set-announce" type="checkbox" role="switch" checked={net.announce} disabled={!net.incoming} onchange={(e) => onNet('announce', e.currentTarget.checked)}><span><b>{t('Testear al elegir un episodio')}</b><small>{t('En series, testea solas las 15 mejores apenas elegís el episodio. Tu IP queda listada ~30 min en esos enjambres.')}</small></span></label>
       <div class="net-check">
         <button id="btn-net-check" disabled={netBusy} onclick={onNetCheck}>{t('Verificar puerto')}</button>
         <span id="net-check-result" class="net-check-result {netCheck.cls}" role="status">{netCheck.text}</span>
