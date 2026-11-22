@@ -1,13 +1,13 @@
 #!/bin/sh
 # Chequeos del proyecto (2026-11-17; en paralelo desde 2026-11-22). Rápido (por defecto): formato, clippy
 # (lib, binarios y tests; sin ejemplos), tipos y lint del JS de la UI. `full`: además los tests del núcleo
-# (nextest), los de la UI (deno test) y clippy de los ejemplos.
+# (nextest), los de la UI (deno test), tipos y tests de la web y clippy de los ejemplos.
 #   sh scripts/check.sh        # rápido
 #   sh scripts/check.sh full   # + tests
 # Para chequeo continuo mientras se edita: `bacon` (clippy) o `bacon nextest`.
 set -e
 cd "$(dirname "$0")/.."
-export PATH="/opt/homebrew/bin:$PATH" # deno, cargo-nextest (Homebrew de Apple Silicon)
+export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH" # node 24 primero (la web usa su type stripping; el de Homebrew es viejo); deno, cargo-nextest
 # clippy con su propia carpeta: si comparte la de nextest, cargo los serializa con su lock.
 CLIPPY_TARGET="target/clippy"
 [ "$1" = "full" ] && CLIPPY_TARGETS="--all-targets" || CLIPPY_TARGETS="--lib --bins --tests"
@@ -26,6 +26,8 @@ run js sh -c 'deno lint -q --rules-exclude=no-window,no-window-prefix ui/src &&
   deno check -q --config ui/deno.json ui/src/*.js'
 if [ "$1" = "full" ]; then
   run uitest deno test -q --no-check --allow-read --config ui/deno.json ui/src
+  # Web (monorepo, 2026-11-22): tipos y tests, en paralelo con el resto.
+  run web sh -c 'cd web && npm run -s check >/dev/null && npm test --silent'
   # --lib --tests: sin compilar los ejemplos (los compila clippy de arriba).
   cargo nextest run -p streamonte-core --lib --tests --no-fail-fast --status-level fail --final-status-level fail || touch "$tmp/nextest.fail"
 fi
