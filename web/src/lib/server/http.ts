@@ -46,7 +46,7 @@ export async function get(url: string | URL, init: RequestInit = {}, ms = 12_000
 }
 
 // Solo APIs públicas o con key en la URL (que se saca del nombre); nunca TorBox ni OpenSubtitles.com (tokens en la respuesta).
-const FIXTURE_HOSTS = new Set(['api.themoviedb.org', 'api.opensubtitles.org', 'torrentio.strem.fun', 'addon.peerflix.mov', 'comet.feels.legal', 'torrentsdb.com']);
+const FIXTURE_HOSTS = new Set(['api.themoviedb.org', 'api.opensubtitles.org', 'torrentio.strem.fun', 'addon.peerflix.mov', 'comet.feels.legal', 'torrentsdb.com', 'hacktorrent.cc', 'pelispanda.org']);
 
 async function fixture(dir: string, url: URL, init: RequestInit, ms: number): Promise<Response> {
 	const { createHash } = await import('node:crypto');

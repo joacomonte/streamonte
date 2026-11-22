@@ -347,20 +347,22 @@ export async function title(kind: Kind, id: string | number) {
 
 /** Títulos de una película por su IMDb id (original, inglés y español) y su año, para descartar torrents de otra
  * película con nombre parecido. Queda en memoria. */
-const names = new Map<string, Promise<{ titles: string[]; year: number | null } | null>>();
-export function namesOf(imdb: string): Promise<{ titles: string[]; year: number | null } | null> {
+/** `es`: título en español; `tmdb`: id de TMDB (para fuentes que buscan por nombre, como Hacktorrent). */
+export type Names = { titles: string[]; year: number | null; es: string | null; tmdb: number };
+const names = new Map<string, Promise<Names | null>>();
+export function namesOf(imdb: string): Promise<Names | null> {
 	if (!names.has(imdb)) {
 		const find = (l: Lang) => (tmdb(`/find/${imdb}`, { external_source: 'imdb_id' }, l) as Promise<{ movie_results?: (TmdbItem & { original_title?: string })[] }>).then((r) => r.movie_results?.[0] ?? null);
 		const p = Promise.all([find('en'), find('es')]).then(([en, es]) => {
 			const m = en ?? es;
 			if (!m) return null;
-			return { titles: [...new Set([m.original_title, en?.title, es?.title].filter(Boolean))], year: Number(String(m.release_date ?? '').slice(0, 4)) || null };
+			return { titles: [...new Set([m.original_title, en?.title, es?.title].filter(Boolean))] as string[], year: Number(String(m.release_date ?? '').slice(0, 4)) || null, es: es?.title ?? null, tmdb: m.id };
 		});
 		// Si falla no se guarda: se reintenta la próxima.
 		p.catch(() => names.delete(imdb));
 		capped(names, imdb, p, MAX_NAMES);
 	}
-	return names.get(imdb) as Promise<{ titles: string[]; year: number | null } | null>;
+	return names.get(imdb) as Promise<Names | null>;
 }
 
 export async function season(id: string, n: string) {

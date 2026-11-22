@@ -2,6 +2,7 @@
 // Parseo portado de crates/core/src/catalog/normalize.rs y audio.rs (versión corta).
 import { get } from './http.ts';
 import { cached } from './torbox.ts';
+import { hacktorrent } from './hacktorrent.ts';
 import { namesOf } from './tmdb.ts';
 
 const ADDONS = [
@@ -141,19 +142,24 @@ export async function torrents(imdb: string, s: string | null, e: string | null,
 	const type = s ? 'series' : 'movie';
 	const vid = s ? `${imdb}:${s}:${e}` : imdb;
 	let done = 0;
-	onProgress({ stage: 'sources', done, total: ADDONS.length });
+	// Hacktorrent busca por nombre y solo tiene películas: suma una fuente más solo en películas.
+	const total = ADDONS.length + (s ? 0 : 1);
+	onProgress({ stage: 'sources', done, total });
 	// Películas: sus títulos y año, para descartar las de otra con nombre parecido (en series el id ya trae el episodio).
 	const want = s ? null : namesOf(imdb).catch(() => null);
-	const lists = await Promise.allSettled(
-		ADDONS.map(async ([name, base]) => {
-			try {
+	const step = <T>(p: Promise<T>) => p.finally(() => onProgress({ stage: 'sources', done: ++done, total }));
+	const addons = ADDONS.map(([name, base]) =>
+		step(
+			(async () => {
 				const r = await get(`${base}/stream/${type}/${vid}.json`, { headers: { 'user-agent': 'Mozilla/5.0' } }, 15_000);
 				return r.ok ? ((await r.json()) as { streams?: Stream[] }).streams?.map((x) => parse(x, name)) ?? [] : [];
-			} finally {
-				onProgress({ stage: 'sources', done: ++done, total: ADDONS.length });
-			}
-		})
+			})()
+		)
 	);
+	const hack = s
+		? []
+		: [step(namesOf(imdb).then((n) => (n ? hacktorrent({ titles: [...new Set([n.es, ...n.titles].filter((x): x is string => !!x))], tmdb: n.tmdb, year: n.year }) : [])))];
+	const lists = await Promise.allSettled([...addons, ...hack]);
 	const names = await want;
 	const byHash = merge(
 		lists.flatMap((l) => (l.status === 'fulfilled' ? [l.value] : [])),

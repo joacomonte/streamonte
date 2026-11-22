@@ -8,7 +8,7 @@
 	import { t } from '../i18n/runtime.ts';
 	import type { Episode, Kind, Person, SeasonRatings, SimilarItem, TitleDetails } from '../types.ts';
 	import SeasonChart from './SeasonChart.svelte';
-	import { episodeRows, outlookOf, pickPeople, providerView, seasonTiles, showCineNote, WEB_IDS } from './title-state.ts';
+	import { episodeRows, genreEmoji, outlookOf, pickPeople, providerView, seasonTiles, showCineNote, WEB_IDS } from './title-state.ts';
 	import type { SeasonTile, TitleIds } from './title-state.ts';
 
 	interface Props {
@@ -205,13 +205,12 @@
 									<a id={ids.trailer} class="ext" href="https://www.youtube.com/watch?v={yt}" target="_blank" rel="noopener noreferrer" title={t('Ver el tráiler en YouTube')} onclick={(e) => { if (onOpenTrailer) { e.preventDefault(); onOpenTrailer(yt); } }}><Icon name="play" size={11} />{t('Tráiler')}</a>
 								{/if}
 							</p>
-							{#if genres.length}<p class="genres">{#each genres as g (g)}<span class="genre">{g}</span>{/each}</p>{/if}
-							{#if d.companies.length}<p class="companies">{d.companies.join(' · ')}</p>{/if}
+														{#if d.companies.length}<p class="companies">{d.companies.join(' · ')}</p>{/if}
 						</div>
 					</div>
 				</div>
 
-				{#if d.providers.length || cast.length}
+				{#if d.providers.length || cast.length || genres.length}
 					<div class="inner acts">
 						<!-- Reparto: caras apiladas como las plataformas; al tocar se abre el carrusel con nombres. -->
 						{#if cast.length}
@@ -233,6 +232,11 @@
 							{#if provs.more}<span class="prov-more">+{provs.more}</span>{/if}
 						</button>
 						{/if}
+						<!-- Géneros: píldoras con su emoji, en la misma fila que reparto y plataformas. -->
+						{#each genres as g (g)}
+							{@const emoji = genreEmoji(g)}
+							<span class="genre">{#if emoji}<span class="genre-ico" aria-hidden="true">{emoji}</span>{/if}{g}</span>
+						{/each}
 					</div>
 				{/if}
 
@@ -404,9 +408,9 @@
 	.by { margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
 	.by-link { padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-weight: 650; cursor: pointer; }
 	@media (hover: hover) { .by-link:hover { text-decoration: underline; } }
-	/* Géneros: píldoras como las de reparto y plataformas. */
-	.genres { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
-	.genre { padding: 4px 10px; border-radius: var(--r-pill, 999px); background: var(--surface-2); color: var(--text); font-size: 12.5px; font-weight: 600; }
+	/* Géneros: píldoras de la fila de reparto y plataformas. */
+	.genre { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px 0 10px; border-radius: 22px; background: var(--surface-2); color: var(--text); font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+	.genre-ico { font-size: 17px; line-height: 1; }
 	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
 	.cine-wrap { padding-top: 12px; }
 	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: var(--r-card, 14px); background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
@@ -417,7 +421,7 @@
 	.imdb-seal { padding: 2px 4px; border-radius: 4px; background: #f5c518; color: #000; font-size: 10px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; }
 	@media (hover: hover) { .ext:hover { background: var(--surface-3, var(--border)); } }
 	/* Fila de plataformas. */
-	.acts { display: flex; align-items: flex-start; gap: 8px; padding-top: 12px; }
+	.acts { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding-top: 12px; }
 	.providers { display: flex; flex-wrap: wrap; align-items: center; gap: 0; min-height: 40px; padding: 4px; border: 0; border-radius: 22px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: background 0.2s var(--ease); }
 	.providers:has(.prov-more) { padding-right: 12px; }
 	.providers.on { background: var(--surface-3, var(--border)); }
@@ -517,11 +521,10 @@
 	.ep-skel { height: 68px; border-radius: var(--r-sm, 8px); margin-top: 10px; }
 	/* Entrada: el fondo se enfoca desde un zoom y el texto sube en cascada. */
 	.hero::before { animation: backdrop-in 0.9s var(--out) backwards; will-change: transform; }
-	.name, .by, .line, .genres, .companies, .acts, .people, .body { animation: rise 0.7s var(--out) backwards; }
+	.name, .by, .line, .companies, .acts, .people, .body { animation: rise 0.7s var(--out) backwards; }
 	.name { animation-delay: 0.12s; }
 	.by { animation-delay: 0.16s; }
 	.line { animation-delay: 0.2s; }
-	.genres { animation-delay: 0.24s; }
 	.companies { animation-delay: 0.26s; }
 	.acts { animation-delay: 0.28s; }
 	.people { animation-delay: 0.32s; }
@@ -529,7 +532,7 @@
 	@keyframes backdrop-in { from { opacity: 0; transform: scale(1.18); } }
 	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 	@media (prefers-reduced-motion: reduce) {
-		.hero::before, .name, .by, .line, .genres, .companies, .acts, .people, .body { animation: none; }
+		.hero::before, .name, .by, .line, .companies, .acts, .people, .body { animation: none; }
 		.ext, .providers, .person img, .about-body, .about-chev, .intro { transition: none; }
 	}
 </style>
