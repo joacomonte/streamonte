@@ -15,13 +15,15 @@
 	}
 	let { store, onclear, onquery, onpick }: Props = $props();
 	const st = $derived(store.st);
-	let focused = $state(false);
+	// Las sugerencias no se abren solas (tapaban los resultados): se abren con "Ver sugerencias".
+	let open = $state(false);
 	const typed = $derived(st.q.trim() !== '');
 
 	function key(e: KeyboardEvent) {
 		if (e.key !== 'Escape') return;
 		// Esc: primero cierra las sugerencias; después limpia la búsqueda.
-		if (st.people.length || st.peopleLoading) store.closePeople();
+		if (open) open = false;
+		else if (st.people.length || st.peopleLoading) store.closePeople();
 		else if (st.q) onclear();
 	}
 </script>
@@ -29,19 +31,22 @@
 <div class="finder">
 	<label class="search">
 		<Icon name="search" size={18} />
-		<input id="cat-q" type="search" placeholder={t('Título, actor/actriz o director')} autocomplete="off" enterkeyhint="search" value={st.q} oninput={(e) => onquery(e.currentTarget.value)} onfocus={() => (focused = true)} onblur={() => (focused = false)} onkeydown={key} />
+		<input id="cat-q" type="search" placeholder={t('Título, actor/actriz o director')} autocomplete="off" enterkeyhint="search" value={st.q} oninput={(e) => { open = false; onquery(e.currentTarget.value); }} onblur={() => (open = false)} onkeydown={key} />
+		{#if typed && st.people.length}
+			<button id="cat-q-people" type="button" class="see-people" aria-expanded={open} aria-controls="people-list" onpointerdown={(e) => e.preventDefault()} onclick={() => (open = !open)}>{t('Ver sugerencias')}</button>
+		{/if}
 		{#if st.q || st.person}
 			<button id="cat-q-clear" type="button" class="clear-q" aria-label={t('Limpiar búsqueda')} onclick={onclear}><Icon name="close" size={14} /></button>
 		{/if}
 	</label>
 	<!-- Actores y directores que coinciden: tocar uno trae lo que actuó o dirigió. pointerdown sin foco: el input no se cierra antes del clic. -->
-	{#if focused && st.peopleLoading && typed}
+	{#if open && st.peopleLoading && typed}
 		<ul id="people-loading" class="people" aria-busy="true" aria-label={t('Buscando actores y directores…')}>
 			{#each Array(3) as _, i (i)}
 				<li class="person skel-row" aria-hidden="true"><span class="skel skel-circle sk-face"></span><span class="who"><span class="skel skel-line sk-line"></span><span class="skel skel-line sk-line short"></span></span></li>
 			{/each}
 		</ul>
-	{:else if focused && st.people.length && typed}
+	{:else if open && st.people.length && typed}
 		<ul id="people-list" class="people" aria-label={t('Actores y directores')}>
 			{#each st.people as p, i (p.id)}
 				<li style:--i={i}>
@@ -93,6 +98,8 @@
 		background: color-mix(in srgb, var(--muted) var(--tint-4), transparent);
 		color: var(--bg);
 	}
+	.see-people { flex: none; padding: 3px 9px; border: 0; border-radius: var(--r-pill); background: none; color: var(--accent-fg); font: inherit; font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer; animation: rise-in 0.3s var(--out); }
+	.see-people[aria-expanded='true'] { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 	/* Se ve de 22px, se toca en 44px. */
 	.clear-q::after { content: ''; position: absolute; inset: -11px; }
 
@@ -137,5 +144,5 @@
 	.person-chip span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-left: 4px; }
 	.chip-x { position: relative; flex: none; display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--accent) 22%, transparent); color: inherit; }
 	.chip-x::after { content: ''; position: absolute; inset: -9px; }
-	@media (prefers-reduced-motion: reduce) { .people, .people li, .person-chip { animation: none; } }
+	@media (prefers-reduced-motion: reduce) { .people, .people li, .person-chip, .see-people { animation: none; } }
 </style>

@@ -523,6 +523,7 @@ const EN: Record<string, string> = {
 	"Buscando lo de {name}…": "Looking up {name}'s titles…",
 	"No encontré títulos de {name}.": "No titles found for {name}.",
 	"Limpiar búsqueda": "Clear search",
+	"Ver sugerencias": "See suggestions",
 	"Opciones": "Options",
 	"Detalle — {name}": "Details — {name}",
 	"La caché está vacía.": "The cache is empty.",

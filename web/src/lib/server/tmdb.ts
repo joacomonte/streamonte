@@ -204,10 +204,14 @@ export async function search(q: string, page: number) {
 		fillDetails('tv', found.filter((r) => r.media_type === 'tv').map((r) => r.id))
 	]);
 	// Sin piso de votos: quien busca quiere ver el título; si IMDb no lo tiene, queda sin puntaje.
-	const items = found.map((r) => {
+	// Más votados en IMDb primero (sin puntaje = 0 votos, al final).
+	// shortcut: ordena dentro de cada página de TMDB, no entre páginas; alcanza porque la 1ª trae lo relevante.
+	const hits = found.map((r) => {
 		const d = (r.media_type === 'movie' ? movies : shows)[`${r.media_type}:${r.id}`];
-		return scored(r, r.media_type, d?.imdb ? imdbOf(d.imdb, table) : null);
+		const imdb = d?.imdb ? imdbOf(d.imdb, table) : null;
+		return { item: scored(r, r.media_type, imdb), votes: imdb?.votes ?? 0 };
 	});
+	const items = hits.sort((a, b) => b.votes - a.votes).map((h) => h.item);
 	return { items, page: j.page, pages: j.total_pages };
 }
 

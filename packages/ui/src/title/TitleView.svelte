@@ -76,12 +76,13 @@
 	let epError = $state('');
 	let more = $state(false);
 	let providersOpen = $state(false);
+	let castOpen = $state(false);
 	let similarOpen = $state(false);
 	let similarList = $state<SimilarItem[] | null | undefined>(undefined);
 
 	$effect(() => {
 		const [k, i] = [kind, id];
-		more = providersOpen = similarOpen = false;
+		more = providersOpen = castOpen = similarOpen = false;
 		similarList = undefined;
 		if (details) return;
 		fetched = null;
@@ -203,8 +204,17 @@
 					</div>
 				</div>
 
-				{#if d.providers.length}
+				{#if d.providers.length || people.length}
 					<div class="inner acts">
+						<!-- Reparto: caras apiladas como las plataformas; al tocar se abre el carrusel con nombres. -->
+						{#if people.length}
+							<button id={ids.cast} type="button" class="providers" class:on={castOpen} aria-expanded={castOpen} aria-label={t('Reparto')} onclick={() => (castOpen = !castOpen)}>
+								{#each people as p (p.role + p.id)}
+									<span class="prov">{#if p.photo}<img src={p.photo} alt="" width="28" height="28" referrerpolicy="no-referrer" onerror={hide} />{:else}<span class="prov-empty" aria-hidden="true"><Icon name="user" size={14} /></span>{/if}</span>
+								{/each}
+							</button>
+						{/if}
+						{#if d.providers.length}
 						<!-- Dónde verla: logos apilados; al tocar se abre con los nombres. -->
 						<button id={ids.providers} type="button" class="providers" class:open={providersOpen} aria-expanded={providersOpen} aria-label={t('Dónde verla')} title={t('Para ver en Argentina')} onclick={() => (providersOpen = !providersOpen)}>
 							{#each provs.shown as p, i (p.name)}
@@ -215,10 +225,11 @@
 							{/each}
 							{#if provs.more}<span class="prov-more">+{provs.more}</span>{/if}
 						</button>
+						{/if}
 					</div>
 				{/if}
 
-				{#if people.length}
+				{#if people.length && castOpen}
 					<ul class="inner people" aria-label={t('Reparto')}>
 						{#each people as p (p.role + p.id)}
 							<li class:dir={p.role === 'director'}>
@@ -397,6 +408,7 @@
 	.acts { display: flex; align-items: flex-start; gap: 8px; padding-top: 12px; }
 	.providers { display: flex; flex-wrap: wrap; align-items: center; gap: 0; min-height: 40px; padding: 4px; border: 0; border-radius: 22px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: background 0.2s var(--ease); }
 	.providers:has(.prov-more) { padding-right: 12px; }
+	.providers.on { background: var(--surface-3, var(--border)); }
 	.providers:not(.open) .prov + .prov { margin-left: -10px; }
 	.providers.open { gap: 6px 14px; padding: 6px 14px 6px 6px; border-radius: 20px; }
 	.prov { display: inline-flex; align-items: center; gap: 8px; }
