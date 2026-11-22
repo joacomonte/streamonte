@@ -1,19 +1,18 @@
-<script>
+<script lang="ts">
 	import Icon from '#lib/Icon.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import AdminCode from '#lib/AdminCode.svelte';
+	import type { ComponentProps } from 'svelte';
+	import type { PageProps } from './$types';
 
-	/** @type {import('./$types').PageProps} */
-	let { data } = $props();
+	let { data }: PageProps = $props();
 
 	let loading = $state(false);
 	/** Borrar usuario en dos toques: el primero arma (y avisa), el segundo borra; se desarma solo a los 4 s. */
 	let arming = $state(false);
-	/** @type {ReturnType<typeof setTimeout> | undefined} */
-	let disarm;
-	/** @param {MouseEvent} e */
-	function armDelete(e) {
+	let disarm: ReturnType<typeof setTimeout> | undefined;
+	function armDelete(e: MouseEvent) {
 		if (arming) return;
 		e.preventDefault();
 		arming = true;
@@ -27,7 +26,7 @@
 	}
 
 	/** Modelos de iPhone por tamaño de pantalla en puntos (lado corto x lado largo): Safari no dice el modelo. */
-	const IPHONES = /** @type {Record<string, string>} */ ({
+	const IPHONES: Record<string, string> = {
 		'320x568': 'SE (1ª) / 5s',
 		'375x667': 'SE / 6–8',
 		'414x736': '6–8 Plus',
@@ -41,9 +40,9 @@
 		'402x874': '16 Pro / 17 / 17 Pro',
 		'420x912': 'Air',
 		'440x956': '16 Pro Max / 17 Pro Max'
-	});
-	/** @param {string | null} pantalla `393x852@3` */
-	function iphone(pantalla) {
+	};
+	/** `pantalla`: `393x852@3`. */
+	function iphone(pantalla: string | null) {
 		const m = pantalla?.match(/^(\d+)x(\d+)@(\d+)/);
 		if (!m) return 'iPhone';
 		const [a, b] = [Number(m[1]), Number(m[2])].sort((x, y) => x - y);
@@ -51,8 +50,8 @@
 		return name ? `iPhone ${name}` : 'iPhone';
 	}
 
-	/** Nombre corto del equipo a partir del user-agent (y la pantalla, para el iPhone). @param {string | null} ua @param {string | null} [pantalla] */
-	function equipo(ua, pantalla = null) {
+	/** Nombre corto del equipo a partir del user-agent (y la pantalla, para el iPhone). */
+	function equipo(ua: string | null, pantalla: string | null = null) {
 		if (!ua) return 'Desconocido';
 		// Safari congela la versión de iOS en el user-agent; la real va en `Version/`.
 		const ios = ua.match(/Version\/(\d+)/)?.[1] ?? ua.match(/OS (\d+)_/)?.[1];
@@ -61,22 +60,21 @@
 		return br ? `${os} · ${br}` : os;
 	}
 	const AR = 'America/Argentina/Buenos_Aires';
-	/** Fecha y hora en una zona (la de Argentina por defecto: igual en el servidor y en el navegador).
-	 * @param {string | Date} d @param {string} [tz] */
-	const cuando = (d, tz = AR) => {
+	/** Fecha y hora en una zona (la de Argentina por defecto: igual en el servidor y en el navegador). */
+	const cuando = (d: string | Date, tz: string = AR) => {
 		try {
 			return new Date(d).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: tz });
 		} catch {
 			return '';
 		}
 	};
-	/** La hora local del usuario, solo si su zona no da la misma que Argentina. @param {string | Date} d @param {string | null | undefined} zona */
-	const local = (d, zona) => {
+	/** La hora local del usuario, solo si su zona no da la misma que Argentina. */
+	const local = (d: string | Date, zona: string | null | undefined) => {
 		const l = zona ? cuando(d, zona) : '';
 		return l && l !== cuando(d) ? l : '';
 	};
-	/** Hace cuánto. @param {string | Date} d */
-	function hace(d) {
+	/** Hace cuánto. */
+	function hace(d: string | Date) {
 		const m = Math.round((Date.now() - new Date(d).getTime()) / 60_000);
 		if (m < 1) return 'recién';
 		if (m < 60) return `hace ${m} min`;
@@ -84,16 +82,15 @@
 		return h < 24 ? `hace ${h} h` : `hace ${Math.round(h / 24)} d`;
 	}
 	/** Un "copiar link": `título · calidad · Latino|Original · TV|Celu` (los viejos no traen el audio y dicen
-	 * `dispositivo` en vez de `Celu`). @param {string | null} dato */
-	function repro(dato) {
+	 * `dispositivo` en vez de `Celu`). */
+	function repro(dato: string | null) {
 		const p = (dato ?? '').split(' · ');
 		return { titulo: p[0] || '?', calidad: p[1] || '?', audio: p.length >= 4 ? p[2] : '—', donde: p.at(-1) === 'TV' ? 'TV' : 'Celu' };
 	}
-	/** @param {{equipo: string | null, pantalla: string | null}} d */
-	const corto = (d) => equipo(d.equipo, d.pantalla).split(' · ')[0];
-	/** Nombre de una fila de la lista: el apodo o, si nunca puso uno, su equipo. @param {NonNullable<typeof data.usuarios>[number]} d */
-	const nombre = (d) => d.apodo ?? `Sin apodo · ${corto(d)}`;
-	const ICON = /** @type {Record<string, import('svelte').ComponentProps<typeof Icon>['name']>} */ ({
+	const corto = (d: { equipo: string | null; pantalla: string | null }) => equipo(d.equipo, d.pantalla).split(' · ')[0];
+	/** Nombre de una fila de la lista: el apodo o, si nunca puso uno, su equipo. */
+	const nombre = (d: NonNullable<typeof data.usuarios>[number]) => d.apodo ?? `Sin apodo · ${corto(d)}`;
+	const ICON: Record<string, ComponentProps<typeof Icon>['name']> = {
 		entrar: 'next',
 		buscar: 'search',
 		ver: 'film',
@@ -106,21 +103,19 @@
 		subtítulo: 'subs',
 		'abrió en la tele': 'tv',
 		'play en la tele': 'play'
-	});
+	};
 	/** Usuario abierto (`?u=apodo` o `?d=dispositivo` si no tiene apodo): sus dispositivos, el más reciente primero. */
 	const equipos = $derived(data.equipos?.length ? data.equipos : null);
 	const titulo = $derived(data.nick ?? (equipos ? `Sin apodo · ${corto(equipos[0])}` : ''));
 	const base = $derived(data.nick ? `/admin?u=${encodeURIComponent(data.nick)}` : `/admin?d=${data.dev}`);
-	/** @typedef {{id: number, accion: string, dato: string | null, fecha: string, dispositivo: string, zona: string | null}} Ev */
-	/** Zona del evento o, en los viejos que no la traen, la última de su dispositivo. @param {Ev} ev */
-	const zonaDe = (ev) => ev.zona ?? equipos?.find((e) => e.dispositivo === ev.dispositivo)?.zona;
+	type Ev = { id: number; accion: string; dato: string | null; fecha: string; dispositivo: string; zona: string | null };
+	/** Zona del evento o, en los viejos que no la traen, la última de su dispositivo. */
+	const zonaDe = (ev: Ev) => ev.zona ?? equipos?.find((e) => e.dispositivo === ev.dispositivo)?.zona;
 	/** Historial del usuario con cada "ver" agrupando sus pasos (conexión, audio, link, subs, tele) hasta que vuelve
 	 * a entrar, buscar, filtrar o abre otro título. Más nuevo arriba. */
 	const items = $derived.by(() => {
-		/** @type {(Ev & {pasos?: Ev[]})[]} */
-		const out = [];
-		/** @type {(Ev & {pasos: Ev[]}) | null} */
-		let cur = null;
+		const out: (Ev & { pasos?: Ev[] })[] = [];
+		let cur: (Ev & { pasos: Ev[] }) | null = null;
 		for (const ev of [...(data.eventos ?? [])].reverse()) {
 			if (ev.accion === 'ver') out.push((cur = { ...ev, pasos: [] }));
 			else if (cur && ev.accion !== 'entrar' && ev.accion !== 'buscar' && ev.accion !== 'filtro') cur.pasos.push(ev);
@@ -291,13 +286,13 @@
 </main>
 
 <!-- Hora de Argentina y, debajo, la local del usuario si vive en otra zona. -->
-{#snippet hora(/** @type {string} */ fecha, /** @type {string | null | undefined} */ zona)}
+{#snippet hora(fecha: string, zona: string | null | undefined)}
 	{@const l = local(fecha, zona)}
 	<time>{cuando(fecha)}{#if l}<small>{l} local</small>{/if}</time>
 {/snippet}
 
 <!-- Un evento suelto; el único 'entrar' que llega es el primero del usuario. -->
-{#snippet fila(/** @type {Ev} */ ev)}
+{#snippet fila(ev: Ev)}
 	<div class="row">
 		{#if ev.accion === 'entrar'}
 			<span class="ico"><Icon name="user" size={16} /></span>

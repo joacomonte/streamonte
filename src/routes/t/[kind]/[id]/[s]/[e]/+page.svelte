@@ -1,14 +1,15 @@
-<script>
+<script lang="ts">
 	import Icon from '#lib/Icon.svelte';
 	import Torrents from '#lib/Torrents.svelte';
-	import { loc, t as tr } from '#lib/i18n.svelte.js';
+	import { loc, t as tr } from '#lib/i18n.svelte.ts';
 
-	/** @type {import('./$types').PageProps} */
-	let { data } = $props();
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
 	const t = $derived(data.t);
 	const code = $derived(tr('T{s} · E{e}', { s: data.s, e: data.e }));
-	/** @param {string} d ISO (AAAA-MM-DD) */
-	const fecha = (d) => new Date(`${d}T00:00`).toLocaleDateString(loc(), { day: 'numeric', month: 'long', year: 'numeric' });
+	/** `d`: ISO (AAAA-MM-DD). */
+	const fecha = (d: string) => new Date(`${d}T00:00`).toLocaleDateString(loc(), { day: 'numeric', month: 'long', year: 'numeric' });
 </script>
 
 <svelte:head><title>{t.title} {code} · Streamonte</title></svelte:head>

@@ -1,8 +1,0 @@
-import { people } from '#lib/server/tmdb.js';
-import { route } from '#lib/server/http.js';
-
-/** Actores y directores que coinciden con lo escrito en el buscador (sugerencias). */
-export const GET = route(async ({ url }) => {
-	const q = url.searchParams.get('q')?.trim().slice(0, 60) ?? '';
-	return q.length < 2 ? [] : people(q);
-});

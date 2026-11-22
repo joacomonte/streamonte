@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	// Torrents de un video que TorBox tiene en caché, en pasos (como el desktop): buscando (fuente por fuente) →
 	// ¿audio latino? → el PRIMER BUEN MATCH (`isMatch`), leyendo pistas de a una de mejor a peor calidad, con "Seguir
 	// buscando" y "Ver todas las opciones"; migas para volver. Por fila: peso, calidad de
@@ -7,52 +7,63 @@
 	import Icon from './Icon.svelte';
 	import Sheet from './Sheet.svelte';
 	import Tour from './Tour.svelte';
-	import { castSteps, device } from './tours.js';
-	import * as saved from './saved.js';
-	import { loc, t as tr } from './i18n.svelte.js';
+	import { castSteps, device } from './tours.ts';
+	import * as saved from './saved.ts';
+	import { loc, t as tr } from './i18n.svelte.ts';
 	import { untrack } from 'svelte';
-	import { audioOf, latStatus, LAT_BADGE } from './audio.js';
-	import { track } from './track.js';
-	import { QUALITY, byQuality as rankQuality, groupOf, mbpsOf as rankMbps, rank, sourceOf } from './torrent-rank.js';
+	import { audioOf, latStatus, LAT_BADGE, type Tracks } from './audio.ts';
+	import type { Snippet } from 'svelte';
+	import type { Torrent, Sub } from './types.ts';
+	import { track } from './track.ts';
+	import { QUALITY, byQuality as rankQuality, groupOf, mbpsOf as rankMbps, rank, sourceOf } from './torrent-rank.ts';
 
-	/** `orig`: idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. `runtime`: duración en minutos (de la
-	 * ficha), para el bitrate. `given`: las opciones ya armadas ("Pegar magnet": los videos de ese torrent); sin pasos
-	 * ni búsqueda, directo a la lista. @type {{imdb: string, s?: number | null, e?: number | null, name: string, orig?: string | null, runtime?: number | null, given?: Torrent[] | null}} */
-	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null } = $props();
+	interface Props {
+		imdb: string;
+		s?: number | null;
+		e?: number | null;
+		name: string;
+		/** Idioma original (ISO 639-1 de TMDB): el audio que sale por defecto. */
+		orig?: string | null;
+		/** Duración en minutos (de la ficha), para el bitrate. */
+		runtime?: number | null;
+		/** Las opciones ya armadas ("Pegar magnet": los videos de ese torrent); sin pasos ni búsqueda, directo a la lista. */
+		given?: Torrent[] | null;
+	}
+	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null }: Props = $props();
 
-	/** @typedef {import('./types.js').Torrent} Torrent */
-	/** @typedef {import('./types.js').Sub} Sub */
-	/** @typedef {{label: string, kind: string, track: number, url: string}} Native */
-	/** @typedef {{hasKey: boolean, remaining: number | null, perDay: number | null, resetsAt: number | null, login?: string | null}} Quota */
+	type Native = { label: string; kind: string; track: number; url: string };
+	type Quota = { hasKey: boolean; remaining: number | null; perDay: number | null; resetsAt: number | null; login?: string | null };
+	type Choice = { key: string; label: string; url: string };
+	type Video = { fps: number | null; duration: number | null };
+	type FileId = { hash: string; size: string };
 
 	/** Resoluciones de mejor a peor; `other` junta lo que no es 4K/1080p/720p (o no lo dice). */
 	const RES = ['2160p', '1080p', '720p', 'other'];
 	const qs = $derived(new URLSearchParams({ imdb, ...(s && e ? { s: String(s), e: String(e) } : {}) }).toString());
 
-	let data = $state(/** @type {{list: Torrent[], found: number, sources: number} | null} */ (null));
+	let data = $state<{ list: Torrent[]; found: number; sources: number } | null>(null);
 	let error = $state('');
 	let onlyHdr = $state(false);
 	/** Solo las que ya se sabe que traen subs en español (verificadas o con .srt en el torrent). */
 	let onlyEs = $state(false);
-	/** Estado del botón copiar por hash. @type {Record<string, 'busy' | 'ok' | 'err'>} */
-	let copy = $state({});
+	/** Estado del botón copiar por hash. */
+	let copy = $state<Record<string, 'busy' | 'ok' | 'err'>>({});
 	/** Link que el navegador no dejó copiar solo (http en la LAN): se muestra para copiarlo a mano. */
-	let manual = $state(/** @type {{url: string, release: string, kind: 'video' | 'sub', t?: Torrent} | null} */ (null));
+	let manual = $state<{ url: string; release: string; kind: 'video' | 'sub'; t?: Torrent } | null>(null);
 	/** Hoja "¡Link copiado!" del video recién copiado: si trae subs en español y, si no, ver los disponibles. */
-	let linkDone = $state(/** @type {Torrent | null} */ (null));
+	let linkDone = $state<Torrent | null>(null);
 	/** "¿Dónde lo vas a ver?": el link de descarga sirve directo en los reproductores, pero Web Video Caster lo
 	 * muestra como texto; para él va dentro de /play.html (un <video> que detecta; el link después del #). El toque en
 	 * la opción es el que copia (iOS). */
-	let whereFor = $state(/** @type {{t: Torrent, url: string} | null} */ (null));
+	let whereFor = $state<{ t: Torrent; url: string } | null>(null);
 	/** A dónde se copió el último video (null = no se preguntó): con 'app' no hay hoja "¡Link copiado!", solo el festejo. */
-	let doneWhere = $state(/** @type {'wvc' | 'app' | null} */ (null));
-	/** El stream (.m3u8) anda igual en todos: se copia directo; el de descarga pregunta. @param {Torrent} t @param {string} url */
-	function askWhere(t, url) {
+	let doneWhere = $state<'wvc' | 'app' | null>(null);
+	/** El stream (.m3u8) anda igual en todos: se copia directo; el de descarga pregunta. */
+	function askWhere(t: Torrent, url: string) {
 		if (/\.tb-cdn\./.test(url) && !/\.m3u8/.test(url)) whereFor = { t, url };
 		else copyUrl(t, url);
 	}
-	/** @param {'wvc' | 'app'} where */
-	function copyWhere(where) {
+	function copyWhere(where: 'wvc' | 'app') {
 		if (!whereFor) return;
 		const { t, url } = whereFor;
 		whereFor = null;
@@ -64,9 +75,8 @@
 	}
 	let subsOpen = $state(false);
 	/** Hoja de "Link copiado": qué se copió (video o subtítulo) y su nombre. */
-	let copied = $state(/** @type {{kind: 'video' | 'sub', name: string} | null} */ (null));
-	/** @type {HTMLElement | undefined} */
-	let toastEl = $state();
+	let copied = $state<{ kind: 'video' | 'sub'; name: string } | null>(null);
+	let toastEl = $state<HTMLElement>();
 	// Toast que se va solo; si se copia otro, vuelve a contar.
 	$effect(() => {
 		if (!toastEl) return;
@@ -79,11 +89,10 @@
 		const id = setTimeout(() => (copied = null), 2800);
 		return () => clearTimeout(id);
 	});
-	/** Festejo grande de "¡Link copiado!" sobre todo (popover), antes de la hoja. @type {HTMLElement | undefined} */
-	let burstEl = $state();
+	/** Festejo grande de "¡Link copiado!" sobre todo (popover), antes de la hoja. */
+	let burstEl = $state<HTMLElement>();
 	let burstN = $state(0);
-	/** @type {ReturnType<typeof setTimeout> | undefined} */
-	let burstT;
+	let burstT: ReturnType<typeof setTimeout> | undefined;
 	function burst() {
 		if (!burstEl) return;
 		burstN++;
@@ -97,20 +106,20 @@
 	}
 	let tutorialOpen = $state(false);
 	/** Los encontrados afuera para el torrent copiado (null = no se buscó). */
-	let subs = $state(/** @type {Sub[] | null} */ (null));
+	let subs = $state<Sub[] | null>(null);
 	let searching = $state(false);
 	let subsError = $state('');
 	/** El último subtítulo copiado y los que se copiaron antes (no sincronizaron): "Probaste N". */
-	let picked = $state(/** @type {string | null} */ (null));
-	let tried = $state(/** @type {string[]} */ ([]));
+	let picked = $state<string | null>(null);
+	let tried = $state<string[]>([]);
 	/** Premium (OpenSubtitles.com): buscar es gratis y corre al abrir la fila; cada copia baja uno (gasta 1). */
-	let prem = $state(/** @type {{open: boolean, status: 'idle' | 'loading' | 'ready' | 'empty' | 'error', results: Sub[], busy: string | null}} */ ({ open: false, status: 'idle', results: [], busy: null }));
-	let quota = $state(/** @type {Quota | null} */ (null));
+	let prem = $state<{ open: boolean; status: 'idle' | 'loading' | 'ready' | 'empty' | 'error'; results: Sub[]; busy: string | null }>({ open: false, status: 'idle', results: [], busy: null });
+	let quota = $state<Quota | null>(null);
 
 	// Solo depende del video (`qs`): lo demás va en `untrack`, así nada que llegue
 	// después (subs, cuota, copias) vuelve a disparar el pedido ni vacía la lista que ya se ve.
 	/** "Buscando torrents… 2 de 4 fuentes" / "Chequeando TorBox". */
-	let progress = $state(/** @type {{done: number, total: number, torbox: boolean}} */ ({ done: 0, total: 0, torbox: false }));
+	let progress = $state<{ done: number; total: number; torbox: boolean }>({ done: 0, total: 0, torbox: false });
 	$effect(() => {
 		const url = `/api/torrents?${qs}`;
 		const ctrl = new AbortController();
@@ -126,8 +135,8 @@
 			found = [];
 			showAll = false;
 			progress = { done: 0, total: 0, torbox: false };
-			// Lista guardada 1 hora (saved.js): se pinta en este mismo cuadro, sin pasar por la búsqueda.
-			data = given ? { list: given, found: given.length, sources: 1 } : /** @type {typeof data} */ (hit);
+			// Lista guardada 1 hora (saved.ts): se pinta en este mismo cuadro, sin pasar por la búsqueda.
+			data = given ? { list: given, found: given.length, sources: 1 } : hit as typeof data;
 			// Torrent pegado: ya se sabe qué torrent es, no hay conexión ni audio para elegir.
 			if (given) { step = 'list'; showAll = true; }
 		});
@@ -137,9 +146,8 @@
 			gen++;
 		};
 	});
-	/** Lee la respuesta en líneas (progreso por fuente y al final la lista) y la guarda 1 hora.
-	 * @param {string} url @param {AbortSignal} signal */
-	async function search(url, signal) {
+	/** Lee la respuesta en líneas (progreso por fuente y al final la lista) y la guarda 1 hora. */
+	async function search(url: string, signal: AbortSignal) {
 		try {
 			const r = await fetch(url, { signal });
 			if (!r.body) throw new Error(tr('No se pudieron buscar'));
@@ -163,25 +171,24 @@
 				}
 			}
 		} catch (err) {
-			if (!signal.aborted) error = /** @type {Error} */ (err).message;
+			if (!signal.aborted) error = (err as Error).message;
 		}
 	}
 
 	// ── Pasos ────────────────────────────────────────────────────────────────────────────────────────────────
 	/** Conexión donde se va a ver (2026-11-18): la elige el usuario en cada video y pone el tope de bitrate
 	 * del buen match; "¿Se cortó?" baja un nivel. `mbps`: lo más que se le pide al video (el piso del rango). */
-	const NET = /** @type {const} */ ([
+	const NET = [
 		{ key: 'terrible', label: 'Muy baja', range: 'Menos de 8 Mbps o señal que se corta: busco una muy liviana', mbps: 4, tone: 'red' },
 		{ key: 'low', label: 'Baja', range: '8 a 25 Mbps, o la tele en wifi 2.4 GHz', mbps: 10, tone: 'amber' },
 		{ key: 'normal', label: 'Normal', range: '25 a 100 Mbps', mbps: 25, tone: 'accent-fg' },
 		{ key: 'high', label: 'Alta', range: 'Más de 100 Mbps, en wifi 5 GHz o por cable', mbps: Infinity, tone: 'green' }
-	]);
+	] as const;
 	/** La conexión elegida para este video: se pregunta siempre (cambia según dónde se vea). */
-	let net = $state(/** @type {(typeof NET)[number] | null} */ (null));
+	let net = $state<(typeof NET)[number] | null>(null);
 	/** La que se acaba de tocar: su ícono se llena del color del nivel antes de pasar al audio. */
-	let netPick = $state(/** @type {string | null} */ (null));
-	/** @param {(typeof NET)[number]} n */
-	function chooseNet(n) {
+	let netPick = $state<string | null>(null);
+	function chooseNet(n: (typeof NET)[number]) {
 		if (netPick) return;
 		track('conexión', n.label);
 		net = n;
@@ -194,25 +201,23 @@
 			if (g === gen) goStep('audio');
 		}, 220);
 	}
-	/** @param {Torrent} t */
-	const mbpsOf = (t) => rankMbps(t, runtime);
-	/** ¿Entra en la conexión elegida? Sin peso no se sabe cuánto pide: no entra (no puede ser el buen match). @param {Torrent} t */
-	const fits = (t) => !!t.size && (!net || mbpsOf(t) <= net.mbps);
+	const mbpsOf = (t: Torrent) => rankMbps(t, runtime);
+	/** ¿Entra en la conexión elegida? Sin peso no se sabe cuánto pide: no entra (no puede ser el buen match). */
+	const fits = (t: Torrent) => !!t.size && (!net || mbpsOf(t) <= net.mbps);
 
 	/** Paso actual: la conexión (si no se eligió nunca), el audio, o el resultado (buscando el primer buen match, ese
 	 * match o, con `showAll`, todas). */
-	let step = $state(/** @type {'net' | 'audio' | 'list'} */ ('audio'));
+	let step = $state<'net' | 'audio' | 'list'>('audio');
 	let wantLat = $state(false);
 	/** Buenos matches que se muestran, en el orden en que aparecieron (hashes). */
-	let found = $state(/** @type {string[]} */ ([]));
+	let found = $state<string[]>([]);
 	/** Pidió "Ver todas las opciones". */
 	let showAll = $state(false);
 	/** Pidió latino, no hubo y vio las de español (casi seguro de España). */
 	let showSpain = $state(false);
 	/** Cada cambio de paso (o de video) invalida lo que se estaba leyendo: los bucles miran este número. */
 	let gen = 0;
-	/** @param {'net' | 'audio' | 'list'} to */
-	function goStep(to) {
+	function goStep(to: 'net' | 'audio' | 'list') {
 		gen++;
 		reading = false;
 		showSpain = false;
@@ -220,30 +225,27 @@
 	}
 
 	const all = $derived(data?.list ?? []);
-	/** @param {Torrent} t */
-	const known = (t) => {
+	const known = (t: Torrent) => {
 		const v = info[t.hash];
 		return v && typeof v === 'object' ? v : null;
 	};
-	/** Estado del audio latino (regla única en audio.js). @param {Torrent} t */
-	const status = (t) => latStatus(t, known(t));
+	/** Estado del audio latino (regla única en audio.ts). */
+	const status = (t: Torrent) => latStatus(t, known(t));
 	/** Con potencial de latino: latino o probable, o sin confirmar pero con español (dicho en el nombre o leído sin
-	 * variante). Las que no dicen nada de idioma no cuentan. @param {Torrent} t */
-	const potential = (t) => {
+	 * variante). Las que no dicen nada de idioma no cuentan. */
+	const potential = (t: Torrent) => {
 		const s = status(t);
 		return s === 'lat' || s === 'likely' || (s === 'check' && (t.spa || known(t)?.audio === 'es'));
 	};
-	/** @param {Torrent} t */
-	const hasEs = (t) => t.subFile || (known(t)?.subs ?? 0) > 0;
+	const hasEs = (t: Torrent) => t.subFile || (known(t)?.subs ?? 0) > 0;
 	/** Única regla de "buen match": pidiendo latino, LAT (pistas o nombre; los subs no importan); con audio original,
-	 * sub ES nativo (dentro del video o .srt en el torrent). @param {Torrent} t */
-	const isMatch = (t) => (wantLat ? status(t) === 'lat' : hasEs(t));
+	 * sub ES nativo (dentro del video o .srt en el torrent). */
+	const isMatch = (t: Torrent) => (wantLat ? status(t) === 'lat' : hasEs(t));
 	/** Única regla de "candidata a leer": sin leer (ni leyéndose ni con error) y que pueda ser lo pedido. Latino: sin
 	 * confirmar y con algo que lo sugiera (web latina, MULTI / Dual / español sin aclarar); las que no dicen nada de
-	 * idioma no se leen. Audio original: sin saber si trae sub ES. @param {boolean} lat @param {Torrent} t */
-	const unread = (lat, t) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (status(t) === 'likely' || (status(t) === 'check' && t.spa)) : !hasEs(t) && !known(t));
-	/** @param {Torrent} a @param {Torrent} b */
-	const byQuality = (a, b) => rankQuality(a, b, runtime);
+	 * idioma no se leen. Audio original: sin saber si trae sub ES. */
+	const unread = (lat: boolean, t: Torrent) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (status(t) === 'likely' || (status(t) === 'check' && t.spa)) : !hasEs(t) && !known(t));
+	const byQuality = (a: Torrent, b: Torrent) => rankQuality(a, b, runtime);
 	/** Lo que entra con el audio elegido (latino: solo las con potencial), de mejor a peor. `byBest`: solo las que entran
 	 * en la conexión (de ahí sale el buen match); `everything`: todas, para "Ver todas". */
 	const everything = $derived((wantLat ? all.filter(potential) : [...all]).sort(byQuality));
@@ -258,8 +260,7 @@
 	let reading = $state(false);
 	let scan = $state({ done: 0, total: 0 });
 
-	/** @param {boolean} lat */
-	function chooseAudio(lat) {
+	function chooseAudio(lat: boolean) {
 		track('audio', lat ? 'Latino' : 'Cualquiera');
 		wantLat = lat;
 		found = [];
@@ -306,28 +307,25 @@
 	/** Qué se ve en el paso de resultado: buscando el primer match, el resultado o todas. */
 	const screen = $derived(step === 'net' || step === 'audio' ? step : showAll ? 'all' : showSpain ? 'spain' : reading && !found.length ? 'search' : 'match');
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-	/** Entrada de cada paso: sube un poco y aparece. @param {Element} _ */
-	const stepIn = (_) => ({
+	/** Entrada de cada paso: sube un poco y aparece. */
+	const stepIn = (_: Element) => ({
 		duration: still() ? 0 : 320,
-		css: (/** @type {number} */ x) => `transform: translateY(${(1 - x) * 10}px); opacity: ${x};`
+		css: (x: number) => `transform: translateY(${(1 - x) * 10}px); opacity: ${x};`
 	});
 	/** El video que copiaste: los subtítulos se ordenan por cuánto calzan con él. */
-	let match = $state(/** @type {{hash: string, release: string, natives?: Native[], file?: {hash: string, size: string}, video?: {fps: number | null, duration: number | null}} | null} */ (null));
+	let match = $state<{ hash: string; release: string; natives?: Native[]; file?: FileId; video?: Video } | null>(null);
 	const LEVEL = ['puede desfasar', 'probable', 'muy probable', 'perfecto'].map((x) => () => tr(x));
 	const WHY = ['Otro release: puede ir adelantado o atrasado', 'Mismos fps y misma duración que el video', 'Mismo release: mismo grupo y fuente', 'Hecho para este mismo archivo'].map((x) => () => tr(x));
 	const ranked = $derived(subs ? rank(subs, match) : []);
 	const premRanked = $derived(rank(prem.results, match));
-	/** Encabezado de la fila: grupo del release y "fuente resolución". @param {Sub} sub */
-	const headOf = (sub) => sub.group || groupOf(sub.release) || (sub.premium ? 'OpenSubtitles' : 'OpenSubtitles.org');
-	/** @param {Sub} sub */
-	const specOf = (sub) => [sourceOf(sub.release), sub.release.match(/\b(2160p|1080p|720p|480p)\b/i)?.[1]].filter(Boolean).join(' ') || tr('sin release');
+	/** Encabezado de la fila: grupo del release y "fuente resolución". */
+	const headOf = (sub: Sub) => sub.group || groupOf(sub.release) || (sub.premium ? 'OpenSubtitles' : 'OpenSubtitles.org');
+	const specOf = (sub: Sub) => [sourceOf(sub.release), sub.release.match(/\b(2160p|1080p|720p|480p)\b/i)?.[1]].filter(Boolean).join(' ') || tr('sin release');
 
-	/** @param {number | null} b */
-	const gb = (b) => (b == null ? '—' : b >= 1024 ** 3 ? `${(b / 1024 ** 3).toLocaleString(loc(), { maximumFractionDigits: 1, minimumFractionDigits: 1 })} GB` : `${Math.round(b / 1024 ** 2)} MB`);
+	const gb = (b: number | null) => (b == null ? '—' : b >= 1024 ** 3 ? `${(b / 1024 ** 3).toLocaleString(loc(), { maximumFractionDigits: 1, minimumFractionDigits: 1 })} GB` : `${Math.round(b / 1024 ** 2)} MB`);
 
-	/** Link de TorBox recién pedido (uno nuevo en cada copia); `choices` si hay audio en inglés y en latino.
-	 * @param {Torrent} t @returns {Promise<{url: string, choices?: {key: string, label: string, url: string}[], file?: {hash: string, size: string}, natives?: Native[], video?: {fps: number | null, duration: number | null}, subsEs?: number, ids?: {tid: number, fid: number}}>} */
-	async function linkOf(t) {
+	/** Link de TorBox recién pedido (uno nuevo en cada copia); `choices` si hay audio en inglés y en latino. */
+	async function linkOf(t: Torrent): Promise<{ url: string; choices?: Choice[]; file?: FileId; natives?: Native[]; video?: Video; subsEs?: number; ids?: { tid: number; fid: number } }> {
 		const r = await fetch(`/api/link?${qs}&${new URLSearchParams({ hash: t.hash, name: t.release, file: t.file ?? '', orig: orig ?? '' })}`);
 		const j = await r.json();
 		if (!r.ok) throw new Error(j.message);
@@ -336,45 +334,41 @@
 	/** Elegir audio: el toque en la opción es el que copia (por http hace falta un toque para copiar). */
 	/** Badges que ya se explicaron en este video: la primera vez que aparece cada tipo (el de más arriba), un globito
 	 * cuenta qué significa; si aparecen varios tipos, de a uno. */
-	const explained = new Set();
-	/** @param {HTMLElement} node @param {string} kind */
-	function explain(node, kind) {
+	const explained = new Set<string>();
+	function explain(node: HTMLElement, kind: string) {
 		if (explained.has(kind) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 		node.style.setProperty('--d', `${0.4 + explained.size * 2.2}s`);
 		explained.add(kind);
 		node.classList.add('explaining');
 	}
-	/** Recién leídos en esta pantalla: sus badges naranjas explican qué significan con un globito. @type {Record<string, boolean>} */
-	let fresh = $state({});
+	/** Recién leídos en esta pantalla: sus badges naranjas explican qué significan con un globito. */
+	let fresh = $state<Record<string, boolean>>({});
 	/** Por qué falló el análisis de cada torrent (lo dice el server). */
-	let why = $state(/** @type {Record<string, string>} */ ({}));
+	let why = $state<Record<string, string>>({});
 	/** Globito rápido del badge ES ("Gallego") al tocarlo. */
 	let tipFor = $state('');
-	/** @type {ReturnType<typeof setTimeout> | undefined} */
-	let tipT;
-	/** @param {string} hash */
-	function quickTip(hash) {
+	let tipT: ReturnType<typeof setTimeout> | undefined;
+	function quickTip(hash: string) {
 		tipFor = '';
 		requestAnimationFrame(() => (tipFor = hash));
 		clearTimeout(tipT);
 		tipT = setTimeout(() => (tipFor = ''), 2400);
 	}
-	let audioFor = $state(/** @type {{t: Torrent, choices: {key: string, label: string, url: string}[]} | null} */ (null));
+	let audioFor = $state<{ t: Torrent; choices: Choice[] } | null>(null);
 
-	/** Lo leído de cada torrent (subs en español y audio, ver audio.js), 'busy' mientras se lee o 'err' si falló.
+	/** Lo leído de cada torrent (subs en español y audio, ver audio.ts), 'busy' mientras se lee o 'err' si falló.
 	 * Es del torrent y no cambia: se guarda para siempre (saved.remember). */
-	let info = $state(/** @type {Record<string, import('./audio.js').Tracks | 'busy' | 'err' | null>} */ ({}));
+	let info = $state<Record<string, Tracks | 'busy' | 'err' | null>>({});
 	$effect(() => {
-		for (const t of data?.list ?? []) if (!(t.hash in info)) info[t.hash] = /** @type {import('./audio.js').Tracks | null} */ (saved.recall(`tracks:${t.hash}`));
+		for (const t of data?.list ?? []) if (!(t.hash in info)) info[t.hash] = saved.recall(`tracks:${t.hash}`) as Tracks | null;
 	});
-	/** @param {string} hash @param {import('./audio.js').Tracks} v */
-	function know(hash, v) {
+	function know(hash: string, v: Tracks) {
 		info[hash] = v;
 		saved.remember(`tracks:${hash}`, v);
 	}
 	/** Lee el encabezado del video (subs y audios). Con `ids` (del link recién copiado) es un pedido a TorBox; sin
-	 * ellos, también agrega el torrent. false si falló. @param {Torrent} t @param {{tid: number, fid: number}} [ids] */
-	async function probe(t, ids) {
+	 * ellos, también agrega el torrent. false si falló. */
+	async function probe(t: Torrent, ids?: { tid: number; fid: number }) {
 		info[t.hash] = 'busy';
 		fresh[t.hash] = false;
 		try {
@@ -386,12 +380,11 @@
 			return true;
 		} catch (err) {
 			info[t.hash] = 'err';
-			why[t.hash] = /** @type {Error} */ (err).message;
+			why[t.hash] = (err as Error).message;
 			return false;
 		}
 	}
-	/** @param {Torrent} t */
-	const subBadge = (t) => {
+	const subBadge = (t: Torrent) => {
 		const n = known(t)?.subs;
 		if (typeof n === 'number' && n > 0) return { on: true, text: 'Sub ES', title: tr(n > 1 ? 'El video trae {n} subtítulos en español adentro' : 'El video trae {n} subtítulo en español adentro', { n }) };
 		if (t.subFile) return { on: true, text: 'Sub ES', title: tr('El torrent trae un archivo de subtítulo en español') };
@@ -399,14 +392,14 @@
 		return null;
 	};
 
-	/** Pide el link en el toque; si hay inglés y latino, pregunta antes de copiar. @param {Torrent} t */
-	async function copyLink(t) {
+	/** Pide el link en el toque; si hay inglés y latino, pregunta antes de copiar. */
+	async function copyLink(t: Torrent) {
 		copy[t.hash] = 'busy';
 		let got;
 		try {
 			got = await linkOf(t);
 		} catch (err) {
-			error = /** @type {Error} */ (err).message;
+			error = (err as Error).message;
 			return done(t, 'err');
 		}
 		delete copy[t.hash];
@@ -427,15 +420,13 @@
 	}
 	/** Subtítulos de un torrent, con lo que ya trajo su link (sin volver a TorBox). Si el video trae en español lo dice
 	 * `info` (una sola fuente para la opción y este panel); `natives` son esos mismos subs como links del stream (solo
-	 * con streaming en el plan). Buscar afuera es a pedido ("Ver subtítulos disponibles").
-	 * @param {Torrent} t @param {{hash: string, size: string} | undefined} [file] @param {Native[]} [natives]
-	 * @param {{fps: number | null, duration: number | null}} [video] */
-	function subsFor(t, file, natives, video) {
+	 * con streaming en el plan). Buscar afuera es a pedido ("Ver subtítulos disponibles"). */
+	function subsFor(t: Torrent, file?: FileId, natives?: Native[], video?: Video) {
 		resetSubs();
 		match = { hash: t.hash, release: t.release, natives, file, video };
 	}
-	/** Abre los subtítulos de `t` y busca afuera. @param {Torrent} t */
-	function showSubs(t) {
+	/** Abre los subtítulos de `t` y busca afuera. */
+	function showSubs(t: Torrent) {
 		if (match?.hash !== t.hash) subsFor(t);
 		linkDone = null;
 		subsOpen = true;
@@ -457,14 +448,13 @@
 			if (!r.ok) subsError = j.message;
 			else subs = j;
 		} catch (err) {
-			subsError = /** @type {Error} */ (err).message;
+			subsError = (err as Error).message;
 		} finally {
 			searching = false;
 		}
 	}
-	/** Copia ya (Chrome deja unos segundos después del toque); si el navegador no deja, un toque más en la hoja.
-	 * @param {Torrent} t @param {string} url */
-	async function copyUrl(t, url) {
+	/** Copia ya (Chrome deja unos segundos después del toque); si el navegador no deja, un toque más en la hoja. */
+	async function copyUrl(t: Torrent, url: string) {
 		// Título · calidad · audio elegido · dónde (el panel lo separa por ` · `).
 		track('copiar link', `${name}${s ? ` T${s}E${e}` : ''} · ${t.res ?? ''} · ${wantLat ? 'Latino' : 'Original'} · ${/play\.html/.test(url) ? 'TV' : 'Celu'}`);
 		if (copyNow(url)) return done(t, 'ok');
@@ -476,16 +466,15 @@
 		}
 	}
 	/** Copiado un video que no trae subs en español (ya leído): en vez de la hoja de "copiado", la lista de subs con
-	 * la explicación arriba. Si todavía se está leyendo, se decide cuando termina (efecto de abajo). @param {Torrent} t */
-	function noSubsCheck(t) {
+	 * la explicación arriba. Si todavía se está leyendo, se decide cuando termina (efecto de abajo). */
+	function noSubsCheck(t: Torrent) {
 		const k = known(t);
 		if (linkDone?.hash === t.hash && k && !k.subs && !t.subFile) showSubs(t);
 	}
 	$effect(() => {
 		if (linkDone && typeof info[linkDone.hash] === 'object') untrack(() => linkDone && noSubsCheck(linkDone));
 	});
-	/** @param {Torrent} t @param {'ok' | 'err'} st */
-	function done(t, st) {
+	function done(t: Torrent, st: 'ok' | 'err') {
 		copy[t.hash] = st;
 		if (st === 'ok') {
 			linkDone = t;
@@ -505,13 +494,13 @@
 			manual = null;
 		}
 	}
-	/** Link absoluto del .srt (en la LAN, el de la Mac): termina en la extensión para Web Video Caster. @param {Sub} sub */
-	const subUrl = (sub) =>
+	/** Link absoluto del .srt (en la LAN, el de la Mac): termina en la extensión para Web Video Caster. */
+	const subUrl = (sub: Sub) =>
 		`${location.origin}/api/subs/${sub.id}/${encodeURIComponent(fileName.replace(/[^\p{L}\p{N}]+/gu, '.'))}.es.${sub.format === 'ass' ? 'ass' : 'srt'}`;
 	/** Copia en el mismo toque con un textarea oculto: anda por http, donde no hay `navigator.clipboard`.
 	 * iOS no selecciona texto de un campo de solo lectura (y `execCommand` igual dice que copió): por eso editable,
-	 * con rango explícito, y se verifica que lo seleccionado sea el texto. @param {string} text */
-	function copyNow(text) {
+	 * con rango explícito, y se verifica que lo seleccionado sea el texto. */
+	function copyNow(text: string) {
 		const ta = document.createElement('textarea');
 		ta.value = text;
 		ta.contentEditable = 'true';
@@ -530,14 +519,13 @@
 		ta.remove();
 		return ok;
 	}
-	/** Copiar otro cuenta el anterior como probado (no sincronizó). @param {string} key */
-	function pick(key) {
+	/** Copiar otro cuenta el anterior como probado (no sincronizó). */
+	function pick(key: string) {
 		if (picked && picked !== key && !tried.includes(picked)) tried = [...tried, picked];
 		tried = tried.filter((k) => k !== key);
 		picked = key;
 	}
-	/** @param {Sub} sub */
-	async function copySub(sub) {
+	async function copySub(sub: Sub) {
 		track('subtítulo', `copiar link · ${sub.release}`);
 		pick(`o${sub.id}`);
 		const url = subUrl(sub);
@@ -551,8 +539,8 @@
 			manual = { url, release: name, kind: 'sub' };
 		}
 	}
-	/** Copia un nativo: el video con ese subtítulo puesto. @param {Native} n */
-	function copyNative(n) {
+	/** Copia un nativo: el video con ese subtítulo puesto. */
+	function copyNative(n: Native) {
 		pick(`n${n.track}`);
 		if (copyNow(n.url)) copied = { kind: 'video', name: tr('Subtítulos del video') };
 		else manual = { url: n.url, release: tr('Subtítulos del video'), kind: 'video' };
@@ -574,8 +562,8 @@
 		prem.open = !prem.open;
 		if (prem.open && quota?.hasKey && prem.status === 'idle') premiumSearch();
 	}
-	/** "Copiar · 1": baja ese (gasta 1, solo con este toque) y copia el link del .srt servido por la Mac. @param {Sub} sub */
-	async function copyPremium(sub) {
+	/** "Copiar · 1": baja ese (gasta 1, solo con este toque) y copia el link del .srt servido por la Mac. */
+	async function copyPremium(sub: Sub) {
 		if (prem.busy || quota?.remaining === 0) return;
 		track('subtítulo', `premium · ${sub.release}`);
 		prem.busy = sub.id;
@@ -590,7 +578,7 @@
 			if (copyNow(url)) copied = { kind: 'sub', name };
 			else manual = { url, release: name, kind: 'sub' };
 		} catch (err) {
-			subsError = /** @type {Error} */ (err).message;
+			subsError = (err as Error).message;
 			loadQuota();
 		} finally {
 			prem.busy = null;
@@ -820,7 +808,7 @@
 {/snippet}
 
 <!-- Opciones: `best` = buenos matches (destacados, con el botón de copiar lleno). -->
-{#snippet options(/** @type {Torrent[]} */ items, /** @type {boolean} */ best)}
+{#snippet options(items: Torrent[], best: boolean)}
 	<ul>
 		{#each items as t (t.hash)}
 			{@const q = t.source ? QUALITY[t.source] : null}
@@ -896,7 +884,7 @@
 {/snippet}
 
 <!-- Una fila de subtítulo (ELEGIDA, mobile): grupo + fuente resolución + LAT; debajo, cuánto calza. -->
-{#snippet row(/** @type {{key: string, head: string, spec: string, latino?: boolean, lvl?: number, title?: string}} */ it, /** @type {import('svelte').Snippet} */ actions)}
+{#snippet row(it: { key: string; head: string; spec: string; latino?: boolean; lvl?: number; title?: string }, actions: Snippet)}
 	{@const on = picked === it.key}
 	{@const was = !on && tried.includes(it.key)}
 	<li class="sub" class:on class:tried={was} title={was ? tr('Probado · no sincronizó') : it.title}>
@@ -1005,7 +993,7 @@
 					type="button"
 					class="audio-opt"
 					onclick={() => {
-						const t = /** @type {Torrent} */ (audioFor?.t);
+						const t = audioFor?.t as Torrent;
 						audioFor = null;
 						askWhere(t, c.url);
 					}}

@@ -1,17 +1,17 @@
-<script>
+<script lang="ts">
 	import '../app.css';
+	import type { LayoutProps } from './$types';
 	import favicon from '#lib/assets/favicon.svg';
 	import Tour from '#lib/Tour.svelte';
-	import { device, markSeen, nickStep, seen, welcomeSteps } from '#lib/tours.js';
-	import { i18n, t } from '#lib/i18n.svelte.js';
+	import { device, markSeen, nickStep, seen, welcomeSteps } from '#lib/tours.ts';
+	import { i18n, t } from '#lib/i18n.svelte.ts';
 	import { updated } from '$app/state';
 	import { onNavigate } from '$app/navigation';
 	import { setContext } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
-	import { track } from '#lib/track.js';
+	import { track } from '#lib/track.ts';
 
-	/** @type {{data: {langs: import('#lib/i18n/translate.js').Langs, nick: string | null}, children: import('svelte').Snippet}} */
-	let { data, children } = $props();
+	let { data, children }: LayoutProps = $props();
 	// El idioma que decidió el servidor (cookie o navegador), antes del primer render (también en el servidor, donde
 	// no corren los efectos); después lo cambia el toggle.
 	(() => Object.assign(i18n, { lang: data.langs.ui, titles: data.langs.titles }))();
@@ -41,10 +41,9 @@
 		if (!document.startViewTransition || !(open || (from === '/t/[kind]/[id]' && to === '/'))) return;
 		const motion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
 		const card = `a.card[href="${(open ? nav.to : nav.from)?.url.pathname}"]`;
-		/** @type {HTMLElement[]} */
-		const named = [];
-		/** Solo el póster visible: uno fuera de pantalla volaría desde (o hacia) afuera. @param {HTMLElement | null} el */
-		const name = (el) => {
+		const named: HTMLElement[] = [];
+		/** Solo el póster visible: uno fuera de pantalla volaría desde (o hacia) afuera. */
+		const name = (el: HTMLElement | null) => {
 			const r = el?.getBoundingClientRect();
 			if (!el || !r || !motion || r.bottom < 0 || r.top > innerHeight) return;
 			el.style.viewTransitionName = 'poster';
@@ -58,7 +57,7 @@
 				await nav.complete;
 				if (open) return name(document.querySelector('#poster'));
 				// La casilla de destino aterriza quieta (sin el giro de entrada) para que el póster caiga en su lugar.
-				const back = /** @type {HTMLElement | null} */ (document.querySelector(card));
+				const back = document.querySelector<HTMLElement>(card);
 				if (back && named.length) back.style.animation = 'none';
 				if (named.length) name(document.querySelector(`${card} img`));
 			});

@@ -1,22 +1,22 @@
-<script>
+<script lang="ts">
 	// "Pegar magnet" (2026-11-18): el torrent que pegaste en el buscador. Si TorBox lo tiene, sus videos como opciones
 	// (copiar link, subtítulos); si no, "Bajarlo en TorBox" con el avance. Arriba, la película o serie si se reconoce.
 	import Icon from '#lib/Icon.svelte';
 	import Torrents from '#lib/Torrents.svelte';
-	import { t as tr } from '#lib/i18n.svelte.js';
+	import { t as tr } from '#lib/i18n.svelte.ts';
 	import { page } from '$app/state';
+	import type { Ident, Torrent } from '#lib/types.ts';
 
 	const hash = $derived(page.params.hash?.toLowerCase() ?? '');
 	const dn = $derived(page.url.searchParams.get('dn') ?? '');
-	/** @typedef {{state: 'cached' | 'downloading' | 'ready' | 'missing', name: string | null, progress?: number, speed?: number, seeds?: number, eta?: number, files: import('#lib/types.js').Torrent[], ident?: Ident | null}} Status */
-	/** @typedef {import('#lib/types.js').Ident} Ident */
-	let st = $state(/** @type {Status | null} */ (null));
-	let ident = $state(/** @type {Ident | null} */ (null));
+	type Status = { state: 'cached' | 'downloading' | 'ready' | 'missing'; name: string | null; progress?: number; speed?: number; seeds?: number; eta?: number; files: Torrent[]; ident?: Ident | null };
+	let st = $state<Status | null>(null);
+	let ident = $state<Ident | null>(null);
 	let error = $state('');
 	let adding = $state(false);
 
-	/** @param {boolean} who también qué película o serie es (solo la primera vez) */
-	async function load(who) {
+	/** `who`: también qué película o serie es (solo la primera vez). */
+	async function load(who: boolean) {
 		const r = await fetch(`/api/magnet?${new URLSearchParams({ hash, dn, ...(who ? { who: '1' } : {}) })}`);
 		const j = await r.json();
 		if (!r.ok) throw new Error(j.message);
@@ -44,15 +44,13 @@
 			if (!r.ok) throw new Error(j.message);
 			st = { ...j, ident: undefined };
 		} catch (e) {
-			error = /** @type {Error} */ (e).message;
+			error = (e as Error).message;
 		} finally {
 			adding = false;
 		}
 	}
-	/** @param {number} b */
-	const speed = (b) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB/s` : `${Math.round(b / 1e3)} KB/s`);
-	/** @param {number} sec */
-	const eta = (sec) => (sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round((sec % 3600) / 60)} min` : sec >= 60 ? `${Math.round(sec / 60)} min` : `${sec} s`);
+	const speed = (b: number) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB/s` : `${Math.round(b / 1e3)} KB/s`);
+	const eta = (sec: number) => (sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round((sec % 3600) / 60)} min` : sec >= 60 ? `${Math.round(sec / 60)} min` : `${sec} s`);
 	const name = $derived(ident?.title ?? st?.name ?? dn ?? tr('Torrent pegado'));
 </script>
 

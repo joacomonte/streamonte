@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"imports": {
-		"#lib": "./src/lib/index.js",
+		"#lib": "./src/lib/index.ts",
 		"#lib/*": "./src/lib/*"
 	},
 	"scripts": {
@@ -12,9 +12,9 @@
 		"build": "vite build",
 		"preview": "vite preview --host",
 		"prepare": "svelte-kit sync || echo ''",
-		"test": "node --test \"src/**/*.test.js\"",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
+		"test": "node --test \"src/**/*.test.{js,ts}\"",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^6.0.2",

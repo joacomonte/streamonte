@@ -1,18 +1,26 @@
-<script>
+<script lang="ts">
 	// Tutorial por pasos a pantalla completa (respeta las zonas seguras). `<dialog>` nativo: foco y Esc. Flechas del
 	// teclado y botones para moverse; Saltar o Esc lo cierran (se aleja y se apaga). Solo se anima transform y opacity.
 	import Icon from './Icon.svelte';
-	import { t } from './i18n.svelte.js';
+	import { t } from './i18n.svelte.ts';
 	import LangPicker from './LangPicker.svelte';
-	import { saveNick } from './nick.js';
+	import { saveNick } from './nick.ts';
 	import { invalidateAll } from '$app/navigation';
+	import type { Step, StoreLink } from './tours.ts';
 
-	/** `onleave`: arranca la salida (lo de atrás ya puede entrar mientras el tutorial se apaga). `nick`: el apodo ya
-	 * guardado; mientras no haya, el paso del apodo no deja pasar ni salir.
-	 * @type {{id: string, label: string, open: boolean, steps: import('./tours.js').Step[], nick?: string | null, onclose: () => void, onleave?: () => void}} */
-	let { id, label, open, steps, nick = null, onclose, onleave } = $props();
-	/** @type {HTMLDialogElement | undefined} */
-	let dlg = $state();
+	interface Props {
+		id: string;
+		label: string;
+		open: boolean;
+		steps: Step[];
+		/** El apodo ya guardado; mientras no haya, el paso del apodo no deja pasar ni salir. */
+		nick?: string | null;
+		onclose: () => void;
+		/** Arranca la salida (lo de atrás ya puede entrar mientras el tutorial se apaga). */
+		onleave?: () => void;
+	}
+	let { id, label, open, steps, nick = null, onclose, onleave }: Props = $props();
+	let dlg = $state<HTMLDialogElement>();
 	let i = $state(0);
 	let leaving = $state(false);
 	let dir = $state(1);
@@ -24,10 +32,10 @@
 	let nickSaving = $state(false);
 	let nickOk = $state((() => !!nick)());
 	const nickAt = $derived(steps.findIndex((s) => s.nick));
-	/** Paso más allá del apodo sin tenerlo: se queda en el del apodo. @param {number} to */
-	const guard = (to) => (nickAt >= 0 && !nickOk && to > nickAt ? nickAt : to);
-	/** Íconos de tienda que no cargaron (por URL del ícono): se cambian por un mosaico propio. @type {Record<string, boolean>} */
-	let broken = $state({});
+	/** Paso más allá del apodo sin tenerlo: se queda en el del apodo. */
+	const guard = (to: number) => (nickAt >= 0 && !nickOk && to > nickAt ? nickAt : to);
+	/** Íconos de tienda que no cargaron (por URL del ícono): se cambian por un mosaico propio. */
+	let broken = $state<Record<string, boolean>>({});
 
 	$effect(() => {
 		if (open && !dlg?.open) {
@@ -37,8 +45,7 @@
 		} else if (!open && dlg?.open) dlg.close();
 	});
 
-	/** @param {number} to */
-	function go(to) {
+	function go(to: number) {
 		if (to < 0 || to >= steps.length) return;
 		to = guard(to);
 		if (to === i) return;
@@ -58,18 +65,18 @@
 	}
 
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-	/** Entra desde el lado hacia donde se avanza. @param {Element} _ @param {{dir: number}} p */
-	const enter = (_, { dir }) => ({
+	/** Entra desde el lado hacia donde se avanza. */
+	const enter = (_: Element, { dir }: { dir: number }) => ({
 		duration: still() ? 0 : 460,
-		css: (/** @type {number} */ t) => {
+		css: (t: number) => {
 			const e = 1 - Math.pow(1 - t, 4);
 			return `transform: translateX(${(1 - e) * dir * 48}px); opacity: ${e};`;
 		}
 	});
-	/** Sale hacia el lado contrario, rápido. @param {Element} _ @param {{dir: number}} p */
-	const leave = (_, { dir }) => ({
+	/** Sale hacia el lado contrario, rápido. */
+	const leave = (_: Element, { dir }: { dir: number }) => ({
 		duration: still() ? 0 : 200,
-		css: (/** @type {number} */ t) => `transform: translateX(${(1 - t) * -dir * 32}px); opacity: ${t};`
+		css: (t: number) => `transform: translateX(${(1 - t) * -dir * 32}px); opacity: ${t};`
 	});
 	/** Valida y guarda el apodo; si está bien, sigue (o cierra, si era el último paso). */
 	async function submitNick() {
@@ -95,8 +102,7 @@
 		else if (last) exit();
 		else go(i + 1);
 	}
-	/** @param {string} name */
-	const initials = (name) => name.split(' ').map((w) => w[0]).join('').slice(0, 2);
+	const initials = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2);
 </script>
 
 <dialog {id} bind:this={dlg} class="tour" class:leaving aria-label={label} onclose={() => {
@@ -114,7 +120,7 @@
 	if (e.key === 'ArrowRight') go(i + 1);
 	else if (e.key === 'ArrowLeft') go(i - 1);
 }}>
-	{#snippet app(/** @type {import('./tours.js').StoreLink} */ l)}
+	{#snippet app(l: StoreLink)}
 		<span class="app-icon">
 			{#if broken[l.icon]}
 				<svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">

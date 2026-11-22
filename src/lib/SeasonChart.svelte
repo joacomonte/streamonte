@@ -1,15 +1,23 @@
-<script>
+<script lang="ts">
 	// Puntaje de IMDb por temporada como barras, como el desktop (streamonte/ui/src/catalog-side.js `seasonChart`):
 	// alto relativo (la mejor llena la barra, la base es un punto debajo de la peor), color por nota, estado de la
 	// serie y si mejoró o decayó. Tocar una barra elige esa temporada.
 	import Icon from './Icon.svelte';
-	import * as saved from './saved.js';
-	import { loc, t } from './i18n.svelte.js';
+	import * as saved from './saved.ts';
+	import { loc, t } from './i18n.svelte.ts';
 
-	/** @type {{imdb: string, status: string | null, next: {season: number, date: string} | null, current: number | null, onpick: (n: number) => void}} */
-	let { imdb, status, next, current, onpick } = $props();
+	import type { SeasonScore } from './types.ts';
 
-	let scores = $state(/** @type {{season: number, rating: number, episodes: number}[] | null} */ (null));
+	interface Props {
+		imdb: string;
+		status: string | null;
+		next: { season: number; date: string } | null;
+		current: number | null;
+		onpick: (n: number) => void;
+	}
+	let { imdb, status, next, current, onpick }: Props = $props();
+
+	let scores = $state<SeasonScore[] | null>(null);
 	let failed = $state(false);
 
 	$effect(() => {
@@ -20,24 +28,21 @@
 		saved.json(fetch, `/api/scores/${id}`, saved.DAY)
 			.then((r) => {
 				if (!alive) return;
-				if (r.ok) scores = /** @type {import('./types.js').SeasonScore[]} */ (r.data);
+				if (r.ok) scores = r.data as SeasonScore[];
 				else failed = true;
 			})
 			.catch(() => alive && (failed = true));
 		return () => (alive = false);
 	});
 
-	const STATES = /** @type {Record<string, string>} */ ({ returning: 'Renovada', 'in-production': 'En producción', planned: 'Planeada', ended: 'Terminada', canceled: 'Cancelada' });
-	/** @param {number} x */
-	const tone = (x) => (x >= 8.5 ? 'great' : x >= 7.5 ? 'good' : x >= 6.5 ? 'meh' : 'bad');
-	/** @param {number} x */
-	const fmt = (x) => x.toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+	const STATES: Record<string, string> = { returning: 'Renovada', 'in-production': 'En producción', planned: 'Planeada', ended: 'Terminada', canceled: 'Cancelada' };
+	const tone = (x: number) => (x >= 8.5 ? 'great' : x >= 7.5 ? 'good' : x >= 6.5 ? 'meh' : 'bad');
+	const fmt = (x: number) => x.toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 	const v = $derived(scores?.map((x) => x.rating) ?? []);
 	const top = $derived(Math.max(...v));
 	const floor = $derived(Math.min(...v) - 1);
-	/** @param {number} x */
-	const height = (x) => `${Math.max(12, ((x - floor) / (top - floor || 1)) * 100)}%`;
+	const height = (x: number) => `${Math.max(12, ((x - floor) / (top - floor || 1)) * 100)}%`;
 	const ended = $derived(status === 'ended' || status === 'canceled');
 	/** Lo que viene: barra punteada a la altura de la última (con la fecha si se sabe). */
 	const upcoming = $derived.by(() => {
@@ -50,9 +55,9 @@
 	/** Primera contra última temporada. */
 	const trend = $derived.by(() => {
 		if (v.length < 2) return null;
-		const d = /** @type {number} */ (v.at(-1)) - v[0];
-		if (Math.abs(d) < 0.3) return { text: t('Estable'), icon: /** @type {const} */ ('trend-flat'), cls: 'flat' };
-		return d > 0 ? { text: t('Mejoró +{d}', { d: fmt(d) }), icon: /** @type {const} */ ('trend-up'), cls: 'up' } : { text: t('Decayó −{d}', { d: fmt(-d) }), icon: /** @type {const} */ ('trend-down'), cls: 'down' };
+		const d = (v.at(-1) as number) - v[0];
+		if (Math.abs(d) < 0.3) return { text: t('Estable'), icon: 'trend-flat' as const, cls: 'flat' };
+		return d > 0 ? { text: t('Mejoró +{d}', { d: fmt(d) }), icon: 'trend-up' as const, cls: 'up' } : { text: t('Decayó −{d}', { d: fmt(-d) }), icon: 'trend-down' as const, cls: 'down' };
 	});
 </script>
 
@@ -89,7 +94,7 @@
 			{#if upcoming}
 				<span class="bar ghost" class:go={upcoming.go} title={t('Temporada {n}', { n: upcoming.season }) + ': ' + (upcoming.go ? upcoming.label : t('{s}, sin fecha anunciada', { s: t(STATES[status ?? ''] ?? '') }))}>
 					<span class="val">{upcoming.label}</span>
-					<span class="track"><i style:height={height(/** @type {number} */ (v.at(-1)))}></i></span>
+					<span class="track"><i style:height={height(v.at(-1) as number)}></i></span>
 					<span class="n">{t('T{n}', { n: upcoming.season })}</span>
 				</span>
 			{/if}

@@ -1,12 +1,19 @@
-<script>
+<script lang="ts">
 	// Hoja inferior en mobile, diálogo centrado en pantallas grandes. `<dialog>` nativo: foco, Esc y fondo gratis.
 	import Icon from './Icon.svelte';
-	import { t } from './i18n.svelte.js';
+	import { t } from './i18n.svelte.ts';
 
-	/** @type {{id: string, title: string, open: boolean, onclose: () => void, children: import('svelte').Snippet}} */
-	let { id, title, open, onclose, children } = $props();
-	/** @type {HTMLDialogElement | undefined} */
-	let dlg = $state();
+	import type { Snippet } from 'svelte';
+
+	interface Props {
+		id: string;
+		title: string;
+		open: boolean;
+		onclose: () => void;
+		children: Snippet;
+	}
+	let { id, title, open, onclose, children }: Props = $props();
+	let dlg = $state<HTMLDialogElement>();
 
 	$effect(() => {
 		if (open && !dlg?.open) dlg?.showModal();

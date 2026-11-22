@@ -1,10 +1,14 @@
-<script>
+<script lang="ts">
 	// Código del panel (/admin): 3 casillas; al completar la tercera lo prueba y, si está bien, entra solo.
 	import { goto } from '$app/navigation';
 	import { deserialize } from '$app/forms';
 
-	/** `wait`: minutos de bloqueo que ya informó el servidor (demasiados intentos). @type {{id?: string, wait?: number}} */
-	let { id = 'admin-code', wait = 0 } = $props();
+	interface Props {
+		id?: string;
+		/** Minutos de bloqueo que ya informó el servidor (demasiados intentos). */
+		wait?: number;
+	}
+	let { id = 'admin-code', wait = 0 }: Props = $props();
 
 	let code = $state('');
 	let wrong = $state(false);

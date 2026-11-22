@@ -1,25 +1,27 @@
-<script>
+<script lang="ts">
 	// Los idiomas que elige el usuario (app y títulos): uno por paso en el tutorial, los dos juntos en Ajustes.
 	// Cada cambio se aplica al toque y vuelve a pedir lo de TMDB en el idioma nuevo.
-	import { i18n, setLang, setTitles, t } from './i18n.svelte.js';
-	import { relang } from './catalog.svelte.js';
+	import { i18n, setLang, setTitles, t } from './i18n.svelte.ts';
+	import { relang } from './catalog.svelte.ts';
 	import Icon from './Icon.svelte';
 
 	/** Cada idioma con su nombre en su propio idioma. */
-	const LANGS = /** @type {const} */ ([['es', 'Español'], ['en', 'English']]);
+	const LANGS = [['es', 'Español'], ['en', 'English']] as const;
 
-	/** `only`: muestra un solo grupo (el tutorial pregunta de a uno); sin él, los dos.
-	 * @type {{id: string, only?: 'app' | 'titles'}} */
-	let { id, only } = $props();
+	interface Props {
+		id: string;
+		/** Muestra un solo grupo (el tutorial pregunta de a uno); sin él, los dos. */
+		only?: 'app' | 'titles';
+	}
+	let { id, only }: Props = $props();
 
-	/** @param {() => void} change */
-	const apply = (change) => {
+	const apply = (change: () => void) => {
 		change();
 		relang();
 	};
 </script>
 
-{#snippet seg(/** @type {string} */ key, /** @type {string} */ label, /** @type {'phone' | 'film'} */ icon, /** @type {string} */ value, /** @type {(v: string) => void} */ pick)}
+{#snippet seg(key: string, label: string, icon: 'phone' | 'film', value: string, pick: (v: 'es' | 'en') => void)}
 	<div class="row">
 		<span class="lbl" id="{id}-{key}-lbl"><Icon name={icon} size={16} />{label}</span>
 		<div class="seg" role="radiogroup" aria-labelledby="{id}-{key}-lbl">
@@ -36,10 +38,10 @@
 
 <div class="lp" class:big={only}>
 	{#if only !== 'titles'}
-	{@render seg('app', t('Idioma de la app'), 'phone', i18n.lang, (v) => setLang(/** @type {'es' | 'en'} */ (v)))}
+	{@render seg('app', t('Idioma de la app'), 'phone', i18n.lang, (v) => setLang(v))}
 	{/if}
 	{#if only !== 'app'}
-	{@render seg('titles', t('Títulos de pelis, series y capítulos'), 'film', i18n.titles, (v) => setTitles(/** @type {'es' | 'en'} */ (v)))}
+	{@render seg('titles', t('Títulos de pelis, series y capítulos'), 'film', i18n.titles, (v) => setTitles(v))}
 	{/if}
 </div>
 

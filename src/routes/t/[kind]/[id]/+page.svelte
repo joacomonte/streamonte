@@ -1,17 +1,18 @@
-<script>
+<script lang="ts">
 	import Icon from '#lib/Icon.svelte';
 	import SeasonChart from '#lib/SeasonChart.svelte';
 	import Torrents from '#lib/Torrents.svelte';
-	import { track } from '#lib/track.js';
-	import { onlyCinema } from '#lib/cinema.js';
-	import * as saved from '#lib/saved.js';
-	import { cat, reset } from '#lib/catalog.svelte.js';
-	import { loc, t as tr } from '#lib/i18n.svelte.js';
+	import { track } from '#lib/track.ts';
+	import { onlyCinema } from '#lib/cinema.ts';
+	import * as saved from '#lib/saved.ts';
+	import { cat, reset } from '#lib/catalog.svelte.ts';
+	import { loc, t as tr } from '#lib/i18n.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import type { ApiError, Episodes, SeasonScore } from '#lib/types.ts';
+	import type { PageProps } from './$types';
 
-	/** @type {import('./$types').PageProps} */
-	let { data } = $props();
+	let { data }: PageProps = $props();
 	const t = $derived(data.t);
 	const isTv = $derived(t.kind === 'tv');
 	$effect(() => track('ver', `${isTv ? 'Serie' : 'Peli'}: ${t.title}`));
@@ -23,18 +24,16 @@
 	/** Hacia dónde anima el cambio de paso (también con el atrás del navegador): 1 entra a una temporada, -1 vuelve. */
 	const dir = $derived(season == null ? -1 : 1);
 	/** IMDb por temporada (la misma respuesta guardada que usa el gráfico: no suma pedidos). */
-	let scores = $state(/** @type {Record<number, number>} */ ({}));
-	/** @type {{n: number, name: string, date?: string | null, still: string | null}[] | null} */
-	let episodes = $state(null);
+	let scores = $state<Record<number, number>>({});
+	let episodes = $state<{ n: number; name: string; date?: string | null; still: string | null }[] | null>(null);
 	let epError = $state('');
 	let more = $state(false);
 	/** Pastilla de plataformas abierta: logos con nombre en vez de apilados. */
 	let showProviders = $state(false);
 	const today = new Date().toISOString().slice(0, 10);
-	/** @param {string} d ISO (AAAA-MM-DD) */
-	const fecha = (d) => new Date(`${d}T00:00`).toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric' });
-	/** @type {HTMLElement | undefined} */
-	let heroTitle = $state();
+	/** `d`: ISO (AAAA-MM-DD). */
+	const fecha = (d: string) => new Date(`${d}T00:00`).toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric' });
+	let heroTitle = $state<HTMLElement>();
 	/** El título pasa a la barra cuando el del hero queda tapado. */
 	let titleUp = $state(false);
 	let barH = $state(0);
@@ -54,12 +53,12 @@
 	$effect(() => {
 		if (!isTv || !t.imdb) return;
 		saved.json(fetch, `/api/scores/${t.imdb}`, saved.DAY).then((r) => {
-			if (r.ok) scores = Object.fromEntries(/** @type {import('#lib/types.js').SeasonScore[]} */ (r.data).map((x) => [x.season, x.rating]));
+			if (r.ok) scores = Object.fromEntries((r.data as SeasonScore[]).map((x) => [x.season, x.rating]));
 		}).catch(() => {});
 	});
 	/** Tocar a alguien del reparto abre el catálogo con lo que actuó o dirigió (como elegirlo en el buscador).
-	 * @param {{id: number, name: string, photo: string | null, role: 'cast' | 'director'}} p */
-	function openPerson(p) {
+	 */
+	function openPerson(p: { id: number; name: string; photo: string | null; role: 'cast' | 'director' }) {
 		cat.q = '';
 		cat.person = { id: p.id, name: p.name, photo: p.photo, role: p.role };
 		reset();
@@ -68,8 +67,7 @@
 	}
 	/** Se entró a la temporada desde la lista de esta página: volver es ir atrás en el historial. */
 	let fromList = false;
-	/** @param {number} n */
-	function pickSeason(n) {
+	function pickSeason(n: number) {
 		fromList = true;
 		goto(`?s=${n}`, { reset: false });
 	}
@@ -79,15 +77,15 @@
 		fromList = false;
 	}
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-	/** Entra desde el lado hacia donde se avanza. @param {Element} _ @param {{dir: number}} p */
-	const slide = (_, { dir }) => ({
+	/** Entra desde el lado hacia donde se avanza. */
+	const slide = (_: Element, { dir }: { dir: number }) => ({
 		duration: still() ? 0 : 360,
-		css: (/** @type {number} */ x) => {
+		css: (x: number) => {
 			const e = 1 - Math.pow(1 - x, 4);
 			return `transform: translateX(${(1 - e) * dir * 24}px); opacity: ${e};`;
 		}
 	});
-	const seasonName = $derived(t.seasons?.find((/** @type {{n: number}} */ x) => x.n === season)?.name ?? tr('Temporada {n}', { n: season ?? '' }));
+	const seasonName = $derived(t.seasons?.find((x: { n: number }) => x.n === season)?.name ?? tr('Temporada {n}', { n: season ?? '' }));
 	$effect(() => {
 		if (!isTv || season == null) return;
 		const n = season;
@@ -96,8 +94,8 @@
 		let alive = true;
 		saved.json(fetch, `/api/season/${t.id}/${n}`, saved.DAY).then(({ ok, data }) => {
 			if (!alive) return;
-			if (!ok) epError = /** @type {import('#lib/types.js').ApiError} */ (data).message;
-			else episodes = /** @type {import('#lib/types.js').Episodes} */ (data);
+			if (!ok) epError = (data as ApiError).message;
+			else episodes = data as Episodes;
 		});
 		return () => (alive = false);
 	});

@@ -1,9 +1,12 @@
-<script>
-	/** @type {{name: keyof typeof PATHS, size?: number}} */
-	let { name, size = 20 } = $props();
+<script lang="ts">
+	interface Props {
+		name: keyof typeof PATHS;
+		size?: number;
+	}
+	let { name, size = 20 }: Props = $props();
 </script>
 
-<script module>
+<script module lang="ts">
 	const PATHS = {
 		search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm9 16-4.3-4.3',
 		back: 'M15 5l-7 7 7 7',

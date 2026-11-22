@@ -1,27 +1,23 @@
-<script>
+<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { getContext, onMount } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
-	import { track } from '#lib/track.js';
-	import { onlyCinema } from '#lib/cinema.js';
+	import { track } from '#lib/track.ts';
+	import { onlyCinema } from '#lib/cinema.ts';
 	import Sheet from '#lib/Sheet.svelte';
-	import { BACK, DEFAULTS, KINDS, LANGS, SORTS, VOTES, backLabel, cat, loadGenres, loadMore, relang, reset, votesLabel } from '#lib/catalog.svelte.js';
-	import { i18n, setLang, t } from '#lib/i18n.svelte.js';
+	import { BACK, DEFAULTS, KINDS, LANGS, SORTS, VOTES, backLabel, cat, loadGenres, loadMore, relang, reset, votesLabel } from '#lib/catalog.svelte.ts';
+	import { i18n, setLang, t } from '#lib/i18n.svelte.ts';
+	import type { Filters, Person } from '#lib/catalog.svelte.ts';
 
-	/** @type {{tmdb: boolean, torbox: boolean} | null} */
-	let keys = $state(null);
+	let keys = $state<{ tmdb: boolean; torbox: boolean } | null>(null);
 	let filtersOpen = $state(false);
 	/** Alto de lo que se va al scrollear (marca, buscador, tipo): la barra de chips queda pegada arriba. */
 	let topH = $state(0);
-	/** @type {HTMLElement | undefined} */
-	let sentinel = $state();
-	/** @type {ReturnType<typeof setTimeout>} */
-	let typing;
-	/** @type {ReturnType<typeof setTimeout> | undefined} */
-	let logged;
-	/** @type {ReturnType<typeof setTimeout> | undefined} */
-	let filtered;
+	let sentinel = $state<HTMLElement>();
+	let typing: ReturnType<typeof setTimeout> | undefined;
+	let logged: ReturnType<typeof setTimeout> | undefined;
+	let filtered: ReturnType<typeof setTimeout> | undefined;
 	/** Último 'filtro' registrado: el mismo no se manda dos veces. */
 	let lastFilter = '';
 	/** Tipo recién tocado: solo ese hace el "pop" (al cargar la página no rebota). */
@@ -32,11 +28,10 @@
 	const genres = $derived(cat.genreList[kind.kind] ?? []);
 	/** Buscando por texto o viendo lo de un actor: los filtros no aplican y se esconden. */
 	const searching = $derived(cat.q.trim() !== '' || !!cat.person);
-	/** Actores y directores que coinciden con lo escrito (sugerencias debajo del buscador). @type {{id: number, name: string, photo: string | null, known: string, role: 'cast' | 'director'}[]} */
-	let people = $state([]);
+	/** Actores y directores que coinciden con lo escrito (sugerencias debajo del buscador). */
+	let people = $state<(Person & { known: string })[]>([]);
 	let qFocus = $state(false);
-	/** @type {ReturnType<typeof setTimeout> | undefined} */
-	let peopleT;
+	let peopleT: ReturnType<typeof setTimeout> | undefined;
 	/** Solo la última respuesta cuenta (escribe rápido: llegan desordenadas). */
 	let peopleGen = 0;
 	/** Buscando sugerencias: la lista muestra filas de carga en vez de quedar vacía. */
@@ -45,7 +40,7 @@
 	const summary = $derived(
 		[
 			cat.f.votes ? votesLabel(cat.f.votes) : '',
-			genres.filter((/** @type {{id: string}} */ g) => cat.f.genres.includes(g.id)).map((/** @type {{name: string}} */ g) => g.name).join(', ')
+			genres.filter((g) => cat.f.genres.includes(g.id)).map((g) => g.name).join(', ')
 		].filter(Boolean)
 	);
 	/** Filtros de la hoja que no están en su valor por defecto. */
@@ -80,7 +75,7 @@
 	const LAST = BACK.length - 1;
 	const YEAR = new Date().getFullYear();
 	/** Atajos en meses hacia atrás; el último es "Todo". */
-	const PRESETS = [
+	const PRESETS: [number, string][] = [
 		[3, '3 meses'],
 		[12, '1 año'],
 		[60, '5 años'],
@@ -89,8 +84,8 @@
 	];
 	/** Meses hacia atrás hasta 1950 (el borde izquierdo con zoom al máximo). */
 	const MAX = BACK[LAST];
-	/** Meses (continuos) → paso de BACK más cercano: meses sueltos bajo el año, años enteros arriba. @param {number} m */
-	const snap = (m) => (m < 11.5 ? Math.max(0, Math.round(m)) : Math.min(MAX, Math.round(m / 12) * 12));
+	/** Meses (continuos) → paso de BACK más cercano: meses sueltos bajo el año, años enteros arriba. */
+	const snap = (m: number) => (m < 11.5 ? Math.max(0, Math.round(m)) : Math.min(MAX, Math.round(m / 12) * 12));
 	/** Meses de BACK mientras se arrastra, desde y hasta (-1 = quieto). */
 	let scrub = $state(-1);
 	let scrubTo = $state(-1);
@@ -118,8 +113,7 @@
 		zooming = true;
 		let raf = 0;
 		let t0 = performance.now();
-		/** @param {number} t */
-		const step = (t) => {
+		const step = (t: number) => {
 			span += (to - span) * (1 - Math.exp(-(t - t0) / 140));
 			t0 = t;
 			if (Math.abs(to - span) < 0.3) return void ((span = to), (zooming = false));
@@ -128,8 +122,8 @@
 		raf = requestAnimationFrame(step);
 		return () => cancelAnimationFrame(raf);
 	});
-	/** % desde la izquierda de algo que pasó hace `m` meses, según el zoom actual. @param {number} m */
-	const at = (m) => Math.max(0, 100 * (1 - m / span));
+	/** % desde la izquierda de algo que pasó hace `m` meses, según el zoom actual. */
+	const at = (m: number) => Math.max(0, 100 * (1 - m / span));
 	/** Rayitas: cada 1/3/12/60 meses según el zoom, que no queden más de ~80. */
 	const tick = $derived([1, 3, 12].find((s) => span / s <= 80) ?? 60);
 	/** Años rotulados: de a 1/2/5/10/20 según el zoom, sin pegarse a los bordes. */
@@ -140,18 +134,17 @@
 		);
 	});
 	/** v: velocidad suavizada con signo (px/ms); stop: este toque frenó una inercia; l/w: la tira; edge: 1 = sostenido
-	 * en el borde izquierdo, -1 en el derecho.
-	 * @typedef {{x: number, t: number, m: number, v: number, moved: number, to: boolean, stop: boolean, l: number, w: number, edge: number}} Drag */
-	/** @type {Drag | null} */
-	let drag = null;
+	 * en el borde izquierdo, -1 en el derecho. */
+	type Drag = { x: number; t: number; m: number; v: number; moved: number; to: boolean; stop: boolean; l: number; w: number; edge: number };
+	let drag: Drag | null = null;
 	/** rAF de la inercia al soltar rápido (0 = quieta). */
 	let glide = 0;
 	/** rAF del avance solo mientras el dedo queda en un borde (0 = no). */
 	let edge = 0;
 	/** Rango permitido del cabezal que se mueve: siempre queda al menos un paso entre hasta y desde. */
-	const range = (/** @type {boolean} */ to) => (to ? [0, BACK[shownIdx - 1]] : [BACK[toIdx + 1], MAX]);
-	/** Agarra el cabezal más cercano al dedo y congela ambos valores. @param {PointerEvent & {currentTarget: HTMLElement}} e */
-	function scrubDown(e) {
+	const range = (to: boolean) => (to ? [0, BACK[shownIdx - 1]] : [BACK[toIdx + 1], MAX]);
+	/** Agarra el cabezal más cercano al dedo y congela ambos valores. */
+	function scrubDown(e: PointerEvent & { currentTarget: HTMLElement }) {
 		e.currentTarget.setPointerCapture(e.pointerId);
 		const r = e.currentTarget.getBoundingClientRect();
 		const x = (100 * (e.clientX - r.left)) / r.width;
@@ -164,8 +157,8 @@
 		scrubTo = shownTo;
 	}
 	/** Despacio mueve de a un mes/año (~25 px por paso); rápido salta muchos años. Se mide en meses, no en
-	 * píxeles de la tira, así el zoom no cambia la velocidad. @param {PointerEvent} e */
-	function scrubMove(e) {
+	 * píxeles de la tira, así el zoom no cambia la velocidad. */
+	function scrubMove(e: PointerEvent) {
 		if (!drag) return;
 		const dx = e.clientX - drag.x;
 		// Velocidad suavizada (px/ms): un tirón suelto no dispara saltos.
@@ -184,7 +177,7 @@
 		const d = drag;
 		let t0 = performance.now();
 		let held = 0;
-		const step = (/** @type {number} */ t) => {
+		const step = (t: number) => {
 			held += (t - t0) / 1000;
 			const pace = Math.min(30, 3 + 8 * held); // pasos (meses o años) por segundo
 			if (nudge(d, (-dir * (d.m < 12 ? 1 : 12) * pace * (t - t0)) / 1000, true)) return void (edge = 0);
@@ -194,8 +187,8 @@
 		edge = requestAnimationFrame(step);
 	}
 	/** Mueve el cabezal `dx` px (o `dx` meses si `months`); true si topó con un límite.
-	 * @param {Drag} d @param {number} dx @param {boolean} [months] */
-	function nudge(d, dx, months = false) {
+	 */
+	function nudge(d: Drag, dx: number, months = false) {
 		const gain = months ? 1 : (d.m < 12 ? 1 : 12) * 0.04 + Math.min(1, Math.abs(d.v) / 2) ** 2 * 3; // meses por px
 		const [lo, hi] = range(d.to);
 		d.m = Math.min(hi, Math.max(lo, d.m - dx * gain));
@@ -212,8 +205,8 @@
 		scrub = scrubTo = -1;
 		if (from !== cat.f.from || to !== cat.f.to) setF({ from, to });
 	}
-	/** Suelta: aplica. Un toque sin arrastrar salta a donde tocaste (con el zoom de ese momento). @param {PointerEvent & {currentTarget: HTMLElement}} e */
-	function scrubUp(e) {
+	/** Suelta: aplica. Un toque sin arrastrar salta a donde tocaste (con el zoom de ese momento). */
+	function scrubUp(e: PointerEvent & { currentTarget: HTMLElement }) {
 		if (!drag) return;
 		cancelAnimationFrame(edge);
 		edge = 0;
@@ -229,7 +222,7 @@
 		// Soltó rápido (y sin frenar antes): sigue de largo frenando de a poco, como un scroll de iOS.
 		if (d.moved >= 4 && Math.abs(d.v) > 0.4 && e.timeStamp - d.t < 80 && !still()) {
 			let t0 = performance.now();
-			const step = (/** @type {number} */ t) => {
+			const step = (t: number) => {
 				d.v *= Math.exp(-(t - t0) / 325);
 				const hit = nudge(d, d.v * (t - t0));
 				t0 = t;
@@ -241,34 +234,31 @@
 		}
 		commit();
 	}
-	/** Flechas ±1 paso, Re/Av Pág ±10. @param {KeyboardEvent} e */
-	const keyStep = (e) => ({ ArrowLeft: 1, ArrowDown: 1, ArrowRight: -1, ArrowUp: -1, PageDown: 10, PageUp: -10 })[e.key] ?? 0;
-	/** @param {KeyboardEvent} e */
-	function scrubKey(e) {
+	/** Flechas ±1 paso, Re/Av Pág ±10. */
+	const keyStep = (e: KeyboardEvent) => (({ ArrowLeft: 1, ArrowDown: 1, ArrowRight: -1, ArrowUp: -1, PageDown: 10, PageUp: -10 }) as Record<string, number>)[e.key] ?? 0;
+	function scrubKey(e: KeyboardEvent) {
 		const step = keyStep(e);
 		if (!step) return;
 		e.preventDefault();
 		setF({ from: BACK[Math.min(LAST, Math.max(toIdx + 1, shownIdx + step))] });
 	}
-	/** @param {KeyboardEvent} e */
-	function untilKey(e) {
+	function untilKey(e: KeyboardEvent) {
 		e.stopPropagation();
 		const step = keyStep(e);
 		if (!step) return;
 		e.preventDefault();
 		setF({ to: BACK[Math.min(shownIdx - 1, Math.max(0, toIdx + step))] });
 	}
-	/** Píldora que salta al atajo elegido. @type {HTMLElement | undefined} */
-	let presetsEl = $state();
+	/** Píldora que salta al atajo elegido. */
+	let presetsEl = $state<HTMLElement>();
 	let pill = $state({ x: 0, w: 0, on: false });
 	$effect(() => {
 		void cat.f.from, cat.f.to, searching;
-		const on = /** @type {HTMLElement | null | undefined} */ (presetsEl?.querySelector('[aria-checked="true"]'));
+		const on = presetsEl?.querySelector<HTMLElement>('[aria-checked="true"]');
 		pill = on ? { x: on.offsetLeft, w: on.offsetWidth, on: true } : { x: 0, w: 0, on: false };
 	});
 
-	/** @param {Partial<typeof cat.f>} changes */
-	function setF(changes) {
+	function setF(changes: Partial<Filters>) {
 		Object.assign(cat.f, changes);
 		if (changes.kind) {
 			cat.f.genres = [];
@@ -284,8 +274,8 @@
 		clearTimeout(filtered);
 		filtered = setTimeout(() => {
 			const f = cat.f;
-			const meses = (/** @type {number} */ m) => (m === 0 ? 'hoy' : m < 12 ? `hace ${m} ${m === 1 ? 'mes' : 'meses'}` : `hace ${m / 12} ${m === 12 ? 'año' : 'años'}`);
-			const names = genres.filter((/** @type {{id: string}} */ g) => f.genres.includes(g.id)).map((/** @type {{name: string}} */ g) => g.name);
+			const meses = (m: number) => (m === 0 ? 'hoy' : m < 12 ? `hace ${m} ${m === 1 ? 'mes' : 'meses'}` : `hace ${m / 12} ${m === 12 ? 'año' : 'años'}`);
+			const names = genres.filter((g) => f.genres.includes(g.id)).map((g) => g.name);
 			const dato = [
 				kind.label,
 				names.length ? `Género: ${names.join(', ')}` : '',
@@ -310,8 +300,8 @@
 		scrollTo({ top: 0 });
 	}
 	/** "Pegar magnet" (2026-11-18): un magnet pegado en el buscador va a su pantalla en vez de buscarse como texto.
-	 * btih en hex (40) o base32 (32, se pasa a hex). @param {string} text */
-	function magnetHash(text) {
+	 * btih en hex (40) o base32 (32, se pasa a hex). */
+	function magnetHash(text: string) {
 		const m = text.trim().match(/^magnet:\?.*?xt=urn:btih:([0-9a-z]{32,40})/i);
 		if (!m) return null;
 		const h = m[1];
@@ -353,8 +343,8 @@
 			peopleLoading = false;
 		}, 250);
 	}
-	/** Elegido un actor o director: el catálogo muestra lo que actuó o dirigió, sin filtros. @param {{id: number, name: string, photo: string | null, role: 'cast' | 'director'}} p */
-	function pickPerson(p) {
+	/** Elegido un actor o director: el catálogo muestra lo que actuó o dirigió, sin filtros. */
+	function pickPerson(p: Person) {
 		clearTimeout(typing);
 		clearTimeout(logged);
 		peopleGen++;
@@ -366,16 +356,14 @@
 		scrollTo({ top: 0 });
 		track(p.role === 'director' ? 'director' : 'actor', p.name);
 	}
-	/** @param {string} id */
-	function toggleGenre(id) {
-		cat.f.genres = cat.f.genres.includes(id) ? cat.f.genres.filter((/** @type {string} */ g) => g !== id) : [...cat.f.genres, id];
+	function toggleGenre(id: string) {
+		cat.f.genres = cat.f.genres.includes(id) ? cat.f.genres.filter((g) => g !== id) : [...cat.f.genres, id];
 		reset();
 		logFilters();
 	}
-	/** @type {('es' | 'en')[]} */
-	const UI_LANGS = ['es', 'en'];
-	/** ES / EN de la app (los títulos tienen su propio idioma, en Ajustes): sinopsis y géneros siguen a la app. @param {'es' | 'en'} l */
-	function switchLang(l) {
+	const UI_LANGS: ('es' | 'en')[] = ['es', 'en'];
+	/** ES / EN de la app (los títulos tienen su propio idioma, en Ajustes): sinopsis y géneros siguen a la app. */
+	function switchLang(l: 'es' | 'en') {
 		if (l === i18n.lang) return;
 		setLang(l);
 		relang();
@@ -383,10 +371,10 @@
 	function resetFilters() {
 		setF({ votes: DEFAULTS.votes, lang: DEFAULTS.lang, genres: [] });
 	}
-	/** La bienvenida está tapando la portada (la pone el layout). @type {() => boolean} */
-	const touring = getContext('touring');
-	/** Tarjetas observadas que todavía no entraron. @type {Set<HTMLElement>} */
-	const waiting = new Set();
+	/** La bienvenida está tapando la portada (la pone el layout). */
+	const touring = getContext<() => boolean>('touring');
+	/** Tarjetas observadas que todavía no entraron. */
+	const waiting = new Set<HTMLElement>();
 	/** La portada entra al terminar la bienvenida: barra de arriba que sube y tarjetas con su entrada de siempre. */
 	let intro = $state(false);
 	let covered = false;
@@ -402,8 +390,8 @@
 			seen?.observe(n);
 		}
 	});
-	/** El conteo de cada tarjeta, para cancelarlo si se desmonta. @type {WeakMap<Element, number>} */
-	const counting = new WeakMap();
+	/** El conteo de cada tarjeta, para cancelarlo si se desmonta. */
+	const counting = new WeakMap<Element, number>();
 	/** Arranca la entrada apenas la tarjeta asoma por el borde (al cargar o al scrollear). Las que entran juntas
 	 * se escalonan por orden (tope 12 × 70 ms); el puntaje cuenta de 0 a su valor cuando la tarjeta aterriza. */
 	const seen =
@@ -416,14 +404,13 @@
 						for (const e of entries) {
 							if (!e.isIntersecting) continue;
 							seen?.unobserve(e.target);
-							waiting.delete(/** @type {HTMLElement} */ (e.target));
-							play(/** @type {HTMLElement} */ (e.target), Math.min(i++, 12));
+							waiting.delete(e.target as HTMLElement);
+							play(e.target as HTMLElement, Math.min(i++, 12));
 						}
 					},
 					{ rootMargin: '0px' }
 				);
-	/** @param {HTMLElement} node @param {number} i */
-	function play(node, i) {
+	function play(node: HTMLElement, i: number) {
 		node.style.setProperty('--i', String(i));
 		node.style.setProperty('--play', 'running');
 		const text = node.querySelector('.num')?.firstChild;
@@ -432,7 +419,7 @@
 		const start = performance.now() + i * 70 + 500;
 		let last = '';
 		let wrote = 0;
-		const tick = (/** @type {number} */ now) => {
+		const tick = (now: number) => {
 			const p = Math.min(1, Math.max(0, (now - start) / 700));
 			// Solo toca el DOM cuando cambia el número (no en cada frame) y cada ~60 ms: el resto del frame queda libre.
 			const v = (end * (1 - (1 - p) ** 3)).toFixed(1);
@@ -444,8 +431,7 @@
 		};
 		counting.set(node, requestAnimationFrame(tick));
 	}
-	/** @param {HTMLElement} node */
-	function enter(node) {
+	function enter(node: HTMLElement) {
 		if (!seen || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 		// Las que nacen debajo del borde o en una página siguiente (en el lugar de los esqueletos) llegan scrolleando:
 		// arrancan ya visibles a medias, así nunca queda un hueco.

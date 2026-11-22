@@ -1,15 +1,16 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import Icon from '#lib/Icon.svelte';
-	import { wipe } from '#lib/saved.js';
-	import { t } from '#lib/i18n.svelte.js';
+	import { wipe } from '#lib/saved.ts';
+	import { t } from '#lib/i18n.svelte.ts';
 	import LangPicker from '#lib/LangPicker.svelte';
 	import AdminCode from '#lib/AdminCode.svelte';
-	import { saveNick } from '#lib/nick.js';
+	import { saveNick } from '#lib/nick.ts';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 
-	let status = $state(/** @type {{tmdb: boolean, torbox: boolean, opensubtitles: boolean, opensubtitles_user: boolean, opensubtitles_pass: boolean} | null} */ (null));
+	type KeyName = 'tmdb' | 'torbox' | 'opensubtitles' | 'login';
+	let status = $state<{ tmdb: boolean; torbox: boolean; opensubtitles: boolean; opensubtitles_user: boolean; opensubtitles_pass: boolean } | null>(null);
 	let tmdb = $state('');
 	let torbox = $state('');
 	let opensubtitles = $state('');
@@ -18,26 +19,25 @@
 	let saving = $state(false);
 	let msg = $state('');
 	let wiping = $state(false);
-	/** Key guardada cuyo campo de reemplazo está abierto abajo. @type {'' | 'tmdb' | 'torbox' | 'opensubtitles' | 'login'} */
-	let open = $state('');
+	/** Key guardada cuyo campo de reemplazo está abierto abajo. */
+	let open = $state<'' | KeyName>('');
 	const loginSaved = $derived(!!(status?.opensubtitles_user && status?.opensubtitles_pass));
 	const anySaved = $derived(!!(status?.tmdb || status?.torbox || status?.opensubtitles || loginSaved));
 	const anyMissing = $derived(!status?.tmdb || !status?.torbox || !status?.opensubtitles || !loginSaved);
 
-	/** Abre/cierra el reemplazo; al cerrar descarta lo tipeado para que no viaje en otro Guardar. @param {'tmdb' | 'torbox' | 'opensubtitles' | 'login'} which */
-	function toggle(which) {
+	/** Abre/cierra el reemplazo; al cerrar descarta lo tipeado para que no viaje en otro Guardar. */
+	function toggle(which: KeyName) {
 		open = open === which ? '' : which;
 		tmdb = torbox = opensubtitles = osUser = osPass = '';
 		msg = '';
 	}
 
-	// Apodo: mismo validador que la bienvenida (lib/nick.js).
+	// Apodo: mismo validador que la bienvenida (lib/nick.ts).
 	let nick = $state((() => page.data.nick ?? '')());
 	let nickMsg = $state('');
 	let nickBad = $state(false);
 	let nickSaving = $state(false);
-	/** @param {SubmitEvent} e */
-	async function onNick(e) {
+	async function onNick(e: SubmitEvent) {
 		e.preventDefault();
 		nickSaving = true;
 		const r = await saveNick(nick);
@@ -67,8 +67,7 @@
 		status = await (await fetch('/api/keys')).json();
 	});
 
-	/** @param {SubmitEvent} e */
-	async function save(e) {
+	async function save(e: SubmitEvent) {
 		e.preventDefault();
 		saving = true;
 		msg = '';
@@ -81,14 +80,13 @@
 			open = '';
 			msg = t('Guardado.');
 		} catch (err) {
-			msg = /** @type {Error} */ (err).message;
+			msg = (err as Error).message;
 		} finally {
 			saving = false;
 		}
 	}
 	const NAMES = { tmdb: 'la key de TMDB', torbox: 'la key de TorBox', opensubtitles: 'la key de OpenSubtitles.com', login: 'el usuario y la contraseña de OpenSubtitles.com' };
-	/** @param {'tmdb' | 'torbox' | 'opensubtitles' | 'login'} which */
-	async function remove(which) {
+	async function remove(which: KeyName) {
 		if (!confirm(t('¿Borrar {x}?', { x: t(NAMES[which]) }))) return;
 		open = '';
 		const body = which === 'login' ? { opensubtitles_user: '', opensubtitles_pass: '' } : { [which]: '' };
@@ -274,7 +272,7 @@
 	</section>
 </main>
 
-{#snippet head(/** @type {'tmdb' | 'torbox' | 'opensubtitles' | 'login'} */ which, /** @type {string} */ name, /** @type {string} */ hint)}
+{#snippet head(which: KeyName, name: string, hint: string)}
 	<div class="krow">
 		<span class="ok"><Icon name="check" size={16} /></span>
 		<span class="kname">{name}{#if hint}<span class="muted">{` · ${hint}`}</span>{/if}</span>
@@ -282,7 +280,7 @@
 	</div>
 {/snippet}
 
-{#snippet actions(/** @type {'tmdb' | 'torbox' | 'opensubtitles' | 'login'} */ which, /** @type {boolean} */ filled, /** @type {string} */ href, /** @type {string} */ hrefText)}
+{#snippet actions(which: KeyName, filled: boolean, href: string, hrefText: string)}
 	<div class="pact">
 		<span class="help">
 			{#if href}<a href={href} target="_blank" rel="noreferrer">{hrefText}</a> ·{/if}
