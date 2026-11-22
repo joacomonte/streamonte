@@ -13,8 +13,10 @@ use std::time::Duration;
 
 use serde::Serialize;
 use streamonte_core::app::{AppCore, StartOptions};
+use streamonte_core::catalog::people::Role;
 use streamonte_core::catalog::{cinemeta::BrowseSort, MediaKind};
 use streamonte_core::events::{CoreEvent, EventSink};
+use streamonte_core::paths::AppPaths;
 
 /// Junta los eventos como JSON (la misma forma serde que `TauriSink` manda a la UI).
 #[derive(Default)]
@@ -31,6 +33,8 @@ impl EventSink for Recorder {
 const MOVIE_PLATFORMS: &str = "tt0137523"; // Fight Club
 const MOVIE_NO_PLATFORMS: &str = "tt45368240"; // TMDB 1765072, "You Can See Everything"
 const SERIES: &str = "tt0903747"; // Breaking Bad
+const SERIES_SEASONS: u32 = 5;
+const MOVIE_SPANISH: &str = "tt1375666"; // Inception: muchas opciones con audio latino
 const OUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../ui/mock");
 
 fn save<T: Serialize, E: std::fmt::Debug>(cmd: &str, args: &[&str], res: Result<T, E>) {
@@ -103,6 +107,11 @@ async fn record_streams(core: &AppCore, rec: &Recorder, kind: MediaKind, k: &str
         .filter(|e| e["type"] == "catalog-streams" && e["update"]["video_id"] == video_id)
         .cloned()
         .collect();
+    // Secuencia progresiva: hasta 6 eventos repartidos (primero, último y del medio).
+    if events.len() > 6 {
+        let last = events.len() - 1;
+        events = (0..6).map(|i| events[i * last / 5].clone()).collect();
+    }
     if serde_json::to_string_pretty(&events).unwrap().len() > 250_000 {
         for e in &mut events {
             if let Some(c) = e["update"]["candidates"].as_array_mut() {
@@ -125,24 +134,32 @@ async fn record_streams(core: &AppCore, rec: &Recorder, kind: MediaKind, k: &str
 #[tokio::main]
 async fn main() {
     std::fs::create_dir_all(OUT).unwrap();
+    // Carpetas temporales con SOLO la config real copiada: la lista de torrents de 1 h (`RECENT_TTL`)
+    // vive en `data_dir`; con uno vacío siempre se busca de cero y no se toca la caché del usuario.
+    let real = AppPaths::resolve().expect("carpetas");
+    let tmp = std::env::temp_dir().join(format!("streamonte-record-{}", std::process::id()));
+    let paths = AppPaths::under(&tmp);
+    paths.ensure_dirs().unwrap();
+    std::fs::copy(real.config_file(), paths.config_file()).expect("config real");
     let rec = Arc::new(Recorder::default());
     let core = AppCore::start_with(
         rec.clone(),
         StartOptions {
             capture_clipboard: false,
-            paths: None,
+            paths: Some(paths),
             background_fetch: false,
         },
     )
     .await
     .expect("núcleo");
 
+    let mut firsts = Vec::new(); // primer título en tendencia de cada tipo: lo que abre la grilla
     for (kind, k) in [(MediaKind::Movie, "movie"), (MediaKind::Series, "series")] {
-        save(
-            "catalog_trending",
-            &[k, "0"],
-            core.catalog_trending(kind, 0).await,
-        );
+        let page = core.catalog_trending(kind, 0).await;
+        if let Ok(p) = &page {
+            firsts.extend(p.items.first().map(|i| (kind, k, i.id.clone())));
+        }
+        save("catalog_trending", &[k, "0"], page);
         save("catalog_genres", &[k], core.catalog_genres(kind).await);
     }
     // Defaults de la UI (`DEFAULTS` en ui/src/catalog.js): 12 meses atrás, 10000 votos, en/es, sin género.
@@ -163,17 +180,38 @@ async fn main() {
         )
         .await,
     );
-    save(
-        "catalog_search",
-        &["fight club"],
-        core.catalog_search("fight club").await,
-    );
-
-    for (kind, k, id) in [
-        (MediaKind::Movie, "movie", MOVIE_PLATFORMS),
-        (MediaKind::Movie, "movie", MOVIE_NO_PLATFORMS),
-        (MediaKind::Series, "series", SERIES),
+    for q in ["fight club", "inception", "breaking bad"] {
+        save("catalog_search", &[q], core.catalog_search(q).await);
+    }
+    // Personas: sugerencias del buscador y lo que dirigió / actuó la primera con ese rol.
+    for (q, role, role_name) in [
+        ("fight club", None, ""),
+        ("david fincher", Some(Role::Director), "director"),
+        ("brad pitt", Some(Role::Cast), "cast"),
     ] {
+        let people = core.catalog_people(q).await;
+        if let (Ok(list), Some(role)) = (&people, role) {
+            if let Some(p) = list.iter().find(|p| p.role == role) {
+                let id = p.id.to_string();
+                save(
+                    "catalog_person_titles",
+                    &[&id, role_name],
+                    core.catalog_person_titles(p.id, role).await,
+                );
+            }
+        }
+        save("catalog_people", &[q], people);
+    }
+
+    let mut titles = vec![
+        (MediaKind::Movie, "movie", MOVIE_PLATFORMS.to_string()),
+        (MediaKind::Movie, "movie", MOVIE_NO_PLATFORMS.to_string()),
+        (MediaKind::Movie, "movie", MOVIE_SPANISH.to_string()),
+        (MediaKind::Series, "series", SERIES.to_string()),
+    ];
+    titles.extend(firsts.clone());
+    titles.dedup_by(|a, b| a.2 == b.2);
+    for (kind, k, id) in titles.iter().map(|(a, b, c)| (*a, *b, c.as_str())) {
         save("catalog_meta", &[k, id], core.catalog_meta(kind, id).await);
         save(
             "catalog_details",
@@ -186,17 +224,26 @@ async fn main() {
             Ok::<_, ()>(core.catalog_similar(kind, id).await),
         );
     }
-    save(
-        "catalog_season_ratings",
-        &[SERIES, "true"],
-        core.catalog_season_ratings(SERIES, true).await,
-    );
-    save(
-        "catalog_episodes",
-        &[SERIES, "1"],
-        Ok::<_, ()>(core.catalog_episodes(SERIES, 1).await),
-    );
+    for quick in ["true", "false"] {
+        save(
+            "catalog_season_ratings",
+            &[SERIES, quick],
+            core.catalog_season_ratings(SERIES, quick == "true").await,
+        );
+    }
+    for season in 1..=SERIES_SEASONS {
+        save(
+            "catalog_episodes",
+            &[SERIES, &season.to_string()],
+            Ok::<_, ()>(core.catalog_episodes(SERIES, season).await),
+        );
+    }
     record_streams(&core, &rec, MediaKind::Movie, "movie", MOVIE_PLATFORMS).await;
+    record_streams(&core, &rec, MediaKind::Movie, "movie", MOVIE_SPANISH).await;
+    // El estreno en tendencia: la primera tarjeta de la grilla abre una ficha completa.
+    for (kind, k, id) in firsts.iter().filter(|f| f.1 == "movie") {
+        record_streams(&core, &rec, *kind, k, id).await;
+    }
     record_streams(
         &core,
         &rec,
@@ -205,4 +252,5 @@ async fn main() {
         &format!("{SERIES}:1:1"),
     )
     .await;
+    let _ = std::fs::remove_dir_all(&tmp);
 }

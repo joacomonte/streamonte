@@ -1,18 +1,10 @@
 [
   {
-    "id": "tt36042156",
-    "name": "The Punisher: La última muerte",
-    "year": "2026",
-    "poster": "https://image.tmdb.org/t/p/w500/qkyqQqQN8HAkLezR6xWTYzz6Icv.jpg",
-    "rating": 8.2,
-    "tmdb_rating": 8.2
-  },
-  {
     "id": "tt0180093",
     "name": "Réquiem por un sueño",
     "year": "2000",
     "poster": "https://image.tmdb.org/t/p/w500/tz2xgFG1peQGcUUCywVwFMFvSYd.jpg",
-    "rating": 8.0,
+    "rating": 8.3,
     "tmdb_rating": 8.007
   },
   {
@@ -20,7 +12,7 @@
     "name": "Sin City: La Ciudad del Pecado",
     "year": "2005",
     "poster": "https://image.tmdb.org/t/p/w500/yfU9AGZZrjr5DGuXe1MliGs0vc2.jpg",
-    "rating": 7.5,
+    "rating": 8.0,
     "tmdb_rating": 7.466
   },
   {
@@ -28,31 +20,39 @@
     "name": "Stuart: una vida al revés",
     "year": "2007",
     "poster": "https://image.tmdb.org/t/p/w500/9y1r0orJ8F1jAofsuQgLRcJGm4m.jpg",
-    "rating": 7.4,
+    "rating": 7.6,
     "tmdb_rating": 7.4
-  },
-  {
-    "id": "tt4669296",
-    "name": "Lords of Chaos",
-    "year": "2018",
-    "poster": "https://image.tmdb.org/t/p/w500/5jDShbwEsILXa2AAmAbOLxyNwyq.jpg",
-    "rating": 6.8,
-    "tmdb_rating": 6.8
   },
   {
     "id": "tt0108026",
     "name": "The Saint of Fort Washington",
     "year": "1993",
     "poster": "https://image.tmdb.org/t/p/w500/7yanc0HUED3USbnYAy4Yvg1nZbH.jpg",
-    "rating": 6.6,
+    "rating": 7.0,
     "tmdb_rating": 6.6
+  },
+  {
+    "id": "tt36042156",
+    "name": "The Punisher: La última muerte",
+    "year": "2026",
+    "poster": "https://image.tmdb.org/t/p/w500/qkyqQqQN8HAkLezR6xWTYzz6Icv.jpg",
+    "rating": 7.0,
+    "tmdb_rating": 8.2
+  },
+  {
+    "id": "tt4669296",
+    "name": "Lords of Chaos",
+    "year": "2018",
+    "poster": "https://image.tmdb.org/t/p/w500/5jDShbwEsILXa2AAmAbOLxyNwyq.jpg",
+    "rating": 6.6,
+    "tmdb_rating": 6.8
   },
   {
     "id": "tt8406738",
     "name": "Ventajas de viajar en tren",
     "year": "2019",
     "poster": "https://image.tmdb.org/t/p/w500/6C8uJnxoBZVYY7iueExVL423RLI.jpg",
-    "rating": 6.5,
+    "rating": 6.4,
     "tmdb_rating": 6.484
   },
   {
@@ -60,7 +60,7 @@
     "name": "Polar",
     "year": "2019",
     "poster": "https://image.tmdb.org/t/p/w500/qfVQGzLeWBtdyWKtn3zOvNHazwa.jpg",
-    "rating": 6.4,
+    "rating": 6.3,
     "tmdb_rating": 6.408
   }
 ]

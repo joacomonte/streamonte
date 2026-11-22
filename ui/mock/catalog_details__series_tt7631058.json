@@ -1,0 +1,53 @@
+{
+  "has_key": true,
+  "details": {
+    "title": "El Señor de los Anillos: Los Anillos de Poder",
+    "overview": "Beginning in a time of relative peace, we follow an ensemble cast of characters as they confront the re-emergence of evil to Middle-earth. From the darkest depths of the Misty Mountains, to the majestic forests of Lindon, to the breathtaking island kingdom of Númenor, to the furthest reaches of the",
+    "genres": [
+      "Action & Adventure",
+      "Sci-Fi & Fantasy"
+    ],
+    "providers": [
+      {
+        "name": "Amazon Prime Video",
+        "logo": "https://image.tmdb.org/t/p/w92/gMZdpavHmxFNnLpMHwVxfqeux2g.png"
+      },
+      {
+        "name": "MovistarTV",
+        "logo": "https://image.tmdb.org/t/p/w92/kxUmV9TCZHfukpVOMuN90Jibbnm.png"
+      }
+    ],
+    "original_language": "en",
+    "networks": [
+      "Prime Video"
+    ],
+    "trailer": "uYnQDsaxHZU",
+    "people": [
+      {
+        "id": 2309879,
+        "name": "Charlie Vickers",
+        "photo": "https://image.tmdb.org/t/p/w185/52AAfocWk3d8J3a15iznfD3cabW.jpg",
+        "role": "cast",
+        "note": "Sauron"
+      },
+      {
+        "id": 1321628,
+        "name": "Morfydd Clark",
+        "photo": "https://image.tmdb.org/t/p/w185/kG1Xg85F9yAggCMquo4XouAOjdo.jpg",
+        "role": "cast",
+        "note": "Galadriel"
+      },
+      {
+        "id": 1648346,
+        "name": "Robert Aramayo",
+        "photo": "https://image.tmdb.org/t/p/w185/1wqSZVvB018H2mZbemMSn6gH4zq.jpg",
+        "role": "cast",
+        "note": "Elrond"
+      }
+    ],
+    "companies": [
+      "Amazon Studios",
+      "New Line Cinema"
+    ]
+  }
+}

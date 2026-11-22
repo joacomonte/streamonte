@@ -1,0 +1,29 @@
+{
+  "id": "tt1375666",
+  "kind": "movie",
+  "name": "Inception",
+  "year": "2010",
+  "runtime_min": 148,
+  "country": "United Kingdom, United States",
+  "genres": [
+    "Adventure",
+    "Sci-Fi",
+    "Thriller"
+  ],
+  "imdb_rating": "8.8",
+  "description": "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO, but his tragic past may doom the project and his team to disaster.",
+  "poster": "https://images.metahub.space/poster/small/tt1375666/img",
+  "background": "https://images.metahub.space/background/medium/tt1375666/img",
+  "episodes": [],
+  "excluded": false,
+  "status": null,
+  "cast": [
+    "Leonardo DiCaprio",
+    "Joseph Gordon-Levitt",
+    "Elliot Page"
+  ],
+  "awards": "Ganó 4 Óscar · 160 premios",
+  "released": "2010-07-16",
+  "trailer": "cdx31ak4KbQ",
+  "imdb_votes": 2891836
+}

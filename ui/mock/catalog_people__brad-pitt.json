@@ -1,0 +1,23 @@
+[
+  {
+    "id": 287,
+    "name": "Brad Pitt",
+    "photo": "https://image.tmdb.org/t/p/w185/ajNaPmXVVMJFg9GWmu6MJzTaXdV.jpg",
+    "known": "Bastardos sin gloria, Guerra mundial Z",
+    "role": "cast"
+  },
+  {
+    "id": 6572091,
+    "name": "Brad Pitt",
+    "photo": null,
+    "known": "Поганий Пес",
+    "role": "cast"
+  },
+  {
+    "id": 6265779,
+    "name": "Manu Piró",
+    "photo": "https://image.tmdb.org/t/p/w185/b4kvZXLfahwBuVuB0riZAmt1TXZ.jpg",
+    "known": "Santa Fe, El Musical",
+    "role": "cast"
+  }
+]

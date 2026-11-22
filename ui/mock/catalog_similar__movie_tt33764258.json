@@ -1,0 +1,58 @@
+[
+  {
+    "id": "tt0332452",
+    "name": "Troya",
+    "year": "2004",
+    "poster": "https://image.tmdb.org/t/p/w500/rthioP0Xgfl818DJeHcyiHxWHPN.jpg",
+    "rating": 7.3,
+    "tmdb_rating": 7.197
+  },
+  {
+    "id": "tt0082198",
+    "name": "Conan, el bárbaro",
+    "year": "1982",
+    "poster": "https://image.tmdb.org/t/p/w500/sC8ykZpV1K0lLxrbr3tbkqZFnXE.jpg",
+    "rating": 6.9,
+    "tmdb_rating": 6.811
+  },
+  {
+    "id": "tt1253864",
+    "name": "Inmortales",
+    "year": "2011",
+    "poster": "https://image.tmdb.org/t/p/w500/3L1iVZBtzFUavfVG9LGfFjfsYvC.jpg",
+    "rating": 6.0,
+    "tmdb_rating": 6.05
+  },
+  {
+    "id": "tt0087078",
+    "name": "Conan: El Destructor",
+    "year": "1984",
+    "poster": "https://image.tmdb.org/t/p/w500/ojavJiW2YPeZhePBLTrZ8jwdp8l.jpg",
+    "rating": 5.9,
+    "tmdb_rating": 6.14
+  },
+  {
+    "id": "tt5456798",
+    "name": "Mythica: The Iron Crown",
+    "year": "2016",
+    "poster": "https://image.tmdb.org/t/p/w500/8y3G8g7E7SXZ74XDt6gaxyfELse.jpg",
+    "rating": 5.5,
+    "tmdb_rating": 5.971
+  },
+  {
+    "id": "tt9711106",
+    "name": "Corazón de Dragón 5: La venganza",
+    "year": "2021",
+    "poster": "https://image.tmdb.org/t/p/w500/mPGAlXyPH21qg38GF1Ydd0xDg7B.jpg",
+    "rating": 5.4,
+    "tmdb_rating": 6.885
+  },
+  {
+    "id": "tt8318284",
+    "name": "The Legion",
+    "year": "2020",
+    "poster": "https://image.tmdb.org/t/p/w500/6ssoBXQOxNhrsGJoM6Tcvm57V79.jpg",
+    "rating": 3.3,
+    "tmdb_rating": 6.224
+  }
+]

@@ -4,26 +4,1002 @@
     "update": {
       "addons": [
         {
+          "count": 0,
+          "id": "torrentio",
+          "message": null,
+          "ms": null,
+          "name": "Torrentio",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "peerflix",
+          "message": null,
+          "ms": null,
+          "name": "Peerflix",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "comet",
+          "message": null,
+          "ms": null,
+          "name": "Comet",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": null,
+          "name": "TorrentsDB",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 0,
+          "name": "Hacktorrent",
+          "state": "unsupported"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 0,
+          "name": "EliteTorrent",
+          "state": "unsupported"
+        }
+      ],
+      "candidates": [],
+      "done": false,
+      "video_id": "tt0903747:1:1"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
           "count": 204,
           "id": "torrentio",
           "message": null,
-          "ms": 339,
+          "ms": 45,
           "name": "Torrentio",
           "state": "ok"
         },
         {
-          "count": 58,
+          "count": 0,
           "id": "peerflix",
           "message": null,
-          "ms": 819,
+          "ms": null,
           "name": "Peerflix",
-          "state": "ok"
+          "state": "pending"
         },
         {
           "count": 499,
           "id": "comet",
           "message": null,
-          "ms": 657,
+          "ms": 234,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": null,
+          "name": "TorrentsDB",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 0,
+          "name": "Hacktorrent",
+          "state": "unsupported"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 0,
+          "name": "EliteTorrent",
+          "state": "unsupported"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|46bbb2af2380642f603daf10c210175b000fe0cb",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking_Bad_1x01_Pilot.mkv",
+          "hdr": [],
+          "info_hash": "46bbb2af2380642f603daf10c210175b000fe0cb",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad - Temporada 1 Completa [BluRay Rip 1080p][Cap. 101_107][AC3 5.1 Español Castellano-English-Subs]",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "MejorTorrent",
+            "StremThru"
+          ],
+          "size_bytes": 2297726473,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|a21cfc5e19d97283199e4ef17000adf94b8a1b39",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "a21cfc5e19d97283199e4ef17000adf94b8a1b39",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01e01-07 [1080p Ita Eng Spa h265 10bit SubS][MirCrewRelease] REPACK byMe7alh",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 10285912635,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it",
+            "de"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|e32bdd6c5ed67674a11a85d91e06dd5ccdb082f7",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.1x01.Questione.di.chimica.1080p.H265.ITA.ENG.SPA.AC3.5.1.SubS.Ita.Eng.Deu.NU.Eng.NFRip-iDN_CreW.mkv",
+          "hdr": [],
+          "info_hash": "e32bdd6c5ed67674a11a85d91e06dd5ccdb082f7",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.1x01.Questione.di.chimica.1080p.H265.ITA.ENG.SPA.AC3.5.1.SubS.Ita.Eng.Deu.NU.Eng.NFRip-iDN_CreW.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 1434008496,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|3a51229dfc22e6e63430c426c710b16e8b2a0086",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "3a51229dfc22e6e63430c426c710b16e8b2a0086",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 1222470882,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|986d231e5869f45d8ba0a4eb06c022f261396842",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "986d231e5869f45d8ba0a4eb06c022f261396842",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 1222470882,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|14e0c033a129cbed73205017901816346fe75f6b",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad S01E01 - Pilot.mp4",
+          "hdr": [],
+          "info_hash": "14e0c033a129cbed73205017901816346fe75f6b",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 Subtitulos En Espanol HD 5.1 Audio",
+          "resolution": null,
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "MagnetDL",
+            "TorBox"
+          ],
+          "size_bytes": 6620066500,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|f0fd1cad0e24b69ff6aaadb9df40c50286327188",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "f0fd1cad0e24b69ff6aaadb9df40c50286327188",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 64,
+          "sites": [
+            "ThePirateBay",
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|1b42b99b9fbc0e0416a379787f250eb73b7434e3",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD.mkv",
+          "hdr": [],
+          "info_hash": "1b42b99b9fbc0e0416a379787f250eb73b7434e3",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad COMPLETE S01-S05 2160p WEB-DL Rus Ukr Eng DTS-HD MA5.1 x264-TrollUHD [RiCK]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 44,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|8f46fa8a37674b6460f3ed1996d3e5d1a93e5a55",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.AMZN.WEB-DL.DTS-HD.MA.5.1.SDR.HEVC.mkv",
+          "hdr": [],
+          "info_hash": "8f46fa8a37674b6460f3ed1996d3e5d1a93e5a55",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 AMZN 2160p",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "StremThru"
+          ],
+          "size_bytes": 13339467135,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "codec": null,
+          "completed": null,
+          "file_idx": 3,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB.mkv",
+          "hdr": [],
+          "info_hash": "b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "de"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|69e5cdc7cadaa94d46562fcff3175fffebb1217d",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Ger.Eng.5.1.EAC3D.DL.2160p.WEB.h265-HDSource.mkv",
+          "hdr": [],
+          "info_hash": "69e5cdc7cadaa94d46562fcff3175fffebb1217d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01.Ger.Eng.5.1.EAC3D.DL.2160p.WEB.h265-HDSource.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 7065529811,
+          "source": "WEB",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|975e083614538b2429533b0d13742c3699524af9",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "975e083614538b2429533b0d13742c3699524af9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|b6342b827dbeb010c03180742f938af45ffd7947",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 3,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "b6342b827dbeb010c03180742f938af45ffd7947",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|ad48398daf51748a82d1c11714e765c27734ccfa",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p NF WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "ad48398daf51748a82d1c11714e765c27734ccfa",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p NF WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 5497709617,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|3c7a0d35b01b8d3b0abab10bb363cbe0b00ace3a",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Ep 01 - Pilot - Questione di Chimica.mkv",
+          "hdr": [],
+          "info_hash": "3c7a0d35b01b8d3b0abab10bb363cbe0b00ace3a",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 Complete - 1080p ENG-ITA Multisub x264 BluRay",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 77,
+          "sites": [
+            "ThePirateBay"
+          ],
+          "size_bytes": 4391604060,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD+",
+            "7.1",
+            "5.1"
+          ],
+          "binge_group": "torrentio|6a12ce77043c07604314f30fa62f2b17ea8d4ab9",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Questione.di.chimica.1080p.NF.WEB-DL.DDP5.1.AV1-G66.mkv",
+          "hdr": [],
+          "info_hash": "6a12ce77043c07604314f30fa62f2b17ea8d4ab9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01-07.1080p.NF.WEB-DL.ITA-ENG.DDP5.1.AV1-G66",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 37,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 2235550686,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "DD+"
+          ],
+          "binge_group": "torrentio|71feec966a66cedfba5556f464b9c7c4286f6883",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.1080p.NF.WEB-DL.AV1.EAC3.mkv",
+          "hdr": [],
+          "info_hash": "71feec966a66cedfba5556f464b9c7c4286f6883",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01-S05 1080p NF WEB-DL AV1 EAC3 MultiSub",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 25,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 2068110911,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "es",
+            "en"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|e81e125021b52d5ecd34249a356574eae14b23ed",
+          "codec": null,
+          "completed": null,
+          "file_idx": 26,
+          "file_name": "Breaking Bad - S01E01_Pilotní díl.mkv",
+          "hdr": [],
+          "info_hash": "e81e125021b52d5ecd34249a356574eae14b23ed",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (S01)(2008)(1080p)(VP9)(WebDL)( EN 5.1+SPA 2.0)(Complete) PHDTeam",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 19,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 1389385078,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|6d64dfe75b1714deb2cfd4e7cb3c2d09a2fb1e73",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad.S01E01.Pilot.mkv",
+          "hdr": [],
+          "info_hash": "6d64dfe75b1714deb2cfd4e7cb3c2d09a2fb1e73",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad [BDRip 1080p H.265] [Hurtom]",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 13,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 7816840478,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "in"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|c6d960000329117d615b3bcf1f8f93e521d891ab",
+          "codec": null,
+          "completed": null,
+          "file_idx": 27,
+          "file_name": "Breaking Bad - S01E01 - Pilot 1080p SDR [hin, eng].mkv",
+          "hdr": [],
+          "info_hash": "c6d960000329117d615b3bcf1f8f93e521d891ab",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01-S05 1080p BluRay REMUX Dual Audio [Hindi+Eng] ~ RemuxDoc",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 10,
+          "sites": [
+            "ThePirateBay",
+            "StremThru"
+          ],
+          "size_bytes": 2410848266,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "se"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|0b7eb6d011502075bf7281c46be366251e552d4d",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.mkv",
+          "hdr": [],
+          "info_hash": "0b7eb6d011502075bf7281c46be366251e552d4d",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.SweSub-EngSub.1080p.x264-Justiso",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "ThePirateBay",
+            "TorBox"
+          ],
+          "size_bytes": 1073481583,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|7156d736a37bd107abad24648868a1daf0fe5932",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.1080p.10Bit.BluRay.English.DDP5.1.x265.HEVC-IONICBOY.mkv",
+          "hdr": [],
+          "info_hash": "7156d736a37bd107abad24648868a1daf0fe5932",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.1080P.10Bit.Bluray.English.DDP5.1.x265.HEVC ~ IONICBOY",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 2,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 2576747154,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "hu"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|167e34bbf6fc3e53382d0c8d2a8fe5852b522e91",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 1,
+          "file_name": "Breaking.Bad.S01E01.Pilot.1080p.3D.FULL-SBS.HEVC.SBS-SUB.ENG-HUN.iFA-AI3D.mkv",
+          "hdr": [],
+          "info_hash": "167e34bbf6fc3e53382d0c8d2a8fe5852b522e91",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.1080p.3D.FULL-SBS.HEVC.SBS-SUB.ENG-HUN.iFA-AI3D",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 23940566056,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC"
+          ],
+          "binge_group": "torrentio|c08b63a5c349c1d84ee820ee6b5ae2bea3f8c073",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "[S01.E01] Breaking Bad - Pilot.mp4",
+          "hdr": [],
+          "info_hash": "c08b63a5c349c1d84ee820ee6b5ae2bea3f8c073",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad Seasons 1 to 5 Complete Box Set [English Subtitles][NetflixRip][NVEnc H265 1080p][AAC 6Ch]",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 1312655190,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "hu"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "comet|torrent|17eb8730f21e64b2846416eda6142b11229a0005",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.1080p.BluRay.DTS.x264.HUN.ENG-prldm.mkv",
+          "hdr": [],
+          "info_hash": "17eb8730f21e64b2846416eda6142b11229a0005",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01.1080p.BluRay.DTS.x264.HUN.ENG-prldm.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 9517401502,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        }
+      ],
+      "done": false,
+      "video_id": "tt0903747:1:1"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 204,
+          "id": "torrentio",
+          "message": null,
+          "ms": 45,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "peerflix",
+          "message": null,
+          "ms": null,
+          "name": "Peerflix",
+          "state": "pending"
+        },
+        {
+          "count": 499,
+          "id": "comet",
+          "message": null,
+          "ms": 234,
           "name": "Comet",
           "state": "ok"
         },
@@ -31,7 +1007,7 @@
           "count": 39,
           "id": "torrentsdb",
           "message": null,
-          "ms": 511,
+          "ms": 501,
           "name": "TorrentsDB",
           "state": "ok"
         },
@@ -55,8 +1031,8 @@
       "candidates": [
         {
           "addons": [
-            "TorrentsDB",
-            "Comet"
+            "Comet",
+            "TorrentsDB"
           ],
           "audio": [
             "en",
@@ -66,21 +1042,987 @@
           "audio_format": [],
           "binge_group": "comet|torrent|3a51229dfc22e6e63430c426c710b16e8b2a0086",
           "codec": "HEVC",
-          "completed": 37,
+          "completed": null,
           "file_idx": 4,
           "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
           "hdr": [],
           "info_hash": "3a51229dfc22e6e63430c426c710b16e8b2a0086",
           "is_pack": false,
           "lang_group": "en",
-          "leechers": 3,
+          "leechers": null,
           "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
           "resolution": "1080p",
-          "seeders": 14,
+          "seeders": null,
           "seeders_declared": 19,
           "sites": [
-            "ilcorsaronero",
+            "StremThru",
+            "ilcorsaronero"
+          ],
+          "size_bytes": 1222470882,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|986d231e5869f45d8ba0a4eb06c022f261396842",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "986d231e5869f45d8ba0a4eb06c022f261396842",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 7,
+          "sites": [
+            "StremThru",
+            "ilcorsaronero"
+          ],
+          "size_bytes": 1222470882,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|46bbb2af2380642f603daf10c210175b000fe0cb",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking_Bad_1x01_Pilot.mkv",
+          "hdr": [],
+          "info_hash": "46bbb2af2380642f603daf10c210175b000fe0cb",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad - Temporada 1 Completa [BluRay Rip 1080p][Cap. 101_107][AC3 5.1 Español Castellano-English-Subs]",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "MejorTorrent",
             "StremThru"
+          ],
+          "size_bytes": 2297726473,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|a21cfc5e19d97283199e4ef17000adf94b8a1b39",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "a21cfc5e19d97283199e4ef17000adf94b8a1b39",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01e01-07 [1080p Ita Eng Spa h265 10bit SubS][MirCrewRelease] REPACK byMe7alh",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 10285912635,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it",
+            "de"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|e32bdd6c5ed67674a11a85d91e06dd5ccdb082f7",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.1x01.Questione.di.chimica.1080p.H265.ITA.ENG.SPA.AC3.5.1.SubS.Ita.Eng.Deu.NU.Eng.NFRip-iDN_CreW.mkv",
+          "hdr": [],
+          "info_hash": "e32bdd6c5ed67674a11a85d91e06dd5ccdb082f7",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.1x01.Questione.di.chimica.1080p.H265.ITA.ENG.SPA.AC3.5.1.SubS.Ita.Eng.Deu.NU.Eng.NFRip-iDN_CreW.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 1434008496,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|14e0c033a129cbed73205017901816346fe75f6b",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad S01E01 - Pilot.mp4",
+          "hdr": [],
+          "info_hash": "14e0c033a129cbed73205017901816346fe75f6b",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 Subtitulos En Espanol HD 5.1 Audio",
+          "resolution": null,
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "MagnetDL",
+            "TorBox"
+          ],
+          "size_bytes": 6620066500,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|f0fd1cad0e24b69ff6aaadb9df40c50286327188",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "f0fd1cad0e24b69ff6aaadb9df40c50286327188",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 64,
+          "sites": [
+            "ThePirateBay",
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|1b42b99b9fbc0e0416a379787f250eb73b7434e3",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD.mkv",
+          "hdr": [],
+          "info_hash": "1b42b99b9fbc0e0416a379787f250eb73b7434e3",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad COMPLETE S01-S05 2160p WEB-DL Rus Ukr Eng DTS-HD MA5.1 x264-TrollUHD [RiCK]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 44,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|8f46fa8a37674b6460f3ed1996d3e5d1a93e5a55",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.AMZN.WEB-DL.DTS-HD.MA.5.1.SDR.HEVC.mkv",
+          "hdr": [],
+          "info_hash": "8f46fa8a37674b6460f3ed1996d3e5d1a93e5a55",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 AMZN 2160p",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "StremThru"
+          ],
+          "size_bytes": 13339467135,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "codec": null,
+          "completed": null,
+          "file_idx": 3,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB.mkv",
+          "hdr": [],
+          "info_hash": "b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "de"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|69e5cdc7cadaa94d46562fcff3175fffebb1217d",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Ger.Eng.5.1.EAC3D.DL.2160p.WEB.h265-HDSource.mkv",
+          "hdr": [],
+          "info_hash": "69e5cdc7cadaa94d46562fcff3175fffebb1217d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01.Ger.Eng.5.1.EAC3D.DL.2160p.WEB.h265-HDSource.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 7065529811,
+          "source": "WEB",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|975e083614538b2429533b0d13742c3699524af9",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "975e083614538b2429533b0d13742c3699524af9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|b6342b827dbeb010c03180742f938af45ffd7947",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 3,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "b6342b827dbeb010c03180742f938af45ffd7947",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|ad48398daf51748a82d1c11714e765c27734ccfa",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p NF WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "ad48398daf51748a82d1c11714e765c27734ccfa",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p NF WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 5497709617,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|3c7a0d35b01b8d3b0abab10bb363cbe0b00ace3a",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Ep 01 - Pilot - Questione di Chimica.mkv",
+          "hdr": [],
+          "info_hash": "3c7a0d35b01b8d3b0abab10bb363cbe0b00ace3a",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 Complete - 1080p ENG-ITA Multisub x264 BluRay",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 77,
+          "sites": [
+            "ThePirateBay"
+          ],
+          "size_bytes": 4391604060,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD+",
+            "7.1",
+            "5.1"
+          ],
+          "binge_group": "torrentio|6a12ce77043c07604314f30fa62f2b17ea8d4ab9",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Questione.di.chimica.1080p.NF.WEB-DL.DDP5.1.AV1-G66.mkv",
+          "hdr": [],
+          "info_hash": "6a12ce77043c07604314f30fa62f2b17ea8d4ab9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01-07.1080p.NF.WEB-DL.ITA-ENG.DDP5.1.AV1-G66",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 37,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 2235550686,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "DD+"
+          ],
+          "binge_group": "torrentio|71feec966a66cedfba5556f464b9c7c4286f6883",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.1080p.NF.WEB-DL.AV1.EAC3.mkv",
+          "hdr": [],
+          "info_hash": "71feec966a66cedfba5556f464b9c7c4286f6883",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01-S05 1080p NF WEB-DL AV1 EAC3 MultiSub",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 25,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 2068110911,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "es",
+            "en"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|e81e125021b52d5ecd34249a356574eae14b23ed",
+          "codec": null,
+          "completed": null,
+          "file_idx": 26,
+          "file_name": "Breaking Bad - S01E01_Pilotní díl.mkv",
+          "hdr": [],
+          "info_hash": "e81e125021b52d5ecd34249a356574eae14b23ed",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (S01)(2008)(1080p)(VP9)(WebDL)( EN 5.1+SPA 2.0)(Complete) PHDTeam",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 19,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 1389385078,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|6d64dfe75b1714deb2cfd4e7cb3c2d09a2fb1e73",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad.S01E01.Pilot.mkv",
+          "hdr": [],
+          "info_hash": "6d64dfe75b1714deb2cfd4e7cb3c2d09a2fb1e73",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad [BDRip 1080p H.265] [Hurtom]",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 13,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 7816840478,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "in"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|c6d960000329117d615b3bcf1f8f93e521d891ab",
+          "codec": null,
+          "completed": null,
+          "file_idx": 27,
+          "file_name": "Breaking Bad - S01E01 - Pilot 1080p SDR [hin, eng].mkv",
+          "hdr": [],
+          "info_hash": "c6d960000329117d615b3bcf1f8f93e521d891ab",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01-S05 1080p BluRay REMUX Dual Audio [Hindi+Eng] ~ RemuxDoc",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 10,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "limetorrent"
+          ],
+          "size_bytes": 2410848266,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "se"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|0b7eb6d011502075bf7281c46be366251e552d4d",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.mkv",
+          "hdr": [],
+          "info_hash": "0b7eb6d011502075bf7281c46be366251e552d4d",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.SweSub-EngSub.1080p.x264-Justiso",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "ThePirateBay",
+            "TorBox"
+          ],
+          "size_bytes": 1073481583,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|7156d736a37bd107abad24648868a1daf0fe5932",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.1080p.10Bit.BluRay.English.DDP5.1.x265.HEVC-IONICBOY.mkv",
+          "hdr": [],
+          "info_hash": "7156d736a37bd107abad24648868a1daf0fe5932",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.1080P.10Bit.Bluray.English.DDP5.1.x265.HEVC ~ IONICBOY",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 2,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 2576747154,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "hu"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|167e34bbf6fc3e53382d0c8d2a8fe5852b522e91",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 1,
+          "file_name": "Breaking.Bad.S01E01.Pilot.1080p.3D.FULL-SBS.HEVC.SBS-SUB.ENG-HUN.iFA-AI3D.mkv",
+          "hdr": [],
+          "info_hash": "167e34bbf6fc3e53382d0c8d2a8fe5852b522e91",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.1080p.3D.FULL-SBS.HEVC.SBS-SUB.ENG-HUN.iFA-AI3D",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 23940566056,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC"
+          ],
+          "binge_group": "torrentio|c08b63a5c349c1d84ee820ee6b5ae2bea3f8c073",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "[S01.E01] Breaking Bad - Pilot.mp4",
+          "hdr": [],
+          "info_hash": "c08b63a5c349c1d84ee820ee6b5ae2bea3f8c073",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad Seasons 1 to 5 Complete Box Set [English Subtitles][NetflixRip][NVEnc H265 1080p][AAC 6Ch]",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 1312655190,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "hu"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "comet|torrent|17eb8730f21e64b2846416eda6142b11229a0005",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.1080p.BluRay.DTS.x264.HUN.ENG-prldm.mkv",
+          "hdr": [],
+          "info_hash": "17eb8730f21e64b2846416eda6142b11229a0005",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01.1080p.BluRay.DTS.x264.HUN.ENG-prldm.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 9517401502,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        }
+      ],
+      "done": false,
+      "video_id": "tt0903747:1:1"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 204,
+          "id": "torrentio",
+          "message": null,
+          "ms": 45,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 58,
+          "id": "peerflix",
+          "message": null,
+          "ms": 951,
+          "name": "Peerflix",
+          "state": "ok"
+        },
+        {
+          "count": 499,
+          "id": "comet",
+          "message": null,
+          "ms": 234,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 39,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 501,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 0,
+          "name": "Hacktorrent",
+          "state": "unsupported"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 0,
+          "name": "EliteTorrent",
+          "state": "unsupported"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|3a51229dfc22e6e63430c426c710b16e8b2a0086",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "3a51229dfc22e6e63430c426c710b16e8b2a0086",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 19,
+          "sites": [
+            "StremThru",
+            "ilcorsaronero"
+          ],
+          "size_bytes": 1222470882,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|986d231e5869f45d8ba0a4eb06c022f261396842",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "986d231e5869f45d8ba0a4eb06c022f261396842",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 7,
+          "sites": [
+            "StremThru",
+            "ilcorsaronero"
           ],
           "size_bytes": 1222470882,
           "source": null,
@@ -105,17 +2047,17 @@
           ],
           "binge_group": "torrentio|46bbb2af2380642f603daf10c210175b000fe0cb",
           "codec": null,
-          "completed": 3,
+          "completed": null,
           "file_idx": 0,
           "file_name": "Breaking_Bad_1x01_Pilot.mkv",
           "hdr": [],
           "info_hash": "46bbb2af2380642f603daf10c210175b000fe0cb",
           "is_pack": true,
           "lang_group": "en",
-          "leechers": 2,
+          "leechers": null,
           "release_name": "Breaking Bad - Temporada 1 Completa [BluRay Rip 1080p][Cap. 101_107][AC3 5.1 Español Castellano-English-Subs]",
           "resolution": "1080p",
-          "seeders": 5,
+          "seeders": null,
           "seeders_declared": 6,
           "sites": [
             "MejorTorrent",
@@ -137,8 +2079,1001 @@
         },
         {
           "addons": [
-            "TorrentsDB",
+            "Torrentio",
             "Comet"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|a21cfc5e19d97283199e4ef17000adf94b8a1b39",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "a21cfc5e19d97283199e4ef17000adf94b8a1b39",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01e01-07 [1080p Ita Eng Spa h265 10bit SubS][MirCrewRelease] REPACK byMe7alh",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 10285912635,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it",
+            "de"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|e32bdd6c5ed67674a11a85d91e06dd5ccdb082f7",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.1x01.Questione.di.chimica.1080p.H265.ITA.ENG.SPA.AC3.5.1.SubS.Ita.Eng.Deu.NU.Eng.NFRip-iDN_CreW.mkv",
+          "hdr": [],
+          "info_hash": "e32bdd6c5ed67674a11a85d91e06dd5ccdb082f7",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.1x01.Questione.di.chimica.1080p.H265.ITA.ENG.SPA.AC3.5.1.SubS.Ita.Eng.Deu.NU.Eng.NFRip-iDN_CreW.mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 1434008496,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|14e0c033a129cbed73205017901816346fe75f6b",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad S01E01 - Pilot.mp4",
+          "hdr": [],
+          "info_hash": "14e0c033a129cbed73205017901816346fe75f6b",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 Subtitulos En Espanol HD 5.1 Audio",
+          "resolution": null,
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "MagnetDL",
+            "TorBox"
+          ],
+          "size_bytes": 6620066500,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|a584351126afcf50d32be068f3c9a62550d41ecc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad  S01E01  Pilot.mkv",
+          "hdr": [],
+          "info_hash": "a584351126afcf50d32be068f3c9a62550d41ecc",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad. S01. 2008 2160P.Ai Upscaled.BluRay.60FPS.H265.SDR.AC3.5.1_Marjenbo",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 87,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 10227506153,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|f0fd1cad0e24b69ff6aaadb9df40c50286327188",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "f0fd1cad0e24b69ff6aaadb9df40c50286327188",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 64,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|1b42b99b9fbc0e0416a379787f250eb73b7434e3",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD.mkv",
+          "hdr": [],
+          "info_hash": "1b42b99b9fbc0e0416a379787f250eb73b7434e3",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad COMPLETE S01-S05 2160p WEB-DL Rus Ukr Eng DTS-HD MA5.1 x264-TrollUHD [RiCK]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 44,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|eb183076846945b898e43a679bba32017138526e",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.2160p.NF.WEB-DL.DTS-HD.MA.5.1.HEVC-CRFW.mkv",
+          "hdr": [],
+          "info_hash": "eb183076846945b898e43a679bba32017138526e",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.2160p.NF.WEB-DL.DTS-HD.MA.5.1.HEVC-CRFW[rartv]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 18,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6273399350,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|260ac3b389be23d137bb13724dc6a5b43637fe1e",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 6,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD.mkv",
+          "hdr": [],
+          "info_hash": "260ac3b389be23d137bb13724dc6a5b43637fe1e",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 7,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEBRip",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|8f46fa8a37674b6460f3ed1996d3e5d1a93e5a55",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.AMZN.WEB-DL.DTS-HD.MA.5.1.SDR.HEVC.mkv",
+          "hdr": [],
+          "info_hash": "8f46fa8a37674b6460f3ed1996d3e5d1a93e5a55",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 AMZN 2160p",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 13339467135,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB.mkv",
+          "hdr": [],
+          "info_hash": "b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 2,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "comet|torrent|f000f56f523ce3284e938b237ac0f7c9de41e3a3",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.NF.WEBRip.DTS.x264-iON.mkv",
+          "hdr": [],
+          "info_hash": "f000f56f523ce3284e938b237ac0f7c9de41e3a3",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01.Pilot.2160p.NF.WEBRip.DTS.x264-iON.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 19037182916,
+          "source": "WEBRip",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|e2b01ba1df534cb007869cfb7e121a8e18e573ea",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.AMZN.WEB-DL.DTS-HD.MA.5.1.SDR.HEVC.mkv",
+          "hdr": [],
+          "info_hash": "e2b01ba1df534cb007869cfb7e121a8e18e573ea",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 AMZN 2160p",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 13339467135,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|e027f8e720069a11d10f9040ad3c8eb12436091f",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p).mkv",
+          "hdr": [],
+          "info_hash": "e027f8e720069a11d10f9040ad3c8eb12436091f",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 AMZN 2160p",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "DMM",
+            "Peerflix"
+          ],
+          "size_bytes": 9082862821,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|75b59ed4aac1a7a2ef90d1f999f15e1b80c55526",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.STAN.WEB-DL.DD5.1.HEVC-ShiNobi.mkv",
+          "hdr": [],
+          "info_hash": "75b59ed4aac1a7a2ef90d1f999f15e1b80c55526",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01.2160p.STAN.WEB-DL.DD5.1.HEVC-ShiNobi",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6672257805,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "torrentio|4k|iON",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.NF.WEBRip.DTS.x264-iON.mkv",
+          "hdr": [],
+          "info_hash": "173787c5415303d73885a07f49cd1fd96de0d5f8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01.Pilot.2160p.NF.WEBRip.DTS.x264-iON",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 19037182916,
+          "source": "WEBRip",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "de"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|69e5cdc7cadaa94d46562fcff3175fffebb1217d",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Ger.Eng.5.1.EAC3D.DL.2160p.WEB.h265-HDSource.mkv",
+          "hdr": [],
+          "info_hash": "69e5cdc7cadaa94d46562fcff3175fffebb1217d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking.Bad.S01E01.Ger.Eng.5.1.EAC3D.DL.2160p.WEB.h265-HDSource.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 7065529811,
+          "source": "WEB",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|975e083614538b2429533b0d13742c3699524af9",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "975e083614538b2429533b0d13742c3699524af9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|b6342b827dbeb010c03180742f938af45ffd7947",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 3,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "b6342b827dbeb010c03180742f938af45ffd7947",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": null,
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 6,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.x264.DTS-HD.MA.5.1-ABI.mkv",
+          "hdr": [],
+          "info_hash": "2a2a832be2ab563a7c111ecd9b2a01cd21e132d6",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 2160p WEB-DL x264 DTS-HD MA 5.1 - ABI",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "Peerflix"
+          ],
+          "size_bytes": 6249177415,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": null,
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 6,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.x264.DTS-HD.M.A.5.1-ABI.mkv",
+          "hdr": [],
+          "info_hash": "8f12857b3eb1b782d6937a179ee46066b9a2ed8d",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 2160p WEB-DL x264 DTS-HD MA 5.1 - ABI",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "Peerflix"
+          ],
+          "size_bytes": 6249177415,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": null,
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 6,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.x264.DTS-HD.M.A.5.1-ABI.mkv",
+          "hdr": [],
+          "info_hash": "bc23a767ab7ff242941884089ea7b4f1ba4c98ce",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 2160p WEB-DL x264 DTS-HD M.A 5.1 - ABI",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "Peerflix"
+          ],
+          "size_bytes": 6249177415,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|ad48398daf51748a82d1c11714e765c27734ccfa",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p NF WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "ad48398daf51748a82d1c11714e765c27734ccfa",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p NF WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 5497709617,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        }
+      ],
+      "done": false,
+      "video_id": "tt0903747:1:1"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 204,
+          "id": "torrentio",
+          "message": null,
+          "ms": 45,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 58,
+          "id": "peerflix",
+          "message": null,
+          "ms": 951,
+          "name": "Peerflix",
+          "state": "ok"
+        },
+        {
+          "count": 499,
+          "id": "comet",
+          "message": null,
+          "ms": 234,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 39,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 501,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 0,
+          "name": "Hacktorrent",
+          "state": "unsupported"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 0,
+          "name": "EliteTorrent",
+          "state": "unsupported"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|3a51229dfc22e6e63430c426c710b16e8b2a0086",
+          "codec": "HEVC",
+          "completed": 37,
+          "file_idx": 4,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "3a51229dfc22e6e63430c426c710b16e8b2a0086",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "resolution": "1080p",
+          "seeders": 15,
+          "seeders_declared": 19,
+          "sites": [
+            "StremThru",
+            "ilcorsaronero"
+          ],
+          "size_bytes": 1222470882,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|46bbb2af2380642f603daf10c210175b000fe0cb",
+          "codec": null,
+          "completed": 53,
+          "file_idx": 0,
+          "file_name": "Breaking_Bad_1x01_Pilot.mkv",
+          "hdr": [],
+          "info_hash": "46bbb2af2380642f603daf10c210175b000fe0cb",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 2,
+          "release_name": "Breaking Bad - Temporada 1 Completa [BluRay Rip 1080p][Cap. 101_107][AC3 5.1 Español Castellano-English-Subs]",
+          "resolution": "1080p",
+          "seeders": 6,
+          "seeders_declared": 6,
+          "sites": [
+            "MejorTorrent",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 2297726473,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
           ],
           "audio": [
             "en",
@@ -155,14 +3090,14 @@
           "info_hash": "986d231e5869f45d8ba0a4eb06c022f261396842",
           "is_pack": false,
           "lang_group": "en",
-          "leechers": 5,
+          "leechers": 4,
           "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
           "resolution": "1080p",
-          "seeders": 5,
+          "seeders": 3,
           "seeders_declared": 7,
           "sites": [
-            "ilcorsaronero",
-            "StremThru"
+            "StremThru",
+            "ilcorsaronero"
           ],
           "size_bytes": 1222470882,
           "source": null,
@@ -296,17 +3231,17 @@
           ],
           "binge_group": "torrentio|a584351126afcf50d32be068f3c9a62550d41ecc",
           "codec": "HEVC",
-          "completed": 87,
+          "completed": 583,
           "file_idx": 0,
           "file_name": "Breaking Bad  S01E01  Pilot.mkv",
           "hdr": [],
           "info_hash": "a584351126afcf50d32be068f3c9a62550d41ecc",
           "is_pack": true,
           "lang_group": "en",
-          "leechers": 74,
+          "leechers": 75,
           "release_name": "Breaking Bad. S01. 2008 2160P.Ai Upscaled.BluRay.60FPS.H265.SDR.AC3.5.1_Marjenbo",
           "resolution": "2160p",
-          "seeders": 63,
+          "seeders": 62,
           "seeders_declared": 87,
           "sites": [
             "ThePirateBay",
@@ -339,14 +3274,14 @@
           ],
           "binge_group": "torrentio|f0fd1cad0e24b69ff6aaadb9df40c50286327188",
           "codec": "HEVC",
-          "completed": 63,
+          "completed": 560,
           "file_idx": 0,
           "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
           "hdr": [],
           "info_hash": "f0fd1cad0e24b69ff6aaadb9df40c50286327188",
           "is_pack": true,
           "lang_group": "en",
-          "leechers": 36,
+          "leechers": 35,
           "release_name": "Breaking Bad (2008) S01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE)",
           "resolution": "2160p",
           "seeders": 62,
@@ -383,17 +3318,17 @@
           ],
           "binge_group": "torrentio|1b42b99b9fbc0e0416a379787f250eb73b7434e3",
           "codec": "H.264",
-          "completed": 10,
+          "completed": 47,
           "file_idx": 0,
           "file_name": "Breaking.Bad.S01E01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD.mkv",
           "hdr": [],
           "info_hash": "1b42b99b9fbc0e0416a379787f250eb73b7434e3",
           "is_pack": true,
           "lang_group": "en",
-          "leechers": 41,
+          "leechers": 57,
           "release_name": "Breaking Bad COMPLETE S01-S05 2160p WEB-DL Rus Ukr Eng DTS-HD MA5.1 x264-TrollUHD [RiCK]",
           "resolution": "2160p",
-          "seeders": 30,
+          "seeders": 29,
           "seeders_declared": 44,
           "sites": [
             "1337x",
@@ -428,7 +3363,7 @@
           "leechers": 1,
           "release_name": "Breaking.Bad.S01.2160p.NF.WEB-DL.DTS-HD.MA.5.1.HEVC-CRFW[rartv]",
           "resolution": "2160p",
-          "seeders": 19,
+          "seeders": 15,
           "seeders_declared": 18,
           "sites": [
             "StremThru",
@@ -460,7 +3395,7 @@
           ],
           "binge_group": "torrentio|260ac3b389be23d137bb13724dc6a5b43637fe1e",
           "codec": "H.264",
-          "completed": 1,
+          "completed": 2,
           "file_idx": 6,
           "file_name": "Breaking.Bad.S01E01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD.mkv",
           "hdr": [],
@@ -470,7 +3405,7 @@
           "leechers": 4,
           "release_name": "Breaking.Bad.S01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD",
           "resolution": "2160p",
-          "seeders": 6,
+          "seeders": 5,
           "seeders_declared": 7,
           "sites": [
             "ThePirateBay",
@@ -479,45 +3414,6 @@
           ],
           "size_bytes": 54559084099,
           "source": "WEBRip",
-          "subs": [],
-          "trackers": [
-            "udp://tracker.opentrackr.org:1337/announce",
-            "udp://open.stealth.si:80/announce",
-            "udp://tracker.torrent.eu.org:451/announce",
-            "udp://open.demonii.com:1337/announce",
-            "udp://exodus.desync.com:6969/announce"
-          ]
-        },
-        {
-          "addons": [
-            "Comet",
-            "Peerflix"
-          ],
-          "audio": [
-            "en",
-            "ua"
-          ],
-          "audio_format": [],
-          "binge_group": "comet|torrent|b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
-          "codec": null,
-          "completed": 23,
-          "file_idx": 0,
-          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB.mkv",
-          "hdr": [],
-          "info_hash": "b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
-          "is_pack": true,
-          "lang_group": "en",
-          "leechers": 3,
-          "release_name": "Breaking.Bad.S01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB",
-          "resolution": "2160p",
-          "seeders": 2,
-          "seeders_declared": 2,
-          "sites": [
-            "StremThru",
-            "Peerflix"
-          ],
-          "size_bytes": 54559084099,
-          "source": "WEB-DL",
           "subs": [],
           "trackers": [
             "udp://tracker.opentrackr.org:1337/announce",
@@ -550,7 +3446,7 @@
           "leechers": 0,
           "release_name": "Breaking.Bad.S01E01.Pilot.2160p.NF.WEBRip.DTS.x264-iON.mkv",
           "resolution": "2160p",
-          "seeders": 2,
+          "seeders": 3,
           "seeders_declared": 1,
           "sites": [
             "StremThru",
@@ -558,6 +3454,45 @@
           ],
           "size_bytes": 19037182916,
           "source": "WEBRip",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "codec": null,
+          "completed": 23,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB.mkv",
+          "hdr": [],
+          "info_hash": "b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 4,
+          "release_name": "Breaking.Bad.S01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB",
+          "resolution": "2160p",
+          "seeders": 2,
+          "seeders_declared": 2,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEB-DL",
           "subs": [],
           "trackers": [
             "udp://tracker.opentrackr.org:1337/announce",
@@ -589,7 +3524,7 @@
           "info_hash": "e2b01ba1df534cb007869cfb7e121a8e18e573ea",
           "is_pack": true,
           "lang_group": "en",
-          "leechers": 15,
+          "leechers": 13,
           "release_name": "Breaking Bad S01 AMZN 2160p",
           "resolution": "2160p",
           "seeders": 2,
@@ -715,7 +3650,1036 @@
           "info_hash": "8f46fa8a37674b6460f3ed1996d3e5d1a93e5a55",
           "is_pack": true,
           "lang_group": "en",
-          "leechers": 3,
+          "leechers": 6,
+          "release_name": "Breaking Bad S01 AMZN 2160p",
+          "resolution": "2160p",
+          "seeders": 0,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 13339467135,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|e027f8e720069a11d10f9040ad3c8eb12436091f",
+          "codec": null,
+          "completed": 2,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p).mkv",
+          "hdr": [],
+          "info_hash": "e027f8e720069a11d10f9040ad3c8eb12436091f",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 2,
+          "release_name": "Breaking Bad S01 AMZN 2160p",
+          "resolution": "2160p",
+          "seeders": 0,
+          "seeders_declared": 1,
+          "sites": [
+            "DMM",
+            "Peerflix"
+          ],
+          "size_bytes": 9082862821,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "de"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|69e5cdc7cadaa94d46562fcff3175fffebb1217d",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Ger.Eng.5.1.EAC3D.DL.2160p.WEB.h265-HDSource.mkv",
+          "hdr": [],
+          "info_hash": "69e5cdc7cadaa94d46562fcff3175fffebb1217d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Breaking.Bad.S01E01.Ger.Eng.5.1.EAC3D.DL.2160p.WEB.h265-HDSource.mkv",
+          "resolution": "2160p",
+          "seeders": 0,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 7065529811,
+          "source": "WEB",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|975e083614538b2429533b0d13742c3699524af9",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "975e083614538b2429533b0d13742c3699524af9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": 0,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|b6342b827dbeb010c03180742f938af45ffd7947",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 3,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "b6342b827dbeb010c03180742f938af45ffd7947",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": 0,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": null,
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 6,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.x264.DTS-HD.MA.5.1-ABI.mkv",
+          "hdr": [],
+          "info_hash": "2a2a832be2ab563a7c111ecd9b2a01cd21e132d6",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 2160p WEB-DL x264 DTS-HD MA 5.1 - ABI",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "Peerflix"
+          ],
+          "size_bytes": 6249177415,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": null,
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 6,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.x264.DTS-HD.M.A.5.1-ABI.mkv",
+          "hdr": [],
+          "info_hash": "8f12857b3eb1b782d6937a179ee46066b9a2ed8d",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 2160p WEB-DL x264 DTS-HD MA 5.1 - ABI",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "Peerflix"
+          ],
+          "size_bytes": 6249177415,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": null,
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 6,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.x264.DTS-HD.M.A.5.1-ABI.mkv",
+          "hdr": [],
+          "info_hash": "bc23a767ab7ff242941884089ea7b4f1ba4c98ce",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Breaking Bad S01 2160p WEB-DL x264 DTS-HD M.A 5.1 - ABI",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "Peerflix"
+          ],
+          "size_bytes": 6249177415,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|ad48398daf51748a82d1c11714e765c27734ccfa",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p NF WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "ad48398daf51748a82d1c11714e765c27734ccfa",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Breaking Bad (2008) S01E01 (2160p NF WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "resolution": "2160p",
+          "seeders": 0,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 5497709617,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        }
+      ],
+      "done": false,
+      "video_id": "tt0903747:1:1"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 204,
+          "id": "torrentio",
+          "message": null,
+          "ms": 45,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 58,
+          "id": "peerflix",
+          "message": null,
+          "ms": 951,
+          "name": "Peerflix",
+          "state": "ok"
+        },
+        {
+          "count": 499,
+          "id": "comet",
+          "message": null,
+          "ms": 234,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 39,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 501,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 0,
+          "name": "Hacktorrent",
+          "state": "unsupported"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 0,
+          "name": "EliteTorrent",
+          "state": "unsupported"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|3a51229dfc22e6e63430c426c710b16e8b2a0086",
+          "codec": "HEVC",
+          "completed": 37,
+          "file_idx": 4,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "3a51229dfc22e6e63430c426c710b16e8b2a0086",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "resolution": "1080p",
+          "seeders": 15,
+          "seeders_declared": 19,
+          "sites": [
+            "StremThru",
+            "ilcorsaronero"
+          ],
+          "size_bytes": 1222470882,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|46bbb2af2380642f603daf10c210175b000fe0cb",
+          "codec": null,
+          "completed": 53,
+          "file_idx": 0,
+          "file_name": "Breaking_Bad_1x01_Pilot.mkv",
+          "hdr": [],
+          "info_hash": "46bbb2af2380642f603daf10c210175b000fe0cb",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 2,
+          "release_name": "Breaking Bad - Temporada 1 Completa [BluRay Rip 1080p][Cap. 101_107][AC3 5.1 Español Castellano-English-Subs]",
+          "resolution": "1080p",
+          "seeders": 6,
+          "seeders_declared": 6,
+          "sites": [
+            "MejorTorrent",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 2297726473,
+          "source": "BluRay",
+          "subs": [
+            "es"
+          ],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|986d231e5869f45d8ba0a4eb06c022f261396842",
+          "codec": "HEVC",
+          "completed": 31,
+          "file_idx": 0,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "986d231e5869f45d8ba0a4eb06c022f261396842",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 4,
+          "release_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "resolution": "1080p",
+          "seeders": 3,
+          "seeders_declared": 7,
+          "sites": [
+            "StremThru",
+            "ilcorsaronero"
+          ],
+          "size_bytes": 1222470882,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast",
+            "it",
+            "de"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|e32bdd6c5ed67674a11a85d91e06dd5ccdb082f7",
+          "codec": "HEVC",
+          "completed": 9,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.1x01.Questione.di.chimica.1080p.H265.ITA.ENG.SPA.AC3.5.1.SubS.Ita.Eng.Deu.NU.Eng.NFRip-iDN_CreW.mkv",
+          "hdr": [],
+          "info_hash": "e32bdd6c5ed67674a11a85d91e06dd5ccdb082f7",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Breaking.Bad.1x01.Questione.di.chimica.1080p.H265.ITA.ENG.SPA.AC3.5.1.SubS.Ita.Eng.Deu.NU.Eng.NFRip-iDN_CreW.mkv",
+          "resolution": "1080p",
+          "seeders": 2,
+          "seeders_declared": null,
+          "sites": [
+            "StremThru"
+          ],
+          "size_bytes": 1434008496,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|a21cfc5e19d97283199e4ef17000adf94b8a1b39",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Breaking.Bed.S01e01.Ita.Eng.Spa.1080p.h265.SubS-Me7alh.mkv",
+          "hdr": [],
+          "info_hash": "a21cfc5e19d97283199e4ef17000adf94b8a1b39",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Breaking Bad S01e01-07 [1080p Ita Eng Spa h265 10bit SubS][MirCrewRelease] REPACK byMe7alh",
+          "resolution": "1080p",
+          "seeders": 0,
+          "seeders_declared": 0,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 10285912635,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|14e0c033a129cbed73205017901816346fe75f6b",
+          "codec": null,
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Breaking Bad S01E01 - Pilot.mp4",
+          "hdr": [],
+          "info_hash": "14e0c033a129cbed73205017901816346fe75f6b",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Breaking Bad S01 Subtitulos En Espanol HD 5.1 Audio",
+          "resolution": null,
+          "seeders": 0,
+          "seeders_declared": 0,
+          "sites": [
+            "MagnetDL",
+            "TorBox"
+          ],
+          "size_bytes": 6620066500,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|a584351126afcf50d32be068f3c9a62550d41ecc",
+          "codec": "HEVC",
+          "completed": 583,
+          "file_idx": 0,
+          "file_name": "Breaking Bad  S01E01  Pilot.mkv",
+          "hdr": [],
+          "info_hash": "a584351126afcf50d32be068f3c9a62550d41ecc",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 75,
+          "release_name": "Breaking Bad. S01. 2008 2160P.Ai Upscaled.BluRay.60FPS.H265.SDR.AC3.5.1_Marjenbo",
+          "resolution": "2160p",
+          "seeders": 62,
+          "seeders_declared": 87,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 10227506153,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|f0fd1cad0e24b69ff6aaadb9df40c50286327188",
+          "codec": "HEVC",
+          "completed": 560,
+          "file_idx": 0,
+          "file_name": "Breaking Bad (2008) S01E01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE).mkv",
+          "hdr": [],
+          "info_hash": "f0fd1cad0e24b69ff6aaadb9df40c50286327188",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 35,
+          "release_name": "Breaking Bad (2008) S01 (2160p AMZN WEB-DL H265 SDR DDP 5.1 English - HONE)",
+          "resolution": "2160p",
+          "seeders": 62,
+          "seeders_declared": 64,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6730238562,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|1b42b99b9fbc0e0416a379787f250eb73b7434e3",
+          "codec": "H.264",
+          "completed": 47,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD.mkv",
+          "hdr": [],
+          "info_hash": "1b42b99b9fbc0e0416a379787f250eb73b7434e3",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 57,
+          "release_name": "Breaking Bad COMPLETE S01-S05 2160p WEB-DL Rus Ukr Eng DTS-HD MA5.1 x264-TrollUHD [RiCK]",
+          "resolution": "2160p",
+          "seeders": 29,
+          "seeders_declared": 44,
+          "sites": [
+            "1337x",
+            "StremThru"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|eb183076846945b898e43a679bba32017138526e",
+          "codec": "HEVC",
+          "completed": 27,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.2160p.NF.WEB-DL.DTS-HD.MA.5.1.HEVC-CRFW.mkv",
+          "hdr": [],
+          "info_hash": "eb183076846945b898e43a679bba32017138526e",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Breaking.Bad.S01.2160p.NF.WEB-DL.DTS-HD.MA.5.1.HEVC-CRFW[rartv]",
+          "resolution": "2160p",
+          "seeders": 15,
+          "seeders_declared": 18,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6273399350,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|260ac3b389be23d137bb13724dc6a5b43637fe1e",
+          "codec": "H.264",
+          "completed": 2,
+          "file_idx": 6,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD.mkv",
+          "hdr": [],
+          "info_hash": "260ac3b389be23d137bb13724dc6a5b43637fe1e",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 4,
+          "release_name": "Breaking.Bad.S01.2160p.WEBRip.DTS-HD.MA5.1.x264-TrollUHD",
+          "resolution": "2160p",
+          "seeders": 5,
+          "seeders_declared": 7,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEBRip",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "comet|torrent|f000f56f523ce3284e938b237ac0f7c9de41e3a3",
+          "codec": "H.264",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.NF.WEBRip.DTS.x264-iON.mkv",
+          "hdr": [],
+          "info_hash": "f000f56f523ce3284e938b237ac0f7c9de41e3a3",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Breaking.Bad.S01E01.Pilot.2160p.NF.WEBRip.DTS.x264-iON.mkv",
+          "resolution": "2160p",
+          "seeders": 3,
+          "seeders_declared": 1,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 19037182916,
+          "source": "WEBRip",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "codec": null,
+          "completed": 23,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB.mkv",
+          "hdr": [],
+          "info_hash": "b1ef5f14c7a03f7744730adeaec6c767e41fcccd",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 4,
+          "release_name": "Breaking.Bad.S01.2160p.WEB-DL.5xRus.Ukr.Eng.TrollUHD-ULTRAHDCLUB",
+          "resolution": "2160p",
+          "seeders": 2,
+          "seeders_declared": 2,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 54559084099,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|e2b01ba1df534cb007869cfb7e121a8e18e573ea",
+          "codec": "HEVC",
+          "completed": 23,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.AMZN.WEB-DL.DTS-HD.MA.5.1.SDR.HEVC.mkv",
+          "hdr": [],
+          "info_hash": "e2b01ba1df534cb007869cfb7e121a8e18e573ea",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 13,
+          "release_name": "Breaking Bad S01 AMZN 2160p",
+          "resolution": "2160p",
+          "seeders": 2,
+          "seeders_declared": 1,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 13339467135,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|75b59ed4aac1a7a2ef90d1f999f15e1b80c55526",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.STAN.WEB-DL.DD5.1.HEVC-ShiNobi.mkv",
+          "hdr": [],
+          "info_hash": "75b59ed4aac1a7a2ef90d1f999f15e1b80c55526",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Breaking.Bad.S01.2160p.STAN.WEB-DL.DD5.1.HEVC-ShiNobi",
+          "resolution": "2160p",
+          "seeders": 1,
+          "seeders_declared": 1,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 6672257805,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS"
+          ],
+          "binge_group": "torrentio|4k|iON",
+          "codec": "H.264",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.NF.WEBRip.DTS.x264-iON.mkv",
+          "hdr": [],
+          "info_hash": "173787c5415303d73885a07f49cd1fd96de0d5f8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Breaking.Bad.S01E01.Pilot.2160p.NF.WEBRip.DTS.x264-iON",
+          "resolution": "2160p",
+          "seeders": 0,
+          "seeders_declared": 0,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 19037182916,
+          "source": "WEBRip",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|8f46fa8a37674b6460f3ed1996d3e5d1a93e5a55",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Breaking.Bad.S01E01.Pilot.2160p.AMZN.WEB-DL.DTS-HD.MA.5.1.SDR.HEVC.mkv",
+          "hdr": [],
+          "info_hash": "8f46fa8a37674b6460f3ed1996d3e5d1a93e5a55",
+          "is_pack": true,
+          "lang_group": "en",
+          "leechers": 6,
           "release_name": "Breaking Bad S01 AMZN 2160p",
           "resolution": "2160p",
           "seeders": 0,

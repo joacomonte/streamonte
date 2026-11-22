@@ -1,0 +1,33 @@
+{
+  "seasons": [
+    {
+      "season": 1,
+      "rating": 8.7,
+      "episodes": 7
+    },
+    {
+      "season": 2,
+      "rating": 8.8,
+      "episodes": 13
+    },
+    {
+      "season": 3,
+      "rating": 8.7,
+      "episodes": 13
+    },
+    {
+      "season": 4,
+      "rating": 9.0,
+      "episodes": 13
+    },
+    {
+      "season": 5,
+      "rating": 9.3,
+      "episodes": 16
+    }
+  ],
+  "status": {
+    "state": "ended",
+    "next": null
+  }
+}

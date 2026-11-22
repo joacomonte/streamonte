@@ -4,31 +4,39 @@
     "name": "Better Call Saul",
     "year": "2015",
     "poster": "https://image.tmdb.org/t/p/w500/fC2HDm5t0kHl7mTm7jxMR31b7by.jpg",
-    "rating": 8.7,
+    "rating": 9.0,
     "tmdb_rating": 8.716
-  },
-  {
-    "id": "tt6439752",
-    "name": "Snowfall",
-    "year": "2017",
-    "poster": "https://image.tmdb.org/t/p/w500/y7ntzl7msiaS6o7dvDbNG7XFYcR.jpg",
-    "rating": 8.4,
-    "tmdb_rating": 8.394
   },
   {
     "id": "tt2707408",
     "name": "Narcos",
     "year": "2015",
     "poster": "https://image.tmdb.org/t/p/w500/hbe0lyWfTu7Rm9bC9HsjTNVKOBU.jpg",
-    "rating": 8.1,
+    "rating": 8.7,
     "tmdb_rating": 8.095
+  },
+  {
+    "id": "tt6439752",
+    "name": "Snowfall",
+    "year": "2017",
+    "poster": "https://image.tmdb.org/t/p/w500/y7ntzl7msiaS6o7dvDbNG7XFYcR.jpg",
+    "rating": 8.5,
+    "tmdb_rating": 8.394
+  },
+  {
+    "id": "tt2187850",
+    "name": "Pablo Escobar: El Patrón del Mal",
+    "year": "2012",
+    "poster": "https://image.tmdb.org/t/p/w500/jZqm7HFuxfH9P0LFjQZ8nzrCUHP.jpg",
+    "rating": 8.4,
+    "tmdb_rating": 7.654
   },
   {
     "id": "tt8714904",
     "name": "Narcos: México",
     "year": "2018",
     "poster": "https://image.tmdb.org/t/p/w500/yCid4sQkaVzfa2y4yQWs5E0TES9.jpg",
-    "rating": 7.9,
+    "rating": 8.3,
     "tmdb_rating": 7.925
   },
   {
@@ -36,23 +44,15 @@
     "name": "Animal Kingdom",
     "year": "2016",
     "poster": "https://image.tmdb.org/t/p/w500/rzvdKrnSRKPFI0pgqMQknDPpRC9.jpg",
-    "rating": 7.8,
+    "rating": 8.2,
     "tmdb_rating": 7.793
-  },
-  {
-    "id": "tt2187850",
-    "name": "Pablo Escobar: El Patrón del Mal",
-    "year": "2012",
-    "poster": "https://image.tmdb.org/t/p/w500/jZqm7HFuxfH9P0LFjQZ8nzrCUHP.jpg",
-    "rating": 7.7,
-    "tmdb_rating": 7.654
   },
   {
     "id": "tt6692188",
     "name": "El Chapo",
     "year": "2017",
     "poster": "https://image.tmdb.org/t/p/w500/2ClXk4PoOGmkk676y4q6T26GJOb.jpg",
-    "rating": 7.5,
+    "rating": 7.8,
     "tmdb_rating": 7.545
   },
   {
@@ -60,7 +60,7 @@
     "name": "Dark Winds",
     "year": "2022",
     "poster": "https://image.tmdb.org/t/p/w500/kDlrMN0P9ByrEH2GoRbBFeZHbcf.jpg",
-    "rating": 7.5,
+    "rating": 7.7,
     "tmdb_rating": 7.467
   }
 ]

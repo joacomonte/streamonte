@@ -1,0 +1,66 @@
+[
+  {
+    "id": "tt3778644",
+    "name": "Han Solo: Una historia de Star Wars",
+    "year": "2018",
+    "poster": "https://image.tmdb.org/t/p/w500/44pBWKtUQNc0zDat1PX1pOGVNtV.jpg",
+    "rating": 6.9,
+    "tmdb_rating": 6.549
+  },
+  {
+    "id": "tt0338337",
+    "name": "El pago",
+    "year": "2003",
+    "poster": "https://image.tmdb.org/t/p/w500/dXbmbl178OCiZPQhIlaRWpXCAnl.jpg",
+    "rating": 6.3,
+    "tmdb_rating": 6.2
+  },
+  {
+    "id": "tt1219827",
+    "name": "La vigilante del futuro: Ghost in the Shell",
+    "year": "2017",
+    "poster": "https://image.tmdb.org/t/p/w500/wZM6vuiQQDVihlLU7s7YccYjMSZ.jpg",
+    "rating": 6.3,
+    "tmdb_rating": 6.118
+  },
+  {
+    "id": "tt0160399",
+    "name": "El Impostor",
+    "year": "2001",
+    "poster": "https://image.tmdb.org/t/p/w500/eKvq1padft5XxRiSj2MweCEybeX.jpg",
+    "rating": 6.2,
+    "tmdb_rating": 6.1
+  },
+  {
+    "id": "tt0120053",
+    "name": "El Santo",
+    "year": "1997",
+    "poster": "https://image.tmdb.org/t/p/w500/lTfhfGiwXTEiK3NQwsAwbw7aTEb.jpg",
+    "rating": 6.2,
+    "tmdb_rating": 6.116
+  },
+  {
+    "id": "tt0465580",
+    "name": "Héroes",
+    "year": "2009",
+    "poster": "https://image.tmdb.org/t/p/w500/xqbb0WXWxLQPtj8pLLRrgk2T5ag.jpg",
+    "rating": 6.1,
+    "tmdb_rating": 6.149
+  },
+  {
+    "id": "tt1025100",
+    "name": "Proyecto Géminis",
+    "year": "2019",
+    "poster": "https://image.tmdb.org/t/p/w500/imuYGNcXgv6rmZBtwWRypGc7TqH.jpg",
+    "rating": 5.7,
+    "tmdb_rating": 6.253
+  },
+  {
+    "id": "tt1648190",
+    "name": "La Torre Oscura",
+    "year": "2017",
+    "poster": "https://image.tmdb.org/t/p/w500/eVTlk5O6simP30vTd3sA1BNQZgV.jpg",
+    "rating": 5.6,
+    "tmdb_rating": 5.816
+  }
+]

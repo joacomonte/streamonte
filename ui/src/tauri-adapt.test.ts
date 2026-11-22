@@ -10,8 +10,8 @@ const fixture = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../mock
 
 test('search: kind series → tv, name → title, imdb_rating → rating', () => {
 	const items = adapt.catalogItems(fixture<Raw.CatalogItem[]>('catalog_search__fight-club'));
-	assert.deepEqual(items[0], { id: 'tt0137523', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'https://images.metahub.space/poster/small/tt0137523/img', rating: null, released: null, excluded: false });
-	assert.equal(items[1]?.kind, 'tv');
+	assert.deepEqual(items[0], { id: 'tt0137523', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'https://images.metahub.space/poster/small/tt0137523/img', rating: '8.8', released: null, excluded: false });
+	assert.ok(items.some((i) => i.kind === 'tv'), 'una serie sale como tv');
 });
 
 test('trending: has_more → hasMore', () => {
@@ -76,12 +76,12 @@ test('seasonRatings: status de la serie', () => {
 
 test('similar', () => {
 	const s = adapt.similar(fixture<Raw.Similar[]>('catalog_similar__movie_tt0137523'));
-	assert.deepEqual(s[0], { id: 'tt36042156', title: 'The Punisher: La última muerte', year: '2026', poster: 'https://image.tmdb.org/t/p/w500/qkyqQqQN8HAkLezR6xWTYzz6Icv.jpg', rating: 8.2 });
+	assert.deepEqual(s[0], { id: 'tt0180093', title: 'Réquiem por un sueño', year: '2000', poster: 'https://image.tmdb.org/t/p/w500/tz2xgFG1peQGcUUCywVwFMFvSYd.jpg', rating: 8.3 });
 });
 
 test('optionsUpdate: evento catalog-streams de película', () => {
 	const ev = fixture<{ type: string; update: Raw.StreamsUpdate }[]>('events__catalog_streams__movie_tt0137523');
-	const raw = ev[0]?.update;
+	const raw = ev[ev.length - 1]?.update; // la secuencia es progresiva: el último evento trae todo
 	assert.ok(raw);
 	const up = adapt.optionsUpdate(raw);
 	assert.equal(up.done, true);
@@ -92,7 +92,7 @@ test('optionsUpdate: evento catalog-streams de película', () => {
 	assert.equal(first?.hash, '40712b59caaee09d17a4337c7f357bb2a57a48d6');
 	assert.equal(first?.resolution, '1080p');
 	assert.equal(first?.sizeBytes, 13636521164);
-	assert.equal(first?.seeds, 18);
+	assert.equal(first?.seeds, 17);
 	assert.equal(first?.leechers, 1);
 	assert.equal(first?.source, 'BluRay');
 	assert.deepEqual(first?.audio, ['en', 'cast', 'it']);

@@ -1,0 +1,5736 @@
+[
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 0,
+          "id": "torrentio",
+          "message": null,
+          "ms": null,
+          "name": "Torrentio",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "peerflix",
+          "message": null,
+          "ms": null,
+          "name": "Peerflix",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "comet",
+          "message": null,
+          "ms": null,
+          "name": "Comet",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": null,
+          "name": "TorrentsDB",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": null,
+          "name": "Hacktorrent",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": null,
+          "name": "EliteTorrent",
+          "state": "pending"
+        }
+      ],
+      "candidates": [],
+      "done": false,
+      "video_id": "tt1375666"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 433,
+          "id": "torrentio",
+          "message": null,
+          "ms": 169,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "peerflix",
+          "message": null,
+          "ms": null,
+          "name": "Peerflix",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "comet",
+          "message": null,
+          "ms": null,
+          "name": "Comet",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": null,
+          "name": "TorrentsDB",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": null,
+          "name": "Hacktorrent",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": null,
+          "name": "EliteTorrent",
+          "state": "pending"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "nl"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|DVD",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": null,
+          "hdr": [],
+          "info_hash": "fc204585637bc8afc1a6a773fa6e5427975d21a8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) dvdr (Nl+Eng+Esp sub) ZARCK 2Lions-Team",
+          "resolution": null,
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "ThePirateBay"
+          ],
+          "size_bytes": 4681514352,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "es",
+            "fr",
+            "de"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.PROPER.Bluray.2160p.AV1.HDR10.OPUS.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "2849211f150e966ef7924f43aec22727a644e10d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 PROPER Bluray 2160p AV1 HDR10 EN/ITA/FR/ES/DE OPUS 5.1-UH [UserHEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 279,
+          "sites": [
+            "1337x"
+          ],
+          "size_bytes": 9567039651,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "pl",
+            "cz",
+            "hu",
+            "bg",
+            "ua",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id",
+            "my",
+            "th"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|h265|DV|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3efdb7d94fa293e28b8d9c2c24c0ca983621364f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 34,
+          "sites": [
+            "ThePirateBay"
+          ],
+          "size_bytes": 31514322534,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|1080p|h264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 11,
+          "file_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p [H264-mp4].mp4",
+          "hdr": [],
+          "info_hash": "284499354b9280da45495cb8e2569b24842dff18",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 22,
+          "sites": [
+            "ThePirateBay"
+          ],
+          "size_bytes": 5368709120,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) 2160p UHD BluRay REMUX DV HDR 10bit HEVC [Hindi DDP 5.1 + English DTS-HD MA 5.1] x265 (FraMeSToR-4KHDHub).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "7acacb01c6f28031d8d90658c8f0278d0bdb3e2a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) 2160p UHD BluRay REMUX DV HDR 10bit HEVC [Hindi DDP 5.1 + English DTS-HD MA 5.1] x265 (FraMeSToR-4KHDHub)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 19,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 70813273292,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|UHDRip|hevc|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.ITA.ENG.UHDrip.HDR.HEVC.2160p.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "0bf43fe14791d79209ef02e53514f084222ba440",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 ITA ENG UHDrip HDR HEVC 2160p mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 10,
+          "sites": [
+            "TorrentGalaxy"
+          ],
+          "size_bytes": 22774064087,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BDRip|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": null,
+          "file_name": null,
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "e47b8187443b3b6afe1d18354be1a839771a8f42",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.4K.HDR.2160p.BDRip Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 9,
+          "sites": [
+            "1337x"
+          ],
+          "size_bytes": 22441204121,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "lat",
+            "en",
+            "cast",
+            "ru",
+            "it",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "ua",
+            "th"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|h265|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 3,
+          "file_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN.mp4",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3e979c3e183261623f9f390b8355ca109dcf0825",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 8,
+          "sites": [
+            "TorrentGalaxy"
+          ],
+          "size_bytes": 74796855459,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "fr",
+            "de"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Bluray.2160p.AV1.HDR10.AC3.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "6ee6e45b25adfd20c008722beca5d92ef830c09c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 Bluray 2160p AV1 HDR10 EN/FR/DE/ITA/ES AC3 5.1-UH",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 8,
+          "sites": [
+            "ThePirateBay"
+          ],
+          "size_bytes": 9105330667,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BRRip|h265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) 2160p H265 10 bit ita eng AC3 5.1 sub ita eng Licdom.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "8f7f8a415d0b3881a69a8faebb3cefd161d5dba9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) 2160p H265 BluRay Rip 10 bit HDR ita eng AC3 5.1 sub ita eng Licdom",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 8,
+          "sites": [
+            "1337x"
+          ],
+          "size_bytes": 7483980513,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|720p|h264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 11,
+          "file_name": "Inception - Christopher Nolan 2010 Eng Ita Multi-Subs 4K 720p [H264-mp4].mp4",
+          "hdr": [],
+          "info_hash": "29f382e5e9d3382f3dfe229dcb18306ca0eadd93",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception - Christopher Nolan 2010 Eng Ita Multi-Subs 4K 720p [H",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 5,
+          "sites": [
+            "ThePirateBay"
+          ],
+          "size_bytes": 2222645575,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "pl",
+            "cz",
+            "hu",
+            "tr"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "9b3909003bbc6c5b3d748de89bc026753b88d194",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 85566485954,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) [SDR] 2160p BluRay HEVC [Hin-Eng] DDP 5.1 — PeruGuy.mkv",
+          "hdr": [],
+          "info_hash": "b745be115a4514351e51d27edb9e17780a204be2",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) [SDR] 2160p BluRay HEVC [Hin-Eng] DDP 5.1 — PeruGuy",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "1337x"
+          ],
+          "size_bytes": 29925184634,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "DTS",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Multi.2160p.UHD.Bluray.x265.DTS-HDMA.5.1.[En+Hi]-DTOne.mkv",
+          "hdr": [],
+          "info_hash": "82574de3afad807dcc25dbbd794d69f67b143311",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.Multi.2160p.UHD.Bluray.x265.DTS-HDMA.5.1.[En+Hi]-",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "ThePirateBay"
+          ],
+          "size_bytes": 26231512760,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "es",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "pl",
+            "cz",
+            "hu",
+            "tr"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "2d6b98f371908a20c3dcf006ad6f494332472119",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "TorrentGalaxy"
+          ],
+          "size_bytes": 85566485954,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|UHDRip|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "Origen 4Krip2160.www.descargas2020.com.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "478fcbc60331603712378b97e7fd04156e48a8a8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Origen [4K UHDrip][2160p][HDR][AC3 5.1 Castellano AC3 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "Wolfmax4k"
+          ],
+          "size_bytes": 29216515031,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "Origen 4Kmicro2160.www.descargas2020.org.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "b0496aac580571be68d53a811b03cf7993142a65",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Origen [4K UHDmicro][2160p][HDR][AC3 5.1 Castellano-AC3 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "Wolfmax4k"
+          ],
+          "size_bytes": 17008070492,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Počátek (2010) UHDRDV cz en.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "6c8d49683ddaac279d1a96eb1390b108db3c0f2b",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Počátek / Inception (2010)(CZ/EN)[2160p][HDR/DV][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 6861210255,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|hevc|DV|HDR10+",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.DV.HDR10Plus.Ai-Enhanced.HEVC.DTS-HD.MA.5.1.MULTI-RIFE.4.18-60fps-DirtyHippie.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "6a7165dc823829c6c58b966e1f40d23209db3d73",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.DV.HDR10Plus.Ai-Enhanced.HEVC.DTS-HD.MA.5.1.MULTI-RIFE.4.18-60fps-DirtyHippie",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 2,
+          "sites": [
+            "TorrentGalaxy"
+          ],
+          "size_bytes": 52881784832,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "Origen 4K2160.www.newpct1.com.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "34f7c73dd65f07a8c1729df66dc87cebc2c32b9d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Origen [4K Remux][2160p][HDR][AC3 5.1 Castellano DTS-MA 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "MejorTorrent"
+          ],
+          "size_bytes": 70781061038,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD"
+          ],
+          "binge_group": "torrentio|1080p|WEBRip|av1",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) WEBRip 1080p AV1 AC3 ITA ENG SUB ITA ENG - Lullozzo.mkv",
+          "hdr": [],
+          "info_hash": "c8623c8aa314d041b35ed28dae75ee87a3741c69",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) WEBRip 1080p AV1 AC3 ITA ENG SUB ITA ENG - Lullozzo",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 262,
+          "sites": [
+            "1337x"
+          ],
+          "size_bytes": 3414499000,
+          "source": "WEBRip",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "lat",
+            "en",
+            "cast",
+            "ru",
+            "it",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "ua",
+            "th"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|1080p|BluRay REMUX|h264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 3,
+          "file_name": "Inception.2010.1080p.BluRay.REMUX.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.DTS-HD.Master.VC-1.H264-BEN.THE.MEN.mkv",
+          "hdr": [],
+          "info_hash": "71e315044f21b18dcf380aea4f03a70e2a5e0210",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.1080p.BluRay.REMUX.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.DTS-HD.Master.VC-1.H264-BEN.THE.MEN",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 46,
+          "sites": [
+            "TorrentGalaxy"
+          ],
+          "size_bytes": 39105677230,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "il"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|1080p|av1|10bit",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception 2010 1080p AV1 10Bit DKong.mkv",
+          "hdr": [],
+          "info_hash": "520f5bb299060c2cd62192e602f1c2157e9d277f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 1080p AV1 10Bit DKong",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 35,
+          "sites": [
+            "ThePirateBay"
+          ],
+          "size_bytes": 961397391,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD"
+          ],
+          "binge_group": "torrentio|1080p|BluRay|x264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.BluRay.1080p.AC3.ITA.AC3.ENG.x264-Wiggaz.mkv",
+          "hdr": [],
+          "info_hash": "c2ac63ee454496b310886cf5c91b612eb5a80137",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 BluRay 1080p AC3 ITA AC3 ENG x264 Wiggaz mkv",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 17,
+          "sites": [
+            "TorrentGalaxy"
+          ],
+          "size_bytes": 8546984919,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio"
+          ],
+          "audio": [
+            "en",
+            "pl"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|1080p|BluRay|h264|HDR",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 1,
+          "file_name": "Incepcja - Inception 2010 [HLG HDR SDR] [1080p.BluRay.H264.AC3..5.1.AS76-FT] [ENG-Lektor PL] [Alusia].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "34f4058da318d1b09729d1ca56ea9536758a64f8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Incepcja - Inception 2010 [HLG HDR SDR] [1080p.BluRay.H264.AC3..5.1.AS76-FT] [ENG-Lektor PL] [Alusia]",
+          "resolution": "1080p",
+          "seeders": null,
+          "seeders_declared": 11,
+          "sites": [
+            "EXT"
+          ],
+          "size_bytes": 6216965160,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        }
+      ],
+      "done": false,
+      "video_id": "tt1375666"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 433,
+          "id": "torrentio",
+          "message": null,
+          "ms": 169,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "peerflix",
+          "message": null,
+          "ms": null,
+          "name": "Peerflix",
+          "state": "pending"
+        },
+        {
+          "count": 995,
+          "id": "comet",
+          "message": null,
+          "ms": 738,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 116,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 751,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": null,
+          "name": "Hacktorrent",
+          "state": "pending"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 1396,
+          "name": "EliteTorrent",
+          "state": "ok"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "nl",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|DVD",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "Inception (2010) dvdr (Nl+Eng+Esp sub) ZARCK 2Lions-Team",
+          "hdr": [],
+          "info_hash": "fc204585637bc8afc1a6a773fa6e5427975d21a8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) dvdr (Nl+Eng+Esp sub) ZARCK 2Lions-Team",
+          "resolution": null,
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "ThePirateBay",
+            "Torrentio"
+          ],
+          "size_bytes": 4681514352,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "fr",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|79f007b578c4e70e2d855ec2fd351c65e7c1bf58",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "INCEPTION (DD5.1)(Eng Fr Spa Audio)(4 subs) PAL TBS",
+          "hdr": [],
+          "info_hash": "79f007b578c4e70e2d855ec2fd351c65e7c1bf58",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "INCEPTION (DD5.1)(Eng Fr Spa Audio)(4 subs) PAL TBS",
+          "resolution": null,
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "TorBox"
+          ],
+          "size_bytes": 7516192768,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "fr",
+            "de",
+            "cast"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.PROPER.Bluray.2160p.AV1.HDR10.OPUS.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "2849211f150e966ef7924f43aec22727a644e10d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 PROPER Bluray 2160p AV1 HDR10 EN/ITA/FR/ES/DE OPUS 5.1-UH [UserHEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 319,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "knaben",
+            "rargb"
+          ],
+          "size_bytes": 9563173563,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://explodie.org:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Počátek (2010) UHDRDV cz en.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "6c8d49683ddaac279d1a96eb1390b108db3c0f2b",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Počátek / Inception (2010)(CZ/EN)[2160p][HDR/DV][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 51,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "sktorrent"
+          ],
+          "size_bytes": 6858144228,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337",
+            "udp://ipv4announce.sktorrent.eu:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|f0e49d6e1254f33208c68feb9ddd0f0e4deb26a6",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Начало / Inception [2010 UHD BDRemux 2160p HDR10 HDR10+ Dolby Vision] [Hybrid] Dub + 3x DVO + 2x AVO + VO + 2x Ukr + Original (Eng) + Sub (Rus Ukr Eng)",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "f0e49d6e1254f33208c68feb9ddd0f0e4deb26a6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Начало / Inception [2010 UHD BDRemux 2160p HDR10 HDR10+ Dolby Vision] [Hybrid] Dub + 3x DVO + 2x AVO + VO + 2x Ukr + Original (Eng) + Sub (Rus Ukr Eng)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 46,
+          "sites": [
+            "Torrentio"
+          ],
+          "size_bytes": 83086142341,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "http://bt3.t-ru.org/ann?magnet",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "pl",
+            "cz",
+            "hu",
+            "bg",
+            "ua",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id",
+            "my",
+            "th"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|h265|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3efdb7d94fa293e28b8d9c2c24c0ca983621364f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 34,
+          "sites": [
+            "ThePirateBay",
+            "Torrentio"
+          ],
+          "size_bytes": 31518432930,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|b2f9bafe72d33707bf9e6b7c5e018cefbb54ef50",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) AC3 5.1 ITA.ENG 2160p H265 HDR10 sub NUita.eng Sp33dy94-MIRCrew.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "b2f9bafe72d33707bf9e6b7c5e018cefbb54ef50",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) AC3 5.1 ITA.ENG 2160p H265 HDR10 sub NUita.eng Sp33dy94-MIRCrew.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 33,
+          "sites": [
+            "StremThru",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 4052087636,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://exodus.desync.com:6969/announce",
+            "udp://tracker.openbittorrent.com:80/announce",
+            "udp://www.torrent.eu.org:451/announce",
+            "udp://open.stealth.si:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|e10c8eb30c64876fb82a9a49e2b9186e42191fe2",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "Inception.2010.4K.HDR.DV.2160p.BDRemux Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "e10c8eb30c64876fb82a9a49e2b9186e42191fe2",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.4K.HDR.DV.2160p.BDRemux Ita Eng x265-NAHOM.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 27,
+          "sites": [
+            "Torrentio",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 67200776684,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://9.rarbg.com:2710/announce",
+            "udp://9.rarbg.to:2710/announce",
+            "udp://9.rarbg.me:2710/announce",
+            "udp://tracker.opentrackr.org:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BDRip|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "Inception.2010.4K.HDR.2160p.BDRip Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "e47b8187443b3b6afe1d18354be1a839771a8f42",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.4K.HDR.2160p.BDRip Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 27,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 22400355656,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.coppersurfer.tk:6969/announce",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://9.rarbg.com:2710/announce",
+            "udp://9.rarbg.to:2710/announce",
+            "udp://9.rarbg.me:2710/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "fr",
+            "de",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Bluray.2160p.AV1.HDR10.AC3.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "6ee6e45b25adfd20c008722beca5d92ef830c09c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 Bluray 2160p AV1 HDR10 EN/FR/DE/ITA/ES AC3 5.1-UH",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 26,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 9107593674,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://explodie.org:6969/announce",
+            "udp://p4p.arenabg.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) 2160p UHD BluRay REMUX DV HDR 10bit HEVC [Hindi DDP 5.1 + English DTS-HD MA 5.1] x265 (FraMeSToR-4KHDHub).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "7acacb01c6f28031d8d90658c8f0278d0bdb3e2a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) 2160p UHD BluRay REMUX DV HDR 10bit HEVC [Hindi DDP 5.1 + English DTS-HD MA 5.1] x265 (FraMeSToR-4KHDHub)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 22,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 70813273292,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|1080p|h264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 11,
+          "file_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p [H264-mp4].mp4",
+          "hdr": [],
+          "info_hash": "284499354b9280da45495cb8e2569b24842dff18",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 22,
+          "sites": [
+            "ThePirateBay",
+            "StremThru"
+          ],
+          "size_bytes": 5378471563,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) [SDR] 2160p BluRay HEVC [Hin-Eng] DDP 5.1 — PeruGuy.mkv",
+          "hdr": [],
+          "info_hash": "b745be115a4514351e51d27edb9e17780a204be2",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) [SDR] 2160p BluRay HEVC [Hin-Eng] DDP 5.1 — PeruGuy",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 19,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 29921618248,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://opentracker.i2p.rocks:6969/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://tracker.openbittorrent.com:6969/announce",
+            "http://tracker.openbittorrent.com:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "lat",
+            "en",
+            "cast",
+            "ru",
+            "it",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "ua",
+            "th"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|h265|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 3,
+          "file_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN.mp4",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3e979c3e183261623f9f390b8355ca109dcf0825",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 11,
+          "sites": [
+            "TorrentGalaxy",
+            "Torrentio",
+            "knaben"
+          ],
+          "size_bytes": 74796865556,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BRRip|h265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) 2160p H265 10 bit ita eng AC3 5.1 sub ita eng Licdom.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "8f7f8a415d0b3881a69a8faebb3cefd161d5dba9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) 2160p H265 BluRay Rip 10 bit HDR ita eng AC3 5.1 sub ita eng Licdom",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 11,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 7489198090,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://ipv4.tracker.harry.lu:80/announce",
+            "udp://9.rarbg.to:2790/announce",
+            "udp://inferno.demonoid.is:3391/announce",
+            "udp://opentracker.i2p.rocks:6969/announce",
+            "udp://explodie.org:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|UHDRip|hevc|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.ITA.ENG.UHDrip.HDR.HEVC.2160p.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "0bf43fe14791d79209ef02e53514f084222ba440",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 ITA ENG UHDrip HDR HEVC 2160p mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 10,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 22778495091,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|f02224a408eaf25041c7ff73da5fc1dba8b559fa",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "Начало / Inception [2010 UHD Blu-ray disc 2160p] Dub + Sub Rus Eng + Original Eng",
+          "hdr": [],
+          "info_hash": "f02224a408eaf25041c7ff73da5fc1dba8b559fa",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Начало / Inception [2010 UHD Blu-ray disc 2160p] Dub + Sub Rus Eng + Original Eng",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 9,
+          "sites": [
+            "Torrentio"
+          ],
+          "size_bytes": 92470645882,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "http://bt4.t-ru.org/ann?magnet",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|720p|h264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 11,
+          "file_name": "Inception - Christopher Nolan 2010 Eng Ita Multi-Subs 4K 720p [H264-mp4].mp4",
+          "hdr": [],
+          "info_hash": "29f382e5e9d3382f3dfe229dcb18306ca0eadd93",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception - Christopher Nolan 2010 Eng Ita Multi-Subs 4K 720p [H",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 5,
+          "sites": [
+            "ThePirateBay",
+            "TorBox"
+          ],
+          "size_bytes": 2221533046,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "pl",
+            "cz",
+            "hu",
+            "tr",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "9b3909003bbc6c5b3d748de89bc026753b88d194",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "StremThru"
+          ],
+          "size_bytes": 85569303149,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "DTS",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Multi.2160p.UHD.Bluray.x265.DTS-HDMA.5.1.[En+Hi]-DTOne.mkv",
+          "hdr": [],
+          "info_hash": "82574de3afad807dcc25dbbd794d69f67b143311",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.Multi.2160p.UHD.Bluray.x265.DTS-HDMA.5.1.[En+Hi]-",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "ThePirateBay",
+            "StremThru"
+          ],
+          "size_bytes": 26235984619,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "pl",
+            "cz",
+            "hu",
+            "tr",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "2d6b98f371908a20c3dcf006ad6f494332472119",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 85569303149,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|UHDRip|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "Origen 4Krip2160.www.descargas2020.com.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "478fcbc60331603712378b97e7fd04156e48a8a8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Origen [4K UHDrip][2160p][HDR][AC3 5.1 Castellano AC3 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "Wolfmax4k",
+            "Peerflix"
+          ],
+          "size_bytes": 29216515031,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://tracker1.myporn.club:9337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "Origen 4Kmicro2160.www.descargas2020.org.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "b0496aac580571be68d53a811b03cf7993142a65",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Origen [4K UHDmicro][2160p][HDR][AC3 5.1 Castellano-AC3 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "Wolfmax4k",
+            "Peerflix"
+          ],
+          "size_bytes": 17006098882,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|hevc|DV|HDR10+",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.DV.HDR10Plus.Ai-Enhanced.HEVC.DTS-HD.MA.5.1.MULTI-RIFE.4.18-60fps-DirtyHippie.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "6a7165dc823829c6c58b966e1f40d23209db3d73",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.DV.HDR10Plus.Ai-Enhanced.HEVC.DTS-HD.MA.5.1.MULTI-RIFE.4.18-60fps-DirtyHippie",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 2,
+          "sites": [
+            "TorrentGalaxy",
+            "Torrentio"
+          ],
+          "size_bytes": 52883246507,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "Origen 4K2160.www.newpct1.com.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "34f7c73dd65f07a8c1729df66dc87cebc2c32b9d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Origen [4K Remux][2160p][HDR][AC3 5.1 Castellano DTS-MA 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "MejorTorrent",
+            "StremThru"
+          ],
+          "size_bytes": 70783596637,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        }
+      ],
+      "done": false,
+      "video_id": "tt1375666"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 433,
+          "id": "torrentio",
+          "message": null,
+          "ms": 169,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "peerflix",
+          "message": null,
+          "ms": null,
+          "name": "Peerflix",
+          "state": "pending"
+        },
+        {
+          "count": 995,
+          "id": "comet",
+          "message": null,
+          "ms": 738,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 116,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 751,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 4,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 2446,
+          "name": "Hacktorrent",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 1396,
+          "name": "EliteTorrent",
+          "state": "ok"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "nl",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|DVD",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "Inception (2010) dvdr (Nl+Eng+Esp sub) ZARCK 2Lions-Team",
+          "hdr": [],
+          "info_hash": "fc204585637bc8afc1a6a773fa6e5427975d21a8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) dvdr (Nl+Eng+Esp sub) ZARCK 2Lions-Team",
+          "resolution": null,
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "ThePirateBay",
+            "Torrentio"
+          ],
+          "size_bytes": 4681514352,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "fr",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|79f007b578c4e70e2d855ec2fd351c65e7c1bf58",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "INCEPTION (DD5.1)(Eng Fr Spa Audio)(4 subs) PAL TBS",
+          "hdr": [],
+          "info_hash": "79f007b578c4e70e2d855ec2fd351c65e7c1bf58",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "INCEPTION (DD5.1)(Eng Fr Spa Audio)(4 subs) PAL TBS",
+          "resolution": null,
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "TorBox"
+          ],
+          "size_bytes": 7516192768,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "fr",
+            "de",
+            "cast"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.PROPER.Bluray.2160p.AV1.HDR10.OPUS.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "2849211f150e966ef7924f43aec22727a644e10d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 PROPER Bluray 2160p AV1 HDR10 EN/ITA/FR/ES/DE OPUS 5.1-UH [UserHEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 319,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "knaben",
+            "rargb"
+          ],
+          "size_bytes": 9563173563,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://explodie.org:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "cz"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|hevc|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Počátek (2010) UHDRDV cz en.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "6c8d49683ddaac279d1a96eb1390b108db3c0f2b",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Počátek / Inception (2010)(CZ/EN)[2160p][HDR/DV][HEVC]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 51,
+          "sites": [
+            "EXT",
+            "StremThru",
+            "sktorrent"
+          ],
+          "size_bytes": 6858144228,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337",
+            "udp://ipv4announce.sktorrent.eu:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|f0e49d6e1254f33208c68feb9ddd0f0e4deb26a6",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Начало / Inception [2010 UHD BDRemux 2160p HDR10 HDR10+ Dolby Vision] [Hybrid] Dub + 3x DVO + 2x AVO + VO + 2x Ukr + Original (Eng) + Sub (Rus Ukr Eng)",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "f0e49d6e1254f33208c68feb9ddd0f0e4deb26a6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Начало / Inception [2010 UHD BDRemux 2160p HDR10 HDR10+ Dolby Vision] [Hybrid] Dub + 3x DVO + 2x AVO + VO + 2x Ukr + Original (Eng) + Sub (Rus Ukr Eng)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 46,
+          "sites": [
+            "Torrentio"
+          ],
+          "size_bytes": 83086142341,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "http://bt3.t-ru.org/ann?magnet",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "pl",
+            "cz",
+            "hu",
+            "bg",
+            "ua",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id",
+            "my",
+            "th"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|h265|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3efdb7d94fa293e28b8d9c2c24c0ca983621364f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 34,
+          "sites": [
+            "ThePirateBay",
+            "Torrentio"
+          ],
+          "size_bytes": 31518432930,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|b2f9bafe72d33707bf9e6b7c5e018cefbb54ef50",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) AC3 5.1 ITA.ENG 2160p H265 HDR10 sub NUita.eng Sp33dy94-MIRCrew.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "b2f9bafe72d33707bf9e6b7c5e018cefbb54ef50",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) AC3 5.1 ITA.ENG 2160p H265 HDR10 sub NUita.eng Sp33dy94-MIRCrew.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 33,
+          "sites": [
+            "StremThru",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 4052087636,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://exodus.desync.com:6969/announce",
+            "udp://tracker.openbittorrent.com:80/announce",
+            "udp://www.torrent.eu.org:451/announce",
+            "udp://open.stealth.si:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|e10c8eb30c64876fb82a9a49e2b9186e42191fe2",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "Inception.2010.4K.HDR.DV.2160p.BDRemux Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "e10c8eb30c64876fb82a9a49e2b9186e42191fe2",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.4K.HDR.DV.2160p.BDRemux Ita Eng x265-NAHOM.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 27,
+          "sites": [
+            "Torrentio",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 67200776684,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://9.rarbg.com:2710/announce",
+            "udp://9.rarbg.to:2710/announce",
+            "udp://9.rarbg.me:2710/announce",
+            "udp://tracker.opentrackr.org:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BDRip|x265|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "Inception.2010.4K.HDR.2160p.BDRip Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "e47b8187443b3b6afe1d18354be1a839771a8f42",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.4K.HDR.2160p.BDRip Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 27,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 22400355656,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.coppersurfer.tk:6969/announce",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://9.rarbg.com:2710/announce",
+            "udp://9.rarbg.to:2710/announce",
+            "udp://9.rarbg.me:2710/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "fr",
+            "de",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Bluray.2160p.AV1.HDR10.AC3.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "6ee6e45b25adfd20c008722beca5d92ef830c09c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 Bluray 2160p AV1 HDR10 EN/FR/DE/ITA/ES AC3 5.1-UH",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 26,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 9107593674,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://explodie.org:6969/announce",
+            "udp://p4p.arenabg.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) 2160p UHD BluRay REMUX DV HDR 10bit HEVC [Hindi DDP 5.1 + English DTS-HD MA 5.1] x265 (FraMeSToR-4KHDHub).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "7acacb01c6f28031d8d90658c8f0278d0bdb3e2a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) 2160p UHD BluRay REMUX DV HDR 10bit HEVC [Hindi DDP 5.1 + English DTS-HD MA 5.1] x265 (FraMeSToR-4KHDHub)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 22,
+          "sites": [
+            "EXT",
+            "Torrentio"
+          ],
+          "size_bytes": 70813273292,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|1080p|h264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 11,
+          "file_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p [H264-mp4].mp4",
+          "hdr": [],
+          "info_hash": "284499354b9280da45495cb8e2569b24842dff18",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 22,
+          "sites": [
+            "ThePirateBay",
+            "StremThru"
+          ],
+          "size_bytes": 5378471563,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) [SDR] 2160p BluRay HEVC [Hin-Eng] DDP 5.1 — PeruGuy.mkv",
+          "hdr": [],
+          "info_hash": "b745be115a4514351e51d27edb9e17780a204be2",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) [SDR] 2160p BluRay HEVC [Hin-Eng] DDP 5.1 — PeruGuy",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 19,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 29921618248,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://opentracker.i2p.rocks:6969/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://tracker.openbittorrent.com:6969/announce",
+            "http://tracker.openbittorrent.com:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "lat",
+            "en",
+            "cast",
+            "ru",
+            "it",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "ua",
+            "th"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|h265|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 3,
+          "file_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN.mp4",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3e979c3e183261623f9f390b8355ca109dcf0825",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 11,
+          "sites": [
+            "TorrentGalaxy",
+            "Torrentio",
+            "knaben"
+          ],
+          "size_bytes": 74796865556,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BRRip|h265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) 2160p H265 10 bit ita eng AC3 5.1 sub ita eng Licdom.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "8f7f8a415d0b3881a69a8faebb3cefd161d5dba9",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) 2160p H265 BluRay Rip 10 bit HDR ita eng AC3 5.1 sub ita eng Licdom",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 11,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "rargb",
+            "knaben"
+          ],
+          "size_bytes": 7489198090,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://ipv4.tracker.harry.lu:80/announce",
+            "udp://9.rarbg.to:2790/announce",
+            "udp://inferno.demonoid.is:3391/announce",
+            "udp://opentracker.i2p.rocks:6969/announce",
+            "udp://explodie.org:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|UHDRip|hevc|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.ITA.ENG.UHDrip.HDR.HEVC.2160p.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "0bf43fe14791d79209ef02e53514f084222ba440",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception 2010 ITA ENG UHDrip HDR HEVC 2160p mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 10,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 22778495091,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|f02224a408eaf25041c7ff73da5fc1dba8b559fa",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "Начало / Inception [2010 UHD Blu-ray disc 2160p] Dub + Sub Rus Eng + Original Eng",
+          "hdr": [],
+          "info_hash": "f02224a408eaf25041c7ff73da5fc1dba8b559fa",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Начало / Inception [2010 UHD Blu-ray disc 2160p] Dub + Sub Rus Eng + Original Eng",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 9,
+          "sites": [
+            "Torrentio"
+          ],
+          "size_bytes": 92470645882,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "http://bt4.t-ru.org/ann?magnet",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|720p|h264",
+          "codec": "H.264",
+          "completed": null,
+          "file_idx": 11,
+          "file_name": "Inception - Christopher Nolan 2010 Eng Ita Multi-Subs 4K 720p [H264-mp4].mp4",
+          "hdr": [],
+          "info_hash": "29f382e5e9d3382f3dfe229dcb18306ca0eadd93",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception - Christopher Nolan 2010 Eng Ita Multi-Subs 4K 720p [H",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 5,
+          "sites": [
+            "ThePirateBay",
+            "TorBox"
+          ],
+          "size_bytes": 2221533046,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "pl",
+            "cz",
+            "hu",
+            "tr",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "9b3909003bbc6c5b3d748de89bc026753b88d194",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "EXT",
+            "StremThru"
+          ],
+          "size_bytes": 85569303149,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "DTS",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Multi.2160p.UHD.Bluray.x265.DTS-HDMA.5.1.[En+Hi]-DTOne.mkv",
+          "hdr": [],
+          "info_hash": "82574de3afad807dcc25dbbd794d69f67b143311",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.Multi.2160p.UHD.Bluray.x265.DTS-HDMA.5.1.[En+Hi]-",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 4,
+          "sites": [
+            "ThePirateBay",
+            "StremThru"
+          ],
+          "size_bytes": 26235984619,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "it",
+            "pt",
+            "cn",
+            "fr",
+            "de",
+            "pl",
+            "cz",
+            "hu",
+            "tr",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS-HD"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|DV|HDR",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "2d6b98f371908a20c3dcf006ad6f494332472119",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.Eng.Fre.Ger.Ita.Por.Spa.Cze.Hun.Pol.Rus.Tha.Tur.Chi.Jpn.2160p.BluRay.Hybrid.Remux.DV.HDR.HEVC.DTS-HD.MA-SGF",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "TorrentGalaxy",
+            "StremThru"
+          ],
+          "size_bytes": 85569303149,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|UHDRip|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "Origen 4Krip2160.www.descargas2020.com.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "478fcbc60331603712378b97e7fd04156e48a8a8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Origen [4K UHDrip][2160p][HDR][AC3 5.1 Castellano AC3 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "Wolfmax4k",
+            "Peerflix"
+          ],
+          "size_bytes": 29216515031,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://tracker1.myporn.club:9337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "Origen 4Kmicro2160.www.descargas2020.org.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "b0496aac580571be68d53a811b03cf7993142a65",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Origen [4K UHDmicro][2160p][HDR][AC3 5.1 Castellano-AC3 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 3,
+          "sites": [
+            "Wolfmax4k",
+            "Peerflix"
+          ],
+          "size_bytes": 17006098882,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://open.tracker.cl:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "multi",
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|hevc|DV|HDR10+",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.DV.HDR10Plus.Ai-Enhanced.HEVC.DTS-HD.MA.5.1.MULTI-RIFE.4.18-60fps-DirtyHippie.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "6a7165dc823829c6c58b966e1f40d23209db3d73",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.DV.HDR10Plus.Ai-Enhanced.HEVC.DTS-HD.MA.5.1.MULTI-RIFE.4.18-60fps-DirtyHippie",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 2,
+          "sites": [
+            "TorrentGalaxy",
+            "Torrentio"
+          ],
+          "size_bytes": 52883246507,
+          "source": null,
+          "subs": [],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "cast"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|HDR",
+          "codec": null,
+          "completed": null,
+          "file_idx": 4,
+          "file_name": "Origen 4K2160.www.newpct1.com.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "34f7c73dd65f07a8c1729df66dc87cebc2c32b9d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Origen [4K Remux][2160p][HDR][AC3 5.1 Castellano DTS-MA 5.1-Ingles+Subs][ES-EN]",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 1,
+          "sites": [
+            "MejorTorrent",
+            "StremThru"
+          ],
+          "size_bytes": 70783596637,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": []
+        }
+      ],
+      "done": false,
+      "video_id": "tt1375666"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 433,
+          "id": "torrentio",
+          "message": null,
+          "ms": 169,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 221,
+          "id": "peerflix",
+          "message": null,
+          "ms": 4040,
+          "name": "Peerflix",
+          "state": "ok"
+        },
+        {
+          "count": 995,
+          "id": "comet",
+          "message": null,
+          "ms": 738,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 116,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 751,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 4,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 2446,
+          "name": "Hacktorrent",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 1396,
+          "name": "EliteTorrent",
+          "state": "ok"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "fr",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|79f007b578c4e70e2d855ec2fd351c65e7c1bf58",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "INCEPTION (DD5.1)(Eng Fr Spa Audio)(4 subs) PAL TBS",
+          "hdr": [],
+          "info_hash": "79f007b578c4e70e2d855ec2fd351c65e7c1bf58",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "INCEPTION (DD5.1)(Eng Fr Spa Audio)(4 subs) PAL TBS",
+          "resolution": null,
+          "seeders": null,
+          "seeders_declared": 0,
+          "sites": [
+            "TorBox"
+          ],
+          "size_bytes": 7516192768,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "nl",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|DVD",
+          "codec": null,
+          "completed": 0,
+          "file_idx": null,
+          "file_name": "Inception (2010) dvdr (Nl+Eng+Esp sub) ZARCK 2Lions-Team",
+          "hdr": [],
+          "info_hash": "fc204585637bc8afc1a6a773fa6e5427975d21a8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Inception (2010) dvdr (Nl+Eng+Esp sub) ZARCK 2Lions-Team",
+          "resolution": null,
+          "seeders": 0,
+          "seeders_declared": 1,
+          "sites": [
+            "ThePirateBay",
+            "Torrentio"
+          ],
+          "size_bytes": 4681514352,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "fr",
+            "de",
+            "cast"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": 1384,
+          "file_idx": 0,
+          "file_name": "Inception.2010.PROPER.Bluray.2160p.AV1.HDR10.OPUS.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "2849211f150e966ef7924f43aec22727a644e10d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 134,
+          "release_name": "Inception 2010 PROPER Bluray 2160p AV1 HDR10 EN/ITA/FR/ES/DE OPUS 5.1-UH [UserHEVC]",
+          "resolution": "2160p",
+          "seeders": 322,
+          "seeders_declared": 319,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "knaben",
+            "rargb",
+            "Peerflix"
+          ],
+          "size_bytes": 9563173563,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://explodie.org:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc",
+          "codec": "HEVC",
+          "completed": 2223,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.BluRay.REMUX.HEVC.DTS-HD.MA.5.1-FGT.mkv",
+          "hdr": [],
+          "info_hash": "ae3cd89c76804abfeb8977318afdc240de2ef246",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 20,
+          "release_name": "Inception.2010.2160p.BluRay.REMUX.HEVC.DTS-HD.MA.5.1-FGT",
+          "resolution": "2160p",
+          "seeders": 65,
+          "seeders_declared": 86,
+          "sites": [
+            "RARBG",
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 85437636935,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "http://tracker.trackerfix.com:80/announce",
+            "udp://9.rarbg.me:2910",
+            "udp://9.rarbg.to:2900",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "http://tracker.openbittorrent.com:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit",
+          "codec": "HEVC",
+          "completed": 162,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.4K.BluRay.x265.10bit.AAC5.1-[YTS.MX].mkv",
+          "hdr": [],
+          "info_hash": "43e3691dc6f4172841e32b25b349e2b7a980b9c5",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 59,
+          "release_name": "Inception 2010 2160p BluRay",
+          "resolution": "2160p",
+          "seeders": 61,
+          "seeders_declared": 206,
+          "sites": [
+            "YTS",
+            "StremThru",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 7132210155,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "multi",
+            "fr",
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|ca7c2e3866eece3378b3cbefab30b6298a4fd0bf",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.MULTi.VFF.2160p.BluRay.HDR10.HE.AAC.5.1.x265- QTZ.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "ca7c2e3866eece3378b3cbefab30b6298a4fd0bf",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.MULTi.VFF.2160p.BluRay.HDR10.HE.AAC.5.1.x265- QTZ.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 47,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 4677887384,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|f0e49d6e1254f33208c68feb9ddd0f0e4deb26a6",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Начало / Inception [2010 UHD BDRemux 2160p HDR10 HDR10+ Dolby Vision] [Hybrid] Dub + 3x DVO + 2x AVO + VO + 2x Ukr + Original (Eng) + Sub (Rus Ukr Eng)",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "f0e49d6e1254f33208c68feb9ddd0f0e4deb26a6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Начало / Inception [2010 UHD BDRemux 2160p HDR10 HDR10+ Dolby Vision] [Hybrid] Dub + 3x DVO + 2x AVO + VO + 2x Ukr + Original (Eng) + Sub (Rus Ukr Eng)",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 46,
+          "sites": [
+            "Torrentio"
+          ],
+          "size_bytes": 83086142341,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "http://bt3.t-ru.org/ann?magnet",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1",
+            "DTS"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": 120,
+          "file_idx": 0,
+          "file_name": "Inception (2010).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "fa4a45aa220a6b0343817965a47d85f2d192e9b4",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 21,
+          "release_name": "Inception 2010 UHD BluRay 2160p HDR10 DV HEVC DTS-HD MA 5.1 x265-E",
+          "resolution": "2160p",
+          "seeders": 46,
+          "seeders_declared": 200,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 27093666265,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "ru",
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|10c93a2ad69b9c576a5de6f9495b266fc992c889",
+          "codec": null,
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.UHD.BDRemux.DTS-HD.MA.5.1.HYBRID.DoVi.P8.by.DVT.mkv",
+          "hdr": [
+            "DV",
+            "HDR"
+          ],
+          "info_hash": "10c93a2ad69b9c576a5de6f9495b266fc992c889",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.UHD.BDRemux.DTS-HD.MA.5.1.HYBRID.DoVi.P8.by.DVT.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 33,
+          "sites": [
+            "StremThru",
+            "knaben",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 92504722961,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://opentor.net:6969",
+            "udp://opentor.org:2710",
+            "http://retracker.local/announce",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "pl",
+            "cz",
+            "hu",
+            "bg",
+            "ua",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id",
+            "my",
+            "th"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|h265|DV|HDR",
+          "codec": "HEVC",
+          "completed": 73,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3efdb7d94fa293e28b8d9c2c24c0ca983621364f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 16,
+          "release_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm",
+          "resolution": "2160p",
+          "seeders": 33,
+          "seeders_declared": 36,
+          "sites": [
+            "ThePirateBay",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 31518432930,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|b2f9bafe72d33707bf9e6b7c5e018cefbb54ef50",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception (2010) AC3 5.1 ITA.ENG 2160p H265 HDR10 sub NUita.eng Sp33dy94-MIRCrew.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "b2f9bafe72d33707bf9e6b7c5e018cefbb54ef50",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception (2010) AC3 5.1 ITA.ENG 2160p H265 HDR10 sub NUita.eng Sp33dy94-MIRCrew.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 33,
+          "sites": [
+            "StremThru",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 4052087636,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://exodus.desync.com:6969/announce",
+            "udp://tracker.openbittorrent.com:80/announce",
+            "udp://www.torrent.eu.org:451/announce",
+            "udp://open.stealth.si:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc",
+          "codec": "HEVC",
+          "completed": 9,
+          "file_idx": 0,
+          "file_name": "Inception.2010.PROPER.2160p.BluRay.REMUX.HEVC.DTS-HD.MA.5.1-FGT.mkv",
+          "hdr": [],
+          "info_hash": "de4049fa95b169204038c60f71face6f52232d4e",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 10,
+          "release_name": "Inception.2010.PROPER.2160p.BluRay.REMUX.HEVC.DTS-HD.MA.5.1-FGT",
+          "resolution": "2160p",
+          "seeders": 31,
+          "seeders_declared": 34,
+          "sites": [
+            "RARBG",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 85426899517,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "ru",
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|a0cc8f61cbef63df1a42d2ed2485180f330f1ded",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.UHD.BDRip.HDR.x265.DD+5.1-VoX.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a0cc8f61cbef63df1a42d2ed2485180f330f1ded",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.2160p.UHD.BDRip.HDR.x265.DD+5.1-VoX.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 30,
+          "sites": [
+            "StremThru",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 40580383319,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "http://retracker.local/announce",
+            "udp://opentor.org:2710",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|e10c8eb30c64876fb82a9a49e2b9186e42191fe2",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 2,
+          "file_name": "Inception.2010.4K.HDR.DV.2160p.BDRemux Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "e10c8eb30c64876fb82a9a49e2b9186e42191fe2",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.4K.HDR.DV.2160p.BDRemux Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 27,
+          "sites": [
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 67200776684,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://9.rarbg.com:2710/announce",
+            "udp://9.rarbg.to:2710/announce",
+            "udp://9.rarbg.me:2710/announce",
+            "udp://tracker.opentrackr.org:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 4,
+          "file_idx": 0,
+          "file_name": "Inception (2010) (2160p x265 10bit HDR Tigole).mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c560112bc616685f3fac460ee3c848813c71489f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 17,
+          "release_name": "Inception (2010) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole) [QxR]",
+          "resolution": "2160p",
+          "seeders": 24,
+          "seeders_declared": 41,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 18498680732,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1",
+            "DTS"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 484,
+          "file_idx": 2,
+          "file_name": "inception.2010.2160p.uhd.bluray.x265-terminal.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "17e4c600c0ba13e18df6d4881016434c6bf2d107",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 8,
+          "release_name": "Inception.2010.2160p.UHD.BluRay.x265.10bit.HDR.DTS-HD.MA.5.1-TERMiNAL",
+          "resolution": "2160p",
+          "seeders": 15,
+          "seeders_declared": 21,
+          "sites": [
+            "RARBG",
+            "StremThru",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 25738220656,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "multi",
+            "fr",
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|30bb689b15f7fad05d40c3bd0908e4b54a4b6f21",
+          "codec": "HEVC",
+          "completed": null,
+          "file_idx": 0,
+          "file_name": "Inception.2010.MULTi.VF2.2160p.UHD.BluRay.REMUX.HDR10.HEVC.DTS-HD.MA.5.1-GLaDOS.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "30bb689b15f7fad05d40c3bd0908e4b54a4b6f21",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Inception.2010.MULTi.VF2.2160p.UHD.BluRay.REMUX.HDR10.HEVC.DTS-HD.MA.5.1-GLaDOS.mkv",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 12,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 73308987387,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BDRip|x265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 17,
+          "file_idx": 0,
+          "file_name": "Inception (2010) (2160p HDR BDRip x265 10bit DTS-HD MA 5.1 - r0b0t) [TAoE].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a69ed2c250ab796cd0c5a8797e6e296cb011d93a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 2,
+          "release_name": "Inception (2010) (2160p HDR BDRip x265 10bit DTS-HD MA 5.1 - r0b0t) [TAoE].mkv",
+          "resolution": "2160p",
+          "seeders": 11,
+          "seeders_declared": 24,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 30427764630,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.coppersurfer.tk:6969/announce",
+            "udp://tracker.internetwarriors.net:1337/announce",
+            "http://tracker.opentrackr.org:1337/announce",
+            "udp://denis.stalker.upeer.me:6969/announce",
+            "udp://tracker.internetwarriors.net:1337"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "fr",
+            "de",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": 19,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Bluray.2160p.AV1.HDR10.AC3.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "6ee6e45b25adfd20c008722beca5d92ef830c09c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 8,
+          "release_name": "Inception 2010 Bluray 2160p AV1 HDR10 EN/FR/DE/ITA/ES AC3 5.1-UH",
+          "resolution": "2160p",
+          "seeders": 11,
+          "seeders_declared": 26,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 9107593674,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://explodie.org:6969/announce",
+            "udp://p4p.arenabg.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|1080p|h264",
+          "codec": "H.264",
+          "completed": 50,
+          "file_idx": 11,
+          "file_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p [H264-mp4].mp4",
+          "hdr": [],
+          "info_hash": "284499354b9280da45495cb8e2569b24842dff18",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 24,
+          "release_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p",
+          "resolution": "2160p",
+          "seeders": 11,
+          "seeders_declared": 22,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 5378471563,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|f02224a408eaf25041c7ff73da5fc1dba8b559fa",
+          "codec": null,
+          "completed": null,
+          "file_idx": null,
+          "file_name": "Начало / Inception [2010 UHD Blu-ray disc 2160p] Dub + Sub Rus Eng + Original Eng",
+          "hdr": [],
+          "info_hash": "f02224a408eaf25041c7ff73da5fc1dba8b559fa",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": null,
+          "release_name": "Начало / Inception [2010 UHD Blu-ray disc 2160p] Dub + Sub Rus Eng + Original Eng",
+          "resolution": "2160p",
+          "seeders": null,
+          "seeders_declared": 9,
+          "sites": [
+            "Torrentio"
+          ],
+          "size_bytes": 92470645882,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "http://bt4.t-ru.org/ann?magnet",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|DV",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Inception.2010.UHD.BluRay.2160p.DTS-HD.MA.5.1.DV.HEVC.HYBRID.REMUX-FraMeSToR.mkv",
+          "hdr": [
+            "DV"
+          ],
+          "info_hash": "ab4b47c7d6054d1e3ae04e6b662a7371c370110b",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 7,
+          "release_name": "Inception.2010.UHD.BluRay.2160p.DTS-HD.MA.5.1.DV.HEVC.HYBRID.REMUX-FraMeSToR",
+          "resolution": "2160p",
+          "seeders": 8,
+          "seeders_declared": 5,
+          "sites": [
+            "TorrentGalaxy",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 71140082403,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BDRip|x265|HDR",
+          "codec": "HEVC",
+          "completed": 3,
+          "file_idx": 2,
+          "file_name": "Inception.2010.4K.HDR.2160p.BDRip Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "e47b8187443b3b6afe1d18354be1a839771a8f42",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Inception.2010.4K.HDR.2160p.BDRip Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": 7,
+          "seeders_declared": 27,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 22400355656,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.coppersurfer.tk:6969/announce",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://9.rarbg.com:2710/announce",
+            "udp://9.rarbg.to:2710/announce",
+            "udp://9.rarbg.me:2710/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|av1|HDR",
+          "codec": "AV1",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.UHD.HDR.Bluray.AV1.Opus.Multi7-dAV1nci.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "e207c4332567564215673d0e5183467f6c33194e",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 4,
+          "release_name": "Inception (2010) 2160p UHD HDR Bluray AV1 Opus Multi7 [dAV1nci]",
+          "resolution": "2160p",
+          "seeders": 7,
+          "seeders_declared": 18,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "rargb",
+            "Peerflix"
+          ],
+          "size_bytes": 9894219648,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.tracker.cl:1337/announce",
+            "udp://9.rarbg.com:2810/announce",
+            "http://tracker.openbittorrent.com:80/announce",
+            "udp://tracker.openbittorrent.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "lat",
+            "en",
+            "cast",
+            "ru",
+            "it",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "ua",
+            "th"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|h265|DV|HDR",
+          "codec": "HEVC",
+          "completed": 4,
+          "file_idx": 3,
+          "file_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN.mp4",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3e979c3e183261623f9f390b8355ca109dcf0825",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 8,
+          "release_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN",
+          "resolution": "2160p",
+          "seeders": 6,
+          "seeders_declared": 11,
+          "sites": [
+            "TorrentGalaxy",
+            "Torrentio",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 74796865556,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        }
+      ],
+      "done": false,
+      "video_id": "tt1375666"
+    }
+  },
+  {
+    "type": "catalog-streams",
+    "update": {
+      "addons": [
+        {
+          "count": 433,
+          "id": "torrentio",
+          "message": null,
+          "ms": 169,
+          "name": "Torrentio",
+          "state": "ok"
+        },
+        {
+          "count": 221,
+          "id": "peerflix",
+          "message": null,
+          "ms": 4040,
+          "name": "Peerflix",
+          "state": "ok"
+        },
+        {
+          "count": 995,
+          "id": "comet",
+          "message": null,
+          "ms": 738,
+          "name": "Comet",
+          "state": "ok"
+        },
+        {
+          "count": 116,
+          "id": "torrentsdb",
+          "message": null,
+          "ms": 751,
+          "name": "TorrentsDB",
+          "state": "ok"
+        },
+        {
+          "count": 4,
+          "id": "hacktorrent",
+          "message": null,
+          "ms": 2446,
+          "name": "Hacktorrent",
+          "state": "ok"
+        },
+        {
+          "count": 0,
+          "id": "elitetorrent",
+          "message": null,
+          "ms": 1396,
+          "name": "EliteTorrent",
+          "state": "ok"
+        }
+      ],
+      "candidates": [
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "fr",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|79f007b578c4e70e2d855ec2fd351c65e7c1bf58",
+          "codec": null,
+          "completed": 0,
+          "file_idx": null,
+          "file_name": "INCEPTION (DD5.1)(Eng Fr Spa Audio)(4 subs) PAL TBS",
+          "hdr": [],
+          "info_hash": "79f007b578c4e70e2d855ec2fd351c65e7c1bf58",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "INCEPTION (DD5.1)(Eng Fr Spa Audio)(4 subs) PAL TBS",
+          "resolution": null,
+          "seeders": 0,
+          "seeders_declared": 0,
+          "sites": [
+            "TorBox"
+          ],
+          "size_bytes": 7516192768,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "nl",
+            "cast"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|DVD",
+          "codec": null,
+          "completed": 0,
+          "file_idx": null,
+          "file_name": "Inception (2010) dvdr (Nl+Eng+Esp sub) ZARCK 2Lions-Team",
+          "hdr": [],
+          "info_hash": "fc204585637bc8afc1a6a773fa6e5427975d21a8",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 0,
+          "release_name": "Inception (2010) dvdr (Nl+Eng+Esp sub) ZARCK 2Lions-Team",
+          "resolution": null,
+          "seeders": 0,
+          "seeders_declared": 1,
+          "sites": [
+            "ThePirateBay",
+            "Torrentio"
+          ],
+          "size_bytes": 4681514352,
+          "source": null,
+          "subs": [
+            "es"
+          ],
+          "trackers": []
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "fr",
+            "de",
+            "cast"
+          ],
+          "audio_format": [
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": 1384,
+          "file_idx": 0,
+          "file_name": "Inception.2010.PROPER.Bluray.2160p.AV1.HDR10.OPUS.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "2849211f150e966ef7924f43aec22727a644e10d",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 134,
+          "release_name": "Inception 2010 PROPER Bluray 2160p AV1 HDR10 EN/ITA/FR/ES/DE OPUS 5.1-UH [UserHEVC]",
+          "resolution": "2160p",
+          "seeders": 322,
+          "seeders_declared": 319,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "knaben",
+            "rargb",
+            "Peerflix"
+          ],
+          "size_bytes": 9563173563,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://explodie.org:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc",
+          "codec": "HEVC",
+          "completed": 2223,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.BluRay.REMUX.HEVC.DTS-HD.MA.5.1-FGT.mkv",
+          "hdr": [],
+          "info_hash": "ae3cd89c76804abfeb8977318afdc240de2ef246",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 20,
+          "release_name": "Inception.2010.2160p.BluRay.REMUX.HEVC.DTS-HD.MA.5.1-FGT",
+          "resolution": "2160p",
+          "seeders": 65,
+          "seeders_declared": 86,
+          "sites": [
+            "RARBG",
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 85437636935,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "http://tracker.trackerfix.com:80/announce",
+            "udp://9.rarbg.me:2910",
+            "udp://9.rarbg.to:2900",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "http://tracker.openbittorrent.com:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit",
+          "codec": "HEVC",
+          "completed": 162,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.4K.BluRay.x265.10bit.AAC5.1-[YTS.MX].mkv",
+          "hdr": [],
+          "info_hash": "43e3691dc6f4172841e32b25b349e2b7a980b9c5",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 59,
+          "release_name": "Inception 2010 2160p BluRay",
+          "resolution": "2160p",
+          "seeders": 61,
+          "seeders_declared": 206,
+          "sites": [
+            "YTS",
+            "StremThru",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 7132210155,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1",
+            "DTS"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|DV|HDR",
+          "codec": "HEVC",
+          "completed": 120,
+          "file_idx": 0,
+          "file_name": "Inception (2010).mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "fa4a45aa220a6b0343817965a47d85f2d192e9b4",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 21,
+          "release_name": "Inception 2010 UHD BluRay 2160p HDR10 DV HEVC DTS-HD MA 5.1 x265-E",
+          "resolution": "2160p",
+          "seeders": 46,
+          "seeders_declared": 200,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 27093666265,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "ru",
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|10c93a2ad69b9c576a5de6f9495b266fc992c889",
+          "codec": null,
+          "completed": 126,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.UHD.BDRemux.DTS-HD.MA.5.1.HYBRID.DoVi.P8.by.DVT.mkv",
+          "hdr": [
+            "DV",
+            "HDR"
+          ],
+          "info_hash": "10c93a2ad69b9c576a5de6f9495b266fc992c889",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 15,
+          "release_name": "Inception.2010.2160p.UHD.BDRemux.DTS-HD.MA.5.1.HYBRID.DoVi.P8.by.DVT.mkv",
+          "resolution": "2160p",
+          "seeders": 43,
+          "seeders_declared": 33,
+          "sites": [
+            "StremThru",
+            "knaben",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 92504722961,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://opentor.net:6969",
+            "udp://opentor.org:2710",
+            "http://retracker.local/announce",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|b2f9bafe72d33707bf9e6b7c5e018cefbb54ef50",
+          "codec": "HEVC",
+          "completed": 28,
+          "file_idx": 0,
+          "file_name": "Inception (2010) AC3 5.1 ITA.ENG 2160p H265 HDR10 sub NUita.eng Sp33dy94-MIRCrew.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "b2f9bafe72d33707bf9e6b7c5e018cefbb54ef50",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 31,
+          "release_name": "Inception (2010) AC3 5.1 ITA.ENG 2160p H265 HDR10 sub NUita.eng Sp33dy94-MIRCrew.mkv",
+          "resolution": "2160p",
+          "seeders": 38,
+          "seeders_declared": 33,
+          "sites": [
+            "StremThru",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 4052087636,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://exodus.desync.com:6969/announce",
+            "udp://tracker.openbittorrent.com:80/announce",
+            "udp://www.torrent.eu.org:451/announce",
+            "udp://open.stealth.si:80/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "ja",
+            "ru",
+            "pt",
+            "es",
+            "kr",
+            "cn",
+            "fr",
+            "de",
+            "nl",
+            "pl",
+            "cz",
+            "hu",
+            "bg",
+            "ua",
+            "dk",
+            "se",
+            "no",
+            "tr",
+            "sa",
+            "id",
+            "my",
+            "th"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|WEB-DL|h265|DV|HDR",
+          "codec": "HEVC",
+          "completed": 73,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3efdb7d94fa293e28b8d9c2c24c0ca983621364f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 16,
+          "release_name": "Inception.2010.2160p.MA.WEB-DL.DTS-HD.MA.5.1.DV.HDR.H.265-TheFarm",
+          "resolution": "2160p",
+          "seeders": 33,
+          "seeders_declared": 36,
+          "sites": [
+            "ThePirateBay",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 31518432930,
+          "source": "WEB-DL",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc",
+          "codec": "HEVC",
+          "completed": 9,
+          "file_idx": 0,
+          "file_name": "Inception.2010.PROPER.2160p.BluRay.REMUX.HEVC.DTS-HD.MA.5.1-FGT.mkv",
+          "hdr": [],
+          "info_hash": "de4049fa95b169204038c60f71face6f52232d4e",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 10,
+          "release_name": "Inception.2010.PROPER.2160p.BluRay.REMUX.HEVC.DTS-HD.MA.5.1-FGT",
+          "resolution": "2160p",
+          "seeders": 31,
+          "seeders_declared": 34,
+          "sites": [
+            "RARBG",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 85426899517,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 4,
+          "file_idx": 0,
+          "file_name": "Inception (2010) (2160p x265 10bit HDR Tigole).mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "c560112bc616685f3fac460ee3c848813c71489f",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 17,
+          "release_name": "Inception (2010) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole) [QxR]",
+          "resolution": "2160p",
+          "seeders": 24,
+          "seeders_declared": 41,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 18498680732,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "multi",
+            "fr",
+            "en"
+          ],
+          "audio_format": [
+            "AAC",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|ca7c2e3866eece3378b3cbefab30b6298a4fd0bf",
+          "codec": "HEVC",
+          "completed": 157,
+          "file_idx": 0,
+          "file_name": "Inception.2010.MULTi.VFF.2160p.BluRay.HDR10.HE.AAC.5.1.x265- QTZ.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "ca7c2e3866eece3378b3cbefab30b6298a4fd0bf",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 19,
+          "release_name": "Inception.2010.MULTi.VFF.2160p.BluRay.HDR10.HE.AAC.5.1.x265- QTZ.mkv",
+          "resolution": "2160p",
+          "seeders": 23,
+          "seeders_declared": 47,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 4677887384,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1",
+            "DTS"
+          ],
+          "binge_group": "torrentio|4k|BluRay|x265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 484,
+          "file_idx": 2,
+          "file_name": "inception.2010.2160p.uhd.bluray.x265-terminal.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "17e4c600c0ba13e18df6d4881016434c6bf2d107",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 8,
+          "release_name": "Inception.2010.2160p.UHD.BluRay.x265.10bit.HDR.DTS-HD.MA.5.1-TERMiNAL",
+          "resolution": "2160p",
+          "seeders": 15,
+          "seeders_declared": 21,
+          "sites": [
+            "RARBG",
+            "StremThru",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 25738220656,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|e10c8eb30c64876fb82a9a49e2b9186e42191fe2",
+          "codec": "HEVC",
+          "completed": 12,
+          "file_idx": 2,
+          "file_name": "Inception.2010.4K.HDR.DV.2160p.BDRemux Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "e10c8eb30c64876fb82a9a49e2b9186e42191fe2",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 3,
+          "release_name": "Inception.2010.4K.HDR.DV.2160p.BDRemux Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": 12,
+          "seeders_declared": 27,
+          "sites": [
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 67200776684,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://9.rarbg.com:2710/announce",
+            "udp://9.rarbg.to:2710/announce",
+            "udp://9.rarbg.me:2710/announce",
+            "udp://tracker.opentrackr.org:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BDRip|x265|10bit|HDR",
+          "codec": "HEVC",
+          "completed": 17,
+          "file_idx": 0,
+          "file_name": "Inception (2010) (2160p HDR BDRip x265 10bit DTS-HD MA 5.1 - r0b0t) [TAoE].mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a69ed2c250ab796cd0c5a8797e6e296cb011d93a",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 2,
+          "release_name": "Inception (2010) (2160p HDR BDRip x265 10bit DTS-HD MA 5.1 - r0b0t) [TAoE].mkv",
+          "resolution": "2160p",
+          "seeders": 11,
+          "seeders_declared": 24,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 30427764630,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.coppersurfer.tk:6969/announce",
+            "udp://tracker.internetwarriors.net:1337/announce",
+            "http://tracker.opentrackr.org:1337/announce",
+            "udp://denis.stalker.upeer.me:6969/announce",
+            "udp://tracker.internetwarriors.net:1337"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it",
+            "fr",
+            "de",
+            "cast"
+          ],
+          "audio_format": [
+            "DD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|av1|10bit|HDR",
+          "codec": "AV1",
+          "completed": 19,
+          "file_idx": 0,
+          "file_name": "Inception.2010.Bluray.2160p.AV1.HDR10.AC3.5.1-UH.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "6ee6e45b25adfd20c008722beca5d92ef830c09c",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 8,
+          "release_name": "Inception 2010 Bluray 2160p AV1 HDR10 EN/FR/DE/ITA/ES AC3 5.1-UH",
+          "resolution": "2160p",
+          "seeders": 11,
+          "seeders_declared": 26,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 9107593674,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://explodie.org:6969/announce",
+            "udp://p4p.arenabg.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "multi",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|1080p|h264",
+          "codec": "H.264",
+          "completed": 50,
+          "file_idx": 11,
+          "file_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p [H264-mp4].mp4",
+          "hdr": [],
+          "info_hash": "284499354b9280da45495cb8e2569b24842dff18",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 24,
+          "release_name": "Inception - Directors Cut 2010 Eng Ita Multi-Subs 4K 1080p",
+          "resolution": "2160p",
+          "seeders": 11,
+          "seeders_declared": 22,
+          "sites": [
+            "ThePirateBay",
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 5378471563,
+          "source": null,
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "multi",
+            "fr",
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|30bb689b15f7fad05d40c3bd0908e4b54a4b6f21",
+          "codec": "HEVC",
+          "completed": 30,
+          "file_idx": 0,
+          "file_name": "Inception.2010.MULTi.VF2.2160p.UHD.BluRay.REMUX.HDR10.HEVC.DTS-HD.MA.5.1-GLaDOS.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "30bb689b15f7fad05d40c3bd0908e4b54a4b6f21",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 8,
+          "release_name": "Inception.2010.MULTi.VF2.2160p.UHD.BluRay.REMUX.HDR10.HEVC.DTS-HD.MA.5.1-GLaDOS.mkv",
+          "resolution": "2160p",
+          "seeders": 10,
+          "seeders_declared": 12,
+          "sites": [
+            "StremThru",
+            "Peerflix"
+          ],
+          "size_bytes": 73308987387,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet"
+          ],
+          "audio": [
+            "en",
+            "ru",
+            "ua"
+          ],
+          "audio_format": [],
+          "binge_group": "comet|torrent|f0e49d6e1254f33208c68feb9ddd0f0e4deb26a6",
+          "codec": null,
+          "completed": 14,
+          "file_idx": 0,
+          "file_name": "Начало / Inception [2010 UHD BDRemux 2160p HDR10 HDR10+ Dolby Vision] [Hybrid] Dub + 3x DVO + 2x AVO + VO + 2x Ukr + Original (Eng) + Sub (Rus Ukr Eng)",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "f0e49d6e1254f33208c68feb9ddd0f0e4deb26a6",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 10,
+          "release_name": "Начало / Inception [2010 UHD BDRemux 2160p HDR10 HDR10+ Dolby Vision] [Hybrid] Dub + 3x DVO + 2x AVO + VO + 2x Ukr + Original (Eng) + Sub (Rus Ukr Eng)",
+          "resolution": "2160p",
+          "seeders": 8,
+          "seeders_declared": 46,
+          "sites": [
+            "Torrentio"
+          ],
+          "size_bytes": 83086142341,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "http://bt3.t-ru.org/ann?magnet",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [
+            "DTS-HD",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay REMUX|hevc|DV",
+          "codec": "HEVC",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Inception.2010.UHD.BluRay.2160p.DTS-HD.MA.5.1.DV.HEVC.HYBRID.REMUX-FraMeSToR.mkv",
+          "hdr": [
+            "DV"
+          ],
+          "info_hash": "ab4b47c7d6054d1e3ae04e6b662a7371c370110b",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 7,
+          "release_name": "Inception.2010.UHD.BluRay.2160p.DTS-HD.MA.5.1.DV.HEVC.HYBRID.REMUX-FraMeSToR",
+          "resolution": "2160p",
+          "seeders": 8,
+          "seeders_declared": 5,
+          "sites": [
+            "TorrentGalaxy",
+            "Torrentio",
+            "Peerflix"
+          ],
+          "size_bytes": 71140082403,
+          "source": "REMUX",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "ru",
+            "en"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "comet|torrent|a0cc8f61cbef63df1a42d2ed2485180f330f1ded",
+          "codec": "HEVC",
+          "completed": 55,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.UHD.BDRip.HDR.x265.DD+5.1-VoX.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "a0cc8f61cbef63df1a42d2ed2485180f330f1ded",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 14,
+          "release_name": "Inception.2010.2160p.UHD.BDRip.HDR.x265.DD+5.1-VoX.mkv",
+          "resolution": "2160p",
+          "seeders": 7,
+          "seeders_declared": 30,
+          "sites": [
+            "StremThru",
+            "rutor",
+            "Peerflix"
+          ],
+          "size_bytes": 40580383319,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "http://retracker.local/announce",
+            "udp://opentor.org:2710",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "it"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BDRip|x265|HDR",
+          "codec": "HEVC",
+          "completed": 3,
+          "file_idx": 2,
+          "file_name": "Inception.2010.4K.HDR.2160p.BDRip Ita Eng x265-NAHOM.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "e47b8187443b3b6afe1d18354be1a839771a8f42",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 1,
+          "release_name": "Inception.2010.4K.HDR.2160p.BDRip Ita Eng x265-NAHOM",
+          "resolution": "2160p",
+          "seeders": 7,
+          "seeders_declared": 27,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 22400355656,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.coppersurfer.tk:6969/announce",
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://9.rarbg.com:2710/announce",
+            "udp://9.rarbg.to:2710/announce",
+            "udp://9.rarbg.me:2710/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|av1|HDR",
+          "codec": "AV1",
+          "completed": 0,
+          "file_idx": 0,
+          "file_name": "Inception.2010.2160p.UHD.HDR.Bluray.AV1.Opus.Multi7-dAV1nci.mkv",
+          "hdr": [
+            "HDR"
+          ],
+          "info_hash": "e207c4332567564215673d0e5183467f6c33194e",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 4,
+          "release_name": "Inception (2010) 2160p UHD HDR Bluray AV1 Opus Multi7 [dAV1nci]",
+          "resolution": "2160p",
+          "seeders": 7,
+          "seeders_declared": 18,
+          "sites": [
+            "1337x",
+            "StremThru",
+            "rargb",
+            "Peerflix"
+          ],
+          "size_bytes": 9894219648,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.tracker.cl:1337/announce",
+            "udp://9.rarbg.com:2810/announce",
+            "http://tracker.openbittorrent.com:80/announce",
+            "udp://tracker.openbittorrent.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "lat",
+            "en",
+            "cast",
+            "ru",
+            "it",
+            "cn",
+            "fr",
+            "de",
+            "in",
+            "ua",
+            "th"
+          ],
+          "audio_format": [],
+          "binge_group": "torrentio|4k|BluRay|h265|DV|HDR",
+          "codec": "HEVC",
+          "completed": 4,
+          "file_idx": 3,
+          "file_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN.mp4",
+          "hdr": [
+            "HDR",
+            "DV"
+          ],
+          "info_hash": "3e979c3e183261623f9f390b8355ca109dcf0825",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 8,
+          "release_name": "Inception.2010.2160p.BluRay.DV.HDR.ENG.LATINO.CASTELLANO.HINDI.ITA.GER.FRE.CHI.RUS.UKR.THAI.H265.MP4-BEN.THE.MEN",
+          "resolution": "2160p",
+          "seeders": 6,
+          "seeders_declared": 11,
+          "sites": [
+            "TorrentGalaxy",
+            "Torrentio",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 74796865556,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://exodus.desync.com:6969/announce"
+          ]
+        },
+        {
+          "addons": [
+            "Torrentio",
+            "Comet",
+            "TorrentsDB",
+            "Peerflix"
+          ],
+          "audio": [
+            "en",
+            "in"
+          ],
+          "audio_format": [
+            "DD+",
+            "5.1"
+          ],
+          "binge_group": "torrentio|4k|BluRay|hevc",
+          "codec": "HEVC",
+          "completed": 9,
+          "file_idx": 0,
+          "file_name": "Inception (2010) [SDR] 2160p BluRay HEVC [Hin-Eng] DDP 5.1 — PeruGuy.mkv",
+          "hdr": [],
+          "info_hash": "b745be115a4514351e51d27edb9e17780a204be2",
+          "is_pack": false,
+          "lang_group": "en",
+          "leechers": 4,
+          "release_name": "Inception (2010) [SDR] 2160p BluRay HEVC [Hin-Eng] DDP 5.1 — PeruGuy",
+          "resolution": "2160p",
+          "seeders": 5,
+          "seeders_declared": 19,
+          "sites": [
+            "1337x",
+            "Torrentio",
+            "rargb",
+            "knaben",
+            "Peerflix"
+          ],
+          "size_bytes": 29921618248,
+          "source": "BluRay",
+          "subs": [],
+          "trackers": [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://opentracker.i2p.rocks:6969/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://tracker.openbittorrent.com:6969/announce",
+            "http://tracker.openbittorrent.com:80/announce"
+          ]
+        }
+      ],
+      "done": true,
+      "video_id": "tt1375666"
+    }
+  }
+]
