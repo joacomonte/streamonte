@@ -1,0 +1,6 @@
+# No subir keys ni cachés locales a Vercel
+.data
+.env*
+build
+.svelte-kit
+node_modules

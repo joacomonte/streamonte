@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- Para Web Video Caster: el link de descarga de TorBox llega como "archivo para bajar" y su navegador lo muestra
+     como texto. Acá va en un <video>, que WVC detecta y manda a la tele. El link viaja después del # (no llega a
+     ningún servidor: lleva la key de TorBox) y solo se aceptan los de TorBox. Archivo estático: no pasa por el código. -->
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="referrer" content="no-referrer" />
+		<title>Streamonte</title>
+		<style>
+			:root { color-scheme: dark; }
+			body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: #0d1014; color: #e7eaee; font: 15px system-ui, sans-serif; }
+			video { width: 100%; max-height: 100dvh; background: #000; }
+			p { margin: 16px; text-align: center; color: #9aa3ae; }
+		</style>
+	</head>
+	<body>
+		<video id="v" controls playsinline preload="metadata"></video>
+		<p id="msg"></p>
+		<script>
+			// Otro link en la misma pestaña (cambia solo el #): se rearma de cero.
+			addEventListener('hashchange', () => location.reload());
+			const url = decodeURIComponent(location.hash.slice(1));
+			const ok = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.tb-cdn\.(io|cx)\//i.test(url);
+			const v = document.getElementById('v');
+			// Aviso al panel de uso (/admin), a nombre del dispositivo que copió el link.
+			const dev = new URLSearchParams(location.search).get('d') || undefined;
+			const tell = (a) => { try { navigator.sendBeacon('/api/track', JSON.stringify({ a, dev })); } catch {} };
+			if (ok) {
+				tell('abrió en la tele');
+				v.addEventListener('play', () => tell('play en la tele'), { once: true });
+			}
+			if (ok) {
+				const s = document.createElement('source');
+				s.src = url;
+				s.type = /f=video\.mp4|\.mp4/i.test(url) ? 'video/mp4' : 'video/x-matroska';
+				v.append(s);
+				document.getElementById('msg').textContent = 'Tocá el ícono de transmitir para mandarlo a la tele.';
+			} else {
+				v.remove();
+				document.getElementById('msg').textContent = 'Este link no es de TorBox.';
+			}
+		</script>
+	</body>
+</html>
