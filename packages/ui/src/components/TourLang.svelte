@@ -3,6 +3,9 @@
 	// vuelta al cambiar (títulos). Banderas en SVG: los emoji de bandera no se ven en Windows.
 	import { t } from '../i18n/runtime.ts';
 	import Icon from './Icon.svelte';
+	import LangFlag from './LangFlag.svelte';
+	import LangSwitch from './LangSwitch.svelte';
+	import { LANGS, SAMPLE_POSTER, SAMPLE_TITLE } from './lang-data.ts';
 	import type { LangCode, LangOptions } from './tour-state.ts';
 
 	interface Props extends LangOptions {
@@ -13,13 +16,7 @@
 	// Las dos tarjetas arrancan iguales: el idioma actual es solo el de por defecto, se marca recién al tocarlo.
 	let picked = $state<LangCode | null>(null);
 
-	const LANGS = [['es', 'Español'], ['en', 'English']] as const;
-// Ejemplo real: La Odisea (Nolan, 2026), con el título y el póster de TMDB en cada idioma. Sin red queda el dibujo.
-	const POSTER: Record<LangCode, string> = { es: 'La Odisea', en: 'The Odyssey' };
-	const POSTER_IMG: Record<LangCode, string> = {
-		es: 'https://image.tmdb.org/t/p/w342/sRxbUe5FB25Gde0e2FnwwSckpXb.jpg',
-		en: 'https://image.tmdb.org/t/p/w342/5rhTDKUhPYvpdQIijFIs5VoWsON.jpg'
-	};
+	// Ejemplo real: La Odisea (Nolan, 2026), con el título y el póster de TMDB en cada idioma. Sin red queda el dibujo.
 	const hide = (e: Event) => ((e.currentTarget as HTMLImageElement).style.display = 'none');
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -40,39 +37,11 @@
 	});
 </script>
 
-{#snippet flag(v: LangCode)}
-	<svg viewBox="10 0 44 44" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-		{#if v === 'es'}
-			<rect width="64" height="44" fill="#74acdf" />
-			<rect y="14.67" width="64" height="14.67" fill="#fff" />
-			<g fill="#f6b40e" stroke="#85340a" stroke-width="0.4">
-				{#each [0, 45, 90, 135, 180, 225, 270, 315] as a (a)}
-					<path d="M32 15.6 L33 19.4 L31 19.4 Z" transform="rotate({a} 32 22)" />
-				{/each}
-				<circle cx="32" cy="22" r="3.2" />
-			</g>
-		{:else}
-			<rect width="64" height="44" fill="#fff" />
-			{#each [0, 2, 4, 6, 8, 10, 12] as s (s)}
-				<rect y={s * (44 / 13)} width="64" height={44 / 13} fill="#b22234" />
-			{/each}
-			<rect width="27" height={(44 / 13) * 7} fill="#3c3b6e" />
-			<g fill="#fff">
-				{#each [0, 1, 2, 3, 4] as r (r)}
-					{#each [0, 1, 2, 3, 4, 5] as c (c)}
-						<circle cx={3 + c * 4.2 + (r % 2) * 2.1} cy={3 + r * 4.4} r="0.85" />
-					{/each}
-				{/each}
-			</g>
-		{/if}
-	</svg>
-{/snippet}
-
 {#if only === 'app'}
 	<div class="cards" role="radiogroup" aria-label={t('Idioma de la app')}>
 		{#each LANGS as [v, name] (v)}
 			<button id="{id}-app-{v}" type="button" role="radio" class="card" aria-checked={app === v} class:on={picked === v} onclick={() => ((picked = v), onpick('app', v))}>
-				<span class="flag">{@render flag(v)}</span>
+				<span class="flag"><LangFlag lang={v} /></span>
 				<span class="name">{name}</span>
 				<span class="go"><Icon name={picked === v ? 'check' : 'next'} size={24} /></span>
 			</button>
@@ -94,18 +63,13 @@
 			<path d="M0 248 Q60 214 120 244 T200 236 V300 H0 Z" fill="#4a2752" />
 			<path d="M0 272 Q70 252 140 270 T200 266 V300 H0 Z" fill="#2a1736" />
 		</svg>
-		{#each ['es', 'en'] as const as v (v)}<img class="real" class:on={shown === v} class:flipping src={POSTER_IMG[v]} alt="" width="342" height="513" referrerpolicy="no-referrer" onerror={hide} />{/each}
+		{#each ['es', 'en'] as const as v (v)}<img class="real" class:on={shown === v} class:flipping src={SAMPLE_POSTER[v]} alt="" width="342" height="513" referrerpolicy="no-referrer" onerror={hide} />{/each}
 	</div>
 	<div class="about" aria-live="polite">
-		<span class="ttl" class:flipping>{POSTER[shown]}</span>
+		<span class="ttl" class:flipping>{SAMPLE_TITLE[shown]}</span>
 		<span class="by">{t('Film de')} <b>Christopher Nolan</b> · 2026</span>
 	</div>
-	<div class="seg" role="radiogroup" aria-label={t('Títulos')} class:en={titles === 'en'}>
-		<span class="knob"></span>
-		{#each LANGS as [v, name] (v)}
-			<button id="{id}-titles-{v}" type="button" role="radio" aria-checked={titles === v} onclick={() => onpick('titles', v)}>{name}</button>
-		{/each}
-	</div>
+	<div class="switch-wrap"><LangSwitch id="{id}-titles" value={titles} label={t('Títulos')} onpick={(v) => onpick('titles', v)} /></div>
 {/if}
 
 <style>
@@ -135,7 +99,6 @@
 		box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 8%, transparent), 0 10px 24px -10px rgb(0 0 0 / 0.6);
 		transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s var(--ease);
 	}
-	.flag svg { display: block; width: 100%; height: 100%; }
 	.name { flex: 1; display: grid; gap: 2px; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
 	.go { color: var(--muted); opacity: 0.5; transition: opacity 0.25s var(--ease), transform 0.35s var(--out), color 0.2s var(--ease); }
 	@media (hover: hover) {
@@ -182,43 +145,10 @@
 	}
 	.ttl.flipping { transform: rotateX(90deg); transition: transform 0.2s ease-in; }
 
-	.seg {
-		position: relative;
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		width: min(320px, 100%);
-		margin: 24px auto 0;
-		padding: 4px;
-		border-radius: var(--r-pill);
-		background: var(--surface-3);
-	}
-	.knob {
-		position: absolute;
-		top: 4px;
-		bottom: 4px;
-		left: 4px;
-		width: calc(50% - 4px);
-		border-radius: var(--r-pill);
-		background: var(--accent);
-		box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--accent) var(--tint-4), transparent);
-		transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-	}
-	.seg.en .knob { transform: translateX(100%); }
-	.seg button {
-		position: relative;
-		height: 48px;
-		border: 0;
-		border-radius: var(--r-pill);
-		background: none;
-		color: var(--muted);
-		font-size: 16px;
-		font-weight: 700;
-		transition: color 0.25s var(--ease);
-	}
-	.seg button[aria-checked='true'] { color: var(--accent-text); }
+	.switch-wrap { display: flex; justify-content: center; margin-top: 24px; }
 
 	@media (prefers-reduced-motion: reduce) {
-		.card, .ttl, .ttl.flipping, .real, .knob, .seg button { transition: none; }
+		.card, .ttl, .ttl.flipping, .real { transition: none; }
 		.sun { animation: none; }
 	}
 </style>

@@ -11,10 +11,10 @@
 	import { page } from '$app/state';
 
 	type KeyName = 'tmdb' | 'torbox' | 'opensubtitles' | 'login';
+	type ApiKey = Exclude<KeyName, 'login'>;
 	let status = $state<{ tmdb: boolean; torbox: boolean; opensubtitles: boolean; opensubtitles_user: boolean; opensubtitles_pass: boolean } | null>(null);
-	let tmdb = $state('');
-	let torbox = $state('');
-	let opensubtitles = $state('');
+	/** Lo tipeado en cada campo de key. */
+	let typed = $state<Record<ApiKey, string>>({ tmdb: '', torbox: '', opensubtitles: '' });
 	let osUser = $state('');
 	let osPass = $state('');
 	let saving = $state(false);
@@ -23,13 +23,25 @@
 	/** Key guardada cuyo campo de reemplazo está abierto abajo. */
 	let open = $state<'' | KeyName>('');
 	const loginSaved = $derived(!!(status?.opensubtitles_user && status?.opensubtitles_pass));
-	const anySaved = $derived(!!(status?.tmdb || status?.torbox || status?.opensubtitles || loginSaved));
 	const anyMissing = $derived(!status?.tmdb || !status?.torbox || !status?.opensubtitles || !loginSaved);
+	const anyTyped = $derived(!!(typed.tmdb || typed.torbox || typed.opensubtitles || osUser || osPass));
+
+	/** Las tres keys, en el orden de la lista; la cuenta de OpenSubtitles va aparte (dos campos). */
+	const KEYS: { which: ApiKey; name: string; hint: string; placeholder: string; href: string }[] = [
+		{ which: 'tmdb', name: 'TMDB', hint: 'catálogo', placeholder: 'API key (v3)', href: 'https://www.themoviedb.org/settings/api' },
+		{ which: 'torbox', name: 'TorBox', hint: 'torrents', placeholder: 'API key', href: 'https://torbox.app/settings' },
+		{ which: 'opensubtitles', name: 'OpenSubtitles.com', hint: 'subtítulos', placeholder: 'API key', href: 'https://www.opensubtitles.com/consumers' }
+	];
+
+	function clearTyped() {
+		typed = { tmdb: '', torbox: '', opensubtitles: '' };
+		osUser = osPass = '';
+	}
 
 	/** Abre/cierra el reemplazo; al cerrar descarta lo tipeado para que no viaje en otro Guardar. */
 	function toggle(which: KeyName) {
 		open = open === which ? '' : which;
-		tmdb = torbox = opensubtitles = osUser = osPass = '';
+		clearTyped();
 		msg = '';
 	}
 
@@ -73,11 +85,11 @@
 		saving = true;
 		msg = '';
 		try {
-			const r = await fetch('/api/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tmdb: tmdb || undefined, torbox: torbox || undefined, opensubtitles: opensubtitles || undefined, opensubtitles_user: osUser || undefined, opensubtitles_pass: osPass || undefined }) });
+			const r = await fetch('/api/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tmdb: typed.tmdb || undefined, torbox: typed.torbox || undefined, opensubtitles: typed.opensubtitles || undefined, opensubtitles_user: osUser || undefined, opensubtitles_pass: osPass || undefined }) });
 			const j = await r.json();
 			if (!r.ok) throw new Error(j.message);
 			status = j;
-			tmdb = torbox = opensubtitles = osUser = osPass = '';
+			clearTyped();
 			open = '';
 			msg = t('Guardado.');
 		} catch (err) {
@@ -105,235 +117,171 @@
 	</div>
 </header>
 
-<main class="wrap">
-	<!-- Las keys que faltan van arriba y grandes; las guardadas, abajo en una fila. Mientras carga status no se muestra nada para no saltar. -->
-	<form id="keys-form" onsubmit={save}>
-		{#if status && anyMissing}
-			<p class="muted">{t('Las keys quedan solo en el servidor; el navegador nunca las ve.')}</p>
+<main class="wrap st">
+	<section class="st-sec" aria-labelledby="h-profile">
+		<h2 class="st-h" id="h-profile">{t('Perfil')}</h2>
+		<form id="nick-form" class="st-list" novalidate onsubmit={onNick}>
+			<div class="st-row">
+				<label class="st-name" for="nick-input">{t('Apodo')}</label>
+				<div class="st-inline grow">
+					<input id="nick-input" class="st-input" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" aria-invalid={nickBad} aria-describedby="nick-msg" bind:value={nick} oninput={() => (nickMsg = '')} />
+					<button id="nick-save" class="st-btn go" type="submit" disabled={nickSaving || nick.trim() === (page.data.nick ?? '')}>
+						{#if nickSaving}<span class="spin light"></span>{/if}{t('Guardar')}
+					</button>
+				</div>
+			</div>
+		</form>
+		<p id="nick-msg" class="st-msg st-foot" class:bad={nickBad} role="status">{nickMsg}</p>
+	</section>
 
-			{#if !status.tmdb}
-				<label class="field" for="key-tmdb">
-					<span class="lbl">TMDB <small class="muted">{t('catálogo, filtros y pósters')}</small></span>
-					<input id="key-tmdb" type="password" autocomplete="off" placeholder="API key (v3)" bind:value={tmdb} />
-					<span class="help"><a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">{t('Conseguila gratis')}</a></span>
-				</label>
-			{/if}
-
-			{#if !status.torbox}
-				<label class="field" for="key-torbox">
-					<span class="lbl">TorBox <small class="muted">{t('torrents en caché y links https')}</small></span>
-					<input id="key-torbox" type="password" autocomplete="off" placeholder="API key" bind:value={torbox} />
-					<span class="help"><a href="https://torbox.app/settings" target="_blank" rel="noreferrer">{t('Está en tu cuenta')}</a></span>
-				</label>
-			{/if}
-
-			{#if !status.opensubtitles}
-				<label class="field" for="key-opensubtitles">
-					<span class="lbl">OpenSubtitles.com <small class="muted">{t('subtítulos Premium: pocas descargas por día, solo cuando tocás uno')}</small></span>
-					<input id="key-opensubtitles" type="password" autocomplete="off" placeholder="API key" bind:value={opensubtitles} />
-					<span class="help"><a href="https://www.opensubtitles.com/consumers" target="_blank" rel="noreferrer">{t('Creala con tu cuenta gratis')}</a></span>
-				</label>
-			{/if}
-
-			{#if !loginSaved}
-				<label class="field" for="os-user">
-					<span class="lbl">{t('Cuenta de OpenSubtitles.com')} <small class="muted">{t('opcional: muestra cuántas descargas te quedan desde el arranque')}</small></span>
-					<input id="os-user" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder={status.opensubtitles_user ? t('Escribir otro para reemplazar') : t('Usuario')} bind:value={osUser} />
-				</label>
-				<label class="field" for="os-pass">
-					<input id="os-pass" type="password" autocomplete="off" placeholder={status.opensubtitles_pass ? t('Escribir otra para reemplazar') : t('Contraseña')} bind:value={osPass} aria-label={t('Contraseña de OpenSubtitles.com')} />
-					{#if status.opensubtitles_user || status.opensubtitles_pass}
-						<span class="help"><button id="del-os-login" type="button" class="link" onclick={() => remove('login')}>{t('Borrar usuario y contraseña')}</button></span>
-					{/if}
-				</label>
-			{/if}
-
-			<button id="keys-save" class="btn btn-primary" type="submit" disabled={saving || (!tmdb && !torbox && !opensubtitles && !osUser && !osPass)}>
-				{#if saving}<span class="spin"></span>{/if}{t('Guardar')}
-			</button>
-			{#if msg && open === ''}<p class="msg" role="status">{msg}</p>{/if}
-		{/if}
-	</form>
-
-	<form id="nick-form" class="field saved" novalidate onsubmit={onNick}>
-		<label class="lbl" for="nick-input">{t('Apodo')}</label>
-		<div class="pact">
-			<input id="nick-input" class="grow" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" aria-invalid={nickBad} aria-describedby="nick-msg" bind:value={nick} oninput={() => (nickMsg = '')} />
-			<button id="nick-save" class="btn btn-primary" type="submit" disabled={nickSaving || nick.trim() === (page.data.nick ?? '')}>
-				{#if nickSaving}<span class="spin"></span>{/if}{t('Guardar')}
-			</button>
-		</div>
-		<p id="nick-msg" class="help-text" class:bad={nickBad} role="status">{nickMsg}</p>
-	</form>
-
-	<section class="field saved">
-		<span class="lbl">{t('Idioma')}</span>
+	<section class="st-sec" aria-labelledby="h-lang">
+		<h2 class="st-h" id="h-lang">{t('Idioma')}</h2>
 		<LangPicker id="settings-lang" {...langOptions()} />
 	</section>
 
-	<section class="field saved">
-		<span class="lbl">{t('Caché')}</span>
-		<p class="help-text">{t('Catálogo, fichas y opciones quedan guardados en este navegador para abrir al instante. Si algo se ve raro, borralos: la web queda como recién instalada, sin pedirte el código de nuevo.')}</p>
-		<button
-			id="wipe-cache"
-			class="btn"
-			type="button"
-			disabled={wiping}
-			onclick={async () => {
-				if (!confirm(t('Se borra todo lo que la web guardó en este navegador: catálogo, fichas, opciones, filtros elegidos y tutoriales vistos. El código de acceso y las keys quedan. ¿Borrar?'))) return;
-				wiping = true;
-				await wipe();
-				location.reload();
-			}}
-		>
-			{#if wiping}<span class="spin"></span>{/if}{t('Borrar caché')}
-		</button>
-	</section>
-
-	{#if anySaved}
-		<section id="saved-keys" class="field saved">
-			<span class="lbl">{t('Keys guardadas')} <small class="muted">{t('Quedan solo en el servidor')}</small></span>
-			<ul class="kept">
-				{#if status?.tmdb}
+	<!-- Una sola lista: las keys que faltan muestran su campo (las guarda #keys-save); las guardadas, "Cambiar". Mientras carga status no se muestra para no saltar. -->
+	<form id="keys-form" class="st-sec" aria-labelledby="h-keys" onsubmit={save}>
+		<h2 class="st-h" id="h-keys">{t('Cuentas y keys')}</h2>
+		{#if status}
+			<ul id="saved-keys" class="st-list">
+				{#each KEYS as k (k.which)}
+					{@const has = status[k.which]}
 					<li>
-						{@render head('tmdb', 'TMDB', t('catálogo'))}
-						{#if open === 'tmdb'}
-							<div id="panel-tmdb" class="panel">
-								<input id="key-tmdb" form="keys-form" type="password" autocomplete="off" placeholder={t('Pegar otra para reemplazar')} aria-label="TMDB API key" bind:value={tmdb} />
-								{@render actions('tmdb', !!tmdb, 'https://www.themoviedb.org/settings/api', t('Conseguila gratis'))}
+						<div class="st-row">
+							<span class="st-lbl"><span class="st-name">{k.name}</span><span class="st-sub">{t(k.hint)}</span></span>
+							{@render chip(has)}
+							{#if has}
+								<button id="change-{k.which}" type="button" class="st-link" aria-expanded={open === k.which} aria-controls="panel-{k.which}" onclick={() => toggle(k.which)}>{open === k.which ? t('Cancelar') : t('Cambiar')}</button>
+							{:else}
+								<a id="get-{k.which}" class="st-link" href={k.href} target="_blank" rel="noreferrer">{t('Conseguir')}<Icon name="external" size={13} /></a>
+							{/if}
+						</div>
+						{#if !has}
+							<div class="st-block">
+								<input id="key-{k.which}" class="st-input" type="password" autocomplete="off" placeholder={k.placeholder} aria-label="{k.name} API key" bind:value={typed[k.which]} />
+							</div>
+						{:else if open === k.which}
+							<div id="panel-{k.which}" class="st-block panel">
+								<div class="st-inline">
+									<input id="key-{k.which}" class="st-input" type="password" autocomplete="off" placeholder={k.placeholder} aria-label="{k.name} API key" bind:value={typed[k.which]} />
+									{@render actions(k.which, !!typed[k.which])}
+								</div>
 							</div>
 						{/if}
 					</li>
-				{/if}
-				{#if status?.torbox}
-					<li>
-						{@render head('torbox', 'TorBox', 'torrents')}
-						{#if open === 'torbox'}
-							<div id="panel-torbox" class="panel">
-								<input id="key-torbox" form="keys-form" type="password" autocomplete="off" placeholder={t('Pegar otra para reemplazar')} aria-label="TorBox API key" bind:value={torbox} />
-								{@render actions('torbox', !!torbox, 'https://torbox.app/settings', t('Está en tu cuenta'))}
-							</div>
+				{/each}
+				<li>
+					<div class="st-row">
+						<span class="st-lbl"><span class="st-name">{t('Cuenta de OpenSubtitles.com')}</span><span class="st-sub">{t('opcional')}</span></span>
+						{@render chip(loginSaved)}
+						{#if loginSaved}
+							<button id="change-login" type="button" class="st-link" aria-expanded={open === 'login'} aria-controls="panel-login" onclick={() => toggle('login')}>{open === 'login' ? t('Cancelar') : t('Cambiar')}</button>
 						{/if}
-					</li>
-				{/if}
-				{#if status?.opensubtitles}
-					<li>
-						{@render head('opensubtitles', 'OpenSubtitles.com', t('subtítulos'))}
-						{#if open === 'opensubtitles'}
-							<div id="panel-opensubtitles" class="panel">
-								<input id="key-opensubtitles" form="keys-form" type="password" autocomplete="off" placeholder={t('Pegar otra para reemplazar')} aria-label="OpenSubtitles.com API key" bind:value={opensubtitles} />
-								{@render actions('opensubtitles', !!opensubtitles, 'https://www.opensubtitles.com/consumers', t('Creala con tu cuenta gratis'))}
+					</div>
+					{#if !loginSaved}
+						<div class="st-block">
+							<div class="st-inline">
+								<input id="os-user" class="st-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder={status.opensubtitles_user ? t('Escribir otro para reemplazar') : t('Usuario')} aria-label={t('Usuario')} bind:value={osUser} />
+								<input id="os-pass" class="st-input" type="password" autocomplete="off" placeholder={status.opensubtitles_pass ? t('Escribir otra para reemplazar') : t('Contraseña')} aria-label={t('Contraseña de OpenSubtitles.com')} bind:value={osPass} />
 							</div>
-						{/if}
-					</li>
-				{/if}
-				{#if loginSaved}
-					<li>
-						{@render head('login', t('Cuenta de OpenSubtitles.com'), '')}
-						{#if open === 'login'}
-							<div id="panel-login" class="panel">
-								<input id="os-user" form="keys-form" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder={t('Escribir otro para reemplazar')} aria-label={t('Usuario')} bind:value={osUser} />
-								<input id="os-pass" form="keys-form" type="password" autocomplete="off" placeholder={t('Escribir otra para reemplazar')} aria-label={t('Contraseña de OpenSubtitles.com')} bind:value={osPass} />
-								{@render actions('login', !!(osUser || osPass), '', '')}
+							{#if status.opensubtitles_user || status.opensubtitles_pass}
+								<button id="del-os-login" type="button" class="st-link danger" onclick={() => remove('login')}>{t('Borrar usuario y contraseña')}</button>
+							{/if}
+						</div>
+					{:else if open === 'login'}
+						<div id="panel-login" class="st-block panel">
+							<div class="st-inline">
+								<input id="os-user" class="st-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder={t('Usuario')} aria-label={t('Usuario')} bind:value={osUser} />
+								<input id="os-pass" class="st-input" type="password" autocomplete="off" placeholder={t('Contraseña')} aria-label={t('Contraseña de OpenSubtitles.com')} bind:value={osPass} />
 							</div>
-						{/if}
-					</li>
-				{/if}
+							<div class="st-inline end">{@render actions('login', !!(osUser || osPass))}</div>
+						</div>
+					{/if}
+				</li>
 			</ul>
-			{#if msg && open === '' && !anyMissing}<p class="msg" role="status">{msg}</p>{/if}
-		</section>
-	{/if}
-
-	<section id="privacy" class="field saved">
-		<span class="lbl">{t('Privacidad')}</span>
-		<p class="help-text">{t('Para saber cómo se usa la app guardo, por cada dispositivo, un id al azar, tu apodo, el navegador, el modelo del equipo (si el navegador lo informa), la zona horaria, la ciudad aproximada (por la IP) y qué hacés acá: búsquedas, títulos que abrís y opciones que copiás. No se comparte con nadie y se borra solo a los 90 días.')}</p>
-	</section>
-
-	<section id="admin" class="field saved">
-		<div class="kept">
-			<div class="krow">
-				<span class="kname">{t('Panel')} <span class="muted">· {t('uso de la app')}</span></span>
-				<button id="go-admin" type="button" class="link" aria-expanded={adminOpen} aria-controls="admin-panel" onclick={openAdmin}>{t('Abrir')}</button>
+			<div class="foot">
+				<p class="st-foot"><Icon name="lock" size={12} />{t('Quedan solo en el servidor')}</p>
+				{#if anyMissing}
+					<button id="keys-save" class="st-btn go" type="submit" disabled={saving || !anyTyped || open !== ''}>
+						{#if saving}<span class="spin light"></span>{/if}{t('Guardar')}
+					</button>
+				{/if}
 			</div>
-			{#if adminOpen}
-				<div id="admin-panel" class="panel admin-code">
-					<p class="help-text">{t('Código del panel')}</p>
-					<AdminCode id="admin-pop-code" />
+			<p class="st-msg st-foot" role="status">{msg}</p>
+		{/if}
+	</form>
+
+	<section class="st-sec" aria-labelledby="h-data">
+		<h2 class="st-h" id="h-data">{t('Datos')}</h2>
+		<div class="st-list">
+			<div class="st-row">
+				<span class="st-lbl"><span class="st-name">{t('Caché')}</span><span class="st-sub">{t('de este navegador')}</span></span>
+				<button
+					id="wipe-cache"
+					class="st-btn"
+					type="button"
+					disabled={wiping}
+					onclick={async () => {
+						if (!confirm(t('Se borra todo lo que la web guardó en este navegador: catálogo, fichas, opciones, filtros elegidos y tutoriales vistos. El código de acceso y las keys quedan. ¿Borrar?'))) return;
+						wiping = true;
+						await wipe();
+						location.reload();
+					}}
+				>
+					{#if wiping}<span class="spin"></span>{/if}{t('Borrar')}
+				</button>
+			</div>
+			<details id="privacy" class="st-more">
+				<summary id="privacy-toggle" class="st-row">
+					<span class="st-lbl"><span class="st-name">{t('Privacidad')}</span><span class="st-sub">{t('qué se guarda y por cuánto')}</span></span>
+					<span class="st-chev"><Icon name="chev" size={18} /></span>
+				</summary>
+				<p class="st-block">{t('Para saber cómo se usa la app guardo, por cada dispositivo, un id al azar, tu apodo, el navegador, el modelo del equipo (si el navegador lo informa), la zona horaria, la ciudad aproximada (por la IP) y qué hacés acá: búsquedas, títulos que abrís y opciones que copiás. No se comparte con nadie y se borra solo a los 90 días.')}</p>
+			</details>
+			<div id="admin">
+				<div class="st-row">
+					<span class="st-lbl"><span class="st-name">{t('Panel')}</span><span class="st-sub">{t('uso de la app')}</span></span>
+					<button id="go-admin" type="button" class="st-btn" aria-expanded={adminOpen} aria-controls="admin-panel" onclick={openAdmin}>{t('Abrir')}</button>
 				</div>
-			{/if}
+				{#if adminOpen}
+					<div id="admin-panel" class="st-block panel admin-code" role="group" aria-label={t('Código del panel')}>
+						<AdminCode id="admin-pop-code" />
+					</div>
+				{/if}
+			</div>
 		</div>
 	</section>
 
-	<section id="credits" class="field saved">
-		<span class="lbl">{t('Datos')}</span>
-		<p class="help-text">
-			{t('Fichas, pósters y géneros:')} <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">TMDB</a>. {t('Este producto usa la API de TMDB, pero TMDB no lo respalda ni lo certifica.')}
-			{t('Puntajes:')} <a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener noreferrer">{t('datasets de IMDb')}</a> {t('(uso personal, no comercial).')}
-		</p>
-	</section>
+	<p id="credits" class="credits">
+		{t('Fichas, pósters y géneros:')} <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">TMDB</a>. {t('Este producto usa la API de TMDB, pero TMDB no lo respalda ni lo certifica.')}
+		{t('Puntajes:')} <a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener noreferrer">{t('datasets de IMDb')}</a> {t('(uso personal, no comercial).')}
+	</p>
 </main>
 
-{#snippet head(which: KeyName, name: string, hint: string)}
-	<div class="krow">
-		<span class="ok"><Icon name="check" size={16} /></span>
-		<span class="kname">{name}{#if hint}<span class="muted">{` · ${hint}`}</span>{/if}</span>
-		<button id="change-{which}" type="button" class="link" aria-expanded={open === which} aria-controls="panel-{which}" onclick={() => toggle(which)}>{open === which ? t('Cancelar') : t('Cambiar')}</button>
-	</div>
+{#snippet chip(ok: boolean)}
+	{#if ok}<span class="st-chip ok"><Icon name="check" size={12} />{t('Guardada')}</span>{:else}<span class="st-chip">{t('Falta')}</span>{/if}
 {/snippet}
 
-{#snippet actions(which: KeyName, filled: boolean, href: string, hrefText: string)}
-	<div class="pact">
-		<span class="help">
-			{#if href}<a href={href} target="_blank" rel="noreferrer">{hrefText}</a> ·{/if}
-			<button id={which === 'login' ? 'del-os-login' : `del-${which}`} type="button" class="link" onclick={() => remove(which)}>{which === 'login' ? t('Borrar usuario y contraseña') : t('Borrar')}</button>
-		</span>
-		<button id="save-{which}" form="keys-form" class="btn btn-primary" type="submit" disabled={saving || !filled}>
-			{#if saving}<span class="spin"></span>{/if}{t('Guardar')}
-		</button>
-	</div>
-	{#if msg}<p class="msg" role="status">{msg}</p>{/if}
+{#snippet actions(which: KeyName, filled: boolean)}
+	<button id={which === 'login' ? 'del-os-login' : `del-${which}`} type="button" class="st-link danger" onclick={() => remove(which)}>{t('Borrar')}</button>
+	<button id="save-{which}" class="st-btn go" type="submit" disabled={saving || !filled}>
+		{#if saving}<span class="spin light"></span>{/if}{t('Guardar')}
+	</button>
 {/snippet}
 
 <style>
 	.row { display: flex; align-items: center; gap: 4px; margin-left: -10px; }
 	h1 { margin: 0; font-size: 18px; }
-	main { padding: 16px; max-width: 560px; }
-	form { display: flex; flex-direction: column; gap: 18px; }
-	p { margin: 0; font-size: 14px; }
-	.field { display: flex; flex-direction: column; gap: 6px; }
-	.lbl { display: flex; align-items: center; gap: 8px; font-weight: 650; flex-wrap: wrap; }
-	.lbl small { font-weight: 400; }
-	input {
-		height: 46px;
-		padding: 0 12px;
-		border-radius: var(--r-sm);
-		border: 1px solid var(--border-strong);
-		background: var(--surface);
-		font-size: 16px;
-	}
-	.help { display: flex; align-items: center; gap: 4px; margin: -8px 0; font-size: 13px; color: var(--muted); }
-	.help a, .link { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent-fg); text-underline-offset: 3px; }
-	.link { border: 0; background: none; padding: 0 4px; font-size: 13px; text-decoration: underline; }
-	.btn { height: 48px; }
-	.msg { text-align: center; }
-	.saved { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
-	.help-text { color: var(--muted); font-size: 13px; }
-	.help-text a { color: var(--accent-fg); text-underline-offset: 2px; }
-	.kept { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--r-sm); }
-	.kept li + li { border-top: 1px solid var(--border); }
-	.krow { display: flex; align-items: center; gap: 10px; padding-left: 12px; font-size: 14px; }
-	.ok { display: inline-flex; color: var(--green); }
-	.kname { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.kname .muted { font-weight: 400; }
-	.krow .link { padding: 0 12px; }
-	.panel { display: flex; flex-direction: column; gap: 8px; padding: 2px 12px 12px; transform-origin: top; animation: reveal 0.18s ease-out; }
-	.pact { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-	.pact .help { margin: 0; flex-wrap: wrap; }
-	.pact .btn { height: 40px; padding: 0 16px; }
-	#nick-form .pact .btn { height: 46px; }
-	.grow { flex: 1; min-width: 0; }
-	.help-text.bad { color: var(--red); }
-	#nick-msg { min-height: 1.45em; }
+	main { padding: 20px 16px 40px; max-width: 560px; }
+	.grow { flex: 1; min-width: 0; justify-content: flex-end; }
+	#nick-input { max-width: 260px; }
+	.foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+	.foot .st-foot { display: inline-flex; align-items: center; gap: 5px; }
+	.end { justify-content: flex-end; }
+	.panel { transform-origin: top; animation: reveal 0.18s var(--out); }
 	.admin-code { align-items: center; }
-	@keyframes reveal { from { opacity: 0; transform: translateY(-6px); } }
+	.credits { margin: 4px 14px 0; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+	.credits a { color: inherit; text-underline-offset: 2px; }
+	@keyframes reveal { from { opacity: 0; transform: translateY(-4px); } }
+	@media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
 </style>

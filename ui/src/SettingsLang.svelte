@@ -4,4 +4,4 @@
   import { langs, setLangs } from './i18n.js';
 </script>
 
-<LangPicker id="set-lang" app={langs.app} titles={langs.titles} flags appIcon="monitor" onpick={(key, value) => langs[key] !== value && setLangs({ [key]: value })} />
+<LangPicker id="set-lang" app={langs.app} titles={langs.titles} onpick={(key, value) => langs[key] !== value && setLangs({ [key]: value })} />
