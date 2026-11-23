@@ -1,7 +1,8 @@
 <script lang="ts">
 	// Votos en 3 posiciones (2026-11-23, variante 2A): pista fina con muescas, una perilla que salta con resorte y arriba
-	// 1, 2 o 3 personitas del color del nivel. Los demás valores (cualquiera, 5k, 25k…) siguen en la hoja de Filtros: con
-	// uno de esos, la perilla queda en el más cercano y arriba se lee el valor exacto.
+	// 1, 2 o 3 personitas del color del nivel. Sin textos fijos: al moverla aparece un momento, bajo la perilla, el nombre
+	// del nivel y cuántos votos pide. Los demás valores (cualquiera, 5k, 25k…) siguen en la hoja de Filtros: con uno de
+	// esos, la perilla queda en el más cercano y la nota dice el valor exacto.
 	import Icon from '../components/Icon.svelte';
 	import { t } from '../i18n/runtime.ts';
 	import { votesLabel, type Filters } from './filters.ts';
@@ -33,7 +34,16 @@
 	const pos = $derived(dragAt ?? level);
 	const shown = $derived(dragAt == null ? level : Math.round(dragAt));
 
+	/** La nota de abajo: visible mientras se mueve y un rato después. */
+	let hint = $state(false);
+	let hintTimer: ReturnType<typeof setTimeout> | undefined;
+	function showHint(stay = false) {
+		hint = true;
+		clearTimeout(hintTimer);
+		if (!stay) hintTimer = setTimeout(() => (hint = false), 1800);
+	}
 	function pick(i: number) {
+		showHint();
 		if (LEVELS[i][0] !== st.f.votes) onset({ votes: LEVELS[i][0] });
 	}
 	let track = $state<HTMLElement>();
@@ -44,6 +54,7 @@
 	function down(e: PointerEvent & { currentTarget: HTMLElement }) {
 		e.currentTarget.setPointerCapture(e.pointerId);
 		dragAt = at(e.clientX);
+		showHint(true);
 	}
 	function move(e: PointerEvent) {
 		if (dragAt == null) return;
@@ -66,12 +77,6 @@
 </script>
 
 <div class="votes" style:--p={pos} style:--kc={COLORS[shown]}>
-	<div class="head">
-		<span class="k">{t('Votos')}</span>
-		{#key `${shown}${st.f.votes}`}
-			<span id="votes-value" class="val"><b>{t(LEVELS[shown][1])}</b> <span class="m">· {dragAt != null || exact ? votesLabel(LEVELS[shown][0]) : votesLabel(st.f.votes)}</span></span>
-		{/key}
-	</div>
 	<div
 		bind:this={track}
 		id="votes-slider"
@@ -95,22 +100,16 @@
 		{#key shown}<span class="crowd" aria-hidden="true">{#each Array(shown + 1) as _, i (i)}<span style:--d="{i * 50}ms"><Icon name="user" size={15} /></span>{/each}</span>{/key}
 		<span class="knob" aria-hidden="true"></span>
 	</div>
-	<div class="labels">
-		{#each LEVELS as [, name], i (i)}
-			<button id="votes-pick-{i}" type="button" class:on={shown === i} onclick={() => pick(i)}>{t(name)}</button>
-		{/each}
-	</div>
+	<span id="votes-value" class="hint" class:on={hint} aria-hidden="true">
+		{#key shown}<span class="hint-in"><b>{t(LEVELS[shown][1])}</b> · {dragAt != null || exact ? votesLabel(LEVELS[shown][0]) : votesLabel(st.f.votes)}</span>{/key}
+	</span>
 </div>
 
 <style>
-	.votes { margin-top: 14px; user-select: none; -webkit-user-select: none; }
-	.head { display: flex; justify-content: space-between; align-items: baseline; }
-	.k { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
-	.val { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; animation: tick 0.3s var(--out); }
-	.val .m { color: var(--muted); font-weight: 500; }
-	@keyframes tick { from { transform: translateY(40%); opacity: 0; filter: blur(2px); } }
+	/* Abajo queda lugar para la nota, así aparecer no corre la grilla. */
+	.votes { position: relative; margin-top: 18px; padding-bottom: 16px; user-select: none; -webkit-user-select: none; }
 	/* Pista: 12 px de margen a cada lado para que la perilla no se corte. */
-	.track { position: relative; height: 36px; margin-top: 16px; touch-action: none; cursor: pointer; outline-offset: 2px; border-radius: var(--r-sm); }
+	.track { position: relative; height: 36px; touch-action: none; cursor: pointer; outline-offset: 2px; border-radius: var(--r-sm); }
 	.track::before { content: ''; position: absolute; left: 12px; right: 12px; top: 16px; height: 4px; border-radius: 4px; background: var(--surface-3); }
 	.fill {
 		position: absolute;
@@ -151,9 +150,24 @@
 	.crowd > span + span { margin-left: -3px; }
 	@keyframes pop { from { transform: scale(0) translateY(6px); } }
 	.drag .fill, .drag .knob, .drag .crowd { transition: none; }
-	.labels { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 2px; }
-	.labels button { min-height: 32px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 650; transition: color 0.25s; }
-	.labels button:nth-child(1) { text-align: left; }
-	.labels button:nth-child(3) { text-align: right; }
-	.labels button.on { color: var(--text); }
+	/* Nota sutil bajo la perilla: pegada a la izquierda en "De nicho", centrada en el medio y a la derecha al final. */
+	.hint {
+		position: absolute;
+		bottom: 0;
+		left: calc(100% * var(--p) / 2);
+		translate: calc(-50% * var(--p)) 4px;
+		font-size: 11.5px;
+		color: color-mix(in srgb, var(--muted) 80%, transparent);
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+		opacity: 0;
+		filter: blur(3px);
+		pointer-events: none;
+		transition: opacity 0.35s var(--out), filter 0.35s var(--out), translate 0.35s var(--out), left 0.5s var(--spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+	}
+	.hint.on { opacity: 1; filter: none; translate: calc(-50% * var(--p)) 0; }
+	.hint b { font-weight: 650; color: var(--kc); }
+	.hint-in { display: inline-block; animation: hint-in 0.3s var(--out); }
+	@keyframes hint-in { from { opacity: 0; transform: translateY(3px); } }
+	.drag ~ .hint { transition: opacity 0.35s var(--out), filter 0.35s var(--out), translate 0.35s var(--out); }
 </style>

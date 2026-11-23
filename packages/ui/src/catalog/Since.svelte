@@ -257,12 +257,15 @@
 		left: var(--at);
 		z-index: 2;
 		translate: 10px -50%;
-		padding: 3px 8px;
+		padding: 2px 7px;
 		border-radius: var(--r-xs);
-		background: var(--amber);
-		color: #1b1300;
-		font-size: 15px;
-		font-weight: 800;
+		/* Sutil (2026-11-23): vidrio ámbar tenue en vez de la placa llena. */
+		background: color-mix(in srgb, var(--amber) 14%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amber) 35%, transparent);
+		backdrop-filter: blur(6px);
+		color: var(--amber);
+		font-size: 14px;
+		font-weight: 700;
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 		pointer-events: none;
