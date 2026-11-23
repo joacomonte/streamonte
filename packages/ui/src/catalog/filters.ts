@@ -11,9 +11,10 @@ export const KINDS: { v: Kind; label: string; icon: IconName }[] = [
 	{ v: 'movie', label: 'Películas', icon: 'film' },
 	{ v: 'tv', label: 'Series', icon: 'tv' }
 ];
-export const SORTS: { v: Sort; label: string; icon: IconName }[] = [
-	{ v: 'rating', label: 'Mejor puntaje', icon: 'star' },
-	{ v: 'popular', label: 'Más populares', icon: 'flame' }
+/** `short`: el nombre en celu angosto. */
+export const SORTS: { v: Sort; label: string; short: string; icon: IconName }[] = [
+	{ v: 'rating', label: 'Mejor puntaje', short: 'Puntaje', icon: 'star' },
+	{ v: 'popular', label: 'Más populares', short: 'Populares', icon: 'flame' }
 ];
 /** Idioma original del catálogo: fijo en inglés o español (2026-11-23, al sacar la hoja de filtros avanzados). */
 export const LANGUAGES = ['en', 'es'];

@@ -62,8 +62,9 @@
 	const trendingOnly = $derived(!st.filtered && !searching);
 	const genres = $derived(st.genreList[st.f.kind] ?? []);
 	const genreNames = $derived(genres.filter((g) => st.f.genres.includes(g.id)).map((g) => g.name).join(', '));
-	/** Orden en celu angosto. */
-	const SHORT: Record<string, string> = { rating: 'Puntaje', popular: 'Populares' };
+	/** Orden elegido y el otro (un solo botón que alterna). */
+	const sortNow = $derived(SORTS.find((s) => s.v === st.f.sort) ?? SORTS[0]);
+	const sortNext = $derived(SORTS.find((s) => s.v !== sortNow.v) ?? SORTS[1]);
 	/** Con filtros a la vista (no buscando ni sin key): al scrollear se compactan en una línea (2026-11-23, variante 1A). */
 	const compactable = $derived(!searching && !trendingOnly);
 	/** Ya se scrolleó más allá de los filtros: se ve la barra de una línea. */
@@ -184,18 +185,15 @@
 				{@render header?.()}
 				<Search {store} onclear={clear} {onquery} onpick={pick} />
 				{#if !searching}
-					<!-- Tipo y orden en una sola cápsula (2026-11-23, variante 1C); en celu angosto el orden inactivo queda en ícono. -->
+					<!-- Tipo y orden en una sola cápsula (2026-11-23, variantes 1C y A): el orden es un botón con el elegido que gira al otro. -->
 					<div class="ks">
 						<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} onpick={(v) => ((popped = v), setF({ kind: v }))} />
 						{#if !trendingOnly}
 							<span class="ks-div" aria-hidden="true"></span>
-							<div class="sort" role="radiogroup" aria-label={t('Orden')}>
-								{#each SORTS as s (s.v)}
-									<button id="sort-{s.v}" type="button" role="radio" class="marquee" aria-checked={st.f.sort === s.v} aria-label={t(s.label)} onclick={() => st.f.sort !== s.v && setF({ sort: s.v })}>
-										<Icon name={s.icon} size={15} /><span class="s-long">{t(s.label)}</span><span class="s-short">{t(SHORT[s.v])}</span>
-									</button>
-								{/each}
-							</div>
+							<button id="cat-sort" type="button" class="sort" class:hot={sortNow.v === 'popular'} aria-label={t('Orden: {o}. Cambiar a {n}', { o: t(sortNow.label), n: t(sortNext.label) })} onclick={() => setF({ sort: sortNext.v })}>
+								{#key sortNow.v}<span class="face"><Icon name={sortNow.icon} size={15} /><span class="s-long">{t(sortNow.label)}</span><span class="s-short">{t(sortNow.short)}</span></span>{/key}
+								<span class="swap" aria-hidden="true"><Icon name="swap" size={12} /></span>
+							</button>
 						{/if}
 					</div>
 					{#if trendingOnly}
@@ -271,83 +269,39 @@
 	.ks { display: flex; align-items: stretch; gap: 2px; margin-top: 12px; padding: 4px; border-radius: var(--r-pill); background: var(--surface-2); }
 	.ks-div { flex: none; width: 1px; margin: 10px 4px; background: var(--border-strong, var(--border)); }
 	@media (min-width: 640px) { .ks { max-width: 680px; } }
-	/* Orden: un pulgar-marquesina se desliza entre las dos: telón y foquitos. */
+	/* Orden: el elegido con su color (dorado puntaje, fuego populares); al tocarlo gira hacia el otro. Nunca se achica: el
+	   que cede ancho es el tipo. */
 	.sort {
-		position: relative;
-		display: grid;
-		flex: 1 1 0;
-		min-width: 0;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-		border-radius: var(--r-pill);
-	}
-	.s-short { display: none; }
-	.s-long, .s-short { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-	/* Píldora que se estira al viajar (como una gota) y toma el color de la opción: dorado para puntaje, fuego para populares. */
-	.sort::before {
-		--c: var(--yellow);
-		content: '';
-		position: absolute;
-		top: 0;
-		bottom: 0;
-		left: 0;
-		width: 50%;
-		border-radius: inherit;
-		pointer-events: none;
-		background: linear-gradient(135deg, color-mix(in srgb, var(--c) 30%, var(--surface-3)), color-mix(in srgb, var(--c) 12%, var(--surface-2)));
-		box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 28%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px color-mix(in srgb, var(--c) var(--tint-3), transparent);
-		transform-origin: left center;
-		transition: transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1), --c 0.4s;
-		animation: goo 0.5s var(--out);
-	}
-	.sort:has(#sort-popular[aria-checked='true'])::before { --c: var(--red); transform: translateX(100%); transform-origin: right center; animation-name: goo-b; }
-	.marquee {
-		position: relative;
-		z-index: 1;
+		--sort-c: var(--yellow);
+		flex: none;
 		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		gap: 5px;
-		min-width: 0;
+		gap: 6px;
 		min-height: 42px;
-		padding: 0 12px;
+		padding: 0 14px 0 12px;
 		border: 0;
 		border-radius: var(--r-pill);
-		background: none;
+		background: linear-gradient(135deg, color-mix(in srgb, var(--sort-c) 30%, var(--surface-3)), color-mix(in srgb, var(--sort-c) 12%, var(--surface-2)));
+		box-shadow: 0 4px 14px color-mix(in srgb, var(--sort-c) 28%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--sort-c) var(--tint-3), transparent);
+		color: var(--text);
 		font-size: 14px;
-		font-weight: 600;
-		color: var(--muted);
+		font-weight: 650;
 		white-space: nowrap;
-		transition: color 0.2s var(--ease);
+		perspective: 400px;
+		transition: --sort-c 0.4s var(--out);
 	}
-	.marquee[aria-checked='true'] { color: var(--text); }
-	.marquee :global(svg) { transition: color 0.2s var(--ease); }
-	.marquee[aria-checked='true'] :global(svg) { color: var(--yellow); animation: spin-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-	#sort-popular[aria-checked='true'] :global(svg) { color: var(--red); animation-name: flare; }
-	/* Celu angosto: el tipo sin íconos, y el orden activo con nombre corto mientras el otro queda en ícono. */
+	.sort.hot { --sort-c: var(--red); }
+	.sort:active { scale: 0.96; }
+	.face { display: inline-flex; align-items: center; gap: 6px; animation: flip 0.45s var(--out); }
+	.face :global(svg) { color: var(--sort-c); }
+	.swap { display: inline-flex; opacity: 0.5; }
+	.s-short { display: none; }
 	@media (max-width: 479px) {
-		.sort { display: flex; flex: 0 1 auto; }
-		.sort::before { display: none; }
-		.marquee { flex: 0 0 42px; padding: 0; }
-		.marquee[aria-checked='true'] {
-			--c: var(--yellow);
-			flex: 0 1 auto;
-			padding: 0 12px 0 10px;
-			background: linear-gradient(135deg, color-mix(in srgb, var(--c) 30%, var(--surface-3)), color-mix(in srgb, var(--c) 12%, var(--surface-2)));
-			box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 28%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--c) var(--tint-3), transparent);
-		}
-		#sort-popular[aria-checked='true'] { --c: var(--red); }
 		.s-long { display: none; }
-		.marquee[aria-checked='true'] .s-short { display: inline; animation: rise-in 0.35s var(--out); }
+		.s-short { display: inline; }
 	}
-	/* Celu muy angosto: el orden elegido sin ícono, para que el tipo no se corte. */
-	@media (max-width: 359px) { .marquee[aria-checked='true'] :global(svg) { display: none; } }
-	@keyframes rise-in { from { opacity: 0; transform: translateX(-4px); } }
-	/* Copias -b: cambiar el nombre de la animación al deslizar la reinicia. El estirón es sobre `scale`, aparte del `transform` que la desliza. */
-	@property --c { syntax: '<color>'; inherits: false; initial-value: transparent; }
-	@keyframes goo { 35% { scale: 1.35 0.86; } 65% { scale: 0.94 1.05; } }
-	@keyframes goo-b { 35% { scale: 1.35 0.86; } 65% { scale: 0.94 1.05; } }
-	@keyframes spin-in { from { opacity: 0; transform: scale(0.3) rotate(-160deg); } }
-	@keyframes flare { from { opacity: 0; transform: translateY(6px) scale(0.4, 0.2); } 60% { transform: scale(1.1, 1.3); } }
+	@property --sort-c { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@keyframes flip { from { transform: rotateX(90deg); opacity: 0; } }
 
 
 	.body { padding: 14px 16px calc(24px + var(--safe-bottom)); }

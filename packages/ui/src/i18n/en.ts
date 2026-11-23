@@ -1089,6 +1089,7 @@ const EN: Record<string, string> = {
 	"ver menos": "show less",
 	"Cerrar filtros": "Close filters",
 	"Votos": "Votes",
+	"Orden: {o}. Cambiar a {n}": "Order: {o}. Switch to {n}",
 	"Todos": "All",
 	"De nicho": "Niche",
 	"Conocidas": "Well known",

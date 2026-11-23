@@ -34,10 +34,7 @@
    "sel": "#since-to"
   },
   {
-   "sel": "#sort-rating"
-  },
-  {
-   "sel": "#sort-popular"
+   "sel": "#cat-sort"
   },
   {
    "sel": "#genre-all"
