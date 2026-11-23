@@ -921,24 +921,15 @@ impl AppCore {
     ) -> Result<()> {
         // Un REMUX de 50+ GB tarda en dar el primer byte desde TorBox: 30 s cortaba lecturas que iban a andar.
         const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
-        const HEADER_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
         let timeout = self
             .catalog_timeout()
             .await
             .max(std::time::Duration::from_secs(20));
-        let (url, title) = self.catalog.torbox_stream(hash, timeout).await?;
-        // Primero el encabezado del MKV (el primer MB, segundos; como la web); si no es MKV o no se pudo, mpv.
-        let header = self
-            .catalog
-            .http
-            .head_bytes(&url, crate::catalog::mkv::HEAD, HEADER_TIMEOUT)
-            .await
-            .inspect_err(|e| tracing::info!("encabezado por TorBox ({hash}): {}", e.user_text()))
-            .ok()
-            .and_then(|b| crate::catalog::mkv::parse_tracks(&b));
-        let probe = match header {
-            Some(tracks) => mkv_probe(&tracks),
-            None => {
+        // El encabezado del MKV (el primer MB, segundos; como la web); si no es MKV y hay link (key propia), mpv.
+        let (header, url, title) = self.catalog.torbox_header_tracks(hash, timeout).await?;
+        let probe = match (header, url) {
+            (Some(tracks), _) => mkv_probe(&tracks),
+            (None, Some(url)) => {
                 let mpv_path = self.config.read().await.player.mpv_path.clone();
                 let mpv = crate::paths::find_executable(
                     crate::paths::Executable::Mpv,
@@ -949,6 +940,15 @@ impl AppCore {
                     .await
                     .inspect_err(|e| tracing::warn!("leer pistas por TorBox ({hash}): {e}"))?;
                 (Some(p.duration_secs), p.audio, p.subs, p.fps)
+            }
+            (None, None) => {
+                tracing::warn!(
+                    "leer pistas por TorBox ({hash}): la web no pudo leer el encabezado"
+                );
+                return Err(CoreError::Catalog {
+                    user: "No pude leer las pistas de este video.".into(),
+                    detail: "pistas por la web: sin encabezado MKV".into(),
+                });
             }
         };
         if !self.library.lock().await.has_torrent(&hash) {

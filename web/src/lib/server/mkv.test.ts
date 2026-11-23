@@ -17,14 +17,14 @@ const mkv = Buffer.concat([el(EBML, [0x42, 0x82, 0x84, 0x77, 0x65, 0x62, 0x6d]),
 
 test('parseTracks: lee tipo, idioma (BCP47 pisa al ISO), nombre y forzado', () => {
 	assert.deepEqual(parseTracks(mkv), [
-		{ type: 2, lang: 'spa', name: 'Latino', forced: false },
-		{ type: 17, lang: 'es-419', name: '', forced: true }
+		{ type: 2, lang: 'spa', name: 'Latino', forced: false, codec: '' },
+		{ type: 17, lang: 'es-419', name: '', forced: true, codec: '' }
 	]);
 });
 
 test('parseTracks: pista sin idioma queda en eng', () => {
 	const bare = Buffer.concat([el(EBML, [0]), el(SEGMENT, el(TRACKS, el(TRACK_ENTRY, el(TYPE, [1]))))]);
-	assert.deepEqual(parseTracks(bare), [{ type: 1, lang: 'eng', name: '', forced: false }]);
+	assert.deepEqual(parseTracks(bare), [{ type: 1, lang: 'eng', name: '', forced: false, codec: '' }]);
 });
 
 test('parseTracks: no es MKV, vacío o cortado antes de Tracks -> null', () => {
@@ -41,7 +41,7 @@ test('parseTracks: Segment de tamaño desconocido (0x01FFFFFFFFFFFFFF)', () => {
 });
 
 test('isSpanish: spa, es, es-419, es-ES; no eng ni "esp"', () => {
-	const t = (lang: string) => ({ type: 2, lang, name: '', forced: false });
+	const t = (lang: string) => ({ type: 2, lang, name: '', forced: false, codec: '' });
 	for (const l of ['spa', 'es', 'es-419', 'ES-es']) assert.equal(isSpanish(t(l)), true, l);
 	for (const l of ['eng', 'est', 'esp']) assert.equal(isSpanish(t(l)), false, l);
 });

@@ -3,7 +3,7 @@
 import { get } from './http.ts';
 
 const HEAD = 1024 * 1024;
-const SEGMENT = 0x18538067, TRACKS = 0x1654ae6b, ENTRY = 0xae, TYPE = 0x83, FORCED = 0x55aa, NAME = 0x536e, LANG = 0x22b59c, BCP47 = 0x22b59d;
+const SEGMENT = 0x18538067, TRACKS = 0x1654ae6b, ENTRY = 0xae, TYPE = 0x83, CODEC = 0x86, FORCED = 0x55aa, NAME = 0x536e, LANG = 0x22b59c, BCP47 = 0x22b59d;
 
 /** Entero de largo variable de EBML (id con el marcador, tamaño sin él). */
 function vint(b: Buffer, at: number, keepMarker: boolean): { v: number; len: number; unknown: boolean } | null {
@@ -36,7 +36,7 @@ function* children(b: Buffer, start: number, end: number): Generator<{ id: numbe
 	}
 }
 
-export type Track = { type: number; lang: string; name: string; forced: boolean };
+export type Track = { type: number; lang: string; name: string; forced: boolean; codec: string };
 /** Pistas del encabezado, o null si no es MKV o el bloque Tracks no está en el primer MB. */
 export function parseTracks(b: Buffer): Track[] | null {
 	const seg = [...children(b, 0, b.length)].find((e) => e.id === SEGMENT);
@@ -45,13 +45,14 @@ export function parseTracks(b: Buffer): Track[] | null {
 	return [...children(b, tracks.body, tracks.end)]
 		.filter((e) => e.id === ENTRY)
 		.map((e) => {
-			const t: Track = { type: 0, lang: 'eng', name: '', forced: false };
+			const t: Track = { type: 0, lang: 'eng', name: '', forced: false, codec: '' };
 			let bcp = '';
 			for (const f of children(b, e.body, e.end)) {
 				const raw = b.subarray(f.body, f.end);
 				if (f.id === TYPE) t.type = raw.readUIntBE(0, raw.length || 1);
 				else if (f.id === FORCED) t.forced = raw.length > 0 && raw.readUIntBE(0, raw.length) === 1;
 				else if (f.id === NAME) t.name = raw.toString('utf8');
+				else if (f.id === CODEC) t.codec = raw.toString('latin1').replace(/\0+$/, '');
 				else if (f.id === LANG) t.lang = raw.toString('latin1').replace(/\0+$/, '');
 				else if (f.id === BCP47) bcp = raw.toString('latin1').replace(/\0+$/, '');
 			}

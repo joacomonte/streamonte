@@ -420,6 +420,70 @@ async fn download_url(
         .ok_or_else(|| fail("requestdl sin link"))
 }
 
+/// Pistas del video sin bajarlo (encabezado del MKV, 2026-11-23). Por la web las lee el servidor: el link de
+/// `requestdl` trae su key y el proxy no lo deja salir. Con key propia se lee acá y se devuelve también el link, para
+/// probar con mpv si no es MKV. `(pistas, link)`: `None` en pistas = no es MKV o no se pudo leer.
+pub async fn header_tracks(
+    http: &Http,
+    magnet: &str,
+    timeout: Duration,
+) -> Result<(Option<Vec<super::mkv::Track>>, Option<String>)> {
+    const HEADER_TIMEOUT: Duration = Duration::from_secs(25);
+    let (api, id, file) = video_file(http, magnet, timeout).await?;
+    if api.own_key.is_none() {
+        let r: std::result::Result<ProxyTracks, _> = api
+            .get(
+                http,
+                &format!("streamonte/tracks?torrent_id={id}&file_id={}", file.id),
+                HEADER_TIMEOUT.max(timeout),
+            )
+            .await?;
+        let tracks = r
+            .inspect_err(|e| tracing::info!("pistas por la web: {}", e.user_text()))
+            .ok()
+            .map(|p| p.data.into_iter().map(Into::into).collect());
+        return Ok((tracks, None));
+    }
+    let url = download_url(http, &api, id, &file, timeout).await?;
+    let tracks = http
+        .head_bytes(&url, super::mkv::HEAD, HEADER_TIMEOUT)
+        .await
+        .inspect_err(|e| tracing::info!("encabezado por TorBox: {}", e.user_text()))
+        .ok()
+        .and_then(|b| super::mkv::parse_tracks(&b));
+    Ok((tracks, Some(url)))
+}
+
+#[derive(Deserialize)]
+struct ProxyTracks {
+    data: Vec<ProxyTrack>,
+}
+/// Pista como la devuelve la web (`web/src/lib/server/mkv.ts` `Track`).
+#[derive(Deserialize)]
+struct ProxyTrack {
+    #[serde(rename = "type")]
+    kind: u64,
+    #[serde(default)]
+    lang: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    codec: String,
+    #[serde(default)]
+    forced: bool,
+}
+impl From<ProxyTrack> for super::mkv::Track {
+    fn from(t: ProxyTrack) -> Self {
+        Self {
+            kind: t.kind,
+            lang: t.lang,
+            name: t.name,
+            codec: t.codec,
+            forced: t.forced,
+        }
+    }
+}
+
 /// Link directo del video de ese torrent en TorBox (2026-11-17), que mpv reproduce como cualquier video en línea.
 pub async fn stream_url(http: &Http, magnet: &str, timeout: Duration) -> Result<String> {
     let (api, id, file) = video_file(http, magnet, timeout).await?;

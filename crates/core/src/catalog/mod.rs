@@ -764,6 +764,25 @@ impl Catalog {
         Ok((url, magnet.display_name.unwrap_or_else(|| hash.to_hex())))
     }
 
+    /// Pistas de esa opción por TorBox: ver `torbox::header_tracks`. Devuelve también el nombre del torrent.
+    pub async fn torbox_header_tracks(
+        &self,
+        hash: InfoHash,
+        timeout: Duration,
+    ) -> Result<(Option<Vec<mkv::Track>>, Option<String>, String)> {
+        let magnet = self
+            .magnets_of(&[hash])
+            .into_iter()
+            .next()
+            .ok_or_else(|| CoreError::NotFound("esa opción ya no está en la lista".into()))?;
+        let (tracks, url) = torbox::header_tracks(&self.http, &magnet.to_uri(), timeout).await?;
+        Ok((
+            tracks,
+            url,
+            magnet.display_name.unwrap_or_else(|| hash.to_hex()),
+        ))
+    }
+
     /// Link para castear de esa opción por TorBox (HLS; si no, descarga): ver `torbox::cast_url`. `orig`: idioma
     /// original en ISO 639-1 (TMDB).
     pub async fn torbox_cast(
