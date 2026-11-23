@@ -77,12 +77,13 @@
 	let more = $state(false);
 	let providersOpen = $state(false);
 	let castOpen = $state(false);
+	let genresOpen = $state(false);
 	let similarOpen = $state(false);
 	let similarList = $state<SimilarItem[] | null | undefined>(undefined);
 
 	$effect(() => {
 		const [k, i] = [kind, id];
-		more = providersOpen = castOpen = similarOpen = false;
+		more = providersOpen = castOpen = genresOpen = similarOpen = false;
 		similarList = undefined;
 		if (details) return;
 		fetched = null;
@@ -232,11 +233,14 @@
 							{#if provs.more}<span class="prov-more">+{provs.more}</span>{/if}
 						</button>
 						{/if}
-						<!-- Géneros: píldoras con su emoji, en la misma fila que reparto y plataformas. -->
-						{#each genres as g (g)}
-							{@const emoji = genreEmoji(g)}
-							<span class="genre">{#if emoji}<span class="genre-ico" aria-hidden="true">{emoji}</span>{/if}{g}</span>
-						{/each}
+						<!-- Géneros: una píldora con los emoji apilados; con el mouse se abre un adelanto y al tocar sale cada uno con su nombre. -->
+						{#if genres.length}
+							<button id={ids.genres} type="button" class="genres-pill" class:open={genresOpen} aria-expanded={genresOpen} aria-label={t('Géneros')} onclick={() => (genresOpen = !genresOpen)}>
+								{#each genres as g, i (g)}
+									<span class="g-item" style:--i={i} style:--n={genres.length}><span class="g-ico" aria-hidden="true">{genreEmoji(g) ?? g[0]}</span><span class="g-name">{g}</span></span>
+								{/each}
+							</button>
+						{/if}
 					</div>
 				{/if}
 
@@ -408,9 +412,27 @@
 	.by { margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
 	.by-link { padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-weight: 650; cursor: pointer; }
 	@media (hover: hover) { .by-link:hover { text-decoration: underline; } }
-	/* Géneros: píldoras de la fila de reparto y plataformas. */
-	.genre { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px 0 10px; border-radius: 22px; background: var(--surface-2); color: var(--text); font-size: 13.5px; font-weight: 600; white-space: nowrap; }
-	.genre-ico { font-size: 17px; line-height: 1; }
+	/* Géneros: emoji superpuestos; hover = adelanto con resorte, abierta = cada género como su píldora. */
+	.genres-pill { --spring: cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; flex-wrap: wrap; align-items: center; max-width: 100%; min-height: 40px; padding: 4px; border: 0; border-radius: 22px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: background 0.3s var(--ease), padding 0.45s var(--spring), gap 0.45s var(--spring), transform 0.15s var(--out); }
+	.genres-pill:active { transform: scale(0.96); }
+	.g-item { display: inline-flex; align-items: center; height: 32px; border-radius: 20px; background: transparent; color: var(--text); font-size: 13.5px; font-weight: 600; white-space: nowrap; transition: margin 0.55s var(--spring), background 0.3s var(--ease); transition-delay: calc(var(--i) * 35ms); }
+	.g-item + .g-item { margin-left: -9px; }
+	.g-ico { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--border); box-shadow: 0 0 0 2px var(--surface-2); font-size: 17px; font-weight: 700; line-height: 1; transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease), transform 0.5s var(--spring); transition-delay: calc(var(--i) * 35ms); }
+	.g-name { max-width: 0; padding: 0; opacity: 0; overflow: hidden; transition: max-width 0.55s var(--spring), padding 0.55s var(--spring), opacity 0.25s var(--ease); transition-delay: calc(var(--i) * 35ms); }
+	@media (hover: hover) {
+		.genres-pill:not(.open):hover { background: var(--surface-3, var(--border)); }
+		.genres-pill:not(.open):hover .g-item + .g-item { margin-left: 3px; }
+		.genres-pill:not(.open):hover .g-ico { transform: translateY(-2px) rotate(calc((var(--i) - 1) * 6deg)); }
+		.genres-pill:not(.open):hover .g-item:first-child .g-name { max-width: 18ch; padding: 0 10px 0 4px; opacity: 1; }
+	}
+	.genres-pill.open { gap: 8px; padding: 0; background: none; }
+	.genres-pill.open .g-item { margin-left: 0; height: 40px; background: var(--surface-2); transition-delay: calc(var(--i) * 60ms); }
+	.genres-pill.open .g-ico { width: 34px; height: 34px; margin-left: 3px; background: transparent; box-shadow: none; animation: g-hop 0.6s var(--spring) backwards; animation-delay: calc(var(--i) * 60ms + 80ms); }
+	.genres-pill.open .g-name { max-width: 24ch; padding: 0 14px 0 4px; opacity: 1; transition-delay: calc(var(--i) * 60ms); }
+	@keyframes g-hop { 0% { transform: translateY(0) scale(0.4) rotate(-50deg); } 55% { transform: translateY(-7px) scale(1.25) rotate(14deg); } 100% { transform: none; } }
+	@media (prefers-reduced-motion: reduce) {
+		.genres-pill, .g-item, .g-ico, .g-name { transition: none; animation: none !important; }
+	}
 	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
 	.cine-wrap { padding-top: 12px; }
 	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: var(--r-card, 14px); background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
