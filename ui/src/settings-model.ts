@@ -25,16 +25,6 @@ export async function saveKey(api: Pick<DesktopApi, 'setApiKey'>, service: strin
 	};
 }
 
-/** Código de TorBox de Streamonte: 3 dígitos; vacío = lo borra. Inválido: no llama al núcleo. */
-export async function saveTorboxCode(api: Pick<DesktopApi, 'setApiKey'>, raw: string): Promise<{ error: string } | { error: null; status: string }> {
-	const code = raw.trim();
-	if (code && !/^\d{3}$/.test(code)) return { error: t('Son 3 dígitos.') };
-	await api.setApiKey('streamonte-code', code);
-	return { error: null, status: code ? t('Código de Streamonte guardado.') : t('Código de Streamonte borrado.') };
-}
-
-export const setTorboxShared = (api: Pick<DesktopApi, 'setTorboxShared'>, on: boolean): Promise<void> => api.setTorboxShared(on);
-
 export async function saveLatTeamToken(api: Pick<DesktopApi, 'setApiKey'>, raw: string): Promise<string> {
 	await api.setApiKey('latteam', raw.trim());
 	return t('Token de Lat-Team guardado en el almacén seguro.');
@@ -96,16 +86,15 @@ export function netCheckView(r: Raw.IncomingCheck): { cls: 'ok' | 'bad' | ''; te
 	return { cls: '', text: `${r.problem ?? t('No se pudo probar.')}${ip}` };
 }
 
-export type SettingsSnapshot = { keys: Raw.ApiKeyStatus[]; shared: boolean; eq: Raw.Equalizer; net: Net; latteamOn: boolean; players: Raw.PlayersStatus };
+export type SettingsSnapshot = { keys: Raw.ApiKeyStatus[]; eq: Raw.Equalizer; net: Net; latteamOn: boolean; players: Raw.PlayersStatus };
 /** Todo lo que muestra Ajustes al abrirse. */
 export async function loadSettings(api: Pick<DesktopApi, 'apiKeys' | 'config' | 'catalogAddons' | 'playersStatus'>): Promise<SettingsSnapshot> {
 	const keys = await api.apiKeys();
-	const { engine, player, catalog } = await api.config();
+	const { engine, player } = await api.config();
 	const addons = await api.catalogAddons();
 	const players = await api.playersStatus();
 	return {
 		keys,
-		shared: catalog.torbox_shared,
 		eq: player.equalizer,
 		net: { incoming: engine.incoming, upnp: engine.upnp, announce: engine.announce_early },
 		latteamOn: addons.some((a) => a.id === 'latteam' && a.enabled),

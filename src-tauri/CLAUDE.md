@@ -17,7 +17,7 @@ Crea la ventana, arranca `AppCore`, expone comandos y reenvía eventos. Sin lóg
 - `capabilities/default.json`: solo `core:event:allow-listen/unlisten`, `process:allow-restart`, `updater:default`; permiso nuevo → ahí.
 - Args de `invoke` en camelCase se mapean a snake_case (`fileIndex`→`file_index`).
 - `on_close` (`commands.rs:150`) sale siempre con `exit(0)` aunque el core falle.
-- Errores a la UI `{message, detail}`; la UI detecta por `detail` (p. ej. `torbox: código incorrecto`).
+- Errores a la UI `{message, detail}`; `detail` es para el log, no para la UI.
 
 ## Tests
 Sin tests propios; `cd /Users/monti/Documents/Dev/streamonte && sh scripts/check.sh` (fmt + clippy + JS), `full` suma nextest. Eventos `CoreEvent`: `/Users/monti/Documents/Dev/streamonte/crates/core/src/events.rs`.

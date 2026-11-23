@@ -3,11 +3,9 @@
 //! API: `GET https://api.torbox.app/v1/api/torrents/checkcached?hash=a,b&format=object` con
 //! `Authorization: Bearer <key>`; `data` trae una entrada por cada hash que está en caché.
 //!
-//! Dos modos (2026-11-21), decididos solo en [`api`]: "TorBox de Streamonte" (por defecto) le pide
-//! a la web (`/api/desktop/torbox/<ruta>`, con la cookie `code`), que agrega la key del servidor;
-//! así esa key nunca llega a esta compu. Apagado, se usa la key propia directo contra TorBox.
+//! Siempre directo contra TorBox con la key de cada usuario (2026-11-23): el modo "TorBox de Streamonte" (por la
+//! web, con la key del servidor) se sacó porque el link de reproducción trae la key y el proxy no podía darlo.
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -21,24 +19,7 @@ pub const TORBOX: &str = "torbox";
 const ACCOUNT: &str = "torbox-api-key";
 /// Página de la cuenta donde está la API key.
 pub const KEY_PAGE: &str = "https://torbox.app/settings";
-/// Id del código de acceso de la web en Ajustes (mismo que pide la web: 3 dígitos).
-pub const CODE: &str = "streamonte-code";
-const CODE_ACCOUNT: &str = "streamonte-web-code";
-const DIRECT: &str = "https://api.torbox.app/v1/api";
-const PROXY: &str = "https://streamonte-web.vercel.app/api/desktop/torbox";
-/// Origen de la web: SvelteKit rechaza (403, CSRF) un POST multipart sin `Origin` del mismo sitio (2026-11-23).
-const PROXY_ORIGIN: &str = "https://streamonte-web.vercel.app";
-/// "Usar TorBox de Streamonte" (`catalog.torbox_shared` de la config): lo pone la app al abrir y al cambiarlo.
-static SHARED: AtomicBool = AtomicBool::new(true);
-
-pub fn set_shared(on: bool) {
-    SHARED.store(on, Ordering::Relaxed);
-}
-
-/// Guarda el código de acceso de la web (o lo borra si viene vacío).
-pub fn set_code(code: &str) -> Result<()> {
-    crate::secrets::set_secret(CODE_ACCOUNT, code)
-}
+const BASE: &str = "https://api.torbox.app/v1/api";
 /// Hashes por pedido. Con `list_files=true` cada entrada trae la lista de archivos: 80 hashes de packs pasan
 /// el tope de 5 MB de [`super::http::MAX_BODY`] (y los 4,5 MB de respuesta de una función de Vercel, que
 /// devuelve 413): el pedido fallaba entero y no aparecía ninguna opción en TorBox (2026-11-22).
@@ -59,42 +40,21 @@ pub fn has_key() -> bool {
     crate::secrets::secret(ACCOUNT).is_some()
 }
 
-/// ¿Se le puede pedir a TorBox en el modo vigente? (código de la web, o key propia).
-pub fn usable() -> bool {
-    api().is_some()
-}
-
-/// A dónde se le pide a TorBox y con qué header.
+/// La key de TorBox guardada. `None` = sin key.
 struct Api {
-    base: &'static str,
-    auth: (&'static str, String),
-    /// La key propia (solo directo): `requestdl` la pide también en la URL. Por la web la pone el servidor.
-    own_key: Option<String>,
+    key: String,
 }
 
-/// La única regla de a quién se le pide: con "TorBox de Streamonte", a la web con el código; si no, a TorBox
-/// con la key propia. `None` = falta el código o la key.
 fn api() -> Option<Api> {
-    if SHARED.load(Ordering::Relaxed) {
-        let code = crate::secrets::secret(CODE_ACCOUNT)?;
-        return Some(Api {
-            base: PROXY,
-            auth: ("Cookie", format!("code={code}")),
-            own_key: None,
-        });
-    }
-    let key = crate::secrets::secret(ACCOUNT)?;
-    Some(Api {
-        base: DIRECT,
-        auth: ("Authorization", format!("Bearer {key}")),
-        own_key: Some(key),
-    })
+    crate::secrets::secret(ACCOUNT).map(|key| Api { key })
 }
 
-/// Resultado de un pedido: afuera, el código de la web rechazado (401); adentro, lo que contestó.
-type Call<T> = Result<std::result::Result<T, super::http::FetchError>>;
+type Call<T> = std::result::Result<T, super::http::FetchError>;
 
 impl Api {
+    fn bearer(&self) -> (&'static str, String) {
+        ("Authorization", format!("Bearer {}", self.key))
+    }
     /// GET de `path` (desde `/v1/api/`, p. ej. `torrents/mylist?id=1`).
     async fn get<T: serde::de::DeserializeOwned>(
         &self,
@@ -102,11 +62,9 @@ impl Api {
         path: &str,
         timeout: Duration,
     ) -> Call<T> {
-        let url = format!("{}/{path}", self.base);
-        let r = http
-            .get_json_auth(&url, (self.auth.0, &self.auth.1), timeout)
-            .await;
-        self.check_code(r)
+        let (h, v) = self.bearer();
+        http.get_json_auth(&format!("{BASE}/{path}"), (h, &v), timeout)
+            .await
     }
     async fn post_multipart<T: serde::de::DeserializeOwned>(
         &self,
@@ -115,35 +73,9 @@ impl Api {
         fields: &[(&'static str, String)],
         timeout: Duration,
     ) -> Call<T> {
-        let url = format!("{}/{path}", self.base);
-        let r = http
-            .post_multipart_auth(
-                &url,
-                (self.auth.0, &self.auth.1),
-                fields,
-                self.own_key.is_none().then_some(PROXY_ORIGIN),
-                timeout,
-            )
-            .await;
-        self.check_code(r)
-    }
-    /// Por la web, un 401 es siempre el código (el proxy no devuelve 401 de TorBox): se borra para pedirlo de nuevo.
-    fn check_code<T>(&self, r: std::result::Result<T, super::http::FetchError>) -> Call<T> {
-        if self.own_key.is_none() && r.as_ref().err() == Some(&super::http::FetchError::Status(401))
-        {
-            let _ = set_code("");
-            return Err(wrong_code());
-        }
-        Ok(r)
-    }
-}
-
-/// Mismo `detail` que mira la UI (`ui/src/api.js`) para volver a pedir el código.
-pub const WRONG_CODE: &str = "torbox: código incorrecto";
-fn wrong_code() -> crate::CoreError {
-    crate::CoreError::Catalog {
-        user: "Código incorrecto: cargá el de Streamonte en Ajustes.".into(),
-        detail: WRONG_CODE.into(),
+        let (h, v) = self.bearer();
+        http.post_multipart_auth(&format!("{BASE}/{path}"), (h, &v), fields, timeout)
+            .await
     }
 }
 
@@ -177,8 +109,8 @@ pub struct CachedVideo {
     pub source: Option<String>,
 }
 
-/// Cuáles de `hashes` están en la caché de TorBox. `None` = sin key (o código) o TorBox no respondió (no se
-/// muestra nada); un hash que falta = no está. Error: solo el código de la web rechazado.
+/// Cuáles de `hashes` están en la caché de TorBox. `None` = sin key o TorBox no respondió (no se muestra nada);
+/// un hash que falta = no está.
 pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Result<Option<Cached>> {
     let Some(api) = api() else { return Ok(None) };
     let timeout = timeout.max(MIN_CHECK_TIMEOUT);
@@ -190,13 +122,12 @@ pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Resu
             .collect::<Vec<_>>()
             .join(",");
         let path = format!("torrents/checkcached?hash={list}&format=object&list_files=true");
-        let resp: CheckCached = match api.get(http, &path, timeout).await? {
+        let resp: CheckCached = match api.get(http, &path, timeout).await {
             Ok(r) => r,
             Err(e) => {
                 tracing::warn!(
                     chunk = n,
                     hashes = chunk.len(),
-                    shared = api.own_key.is_none(),
                     "TorBox checkcached: {}",
                     e.user_text()
                 );
@@ -360,7 +291,7 @@ fn fail(detail: impl Into<String>) -> crate::CoreError {
 /// El torrent en la cuenta de TorBox y su archivo de video más grande (2026-11-17): lo agrega solo si ya está en
 /// caché (si no, TorBox empezaría a bajarlo y no estaría al instante). Devuelve a quién pedir, el id y el archivo.
 async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Api, u64, TbFile)> {
-    let api = api().ok_or_else(|| fail("sin key de TorBox (o código de Streamonte)"))?;
+    let api = api().ok_or_else(|| fail("sin key de TorBox"))?;
     let created: Created = api
         .post_multipart(
             http,
@@ -371,7 +302,7 @@ async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Api
             ],
             timeout,
         )
-        .await?
+        .await
         .map_err(|e| fail(format!("createtorrent: {}", e.user_text())))?;
     let id = created.data.and_then(|d| d.torrent_id).ok_or_else(|| {
         fail(format!(
@@ -385,7 +316,7 @@ async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Api
             &format!("torrents/mylist?id={id}&bypass_cache=true"),
             timeout,
         )
-        .await?
+        .await
         .map_err(|e| fail(format!("mylist: {}", e.user_text())))?;
     let files = list.data.map(|d| d.files).unwrap_or_default();
     if files.is_empty() {
@@ -399,7 +330,6 @@ async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Api
     Ok((api, id, file))
 }
 /// Link de descarga del archivo. `requestdl` pide la key en la URL (así lo documenta TorBox); no se loguea.
-/// Por la web, la pone el servidor.
 async fn download_url(
     http: &Http,
     api: &Api,
@@ -407,30 +337,25 @@ async fn download_url(
     file: &TbFile,
     timeout: Duration,
 ) -> Result<String> {
-    let token = api
-        .own_key
-        .as_deref()
-        .map(|k| format!("token={k}&"))
-        .unwrap_or_default();
+    let token = &api.key;
     let dl: Download = api
         .get(
             http,
             &format!(
-                "torrents/requestdl?{token}torrent_id={id}&file_id={}&zip_link=false",
+                "torrents/requestdl?token={token}&torrent_id={id}&file_id={}&zip_link=false",
                 file.id
             ),
             timeout,
         )
-        .await?
+        .await
         .map_err(|e| fail(format!("requestdl: {}", e.user_text())))?;
     dl.data
         .filter(|u| u.starts_with("https://"))
         .ok_or_else(|| fail("requestdl sin link"))
 }
 
-/// Pistas del video sin bajarlo (encabezado del MKV, 2026-11-23). Por la web las lee el servidor: el link de
-/// `requestdl` trae su key y el proxy no lo deja salir. Con key propia se lee acá y se devuelve también el link, para
-/// probar con mpv si no es MKV. `(pistas, link)`: `None` en pistas = no es MKV o no se pudo leer.
+/// Pistas del video sin bajarlo (encabezado del MKV, 2026-11-23). Devuelve también el link, para probar con mpv si
+/// no es MKV. `(pistas, link)`: `None` en pistas = no es MKV o no se pudo leer.
 pub async fn header_tracks(
     http: &Http,
     magnet: &str,
@@ -441,23 +366,8 @@ pub async fn header_tracks(
     tracing::info!(
         torrent_id = id,
         file_id = file.id,
-        por_la_web = api.own_key.is_none(),
         "pistas por TorBox: leyendo encabezado"
     );
-    if api.own_key.is_none() {
-        let r: std::result::Result<ProxyTracks, _> = api
-            .get(
-                http,
-                &format!("streamonte/tracks?torrent_id={id}&file_id={}", file.id),
-                HEADER_TIMEOUT.max(timeout),
-            )
-            .await?;
-        let tracks = r
-            .inspect_err(|e| tracing::info!("pistas por la web: {}", e.user_text()))
-            .ok()
-            .map(|p| p.data.into_iter().map(Into::into).collect());
-        return Ok((tracks, None));
-    }
     let url = download_url(http, &api, id, &file, timeout).await?;
     let tracks = http
         .head_bytes(&url, super::mkv::HEAD, HEADER_TIMEOUT)
@@ -466,36 +376,6 @@ pub async fn header_tracks(
         .ok()
         .and_then(|b| super::mkv::parse_tracks(&b));
     Ok((tracks, Some(url)))
-}
-
-#[derive(Deserialize)]
-struct ProxyTracks {
-    data: Vec<ProxyTrack>,
-}
-/// Pista como la devuelve la web (`web/src/lib/server/mkv.ts` `Track`).
-#[derive(Deserialize)]
-struct ProxyTrack {
-    #[serde(rename = "type")]
-    kind: u64,
-    #[serde(default)]
-    lang: String,
-    #[serde(default)]
-    name: String,
-    #[serde(default)]
-    codec: String,
-    #[serde(default)]
-    forced: bool,
-}
-impl From<ProxyTrack> for super::mkv::Track {
-    fn from(t: ProxyTrack) -> Self {
-        Self {
-            kind: t.kind,
-            lang: t.lang,
-            name: t.name,
-            codec: t.codec,
-            forced: t.forced,
-        }
-    }
 }
 
 /// Link directo del video de ese torrent en TorBox (2026-11-17), que mpv reproduce como cualquier video en línea.
@@ -569,7 +449,7 @@ async fn hls_url(
     let ask = |path: String| async move {
         let s: Stream = api
             .get(http, &path, timeout)
-            .await?
+            .await
             .map_err(|e| fail(format!("createstream: {}", e.user_text())))?;
         s.data.ok_or_else(|| fail("createstream sin datos"))
     };
@@ -744,7 +624,7 @@ fn status_of_mine(m: Mine) -> MagnetStatus {
 
 fn need_key() -> crate::CoreError {
     crate::CoreError::Catalog {
-        user: "Falta la key de TorBox (o el código de Streamonte): cargala en Ajustes.".into(),
+        user: "Falta la key de TorBox: cargala en Ajustes.".into(),
         detail: "torbox: sin key".into(),
     }
 }
@@ -762,7 +642,7 @@ pub async fn magnet_status(http: &Http, hash: InfoHash, timeout: Duration) -> Re
     let hex = hash.to_hex();
     let mine: AllMine = api
         .get(http, "torrents/mylist?bypass_cache=true", timeout)
-        .await?
+        .await
         .map_err(|e| unreachable_torbox("mylist", &e))?;
     if let Some(m) = mine
         .data
@@ -777,7 +657,7 @@ pub async fn magnet_status(http: &Http, hash: InfoHash, timeout: Duration) -> Re
             &format!("torrents/checkcached?hash={hex}&format=object&list_files=true"),
             timeout,
         )
-        .await?
+        .await
         .map_err(|e| unreachable_torbox("checkcached", &e))?;
     let Some(hit) = entry(resp.data.as_ref(), &hash) else {
         return Ok(MagnetStatus {
@@ -815,7 +695,7 @@ pub async fn magnet_download(http: &Http, magnet: &str, timeout: Duration) -> Re
             &[("magnet", magnet.to_string())],
             timeout,
         )
-        .await?
+        .await
         .map_err(|e| unreachable_torbox("createtorrent", &e))?;
     if created.data.and_then(|d| d.torrent_id).is_none() {
         return Err(crate::CoreError::Catalog {

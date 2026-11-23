@@ -7,4 +7,4 @@ mod common;
 mod config_updates;
 mod golden;
 mod http_errors;
-mod torbox_proxy_smoke;
+mod torbox_smoke;

@@ -1,7 +1,7 @@
 // Ajustes sin DOM: qué comando llama cada guardado y las validaciones, con un `DesktopApi` falso.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { installMpv, loadSettings, netCheckView, osLoginText, playersView, saveEqualizer, saveKey, saveLatTeamToken, saveNetwork, saveOsLogin, saveTorboxCode, setTorboxShared, toggleLatTeam } from './settings-model.ts';
+import { installMpv, loadSettings, netCheckView, osLoginText, playersView, saveEqualizer, saveKey, saveLatTeamToken, saveNetwork, saveOsLogin, toggleLatTeam } from './settings-model.ts';
 import type * as Raw from './types.js';
 
 /** Registra cada comando como "nombre(args)"; el resto de la API no se toca. */
@@ -11,7 +11,7 @@ function fake() {
 	return {
 		calls,
 		api: {
-			setApiKey: rec('setApiKey'), setNetwork: rec('setNetwork'), setEqualizer: rec('setEqualizer'), setTorboxShared: rec('setTorboxShared'),
+			setApiKey: rec('setApiKey'), setNetwork: rec('setNetwork'), setEqualizer: rec('setEqualizer'),
 			setOpensubtitlesLogin: rec('setOpensubtitlesLogin'), catalogSetAddonEnabled: rec('catalogSetAddonEnabled'),
 			installMpv: (): Promise<boolean> => (calls.push('installMpv()'), Promise.resolve(true))
 		}
@@ -37,25 +37,15 @@ test('saveKey: vacía = borrar (setApiKey con "")', async () => {
 	assert.equal(r.done, '');
 });
 
-test('saveTorboxCode: 3 dígitos; inválido no llama al núcleo; vacío borra', async () => {
-	const f = fake();
-	for (const bad of ['12', '1234', 'abc', '12a']) assert.deepEqual(await saveTorboxCode(f.api, bad), { error: 'Son 3 dígitos.' });
-	assert.deepEqual(f.calls, []);
-	assert.equal((await saveTorboxCode(f.api, ' 123 ')).error, null);
-	assert.equal((await saveTorboxCode(f.api, '')).error, null);
-	assert.deepEqual(f.calls, ['setApiKey(streamonte-code,123)', 'setApiKey(streamonte-code,)']);
-});
-
 test('cada guardado llama a su comando', async () => {
 	const f = fake();
-	await setTorboxShared(f.api, true);
 	await toggleLatTeam(f.api, false);
 	await saveLatTeamToken(f.api, ' tok ');
 	await saveOsLogin(f.api, ' user ', ' p ');
 	await saveEqualizer(f.api, 'voices');
 	await saveNetwork(f.api, { incoming: true, upnp: false, announce: true });
 	assert.deepEqual(f.calls, [
-		'setTorboxShared(true)', 'catalogSetAddonEnabled(latteam,false)', 'setApiKey(latteam,tok)',
+		'catalogSetAddonEnabled(latteam,false)', 'setApiKey(latteam,tok)',
 		'setOpensubtitlesLogin(user, p )', 'setEqualizer(voices)', 'setNetwork(true,false,true)'
 	]);
 	assert.ok((await installMpv(f.api)).startsWith('mpv instalado'));
@@ -64,13 +54,12 @@ test('cada guardado llama a su comando', async () => {
 test('loadSettings arma el estado desde config, keys, addons y reproductores', async () => {
 	const s = await loadSettings({
 		apiKeys: () => Promise.resolve([{ service: 'tmdb', configured: true }]),
-		config: () => Promise.resolve({ engine: { incoming: true, upnp: false, announce_early: true }, player: { equalizer: 'flat' }, catalog: { torbox_shared: true } } as Raw.Config),
+		config: () => Promise.resolve({ engine: { incoming: true, upnp: false, announce_early: true }, player: { equalizer: 'flat' } } as Raw.Config),
 		catalogAddons: () => Promise.resolve([{ id: 'latteam', enabled: true }, { id: 'x', enabled: false }] as Raw.AddonView[]),
 		playersStatus: () => Promise.resolve({ mpv: null, vlc: true, can_install_mpv: true })
 	});
 	assert.deepEqual(s.net, { incoming: true, upnp: false, announce: true });
 	assert.equal(s.eq, 'flat');
-	assert.equal(s.shared, true);
 	assert.equal(s.latteamOn, true);
 	assert.equal(s.keys.length, 1);
 });

@@ -235,7 +235,6 @@ export type CatalogConfig = {
     exclude_japanese: boolean;
     timeout_ms: number;
     connect_timeout_ms: number;
-    torbox_shared: boolean;
 };
 export type EngineConfig = {
     kind: "webtorrent" | "rqbit";

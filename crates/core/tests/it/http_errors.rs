@@ -56,7 +56,7 @@ async fn status_no_2xx_es_error_en_todos_los_helpers() {
         "get_json_bearer"
     );
     assert_eq!(
-        http.post_multipart_auth::<Value>(&url, auth, &[("a", "b".into())], None, T)
+        http.post_multipart_auth::<Value>(&url, auth, &[("a", "b".into())], T)
             .await,
         Err(FetchError::Status(403)),
         "post_multipart_auth"

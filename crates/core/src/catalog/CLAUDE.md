@@ -24,7 +24,7 @@ Busca películas/series (Cinemeta + TMDB), enriquece fichas (TMDB, datasets IMDb
 - Exclusión anime: `cinemeta::is_excluded:321`, `tmdb.rs:817 best_hit`, `people.rs:166 pick`; golden `excluded.json` = web.
 - Dedup por info hash; orden idioma → sub es → resolución → seeders → tamaño → hash (`aggregate.rs:121`). Candidato sin idioma nunca se descarta.
 - wpreact/elitetorrent solo películas; latteam solo toma el hash del magnet (`latteam.rs:5-9`); elitetorrent no evade Cloudflare.
-- TorBox: una regla de destino en `torbox::api:70` (compartido `SHARED:30` → proxy web con cookie `code`; si no, key propia).
+- TorBox: siempre directo con la key propia (`torbox::api`); `requestdl` la lleva también en la URL (no loguear).
 - Golden compartidos con la web (`/Users/monti/Documents/Dev/streamonte/packages/golden/`): `trailer`, `providers_ar`, `people` (`tmdb.rs:995,1007,1017`), `show_status` (`seasons.rs:457`), `release`/`excluded` (`../../tests/it/golden.rs:14,30`).
 
 ## Tests

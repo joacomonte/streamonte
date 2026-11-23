@@ -9,7 +9,7 @@
   import { t } from '../i18n.js';
   import {
     installMpv, loadSettings, netCheckView, osLoginText, playersView, saveEqualizer, saveKey, saveLatTeamToken, saveNetwork,
-    saveOsLogin, saveTorboxCode, setTorboxShared, toggleLatTeam, type KeyService, type Net, type PlayersView
+    saveOsLogin, toggleLatTeam, type KeyService, type Net, type PlayersView
   } from '../settings-model.ts';
   import { host } from '../ui-host.ts';
   import type * as Raw from '../types.js';
@@ -30,27 +30,23 @@
 
   let isOpen = $state(false);
   let keys = $state<Raw.ApiKeyStatus[]>([]);
-  let shared = $state(false);
   let eq = $state<Raw.Equalizer>('cine');
   let net = $state<Net>({ incoming: false, upnp: false, announce: false });
   let latteamOn = $state(false);
   let players = $state<PlayersView | null>(null);
   let osState = $state('');
-  let codeError = $state('');
   let netCheck = $state<{ cls: string; text: string }>({ cls: '', text: '' });
   let netBusy = $state(false);
   let mpvBusy = $state(false);
   let inputs = $state<Record<KeyService, string>>({ tmdb: '', torbox: '', wyzie: '', opensubtitles: '' });
   let latteamToken = $state('');
   let latteamEdit = $state(false);
-  let torboxCode = $state('');
   let osUser = $state('');
   let osPass = $state('');
   let editing = $state<KeyService[]>([]);
   let saved = $state<{ service: KeyService; text: string } | null>(null);
 
   const configured = (service: string): boolean => keys.some((k) => k.service === service && k.configured);
-  const torboxUsable = $derived(configured('torbox'));
   const latteamHas = $derived(configured('latteam'));
   const eqNote = $derived(EQ.find((o) => o.id === eq)?.note ?? '');
   const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -72,7 +68,6 @@
       showOsLogin();
       const s = await loadSettings(desktop);
       keys = s.keys;
-      shared = s.shared;
       eq = s.eq;
       net = s.net;
       latteamOn = s.latteamOn;
@@ -107,39 +102,6 @@
     editing = editing.includes(service) ? editing.filter((s) => s !== service) : [...editing, service];
     await tick();
     if (editing.includes(service)) document.getElementById(`key-${service}`)?.focus();
-  }
-
-  async function onShared(e: Event & { currentTarget: HTMLInputElement }): Promise<void> {
-    const on = e.currentTarget.checked;
-    try {
-      await setTorboxShared(desktop, on);
-      codeError = '';
-      shared = on;
-      keys = await desktop.apiKeys();
-      document.dispatchEvent(new CustomEvent('streamonte:torbox-key'));
-    } catch (err) {
-      e.currentTarget.checked = shared;
-      showError(err);
-    }
-  }
-
-  /** Si la web rechaza el código, se borra y se vuelve a pedir acá. */
-  async function onSaveCode(): Promise<void> {
-    try {
-      const r = await saveTorboxCode(desktop, torboxCode);
-      if (r.error !== null) {
-        codeError = r.error;
-        return;
-      }
-      torboxCode = '';
-      codeError = '';
-      shared = true;
-      keys = await desktop.apiKeys();
-      document.dispatchEvent(new CustomEvent('streamonte:torbox-key'));
-      setStatus(r.status);
-    } catch (e) {
-      showError(e);
-    }
   }
 
   async function onLatTeamToggle(e: Event & { currentTarget: HTMLInputElement }): Promise<void> {
@@ -215,13 +177,6 @@
 
   onMount(() => {
     host.openSettings = open;
-    const onWrongCode = async (): Promise<void> => {
-      if (!isOpen) await open();
-      codeError = t('Código incorrecto');
-      document.getElementById('key-torbox-code')?.focus();
-    };
-    document.addEventListener('streamonte:torbox-code', onWrongCode);
-    return () => document.removeEventListener('streamonte:torbox-code', onWrongCode);
   });
 </script>
 
@@ -320,24 +275,6 @@
     <section class="st-sec" id="set-catalog" aria-labelledby="set-h-net">
       <h3 class="st-h" id="set-h-net">{t('Conexión')}</h3>
       <ul class="st-list">
-        <li id="torbox-shared">
-          <label class="st-row">
-            <span class="st-lbl">
-              <span class="st-name">{t('Usar TorBox de Streamonte')}{@render tipIcon('torbox-shared-tip', t('Usa la cuenta de TorBox de Streamonte: pide el código de acceso (el mismo de la web) una sola vez. Apagalo para usar tu propia key.'))}</span>
-              <span class="st-sub">{t('Con el código de la web')}</span>
-            </span>
-            {#if shared}{@render chip('torbox-code-state', torboxUsable, t('Código guardado'), t('Falta el código'))}{/if}
-            <input id="set-torbox-shared" class="st-toggle" type="checkbox" role="switch" checked={shared} onchange={onShared}>
-          </label>
-          <div id="torbox-code-line" class="st-block" hidden={!shared}>
-            <div class="st-inline">
-              <input id="key-torbox-code" class="st-input" type="password" inputmode="numeric" maxlength="3" placeholder={t('Código de 3 dígitos')} autocomplete="off" aria-label={t('Código de 3 dígitos')} bind:value={torboxCode}
-                onkeydown={(e) => { if (e.key === 'Enter') onSaveCode(); }}>
-              <button id="key-torbox-code-save" class="st-btn go" type="button" onclick={onSaveCode}>{t('Guardar')}</button>
-            </div>
-            <p id="torbox-code-error" class="st-msg bad" role="alert">{codeError}</p>
-          </div>
-        </li>
         <li class="st-row">
           <span class="st-lbl"><span class="st-name">{t('Fuentes de torrents')}</span><span class="st-sub">{t('Addons que se consultan al abrir un título')}</span></span>
           <button id="btn-sources" class="st-btn" type="button">{t('Ver')}</button>
@@ -391,7 +328,7 @@
       <h3 class="st-h" id="set-h-accounts">{t('Cuentas y keys')}</h3>
       <ul class="st-list">
         {@render keyRow(TMDB)}
-        {#if !shared}{@render keyRow(TORBOX)}{/if}
+        {@render keyRow(TORBOX)}
         <li id="set-latteam">
           <div class="st-row">
             <span class="st-lbl">

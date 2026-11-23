@@ -265,20 +265,12 @@ api.apiKeys().then((ks) => {
 	view.torboxKey = ks.some((k) => k.service === 'torbox' && k.configured);
 	renderStreamsOnly();
 }).catch(() => {});
-const loadShared = (): Promise<void> => api.config().then((c) => { view.torboxShared = !!c.catalog?.torbox_shared; renderStreamsOnly(); }).catch(() => {});
-void loadShared();
-// Key o código de TorBox recién cargado, o cambio de modo en Ajustes: se marca enseguida lo del video abierto.
+// Key de TorBox recién cargada en Ajustes: se marca enseguida lo del video abierto.
 document.addEventListener('streamonte:torbox-key', async () => {
 	const ks = await api.apiKeys().catch(() => []);
 	view.torboxKey = ks.some((k) => k.service === 'torbox' && k.configured);
-	await loadShared();
 	if (view.torboxKey && state.update?.done) void loadTorbox(side().videoId, state.update.candidates);
 	else renderStreamsOnly();
-});
-// Código rechazado por la web: el núcleo lo borró; hasta cargarlo de nuevo no hay TorBox.
-document.addEventListener('streamonte:torbox-code', () => {
-	view.torboxKey = false;
-	renderStreamsOnly();
 });
 // ---------- clic derecho en una opción: copiar su magnet o su link de TorBox (menú `CtxMenu.svelte`) ----------
 mountCtxMenu();

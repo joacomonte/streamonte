@@ -149,7 +149,6 @@ impl Http {
         url: &str,
         auth: (&str, &str),
         fields: &[(&'static str, String)],
-        origin: Option<&str>,
         timeout: Duration,
     ) -> Result<T, FetchError> {
         let form = fields
@@ -158,15 +157,11 @@ impl Http {
                 f.text(*k, v.clone())
             });
         let send = async {
-            let mut req = self
+            let resp = self
                 .client
                 .post(url)
                 .header("Accept", "application/json")
-                .header(auth.0, secret_header(auth.1)?);
-            if let Some(origin) = origin {
-                req = req.header("Origin", origin);
-            }
-            let resp = req
+                .header(auth.0, secret_header(auth.1)?)
                 .multipart(form)
                 .send()
                 .await
@@ -179,8 +174,8 @@ impl Http {
             if bytes.len() > 1024 * 1024 {
                 return Err(FetchError::TooLarge);
             }
-            // Un error (p. ej. el 403 de CSRF de la web, también en JSON) no se lee como respuesta: antes quedaba
-            // como respuesta vacía y el error salía sin detalle ("createtorrent sin id: ", 2026-11-23).
+            // Un error (también en JSON) no se lee como respuesta: antes quedaba como respuesta vacía y el error salía
+            // sin detalle ("createtorrent sin id: ", 2026-11-23).
             if !status.is_success() {
                 return Err(FetchError::Status(status.as_u16()));
             }

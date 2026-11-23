@@ -268,12 +268,6 @@ pub async fn config_set_network(
     Ok(core.set_network(incoming, upnp, announce_early).await?)
 }
 
-/// "Usar TorBox de Streamonte" (Ajustes).
-#[tauri::command]
-pub async fn config_set_torbox_shared(core: Core<'_>, on: bool) -> CmdResult<()> {
-    Ok(core.set_torbox_shared(on).await?)
-}
-
 // ----- Subtítulos -----
 /// `provider`: "opensubtitles" | "wyzie". `key` vacía = borrarla. Va al almacén seguro (NFR-16).
 /// API keys de servicios (subtítulos y pósters de TMDB): al almacén seguro, nunca de vuelta.

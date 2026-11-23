@@ -3,7 +3,7 @@
 import { api } from './api.js';
 
 export type DesktopApi = Pick<typeof api,
-	| 'apiKeys' | 'setApiKey' | 'openKeyPage' | 'config' | 'setEqualizer' | 'setNetwork' | 'setTorboxShared' | 'setOpensubtitlesLogin' | 'premiumQuota'
+	| 'apiKeys' | 'setApiKey' | 'openKeyPage' | 'config' | 'setEqualizer' | 'setNetwork' | 'setOpensubtitlesLogin' | 'premiumQuota'
 	| 'catalogAddons' | 'catalogSetAddonEnabled' | 'playersStatus' | 'installMpv' | 'checkIncoming'
 	| 'tempUsage' | 'cleanTemp' | 'dataCacheSize' | 'clearDataCache' | 'stopAllAndClean' | 'onClose' | 'playbackLog' | 'playbackAction' | 'speedTest'>;
 

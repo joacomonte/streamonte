@@ -16,14 +16,8 @@
  */
 
 const tauri = window.__TAURI__;
-/** `detail` del núcleo cuando la web rechaza el código de TorBox de Streamonte (`torbox::WRONG_CODE`). */
-const TORBOX_WRONG_CODE = 'torbox: código incorrecto';
-// Código rechazado (2026-11-21): el núcleo ya lo borró; Ajustes lo vuelve a pedir (`dialogs.js`).
 /** @template T @param {string} cmd @param {Record<string, unknown>=} args @returns {Promise<T>} */
-const invoke = (cmd, args) => tauri.core.invoke(cmd, args).catch((/** @type {Partial<UiError>} */ e) => {
-  if (e?.detail === TORBOX_WRONG_CODE) document.dispatchEvent(new CustomEvent('streamonte:torbox-code'));
-  throw e;
-});
+const invoke = (cmd, args) => tauri.core.invoke(cmd, args);
 
 /** Ficha y detalles de un título: el panel (`catalog-side.js`) y la ficha compartida (`TitleView`, por `tauriApi.ts`) los piden
  *  a la vez al abrirlo; una sola invocación por título (la misma promesa hasta 10 s después de responder).
@@ -85,7 +79,7 @@ export const api = {
   onClose: (choice) => invoke('on_close', { choice }),
 
   // API keys de servicios en el almacén seguro del sistema (NFR-16). Nunca se leen de vuelta.
-  /** @param {string} service  'opensubtitles' | 'wyzie' | 'tmdb' | 'torbox' | 'latteam' | 'streamonte-code' @param {string} key  vacía = borrar @returns {Promise<void>} */
+  /** @param {string} service  'opensubtitles' | 'wyzie' | 'tmdb' | 'torbox' | 'latteam' @param {string} key  vacía = borrar @returns {Promise<void>} */
   setApiKey: (service, key) => invoke('api_key_set', { service, key }),
   /** @returns {Promise<import('./types.js').ApiKeyStatus[]>} */
   apiKeys: () => invoke('api_keys'),
@@ -235,8 +229,6 @@ export const api = {
   setLanguage: (language) => invoke('config_set_language', { language }),
   /** Ajustes → Red (ADR-30): entrantes / UPnP. @param {boolean} incoming @param {boolean} upnp @param {boolean} announceEarly @returns {Promise<void>} */
   setNetwork: (incoming, upnp, announceEarly) => invoke('config_set_network', { incoming, upnp, announceEarly }),
-  /** "Usar TorBox de Streamonte" (key del servidor, por la web) o la key propia. @param {boolean} on @returns {Promise<void>} */
-  setTorboxShared: (on) => invoke('config_set_torbox_shared', { on }),
 };
 
 /**
