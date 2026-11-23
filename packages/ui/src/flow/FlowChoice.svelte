@@ -22,6 +22,7 @@
 	.choice .muted { font-size: 12.5px; line-height: 1.35; }
 	.choice:active { transform: scale(0.985); background: var(--surface-2); }
 	.choice.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); align-items: center; }
+	.choice.primary .muted { color: color-mix(in srgb, var(--accent-text) 82%, transparent); }
 	.choice.off { opacity: 0.55; }
 	/* Entrada escalonada (`--i`); el ícono va en el color del nivel (`--lvl`). */
 	.net { flex-direction: row; align-items: center; gap: 12px; animation: net-rise 0.36s var(--out) both; animation-delay: calc(var(--i) * 50ms); }

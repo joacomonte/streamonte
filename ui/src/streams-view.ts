@@ -1,13 +1,13 @@
 // Modelo de vista del panel de opciones del desktop (`#cat-streams`): lo arman `catalog-options.ts` (lista, análisis, filtros)
 // y `catalog-flow.ts` (pasos); lo dibujan `StreamsPanel.svelte`, `FlowScreen.svelte` y sus partes. Textos ya traducidos.
 import type { IconName } from '$ui/components/icons.ts';
-import type { TileSpec } from '$ui/flow/types.ts';
+import type { FlowCrumb, TileSpec } from '$ui/flow/types.ts';
 import type { OptionRowView } from '$ui/options/row.ts';
 
 export type Click = (ev: MouseEvent & { currentTarget: HTMLButtonElement }) => void;
 
 /** Migas: lo elegido hasta ahora; las que tienen `onclick` vuelven a ese paso. */
-export type CrumbsView = { aria: string; title: string; items: { id: string | null; label: string; onclick: (() => void) | null }[] };
+export type CrumbsView = { aria: string; items: FlowCrumb[] };
 
 /** Al pie de lo que se ve: búsqueda de pistas en curso, ya no hay más, o "Seguir buscando". */
 export type MoreRowView =
@@ -15,11 +15,10 @@ export type MoreRowView =
 	| { kind: 'done'; found: boolean; text: string }
 	| { kind: 'more'; title: string; small: string | null; onclick: () => void };
 
-/** Tarjeta de un paso (`icon` 'es': la burbuja "ES" en vez de un ícono; lo dibuja `FlowScreen` hasta migrarlo a `tile`). */
+/** Tarjeta de un paso (la dibuja `$ui/flow/FlowChoice.svelte`): ícono (`tile`), su color CSS (`tone`) y la posición en la pantalla
+ *  (`i`, entrada escalonada). */
 export type ChoiceView = {
 	id: string;
-	icon: IconName | 'es';
-	/** Ícono de las piezas compartidas con la web (`$ui/flow`), su color CSS y la posición en la pantalla (entrada escalonada). */
 	tile: TileSpec;
 	tone: string;
 	i: number;
@@ -29,18 +28,16 @@ export type ChoiceView = {
 	badge: string | null;
 	disabled: boolean;
 	primary: boolean;
-	muted: boolean;
-	cls: string;
 	onclick: () => void;
 };
 /** Botón ancho de los pasos (`.cat-flow-btn`): con `small`, título en negrita y aclaración debajo; `count`, el número al costado. */
 export type FlowButton = { id: string; icon: IconName; text: string; small: string | null; title: string | null; count: string | null; onclick: () => void };
 
-type Screen = { still: boolean; crumbs: CrumbsView | null; title: string | null };
+type Screen = { crumbs: CrumbsView | null; title: string | null };
 export type FlowView =
 	| { kind: 'search'; title: string; sub: string; frac: number | null }
 	| (Screen & { kind: 'choices'; choices: ChoiceView[] })
-	| (Screen & { kind: 'scan'; text: string; frac: number; count: string; stop: FlowButton })
+	| (Screen & { kind: 'scan'; text: string; /** Avance 0..1. */ frac: number; count: string; stop: FlowButton })
 	| (Screen & { kind: 'nolat'; none: string; choices: ChoiceView[]; more: MoreRowView | null })
 	| (Screen & { kind: 'match'; note: string | null; rows: OptionRowView[]; lighter: FlowButton | null; more: MoreRowView | null; all: FlowButton })
 	| (Screen & { kind: 'spain'; note: string; rows: OptionRowView[]; original: FlowButton; all: FlowButton });

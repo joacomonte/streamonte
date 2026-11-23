@@ -1,24 +1,31 @@
 <!-- Pasos antes de la lista de opciones (`catalog-flow.ts` `flowStep`): buscando, torrent/TorBox, conexión, ¿latino?, calidad, y los
-     resultados de TorBox. La entrada animada se repite solo al cambiar de pantalla (`still`: la misma de antes). -->
+     resultados de TorBox. Buscando, tarjetas, radar y migas son las piezas de la web (`$ui/flow/`); cada pantalla entra con `stepIn`
+     (solo al cambiar de pantalla: redibujar la misma no repite la entrada). -->
 <script lang="ts">
 	import Icon from '$ui/components/Icon.svelte';
 	import type { IconName } from '$ui/components/icons.ts';
+	import FlowChoice from '$ui/flow/FlowChoice.svelte';
+	import FlowChoices from '$ui/flow/FlowChoices.svelte';
+	import FlowCrumbs from '$ui/flow/FlowCrumbs.svelte';
+	import FlowRadar from '$ui/flow/FlowRadar.svelte';
+	import FlowSearching from '$ui/flow/FlowSearching.svelte';
+	import { stepIn } from '$ui/flow/step-in.ts';
 	import OptionsList from '$ui/options/OptionsList.svelte';
-	import Crumbs from './Crumbs.svelte';
 	import MoreRow from './MoreRow.svelte';
 	import type { ChoiceView, FlowButton, FlowView } from './streams-view.ts';
 
 	let { flow }: { flow: FlowView } = $props();
-	const BLIPS = [[60, 20], [94, 46], [88, 88], [40, 96], [24, 52]];
+	const screen = $derived(flow.kind === 'search' ? 'search' : `${flow.kind}:${flow.title ?? ''}`);
 </script>
 
 {#snippet ic(name: IconName, size: number)}<span class="ico" aria-hidden="true"><Icon {name} {size} /></span>{/snippet}
 
-{#snippet choice(c: ChoiceView)}
-	<button id={c.id} type="button" class="cat-menu-item cat-choice {c.cls} {c.primary ? 'deep' : ''} {c.muted ? 'muted' : ''}" disabled={c.disabled || null} onclick={c.disabled ? null : c.onclick}>
-		<span class="cat-menu-ic" aria-hidden="true">{#if c.icon === 'es'}<span class="cat-es-bubble">ES</span>{:else}{@render ic(c.icon, 28)}{/if}</span>
-		<span class="cat-menu-text"><b>{c.title}{#if c.badge}<span class="cat-menu-badge">{c.badge}</span>{/if}</b><span>{c.sub}{#if c.note}<span class="cat-choice-note">{c.note}</span>{/if}</span></span>
-	</button>
+{#snippet choices(list: ChoiceView[])}
+	<FlowChoices even={list.length <= 3 && list.length > 1}>
+		{#each list as c (c.id)}
+			<FlowChoice id={c.id} title={c.title} sub={c.sub} tile={c.tile} tone={c.tone} i={c.i} badge={c.badge} note={c.note} primary={c.primary} disabled={c.disabled} onclick={c.onclick} />
+		{/each}
+	</FlowChoices>
 {/snippet}
 
 {#snippet flowBtn(b: FlowButton)}
@@ -27,34 +34,20 @@
 	</button>
 {/snippet}
 
-{#if flow.kind === 'search'}
-	<div class="cat-flow cat-flow-wait" id="cat-flow" role="status" aria-busy="true">
-		<span class="cat-res-spin big" aria-hidden="true"></span><b>{flow.title}</b><span>{flow.sub}</span>
-	</div>
-{:else}
-	{#key flow.title}
-		<div class="cat-flow" class:still={flow.still} id="cat-flow">
-			{#if flow.crumbs}<Crumbs crumbs={flow.crumbs} />{/if}
-			{#if flow.title}<h3 class="cat-flow-title">{flow.title}</h3>{/if}
+{#key screen}
+	<div class="cat-flow" id="cat-flow" aria-busy={flow.kind === 'search' ? 'true' : null} in:stepIn>
+		{#if flow.kind === 'search'}
+			<FlowSearching title={flow.title} sub={flow.sub} frac={flow.frac} />
+		{:else}
+			{#if flow.crumbs}<FlowCrumbs aria={flow.crumbs.aria} items={flow.crumbs.items} />{/if}
+			{#if flow.title}<h3 class="ask">{flow.title}</h3>{/if}
 			{#if flow.kind === 'choices'}
-				{#each flow.choices as c (c.id)}{@render choice(c)}{/each}
+				{@render choices(flow.choices)}
 			{:else if flow.kind === 'scan'}
-				<div class="cat-hunt" role="status" aria-live="polite">
-					<!-- Radar (como la web): el barrido da una vuelta cada 2,4 s y cada punto se enciende cuando le pasa por encima. -->
-					<svg class="cat-hunt-radar" viewBox="0 0 120 120" aria-hidden="true">
-						<circle class="ring" cx="60" cy="60" r="52" /><circle class="ring inner" cx="60" cy="60" r="34" />
-						<g class="sweep"><path d="M60 60L60 8A52 52 0 0 1 105 34Z" /></g>
-						{#each BLIPS as [x, y], i (i)}<circle class="blip" cx={x} cy={y} r="4" style="--i:{i}" />{/each}
-						<circle class="core" cx="60" cy="60" r="16" /><path class="core-play" d="M55 52.5v15l12.5-7.5z" />
-					</svg>
-					<b class="cat-hunt-title">{flow.text}</b>
-					<span class="bar cat-hunt-bar"><i class="bar-fill" style="width:{flow.frac}%"></i></span>
-					<span class="cat-hunt-count">{flow.count}</span>
-					<button id={flow.stop.id} type="button" class="cat-flow-btn" title={flow.stop.title} onclick={flow.stop.onclick}>{@render ic(flow.stop.icon, 14)}{flow.stop.text}</button>
-				</div>
+				<FlowRadar title={flow.text} frac={flow.frac} count={flow.count} stopId={flow.stop.id} stopText={flow.stop.text} onstop={flow.stop.onclick} />
 			{:else if flow.kind === 'nolat'}
-				<p class="cat-flow-none" role="status">{flow.none}</p>
-				{#each flow.choices as c (c.id)}{@render choice(c)}{/each}
+				<p class="none" role="status">{flow.none}</p>
+				{@render choices(flow.choices)}
 				<div class="cat-flow-actions rows">{#if flow.more}<MoreRow more={flow.more} />{/if}</div>
 			{:else if flow.kind === 'match'}
 				{#if flow.note}<p class="cat-flow-note" role="status">{flow.note}</p>{/if}
@@ -69,6 +62,19 @@
 				<OptionsList rows={flow.rows} />
 				<div class="cat-flow-actions rows">{@render flowBtn(flow.original)}{@render flowBtn(flow.all)}</div>
 			{/if}
-		</div>
-	{/key}
-{/if}
+		{/if}
+	</div>
+{/key}
+
+<style>
+	/* Mismas piezas que la web (pensadas para celu); en el panel lateral, más aire y letra un poco mayor, a todo el ancho. */
+	.cat-flow { display: grid; gap: 6px; }
+	.ask { margin: 10px 0 12px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+	.none { margin: 16px 0; text-align: center; font-size: 13.5px; color: var(--muted); }
+	#cat-flow :global(.choices) { gap: 10px; }
+	#cat-flow :global(.choice) { min-height: 84px; padding: 16px 20px; gap: 16px; cursor: pointer; }
+	#cat-flow :global(.choice:disabled) { cursor: not-allowed; }
+	#cat-flow :global(.choice strong) { font-size: 16px; }
+	#cat-flow :global(.choice .muted) { font-size: 13.5px; line-height: 1.45; }
+	#cat-flow :global(.tile) { width: 48px; height: 48px; }
+</style>

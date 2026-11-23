@@ -3,8 +3,8 @@
 <script lang="ts">
 	import Icon from '$ui/components/Icon.svelte';
 	import type { IconName } from '$ui/components/icons.ts';
+	import FlowCrumbs from '$ui/flow/FlowCrumbs.svelte';
 	import OptionsList from '$ui/options/OptionsList.svelte';
-	import Crumbs from './Crumbs.svelte';
 	import FlowScreen from './FlowScreen.svelte';
 	import GroupPanel from './GroupPanel.svelte';
 	import MoreRow from './MoreRow.svelte';
@@ -31,7 +31,7 @@
 {:else if view?.kind === 'flow'}
 	<FlowScreen flow={view.flow} />
 {:else if view?.kind === 'list'}
-	{#if view.crumbs}<Crumbs crumbs={view.crumbs} />{/if}
+	{#if view.crumbs}<FlowCrumbs aria={view.crumbs.aria} items={view.crumbs.items} />{/if}
 	{#if view.auto}
 		<div class="cat-sticky"><div class="cat-opt-head"><div id="cat-auto-status" class="cat-auto-status {view.auto.step}" role="status">{@render ic(view.auto.step === 'done' ? 'check' : 'ban', 16)}<span class="cat-auto-msg"><b>{view.auto.lead}</b>{view.auto.text}</span><button id="cat-auto-close" class="link" onclick={view.auto.onclose}>{view.auto.close}</button></div></div></div>
 	{/if}

@@ -202,8 +202,8 @@ async function pickRes(r: string): Promise<void> {
 }
 
 // ---------- vista ----------
-const choice = (id: string, icon: ChoiceView['icon'], tile: TileSpec, tone: string, i: number, title: string, sub: string, onclick: () => void, more: Partial<ChoiceView> = {}): ChoiceView => ({
-	id, icon, tile, tone, i, title, sub, onclick, note: null, badge: null, disabled: false, primary: false, muted: false, cls: '', ...more,
+const choice = (id: string, tile: TileSpec, tone: string, i: number, title: string, sub: string, onclick: () => void, more: Partial<ChoiceView> = {}): ChoiceView => ({
+	id, tile, tone, i, title, sub, onclick, note: null, badge: null, disabled: false, primary: false, ...more,
 });
 const button = (id: string, icon: FlowButton['icon'], text: string, onclick: () => void, more: Partial<FlowButton> = {}): FlowButton => ({
 	id, icon, text, onclick, small: null, title: null, count: null, ...more,
@@ -213,13 +213,7 @@ const GREEN = 'var(--green)';
 const AMBER = 'var(--amber, #f5a524)';
 const MUTED = 'var(--muted)';
 const WAVE: TileSpec = { kind: 'wave' };
-/** Título de la pantalla dibujada antes: redibujar la misma (llega una lectura, arranca un ▶) no repite la entrada. */
-let lastScreen: string | null = null;
-function screenOf(title: string | null): { still: boolean; crumbs: CrumbsView | null; title: string | null } {
-	const still = lastScreen === title;
-	lastScreen = title;
-	return { still, crumbs: crumbs(), title };
-}
+const screenOf = (title: string | null): { crumbs: CrumbsView | null; title: string | null } => ({ crumbs: crumbs(), title });
 
 /** Migas: lo elegido hasta ahora; tocar una vuelve a ese paso. */
 export function crumbs(): CrumbsView | null {
@@ -234,8 +228,7 @@ export function crumbs(): CrumbsView | null {
 	if (f.step === 'list' && view.openRes) items.push(['res', resLabel(view.openRes)]);
 	return {
 		aria: tr('Pasos elegidos'),
-		title: tr('Volver a este paso'),
-		items: items.map(([step, label]) => (step && step !== f.step ? { id: `cat-crumb-${step}`, label, onclick: () => goTo(step) } : { id: null, label, onclick: null })),
+		items: items.map(([step, label]) => (step && step !== f.step ? { id: `cat-crumb-${step}`, label, title: tr('Volver a este paso'), onclick: () => goTo(step) } : { id: null, label, onclick: null })),
 	};
 }
 
@@ -254,7 +247,6 @@ export function flowStep(): FlowView | null {
 	// TorBox: buscando el primer match, solo la búsqueda; después, el resultado (o la lista entera si la pidió).
 	if (f.mode === 'torbox' && !f.all && f.spain) return spainScreen();
 	if (f.mode === 'torbox' && !f.all) return f.scan?.running && !f.found.length ? scanScreen() : matchScreen();
-	lastScreen = null;
 	return null;
 }
 
@@ -264,7 +256,7 @@ function scanScreen(): FlowView {
 	return {
 		kind: 'scan', ...screenOf(null),
 		text: tr('Buscando el mejor torrent para vos'),
-		frac: Math.max(4, (s.done / s.total) * 100),
+		frac: s.done / Math.max(1, s.total),
 		count: tr('{a} de {n}', { a: Math.min(s.done + 1, s.total), n: s.total }),
 		stop: button('cat-flow-stop', 'stop', tr('Detener'), () => { stopScan(); renderStreamsOnly(); }, { title: tr('Detener: muestro las de mejor calidad con lo leído hasta ahora') }),
 	};
@@ -289,12 +281,12 @@ function matchScreen(): FlowView {
 			kind: 'nolat', ...screenOf(null),
 			none: tr('No se encontraron opciones con audio latino'),
 			choices: [
-				choice('cat-match-original', 'speaker', WAVE, ACCENT, 0, tr('Buscar con audio original'), tr('No encontré latino · busco una con subtítulos en español'), toOriginal, { cls: 'nolat orig' }),
-				choice('cat-match-spain', 'es', { kind: 'bubble', text: 'ES' }, AMBER, 1, tr('Español de España'), spanish.length
+				choice('cat-match-original', WAVE, ACCENT, 0, tr('Buscar con audio original'), tr('No encontré latino · busco una con subtítulos en español'), toOriginal),
+				choice('cat-match-spain', { kind: 'bubble', text: 'ES' }, AMBER, 1, tr('Español de España'), spanish.length
 					? tr(spanish.length === 1 ? '1 opción con español que casi seguro no es latino' : '{n} opciones con español que casi seguro no es latino', { n: spanish.length })
-					: tr('Ninguna con español de España'), () => { f.spain = true; renderStreamsOnly(); }, { cls: 'nolat spain', disabled: !spanish.length }),
-				choice('cat-match-all', 'list', { kind: 'icon', icon: 'list' }, MUTED, 2, tr('Ver todas las opciones'), tr('{n} opciones, sin filtros · de mejor a peor calidad', { n: pool().length }),
-					() => { Object.assign(f, { all: true, latOff: true }); renderStreamsOnly(); }, { cls: 'nolat all' }),
+					: tr('Ninguna con español de España'), () => { f.spain = true; renderStreamsOnly(); }, { disabled: !spanish.length }),
+				choice('cat-match-all', { kind: 'list' }, MUTED, 2, tr('Ver todas las opciones'), tr('{n} opciones, sin filtros · de mejor a peor calidad', { n: pool().length }),
+					() => { Object.assign(f, { all: true, latOff: true }); renderStreamsOnly(); }),
 			],
 			more: moreRow(),
 		};
@@ -347,7 +339,7 @@ function netScreen(): FlowView {
 	const cur = net();
 	return {
 		kind: 'choices', ...screenOf(tr('¿Cómo es tu internet donde lo vas a ver?')),
-		choices: [...NET].reverse().map((n, i) => choice(`cat-flow-net-${n.key}`, 'gauge', { kind: 'net', level: (NET.indexOf(n) + 1) as 1 | 2 | 3 | 4 }, `var(--${n.tone})`, i, n.label, n.range, () => { setNet(n); f.step = 'lat'; renderStreamsOnly(); }, { primary: cur?.key === n.key })),
+		choices: [...NET].reverse().map((n, i) => choice(`cat-flow-net-${n.key}`, { kind: 'net', level: (NET.indexOf(n) + 1) as 1 | 2 | 3 | 4 }, `var(--${n.tone})`, i, n.label, n.range, () => { setNet(n); f.step = 'lat'; renderStreamsOnly(); }, { primary: cur?.key === n.key })),
 	};
 }
 
@@ -377,8 +369,8 @@ function modeScreen(): FlowView {
 		return {
 			kind: 'choices', ...screenOf(tr('¿Cómo lo querés ver?')),
 			choices: [
-				choice('cat-flow-torbox', 'play', { kind: 'icon', icon: 'play' }, ACCENT, 0, tr('Por TorBox'), tr('Ingresá una vez el código de Streamonte para ver cuáles están listas al instante'), () => void askCode(), { cls: 'torbox' }),
-				choice('cat-flow-torrent', 'peers', { kind: 'icon', icon: 'peers' }, MUTED, 1, tr('Por torrent'), tr('{all} torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten', { all: update().candidates.length }), () => { Object.assign(f, { mode: 'torrent', step: 'lat' }); renderStreamsOnly(); }),
+				choice('cat-flow-torbox', { kind: 'icon', icon: 'play' }, ACCENT, 0, tr('Por TorBox'), tr('Ingresá una vez el código de Streamonte para ver cuáles están listas al instante'), () => void askCode()),
+				choice('cat-flow-torrent', { kind: 'icon', icon: 'peers' }, MUTED, 1, tr('Por torrent'), tr('{all} torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten', { all: update().candidates.length }), () => { Object.assign(f, { mode: 'torrent', step: 'lat' }); renderStreamsOnly(); }),
 			],
 		};
 	}
@@ -388,9 +380,9 @@ function modeScreen(): FlowView {
 	return {
 		kind: 'choices', ...screenOf(tr('¿Cómo lo querés ver?')),
 		choices: [
-			choice('cat-flow-torbox', 'play', { kind: 'icon', icon: 'play' }, ACCENT, 0, tr('Por TorBox'), tb ? tr('{tb} {a} en sus servidores: arranca al instante y no depende de los seeds', { tb, a: tb === 1 ? tr('lista') : tr('listas') }) : tr('No hay torrents en TorBox para esto'),
-				go('torbox'), { badge: tb ? tr('Al instante') : null, disabled: !tb, primary: !!tb, cls: 'torbox' }),
-			choice('cat-flow-torrent', 'peers', { kind: 'icon', icon: 'peers' }, MUTED, 1, tr('Por torrent'), tr('{all} torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten', { all }), go('torrent')),
+			choice('cat-flow-torbox', { kind: 'icon', icon: 'play' }, ACCENT, 0, tr('Por TorBox'), tb ? tr('{tb} {a} en sus servidores: arranca al instante y no depende de los seeds', { tb, a: tb === 1 ? tr('lista') : tr('listas') }) : tr('No hay torrents en TorBox para esto'),
+				go('torbox'), { badge: tb ? tr('Al instante') : null, disabled: !tb, primary: !!tb }),
+			choice('cat-flow-torrent', { kind: 'icon', icon: 'peers' }, MUTED, 1, tr('Por torrent'), tr('{all} torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten', { all }), go('torrent')),
 		],
 	};
 }
@@ -422,9 +414,9 @@ function latScreen(): FlowView {
 	return {
 		kind: 'choices', ...screenOf(tr('¿Necesitás audio latino?')),
 		choices: [
-			choice('cat-flow-lat-no', 'speaker', WAVE, ACCENT, 0, tr('Audio original'), origSub, pick(false)),
+			choice('cat-flow-lat-no', WAVE, ACCENT, 0, tr('Audio original'), origSub, pick(false)),
 			// El latino suele venir en releases más livianos: que no sorprenda no encontrarlo en 4K.
-			choice('cat-flow-lat-yes', 'search', { kind: 'bubble', text: 'LAT' }, GREEN, 1, tr('Solo audio latino'), yesSub, pick(true), {
+			choice('cat-flow-lat-yes', { kind: 'bubble', text: 'LAT' }, GREEN, 1, tr('Solo audio latino'), yesSub, pick(true), {
 				note: none ? null : tr('Ojo: el audio latino suele venir en menor resolución (1080p o 720p); en 4K es raro.'),
 				badge: left ? tr('Demora más') : null, disabled: none,
 			}),
@@ -483,7 +475,8 @@ function resScreen(): FlowView {
 						.filter((x): x is string => typeof x === 'string')
 						.join(' · ') + tr(' de {n}', { n })
 				: tr('Ninguna con latino de {n}', { n });
-		choices.push(choice(`cat-flow-res-${r}`, 'monitor', { kind: 'icon', icon: 'monitor' }, ACCENT, choices.length, resLabel(r), sub, () => void pickRes(r), { muted: !!f.lat && !lat }));
+		// Pidiendo latino, la calidad sin ninguno va en gris.
+		choices.push(choice(`cat-flow-res-${r}`, { kind: 'icon', icon: 'monitor' }, f.lat && !lat ? MUTED : ACCENT, choices.length, resLabel(r), sub, () => void pickRes(r)));
 	}
 	return { kind: 'choices', ...screenOf(tr('Elegí la calidad')), choices };
 }
