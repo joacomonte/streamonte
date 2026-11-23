@@ -196,7 +196,6 @@ const EN: Record<string, string> = {
 	"Tiene audio latino": "Has Latin American audio",
 	"Leído: no trae audio latino": "Read: no Latin American audio",
 	"No trae audio latino": "No Latin American audio",
-	"Trae subtítulos en español (siempre en sync):": "Has Spanish subtitles (always in sync):",
 	"Trae un archivo de subtítulos en español (según la lista de archivos de TorBox)": "Has a Spanish subtitle file (according to TorBox's file list)",
 	"Subtítulos en español incluidos": "Spanish subtitles included",
 	"No vienen incluidos: se bajan aparte": "Not included: downloaded separately",

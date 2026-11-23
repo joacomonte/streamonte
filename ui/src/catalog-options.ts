@@ -27,7 +27,7 @@ import type { LatState } from '$ui/types.ts';
 import { BG_GREEN, BG_YELLOW, bgTone, fileBytesOf, leechersFrom, pickLine, pinActive, playbackFor, PB_LIVE, PB_STARTING, seedsOf, trackersWin } from './options-logic.ts';
 import { flushStreams, mountCtxMenu, openCtxMenu, showStreams } from './streams-panel.svelte.ts';
 import type { CtxItem, ListView, MoreRowView, PanelView, SortView, StreamsView } from './streams-view.ts';
-import type { LibraryRow, PlaybackRow, PlayerKind, StreamCandidate as Candidate, StreamsUpdate } from './types.js';
+import type { LibraryRow, NativeSpanish, PlaybackRow, PlayerKind, StreamCandidate as Candidate, StreamsUpdate } from './types.js';
 
 export { BG_GREEN, BG_YELLOW, PB_LIVE, PB_STARTING, seedsOf, trackersWin };
 
@@ -52,11 +52,20 @@ const wantsLatino = (): boolean => sideOf()?.flow?.lat === true;
 /** ¿Trae subs en español? `true` / `false` según las pistas ya leídas o un .srt en español en TorBox (solo dice sí); `null` = no se sabe. */
 export function hasSpanishSubs(hash: string): boolean | null {
 	const subs = rowsOf(hash).find((e) => e.native_subs)?.native_subs;
-	if (subs) return subs.length > 0;
-	return torboxSpanishSubs.has(hash) ? true : null;
+	// Como la web (`hasEs`): el .srt en español de TorBox cuenta aunque las pistas leídas no traigan.
+	if (subs?.length || torboxSpanishSubs.has(hash)) return true;
+	return subs ? false : null;
 }
 /** Globitos de los badges (como la web): uno por video (`loadStreams` lo reinicia). */
 export const tips = new TipBook();
+/** Tooltip del ES verde, mismo texto que la web (`Torrents.svelte` `rowOf`): adentro del video (pistas `embedded:`) o un
+ *  archivo suelto en el torrent (`torrent:` o el .srt de TorBox); abajo, de dónde sale cada uno. */
+function subsTitle(hash: string, native: NativeSpanish[]): string | undefined {
+	const n = native.filter((x) => x.key.startsWith('embedded:')).length;
+	const head = n > 0 ? tr(n > 1 ? 'El video trae {n} subtítulos en español adentro' : 'El video trae {n} subtítulo en español adentro', { n })
+		: native.length || torboxSpanishSubs.has(hash) ? tr('El torrent trae un archivo de subtítulo en español') : undefined;
+	return head && native.length ? `${head}\n${native.map((x) => `· ${x.place} · ${x.kind}`).join('\n')}` : head;
+}
 /** Idioma ya sabido, como badges junto al peso (regla `langTags` de `$ui/options/row.ts`, igual que la web). */
 function langTags(c: Candidate, best: boolean): Pick<OptionRowView, 'audio' | 'subs'> {
 	const hash = c.info_hash;
@@ -64,7 +73,7 @@ function langTags(c: Candidate, best: boolean): Pick<OptionRowView, 'audio' | 's
 	return langTagsOf(
 		{
 			hash, lat: latOf(c), want: wantsLatino(), spokenEs: sideOf()?.details?.details?.original_language === 'es', subs: hasSpanishSubs(hash), best,
-			subsTitle: native.length ? `${tr('Trae subtítulos en español (siempre en sync):')}\n${native.map((x) => `· ${x.place} · ${x.kind}`).join('\n')}` : undefined,
+			subsTitle: subsTitle(hash, native),
 			audioId: `cat-audio-${hash}`,
 			onTap: (e) => {
 				e.stopPropagation();
