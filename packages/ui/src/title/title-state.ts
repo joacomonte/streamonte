@@ -15,19 +15,6 @@ export function pickPeople(people: Person[]): Person[] {
 	return director ? [director, ...cast] : cast;
 }
 
-// Emoji por género: nombres de TMDB en español e inglés y los de Cinemeta (desktop), sin tildes ni mayúsculas.
-const GENRE_EMOJI: Record<string, string> = {
-	accion: '💥', action: '💥', aventura: '🧭', adventure: '🧭', animacion: '🎨', animation: '🎨', comedia: '😂', comedy: '😂',
-	crimen: '🔪', crime: '🔪', documental: '🎥', documentary: '🎥', drama: '🎭', familia: '🏡', family: '🏡', fantasia: '🧙', fantasy: '🧙',
-	historia: '📜', history: '📜', terror: '👻', horror: '👻', musica: '🎵', music: '🎵', musical: '🎵', misterio: '🔍', mystery: '🔍',
-	romance: '💘', 'ciencia ficcion': '🚀', 'science fiction': '🚀', 'sci-fi': '🚀', suspense: '😱', suspenso: '😱', thriller: '😱', belica: '⚔️', war: '⚔️',
-	guerra: '⚔️', western: '🤠', 'pelicula de tv': '📺', 'tv movie': '📺', reality: '📸', noticias: '📰', news: '📰', talk: '🎙️',
-	telenovela: '💔', soap: '💔', kids: '🧸', infantil: '🧸', biografia: '👤', biography: '👤', deporte: '🏅', sport: '🏅'
-};
-/** Emoji del género, o null si no se conoce. */
-export const genreEmoji = (genre: string): string | null =>
-	GENRE_EMOJI[genre.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim()] ?? null;
-
 /** Plataformas: apiladas (las primeras) o, abierta la pastilla, todas con nombre. `more`: las que no entran apiladas. */
 export function providerView(providers: Provider[], open: boolean): { shown: Provider[]; more: number } {
 	return open ? { shown: providers, more: 0 } : { shown: providers.slice(0, MAX_PROVIDERS), more: Math.max(0, providers.length - MAX_PROVIDERS) };

@@ -41,5 +41,7 @@ for f in "$tmp"/*.fail; do
   echo "── $name falló"
   [ -s "$tmp/$name.log" ] && cat "$tmp/$name.log"
 done
+# Poda de target/ (24 h y tope de tamaño) en segundo plano.
+(nohup sh scripts/trim-target.sh >/dev/null 2>&1 &)
 [ "$failed" = 0 ] || exit 1
 echo "check ok${1:+ ($1)}"

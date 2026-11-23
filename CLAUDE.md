@@ -28,6 +28,8 @@ Web: página → `web/src/routes/**/+page.server.ts` o `api/**/+server.ts` → `
 
 ## Chequeos
 - `sh scripts/check.sh` (~3 s: fmt, clippy, oxlint + tsc de la UI, tsc de packages/ui) · `sh scripts/check.sh full` (~6 s: + nextest, `pnpm test` de la UI, web check+test).
+- CI local = el de GitHub (`ci.yml`) con los mismos comandos: `sh scripts/ci-local.sh` (~1,5 min). Lo corre el hook `pre-push` (`.githooks/`, activo con `git config core.hooksPath .githooks`; un push de solo tags no lo repite; urgencia: `--no-verify`). No cubre Windows. Si cambia `ci.yml`, cambiar el script.
+- Disco: `scripts/trim-target.sh` poda `target/` (sin uso 24 h y tope `TOPE_GB`=20, de lo más viejo a lo más nuevo) y una vez por semana `pnpm store prune`; lo corren check.sh, ci-local.sh y el hook de Claude tras cada `cargo`.
 - Node 24 (nvm) primero en PATH: la web usa type stripping nativo; el node de Homebrew es viejo.
 - Desktop dev: `cd ui && pnpm dev` + `cargo run -p streamonte` (sin Vite la ventana queda en blanco).
 - TorBox del desktop: siempre directo con la key de cada usuario (el modo "TorBox de Streamonte" por la web se sacó el 2026-11-23). Smoke contra la API real antes de un release: `cargo nextest run -p streamonte-core --run-ignored all torbox_smoke` (necesita la key guardada).

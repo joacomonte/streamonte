@@ -1,5 +1,6 @@
 <script lang="ts">
-	// "Estrenos desde → hasta": atajos con una píldora que salta y una tira de película que se arrastra.
+	// "Estrenos desde → hasta": una tira de película que se arrastra, con el título, el año (pegado al cabezal) y "hoy"
+	// adentro (2026-11-23, variante 3A: sin atajos ni encabezado aparte).
 	import { untrack } from 'svelte';
 	import Icon from '../components/Icon.svelte';
 	import { t } from '../i18n/runtime.ts';
@@ -14,17 +15,9 @@
 	let { store, onset }: Props = $props();
 	const st = $derived(store.st);
 
-	/* Estrenos desde → hasta (hoy, salvo que se abra el segundo cabezal): atajos + una línea de tiempo que se arrastra. */
+	/* Estrenos desde → hasta (hoy, salvo que se abra el segundo cabezal): una línea de tiempo que se arrastra. */
 	const LAST = BACK.length - 1;
 	const YEAR = new Date().getFullYear();
-	/** Atajos en meses hacia atrás; el último es "Todo". */
-	const PRESETS: [number, string][] = [
-		[3, '3 meses'],
-		[12, '1 año'],
-		[60, '5 años'],
-		[120, '10 años'],
-		[BACK[LAST], 'Todo']
-	];
 	/** Meses hacia atrás hasta 1950 (el borde izquierdo con zoom al máximo). */
 	const MAX = BACK[LAST];
 	/** Meses (continuos) → paso de BACK más cercano: meses sueltos bajo el año, años enteros arriba. */
@@ -192,39 +185,20 @@
 		e.preventDefault();
 		onset({ to: BACK[Math.min(shownIdx - 1, Math.max(0, toIdx + step))] });
 	}
-	/** Píldora que salta al atajo elegido. */
-	let presetsEl = $state<HTMLElement>();
-	let pill = $state({ x: 0, w: 0, on: false });
-	$effect(() => {
-		void st.f.from, st.f.to;
-		const on = presetsEl?.querySelector<HTMLElement>('[aria-checked="true"]');
-		pill = on ? { x: on.offsetLeft, w: on.offsetWidth, on: true } : { x: 0, w: 0, on: false };
-	});
+	/** Texto de un valor: meses sueltos ("hace 3 meses") o el año. */
+	const valueText = (m: number) => (m < 12 ? backLabel(m) : String(YEAR - m / 12));
+	/** La etiqueta del año pasa al lado izquierdo del cabezal cuando este queda cerca de la derecha. */
+	const flip = $derived(at(shownM) > 70);
 
 </script>
 
 				<div class="since">
-					<div class="since-head">
-						<span class="since-label">{t('Estrenos desde')}</span>
-						<span class="since-val" class:live={scrub >= 0}>
-							{#key shownM}<b>{shownM < 12 ? backLabel(shownM) : YEAR - shownM / 12}</b>{/key}
-							<span class="since-dash" aria-hidden="true">–</span>
-							<button id="since-to" type="button" class="since-to" class:on={showTo} aria-pressed={showTo} title={t(showTo ? 'Volver a hasta hoy' : 'Elegir hasta cuándo')} onclick={toggleTo}>
-								{#key shownTo}<span class="to-val">{shownTo === 0 ? t('hoy') : shownTo < 12 ? backLabel(shownTo) : YEAR - shownTo / 12}</span>{/key}{#if showTo}<Icon name="close" size={11} />{/if}
-							</button>
-						</span>
-					</div>
-					<div class="presets" role="radiogroup" aria-label={t('Estrenos desde')} bind:this={presetsEl}>
-						<span class="preset-pill" class:on={pill.on} style:--x="{pill.x}px" style:--w="{pill.w}px" aria-hidden="true"></span>
-						{#each PRESETS as [m, l] (m)}
-							<button id="since-{m}" type="button" role="radio" aria-checked={st.f.from === m && !st.f.to} onclick={() => ((untilOpen = false), onset({ from: Number(m), to: 0 }))}>{t(String(l))}</button>
-						{/each}
-					</div>
 					<div
 						id="since-slider"
 						class="reel"
 						class:live={scrub >= 0}
 						class:zooming
+						class:flip
 						role="slider"
 						tabindex="0"
 						aria-label={t('Estrenos desde')}
@@ -246,7 +220,9 @@
 						{#each labels as y (y)}
 							<span class="decade" style:left="{at((YEAR - y) * 12)}%" aria-hidden="true">{y}</span>
 						{/each}
+						<span class="reel-label" aria-hidden="true">{t('Estrenos desde')}</span>
 						<span class="playhead" aria-hidden="true"></span>
+						{#key shownM}<span id="since-value" class="tag" aria-hidden="true">{valueText(shownM)}</span>{/key}
 						<span
 							id="until-slider"
 							class="playhead until"
@@ -262,82 +238,68 @@
 							style:--at="{at(shownTo)}%"
 							onkeydown={untilKey}
 						></span>
+						<!-- "hoy" (o el hasta elegido): tocarlo abre/cierra el segundo cabezal; no arrastra la tira. -->
+						<button id="since-to" type="button" class="since-to" class:on={showTo} aria-pressed={showTo} title={t(showTo ? 'Volver a hasta hoy' : 'Elegir hasta cuándo')}
+							onpointerdown={(e) => e.stopPropagation()} onclick={toggleTo}>
+							{#key shownTo}<span class="to-val">{shownTo === 0 ? t('hoy') : valueText(shownTo)}</span>{/key}{#if showTo}<Icon name="close" size={11} />{/if}
+						</button>
 					</div>
 				</div>
 
 <style>
-	/* Estrenos desde: atajos con una píldora que salta, y una tira de película que se arrastra. */
+	/* Estrenos desde: una tira de película con todo adentro (título, año en el cabezal, "hoy"). */
 	.since { margin-top: 14px; }
-	.since-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-	.since-label { font-size: 12.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-	/* Desde – hasta: dos valores gemelos, subrayados con el color de su cabezal (ámbar / azul). */
-	.since-val { display: inline-flex; align-items: baseline; gap: 8px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-	.since-val b, .to-val { display: inline-block; animation: tick-in 0.25s var(--out); }
-	.since-val b { font-weight: inherit; }
-	.since-val.live b { color: var(--amber); }
-	.since-dash { color: var(--muted); font-weight: 400; }
-	.since-to {
-		display: inline-flex;
-		align-items: baseline;
-		gap: 5px;
-		padding: 10px 4px;
-		margin: -10px -4px;
-		font: inherit;
-		color: var(--muted);
-		background: none;
-		border: 0;
-		cursor: pointer;
-		transition: color 0.2s;
-	}
-	/* Sin hasta: "hoy" tenue con subrayado punteado, invita a tocar. Con hasta: firme, y una × discreta. */
-	.since-to:hover, .since-to.on { color: var(--text); }
-	.since-to :global(svg) { align-self: center; color: var(--muted); }
-	@keyframes tick-in { from { transform: translateY(40%); opacity: 0; filter: blur(2px); } }
-
-	.presets {
-		position: relative;
-		display: flex;
-		gap: 2px;
-		margin: 8px -16px 0;
-		padding: 0 16px;
-		overflow-x: auto;
-		scrollbar-width: none;
-	}
-	.presets::-webkit-scrollbar { display: none; }
-	.presets button {
-		position: relative;
-		flex: none;
-		min-height: 34px;
-		padding: 0 13px;
-		border: 0;
-		border-radius: var(--r-pill);
-		background: none;
-		color: var(--muted);
-		font-size: 13.5px;
-		font-weight: 600;
-		transition: color 0.25s var(--ease);
-	}
-	.presets button[aria-checked='true'] { color: var(--accent-text); }
-	.preset-pill {
+	.reel-label { position: absolute; left: 12px; top: 17px; z-index: 1; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; pointer-events: none; }
+	/* El año, pegado al cabezal; pasa a su izquierda cuando el cabezal queda cerca de la derecha. */
+	.tag {
 		position: absolute;
-		top: 0;
-		left: 0;
-		height: 34px;
-		width: var(--w);
-		border-radius: var(--r-pill);
-		background: var(--accent);
-		box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent);
-		transform: translateX(var(--x)) scale(0.6);
-		opacity: 0;
-		transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+		top: 50%;
+		left: var(--at);
+		z-index: 2;
+		translate: 10px -50%;
+		padding: 3px 8px;
+		border-radius: var(--r-xs);
+		background: var(--amber);
+		color: #1b1300;
+		font-size: 15px;
+		font-weight: 800;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+		pointer-events: none;
+		transition: left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+		animation: tick-in 0.25s var(--out);
 	}
-	.preset-pill.on { transform: translateX(var(--x)); opacity: 1; }
+	.reel.flip .tag { translate: calc(-100% - 10px) -50%; }
+	.reel.live .tag { transition: none; }
+	.since-to {
+		position: absolute;
+		right: 6px;
+		top: 50%;
+		z-index: 2;
+		translate: 0 -50%;
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		min-height: 44px;
+		padding: 0 8px;
+		border: 0;
+		border-radius: var(--r-sm);
+		background: none;
+		font-size: 15px;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		color: var(--text);
+		cursor: pointer;
+	}
+	.since-to.on { color: var(--accent-fg); }
+	.since-to :global(svg) { color: var(--muted); }
+	.to-val { display: inline-block; animation: tick-in 0.25s var(--out); }
+	@keyframes tick-in { from { transform: translateY(40%); opacity: 0; filter: blur(2px); } }
 
 	/* Tira de película: perforaciones arriba y abajo; lo elegido (desde → hoy) queda "revelado" y brilla. */
 	.reel {
 		position: relative;
-		height: 64px;
-		margin-top: 10px;
+		height: 76px;
 		border-radius: var(--r-card);
 		background:
 			radial-gradient(circle at 50% 50%, var(--bg) 2.2px, transparent 2.8px) 0 5px / 14px 8px repeat-x,
@@ -353,7 +315,7 @@
 	}
 	.reel-lit {
 		position: absolute;
-		inset: 14px calc(100% - var(--to-at)) 14px var(--at);
+		inset: 12px calc(100% - var(--to-at)) 12px var(--at);
 		background: linear-gradient(90deg, color-mix(in srgb, var(--amber) var(--tint-4), transparent), color-mix(in srgb, var(--accent) var(--tint-3), transparent));
 		transition: left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), right 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
@@ -362,9 +324,9 @@
 	@keyframes flicker { 50% { opacity: 0.82; } }
 	.decade {
 		position: absolute;
-		top: 50%;
-		translate: -50% -50%;
-		font-size: 10.5px;
+		bottom: 14px;
+		translate: -50% 0;
+		font-size: 10px;
 		font-weight: 700;
 		color: var(--muted);
 		font-variant-numeric: tabular-nums;

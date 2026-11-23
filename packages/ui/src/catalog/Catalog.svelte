@@ -30,7 +30,7 @@
 		onsettings?: () => void;
 		/** Sin key de TMDB (la lista ignora los filtros): invita a cargarla. */
 		onneedskey?: () => void;
-		/** La barra de búsqueda queda siempre a la vista al scrollear (desktop); si no, solo la de chips. */
+		/** Buscando, la barra de búsqueda queda a la vista al scrollear (desktop), con fondo opaco. */
 		pinned?: boolean;
 		cardMin?: number;
 		/** Degradado al pie de la ventana (la web). */
@@ -64,6 +64,25 @@
 	/** Resumen de lo aplicado, debajo de los chips (ni el idioma ni las fechas, que ya muestra el selector de años). */
 	const summary = $derived([st.f.votes ? votesLabel(st.f.votes) : '', genres.filter((g) => st.f.genres.includes(g.id)).map((g) => g.name).join(', ')].filter(Boolean));
 	const changed = $derived(changedCount(st.f));
+	/** Con filtros a la vista (no buscando ni sin key): al scrollear se compactan en una línea (2026-11-23, variante 1A). */
+	const compactable = $derived(!searching && !trendingOnly);
+	/** Ya se scrolleó más allá de los filtros: se ve la barra de una línea. */
+	let stuck = $state(false);
+	/** Barra tocada: los filtros completos se despliegan arriba de la grilla. */
+	let expanded = $state(false);
+	const YEAR = new Date().getFullYear();
+	const ago = (m: number) => (m < 12 ? backLabel(m) : String(YEAR - m / 12));
+	/** "Películas · 2020 – hoy · ★ Mejor puntaje · 10.000+ votos · Drama". */
+	const compactText = $derived(
+		[
+			t(KINDS.find((k) => k.v === st.f.kind)?.label ?? ''),
+			`${ago(st.f.from)} – ${st.f.to ? ago(st.f.to) : t('hoy')}`,
+			t(SORTS.find((s) => s.v === st.f.sort)?.label ?? ''),
+			...summary
+		].filter(Boolean)
+	);
+	/** Cuánto se esconde al quedar pegada: todo lo de arriba, salvo desplegada o (desktop) buscando. */
+	const hide = $derived(expanded || (pinned && !compactable) ? 0 : topH);
 
 	const toTop = () => (scroller ?? window).scrollTo({ top: 0 });
 	const setF = (changes: Partial<Filters>) => (store.setFilters(changes), toTop(), logFilters());
@@ -76,9 +95,16 @@
 				break;
 			}
 		}
+		// Pegada = ya pasó lo de arriba; al volver arriba se pliega sola.
+		const target = scroller ?? window;
+		const onScroll = () => {
+			stuck = (scroller ? scroller.scrollTop : scrollY) > topH;
+			if (!stuck) expanded = false;
+		};
+		target.addEventListener('scroll', onScroll, { passive: true });
 		store.start();
 		const off = store.connect();
-		return () => (off(), clearTimeout(loggedSearch), clearTimeout(loggedFilter));
+		return () => (off(), target.removeEventListener('scroll', onScroll), clearTimeout(loggedSearch), clearTimeout(loggedFilter));
 	});
 
 	// Scroll infinito: el final está a menos de ~2 pantallas. Se pide mientras siga cerca, no solo al cruzar el
@@ -151,7 +177,8 @@
 </script>
 
 <div bind:this={root} class="catalog-root">
-	<header class="head" class:intro class:pinned style:--hide="{pinned ? 0 : topH}px">
+	{#if expanded}<button id="cat-compact-close" type="button" class="backdrop" aria-label={t('Cerrar filtros')} onclick={() => (expanded = false)}></button>{/if}
+	<header class="head" class:intro class:pinned class:expanded class:stuck={stuck && compactable} style:--hide="{hide}px">
 		<div class="inner">
 			<div class="head-top" bind:clientHeight={topH}>
 				{@render header?.()}
@@ -177,7 +204,13 @@
 					{/if}
 				{/if}
 			</div>
-			{#if !searching && !trendingOnly}
+			{#if compactable && stuck && !expanded}
+				<button id="cat-compact" type="button" class="compact" aria-expanded="false" aria-label={t('Filtros aplicados: {f}. Cambiar', { f: compactText.join(', ') })} onclick={() => (expanded = true)}>
+					<Icon name="search" size={16} />
+					<span class="compact-text">{#each compactText as part, i (i)}{#if i}<span class="dot" aria-hidden="true">·</span>{/if}{#if i === 1}<span class="amber">{part}</span>{:else}{part}{/if}{/each}</span>
+					<Icon name="chev" size={16} />
+				</button>
+			{:else if compactable}
 				<div class="filters" role="toolbar" aria-label={t('Filtros')}>
 					{#if summary.length}
 						<button id="filters-summary" type="button" class="summary" onclick={() => (filtersOpen = true)} aria-label={t('Filtros aplicados: {f}. Cambiar', { f: summary.join(', ') })}>
@@ -204,7 +237,8 @@
 	/* Se pega arriba corrido hacia arriba lo que mide la parte de arriba: al scrollear queda solo la barra de chips. */
 	.head {
 		position: sticky;
-		top: calc(-1 * (var(--hide) + 6px));
+		/* `--bleed-top`: el scroller del desktop tiene padding arriba (-20 px); sin compensarlo asomaba lo de arriba (2026-11-23). */
+		top: calc(var(--bleed-top, 0px) - var(--hide) - 6px);
 		z-index: 20;
 		padding: calc(var(--safe-top) + 6px) calc(16px + var(--bleed-x, 0px)) 0;
 		margin: var(--bleed-top, 0px) calc(-1 * var(--bleed-x, 0px)) 0;
@@ -212,8 +246,21 @@
 		background: color-mix(in srgb, var(--bg) 96%, transparent);
 		border-bottom: 1px solid var(--border);
 	}
-	/* El scroller del desktop tiene `--bleed-top` de padding: la barra se pega arriba de todo (si no, deja un hueco por donde asoman las tarjetas). */
-	.head.pinned { top: var(--bleed-top, 0px); background: var(--bg); }
+	.head.pinned, .head.stuck { background: var(--bg); }
+	/* Lo de arriba queda fuera de pantalla al compactarse; oculto, para que no asome el brillo del orden por encima de la barra. */
+	.head.stuck:not(.expanded) .head-top { visibility: hidden; }
+	/* Desplegada desde la barra de una línea: baja entera sobre la grilla, con sombra y el resto oscurecido. */
+	.head.expanded { z-index: 22; box-shadow: 0 18px 40px var(--shadow-lg); animation: drop 0.3s var(--out); }
+	@keyframes drop { from { opacity: 0; transform: translateY(-8px); } }
+	.backdrop { position: fixed; inset: 0; z-index: 21; border: 0; padding: 0; background: rgb(0 0 0 / 0.5); animation: fade 0.25s var(--ease); cursor: default; }
+	@keyframes fade { from { opacity: 0; } }
+	/* La barra de una línea: el estado de los filtros y un chevron; tocarla despliega todo. */
+	.compact { display: flex; align-items: center; gap: 8px; width: calc(100% + 32px); min-height: 48px; margin: 0 -16px; padding: 0 16px; border: 0; background: none; color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; text-align: left; white-space: nowrap; cursor: pointer; animation: fade 0.2s var(--ease); }
+	.compact :global(svg) { flex: none; color: var(--muted); }
+	.compact :global(svg:last-child) { margin-left: auto; }
+	.compact-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+	.compact .dot { margin: 0 6px; color: var(--dim, var(--muted)); }
+	.compact .amber { color: var(--amber); font-variant-numeric: tabular-nums; }
 	.inner { max-width: 1200px; margin: 0 auto; }
 	.head-top { padding-bottom: 2px; }
 	/* Entrada después de la bienvenida: cada bloque de arriba sube escalonado. */

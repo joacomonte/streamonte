@@ -31,8 +31,7 @@
    "sel": "#since-slider"
   },
   {
-   "sel": "#since-12",
-   "text": "1 año"
+   "sel": "#since-to"
   },
   {
    "sel": "#sort-rating"

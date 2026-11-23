@@ -469,7 +469,12 @@ impl ConfigStore {
         let pick = std::collections::hash_map::RandomState::new()
             .build_hasher()
             .finish();
-        let first = 41_000 + (pick % 800) as u16 * 10;
+        let mut first = 41_000 + (pick % 800) as u16 * 10;
+        // Nunca el par por defecto: al recargar parecería sin elegir y se sortearía de nuevo en cada arranque
+        // (1 de 800; el test `sin_archivo_devuelve_defaults` falló así en CI, 2026-11-23).
+        if first == EngineConfig::default().listen_ports[0] {
+            first += 10;
+        }
         config.engine.listen_ports = [first, first + 9];
         if let Err(e) = self.save(config) {
             tracing::warn!("no se pudo guardar el puerto propio: {e}");
