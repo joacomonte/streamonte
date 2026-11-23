@@ -10,6 +10,7 @@ pub mod cinemeta;
 pub mod elitetorrent;
 pub mod http;
 pub mod latteam;
+pub mod mkv;
 pub mod normalize;
 pub mod people;
 pub mod protocol;

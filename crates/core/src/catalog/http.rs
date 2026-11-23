@@ -200,6 +200,48 @@ impl Http {
         Ok(String::from_utf8_lossy(&bytes).into_owned())
     }
 
+    /// Los primeros `max` bytes de un archivo (Range `0-max-1`; si el servidor lo ignora, se corta igual). Para leer
+    /// el encabezado de un video sin bajarlo. La URL puede llevar claves: nunca va al error.
+    pub async fn head_bytes(
+        &self,
+        url: &str,
+        max: usize,
+        timeout: Duration,
+    ) -> Result<Vec<u8>, FetchError> {
+        let read = async {
+            let mut resp = self
+                .client
+                .get(url)
+                .header(
+                    reqwest::header::RANGE,
+                    format!("bytes=0-{}", max.saturating_sub(1)),
+                )
+                .send()
+                .await
+                .map_err(|e| FetchError::from(HttpError::Network(e.without_url())))?;
+            let status = resp.status().as_u16();
+            if status != 200 && status != 206 {
+                return Err(FetchError::Status(status));
+            }
+            let mut body = Vec::with_capacity(max);
+            while body.len() < max {
+                match resp
+                    .chunk()
+                    .await
+                    .map_err(|e| FetchError::from(HttpError::Network(e.without_url())))?
+                {
+                    Some(chunk) => body.extend_from_slice(&chunk),
+                    None => break,
+                }
+            }
+            body.truncate(max);
+            Ok(body)
+        };
+        tokio::time::timeout(timeout, read)
+            .await
+            .map_err(|_| FetchError::Timeout)?
+    }
+
     /// GET binario más grande que [`MAX_BODY`] (los datasets de IMDb, ~8 MB comprimidos).
     pub async fn get_large(
         &self,

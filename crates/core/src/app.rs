@@ -921,17 +921,36 @@ impl AppCore {
     ) -> Result<()> {
         // Un REMUX de 50+ GB tarda en dar el primer byte desde TorBox: 30 s cortaba lecturas que iban a andar.
         const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+        const HEADER_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
         let timeout = self
             .catalog_timeout()
             .await
             .max(std::time::Duration::from_secs(20));
         let (url, title) = self.catalog.torbox_stream(hash, timeout).await?;
-        let mpv_path = self.config.read().await.player.mpv_path.clone();
-        let mpv = crate::paths::find_executable(crate::paths::Executable::Mpv, mpv_path.as_deref())
-            .ok_or_else(|| CoreError::Player("no hay mpv para leer las pistas".into()))?;
-        let probe = crate::player::probe_media(&mpv, &url, PROBE_TIMEOUT)
+        // Primero el encabezado del MKV (el primer MB, segundos; como la web); si no es MKV o no se pudo, mpv.
+        let header = self
+            .catalog
+            .http
+            .head_bytes(&url, crate::catalog::mkv::HEAD, HEADER_TIMEOUT)
             .await
-            .inspect_err(|e| tracing::warn!("leer pistas por TorBox ({hash}): {e}"))?;
+            .inspect_err(|e| tracing::info!("encabezado por TorBox ({hash}): {}", e.user_text()))
+            .ok()
+            .and_then(|b| crate::catalog::mkv::parse_tracks(&b));
+        let probe = match header {
+            Some(tracks) => mkv_probe(&tracks),
+            None => {
+                let mpv_path = self.config.read().await.player.mpv_path.clone();
+                let mpv = crate::paths::find_executable(
+                    crate::paths::Executable::Mpv,
+                    mpv_path.as_deref(),
+                )
+                .ok_or_else(|| CoreError::Player("no hay mpv para leer las pistas".into()))?;
+                let p = crate::player::probe_media(&mpv, &url, PROBE_TIMEOUT)
+                    .await
+                    .inspect_err(|e| tracing::warn!("leer pistas por TorBox ({hash}): {e}"))?;
+                (Some(p.duration_secs), p.audio, p.subs, p.fps)
+            }
+        };
         if !self.library.lock().await.has_torrent(&hash) {
             self.catalog_add(kind, video_id, &[hash]).await?;
         }
@@ -959,10 +978,13 @@ impl AppCore {
                 subs: None,
                 fps: None,
             });
-            live.duration_secs = Some(probe.duration_secs);
-            live.audio = Some(probe.audio.clone());
-            live.subs = Some(probe.subs.clone());
-            live.fps = probe.fps;
+            let (duration, audio, subs, fps) = &probe;
+            if duration.is_some() {
+                live.duration_secs = *duration;
+            }
+            live.audio = Some(audio.clone());
+            live.subs = Some(subs.clone());
+            live.fps = fps.or(live.fps);
         });
         library.emit_rows(&keys, self.events.as_ref());
         Ok(())
@@ -1754,4 +1776,43 @@ fn newest_log(dir: &std::path::Path) -> Option<std::path::PathBuf> {
         .filter(|e| e.file_name().to_string_lossy().starts_with("streamonte."))
         .max_by_key(|e| e.metadata().and_then(|m| m.modified()).ok())
         .map(|e| e.path())
+}
+
+/// Pistas del encabezado MKV con la forma de `player::probe_media` (duración, audios, subs, fps; sin duración ni fps).
+/// Los subs se numeran como los `sid` de mpv: en orden, desde 1.
+fn mkv_probe(
+    tracks: &[crate::catalog::mkv::Track],
+) -> (
+    Option<f64>,
+    Vec<crate::audio::AudioTrack>,
+    Vec<crate::subtitles::NativeSub>,
+    Option<f64>,
+) {
+    use crate::catalog::mkv::{mpv_sub_codec, AUDIO, SUBTITLE};
+    let named = |s: &str| (!s.is_empty()).then(|| s.to_string());
+    let audio = tracks
+        .iter()
+        .filter(|t| t.kind == AUDIO)
+        .map(|t| crate::audio::AudioTrack {
+            lang: named(&t.lang),
+            title: named(&t.name),
+            codec: named(&t.codec),
+            channels: None,
+            default: false,
+        })
+        .collect();
+    let subs = tracks
+        .iter()
+        .filter(|t| t.kind == SUBTITLE)
+        .enumerate()
+        .map(|(i, t)| crate::subtitles::NativeSub {
+            sid: Some(i as i64 + 1),
+            file: None,
+            lang: named(&t.lang),
+            title: named(&t.name),
+            codec: named(mpv_sub_codec(&t.codec)),
+            forced: t.forced,
+        })
+        .collect();
+    (None, audio, subs, None)
 }
