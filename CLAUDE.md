@@ -17,6 +17,7 @@ Usuario → UI (`ui/src/api.js` invoke) → `src-tauri/src/commands.rs` → `cra
 Web: página → `web/src/routes/**/+page.server.ts` o `api/**/+server.ts` → `web/src/lib/server/*` → TMDB/indexers/TorBox.
 
 ## Reglas que cruzan apps
+- Todo cambio que pida el usuario va en desktop Y web, salvo que diga lo contrario (pedido 2026-11-23): UI compartida en `packages/ui/`, y lo propio de cada app en `ui/` y `web/`.
 - La misma regla vive en Rust y en TS (tráiler, plataformas AR, reparto, release tags, excluidos, idioma de subs, estado de serie): cambiar una obliga a cambiar la otra y `packages/golden/*.json` (casos `diverge` = desvío conocido, salteado en web).
 - 1440p = "2K", 14 Mbps típicos: `packages/ui/src/rank.ts:20 TYPICAL_MBPS` (única regla; web y desktop la importan).
 

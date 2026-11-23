@@ -14,7 +14,13 @@
 	let picked = $state<LangCode | null>(null);
 
 	const LANGS = [['es', 'Español'], ['en', 'English']] as const;
-	const POSTER: Record<LangCode, string> = { es: 'LA ODISEA', en: 'THE ODYSSEY' };
+// Ejemplo real: La Odisea (Nolan, 2026), con el título y el póster de TMDB en cada idioma. Sin red queda el dibujo.
+	const POSTER: Record<LangCode, string> = { es: 'La Odisea', en: 'The Odyssey' };
+	const POSTER_IMG: Record<LangCode, string> = {
+		es: 'https://image.tmdb.org/t/p/w342/sRxbUe5FB25Gde0e2FnwwSckpXb.jpg',
+		en: 'https://image.tmdb.org/t/p/w342/5rhTDKUhPYvpdQIijFIs5VoWsON.jpg'
+	};
+	const hide = (e: Event) => ((e.currentTarget as HTMLImageElement).style.display = 'none');
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 	// El título del póster va a 90° con el texto viejo y vuelve con el nuevo.
@@ -88,7 +94,11 @@
 			<path d="M0 248 Q60 214 120 244 T200 236 V300 H0 Z" fill="#4a2752" />
 			<path d="M0 272 Q70 252 140 270 T200 266 V300 H0 Z" fill="#2a1736" />
 		</svg>
+		{#each ['es', 'en'] as const as v (v)}<img class="real" class:on={shown === v} class:flipping src={POSTER_IMG[v]} alt="" width="342" height="513" referrerpolicy="no-referrer" onerror={hide} />{/each}
+	</div>
+	<div class="about" aria-live="polite">
 		<span class="ttl" class:flipping>{POSTER[shown]}</span>
+		<span class="by">{t('Film de')} <b>Christopher Nolan</b> · 2026</span>
 	</div>
 	<div class="seg" role="radiogroup" aria-label={t('Títulos')} class:en={titles === 'en'}>
 		<span class="knob"></span>
@@ -153,19 +163,20 @@
 	.scene { display: block; width: 100%; height: 100%; }
 	.sun { animation: rise 6s ease-in-out infinite; }
 	@keyframes rise { 50% { transform: translateY(-6px); } }
+	/* Póster real encima del dibujo; los dos idiomas cargados, se muestra el elegido y gira al cambiar. */
+	.real { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+	.real.on { opacity: 1; }
+	.real.on.flipping { transform: rotateY(90deg); transition: transform 0.2s ease-in; }
+	.about { display: grid; justify-items: center; gap: 4px; margin-top: 14px; text-align: center; }
+	.by { font-size: 14px; color: var(--muted); }
+	.by b { color: var(--text); font-weight: 650; }
 	.ttl {
-		position: absolute;
-		left: 8px;
-		right: 8px;
-		top: 18%;
-		color: #fff;
-		font-family: var(--display);
-		font-size: 25px;
+		display: inline-block;
+		color: var(--text);
+		font-size: 26px;
 		font-weight: 800;
-		letter-spacing: 0.14em;
-		line-height: 1.1;
-		text-align: center;
-		text-shadow: 0 2px 12px rgb(0 0 0 / 0.45);
+		letter-spacing: -0.015em;
+		line-height: 1.15;
 		/* Vuelve con resorte; se va rápido (la transición la manda el estado de destino). */
 		transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
@@ -207,7 +218,7 @@
 	.seg button[aria-checked='true'] { color: var(--accent-text); }
 
 	@media (prefers-reduced-motion: reduce) {
-		.card, .ttl, .ttl.flipping, .knob, .seg button { transition: none; }
+		.card, .ttl, .ttl.flipping, .real, .knob, .seg button { transition: none; }
 		.sun { animation: none; }
 	}
 </style>
