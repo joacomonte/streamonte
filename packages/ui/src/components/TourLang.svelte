@@ -67,7 +67,7 @@
 		{#each LANGS as [v, name] (v)}
 			<button id="{id}-app-{v}" type="button" role="radio" class="card" aria-checked={app === v} class:on={picked === v} onclick={() => ((picked = v), onpick('app', v))}>
 				<span class="flag">{@render flag(v)}</span>
-				<span class="name">{name}<small>{v === 'es' ? 'Latinoamérica' : 'United States'}</small></span>
+				<span class="name">{name}</span>
 				<span class="go"><Icon name={picked === v ? 'check' : 'next'} size={24} /></span>
 			</button>
 		{/each}
@@ -127,7 +127,6 @@
 	}
 	.flag svg { display: block; width: 100%; height: 100%; }
 	.name { flex: 1; display: grid; gap: 2px; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
-	.name small { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--dim); }
 	.go { color: var(--muted); opacity: 0.5; transition: opacity 0.25s var(--ease), transform 0.35s var(--out), color 0.2s var(--ease); }
 	@media (hover: hover) {
 		.card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--accent) 70%, transparent); }

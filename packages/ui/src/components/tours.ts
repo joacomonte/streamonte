@@ -41,7 +41,7 @@ export function welcomeSteps(): Step[] {
 	return [
 		nickStep(),
 		{ icon: 'globe', title: t('Idioma de la app'), body: '', picker: 'app' },
-		{ icon: 'film', title: t('Títulos'), body: '', picker: 'titles' },
+		{ icon: 'film', title: t('Títulos de películas y series'), body: t('Elegí en qué idioma ver sus nombres: tocá y mirá el póster.'), picker: 'titles' },
 		{ icon: 'play', logo: true, title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.') },
 	];
 }

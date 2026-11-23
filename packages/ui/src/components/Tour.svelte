@@ -105,9 +105,11 @@
 		else go(index + 1);
 	}
 	/** Siguiente/Listo: en el paso del apodo, primero lo guarda. */
-	// Elegir un idioma ya es la respuesta del paso: lo aplica y pasa al siguiente tras ver la elección (~0,35 s).
+	// Idioma de la app: elegir ya es la respuesta y pasa al siguiente tras ver la elección (~0,35 s). Títulos: se queda
+	// para probar los dos en el póster y se sigue con "Siguiente".
 	function pickLang(kind: 'app' | 'titles', v: LangCode) {
 		langs?.onpick(kind, v);
+		if (kind === 'titles') return;
 		const at = index;
 		setTimeout(() => index === at && go(index + 1), 350);
 	}
@@ -259,8 +261,8 @@
 			{/key}
 		</div>
 
-		<footer class:hidden={step.nick || (!!step.picker && !!langs && !last)}>
-			{#if !(step.picker && langs) || last}
+		<footer class:hidden={step.nick || (step.picker === 'app' && !!langs && !last)}>
+			{#if !(step.picker === 'app' && langs) || last}
 				<button id="{id}-next" type="button" class="primary" disabled={step.nick && nickSaving} onclick={next}>
 					{last ? t('Listo') : t('Siguiente')}
 					{#if !last}<Icon name="next" size={20} />{/if}

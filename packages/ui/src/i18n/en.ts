@@ -677,6 +677,8 @@ const EN: Record<string, string> = {
 	"Actualizando…": "Updating…",
 	"Falló, reintentar": "Failed, retry",
 	"Títulos": "Titles",
+	"Títulos de películas y series": "Movie and series titles",
+	"Elegí en qué idioma ver sus nombres: tocá y mirá el póster.": "Pick the language for their names: tap and watch the poster.",
 	"obligatorio": "required",
 	"tu apodo": "your nickname",
 	"Seguir": "Continue",
