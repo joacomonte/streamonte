@@ -1,7 +1,12 @@
 # CI de pruebas (F0, NFR-17). Las pruebas de red (#[ignore = "... network"]) NO corren acá:
 # se corren en la sesión real del usuario (lección 7).
 name: ci
-on: [push, pull_request]
+# Solo branches (y PRs): un tag apunta a un commit que ya pasó por su branch, y repetirlo dejaba el job de macOS
+# esperando máquina hasta cancelarse (v2.1.6, 2026-11-23). El build del tag lo hace release.yml.
+on:
+  push:
+    branches: ['**']
+  pull_request:
 jobs:
   core:
     strategy:

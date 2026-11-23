@@ -12,6 +12,7 @@
 	import Search from './Search.svelte';
 	import Segmented from './Segmented.svelte';
 	import Since from './Since.svelte';
+	import Votes from './Votes.svelte';
 	import type { CatalogStore } from './store.ts';
 
 	interface Props {
@@ -61,9 +62,11 @@
 	/** Sin key de TMDB: tendencias sin filtros. */
 	const trendingOnly = $derived(!st.filtered && !searching);
 	const genres = $derived(st.genreList[st.f.kind] ?? []);
-	/** Resumen de lo aplicado, debajo de los chips (ni el idioma ni las fechas, que ya muestra el selector de años). */
-	const summary = $derived([st.f.votes ? votesLabel(st.f.votes) : '', genres.filter((g) => st.f.genres.includes(g.id)).map((g) => g.name).join(', ')].filter(Boolean));
+	/** Resumen de lo aplicado junto a Filtros: solo géneros (los votos ya los muestra su slider, y las fechas la cinta). */
+	const summary = $derived([genres.filter((g) => st.f.genres.includes(g.id)).map((g) => g.name).join(', ')].filter(Boolean));
 	const changed = $derived(changedCount(st.f));
+	/** Orden en celu angosto. */
+	const SHORT: Record<string, string> = { rating: 'Puntaje', popular: 'Populares' };
 	/** Con filtros a la vista (no buscando ni sin key): al scrollear se compactan en una línea (2026-11-23, variante 1A). */
 	const compactable = $derived(!searching && !trendingOnly);
 	/** Ya se scrolleó más allá de los filtros: se ve la barra de una línea. */
@@ -78,6 +81,7 @@
 			t(KINDS.find((k) => k.v === st.f.kind)?.label ?? ''),
 			`${ago(st.f.from)} – ${st.f.to ? ago(st.f.to) : t('hoy')}`,
 			t(SORTS.find((s) => s.v === st.f.sort)?.label ?? ''),
+			st.f.votes ? votesLabel(st.f.votes) : '',
 			...summary
 		].filter(Boolean)
 	);
@@ -184,7 +188,20 @@
 				{@render header?.()}
 				<Search {store} onclear={clear} {onquery} onpick={pick} />
 				{#if !searching}
-					<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} onpick={(v) => ((popped = v), setF({ kind: v }))} />
+					<!-- Tipo y orden en una sola cápsula (2026-11-23, variante 1C); en celu angosto el orden inactivo queda en ícono. -->
+					<div class="ks">
+						<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} flush onpick={(v) => ((popped = v), setF({ kind: v }))} />
+						{#if !trendingOnly}
+							<span class="ks-div" aria-hidden="true"></span>
+							<div class="sort" role="radiogroup" aria-label={t('Orden')}>
+								{#each SORTS as s (s.v)}
+									<button id="sort-{s.v}" type="button" role="radio" class="marquee" aria-checked={st.f.sort === s.v} aria-label={t(s.label)} onclick={() => st.f.sort !== s.v && setF({ sort: s.v })}>
+										<Icon name={s.icon} size={15} /><span class="s-long">{t(s.label)}</span><span class="s-short">{t(SHORT[s.v])}</span>
+									</button>
+								{/each}
+							</div>
+						{/if}
+					</div>
 					{#if trendingOnly}
 						<span id="cat-trending" class="trending">{t('En tendencia ahora')}</span>
 						{#if onneedskey}
@@ -194,13 +211,7 @@
 						{/if}
 					{:else}
 						<Since {store} onset={setF} />
-						<div class="sort" role="radiogroup" aria-label={t('Orden')}>
-							{#each SORTS as s (s.v)}
-								<button id="sort-{s.v}" type="button" role="radio" class="marquee" aria-checked={st.f.sort === s.v} onclick={() => st.f.sort !== s.v && setF({ sort: s.v })}>
-									<Icon name={s.icon} size={14} />{t(s.label)}
-								</button>
-							{/each}
-						</div>
+						<Votes {store} onset={setF} />
 					{/if}
 				{/if}
 			</div>
@@ -272,25 +283,32 @@
 	.intro .filters { animation-delay: 300ms; }
 	@keyframes rise { from { opacity: 0; transform: translateY(24px); } }
 
-	/* Orden: switch-píldora compacto (distinto al seg). Un pulgar-marquesina se desliza entre las dos: telón y foquitos. */
+	/* Cápsula tipo | orden: un solo fondo, el tipo a la izquierda con su pulgar y el orden a la derecha tras una rayita. */
+	.ks { display: flex; align-items: stretch; gap: 2px; margin-top: 12px; padding: 4px; border-radius: var(--r-pill); background: var(--surface-2); }
+	.ks :global(.seg) { flex: 1.15 1 0; min-width: 0; max-width: none; margin: 0; padding: 0; background: none; border-radius: var(--r-pill); }
+	.ks :global(.seg-thumb) { top: 0; bottom: 0; left: 0; width: calc(100% / var(--n)); border-radius: var(--r-pill); }
+	.ks :global(.seg button) { min-height: 42px; border-radius: var(--r-pill); }
+	.ks-div { flex: none; width: 1px; margin: 10px 4px; background: var(--border-strong, var(--border)); }
+	@media (min-width: 640px) { .ks { max-width: 620px; } }
+	/* Orden: un pulgar-marquesina se desliza entre las dos: telón y foquitos. */
 	.sort {
 		position: relative;
-		display: inline-grid;
+		display: grid;
+		flex: 1 1 0;
+		min-width: 0;
 		grid-template-columns: 1fr 1fr;
-		margin-top: 10px;
-		border: 1px solid var(--border);
 		border-radius: var(--r-pill);
-		background: color-mix(in srgb, var(--text) 5%, transparent);
 	}
+	.s-short { display: none; }
 	/* Píldora que se estira al viajar (como una gota) y toma el color de la opción: dorado para puntaje, fuego para populares. */
 	.sort::before {
 		--c: var(--yellow);
 		content: '';
 		position: absolute;
-		top: 4px;
-		bottom: 4px;
-		left: 4px;
-		width: calc(50% - 4px);
+		top: 0;
+		bottom: 0;
+		left: 0;
+		width: 50%;
 		border-radius: inherit;
 		pointer-events: none;
 		background: linear-gradient(135deg, color-mix(in srgb, var(--c) 30%, var(--surface-3)), color-mix(in srgb, var(--c) 12%, var(--surface-2)));
@@ -307,12 +325,12 @@
 		align-items: center;
 		justify-content: center;
 		gap: 5px;
-		min-height: 44px;
-		padding: 0 14px;
+		min-height: 42px;
+		padding: 0 12px;
 		border: 0;
 		border-radius: var(--r-pill);
 		background: none;
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 600;
 		color: var(--muted);
 		white-space: nowrap;
@@ -322,6 +340,25 @@
 	.marquee :global(svg) { transition: color 0.2s var(--ease); }
 	.marquee[aria-checked='true'] :global(svg) { color: var(--yellow); animation: spin-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
 	#sort-popular[aria-checked='true'] :global(svg) { color: var(--red); animation-name: flare; }
+	/* Celu angosto: el tipo sin íconos, y el orden activo con nombre corto mientras el otro queda en ícono. */
+	@media (max-width: 479px) {
+		.ks :global(.seg .seg-in svg) { display: none; }
+		.ks :global(.seg button) { font-size: 13.5px; }
+		.sort { display: flex; flex: 0 0 auto; }
+		.sort::before { display: none; }
+		.marquee { flex: 0 0 42px; padding: 0; }
+		.marquee[aria-checked='true'] {
+			--c: var(--yellow);
+			flex: 0 0 auto;
+			padding: 0 12px 0 10px;
+			background: linear-gradient(135deg, color-mix(in srgb, var(--c) 30%, var(--surface-3)), color-mix(in srgb, var(--c) 12%, var(--surface-2)));
+			box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 28%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--c) var(--tint-3), transparent);
+		}
+		#sort-popular[aria-checked='true'] { --c: var(--red); }
+		.s-long { display: none; }
+		.marquee[aria-checked='true'] .s-short { display: inline; animation: rise-in 0.35s var(--out); }
+	}
+	@keyframes rise-in { from { opacity: 0; transform: translateX(-4px); } }
 	/* Copias -b: cambiar el nombre de la animación al deslizar la reinicia. El estirón es sobre `scale`, aparte del `transform` que la desliza. */
 	@property --c { syntax: '<color>'; inherits: false; initial-value: transparent; }
 	@keyframes goo { 35% { scale: 1.35 0.86; } 65% { scale: 0.94 1.05; } }

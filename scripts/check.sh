@@ -12,13 +12,26 @@ export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH" # no
 CLIPPY_TARGET="target/clippy"
 [ "$1" = "full" ] && CLIPPY_TARGETS="--all-targets" || CLIPPY_TARGETS="--lib --bins --tests"
 
+# Rust solo si cambió algo que lo afecta (2026-11-23): sin cambios, un cambio de UI no recompila ni corre los tests
+# del núcleo. Cuenta lo sin commitear (incluidos archivos nuevos) y los commits que todavía no se pushearon.
+# Forzar: RUST=1 sh scripts/check.sh
+RUST_PATHS="crates src-tauri Cargo.toml Cargo.lock packages/golden"
+if [ -z "$RUST" ]; then
+  RUST=0
+  [ -n "$(git status --porcelain -- $RUST_PATHS)" ] && RUST=1
+  [ "$RUST" = 0 ] && ! git rev-parse -q --verify '@{u}' >/dev/null && RUST=1 # sin upstream no se sabe qué falta pushear
+  [ "$RUST" = 0 ] && [ -n "$(git diff --name-only '@{u}' HEAD -- $RUST_PATHS)" ] && RUST=1
+fi
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 # Cada chequeo en segundo plano escribe su salida aparte; al final se muestra solo la de los que fallaron.
 run() { name=$1; shift; ( "$@" >"$tmp/$name.log" 2>&1 || touch "$tmp/$name.fail" ) & }
 
-run fmt cargo fmt --all --check
-run clippy env CARGO_TARGET_DIR="$CLIPPY_TARGET" cargo clippy --workspace $CLIPPY_TARGETS -q -- -D warnings
+if [ "$RUST" = 1 ]; then
+  run fmt cargo fmt --all --check
+  run clippy env CARGO_TARGET_DIR="$CLIPPY_TARGET" cargo clippy --workspace $CLIPPY_TARGETS -q -- -D warnings
+fi
 # oxlint (ui/.oxlintrc.json: globales del navegador, no-undef) y tsc con checkJs estricto (svelte-check + ui/tsconfig.js.json).
 run js sh -c 'cd ui && corepack pnpm -s lint >/dev/null && corepack pnpm -s check >/dev/null'
 # packages/ui (código compartido web + desktop): tsc estricto con el typescript de ui/node_modules.
@@ -29,7 +42,7 @@ if [ "$1" = "full" ]; then
   # Web (monorepo, 2026-11-22): tipos y tests, en paralelo con el resto.
   run web sh -c 'cd web && corepack pnpm -s check >/dev/null && corepack pnpm -s test'
   # --lib --tests: sin compilar los ejemplos (los compila clippy de arriba).
-  cargo nextest run -p streamonte-core --lib --tests --no-fail-fast --status-level fail --final-status-level fail || touch "$tmp/nextest.fail"
+  [ "$RUST" = 1 ] && { cargo nextest run -p streamonte-core --lib --tests --no-fail-fast --status-level fail --final-status-level fail || touch "$tmp/nextest.fail"; }
 fi
 wait
 
@@ -44,4 +57,4 @@ done
 # Poda de target/ (24 h y tope de tamaño) en segundo plano.
 (nohup sh scripts/trim-target.sh >/dev/null 2>&1 &)
 [ "$failed" = 0 ] || exit 1
-echo "check ok${1:+ ($1)}"
+[ "$RUST" = 1 ] && echo "check ok${1:+ ($1)}" || echo "check ok${1:+ ($1)} (Rust sin cambios: salteado; forzar con RUST=1)"

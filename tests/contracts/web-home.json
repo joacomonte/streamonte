@@ -43,7 +43,7 @@
    "sel": "#open-filters"
   },
   {
-   "sel": "#filters-summary",
+   "sel": "#votes-value",
    "text": "votos"
   },
   {

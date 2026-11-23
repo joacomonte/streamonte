@@ -1096,5 +1096,11 @@ const EN: Record<string, string> = {
 	"y {n} más": "and {n} more",
 	"ver menos": "show less",
 	"Cerrar filtros": "Close filters",
+	"Votos": "Votes",
+	"De nicho": "Niche",
+	"Conocidas": "Well known",
+	"Muy populares": "Very popular",
+	"Puntaje": "Rating",
+	"Populares": "Popular",
 };
 export default EN;
