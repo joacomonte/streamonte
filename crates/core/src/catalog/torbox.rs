@@ -37,8 +37,13 @@ pub fn set_shared(on: bool) {
 pub fn set_code(code: &str) -> Result<()> {
     crate::secrets::set_secret(CODE_ACCOUNT, code)
 }
-/// Hashes por pedido (la URL tiene que quedar corta).
-const CHUNK: usize = 80;
+/// Hashes por pedido. Con `list_files=true` cada entrada trae la lista de archivos: 80 hashes de packs pasan
+/// el tope de 5 MB de [`super::http::MAX_BODY`] (y los 4,5 MB de respuesta de una función de Vercel, que
+/// devuelve 413): el pedido fallaba entero y no aparecía ninguna opción en TorBox (2026-11-22).
+const CHUNK: usize = 30;
+/// Plazo mínimo de cada pedido de `checkcached`: con la lista de archivos TorBox tarda más que los 10 s
+/// de `catalog.timeout_ms` (la web le da 20 s).
+const MIN_CHECK_TIMEOUT: Duration = Duration::from_secs(20);
 /// Menos que esto es una muestra, un tráiler o un extra: no cuenta como el video del torrent.
 const MIN_VIDEO: u64 = 100 * 1024 * 1024;
 
@@ -168,8 +173,9 @@ pub struct CachedVideo {
 /// muestra nada); un hash que falta = no está. Error: solo el código de la web rechazado.
 pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Result<Option<Cached>> {
     let Some(api) = api() else { return Ok(None) };
+    let timeout = timeout.max(MIN_CHECK_TIMEOUT);
     let mut out = Cached::default();
-    for chunk in hashes.chunks(CHUNK) {
+    for (n, chunk) in hashes.chunks(CHUNK).enumerate() {
         let list = chunk
             .iter()
             .map(|h| h.to_hex())
@@ -179,7 +185,13 @@ pub async fn cached(http: &Http, hashes: &[InfoHash], timeout: Duration) -> Resu
         let resp: CheckCached = match api.get(http, &path, timeout).await? {
             Ok(r) => r,
             Err(e) => {
-                tracing::warn!("TorBox: {}", e.user_text());
+                tracing::warn!(
+                    chunk = n,
+                    hashes = chunk.len(),
+                    shared = api.own_key.is_none(),
+                    "TorBox checkcached: {}",
+                    e.user_text()
+                );
                 return Ok(None);
             }
         };
