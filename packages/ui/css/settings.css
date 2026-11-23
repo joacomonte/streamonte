@@ -1,0 +1,119 @@
+/* Ajustes (web `routes/ajustes` y desktop `components/Settings.svelte`): secciones con título chico y una lista
+   agrupada de filas (nombre a la izquierda, control a la derecha). Estados como chips chicos. */
+.st { display: flex; flex-direction: column; gap: 28px; }
+.st-sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.st-h { margin: 0 0 0 14px; font-size: var(--fs-sm); font-weight: 650; color: var(--muted); letter-spacing: 0.01em; }
+.st-list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-radius: var(--r-card); background: var(--surface); }
+.sheet .st-list { background: var(--bg); }
+.st-list > * + * { border-top: 1px solid var(--border); }
+.st-foot { margin: 0 0 0 14px; font-size: var(--fs-xs); color: var(--muted); }
+
+.st-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; }
+.st-row[hidden] { display: none; }
+.st-lbl { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.st-name { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 600; color: var(--text); }
+.st-sub { font-size: 12.5px; line-height: 1.35; color: var(--muted); }
+.st-sub:empty { display: none; }
+/* Fila con algo debajo (campo de key, guía): el bloque de abajo ocupa todo el ancho. */
+.st-block { display: flex; flex-direction: column; gap: 8px; padding: 0 14px 12px; }
+.st-block[hidden] { display: none; }
+.st-inline { display: flex; align-items: center; gap: 8px; }
+.st-inline > input { flex: 1; min-width: 0; }
+
+.st-input {
+	height: 38px;
+	padding: 0 12px;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-md);
+	background: var(--surface);
+	color: var(--text);
+	font-size: 14px;
+}
+.sheet .st-input { background: var(--surface); }
+.st-input::placeholder { color: var(--dim); }
+.st-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* Botón chico de fila: neutro; .go = acción principal. */
+.st-btn {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	height: 34px;
+	padding: 0 14px;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-pill);
+	background: var(--surface);
+	color: var(--text);
+	font-size: 13px;
+	font-weight: 600;
+	white-space: nowrap;
+	transition: background 0.15s var(--ease), border-color 0.15s var(--ease), opacity 0.15s var(--ease);
+}
+.st-btn:hover:not(:disabled) { background: var(--surface-2); }
+.st-btn:disabled { opacity: 0.5; cursor: default; }
+.st-btn.go { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.st-btn.go:hover:not(:disabled) { background: var(--accent-hover); }
+.st-btn:focus-visible, .st-link:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+/* Texto-botón (Cambiar, Borrar, Conseguir…). */
+.st-link {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 32px;
+	padding: 0 2px;
+	border: 0;
+	background: none;
+	color: var(--accent-fg);
+	font-size: 13px;
+	font-weight: 600;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.st-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.st-link.danger { color: var(--red); }
+
+/* Chip de estado: ✔ guardado (verde) / falta (neutro). */
+.st-chip {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 22px;
+	padding: 0 8px;
+	border-radius: var(--r-pill);
+	background: var(--surface-3);
+	color: var(--muted);
+	font-size: 11.5px;
+	font-weight: 650;
+	white-space: nowrap;
+}
+.st-chip.ok { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+.st-chip[hidden] { display: none; }
+
+/* Interruptor a la derecha de la fila (mismo dibujo que .switch). */
+.st-toggle { appearance: none; flex: none; position: relative; width: 40px; height: 24px; margin: 0; border-radius: var(--r-pill); background: var(--track); cursor: pointer; transition: background 0.2s var(--out); }
+.st-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.25); transition: transform 0.22s var(--out); }
+.st-toggle:checked { background: var(--accent); }
+.st-toggle:checked::after { transform: translateX(16px); }
+.st-toggle:disabled { opacity: 0.45; cursor: default; }
+.st-toggle:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+label.st-row { cursor: pointer; }
+label.st-row:has(.st-toggle:disabled) { cursor: default; }
+label.st-row:has(.st-toggle:disabled) .st-lbl { opacity: 0.55; }
+
+/* Fila desplegable (<details class="st-more">): guía, atajos, privacidad. */
+.st-more > summary { list-style: none; cursor: pointer; }
+.st-more > summary::-webkit-details-marker { display: none; }
+.st-more > summary .st-chev { flex: none; color: var(--muted); transition: transform 0.2s var(--out); }
+.st-more[open] > summary .st-chev { transform: rotate(180deg); }
+.st-more .st-block { font-size: 13px; line-height: 1.5; color: var(--muted); }
+.st-msg { margin: 0; font-size: 12.5px; color: var(--muted); }
+.st-msg:empty { display: none; }
+.st-msg.bad { color: var(--red); }
+.st-msg.ok { color: var(--green); }
+
+@media (prefers-reduced-motion: reduce) { .st-toggle, .st-toggle::after, .st-more > summary .st-chev, .st-btn { transition: none; } }

@@ -7,6 +7,7 @@ import '../../packages/ui/css/components.css';
 import '../styles.css';
 import '../catalog.css';
 import '../../packages/ui/css/options.css';
+import '../../packages/ui/css/settings.css';
 
 // El mock (solo sin Tauri) tiene que estar antes que app.js; los import estáticos se evalúan primero, por eso son dinámicos.
 if (!('__TAURI__' in window)) await import('./mock-tauri');

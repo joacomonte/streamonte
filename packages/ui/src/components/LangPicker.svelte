@@ -1,93 +1,71 @@
 <script lang="ts">
-	// Los idiomas que elige el usuario (app y títulos), los dos juntos en Ajustes (el tutorial usa TourLang).
+	// Idiomas en Ajustes, con la estética de la bienvenida (TourLang) en chico: la app con banderas y los títulos con
+	// el segmentado; debajo de "Títulos", el ejemplo real (La Odisea / The Odyssey). Filas de `.st-list` (css/settings.css).
 	// Qué pasa al elegir lo decide cada app (`onpick`, también si es el idioma ya elegido): la web aplica al toque, el desktop recarga la ventana.
 	import { t } from '../i18n/runtime.ts';
-	import type { IconName } from './icons.ts';
-	import Icon from './Icon.svelte';
-	import type { LangCode, LangOptions } from './tour-state.ts';
-
-	/** Cada idioma con su nombre en su propio idioma y su bandera. */
-	const LANGS = [['es', 'Español', '🇪🇸'], ['en', 'English', '🇺🇸']] as const;
+	import LangFlag from './LangFlag.svelte';
+	import LangSwitch from './LangSwitch.svelte';
+	import { LANGS, SAMPLE_TITLE } from './lang-data.ts';
+	import type { LangOptions } from './tour-state.ts';
 
 	interface Props extends LangOptions {
 		id: string;
 	}
-	let { id, app, titles, onpick, flags = false, appIcon = 'phone' }: Props = $props();
+	let { id, app, titles, onpick }: Props = $props();
 </script>
 
-{#snippet seg(key: 'app' | 'titles', label: string, icon: IconName, value: LangCode)}
-	<div class="row">
-		<span class="lbl" id="{id}-{key}-lbl"><Icon name={icon} size={16} />{label}</span>
-		<div class="seg" role="radiogroup" aria-labelledby="{id}-{key}-lbl">
-			{#each LANGS as [v, l, f] (v)}
-				<button id="{id}-{key}-{v}" type="button" role="radio" aria-checked={value === v} onclick={() => onpick(key, v)}>
-					<span class="code" class:flag={flags} aria-hidden={flags}>{flags ? f : v.toUpperCase()}</span>
-					<span class="name">{l}</span>
-					<span class="tick" aria-hidden="true"><Icon name="check" size={13} /></span>
+<div class="st-list lp">
+	<div class="st-row">
+		<span class="st-lbl"><span class="st-name" id="{id}-app-lbl">{t('App')}</span></span>
+		<div class="flags" role="radiogroup" aria-labelledby="{id}-app-lbl">
+			{#each LANGS as [v, name] (v)}
+				<button id="{id}-app-{v}" type="button" role="radio" aria-checked={app === v} onclick={() => onpick('app', v)}>
+					<span class="flag"><LangFlag lang={v} /></span>{name}
 				</button>
 			{/each}
 		</div>
 	</div>
-{/snippet}
-
-<div class="lp">
-	{@render seg('app', t('Idioma de la app'), appIcon, app)}
-	{@render seg('titles', t('Títulos de pelis, series y capítulos'), 'film', titles)}
+	<div class="st-row">
+		<span class="st-lbl">
+			<span class="st-name">{t('Títulos')}</span>
+			<span class="st-sub" aria-live="polite">{SAMPLE_TITLE[titles]}</span>
+		</span>
+		<LangSwitch id="{id}-titles" value={titles} label={t('Títulos')} small onpick={(v) => onpick('titles', v)} />
+	</div>
 </div>
 
 <style>
-	.lp { display: flex; flex-direction: column; gap: 18px; }
-	.row { display: flex; flex-direction: column; gap: 8px; }
-	.lbl { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 650; color: var(--muted); }
-	/* Dos tarjetas grandes: la elegida se llena de color, con su código en un disco y un tilde que salta. */
-	.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-	.seg button {
-		position: relative;
-		display: flex;
-		flex-direction: column;
+	.lp .st-row { flex-wrap: wrap; }
+	/* Dos chips del mismo ancho que el segmentado de abajo; el elegido toma el borde y el tinte del acento. */
+	.flags { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 196px; }
+	.flags button {
+		display: inline-flex;
 		align-items: center;
-		gap: 6px;
-		min-height: 104px;
-		padding: 14px 8px 12px;
-		border: 1.5px solid var(--border-strong);
-		border-radius: var(--r-lg);
-		background: var(--surface);
+		justify-content: center;
+		gap: 7px;
+		height: 38px;
+		padding: 0 8px;
+		border: 1.5px solid var(--border);
+		border-radius: var(--r-pill);
+		background: none;
 		color: var(--muted);
-		transition: background 0.25s var(--ease), border-color 0.25s var(--ease), color 0.25s var(--ease), transform 0.15s var(--out);
+		font-size: 13.5px;
+		font-weight: 650;
+		transition: border-color 0.2s var(--ease), background 0.2s var(--ease), color 0.2s var(--ease);
 	}
-	.code {
-		display: grid;
-		place-items: center;
-		width: 48px;
-		height: 48px;
+	.flag {
+		flex: none;
+		display: block;
+		width: 20px;
+		height: 20px;
 		border-radius: 50%;
-		background: var(--surface-3);
-		color: var(--text);
-		font-size: 17px;
-		font-weight: 800;
-		letter-spacing: 0.02em;
-		transition: background 0.25s var(--ease), color 0.25s var(--ease), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+		overflow: hidden;
+		box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--text) 10%, transparent);
+		transition: transform 0.3s var(--out);
 	}
-	.code.flag { font-size: 26px; font-weight: 400; line-height: 1; }
-	.name { font-size: 15.5px; font-weight: 700; }
-	.tick {
-		position: absolute;
-		top: 8px;
-		right: 8px;
-		display: grid;
-		place-items: center;
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		background: var(--accent-text);
-		color: var(--accent);
-		opacity: 0;
-		transform: scale(0.4);
-		transition: opacity 0.2s var(--ease), transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-	}
-	.seg button[aria-checked='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) var(--tint-3), transparent); }
-	.seg button[aria-checked='true'] .code { background: var(--accent-text); color: var(--accent); transform: scale(1.08); }
-	.seg button[aria-checked='true'] .tick { opacity: 1; transform: none; }
-	.seg button:active { transform: scale(0.97); }
-	@media (prefers-reduced-motion: reduce) { .seg button, .code, .tick { transition: none; } }
+	.flags button:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+	.flags button[aria-checked='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--text); }
+	.flags button[aria-checked='true'] .flag { transform: scale(1.1); }
+	.flags button:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+	@media (prefers-reduced-motion: reduce) { .flags button, .flag { transition: none; } }
 </style>

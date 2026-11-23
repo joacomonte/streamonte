@@ -172,94 +172,17 @@ button.danger { color: var(--red); }
 
 /* Ajustes */
 .sheet h4 { margin: 14px 0 6px; font-size: 13px; }
-/* Ajustes (2026-11-17): la hoja compartida (`Sheet`) pone el encabezado con ✕ y el cuerpo que scrollea; el pie con Cerrar queda fijo.
-   Las keys configuradas bajan a "Conectado". */
-.set-foot { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--border); background: var(--surface); }
-.set-foot .hint { flex: 1; margin: 0; }
-.set-card { display: grid; gap: 12px; margin: 0 0 12px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); }
-.sheet .set-card h4 { margin: 0; font-size: 14px; }
-.set-card .hint { margin: 0; line-height: 1.45; }
-.set-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.set-line .hint { flex: 1 1 260px; }
-/* Una sección que solo tiene keys se oculta cuando todas pasaron a "Conectado". */
-.set-card.keys-only:not(:has(.key-row)), .set-connected:not(:has(.key-row)) { display: none; }
-.key-row { display: grid; gap: 8px; }
-.key-head { display: flex; align-items: center; gap: 8px; }
-.key-head label { font-weight: 700; font-size: 13.5px; }
-.key-state { font-size: 12px; color: var(--muted); }
-.key-state.ok { color: var(--green); font-weight: 600; }
-.key-edit { display: grid; gap: 8px; }
-.key-edit .link { justify-self: start; font-size: 12px; }
+/* Ajustes: filas en packages/ui/css/settings.css; acá solo el pie fijo con Cerrar. */
+.set-foot { display: flex; justify-content: flex-end; padding: 10px 18px; border-top: 1px solid var(--border); background: var(--surface); }
+/* Campo + botón en una línea (diálogo de fuentes de torrents, catalog.js). */
 .key-line { display: flex; gap: 8px; }
-/* TorBox de Streamonte (2026-11-21): según el modo se ocultan el campo del código o la fila de la key propia. */
-.key-line[hidden], .key-row[hidden] { display: none; }
 .key-line input { flex: 1; min-width: 0; height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
 .key-line input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
-.key-change { display: none; margin-left: auto; height: 28px; padding: 0 12px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; }
-.key-done { display: none; margin: 0; }
-/* Configurada: una línea compacta en "Conectado"; "Cambiar" abre el campo. */
-.set-connected { gap: 4px; background: none; border-style: dashed; }
-.set-connected .key-row { padding: 6px 0; }
-.set-connected .key-row + .key-row { border-top: 1px solid var(--border); }
-.set-connected .key-change { display: inline-flex; align-items: center; }
-.set-connected .key-row:not(.editing) .key-edit { display: none; }
-.set-connected .key-head label { font-weight: 600; color: var(--muted); }
-/* Recién guardada: tilde que se dibuja y mensaje (antes de bajar a "Conectado"). */
-.key-row.saved .key-edit { display: none; }
-.key-row.saved .key-done { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--text); font-size: 13px; font-weight: 600; animation: set-pop .35s var(--out); }
-.key-done svg { flex: none; color: var(--green); }
-.key-done svg circle { stroke-dasharray: 64; stroke-dashoffset: 64; animation: set-draw .45s var(--out) forwards; }
-.key-done svg path { stroke-dasharray: 16; stroke-dashoffset: 16; animation: set-draw .3s var(--out) .35s forwards; }
-@keyframes set-draw { to { stroke-dashoffset: 0; } }
-@keyframes set-pop { from { opacity: 0; transform: scale(.96); } }
-/* Interruptores de Red */
-/* Reproductor sin mpv usable (2026-11-17): aviso con el botón para instalarlo. */
-.set-mpv-missing { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--yellow) 12%, transparent); font-size: 12.5px; }
-.set-mpv-missing[hidden] { display: none; }
-.set-mpv-missing span { flex: 1; }
-.set-sub { margin: 6px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-/* Sonido del reproductor (2026-11-17): tres opciones lado a lado; la elegida, con borde de acento. */
-.set-eq { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-.set-eq-opt { position: relative; display: block; cursor: pointer; }
-.set-eq-opt input { position: absolute; opacity: 0; pointer-events: none; }
-.set-eq-opt span { display: grid; gap: 2px; height: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; transition: border-color .15s var(--ease), background .15s var(--ease); }
-.set-eq-opt b { font-size: 13.5px; }
-/* Curva de cada ecualizador (2026-11-17): graves a la izquierda, agudos a la derecha. */
-.set-eq-curve { width: 100%; height: 36px; margin-bottom: 6px; overflow: visible; }
-.set-eq-curve .grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 4; fill: none; }
-.set-eq-curve .line { stroke: var(--muted); stroke-width: 2.5; fill: none; stroke-linecap: round; transition: stroke .2s var(--ease); }
-.set-eq-opt input:checked + span .set-eq-curve .line { stroke: var(--accent-fg); }
-.set-eq:has(#set-eq-cine) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.set-eq-opt small { color: var(--muted); font-size: 12px; line-height: 1.35; }
-.set-eq-opt:hover span { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
-.set-eq-opt input:checked + span { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
-.set-eq-opt input:focus-visible + span { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-/* Reproductores: solo informan (cuál usar se pregunta en cada ▶). */
-.set-player-opt { cursor: default; }
-.set-player-opt:hover span { border-color: var(--border); }
-.set-player-ask { color: var(--muted); font-size: 12px; }
-/* Interruptores de Red: .switch compartido; acá el gap y el texto en dos líneas. */
-.set-switch { gap: 12px; }
-.set-switch span { display: grid; gap: 1px; }
-.set-switch b { font-size: 13.5px; }
-.set-switch small { font-size: 12px; color: var(--muted); line-height: 1.4; }
-@media (prefers-reduced-motion: reduce) { .key-row.saved .key-done, .key-done svg * { animation: none; stroke-dashoffset: 0; } }
-.net-guide summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
-.net-guide[open] summary { margin-bottom: 4px; color: var(--text); }
-/* Ajustes › Red: guía del router y verificación del puerto (2026-11-15). */
-.net-guide { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-.net-steps { margin: 6px 0 10px; padding-left: 18px; display: grid; gap: 6px; font-size: 12.5px; color: var(--text); }
-.net-steps code { font-family: var(--mono); font-size: 12px; }
-.net-check { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.net-check-result { font-size: 12.5px; color: var(--muted); }
-.net-check-result.ok { color: var(--green); }
-.net-check-result.bad { color: var(--red); }
 .calib-list { display: grid; gap: 6px; max-height: 180px; overflow: auto; font-size: 12.5px; }
 .calib-list li { display: grid; gap: 1px; }
 .calib-list b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .calib-list span { color: var(--muted); }
 button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; font-size: 12px; text-decoration: underline; }
-.kv.keys th { width: 90px; font-family: ui-monospace, monospace; }
 
 /* Tablas clave/valor (Ajustes) */
 .kv { width: 100%; border-collapse: collapse; font-size: 13px; }

@@ -14,10 +14,6 @@ export type LangOptions = {
 	app: LangCode;
 	titles: LangCode;
 	onpick: (key: 'app' | 'titles', value: LangCode) => void;
-	/** Bandera en vez del código en la tarjeta. */
-	flags?: boolean;
-	/** Ícono del grupo "idioma de la app". */
-	appIcon?: IconName;
 };
 
 /** Paso al que se puede ir: más allá del apodo sin tenerlo, se queda en el del apodo (`nickAt` < 0: no hay apodo). */
