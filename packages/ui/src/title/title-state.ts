@@ -20,7 +20,7 @@ const GENRE_EMOJI: Record<string, string> = {
 	accion: '💥', action: '💥', aventura: '🧭', adventure: '🧭', animacion: '🎨', animation: '🎨', comedia: '😂', comedy: '😂',
 	crimen: '🔪', crime: '🔪', documental: '🎥', documentary: '🎥', drama: '🎭', familia: '🏡', family: '🏡', fantasia: '🧙', fantasy: '🧙',
 	historia: '📜', history: '📜', terror: '👻', horror: '👻', musica: '🎵', music: '🎵', musical: '🎵', misterio: '🔍', mystery: '🔍',
-	romance: '💘', 'ciencia ficcion': '🚀', 'science fiction': '🚀', 'sci-fi': '🚀', suspense: '😱', thriller: '😱', belica: '⚔️', war: '⚔️',
+	romance: '💘', 'ciencia ficcion': '🚀', 'science fiction': '🚀', 'sci-fi': '🚀', suspense: '😱', suspenso: '😱', thriller: '😱', belica: '⚔️', war: '⚔️',
 	guerra: '⚔️', western: '🤠', 'pelicula de tv': '📺', 'tv movie': '📺', reality: '📸', noticias: '📰', news: '📰', talk: '🎙️',
 	telenovela: '💔', soap: '💔', kids: '🧸', infantil: '🧸', biografia: '👤', biography: '👤', deporte: '🏅', sport: '🏅'
 };
