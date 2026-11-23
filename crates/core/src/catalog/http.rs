@@ -149,6 +149,7 @@ impl Http {
         url: &str,
         auth: (&str, &str),
         fields: &[(&'static str, String)],
+        origin: Option<&str>,
         timeout: Duration,
     ) -> Result<T, FetchError> {
         let form = fields
@@ -157,11 +158,15 @@ impl Http {
                 f.text(*k, v.clone())
             });
         let send = async {
-            let resp = self
+            let mut req = self
                 .client
                 .post(url)
                 .header("Accept", "application/json")
-                .header(auth.0, secret_header(auth.1)?)
+                .header(auth.0, secret_header(auth.1)?);
+            if let Some(origin) = origin {
+                req = req.header("Origin", origin);
+            }
+            let resp = req
                 .multipart(form)
                 .send()
                 .await
@@ -174,14 +179,12 @@ impl Http {
             if bytes.len() > 1024 * 1024 {
                 return Err(FetchError::TooLarge);
             }
-            // TorBox contesta JSON también en los errores: se lee igual para ver su `detail`.
-            serde_json::from_slice(&bytes).map_err(|_| {
-                if status.is_success() {
-                    FetchError::NotJson
-                } else {
-                    FetchError::Status(status.as_u16())
-                }
-            })
+            // Un error (p. ej. el 403 de CSRF de la web, también en JSON) no se lee como respuesta: antes quedaba
+            // como respuesta vacía y el error salía sin detalle ("createtorrent sin id: ", 2026-11-23).
+            if !status.is_success() {
+                return Err(FetchError::Status(status.as_u16()));
+            }
+            serde_json::from_slice(&bytes).map_err(|_| FetchError::NotJson)
         };
         tokio::time::timeout(timeout, send)
             .await

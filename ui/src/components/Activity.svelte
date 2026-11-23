@@ -9,6 +9,10 @@
   import { activity, activityLog, live } from '../live.svelte.ts';
   import { AREA, busyText } from '../activity-feed.ts';
 
+  /** `detached`: ventana propia de Actividad (`?logs`, 2026-11-23): el panel ocupa toda la ventana, siempre abierto,
+   *  y el Detallado se actualiza solo cada 2 s. */
+  let { detached = false }: { detached?: boolean } = $props();
+
   type View = 'friendly' | 'detail';
   const RECENT_MS = 8000;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -17,7 +21,8 @@
     clear: '<path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13"/>',
     min: '<path d="M6 9l6 6 6-6"/>',
     download: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
-    refresh: '<path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5"/><path d="M20 4v4.5h-4.5"/>'
+    refresh: '<path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5"/><path d="M20 4v4.5h-4.5"/>',
+    detach: '<path d="M14 4h6v6"/><path d="M20 4l-8 8"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'
   };
   const svg = (paths: string, size = 14): string =>
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
@@ -35,6 +40,8 @@
   let pinned = $state(false);
   let newChip = $state(false);
   let groups = $state.raw<{ line: string; n: number }[]>([]);
+  /** "Limpiar" del Detallado: solo se muestran las líneas con fecha igual o posterior (el archivo no se toca). */
+  let detailSince = '';
   /** Reloj para "pasó hace poco": se adelanta con un timer al vencer los 8 s. */
   let now = $state(Date.now());
 
@@ -88,7 +95,10 @@
 
   /** Trae el log del núcleo; las líneas seguidas con el mismo mensaje se agrupan en una con ×N. */
   async function loadDetail(): Promise<void> {
-    const raw: string[] = await api.logsTail(2000).catch(() => []);
+    const all: string[] = await api.logsTail(2000).catch(() => []);
+    // Las líneas sin fecha (continuación de un mensaje largo) siguen a la anterior.
+    let keep = !detailSince;
+    const raw = all.filter((l) => { const at = /^\d{4}-\d\d-\d\dT\S+/.exec(l)?.[0]; if (at) keep = !detailSince || at >= detailSince; return keep; });
     const msg = (l: string): string => l.replace(/^\S+\s+/, ''); // sin la fecha: así se ven iguales las repetidas
     const out: { line: string; n: number }[] = [];
     for (const l of raw) {
@@ -127,6 +137,28 @@
     newChip = false;
     list?.focus();
   }
+  function clearDetail(): void {
+    detailSince = new Date().toISOString();
+    groups = [];
+    detail?.focus();
+  }
+  /** Ventana aparte con solo la Actividad (si ya está abierta, la trae al frente). */
+  async function detach(): Promise<void> {
+    try {
+      await api.openLogsWindow();
+      close(false);
+    } catch (e) {
+      activity.push({ area: 'general', level: 'error', text: (e as { message?: string } | null)?.message ?? String(e) });
+    }
+  }
+  if (detached) openPanel();
+  // En la ventana aparte el Detallado sigue en vivo (se lee el log cada 2 s, sin mover la vista si no está abajo).
+  $effect(() => {
+    if (!detached || view !== 'detail') return;
+    const timer = setInterval(() => { if (!detail || detail.scrollHeight - detail.scrollTop - detail.clientHeight < 12) void loadDetail(); }, 2000);
+    return () => clearInterval(timer);
+  });
+
   function onFilter(ev: Event): void {
     filter = (ev.currentTarget as HTMLSelectElement).value;
     if (view === 'friendly') void tick().then(() => stickToBottom(true));
@@ -136,11 +168,11 @@
   const pinTip = $derived(pinned ? tr('Fijada: tocá para que se cierre al tocar afuera') : tr('Fijar: que no se cierre al tocar afuera'));
 </script>
 
-<svelte:document onpointerdowncapture={(ev) => { if (activityLog.open && !pinned && !root.contains(ev.target as Node)) close(false); }} />
+<svelte:document onpointerdowncapture={(ev) => { if (!detached && activityLog.open && !pinned && !root.contains(ev.target as Node)) close(false); }} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div id="act" class="act" class:is-busy={!!busy} class:warn={!busy && last?.level === 'warn'} class:error={!busy && last?.level === 'error'}
-  data-state={panel} bind:this={root} onkeydown={(ev) => { if (ev.key === 'Escape' && activityLog.open) { ev.stopPropagation(); close(true); } }}>
+<div id="act" class="act" class:detached class:is-busy={!!busy} class:warn={!busy && last?.level === 'warn'} class:error={!busy && last?.level === 'error'}
+  data-state={panel} bind:this={root} onkeydown={(ev) => { if (ev.key === 'Escape' && activityLog.open && !detached) { ev.stopPropagation(); close(true); } }}>
   <button type="button" id="btn-activity" class="act-line" aria-expanded={activityLog.open} aria-controls="act-panel" bind:this={line}
     aria-label={tr('Actividad: {a}{b}. {c}', { a: text || tr('nada en curso'), b: unseen ? tr(', {unseen} nuevas', { unseen }) : '', c: activityLog.open ? tr('Cerrar') : tr('Ver detalle') })}
     data-tip={activityLog.open ? tr('Cerrar la actividad') : tr('Ver todo lo que pasa de fondo')}
@@ -164,9 +196,11 @@
       </select>
       <button type="button" id="act-refresh" class="act-b" hidden={view !== 'detail'} aria-label={tr('Actualizar el log detallado')} data-tip={tr('Actualizar el log detallado')} onclick={loadDetail}>{@html svg(ICON.refresh)}</button>
       <button type="button" id="act-export" class="act-b" aria-label={tr('Descargar logs (para debuguear)')} data-tip={tr('Descargar logs (para debuguear)')} onclick={exportLogs}>{@html svg(ICON.download)}</button>
-      <button type="button" id="act-pin" class="act-b" aria-pressed={pinned} aria-label={pinTip} data-tip={pinTip} onclick={() => (pinned = !pinned)}>{@html svg(ICON.pin)}</button>
+      <button type="button" id="act-detach" class="act-b" hidden={detached} aria-label={tr('Abrir en otra ventana')} data-tip={tr('Abrir en otra ventana')} onclick={detach}>{@html svg(ICON.detach)}</button>
+      <button type="button" id="act-pin" class="act-b" hidden={detached} aria-pressed={pinned} aria-label={pinTip} data-tip={pinTip} onclick={() => (pinned = !pinned)}>{@html svg(ICON.pin)}</button>
       <button type="button" id="act-clear" class="act-b" hidden={view !== 'friendly'} aria-label={tr('Vaciar la lista')} data-tip={tr('Vaciar la lista')} onclick={clear}>{@html svg(ICON.clear)}</button>
-      <button type="button" id="act-close" class="act-b" aria-label={tr('Cerrar')} data-tip={tr('Cerrar')} onclick={() => close(true)}>{@html svg(ICON.min)}</button>
+      <button type="button" id="act-clear-detail" class="act-b" hidden={view !== 'detail'} aria-label={tr('Limpiar la vista (el archivo de log no se borra)')} data-tip={tr('Limpiar la vista (el archivo de log no se borra)')} onclick={clearDetail}>{@html svg(ICON.clear)}</button>
+      <button type="button" id="act-close" class="act-b" hidden={detached} aria-label={tr('Cerrar')} data-tip={tr('Cerrar')} onclick={() => close(true)}>{@html svg(ICON.min)}</button>
     </div>
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <ol class="act-list" tabindex="0" aria-label={tr('Lo que está pasando, lo más nuevo abajo')} aria-live="off" hidden={view !== 'friendly'} bind:this={list}

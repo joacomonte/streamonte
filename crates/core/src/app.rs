@@ -925,8 +925,27 @@ impl AppCore {
             .catalog_timeout()
             .await
             .max(std::time::Duration::from_secs(20));
+        let started = std::time::Instant::now();
+        tracing::info!("pistas por TorBox ({hash}): empieza");
         // El encabezado del MKV (el primer MB, segundos; como la web); si no es MKV y hay link (key propia), mpv.
-        let (header, url, title) = self.catalog.torbox_header_tracks(hash, timeout).await?;
+        let (header, url, title) = self
+            .catalog
+            .torbox_header_tracks(hash, timeout)
+            .await
+            .inspect_err(|e| {
+                tracing::warn!(
+                    "pistas por TorBox ({hash}): falló en {:.1}s: {e}",
+                    started.elapsed().as_secs_f32()
+                )
+            })?;
+        tracing::info!(
+            "pistas por TorBox ({hash}): encabezado {} en {:.1}s",
+            header.as_ref().map_or("sin leer".to_string(), |t| format!(
+                "con {} pistas",
+                t.len()
+            )),
+            started.elapsed().as_secs_f32()
+        );
         let probe = match (header, url) {
             (Some(tracks), _) => mkv_probe(&tracks),
             (None, Some(url)) => {

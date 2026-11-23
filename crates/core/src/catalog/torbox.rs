@@ -26,6 +26,8 @@ pub const CODE: &str = "streamonte-code";
 const CODE_ACCOUNT: &str = "streamonte-web-code";
 const DIRECT: &str = "https://api.torbox.app/v1/api";
 const PROXY: &str = "https://streamonte-web.vercel.app/api/desktop/torbox";
+/// Origen de la web: SvelteKit rechaza (403, CSRF) un POST multipart sin `Origin` del mismo sitio (2026-11-23).
+const PROXY_ORIGIN: &str = "https://streamonte-web.vercel.app";
 /// "Usar TorBox de Streamonte" (`catalog.torbox_shared` de la config): lo pone la app al abrir y al cambiarlo.
 static SHARED: AtomicBool = AtomicBool::new(true);
 
@@ -115,7 +117,13 @@ impl Api {
     ) -> Call<T> {
         let url = format!("{}/{path}", self.base);
         let r = http
-            .post_multipart_auth(&url, (self.auth.0, &self.auth.1), fields, timeout)
+            .post_multipart_auth(
+                &url,
+                (self.auth.0, &self.auth.1),
+                fields,
+                self.own_key.is_none().then_some(PROXY_ORIGIN),
+                timeout,
+            )
             .await;
         self.check_code(r)
     }
@@ -430,6 +438,12 @@ pub async fn header_tracks(
 ) -> Result<(Option<Vec<super::mkv::Track>>, Option<String>)> {
     const HEADER_TIMEOUT: Duration = Duration::from_secs(25);
     let (api, id, file) = video_file(http, magnet, timeout).await?;
+    tracing::info!(
+        torrent_id = id,
+        file_id = file.id,
+        por_la_web = api.own_key.is_none(),
+        "pistas por TorBox: leyendo encabezado"
+    );
     if api.own_key.is_none() {
         let r: std::result::Result<ProxyTracks, _> = api
             .get(

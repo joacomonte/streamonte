@@ -275,7 +275,9 @@
 	.card::after {
 		content: '';
 		position: absolute;
-		inset: 0 0 auto;
+		top: 0;
+		left: 0;
+		width: 100%; /* no `inset` horizontal: con aspect-ratio WebKit lo achica (ver CardInfo.svelte) */
 		aspect-ratio: 2 / 3;
 		border-radius: var(--r-md);
 		background: linear-gradient(100deg, transparent 25%, rgb(255 255 255 / 0.22) 45%, rgb(190 225 255 / 0.16) 55%, transparent 75%);

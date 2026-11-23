@@ -34,6 +34,8 @@ pub struct UiError {
 
 impl From<CoreError> for UiError {
     fn from(e: CoreError) -> Self {
+        // Todo comando que falla queda en el log (antes solo lo veía la UI y el log no tenía rastro).
+        tracing::warn!("comando falló: {} · {e}", e.user_message());
         Self {
             message: e.user_message(),
             detail: e.to_string(),
@@ -189,6 +191,31 @@ pub async fn check_incoming(core: Core<'_>) -> CmdResult<streamonte_core::incomi
 pub async fn logs_tail(core: Core<'_>, max: usize) -> CmdResult<Vec<String>> {
     let core = core.inner().clone();
     blocking(move || Ok(core.logs_tail(max)?)).await
+}
+/// Ventana aparte con solo la Actividad (`index.html?logs`); si ya está abierta, la trae al frente. Async: crear
+/// una ventana desde un comando síncrono traba el hilo principal en Windows.
+#[tauri::command]
+pub async fn open_logs_window(app: tauri::AppHandle) -> CmdResult<()> {
+    use tauri::Manager;
+    if let Some(w) = app.get_webview_window("logs") {
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+        return Ok(());
+    }
+    tauri::WebviewWindowBuilder::new(
+        &app,
+        "logs",
+        tauri::WebviewUrl::App("index.html?logs".into()),
+    )
+    .title("Streamonte · Actividad")
+    .inner_size(1000.0, 640.0)
+    .min_inner_size(520.0, 320.0)
+    .build()
+    .map(|_| ())
+    .map_err(|e| UiError {
+        message: "No se pudo abrir la ventana de actividad.".into(),
+        detail: e.to_string(),
+    })
 }
 #[tauri::command]
 pub async fn export_logs(core: Core<'_>, friendly: String) -> CmdResult<String> {

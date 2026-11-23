@@ -24,7 +24,7 @@
 	import type { Outlook } from '../season.ts';
 	import type { Chart } from '../title/title-state.ts';
 	import type { CatalogItem } from '../types.ts';
-	import { cardSeasons, ratingTier } from './card-info.ts';
+	import { awardsText, cardSeasons, ratingTier } from './card-info.ts';
 
 	let { item }: { item: CatalogItem } = $props();
 	const api = getApi();
@@ -52,7 +52,7 @@
 				{#if d.genres.length}<span class="genres">{d.genres.slice(0, 3).join(' · ')}</span>{/if}
 				<!-- La duración solo en películas: en series depende del capítulo. -->
 				<span class="meta">{#if d.year}<span>{d.year}</span>{/if}{#if d.rating}<span class="star">★ {d.rating}</span>{/if}{#if d.kind === 'movie' && d.runtimeMin}<span class="dim">{d.runtimeMin} min</span>{/if}</span>
-				{#if d.awards}<span class="awards"><Icon name="award" size={13} />{d.awards}</span>{/if}
+				{#if d.awards}<span class="awards"><Icon name="award" size={13} />{awardsText(d.awards, t)}</span>{/if}
 				{#if tier}<span class="tier">{tier.emoji} {t(tier.name)}</span>{/if}
 				{#if item.kind === 'tv'}
 					<span class="seasons">
@@ -89,8 +89,9 @@
 
 <style>
 	/* Velo a sangre: mismo recuadro y radio que el póster (2:3), no el título de abajo. Solo se funde; nunca se mueve
-	 * por su cuenta (antes subía 6 px y no acompañaba el "apretar" del póster: quedaba una caja corrida). */
-	.info { position: absolute; top: 0; left: 0; right: 0; aspect-ratio: 2 / 3; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px 11px; border-radius: var(--r-md); pointer-events: none; color: #fff;
+	 * por su cuenta (antes subía 6 px y no acompañaba el "apretar" del póster: quedaba una caja corrida).
+	 * `width: 100%` y no `left: 0; right: 0`: con aspect-ratio, WebKit (desktop y Safari) achicaba el velo (2026-11-23). */
+	.info { position: absolute; top: 0; left: 0; width: 100%; aspect-ratio: 2 / 3; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px 11px; border-radius: var(--r-md); pointer-events: none; color: #fff;
 		background: linear-gradient(to top, rgb(6 8 12 / 0.94) 0%, rgb(6 8 12 / 0.8) 38%, rgb(6 8 12 / 0.4) 70%, rgb(6 8 12 / 0.22) 100%);
 		opacity: 0; transition: opacity 0.22s ease-out, transform 0.15s var(--ease); }
 	.body { display: flex; flex-direction: column; gap: 5px; transform: translateY(6px); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); }

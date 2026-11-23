@@ -42,6 +42,10 @@ pub fn run() {
             let WindowEvent::CloseRequested { api, .. } = event else {
                 return;
             };
+            // La ventana aparte de Actividad (`logs`) se cierra sola, sin cerrar la app.
+            if window.label() != "main" {
+                return;
+            }
             if CLOSING.load(Ordering::SeqCst) {
                 return;
             }
@@ -82,6 +86,7 @@ pub fn run() {
             commands::logs_tail,
             commands::check_incoming,
             commands::export_logs,
+            commands::open_logs_window,
             commands::config_get,
             commands::config_set_network,
             commands::config_set_torbox_shared,

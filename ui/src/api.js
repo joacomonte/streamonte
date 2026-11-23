@@ -217,6 +217,7 @@ export const api = {
   logsTail: (max = 2000) => invoke('logs_tail', { max }),
   /** Copia los logs (y la actividad visible) a Descargas y muestra la carpeta. Devuelve la ruta. @param {string} friendly @returns {Promise<string>} */
   exportLogs: (friendly) => invoke('export_logs', { friendly }),
+  openLogsWindow: () => invoke('open_logs_window'),
   /** @returns {Promise<void>} */
   openDownloadsFolder: () => invoke('open_downloads_folder'),
 
