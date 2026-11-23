@@ -1,7 +1,11 @@
 // Globales del webview Tauri (withGlobalTauri). Lo mínimo que usa la UI.
+type TauriDownloadEvent =
+  | { event: 'Started'; data: { contentLength?: number } }
+  | { event: 'Progress'; data: { chunkLength: number } }
+  | { event: 'Finished' };
 interface TauriUpdate {
   version: string;
-  downloadAndInstall(): Promise<void>;
+  downloadAndInstall(onEvent?: (e: TauriDownloadEvent) => void): Promise<void>;
 }
 interface TauriGlobal {
   core: { invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> };

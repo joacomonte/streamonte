@@ -11,6 +11,7 @@
 	import { setApi } from '$ui/context.ts';
 	import { webApi } from '#lib/webApi.ts';
 	import Icon from '$ui/components/Icon.svelte';
+	import Updating from '$ui/components/Updating.svelte';
 	import { track } from '#lib/track.ts';
 	import { langOptions } from '#lib/langs.ts';
 	import { saveNick } from '#lib/nick.ts';
@@ -51,6 +52,13 @@
 	};
 	// Se rearma al cambiar el idioma en su paso: el resto del tutorial ya sale en el elegido.
 	const welcome = $derived(welcomeOpen ? welcomeSteps() : null);
+
+	// Actualizar: la pantalla completa aparece al instante y recién después de pintarla se recarga (en celu la recarga tarda).
+	let reloading = $state(false);
+	const reloadNow = () => {
+		reloading = true;
+		requestAnimationFrame(() => requestAnimationFrame(() => location.reload()));
+	};
 
 	// Grilla ↔ ficha con View Transitions: el póster tocado vuela a su lugar en la ficha y, al volver, a su casilla.
 	// Sin soporte, navegación normal; sin el póster de destino (o con movimiento reducido), solo un fundido.
@@ -120,9 +128,11 @@
 {#if updated.current}
 	<div id="update-bar" class="update" role="status">
 		<span>{t('Hay una versión nueva')}</span>
-		<button id="update-now" type="button" class="update-btn" onclick={() => location.reload()}><Icon name="download" size={16} />{t('Actualizar')}</button>
+		<button id="update-now" type="button" class="update-btn" onclick={reloadNow}><Icon name="download" size={16} />{t('Actualizar')}</button>
 	</div>
 {/if}
+
+{#if reloading}<Updating detail={t('Cargando la versión nueva…')} />{/if}
 
 {#if welcome}
 	<Tour id="welcome" label={t('Bienvenida')} open steps={welcome} nick={data.nick} {onnick} langs={langOptions()} confetti onleave={() => (touring = false)} onclose={() => { markSeen('welcome'); welcomeOpen = touring = false; }} />

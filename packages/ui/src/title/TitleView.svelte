@@ -193,7 +193,7 @@
 								<p class="by">{t(d.kind === 'tv' ? 'Serie de' : 'Film de')} <button id={ids.person(dir)} type="button" class="by-link" title={t('Ver lo que dirigió')} onclick={() => onPerson(dir)}>{dir.name}</button></p>
 							{/if}
 							<p class="muted line">
-								<span>{heroLine}{#if genres.length}<span class="genres-txt">{` · ${genres.join(', ')}`}</span>{/if}</span>
+								<span>{heroLine}</span>
 								<!-- IMDb (con su puntaje) y tráiler como píldoras junto a los datos; sin IMDb, la estrella sola. -->
 								{#if d.imdb}
 									{@const imdb = d.imdb}
@@ -207,33 +207,36 @@
 								{/if}
 							</p>
 							{#if d.companies.length}<p class="companies">{d.companies.join(' · ')}</p>{/if}
-							<!-- Reparto como texto; con mouse, la cara de cada uno aparece en un globito. -->
-							{#if cast.length}
-								<p class="cast-txt">
-									{t('Con')}
-									{#each castShown as p, i (p.id)}{#if i}{i === castShown.length - 1 && castOpen ? ` ${t('y')} ` : ', '}{/if}<button id={ids.person(p)} type="button" class="who" title={p.note ? `${p.name} · ${p.note}` : t('Ver lo que actuó')} onclick={() => onPerson(p)}>{p.name}{#if p.photo}<img class="who-face" src={p.photo} alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer" onerror={hide} />{/if}</button>{/each}
-									{#if cast.length > MAX_ACTORS}
-										<button id={ids.cast} type="button" class="who-more" aria-expanded={castOpen} onclick={() => (castOpen = !castOpen)}>{castOpen ? t('ver menos') : t('y {n} más', { n: cast.length - MAX_ACTORS })}</button>
-									{/if}
-								</p>
-							{/if}
 						</div>
 					</div>
 				</div>
 
-				{#if d.providers.length}
-					<div class="inner acts">
-						{#if d.providers.length}
-						<!-- Dónde verla: logos apilados; al tocar se abre con los nombres. -->
-						<button id={ids.providers} type="button" class="providers" class:open={providersOpen} aria-expanded={providersOpen} aria-label={t('Dónde verla')} title={t('Para ver en Argentina')} onclick={() => (providersOpen = !providersOpen)}>
-							{#each provs.shown as p, i (p.name)}
-								<span id={ids.provider(i)} class="prov">
-									{#if p.logo}<img src={p.logo} alt="" width="28" height="28" referrerpolicy="no-referrer" onerror={hide} />{:else}<span class="prov-empty" aria-hidden="true">{p.name[0]}</span>{/if}
-									{#if providersOpen}<span class="prov-name">{p.name}</span>{/if}
+				<!-- Debajo del póster, en texto tenue con un ícono chico por dato (2026-11-23, variante C): géneros, reparto
+				     (con mouse, la cara de cada uno aparece en un globito) y dónde verla. -->
+				{#if genres.length || cast.length || d.providers.length}
+					<div class="inner meta">
+						{#if genres.length}<p class="meta-row"><Icon name="tag" size={14} /><span>{genres.join(', ')}</span></p>{/if}
+						{#if cast.length}
+							<p class="meta-row">
+								<Icon name="user" size={14} />
+								<span>
+									{#each castShown as p, i (p.id)}{#if i}{i === castShown.length - 1 && (castOpen || cast.length <= MAX_ACTORS) ? ` ${t('y')} ` : ', '}{/if}<button id={ids.person(p)} type="button" class="who" title={p.note ? `${p.name} · ${p.note}` : t('Ver lo que actuó')} onclick={() => onPerson(p)}>{p.name}{#if p.photo}<img class="who-face" src={p.photo} alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer" onerror={hide} />{/if}</button>{/each}
+									{#if cast.length > MAX_ACTORS}
+										<button id={ids.cast} type="button" class="who-more" aria-expanded={castOpen} onclick={() => (castOpen = !castOpen)}>{castOpen ? t('ver menos') : t('y {n} más', { n: cast.length - MAX_ACTORS })}</button>
+									{/if}
 								</span>
-							{/each}
-							{#if provs.more}<span class="prov-more">+{provs.more}</span>{/if}
-						</button>
+							</p>
+						{/if}
+						{#if d.providers.length}
+							<p class="meta-row" title={t('Para ver en Argentina')}>
+								<Icon name="tv" size={14} />
+								<span id={ids.providers} class="provs" aria-label={t('Dónde verla')}>
+									{#each provs.shown as p, i (p.name)}{#if i}{', '}{/if}<span id={ids.provider(i)} class="prov">{#if p.logo}<img src={p.logo} alt="" width="16" height="16" referrerpolicy="no-referrer" onerror={hide} />{/if}{p.name}</span>{/each}
+									{#if provs.more || providersOpen}
+										<button id="{ids.providers}-more" type="button" class="who-more" aria-expanded={providersOpen} onclick={() => (providersOpen = !providersOpen)}>{providersOpen ? t('ver menos') : `+${provs.more}`}</button>
+									{/if}
+								</span>
+							</p>
 						{/if}
 					</div>
 				{/if}
@@ -392,9 +395,12 @@
 	.by { margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
 	.by-link { padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-weight: 650; cursor: pointer; }
 	@media (hover: hover) { .by-link:hover { text-decoration: underline; } }
-	/* Géneros y reparto como texto sutil (2026-11-23, variante 2D). */
-	.genres-txt { color: var(--muted); }
-	.cast-txt { margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+	/* Debajo del póster: géneros, reparto y dónde verla, una línea por dato con un ícono chico (2026-11-23, variante C). */
+	.meta { display: grid; gap: 6px; padding-top: 14px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+	.meta-row { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; align-items: start; margin: 0; }
+	.meta-row > :global(svg) { margin-top: 3px; color: color-mix(in srgb, var(--muted) 70%, transparent); }
+	.prov { display: inline-flex; align-items: center; gap: 5px; vertical-align: top; }
+	.prov img { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; }
 	.who { position: relative; padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
 	.who-more { padding: 0; border: 0; background: none; color: var(--accent-fg, var(--accent)); font: inherit; font-weight: 600; cursor: pointer; }
 	/* La cara: solo con mouse (en táctil no hay globito). */
@@ -414,20 +420,6 @@
 	.imdb-seal { padding: 2px 4px; border-radius: 4px; background: #f5c518; color: #000; font-size: 10px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; }
 	@media (hover: hover) { .ext:hover { background: var(--surface-3, var(--border)); } }
 	/* Fila de plataformas. */
-	.acts { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding-top: 12px; }
-	.providers { display: flex; flex-wrap: wrap; align-items: center; gap: 0; min-height: 40px; padding: 4px; border: 0; border-radius: 22px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: background 0.2s var(--ease); }
-	.providers:has(.prov-more) { padding-right: 12px; }
-	.providers.on { background: var(--surface-3, var(--border)); }
-	.providers:not(.open) .prov + .prov { margin-left: -10px; }
-	.providers.open { gap: 6px 14px; padding: 6px 14px 6px 6px; border-radius: 20px; }
-	.prov { display: inline-flex; align-items: center; gap: 8px; }
-	.prov img, .prov-empty { width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface-2); object-fit: cover; }
-	.providers.open .prov img, .providers.open .prov-empty { border-radius: var(--r-sm, 8px); }
-	.prov-empty { display: grid; place-items: center; background: var(--border); font-size: 12px; font-weight: 700; }
-	.prov-name { font-size: 13.5px; font-weight: 600; }
-	.prov-more { margin-left: 8px; font-size: 13px; font-weight: 650; color: var(--muted); font-variant-numeric: tabular-nums; }
-	.providers:active { transform: scale(0.96); }
-	@media (hover: hover) { .providers:hover { background: var(--surface-3, var(--border)); } }
 	.networks { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 12px; }
 	.network { display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border-radius: var(--r-pill, 999px); border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border)); background: var(--surface-2); color: var(--accent-chip); font-size: 12.5px; font-weight: 600; }
 	/* Plegable: el cuerpo crece con grid-template-rows (0fr → 1fr). */
@@ -503,18 +495,17 @@
 	.ep-skel { height: 68px; border-radius: var(--r-sm, 8px); margin-top: 10px; }
 	/* Entrada: el fondo se enfoca desde un zoom y el texto sube en cascada. */
 	.hero::before { animation: backdrop-in 0.9s var(--out) backwards; will-change: transform; }
-	.name, .by, .line, .companies, .cast-txt, .acts, .body { animation: rise 0.7s var(--out) backwards; }
+	.name, .by, .line, .companies, .meta, .body { animation: rise 0.7s var(--out) backwards; }
 	.name { animation-delay: 0.12s; }
 	.by { animation-delay: 0.16s; }
 	.line { animation-delay: 0.2s; }
 	.companies { animation-delay: 0.26s; }
-	.acts { animation-delay: 0.28s; }
-	.cast-txt { animation-delay: 0.26s; }
+	.meta { animation-delay: 0.28s; }
 	.body { animation-delay: 0.36s; }
 	@keyframes backdrop-in { from { opacity: 0; transform: scale(1.18); } }
 	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 	@media (prefers-reduced-motion: reduce) {
-		.hero::before, .name, .by, .line, .companies, .cast-txt, .acts, .body { animation: none; }
-		.ext, .providers, .who-face, .about-body, .about-chev, .intro { transition: none; }
+		.hero::before, .name, .by, .line, .companies, .meta, .body { animation: none; }
+		.ext, .who-face, .about-body, .about-chev, .intro { transition: none; }
 	}
 </style>

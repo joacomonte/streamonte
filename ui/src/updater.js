@@ -4,6 +4,7 @@
 // "Actualizar y reiniciar". Nada se instala sin que el usuario lo pida.
 import { el } from './dom.js';
 import { t } from './i18n.js';
+import { showUpdating } from './mount-updating.svelte.ts';
 
 const { updater, process } = window.__TAURI__;
 
@@ -22,10 +23,18 @@ async function checkForUpdate() {
   button.addEventListener('click', async () => {
     button.disabled = close.disabled = true;
     button.textContent = t('Actualizando…');
+    const screen = showUpdating(t('Bajando la versión {version}…', { version: update.version }));
+    let total = 0, got = 0;
     try {
-      await update.downloadAndInstall();
+      await update.downloadAndInstall((ev) => {
+        if (ev.event === 'Started') total = ev.data.contentLength ?? 0;
+        else if (ev.event === 'Progress') { got += ev.data.chunkLength; if (total) screen.set(t('Bajando la versión {version}…', { version: update.version }), got / total); }
+        else screen.set(t('Instalando…'), null);
+      });
+      screen.set(t('Reiniciando…'), null);
       await process.relaunch();
     } catch (e) {
+      screen.close();
       console.warn('update install failed:', e);
       button.textContent = t('Falló, reintentar');
       button.disabled = close.disabled = false;
