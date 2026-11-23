@@ -81,6 +81,8 @@ export const view = {
   /** Hay key de TorBox: null = todavía no se sabe (se pregunta al arrancar). */
   /** @type {boolean|null} */
   torboxKey: null,
+  /** "TorBox de Streamonte" activado en Ajustes (con o sin código guardado). */
+  torboxShared: false,
   /** Resolución de la lista (paso 'list' de `catalog-flow.ts`); '' = todavía en los pasos. */
   /** @type {string|null} */
   openRes: null,

@@ -8,6 +8,7 @@
 import { api } from './api.js';
 import { t as tr } from './i18n.js';
 import { state, view } from './catalog-state.js';
+import { host } from './ui-host.ts';
 import { failedBefore, flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, latPotential, latToCheck, mbpsOf, openGroup, renderStreamsOnly, rowView, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.ts';
 import { readTracks } from './catalog-subs.js';
 import { quickAnalyze, side, sideOf, startAnalysis, stopTests, unlikely } from './catalog-tests.ts';
@@ -237,8 +238,9 @@ export function flowStep(): FlowView | null {
 	const f = flow();
 	if (!f) return null;
 	if (!ready()) return searchScreen();
-	// Sin TorBox (sin key o no respondió) no se pregunta: torrent.
-	if (f.step === 'mode' && (!view.torboxKey || side().torbox !== 'done')) Object.assign(f, { mode: 'torrent', step: 'lat' });
+	// Sin TorBox (sin key o no respondió) no se pregunta: torrent. Con "TorBox de Streamonte" sin código sí se pregunta:
+	// elegir TorBox pide el código (Ajustes) y, guardado, la misma pregunta vuelve con cuántas tiene listas.
+	if (f.step === 'mode' && !needsCode() && (!view.torboxKey || side().torbox !== 'done')) Object.assign(f, { mode: 'torrent', step: 'lat' });
 	if (f.step === 'mode') return modeScreen();
 	if (f.step === 'net') return netScreen();
 	if (f.step === 'lat') return latScreen();
@@ -352,8 +354,26 @@ function searchScreen(): FlowView {
 	return { kind: 'search', title: tr('Buscando torrents…'), sub };
 }
 
+/** "TorBox de Streamonte" activado pero sin el código de la web guardado. */
+const needsCode = (): boolean => view.torboxShared && view.torboxKey === false;
+
+/** Abre Ajustes en el campo del código de TorBox de Streamonte. */
+async function askCode(): Promise<void> {
+	await host.openSettings?.();
+	document.getElementById('key-torbox-code')?.focus();
+}
+
 function modeScreen(): FlowView {
 	const f = flowNow();
+	if (needsCode()) {
+		return {
+			kind: 'choices', ...screenOf(tr('¿Cómo lo querés ver?')),
+			choices: [
+				choice('cat-flow-torbox', 'play', tr('Por TorBox'), tr('Ingresá una vez el código de Streamonte para ver cuáles están listas al instante'), () => void askCode(), { cls: 'torbox' }),
+				choice('cat-flow-torrent', 'peers', tr('Por torrent'), tr('{all} torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten', { all: update().candidates.length }), () => { Object.assign(f, { mode: 'torrent', step: 'lat' }); renderStreamsOnly(); }),
+			],
+		};
+	}
 	const all = update().candidates.length;
 	const tb = update().candidates.filter((c) => inTorbox.has(c.info_hash)).length;
 	const go = (mode: 'torbox' | 'torrent') => (): void => { Object.assign(f, { mode, step: mode === 'torbox' ? 'net' : 'lat' }); renderStreamsOnly(); };

@@ -15,7 +15,7 @@
 	}
 	let { store, onclear, onquery, onpick }: Props = $props();
 	const st = $derived(store.st);
-	// Las sugerencias no se abren solas (tapaban los resultados): se abren con "Ver sugerencias".
+	// Las sugerencias no se abren solas (tapaban los resultados): se abren con "Ver opciones".
 	let open = $state(false);
 	const typed = $derived(st.q.trim() !== '');
 
@@ -33,7 +33,7 @@
 		<Icon name="search" size={18} />
 		<input id="cat-q" type="search" placeholder={t('Título, actor/actriz o director')} autocomplete="off" enterkeyhint="search" value={st.q} oninput={(e) => { open = false; onquery(e.currentTarget.value); }} onblur={() => (open = false)} onkeydown={key} />
 		{#if typed && st.people.length}
-			<button id="cat-q-people" type="button" class="see-people" aria-expanded={open} aria-controls="people-list" onpointerdown={(e) => e.preventDefault()} onclick={() => (open = !open)}>{t('Ver sugerencias')}</button>
+			<button id="cat-q-people" type="button" class="see-people" aria-expanded={open} aria-controls="people-list" onpointerdown={(e) => e.preventDefault()} onclick={() => (open = !open)}>{t('Ver opciones')}</button>
 		{/if}
 		{#if st.q || st.person}
 			<button id="cat-q-clear" type="button" class="clear-q" aria-label={t('Limpiar búsqueda')} onclick={onclear}><Icon name="close" size={14} /></button>
