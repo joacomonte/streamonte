@@ -2,8 +2,8 @@
 // esta carpeta con la UI y animaciones de la web; las usan `web/src/lib/Torrents.svelte` y `ui/src/FlowScreen.svelte`.
 import type { IconName } from '../components/icons.ts';
 
-/** Ícono de la tarjeta: barras de conexión (1-4 encendidas), parlante que late, globo con texto (LAT/ES) o ícono común. */
-export type TileSpec = { kind: 'net'; level: 1 | 2 | 3 | 4 } | { kind: 'wave' } | { kind: 'bubble'; text: string } | { kind: 'icon'; icon: IconName };
+/** Ícono de la tarjeta: barras de conexión (1-4 encendidas), parlante que late, globo con texto (LAT/ES), lista animada ("Ver todas") o ícono común. */
+export type TileSpec = { kind: 'net'; level: 1 | 2 | 3 | 4 } | { kind: 'wave' } | { kind: 'bubble'; text: string } | { kind: 'list' } | { kind: 'icon'; icon: IconName };
 
 /** Tarjeta de un paso. `tone`: color CSS del ícono (p. ej. 'var(--green)'); `i`: orden para la entrada escalonada. */
 export type FlowChoiceProps = {
@@ -22,4 +22,4 @@ export type FlowChoiceProps = {
 };
 
 /** Migas: lo elegido hasta ahora; las que tienen `onclick` vuelven a ese paso. */
-export type FlowCrumb = { id: string | null; label: string; onclick: (() => void) | null };
+export type FlowCrumb = { id: string | null; label: string; onclick: (() => void) | null; title?: string | null };

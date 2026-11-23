@@ -8,6 +8,12 @@
 	import Sheet from '$ui/components/Sheet.svelte';
 	import Tour from '$ui/components/Tour.svelte';
 	import CastVideo from './CastVideo.svelte';
+	import FlowChoice from '$ui/flow/FlowChoice.svelte';
+	import FlowChoices from '$ui/flow/FlowChoices.svelte';
+	import FlowCrumbs from '$ui/flow/FlowCrumbs.svelte';
+	import FlowRadar from '$ui/flow/FlowRadar.svelte';
+	import FlowSearching from '$ui/flow/FlowSearching.svelte';
+	import { stepIn } from '$ui/flow/step-in.ts';
 	import { castSteps, device } from '$ui/components/tours.ts';
 	import * as saved from './saved.ts';
 	import { loc, t as tr } from './i18n.svelte.ts';
@@ -284,11 +290,6 @@
 	/** Qué se ve en el paso de resultado: buscando el primer match, el resultado o todas. */
 	const screen = $derived(step === 'net' || step === 'audio' ? step : showAll ? 'all' : showSpain ? 'spain' : reading && !found.length ? 'search' : 'match');
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-	/** Entrada de cada paso: sube un poco y aparece. */
-	const stepIn = (_: Element) => ({
-		duration: still() ? 0 : 320,
-		css: (x: number) => `transform: translateY(${(1 - x) * 10}px); opacity: ${x};`
-	});
 	/** El video que copiaste: los subtítulos se ordenan por cuánto calzan con él. */
 	let match = $state<{ hash: string; release: string; natives?: Native[]; file?: FileId; video?: Video } | null>(null);
 
@@ -508,107 +509,55 @@
 <section class="torrents" aria-label={tr('Torrents en TorBox')} aria-busy={!load.options && !error}>
 	{#if !load.options && !error}
 		<!-- Paso 1: hasta que terminan TODAS las fuentes y el chequeo de TorBox. -->
-		<div class="searching" role="status">
-			<span class="spin"></span>
-			<span>
-				<strong>{tr('Buscando torrents…')}</strong>
-				<span class="muted">{load.checking ? tr('Viendo cuáles tiene TorBox') : load.progress?.total ? tr('{n} de {d} fuentes', { n: load.progress.done, d: load.progress.total }) : ''}</span>
-			</span>
-		</div>
-		{#if load.progress?.total}<div class="meter" aria-hidden="true"><i style:width="{load.checking ? 100 : (load.progress.done / load.progress.total) * 90}%"></i></div>{/if}
+		<FlowSearching title={tr('Buscando torrents…')} sub={load.checking ? tr('Viendo cuáles tiene TorBox') : load.progress?.total ? tr('{n} de {d} fuentes', { n: load.progress.done, d: load.progress.total }) : ''} frac={load.progress?.total ? (load.checking ? 1 : (load.progress.done / load.progress.total) * 0.9) : null} />
 	{:else if error && !load.options}
 		<p class="status error" role="alert">{error}</p>
 	{:else if load.options && !all.length}
 		<p class="status muted">{tr('No hay torrents en TorBox para esto.')}</p>
 	{:else if load.options}
 		{#if step !== 'net' && net}
-			<nav class="crumbs" aria-label={tr('Ruta')}>
-				<button id="crumb-net" type="button" title={tr('Cambiar la conexión')} onclick={() => goStep('net')}>{tr('Conexión {c}', { c: tr(net.label).toLowerCase() })}</button>
-				{#if step === 'list'}
-					<span aria-hidden="true">›</span>
-					<button id="crumb-audio" type="button" onclick={() => goStep('audio')}>{wantLat ? tr('Audio latino') : tr('Audio original')}</button>
-				{/if}
-			</nav>
+			<FlowCrumbs aria={tr('Ruta')} items={[
+				{ id: 'crumb-net', label: tr('Conexión {c}', { c: tr(net.label).toLowerCase() }), title: tr('Cambiar la conexión'), onclick: () => goStep('net') },
+				...(step === 'list' ? [{ id: 'crumb-audio', label: wantLat ? tr('Audio latino') : tr('Audio original'), onclick: () => goStep('audio') }] : [])
+			]} />
 		{/if}
 
 		{#key screen}
 			<div class="step" in:stepIn>
 				{#if screen === 'net'}
 					<h3 class="ask">{tr('¿Cómo es tu internet donde lo vas a ver?')}</h3>
-					<div class="choices">
+					<FlowChoices>
 						<!-- La más rápida arriba; NET queda de menor a mayor para que "¿Se cortó?" baje un nivel. -->
 						{#each [...NET].reverse() as n, i (n.key)}
-							{@const lit = NET.indexOf(n) + 1}
-							<button id="net-{n.key}" type="button" class="choice net" class:primary={net?.key === n.key} class:picked={netPick === n.key} class:max={lit === 4} style="--lvl: var(--{n.tone}); --i: {i}" onclick={() => chooseNet(n)}>
-								<span class="tile">
-									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
-										{#each [16, 12.5, 9, 5.5] as y1, b (b)}
-											<line class="bar" class:lit={b < lit} style="--b: {b}" x1={5 + b * 4.7} x2={5 + b * 4.7} y1={y1} y2="19" />
-										{/each}
-									</svg>
-								</span>
-								<span class="txt">
-									<strong>{tr(n.label)}</strong>
-									<span class="muted">{tr(n.range)}</span>
-								</span>
-							</button>
+							<FlowChoice id="net-{n.key}" title={tr(n.label)} sub={tr(n.range)} tile={{ kind: 'net', level: (NET.indexOf(n) + 1) as 1 | 2 | 3 | 4 }} tone="var(--{n.tone})" {i} primary={net?.key === n.key} picked={netPick === n.key} onclick={() => chooseNet(n)} />
 						{/each}
-					</div>
+					</FlowChoices>
 				{:else if screen === 'audio'}
 					{@const named = all.filter((t) => status(t) === 'lat').length}
 					{@const toRead = all.filter((t) => unread(true, t)).length}
 					{@const maybe = all.filter(potential).length}
 					<h3 class="ask">{tr('¿Necesitás audio latino?')}</h3>
-					<div class="choices even">
+					<FlowChoices even>
 						<!-- Mismas tarjetas con ícono que la conexión: el parlante late, el latino entra con un saludo. -->
-						<button id="audio-any" type="button" class="choice net" style="--lvl: var(--accent-fg); --i: 0" onclick={() => chooseAudio(false)}>
-							<span class="tile wave" aria-hidden="true">
-								<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-									<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" fill="currentColor" fill-opacity="0.25" />
-									<path class="w1" d="M15.5 9.5a3.5 3.5 0 0 1 0 5" />
-									<path class="w2" d="M18 7a7 7 0 0 1 0 10" />
-								</svg>
-							</span>
-							<span class="txt">
-								<strong>{tr('Audio original')}</strong>
-								<span class="muted">{tr('{n} opciones · busco una con subtítulos en español', { n: all.length })}</span>
-							</span>
-						</button>
-						<button id="audio-lat" type="button" class="choice net" class:off={!maybe} disabled={!maybe} style="--lvl: var(--green); --i: 1" onclick={() => chooseAudio(true)}>
-							<span class="tile lat-tile" aria-hidden="true">
-								<svg width="28" height="28" viewBox="0 0.75 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
-									<path d="M4 5.5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9l-4.5 3.5v-3.5H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z" fill="currentColor" fill-opacity="0.18" />
-									<text x="12" y="13.9" text-anchor="middle" font-size="7" font-weight="800" fill="currentColor" stroke="none" letter-spacing="0.3">LAT</text>
-								</svg>
-							</span>
-							<span class="txt">
-								<strong>{tr('Solo audio latino')}{#if toRead}<span class="slow">{tr('Demora más')}</span>{/if}</strong>
-								<span class="muted">{!maybe
-									? tr('No hay torrents con audio latino')
-									: !toRead
-										? tr(named === 1 ? '1 opción lo tiene seguro' : '{n} opciones lo tienen seguro', { n: named })
-										: tr(maybe === 1 ? '1 opción podría tenerlo · la reviso por vos' : 'Hasta {n} opciones podrían tenerlo · las reviso por vos', { n: maybe })}</span>
-							</span>
-						</button>
-					</div>
+						<FlowChoice id="audio-any" title={tr('Audio original')} sub={tr('{n} opciones · busco una con subtítulos en español', { n: all.length })} tile={{ kind: 'wave' }} tone="var(--accent-fg)" i={0} onclick={() => chooseAudio(false)} />
+						<FlowChoice
+							id="audio-lat"
+							title={tr('Solo audio latino')}
+							badge={toRead ? tr('Demora más') : null}
+							sub={!maybe
+								? tr('No hay torrents con audio latino')
+								: !toRead
+									? tr(named === 1 ? '1 opción lo tiene seguro' : '{n} opciones lo tienen seguro', { n: named })
+									: tr(maybe === 1 ? '1 opción podría tenerlo · la reviso por vos' : 'Hasta {n} opciones podrían tenerlo · las reviso por vos', { n: maybe })}
+							tile={{ kind: 'bubble', text: 'LAT' }}
+							tone="var(--green)"
+							i={1}
+							disabled={!maybe}
+							onclick={() => chooseAudio(true)} />
+					</FlowChoices>
 				{:else if screen === 'search'}
 					<!-- Buscando: un radar barre las opciones (puntos que se encienden al pasar); al primero que sirve, aparece el resultado. -->
-					<div class="hunt" role="status" aria-live="polite">
-						<svg class="radar" viewBox="0 0 120 120" aria-hidden="true">
-							<circle class="ring" cx="60" cy="60" r="52" />
-							<circle class="ring inner" cx="60" cy="60" r="34" />
-							<g class="sweep"><path d="M60 60L60 8A52 52 0 0 1 105 34Z" /></g>
-							{#each [[60, 20, 0], [94, 46, 1], [88, 88, 2], [40, 96, 3], [24, 52, 4]] as [x, y, i] (i)}
-								<circle class="blip" cx={x} cy={y} r="4" style="--i:{i}" />
-							{/each}
-							<circle class="core" cx="60" cy="60" r="16" />
-							<path class="core-play" d="M55 52.5v15l12.5-7.5z" />
-						</svg>
-						<b class="hunt-title">{tr('Buscando el mejor torrent para vos')}</b>
-						<span class="bar hunt-bar"><i class="bar-fill" style:width="{Math.max(4, (scan.done / Math.max(1, scan.total)) * 100)}%"></i></span>
-						<span class="hunt-count">{tr('{a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })}</span>
-						<button id="search-stop" type="button" class="row-btn ghost" onclick={stopSearch}><Icon name="stop" size={15} />{tr('Detener')}</button>
-					</div>
+					<FlowRadar title={tr('Buscando el mejor torrent para vos')} frac={scan.done / Math.max(1, scan.total)} count={tr('{a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })} stopId="search-stop" stopText={tr('Detener')} onstop={stopSearch} />
 				{:else if screen === 'match'}
 					<!-- El resultado: solo los buenos matches; sin ninguno, las 3 de mejor calidad con el aviso. -->
 					{#if error}<p class="status error" role="alert">{error}</p>{/if}
@@ -617,45 +566,11 @@
 					{:else if wantLat && byBest.length}
 						<!-- Sin latino: cómo seguir, con las mismas tarjetas que el paso de audio (sin lista, los botones ya lo dicen). -->
 						<p class="none" role="status">{tr('No se encontraron opciones con audio latino')}</p>
-						<div class="choices even">
-							<button id="fallback-original" type="button" class="choice net" style="--lvl: var(--accent-fg); --i: 0" onclick={() => chooseAudio(false)}>
-								<span class="tile wave" aria-hidden="true">
-									<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-										<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" fill="currentColor" fill-opacity="0.25" />
-										<path class="w1" d="M15.5 9.5a3.5 3.5 0 0 1 0 5" />
-										<path class="w2" d="M18 7a7 7 0 0 1 0 10" />
-									</svg>
-								</span>
-								<span class="txt">
-									<strong>{tr('Buscar con audio original')}</strong>
-									<span class="muted">{tr('No encontré latino · busco una con subtítulos en español')}</span>
-								</span>
-							</button>
-							<button id="see-spain" type="button" class="choice net" class:off={!spanish.length} disabled={!spanish.length} style="--lvl: var(--amber, #f5a524); --i: 1" onclick={() => (showSpain = true)}>
-								<span class="tile lat-tile" aria-hidden="true">
-									<svg width="28" height="28" viewBox="0 0.75 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
-										<path d="M4 5.5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9l-4.5 3.5v-3.5H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z" fill="currentColor" fill-opacity="0.18" />
-										<text x="12" y="13.9" text-anchor="middle" font-size="7" font-weight="800" fill="currentColor" stroke="none" letter-spacing="0.3">ES</text>
-									</svg>
-								</span>
-								<span class="txt">
-									<strong>{tr('Español de España')}</strong>
-									<span class="muted">{spanish.length ? tr(spanish.length === 1 ? '1 opción con español que casi seguro no es latino' : '{n} opciones con español que casi seguro no es latino', { n: spanish.length }) : tr('Ninguna con español de España')}</span>
-								</span>
-							</button>
-							<button id="see-all" type="button" class="choice net" style="--lvl: var(--muted); --i: 2" onclick={() => (showAll = true)}>
-								<span class="tile list-tile" aria-hidden="true">
-									<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-										<path class="l1" d="M9 6h11" /><path class="l2" d="M9 12h11" /><path class="l3" d="M9 18h11" />
-										<path class="l1" d="M4 6h.01" /><path class="l2" d="M4 12h.01" /><path class="l3" d="M4 18h.01" />
-									</svg>
-								</span>
-								<span class="txt">
-									<strong>{tr('Ver todas las opciones')}</strong>
-									<span class="muted">{tr('{n} opciones, sin filtros · de mejor a peor calidad', { n: all.length })}</span>
-								</span>
-							</button>
-						</div>
+						<FlowChoices even>
+							<FlowChoice id="fallback-original" title={tr('Buscar con audio original')} sub={tr('No encontré latino · busco una con subtítulos en español')} tile={{ kind: 'wave' }} tone="var(--accent-fg)" i={0} onclick={() => chooseAudio(false)} />
+							<FlowChoice id="see-spain" title={tr('Español de España')} sub={spanish.length ? tr(spanish.length === 1 ? '1 opción con español que casi seguro no es latino' : '{n} opciones con español que casi seguro no es latino', { n: spanish.length }) : tr('Ninguna con español de España')} tile={{ kind: 'bubble', text: 'ES' }} tone="var(--amber, #f5a524)" i={1} disabled={!spanish.length} onclick={() => (showSpain = true)} />
+							<FlowChoice id="see-all" title={tr('Ver todas las opciones')} sub={tr('{n} opciones, sin filtros · de mejor a peor calidad', { n: all.length })} tile={{ kind: 'list' }} tone="var(--muted)" i={2} onclick={() => (showAll = true)} />
+						</FlowChoices>
 						{#if candidates.length || reading}<div class="row-actions">{@render more()}</div>{/if}
 					{:else}
 						<h3 class="ask">{!byBest.length ? tr('Ninguna entra en tu conexión') : tr('Sin subtítulos en español adentro')}</h3>
@@ -908,58 +823,11 @@
 	.chips::-webkit-scrollbar { display: none; }
 	.toggles { margin-top: 0; }
 	/* Pasos */
-	.searching { display: flex; align-items: center; gap: 12px; padding: 16px 0 10px; font-size: 14px; }
-	.searching > span:last-child { display: flex; flex-direction: column; gap: 2px; }
-	.meter { height: 4px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
-	.meter i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width 0.4s var(--out); }
-	.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: 0 0 4px; font-size: 13.5px; font-weight: 650; color: var(--muted); }
-	.crumbs button { min-height: 36px; padding: 0 2px; border: 0; background: none; color: var(--accent-fg); font: inherit; }
-	.crumbs button:active { opacity: 0.6; }
 	.ask { margin: 10px 0 10px; font-size: 16px; }
-	.choices { display: flex; flex-direction: column; gap: 8px; }
-	.choices.even { display: grid; grid-auto-rows: 1fr; }
-	.choice { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 64px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r-card); background: var(--surface); text-align: left; transition: background 0.2s var(--ease), transform 0.15s var(--out); }
-	.choice strong { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; }
-	.choice .muted { font-size: 12.5px; line-height: 1.35; }
-	.choice:active { transform: scale(0.985); background: var(--surface-2); }
-	.choice.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); align-items: center; }
-	.choice.off { opacity: 0.55; }
-	/* Conexión: ícono de señal con 4/3/2/1 barras en el color del nivel (`--lvl`), entrada escalonada (`--i`). */
-	.net { flex-direction: row; align-items: center; gap: 12px; animation: net-rise 0.36s var(--out) both; animation-delay: calc(var(--i) * 50ms); }
-	/* Parlante: las dos ondas se encienden una tras otra, en loop. Globo latino: entra con un saludo y cada tanto se mueve. */
-	/* Centro óptico: el globo pesa abajo (la colita), por eso su viewBox va corrido. */
-	.wave svg, .lat-tile svg { display: block; }
-	.wave .w1, .wave .w2 { animation: wave 1.6s ease-in-out infinite; }
-	.wave .w2 { animation-delay: 0.2s; }
-	@keyframes wave { 0%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
-	.list-tile .l1, .list-tile .l2, .list-tile .l3 { animation: list-in 2.4s var(--out) infinite; }
-	.list-tile .l2 { animation-delay: 0.15s; }
-	.list-tile .l3 { animation-delay: 0.3s; }
-	@keyframes list-in { 0%, 60%, 100% { opacity: 1; transform: none; } 10% { opacity: 0.2; transform: translateX(-3px); } }
-	.lat-tile svg { transform-origin: 30% 90%; animation: lat-in 0.6s var(--out) 0.15s both, lat-talk 3.2s ease-in-out 1.2s infinite; }
-	@keyframes lat-in { from { transform: scale(0.4) rotate(-16deg); opacity: 0; } 60% { transform: scale(1.12) rotate(5deg); opacity: 1; } }
-	@keyframes lat-talk { 0%, 82%, 100% { transform: none; } 88% { transform: rotate(-7deg) scale(1.05); } 94% { transform: rotate(5deg); } }
-	.net .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-	.net .tile { flex: none; display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 0; border-radius: var(--r-card); background: color-mix(in srgb, var(--lvl) 14%, transparent); color: var(--lvl); transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.15s var(--out); }
-	.net.primary .tile { background: color-mix(in srgb, var(--accent-text) var(--tint-2), transparent); color: var(--accent-text); }
-	.net .bar { opacity: 0.25; transform-box: fill-box; transform-origin: bottom; }
-	.net .bar.lit { opacity: 1; animation: bar-up 0.3s var(--out) both; animation-delay: calc(var(--i) * 50ms + 140ms + var(--b) * 70ms); }
-	.net.max .bar.lit:nth-child(4) { animation: bar-up 0.3s var(--out) both, bar-pulse 2.4s ease-in-out infinite; animation-delay: calc(var(--i) * 50ms + 350ms), 1.2s; }
-	.net:active { transform: scale(0.97); }
-	.net:active .tile { transform: scale(0.92); background: color-mix(in srgb, var(--lvl) 26%, transparent); }
-	.net.picked .tile { background: var(--lvl); color: var(--bg); transform: scale(1.06); }
-	.net.picked .bar.lit { animation: bar-flash 0.22s var(--ease); }
-	@keyframes net-rise { from { opacity: 0; transform: translateY(8px); } }
-	@keyframes bar-up { from { transform: scaleY(0); } }
-	@keyframes bar-pulse { 50% { opacity: 0.45; } }
-	@keyframes bar-flash { 40% { transform: scaleY(0.55); } }
-	@media (prefers-reduced-motion: reduce) { .lat-tile svg, .wave .w1, .wave .w2, .list-tile path, .net, .net .bar.lit, .net.max .bar.lit:nth-child(4), .net.picked .bar.lit { animation: none; } .net:active, .net .tile { transform: none; } }
-	.slow { padding: 1px 7px; border-radius: var(--r-pill); font-size: 10.5px; font-weight: 750; background: color-mix(in srgb, var(--green) var(--tint-2), transparent); color: var(--green); }
 	/* Mismo aire que arriba de las migas (~27 px contando el alto de sus botones). */
 	.none { margin: 16px 0 16px; text-align: center; font-size: 13.5px; color: var(--muted); }
 	.latsum { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
 	.link-btn.inline { flex-basis: auto; min-height: 32px; margin-left: auto; color: var(--accent-fg); }
-	@media (hover: hover) { .choice:hover { background: var(--surface-2); } }
 	.toggle:not(.on) { border-style: dashed; background: transparent; color: var(--muted); }
 	.summary { margin: 4px 0 0; font-size: 11.5px; color: color-mix(in srgb, var(--muted) 75%, transparent); font-variant-numeric: tabular-nums; }
 	/* Acciones al pie del resultado (2026-11-18): todas del mismo ancho y alto, ícono a la izquierda. */
@@ -972,26 +840,6 @@
 	.row-text small { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 	.row-end { font-size: 13.5px; font-weight: 600; color: var(--accent-fg); }
 	.row-btn .count { padding: 2px 9px; border-radius: var(--r-pill); background: var(--surface-3, var(--border)); color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-	.row-btn.ghost { width: auto; min-height: 44px; padding: 0 18px; border-radius: var(--r-pill); background: none; justify-content: center; gap: 8px; font-size: 14px; font-weight: 600; }
-	/* Buscando (2026-11-18): videos en fila, una lupa que los recorre y el avance real abajo. */
-	.hunt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0 8px; text-align: center; }
-	/* Radar: el barrido da una vuelta cada 2,4 s y cada punto se enciende cuando le pasa por encima. */
-	.radar { width: 120px; height: 120px; margin-bottom: 10px; overflow: visible; }
-	.radar .ring { fill: none; stroke: var(--border); stroke-width: 1.5; }
-	.radar .ring.inner { stroke-dasharray: 3 5; }
-	.radar .sweep { transform-origin: 60px 60px; animation: sweep 2.4s linear infinite; }
-	.radar .sweep path { fill: color-mix(in srgb, var(--accent) 22%, transparent); }
-	.radar .blip { fill: var(--muted); opacity: 0.25; transform-box: fill-box; transform-origin: center; animation: blip 2.4s var(--out) infinite; animation-delay: calc(var(--i) * 0.48s + 0.1s); }
-	.radar .core { fill: var(--accent); filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--accent) 45%, transparent)); animation: core 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-	.radar .core-play { fill: var(--accent-text, #fff); }
-	@keyframes sweep { to { transform: rotate(360deg); } }
-	@keyframes blip { 0% { opacity: 1; fill: var(--accent-fg); transform: scale(1.5); } 40%, 100% { opacity: 0.25; fill: var(--muted); transform: none; } }
-	@keyframes core { 50% { transform: scale(1.08); } }
-	.hunt-title { font-size: 17px; text-wrap: balance; }
-	.hunt-bar { width: min(240px, 80%); margin-top: 10px; background: var(--surface-2); }
-	.hunt-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-	.hunt .row-btn { margin-top: 10px; }
-	@media (prefers-reduced-motion: reduce) { .radar .sweep, .radar .blip, .radar .core { animation: none; } }
 	.audio-hint { margin: 0 0 14px; font-size: 14px; }
 	.audio-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 	.audio-opt {
