@@ -45,17 +45,19 @@ function make(api: Api, opts: Partial<CatalogOptions> = {}, saved?: string) {
 
 test('filtros → pedido: fechas ISO, "hasta hoy" vacío, idiomas y géneros', () => {
 	const now = new Date(2026, 10, 22);
-	const q = toBrowse({ ...DEFAULTS, from: 12, to: 3, lang: 'en,es', genres: ['28'] }, now);
+	const q = toBrowse({ ...DEFAULTS, from: 12, to: 3, genres: ['28'] }, now);
 	assert.deepEqual(q, { kind: 'movie', sort: 'rating', from: '2025-11-22', to: '2026-08-22', minVotes: 10000, languages: ['en', 'es'], genres: ['28'] });
-	assert.equal(toBrowse({ ...DEFAULTS, lang: '' }, now).languages.length, 0);
 	assert.equal(toBrowse(DEFAULTS, now).to, '');
 });
 
 test('restaurar: lo guardado vale, lo roto vuelve a su valor por defecto', () => {
-	const ok = parseSaved(JSON.stringify({ kind: 'tv', sort: 'popular', from: 60, to: 12, votes: 5000, lang: '', genres: ['18'] }));
-	assert.deepEqual(ok, { kind: 'tv', sort: 'popular', from: 60, to: 12, votes: 5000, lang: '', genres: ['18'] });
+	const ok = parseSaved(JSON.stringify({ kind: 'tv', sort: 'popular', from: 60, to: 12, votes: 100000, genres: ['18'] }));
+	assert.deepEqual(ok, { kind: 'tv', sort: 'popular', from: 60, to: 12, votes: 100000, genres: ['18'] });
+	// Lo guardado antes de los 3 niveles cae en el más cercano (5.000 → 10.000; 0 → 1.000), y el idioma viejo se ignora.
+	assert.equal(parseSaved(JSON.stringify({ votes: 5000, lang: '' })).votes, 10000);
+	assert.equal(parseSaved(JSON.stringify({ votes: 0 })).votes, 1000);
 	assert.deepEqual(parseSaved('no es json'), DEFAULTS);
-	assert.equal(parseSaved(JSON.stringify({ kind: 'doc', votes: 7, from: 13 })).votes, DEFAULTS.votes);
+	assert.equal(parseSaved(JSON.stringify({ kind: 'doc', votes: 7, from: 13 })).kind, DEFAULTS.kind);
 	assert.equal(parseSaved(JSON.stringify({ from: 12, to: 24 })).to, 0, 'hasta más viejo que desde: queda en hoy');
 	const { st } = make(fakeApi().api, {}, JSON.stringify({ kind: 'tv', votes: 1000 }));
 	assert.equal(st.f.kind, 'tv');

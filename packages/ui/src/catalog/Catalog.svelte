@@ -1,13 +1,13 @@
 <script lang="ts">
-	// Catálogo compartido (web y desktop): buscador + sugerencias de personas, tipo, orden, "Estrenos desde", hoja de filtros y
+	// Catálogo compartido (web y desktop): buscador + sugerencias de personas, tipo, orden, "Estrenos desde", votos, géneros y
 	// la grilla con scroll infinito. Los datos y el estado viven en `store` (`catalog.svelte.ts`); abrir un título es `onopen`.
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import Icon from '../components/Icon.svelte';
 	import { t } from '../i18n/runtime.ts';
 	import type { CatalogItem, PersonHit } from '../types.ts';
-	import FiltersSheet from './FiltersSheet.svelte';
-	import { changedCount, DEFAULTS, KINDS, LANGS, SORTS, backLabel, votesLabel, type Filters } from './filters.ts';
+	import { KINDS, SORTS, backLabel, votesLabel, type Filters } from './filters.ts';
+	import Genres from './Genres.svelte';
 	import Grid from './Grid.svelte';
 	import Search from './Search.svelte';
 	import Segmented from './Segmented.svelte';
@@ -40,7 +40,6 @@
 	let { store, onopen, href, header, top, onmagnet, onlog, onsettings, onneedskey, pinned = false, cardMin, fade = false }: Props = $props();
 	const st = $derived(store.st);
 
-	let filtersOpen = $state(false);
 	/** Alto de lo que se va al scrollear (marca, buscador, tipo): la barra de chips queda pegada arriba. */
 	let topH = $state(0);
 	let sentinel = $state<HTMLElement>();
@@ -62,9 +61,7 @@
 	/** Sin key de TMDB: tendencias sin filtros. */
 	const trendingOnly = $derived(!st.filtered && !searching);
 	const genres = $derived(st.genreList[st.f.kind] ?? []);
-	/** Resumen de lo aplicado junto a Filtros: solo géneros (los votos ya los muestra su slider, y las fechas la cinta). */
-	const summary = $derived([genres.filter((g) => st.f.genres.includes(g.id)).map((g) => g.name).join(', ')].filter(Boolean));
-	const changed = $derived(changedCount(st.f));
+	const genreNames = $derived(genres.filter((g) => st.f.genres.includes(g.id)).map((g) => g.name).join(', '));
 	/** Orden en celu angosto. */
 	const SHORT: Record<string, string> = { rating: 'Puntaje', popular: 'Populares' };
 	/** Con filtros a la vista (no buscando ni sin key): al scrollear se compactan en una línea (2026-11-23, variante 1A). */
@@ -82,7 +79,7 @@
 			`${ago(st.f.from)} – ${st.f.to ? ago(st.f.to) : t('hoy')}`,
 			t(SORTS.find((s) => s.v === st.f.sort)?.label ?? ''),
 			st.f.votes ? votesLabel(st.f.votes) : '',
-			...summary
+			genreNames
 		].filter(Boolean)
 	);
 	/** Cuánto se esconde al quedar pegada: todo lo de arriba, salvo desplegada o (desktop) buscando. */
@@ -148,8 +145,7 @@
 				KINDS.find((k) => k.v === f.kind)?.label ?? '',
 				names.length ? `Género: ${names.join(', ')}` : '',
 				`Orden: ${SORTS.find((s) => s.v === f.sort)?.label ?? f.sort}`,
-				`Idioma: ${LANGS.find((l) => l.v === f.lang)?.label ?? f.lang}`,
-				`Votos: ${f.votes ? `${f.votes / 1000}k+` : 'cualquiera'}`,
+				`Votos: ${f.votes / 1000}k+`,
 				`Fechas: desde ${meses(f.from)} hasta ${meses(f.to)}`
 			].filter(Boolean).join(' · ');
 			if (dato !== lastFilter) onlog('filtro', (lastFilter = dato));
@@ -190,7 +186,7 @@
 				{#if !searching}
 					<!-- Tipo y orden en una sola cápsula (2026-11-23, variante 1C); en celu angosto el orden inactivo queda en ícono. -->
 					<div class="ks">
-						<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} flush onpick={(v) => ((popped = v), setF({ kind: v }))} />
+						<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} onpick={(v) => ((popped = v), setF({ kind: v }))} />
 						{#if !trendingOnly}
 							<span class="ks-div" aria-hidden="true"></span>
 							<div class="sort" role="radiogroup" aria-label={t('Orden')}>
@@ -212,6 +208,7 @@
 					{:else}
 						<Since {store} onset={setF} />
 						<Votes {store} onset={setF} />
+						<Genres {store} ontoggle={(id) => (store.toggleGenre(id), afterFilter())} onclear={() => setF({ genres: [] })} />
 					{/if}
 				{/if}
 			</div>
@@ -221,17 +218,6 @@
 					<span class="compact-text">{#each compactText as part, i (i)}{#if i}<span class="dot" aria-hidden="true">·</span>{/if}{#if i === 1}<span class="amber">{part}</span>{:else}{part}{/if}{/each}</span>
 					<Icon name="chev" size={16} />
 				</button>
-			{:else if compactable}
-				<div class="filters" role="toolbar" aria-label={t('Filtros')}>
-					{#if summary.length}
-						<button id="filters-summary" type="button" class="summary" onclick={() => (filtersOpen = true)} aria-label={t('Filtros aplicados: {f}. Cambiar', { f: summary.join(', ') })}>
-							{#each summary as part, i (i)}{#if i}<span class="sep" aria-hidden="true"></span>{/if}<span>{part}</span>{/each}
-						</button>
-					{/if}
-					<button id="open-filters" type="button" class="trigger" class:on={changed} onclick={() => (filtersOpen = true)}>
-						<Icon name="sliders" size={16} />{t('Filtros')}{#if changed}{#key changed}<span class="n">{changed}</span>{/key}{/if}
-					</button>
-				</div>
 			{/if}
 		</div>
 	</header>
@@ -241,8 +227,6 @@
 		<Grid {store} {onopen} {href} {onsettings} {cardMin} {fade} bind:sentinel />
 	</div>
 </div>
-
-<FiltersSheet {store} open={filtersOpen} onclose={() => (filtersOpen = false)} onchange={afterFilter} />
 
 <style>
 	/* Se pega arriba corrido hacia arriba lo que mide la parte de arriba: al scrollear queda solo la barra de chips. */
@@ -275,31 +259,29 @@
 	.inner { max-width: 1200px; margin: 0 auto; }
 	.head-top { padding-bottom: 2px; }
 	/* Entrada después de la bienvenida: cada bloque de arriba sube escalonado. */
-	.intro .head-top > *, .intro .filters { animation: rise 0.7s var(--out) backwards; }
+	.intro .head-top > * { animation: rise 0.7s var(--out) backwards; }
 	.intro .head-top > :nth-child(2) { animation-delay: 60ms; }
 	.intro .head-top > :nth-child(3) { animation-delay: 120ms; }
 	.intro .head-top > :nth-child(4) { animation-delay: 180ms; }
 	.intro .head-top > :nth-child(5) { animation-delay: 240ms; }
-	.intro .filters { animation-delay: 300ms; }
+	.intro .head-top > :nth-child(6) { animation-delay: 300ms; }
 	@keyframes rise { from { opacity: 0; transform: translateY(24px); } }
 
 	/* Cápsula tipo | orden: un solo fondo, el tipo a la izquierda con su pulgar y el orden a la derecha tras una rayita. */
 	.ks { display: flex; align-items: stretch; gap: 2px; margin-top: 12px; padding: 4px; border-radius: var(--r-pill); background: var(--surface-2); }
-	.ks :global(.seg) { flex: 1.15 1 0; min-width: 0; max-width: none; margin: 0; padding: 0; background: none; border-radius: var(--r-pill); }
-	.ks :global(.seg-thumb) { top: 0; bottom: 0; left: 0; width: calc(100% / var(--n)); border-radius: var(--r-pill); }
-	.ks :global(.seg button) { min-height: 42px; border-radius: var(--r-pill); }
 	.ks-div { flex: none; width: 1px; margin: 10px 4px; background: var(--border-strong, var(--border)); }
-	@media (min-width: 640px) { .ks { max-width: 620px; } }
+	@media (min-width: 640px) { .ks { max-width: 680px; } }
 	/* Orden: un pulgar-marquesina se desliza entre las dos: telón y foquitos. */
 	.sort {
 		position: relative;
 		display: grid;
 		flex: 1 1 0;
 		min-width: 0;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		border-radius: var(--r-pill);
 	}
 	.s-short { display: none; }
+	.s-long, .s-short { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 	/* Píldora que se estira al viajar (como una gota) y toma el color de la opción: dorado para puntaje, fuego para populares. */
 	.sort::before {
 		--c: var(--yellow);
@@ -325,6 +307,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 5px;
+		min-width: 0;
 		min-height: 42px;
 		padding: 0 12px;
 		border: 0;
@@ -342,14 +325,12 @@
 	#sort-popular[aria-checked='true'] :global(svg) { color: var(--red); animation-name: flare; }
 	/* Celu angosto: el tipo sin íconos, y el orden activo con nombre corto mientras el otro queda en ícono. */
 	@media (max-width: 479px) {
-		.ks :global(.seg .seg-in svg) { display: none; }
-		.ks :global(.seg button) { font-size: 13.5px; }
-		.sort { display: flex; flex: 0 0 auto; }
+		.sort { display: flex; flex: 0 1 auto; }
 		.sort::before { display: none; }
 		.marquee { flex: 0 0 42px; padding: 0; }
 		.marquee[aria-checked='true'] {
 			--c: var(--yellow);
-			flex: 0 0 auto;
+			flex: 0 1 auto;
 			padding: 0 12px 0 10px;
 			background: linear-gradient(135deg, color-mix(in srgb, var(--c) 30%, var(--surface-3)), color-mix(in srgb, var(--c) 12%, var(--surface-2)));
 			box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 28%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--c) var(--tint-3), transparent);
@@ -358,6 +339,8 @@
 		.s-long { display: none; }
 		.marquee[aria-checked='true'] .s-short { display: inline; animation: rise-in 0.35s var(--out); }
 	}
+	/* Celu muy angosto: el orden elegido sin ícono, para que el tipo no se corte. */
+	@media (max-width: 359px) { .marquee[aria-checked='true'] :global(svg) { display: none; } }
 	@keyframes rise-in { from { opacity: 0; transform: translateX(-4px); } }
 	/* Copias -b: cambiar el nombre de la animación al deslizar la reinicia. El estirón es sobre `scale`, aparte del `transform` que la desliza. */
 	@property --c { syntax: '<color>'; inherits: false; initial-value: transparent; }
@@ -365,67 +348,6 @@
 	@keyframes goo-b { 35% { scale: 1.35 0.86; } 65% { scale: 0.94 1.05; } }
 	@keyframes spin-in { from { opacity: 0; transform: scale(0.3) rotate(-160deg); } }
 	@keyframes flare { from { opacity: 0; transform: translateY(6px) scale(0.4, 0.2); } 60% { transform: scale(1.1, 1.3); } }
-
-
-	/* Una línea: lo aplicado (se scrollea, se desvanece al final) y un disparador discreto. */
-	.filters {
-		display: flex;
-		align-items: center;
-		margin: 0 -16px;
-		padding: 0 6px 4px 0;
-	}
-	.summary {
-		flex: 1;
-		min-width: 0;
-		min-height: 44px;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 0 12px 0 16px;
-		border: 0;
-		background: none;
-		overflow-x: auto;
-		scrollbar-width: none;
-		white-space: nowrap;
-		font-size: 12.5px;
-		color: var(--muted);
-		text-align: left;
-		mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
-	}
-	.summary::-webkit-scrollbar { display: none; }
-	.summary:focus-visible { outline-offset: -2px; }
-	.trigger {
-		flex: none;
-		margin-left: auto;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		min-height: 44px;
-		padding: 0 10px;
-		border: 0;
-		border-radius: var(--r-sm);
-		background: none;
-		color: var(--text);
-		font-size: 13px;
-		font-weight: 600;
-		transition: background 0.2s var(--ease);
-	}
-	.trigger:active { background: var(--surface-2); }
-	.trigger.on { color: var(--accent-fg); }
-	.trigger .n {
-		min-width: 17px;
-		height: 17px;
-		padding: 0 5px;
-		border-radius: var(--r-pill);
-		background: var(--accent);
-		color: var(--accent-text);
-		font-size: 11px;
-		line-height: 17px;
-		text-align: center;
-		animation: pop 0.35s var(--out);
-	}
-	@keyframes pop { from { transform: scale(0.4); opacity: 0; } }
-	.sep { flex: none; width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0.6; }
 
 
 	.body { padding: 14px 16px calc(24px + var(--safe-bottom)); }

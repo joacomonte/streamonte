@@ -1,11 +1,10 @@
 <script lang="ts">
 	// Votos en 3 posiciones (2026-11-23, variante 2A): pista fina con muescas, una perilla que salta con resorte y arriba
 	// 1, 2 o 3 personitas del color del nivel. Sin textos fijos: al moverla aparece un momento, bajo la perilla, el nombre
-	// del nivel y cuántos votos pide. Los demás valores (cualquiera, 5k, 25k…) siguen en la hoja de Filtros: con uno de
-	// esos, la perilla queda en el más cercano y la nota dice el valor exacto.
+	// del nivel y cuántos votos pide. Los niveles viven en `filters.ts` (`VOTE_LEVELS`).
 	import Icon from '../components/Icon.svelte';
 	import { t } from '../i18n/runtime.ts';
-	import { votesLabel, type Filters } from './filters.ts';
+	import { nearestLevel, VOTE_LEVELS, votesLabel, type Filters } from './filters.ts';
 	import type { CatalogStore } from './store.ts';
 
 	interface Props {
@@ -15,20 +14,8 @@
 	let { store, onset }: Props = $props();
 	const st = $derived(store.st);
 
-	/** Votos mínimos de cada posición y su nombre. */
-	const LEVELS: [number, string][] = [
-		[1000, 'De nicho'],
-		[10000, 'Conocidas'],
-		[100000, 'Muy populares']
-	];
 	const COLORS = ['var(--accent-fg, var(--accent))', 'var(--amber)', 'var(--red)'];
-	/** Posición más cercana (en escala logarítmica) a los votos elegidos. */
-	const nearest = (v: number) => {
-		const lv = Math.log10(Math.max(1, v));
-		return LEVELS.reduce((best, [n], i) => (Math.abs(Math.log10(n) - lv) < Math.abs(Math.log10(LEVELS[best][0]) - lv) ? i : best), 0);
-	};
-	const level = $derived(nearest(st.f.votes));
-	const exact = $derived(LEVELS[level][0] === st.f.votes);
+	const level = $derived(nearestLevel(st.f.votes));
 	/** Mientras se arrastra: posición continua 0–2 (null = quieta). */
 	let dragAt = $state<number | null>(null);
 	const pos = $derived(dragAt ?? level);
@@ -44,7 +31,7 @@
 	}
 	function pick(i: number) {
 		showHint();
-		if (LEVELS[i][0] !== st.f.votes) onset({ votes: LEVELS[i][0] });
+		if (VOTE_LEVELS[i].v !== st.f.votes) onset({ votes: VOTE_LEVELS[i].v });
 	}
 	let track = $state<HTMLElement>();
 	const at = (x: number) => {
@@ -88,7 +75,7 @@
 		aria-valuemin={0}
 		aria-valuemax={2}
 		aria-valuenow={level}
-		aria-valuetext={`${t(LEVELS[level][1])} · ${votesLabel(st.f.votes)}`}
+		aria-valuetext={`${t(VOTE_LEVELS[level].label)} · ${votesLabel(st.f.votes)}`}
 		onpointerdown={down}
 		onpointermove={move}
 		onpointerup={up}
@@ -96,12 +83,12 @@
 		onkeydown={key}
 	>
 		<span class="fill" aria-hidden="true"></span>
-		{#each LEVELS as _, i (i)}<span class="notch" style:--i={i} aria-hidden="true"></span>{/each}
+		{#each VOTE_LEVELS as _, i (i)}<span class="notch" style:--i={i} aria-hidden="true"></span>{/each}
 		{#key shown}<span class="crowd" aria-hidden="true">{#each Array(shown + 1) as _, i (i)}<span style:--d="{i * 50}ms"><Icon name="user" size={15} /></span>{/each}</span>{/key}
 		<span class="knob" aria-hidden="true"></span>
 	</div>
 	<span id="votes-value" class="hint" class:on={hint} aria-hidden="true">
-		{#key shown}<span class="hint-in"><b>{t(LEVELS[shown][1])}</b> · {dragAt != null || exact ? votesLabel(LEVELS[shown][0]) : votesLabel(st.f.votes)}</span>{/key}
+		{#key shown}<span class="hint-in"><b>{t(VOTE_LEVELS[shown].label)}</b> · {votesLabel(VOTE_LEVELS[shown].v)}</span>{/key}
 	</span>
 </div>
 

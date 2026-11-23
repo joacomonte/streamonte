@@ -40,7 +40,7 @@
    "sel": "#sort-popular"
   },
   {
-   "sel": "#open-filters"
+   "sel": "#genre-all"
   },
   {
    "sel": "#votes-value",

@@ -143,7 +143,7 @@ export function createCatalog(api: Api, st: CatalogState, opts: CatalogOptions) 
 		}
 		restart(filterWait);
 	}
-	const resetFilters = (): void => setFilters({ votes: DEFAULTS.votes, lang: DEFAULTS.lang, genres: [] });
+	const resetFilters = (): void => setFilters({ votes: DEFAULTS.votes, genres: [] });
 	const toggleGenre = (id: string): void => setFilters({ genres: st.f.genres.includes(id) ? st.f.genres.filter((g) => g !== id) : [...st.f.genres, id] });
 
 	function closePeople(): void {

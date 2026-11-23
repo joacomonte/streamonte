@@ -4,8 +4,8 @@ import type { BrowseFilters, Kind } from '../types.ts';
 import type { IconName } from '../components/icons.ts';
 
 export type Sort = BrowseFilters['sort'];
-/** `from`/`to`: meses hacia atrás (la escala de la ruedita); `lang`: códigos ISO separados por coma ('' = cualquiera). */
-export type Filters = { kind: Kind; sort: Sort; from: number; to: number; votes: number; lang: string; genres: string[] };
+/** `from`/`to`: meses hacia atrás (la escala de la ruedita); `votes`: uno de `VOTE_LEVELS`. */
+export type Filters = { kind: Kind; sort: Sort; from: number; to: number; votes: number; genres: string[] };
 
 export const KINDS: { v: Kind; label: string; icon: IconName }[] = [
 	{ v: 'movie', label: 'Películas', icon: 'film' },
@@ -15,12 +15,20 @@ export const SORTS: { v: Sort; label: string; icon: IconName }[] = [
 	{ v: 'rating', label: 'Mejor puntaje', icon: 'star' },
 	{ v: 'popular', label: 'Más populares', icon: 'flame' }
 ];
-export const LANGS: { v: string; label: string }[] = [
-	{ v: 'en,es', label: 'Inglés o español' },
-	{ v: '', label: 'Cualquier idioma' }
+/** Idioma original del catálogo: fijo en inglés o español (2026-11-23, al sacar la hoja de filtros avanzados). */
+export const LANGUAGES = ['en', 'es'];
+/** Votos de IMDb: las 3 posiciones del slider. */
+export const VOTE_LEVELS: { v: number; label: string }[] = [
+	{ v: 1000, label: 'De nicho' },
+	{ v: 10000, label: 'Conocidas' },
+	{ v: 100000, label: 'Muy populares' }
 ];
-/** Votos de IMDb. */
-export const VOTES = [0, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
+/** Nivel más cercano (en escala logarítmica) a una cantidad de votos: lo guardado con valores viejos (0, 5k, 25k…) cae en uno. */
+export const nearestLevel = (votes: number): number => {
+	const lv = Math.log10(Math.max(1, votes));
+	const gap = (i: number) => Math.abs(Math.log10(VOTE_LEVELS[i].v) - lv);
+	return VOTE_LEVELS.reduce((best, _, i) => (gap(i) < gap(best) ? i : best), 0);
+};
 export const MIN_YEAR = 1950;
 /** Meses hacia atrás: hoy, 1–11 meses y de a un año hasta 1950. */
 export const backSteps = (now: Date = new Date()): number[] => [
@@ -29,11 +37,11 @@ export const backSteps = (now: Date = new Date()): number[] => [
 ];
 export const BACK = backSteps();
 
-export const DEFAULTS: Filters = { kind: 'movie', sort: 'rating', from: 12, to: 0, votes: 10000, lang: 'en,es', genres: [] };
+export const DEFAULTS: Filters = { kind: 'movie', sort: 'rating', from: 12, to: 0, votes: 10000, genres: [] };
 
 export const backLabel = (m: number): string =>
 	m === 0 ? t('hoy') : m < 12 ? t(m === 1 ? 'hace {n} mes' : 'hace {n} meses', { n: m }) : t(m === 12 ? 'hace {n} año' : 'hace {n} años', { n: m / 12 });
-export const votesLabel = (v: number): string => (v ? t('{n}+ votos', { n: v.toLocaleString('es-AR') }) : t('Cualquier cantidad de votos'));
+export const votesLabel = (v: number): string => t('{n}+ votos', { n: v.toLocaleString('es-AR') });
 
 /** AAAA-MM-DD de hace `m` meses (en hora local). */
 export function isoMonthsAgo(m: number, now: Date = new Date()): string {
@@ -49,12 +57,12 @@ export const toBrowse = (f: Filters, now: Date = new Date()): BrowseFilters => (
 	from: isoMonthsAgo(f.from, now),
 	to: f.to ? isoMonthsAgo(f.to, now) : '',
 	minVotes: f.votes,
-	languages: f.lang.split(',').filter(Boolean),
+	languages: LANGUAGES,
 	genres: f.genres
 });
 
-/** Filtros avanzados (los de la hoja) que no están en su valor por defecto: el número del botón "Filtros". */
-export const changedCount = (f: Filters): number => Number(f.votes !== DEFAULTS.votes) + Number(f.lang !== DEFAULTS.lang) + f.genres.length;
+/** Filtros que achican la lista y no están en su valor por defecto (votos y géneros): sin resultados, se ofrece restablecerlos. */
+export const changedCount = (f: Filters): number => Number(f.votes !== DEFAULTS.votes) + f.genres.length;
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
@@ -74,8 +82,7 @@ export function parseSaved(raw: string | null, back: number[] = BACK): Filters {
 	if (typeof v.from === 'number' && back.indexOf(v.from) >= 1) f.from = v.from;
 	if (typeof v.to === 'number' && back.includes(v.to)) f.to = v.to;
 	if (f.to >= f.from) f.to = 0;
-	if (typeof v.votes === 'number' && VOTES.includes(v.votes)) f.votes = v.votes;
-	if (typeof v.lang === 'string' && LANGS.some((l) => l.v === v.lang)) f.lang = v.lang;
+	if (typeof v.votes === 'number') f.votes = VOTE_LEVELS[nearestLevel(v.votes)].v;
 	if (Array.isArray(v.genres)) f.genres = v.genres.filter((g): g is string => typeof g === 'string');
 	return f;
 }
