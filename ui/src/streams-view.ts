@@ -1,6 +1,7 @@
 // Modelo de vista del panel de opciones del desktop (`#cat-streams`): lo arman `catalog-options.ts` (lista, análisis, filtros)
 // y `catalog-flow.ts` (pasos); lo dibujan `StreamsPanel.svelte`, `FlowScreen.svelte` y sus partes. Textos ya traducidos.
 import type { IconName } from '$ui/components/icons.ts';
+import type { TileSpec } from '$ui/flow/types.ts';
 import type { OptionRowView } from '$ui/options/row.ts';
 
 export type Click = (ev: MouseEvent & { currentTarget: HTMLButtonElement }) => void;
@@ -14,10 +15,14 @@ export type MoreRowView =
 	| { kind: 'done'; found: boolean; text: string }
 	| { kind: 'more'; title: string; small: string | null; onclick: () => void };
 
-/** Tarjeta de un paso (`es`: la burbuja "ES" en vez de un ícono). */
+/** Tarjeta de un paso (`icon` 'es': la burbuja "ES" en vez de un ícono; lo dibuja `FlowScreen` hasta migrarlo a `tile`). */
 export type ChoiceView = {
 	id: string;
 	icon: IconName | 'es';
+	/** Ícono de las piezas compartidas con la web (`$ui/flow`), su color CSS y la posición en la pantalla (entrada escalonada). */
+	tile: TileSpec;
+	tone: string;
+	i: number;
 	title: string;
 	sub: string;
 	note: string | null;
@@ -33,7 +38,7 @@ export type FlowButton = { id: string; icon: IconName; text: string; small: stri
 
 type Screen = { still: boolean; crumbs: CrumbsView | null; title: string | null };
 export type FlowView =
-	| { kind: 'search'; title: string; sub: string }
+	| { kind: 'search'; title: string; sub: string; frac: number | null }
 	| (Screen & { kind: 'choices'; choices: ChoiceView[] })
 	| (Screen & { kind: 'scan'; text: string; frac: number; count: string; stop: FlowButton })
 	| (Screen & { kind: 'nolat'; none: string; choices: ChoiceView[]; more: MoreRowView | null })
