@@ -12,6 +12,7 @@ import { failedBefore, flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, 
 import { readTracks } from './catalog-subs.js';
 import { quickAnalyze, side, sideOf, startAnalysis, stopTests, unlikely } from './catalog-tests.ts';
 import { scanSecs, SWARM_PARALLEL, SWARM_SECS } from './options-logic.ts';
+import { latRank } from '$ui/audio.ts';
 import type { TileSpec } from '$ui/flow/types.ts';
 import type { ChoiceView, CrumbsView, FlowButton, FlowView, MoreRowView } from './streams-view.ts';
 import type { StreamCandidate as Candidate, StreamsUpdate } from './types.js';
@@ -92,18 +93,22 @@ const healthy = (c: Candidate): boolean => flow()?.mode === 'torbox' || (!unlike
 const byPotential = (a: Candidate, b: Candidate): number => (knownSeeds(b) ?? -1) - (knownSeeds(a) ?? -1) || (b.size_bytes ?? 0) - (a.size_bytes ?? 0);
 /** Grupo de candidata a latino: 0 web latina, 1 español sin aclarar (MULTI / Dual / español). */
 const latTier = (c: Candidate): number => (latOf(c) === 'likely' ? 0 : 1);
-/** Candidatas a leer (única regla): sin leer, con salud y que puedan ser lo pedido. TorBox: de mejor a peor calidad, como la
- *  lista. Torrent: por grupo (`latTier`), mejor resolución y seeds, así la primera confirmada es la mejor. */
+/** Candidatas a leer (única regla): sin leer, con salud y que puedan ser lo pedido. TorBox: de mejor a peor calidad, como la lista (pidiendo latino, antes por señal: `latFirst`).
+ *  Torrent: por grupo (`latTier`), mejor resolución y seeds, así la primera confirmada es la mejor. */
 function toConfirm(cands: Candidate[], lat: boolean | null = flowNow().lat): Candidate[] {
 	const f = flowNow();
 	const pending = cands.filter(
 		(c) => !f.scanned.has(c.info_hash) && !tracksRead(c.info_hash) && healthy(c) && (lat ? latToCheck(c) : hasSpanishSubs(c.info_hash) == null),
 	);
-	if (f.mode === 'torbox') return flatSorted(pending.filter(fitsNet));
+	if (f.mode === 'torbox') return latFirst(flatSorted(pending.filter(fitsNet)));
 	return pending.sort(byPotential).sort((a, b) => latTier(a) - latTier(b) || RES_ORDER.indexOf(resKey(a)) - RES_ORDER.indexOf(resKey(b)));
 }
 /** De donde sale el buen match en TorBox: las que entran en la conexión, de mejor a peor (con latino, solo las con potencial). */
-const ranked = (): Candidate[] => flatSorted(pool().filter((c) => flowFilter(c) && fitsNet(c)));
+const ranked = (): Candidate[] => latFirst(flatSorted(pool().filter((c) => flowFilter(c) && fitsNet(c))));
+/** TorBox pidiendo latino: por señal de latino (regla `latRank`) y, dentro de cada grupo, el orden de calidad que trae. */
+function latFirst(cands: Candidate[]): Candidate[] {
+	return flowNow().lat ? [...cands].sort((a, b) => latRank(latOf(a)) - latRank(latOf(b))) : cands;
+}
 /** TorBox: el próximo buen match no mostrado, si viene antes (en calidad) que la próxima candidata sin leer; si no, null. */
 function nextMatch(): Candidate | null {
 	const f = flowNow();

@@ -18,7 +18,7 @@
 	import * as saved from './saved.ts';
 	import { loc, t as tr } from './i18n.svelte.ts';
 	import { untrack } from 'svelte';
-	import { audioOf, latStatus, LAT_BADGE, type Tracks } from '$ui/audio.ts';
+	import { audioOf, latRank, latStatus, LAT_BADGE, type Tracks } from '$ui/audio.ts';
 	import type { Snippet } from 'svelte';
 	import { track } from './track.ts';
 	import { byQuality as rankQuality, optionMbps } from '$ui/rank.ts';
@@ -238,9 +238,9 @@
 	 * idioma no se leen. Audio original: sin saber si trae sub ES. */
 	const unread = (lat: boolean, t: Torrent) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (status(t) === 'likely' || (status(t) === 'check' && t.spanish)) : !hasEs(t) && !known(t));
 	const byQuality = (a: Torrent, b: Torrent) => rankQuality(a, b, runtime);
-	/** Lo que entra con el audio elegido (latino: solo las con potencial), de mejor a peor. `byBest`: solo las que entran
+	/** Lo que entra con el audio elegido (latino: solo las con potencial, primero por señal de latino: `latRank`), de mejor a peor. `byBest`: solo las que entran
 	 * en la conexión (de ahí sale el buen match); `everything`: todas, para "Ver todas". */
-	const everything = $derived((wantLat ? all.filter(potential) : [...all]).sort(byQuality));
+	const everything = $derived(wantLat ? all.filter(potential).sort(byQuality).sort((a, b) => latRank(status(a)) - latRank(status(b))) : [...all].sort(byQuality));
 	const byBest = $derived(everything.filter(fits));
 	const candidates = $derived(byBest.filter((t) => unread(wantLat, t)));
 	/** El próximo buen match todavía no mostrado, si viene antes (en calidad) que la próxima candidata; si no, null. */
