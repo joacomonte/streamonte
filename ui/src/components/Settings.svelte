@@ -1,11 +1,12 @@
 <!-- Ajustes del desktop: Idioma · Reproducción · Conexión · Cuentas y keys (con las de subtítulos).
      Filas de lista de packages/ui/css/settings.css; cada key muestra su estado y su campo mientras falta. Lógica en settings-model.ts. -->
 <script lang="ts">
-  import { onMount, tick } from 'svelte';
+  import { onMount } from 'svelte';
   import Icon from '$ui/components/Icon.svelte';
   import Sheet from '$ui/components/Sheet.svelte';
   import Idioma from '$ui/settings/Idioma.svelte';
-  import KeyRow from '$ui/settings/KeyRow.svelte';
+  import KeyField from '$ui/settings/KeyField.svelte';
+  import { createKeysForm } from '$ui/settings/keys-form.svelte.ts';
   import Section from '$ui/settings/Section.svelte';
   import { COMMON_KEYS } from '$ui/settings/keys.ts';
   import * as core from '../core.ts';
@@ -44,13 +45,10 @@
   let netCheck = $state<{ cls: string; text: string }>({ cls: '', text: '' });
   let netBusy = $state(false);
   let mpvBusy = $state(false);
-  let inputs = $state<Record<KeyService, string>>({ tmdb: '', torbox: '', wyzie: '', opensubtitles: '' });
   let latteamToken = $state('');
   let latteamEdit = $state(false);
   let osUser = $state('');
   let osPass = $state('');
-  let editing = $state<KeyService[]>([]);
-  let saved = $state<{ service: KeyService; text: string } | null>(null);
 
   const configured = (service: string): boolean => keys.some((k) => k.service === service && k.configured);
   const latteamHas = $derived(configured('latteam'));
@@ -59,16 +57,31 @@
 
   function setConfigured(service: string, on: boolean): void {
     keys = keys.some((k) => k.service === service) ? keys.map((k) => (k.service === service ? { ...k, configured: on } : k)) : [...keys, { service, configured: on }];
-    editing = editing.filter((s) => s !== service);
   }
+
+  /** Guardado por key con `saveKey` (settings-model.ts); el formulario compartido pone el estado y la confirmación. */
+  const keysForm = createKeysForm({
+    status: () => Object.fromEntries(keys.map((k) => [k.service, k.configured])),
+    set: async (service, value) => {
+      const r = await saveKey(core, service, value);
+      if (r.event) document.dispatchEvent(new CustomEvent(r.event));
+      setConfigured(service, true);
+      setStatus(r.status);
+      return r.done;
+    },
+    remove: async (service) => {
+      const r = await saveKey(core, service, '');
+      if (r.event) document.dispatchEvent(new CustomEvent(r.event));
+      setConfigured(service, false);
+      setStatus(r.status);
+    }
+  });
 
   async function showOsLogin(): Promise<void> {
     osState = osLoginText(await core.premiumQuota().catch(() => null));
   }
 
   async function open(): Promise<void> {
-    saved = null;
-    editing = [];
     latteamEdit = false;
     try {
       showOsLogin();
@@ -83,32 +96,6 @@
       showError(e);
     }
     isOpen = true;
-  }
-
-  async function onSaveKey(service: KeyService): Promise<void> {
-    try {
-      const r = await saveKey(core, service, inputs[service]);
-      inputs[service] = '';
-      if (r.event) document.dispatchEvent(new CustomEvent(r.event));
-      if (r.cleared) {
-        setConfigured(service, false);
-        setStatus(r.status);
-        return;
-      }
-      saved = { service, text: r.done };
-      setStatus(r.status);
-      await wait(1800);
-      saved = null;
-      setConfigured(service, true);
-    } catch (e) {
-      showError(e);
-    }
-  }
-
-  async function toggleEdit(service: KeyService): Promise<void> {
-    editing = editing.includes(service) ? editing.filter((s) => s !== service) : [...editing, service];
-    await tick();
-    if (editing.includes(service)) document.getElementById(`key-${service}`)?.focus();
   }
 
   async function onLatTeamToggle(e: Event & { currentTarget: HTMLInputElement }): Promise<void> {
@@ -196,26 +183,9 @@
   <button {id} type="button" class="tip-i" aria-label={text} title={text} onclick={(e) => e.preventDefault()}><Icon name="info" size={14} /></button>
 {/snippet}
 
-<!-- Falta: campo a la vista. Guardada: una línea con "Cambiar". Recién guardada: mensaje con tilde 1,8 s. -->
+<!-- Cada key: KeyField de $ui/settings (campo mientras falta, "Cambiar" si está, confirmación 1,8 s). -->
 {#snippet keyRow(row: Row)}
-  {@const ok = configured(row.service)}
-  {@const edit = !ok || editing.includes(row.service)}
-  <KeyRow service={row.service} name={t(row.label)} hint={t(row.hint)} tip={row.tip && t(row.tip)} has={ok} editing={editing.includes(row.service)} editField={edit}
-    changeId="key-{row.service}-change" getId="key-{row.service}-page" onget={() => core.openKeyPage(row.service).catch(showError)} onchange={() => toggleEdit(row.service)}>
-    {#if saved?.service === row.service}
-      <p class="st-block key-done" role="status">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>{saved.text}
-      </p>
-    {:else if edit}
-      <div class="st-block">
-        <div class="st-inline">
-          <input id="key-{row.service}" class="st-input" type="password" placeholder={t(row.placeholder)} autocomplete="off" bind:value={inputs[row.service]}
-            onkeydown={(e) => { if (e.key === 'Enter') onSaveKey(row.service); }}>
-          <button id="key-{row.service}-save" class="st-btn" class:go={row.primary} type="button" onclick={() => onSaveKey(row.service)}>{t('Guardar')}</button>
-        </div>
-      </div>
-    {/if}
-  </KeyRow>
+  <KeyField form={keysForm} service={row.service} name={t(row.label)} hint={t(row.hint)} tip={row.tip && t(row.tip)} placeholder={row.placeholder} primary={row.primary} onget={() => core.openKeyPage(row.service).catch(showError)} />
 {/snippet}
 
 <Sheet id="dlg-settings" title={t('Ajustes')} titleId="set-title" closeId="btn-settings-x" open={isOpen} onclose={() => (isOpen = false)} maxWidth="min(600px, 92vw)">
@@ -393,17 +363,11 @@
   .eq-opt span { display: block; padding: 6px 12px; border-radius: var(--r-pill); color: var(--muted); font-size: 13px; font-weight: 650; white-space: nowrap; transition: background 0.2s var(--ease), color 0.2s var(--ease); }
   .eq-opt input:checked + span { background: var(--accent); color: var(--accent-text); box-shadow: 0 3px 10px -4px color-mix(in srgb, var(--accent) var(--tint-4), transparent); }
   .eq-opt input:focus-visible + span { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-  .key-done { flex-direction: row; align-items: center; gap: 10px; margin: 0; color: var(--text); font-size: 13px; font-weight: 600; animation: set-pop 0.35s var(--out); }
-  .key-done svg { flex: none; color: var(--green); }
-  .key-done :global(svg circle) { stroke-dasharray: 64; stroke-dashoffset: 64; animation: set-draw 0.45s var(--out) forwards; }
-  .key-done :global(svg path) { stroke-dasharray: 16; stroke-dashoffset: 16; animation: set-draw 0.3s var(--out) 0.35s forwards; }
-  @keyframes set-draw { to { stroke-dashoffset: 0; } }
-  @keyframes set-pop { from { opacity: 0; transform: scale(0.98); } }
   .net-check-result.ok { color: var(--green); }
   .net-check-result.bad { color: var(--red); }
   .net-steps { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 12.5px; color: var(--text); }
   .net-steps code { font-family: var(--mono); font-size: 12px; }
   .st-more p { margin: 0; }
   .keys th { width: 90px; font-family: ui-monospace, monospace; }
-  @media (prefers-reduced-motion: reduce) { .key-done, .key-done :global(svg *) { animation: none; stroke-dashoffset: 0; } .eq-opt span { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .eq-opt span { transition: none; } }
 </style>
