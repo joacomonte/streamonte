@@ -5,6 +5,6 @@
 - Imágenes remotas (pósters, caras) → un gris fijo; fuentes/scripts externos se abortan. Animaciones, caret y transiciones apagados.
 - Fixtures web sin `from`/`to` en la clave (son fechas relativas a hoy). `/api/torrents` no se graba (stream, necesita TorBox): la ficha web muestra "Buscando torrents…".
 - Claves de fixtures: se ignoran `from`, `to` y `l` (idioma; si la web agrega otro parámetro que no cambia la respuesta, sumarlo en `apiFile`). `/packages/*` (logo) se sirve desde disco: el dev server lo devuelve como HTML. La ficha de la app espera el texto final de los streams, no un sleep fijo.
-- Plataforma: las baselines son de macOS (fuentes del sistema). No corre en CI (sacado el 2026-11-22): correrlo a mano antes de pushear un cambio visible y commitear las baselines regrabadas.
+- Plataforma: las baselines son de macOS (fuentes del sistema). No corre en CI: correrlo a mano antes de pushear un cambio visible y commitear las baselines regrabadas. Junto con los contratos: `sh scripts/verify-ui.sh [--changed|--all]` (un solo vite por app).
 - Límite: 0,1 % no ve un cambio muy chico (p. ej. un color en un botón diminuto); bajar `--threshold` si hace falta.
-- `web-ajustes-mobile-*` salen del CI (artifact `visual-diffs`): los títulos en negrita de la fuente del sistema se dibujan distinto en macOS 27 (local) y en el runner; en local esas dos pueden dar ~0,5 %.
+- Regrabar una pantalla: `node scripts/visual.mjs --update --only <x>`.
