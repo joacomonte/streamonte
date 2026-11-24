@@ -37,12 +37,17 @@ export function playerStep(d: Device): Step {
 	return { icon: 'phone', ...player };
 }
 
+/** Los pasos de idioma de la bienvenida (app y títulos), iguales en web y desktop. */
+export const langSteps = (): Step[] => [
+	{ icon: 'globe', title: t('Idioma de la app'), body: '', picker: 'app' },
+	{ icon: 'film', title: t('Títulos de películas y series'), body: t('Elegí en qué idioma ver sus nombres: tocá y mirá el póster.'), picker: 'titles' }
+];
+
 /** Bienvenida: apodo, idiomas y qué es (con qué verlo en el celu y la tele va al copiar un video). */
 export function welcomeSteps(): Step[] {
 	return [
 		nickStep(),
-		{ icon: 'globe', title: t('Idioma de la app'), body: '', picker: 'app' },
-		{ icon: 'film', title: t('Títulos de películas y series'), body: t('Elegí en qué idioma ver sus nombres: tocá y mirá el póster.'), picker: 'titles' },
+		...langSteps(),
 		{ icon: 'play', logo: true, title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio, copiás el link y lo mirás al instante, en el celu o en la tele.') },
 	];
 }
