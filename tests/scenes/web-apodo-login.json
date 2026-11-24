@@ -1,0 +1,29 @@
+{
+ "app": "web",
+ "apodo": false,
+ "storage": {
+  "tour:welcome": "1"
+ },
+ "url": "/",
+ "note": "Joaco lo crea scripts/lib/web-apodo.mjs con yaguarete + okapi. Un error deja esperar 15 s (servidor) y después el código bueno entra.",
+ "setup": [
+  { "type": "#nick-nick", "text": "Joaco" },
+  { "click": "#nick-nick-go" },
+  { "waitFor": "#animal-grid" },
+  { "click": "#animal-condor" },
+  { "click": "#animal-tucan" },
+  { "scroll": "#animal-credit" },
+  { "click": "#animal-done" },
+  { "waitText": "No son esos" },
+  { "waitText": "Esperá" },
+  { "wait": 15500 },
+  { "click": "#animal-yaguarete" },
+  { "click": "#animal-okapi" },
+  { "scroll": "#animal-credit" },
+  { "click": "#animal-done" },
+  { "waitFor": ".hello" }
+ ],
+ "must": [
+  { "sel": ".hello", "text": "Joaco" }
+ ]
+}

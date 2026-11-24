@@ -1,8 +1,5 @@
 {
  "app": "web",
- "cookies": {
-  "nick": "Test"
- },
  "storage": {
   "tour:welcome": "1"
  },

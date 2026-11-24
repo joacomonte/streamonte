@@ -1,13 +1,14 @@
 import { Fail, route } from '#lib/server/http.ts';
 import { dismiss, list, mark, parseSeen, setTmdb, type Seen } from '#lib/server/vistos.ts';
 import { tmdbOf } from '#lib/server/tmdb.ts';
-import { cleanNick } from '#lib/nick.ts';
+import { verifiedNick } from '#lib/server/apodo-session.ts';
 
-// "Vistos recientemente" del apodo de la cookie `nick` (la web la pone en la bienvenida; el desktop la manda con el código).
+// "Vistos recientemente" del apodo verificado (cookie firmada `apodo`, la pone /api/nick al crear o acertar el código).
+// Sin apodo verificado: lista vacía y no guarda nada.
 // GET: la fila. POST `{ action: 'mark' | 'restore', item }` o `{ action: 'visto' | 'olvidar', kind, imdb }`.
 // Los que marcó el desktop vienen sin `tmdb`: se resuelve desde el IMDb id (y se guarda); si TMDB no lo conoce, no salen.
 export const GET = route(async ({ cookies }) => {
-	const apodo = cleanNick(cookies.get('nick')).nick ?? null;
+	const apodo = await verifiedNick((n) => cookies.get(n));
 	const seen = await list(apodo);
 	const found = await Promise.all(seen.map(async (s): Promise<Seen | null> => {
 		if (s.tmdb) return s;
@@ -20,7 +21,7 @@ export const GET = route(async ({ cookies }) => {
 });
 
 export const POST = route(async ({ request, cookies }) => {
-	const apodo = cleanNick(cookies.get('nick')).nick ?? null;
+	const apodo = await verifiedNick((n) => cookies.get(n));
 	const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
 	const action = body?.action;
 	if (action === 'mark' || action === 'restore') await mark(apodo, parseSeen(body?.item), action === 'restore');

@@ -2,7 +2,7 @@
 // El dispositivo es un id al azar en la cookie `dev` (la pone hooks.server.js); sin DATABASE_URL no registra nada.
 import { neon } from '@neondatabase/serverless';
 import type { RequestEvent } from '@sveltejs/kit';
-import { cleanNick } from '../nick.ts';
+import { verifiedNick } from './apodo-session.ts';
 
 let db: ReturnType<typeof neon> | null = null;
 export const sql = () => (db ??= process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null);
@@ -22,8 +22,8 @@ export async function track(event: RequestEvent, accion: string, dato?: string, 
 	const version = h.get('sec-ch-ua-platform-version')?.replace(/"/g, '').split('.')[0];
 	const platform = h.get('sec-ch-ua-platform')?.replace(/"/g, '');
 	const modelo = model ? `${model}${platform && version ? ` · ${platform} ${version}` : ''}`.slice(0, 80) : null;
-	// Apodo: el de la cookie; sin cookie (play.html, en otro navegador), el último conocido de ese dispositivo.
-	const apodo = cleanNick(event.cookies.get('nick')).nick ?? null;
+	// Apodo: el verificado (cookie firmada `apodo`); sin él (play.html, en otro navegador), el último conocido de ese dispositivo.
+	const apodo = await verifiedNick((n) => event.cookies.get(n));
 	try {
 		await q`INSERT INTO eventos (dispositivo, equipo, accion, dato, lugar, apodo, zona, modelo)
 			VALUES (${dev}, ${equipo}, ${accion.slice(0, 40)}, ${dato?.slice(0, 300) ?? null}, ${lugar},

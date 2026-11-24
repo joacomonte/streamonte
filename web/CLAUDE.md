@@ -4,13 +4,14 @@ Web de Streamonte (celu/tele): catálogo → torrents en caché de TorBox → li
 ## Para X → andá a Y
 - Páginas y endpoints → `src/routes/CLAUDE.md`. Cliente (componentes, `webApi`) → `src/lib/CLAUDE.md`. Servidor (TMDB, TorBox, subs) → `src/lib/server/CLAUDE.md`.
 - Candado, cookies, idioma → `src/hooks.server.ts`. CSS → `src/app.css` (importa `packages/ui/css`).
-- Tablas Neon (`eventos`, `intentos`) → `db/schema.sql`. Adapter Vercel/node, alias `$ui` → `vite.config.ts`.
+- Tablas Neon (`eventos`, `intentos`, `vistos`, `apodos`) → `db/schema.sql`. Adapter Vercel/node, alias `$ui` → `vite.config.ts`.
 
 ## Deploy
 Proyecto `streamonte-web` linkeado en la RAÍZ del monorepo (Root Directory=`web`); `vercel` se corre desde la raíz, no desde `web/`. Receta con preview + `promote`: `scripts/CLAUDE.md`. `.vercelignore` sube `web/`, `packages/` y lo mínimo del workspace (raíz + `ui/package.json`).
 
 ## Env vars
-Solo nombres, nunca valores ni prefijo público: `cut -d= -f1 web/.env.local`. Sin `DATABASE_URL` no hay tracking; sin `APP_PASSWORD` no hay candado.
+Solo nombres, nunca valores ni prefijo público: `cut -d= -f1 web/.env.local`. Sin `DATABASE_URL` no hay tracking (y los códigos de apodo quedan en memoria del proceso); sin `APP_PASSWORD` no hay candado.
+- `APODO_SECRET`: firma la cookie de sesión del apodo (`apodo`). Obligatorio en Vercel (sin él no se puede entrar con apodo); en local, uno al azar por proceso. Cambiarlo cierra todas las sesiones (los códigos siguen).
 
 ## Trampas
 - Node 24, type stripping: imports con `.ts`, sin `enum`/`namespace`/parameter properties, `import type` explícito.
