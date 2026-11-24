@@ -6,6 +6,8 @@ Tarjetas y animaciones compartidas de los pasos de elegir un video.
 - Tarjeta de un paso → `FlowChoice.svelte`, `FlowChoices.svelte`, `FlowTile.svelte`; migas → `FlowCrumbs.svelte`; animación de búsqueda → `FlowSearching.svelte`, `FlowRadar.svelte`.
 - Chips LAT (seguras / a revisar / tarda más) → `lat-chips.ts`. Entrada escalonada → `step-in.ts`.
 
+- Tabla de conexión y `fitsNet` → `net.ts`. Reglas de match (`isMatch`, `needsReading`, `latPotential`, `latFirst`) → `match-rules.ts` (test: `match-rules.test.ts`). Fila "Seguir buscando" / Detener → `MoreRow.svelte` (`look` 'row' web, 'cat' desktop).
+
 ## Relación
 Solo dibuja: la máquina de pasos NO está acá (desktop `ui/src/catalog-flow.ts`; web `web/src/lib/Torrents.svelte`; unificarlas es N3-flow).
 

@@ -14,6 +14,7 @@ import { rowsOf } from './catalog-options.ts';
 import { quickAnalyze, side, sideOf } from './catalog-tests.ts';
 import { showError } from './catalog-state.ts';
 import { mountSubsStep } from './mount-shared.ts';
+import { sxe } from '../../packages/ui/src/format.ts';
 import type { SubtitleOption } from '../../packages/ui/src/types.ts';
 import type { SubtitleFile } from '../../packages/ui/src/api.ts';
 import type { UiError } from './types.ts';
@@ -150,7 +151,7 @@ async function usedFound(sub: SubtitleOption, file: SubtitleFile): Promise<void>
 /** Copia uno ya bajado a Descargas (`<título> (subtítulos)`) y abre la carpeta. */
 async function saveSub(sub: SubtitleOption): Promise<void> {
   const [, s, e] = (side().videoId ?? '').split(':');
-  const title = `${side().name ?? tr('Video')}${s ? ` S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : ''}`;
+  const title = `${side().name ?? tr('Video')}${s ? ` ${sxe(s, e)}` : ''}`;
   try {
     await core.saveSubtitles(title, [{ path: sub.path ?? '', name: `ES - ${sub.release}` }]);
     setStatus(tr('Subtítulo guardado en Descargas.'));

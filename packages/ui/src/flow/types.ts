@@ -29,3 +29,9 @@ export type FlowChoiceProps = {
 
 /** Migas: lo elegido hasta ahora; las que tienen `onclick` vuelven a ese paso. */
 export type FlowCrumb = { id: string | null; label: string; onclick: (() => void) | null; title?: string | null };
+
+/** Al pie de lo que se ve: búsqueda de pistas en curso (`small`: el avance "{a} de {n}"), ya no hay más, o "Seguir buscando". */
+export type MoreRowView =
+	| { kind: 'running'; text: string; small?: string; stop: string; onstop: () => void }
+	| { kind: 'done'; found: boolean; text: string }
+	| { kind: 'more'; title: string; small: string | null; onclick: () => void };
