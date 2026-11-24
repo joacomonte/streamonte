@@ -126,6 +126,21 @@ fn id_list(ids: &[String]) -> String {
     format!("[{}]", ok.join(","))
 }
 
+/// Terror: "Todos" y sus subgéneros (`packages/ui/src/catalog/subgenres.ts`). Con solo estos elegidos no entran las comedias.
+const HORROR: [&str; 11] = [
+    "in0000112",
+    "in0000114",
+    "in0000117",
+    "in0000109",
+    "in0000110",
+    "in0000115",
+    "in0000113",
+    "in0000122",
+    "in0000111",
+    "in0000119",
+    "in0000121",
+];
+
 fn constraints(q: &InterestQuery) -> String {
     let mut c = vec![
         format!(
@@ -141,6 +156,9 @@ fn constraints(q: &InterestQuery) -> String {
             q.from, q.to
         ),
     ];
+    if !q.interests.is_empty() && q.interests.iter().all(|i| HORROR.contains(&i.as_str())) {
+        c.push(r#"genreConstraint: { excludeGenreIds: ["Comedy"] }"#.into());
+    }
     if q.min_votes > 0 {
         c.push(format!(
             "userRatingsConstraint: {{ ratingsCountRange: {{ min: {} }} }}",
