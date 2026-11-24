@@ -122,7 +122,7 @@ export async function current(store: Store, apodo: string, version: number): Pro
 	return !!row && row.creado.getTime() === version;
 }
 
-/** Alerta del admin: más de `ALERT_FAILS` fallos sin acertar ni resetear, y alguno después de marcarla como vista. */
+/** Alerta del admin: más de `ALERT_FAILS` fallos sin resetear el código (acertar no los borra: la espera es `esperaHasta`), y alguno después de marcarla como vista. */
 export const isAlert = (r: Pick<Row, 'fallos' | 'vistaFallos'>) => r.fallos > ALERT_FAILS && r.fallos > r.vistaFallos;
 
 // ── en memoria (sin DATABASE_URL)
@@ -147,7 +147,7 @@ export function memoryStore(now: () => number = Date.now): Store {
 		},
 		async success(a) {
 			const r = rows.get(a);
-			if (r) Object.assign(r, { fallos: 0, vistaFallos: 0, esperaHasta: null });
+			if (r) r.esperaHasta = null;
 		},
 		async failure(a) {
 			const r = rows.get(a);
@@ -198,7 +198,7 @@ function neonStore(q: NonNullable<ReturnType<typeof sql>>): Store {
 			const [w] = (await d`SELECT ceil(extract(epoch FROM espera_hasta - now()))::int AS wait FROM apodos WHERE apodo = ${a}`) as { wait: number | null }[];
 			return w ? { wait: Math.max(1, w.wait ?? 1) } : null;
 		},
-		success: async (a) => void (await (await db())`UPDATE apodos SET fallos = 0, vista_fallos = 0, espera_hasta = NULL WHERE apodo = ${a}`),
+		success: async (a) => void (await (await db())`UPDATE apodos SET espera_hasta = NULL WHERE apodo = ${a}`),
 		failure: async (a) =>
 			void (await (await db())`UPDATE apodos SET fallos = fallos + 1, ultimo_fallo = now(),
 				espera_hasta = now() + make_interval(secs => ${WAIT_SECONDS}) WHERE apodo = ${a}`),

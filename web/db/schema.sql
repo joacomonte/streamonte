@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS vistos (
 -- lo crea). `hash`: scrypt del código con `sal` (nunca en claro). `ayuda`: las 12 cartas del login (los 2 + 10 señuelos,
 -- posiciones en packages/ui/src/animals/animals.ts), fijas. `creado` versiona la sesión firmada (cookie `apodo`): resetear
 -- (borrar la fila) cierra las sesiones. `espera_hasta`: 15 s después de un error no se acepta otro intento. `fallos`
--- vuelve a 0 al acertar; /admin alerta con más de 3 y `vista_fallos` guarda cuántos había al marcar la alerta como vista.
+-- no baja al acertar (solo al resetear): /admin alerta con más de 3 y `vista_fallos` guarda cuántos había al marcar la alerta como vista.
 CREATE TABLE IF NOT EXISTS apodos (
 	apodo text PRIMARY KEY, hash text NOT NULL, sal text NOT NULL, ayuda smallint[] NOT NULL,
 	creado timestamptz NOT NULL DEFAULT now(), fallos integer NOT NULL DEFAULT 0, ultimo_fallo timestamptz,

@@ -77,10 +77,11 @@ test('espera: después de un error se rechaza todo intento por 15 s (también el
 	assert.equal((await s.get('Bea'))?.fallos, 7);
 	const ok = await enter(s, 'Bea', [5, 6], 'login');
 	assert.ok(ok.ok);
-	assert.equal((await s.get('Bea'))?.fallos, 0);
+	assert.equal((await s.get('Bea'))?.fallos, 7);
+	assert.equal((await s.get('Bea'))?.esperaHasta, null);
 });
 
-test('alerta: con más de 3 fallos; vista se va hasta un fallo nuevo; acertar o resetear la borra', async () => {
+test('alerta: con más de 3 fallos; vista se va hasta un fallo nuevo; acertar no la borra, resetear sí', async () => {
 	let now = 0;
 	const s = memoryStore(() => now);
 	await enter(s, 'Cata', [0, 1], 'nuevo');
@@ -96,14 +97,27 @@ test('alerta: con más de 3 fallos; vista se va hasta un fallo nuevo; acertar o 
 	assert.equal((await s.alerts()).length, 0);
 	await fail();
 	assert.equal((await s.alerts()).length, 1);
-	await enter(s, 'Cata', [0, 1], 'login');
-	assert.equal((await s.alerts()).length, 0);
-	for (let n = 0; n < 4; n++) await fail();
+	for (let n = 0; n < 3; n++) await fail();
 	assert.equal((await s.alerts()).length, 1);
 	await s.reset('Cata');
 	assert.equal((await s.alerts()).length, 0);
 	assert.equal((await ask(s, 'Cata')).mode, 'nuevo');
 	assert.ok(isAlert({ fallos: 4, vistaFallos: 0 }) && !isAlert({ fallos: 3, vistaFallos: 0 }));
+});
+
+test('alerta: 4 fallos y después un acierto, la alerta sigue (y el acierto no espera)', async () => {
+	let now = 0;
+	const s = memoryStore(() => now);
+	await enter(s, 'Fede', [0, 1], 'nuevo');
+	for (let n = 0; n < 4; n++) {
+		await enter(s, 'Fede', [1, 0], 'login');
+		now += 15_000;
+	}
+	assert.ok((await enter(s, 'Fede', [0, 1], 'login')).ok);
+	assert.deepEqual((await s.alerts()).map((r) => [r.apodo, r.fallos]), [['Fede', 4]]);
+	assert.equal((await ask(s, 'Fede', now)).wait, 0);
+	await s.markSeen('Fede');
+	assert.equal((await s.alerts()).length, 0);
 });
 
 test('sesión: firma que no se puede forjar y que vence al resetear el código', async () => {
