@@ -14,6 +14,7 @@ import { quickAnalyze, side, sideOf, startAnalysis, stopTests, unlikely } from '
 import { scanSecs, SWARM_PARALLEL, SWARM_SECS } from './options-logic.ts';
 import { latRank } from '$ui/audio.ts';
 import type { TileSpec } from '$ui/flow/types.ts';
+import { latChips } from '$ui/flow/lat-chips.ts';
 import type { ChoiceView, CrumbsView, FlowButton, FlowView, MoreRowView } from './streams-view.ts';
 import type { StreamCandidate as Candidate, StreamsUpdate } from './types.js';
 
@@ -207,7 +208,7 @@ async function pickRes(r: string): Promise<void> {
 
 // ---------- vista ----------
 const choice = (id: string, tile: TileSpec, tone: string, i: number, title: string, sub: string, onclick: () => void, more: Partial<ChoiceView> = {}): ChoiceView => ({
-	id, tile, tone, i, title, sub, onclick, note: null, badge: null, disabled: false, primary: false, ...more,
+	id, tile, tone, i, title, sub, onclick, note: null, badge: null, chips: null, disabled: false, primary: false, ...more,
 });
 const button = (id: string, icon: FlowButton['icon'], text: string, onclick: () => void, more: Partial<FlowButton> = {}): FlowButton => ({
 	id, icon, text, onclick, small: null, title: null, count: null, ...more,
@@ -380,13 +381,10 @@ function latScreen(): FlowView {
 	const named = potential.filter((c) => latOf(c) === 'lat').length;
 	const doubtful = potential.length - named;
 	const left = toConfirm(p, true).length;
+	// Variante A (docs/mockups/audio-latino): chips en vez de texto; el detalle queda en el `title` de cada uno.
 	const how = f.mode === 'torbox' ? tr('de a una, de mejor a peor calidad') : tr('de a {SWARM_PARALLEL}, en la calidad que elijas', { SWARM_PARALLEL });
-	const yesSub = none
-		? tr('No hay torrents con audio latino')
-		: [named ? tr('{named} {a} en el nombre', { named, a: named === 1 ? tr('lo dice') : tr('lo dicen') }) : null, doubtful ? tr('{doubtful} {a} (MULTI / Dual)', { doubtful, a: doubtful === 1 ? tr('dudosa') : tr('dudosas') }) : null]
-				.filter((x): x is string => !!x)
-				.concat(left ? tr('reviso {how}, hasta encontrar latino', { how }) : [])
-				.join(' · ');
+	const yesChips = latChips(named, doubtful, left > 0, tr('Las reviso {how} hasta encontrar latino', { how }));
+	const yesSub = none ? tr('No hay torrents con audio latino') : yesChips.map((c) => c.title ?? c.text).join(' · ');
 	// Por torrent se elige la calidad (y la búsqueda de latino arranca ahí, `pickRes`); por TorBox se busca ya el mejor match.
 	const pick = (lat: boolean) => (): void => {
 		Object.assign(f, { lat, step: hasResStep() ? 'res' : 'list' });
@@ -394,17 +392,13 @@ function latScreen(): FlowView {
 		if (hasResStep()) renderStreamsOnly();
 		else void runScan();
 	};
-	const origSub = f.mode === 'torbox' ? tr('El idioma en que se filmó · busco la primera que traiga subtítulos en español adentro')
-		: tr('El idioma en que se filmó, sin preguntar al reproducir · sigo directo a elegir la calidad');
+	const origSub = f.mode === 'torbox' ? tr('Con subtítulos en español') : tr('El idioma en que se filmó');
 	return {
 		kind: 'choices', ...screenOf(tr('¿Necesitás audio latino?')),
 		choices: [
 			choice('cat-flow-lat-no', WAVE, ACCENT, 0, tr('Audio original'), origSub, pick(false)),
 			// El latino suele venir en releases más livianos: que no sorprenda no encontrarlo en 4K.
-			choice('cat-flow-lat-yes', { kind: 'bubble', text: 'LAT' }, GREEN, 1, tr('Solo audio latino'), yesSub, pick(true), {
-				note: none ? null : tr('Ojo: el audio latino suele venir en menor resolución (1080p o 720p); en 4K es raro.'),
-				badge: left ? tr('Demora más') : null, disabled: none,
-			}),
+			choice('cat-flow-lat-yes', { kind: 'bubble', text: 'LAT' }, GREEN, 1, tr('Audio latino'), yesSub, pick(true), { chips: none ? null : yesChips, disabled: none }),
 		],
 	};
 }

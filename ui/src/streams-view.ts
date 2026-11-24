@@ -1,7 +1,7 @@
 // Modelo de vista del panel de opciones del desktop (`#cat-streams`): lo arman `catalog-options.ts` (lista, análisis, filtros)
 // y `catalog-flow.ts` (pasos); lo dibujan `StreamsPanel.svelte`, `FlowScreen.svelte` y sus partes. Textos ya traducidos.
 import type { IconName } from '$ui/components/icons.ts';
-import type { FlowCrumb, TileSpec } from '$ui/flow/types.ts';
+import type { FlowChip, FlowCrumb, TileSpec } from '$ui/flow/types.ts';
 import type { OptionRowView } from '$ui/options/row.ts';
 
 export type Click = (ev: MouseEvent & { currentTarget: HTMLButtonElement }) => void;
@@ -26,6 +26,7 @@ export type ChoiceView = {
 	sub: string;
 	note: string | null;
 	badge: string | null;
+	chips: FlowChip[] | null;
 	disabled: boolean;
 	primary: boolean;
 	onclick: () => void;

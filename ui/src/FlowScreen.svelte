@@ -23,7 +23,7 @@
 {#snippet choices(list: ChoiceView[])}
 	<FlowChoices even={list.length <= 3 && list.length > 1}>
 		{#each list as c (c.id)}
-			<FlowChoice id={c.id} title={c.title} sub={c.sub} tile={c.tile} tone={c.tone} i={c.i} badge={c.badge} note={c.note} primary={c.primary} disabled={c.disabled} onclick={c.onclick} />
+			<FlowChoice id={c.id} title={c.title} sub={c.sub} tile={c.tile} tone={c.tone} i={c.i} badge={c.badge} note={c.note} chips={c.chips} primary={c.primary} disabled={c.disabled} onclick={c.onclick} />
 		{/each}
 	</FlowChoices>
 {/snippet}

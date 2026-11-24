@@ -30,7 +30,7 @@ export function mountCatalog(api: Api): void {
 		target,
 		context: apiContext(api),
 		props: {
-			store, top, pinned: true, cardMin: 170, onsettings: openSettings, onneedskey: askTmdbKey, onmagnet: pasteMagnet,
+			store, top, pinned: true, cardMin: 230, onsettings: openSettings, onneedskey: askTmdbKey, onmagnet: pasteMagnet,
 			onopen: (it) => openSide(rawKind(it.kind), it.id, it.title)
 		}
 	});

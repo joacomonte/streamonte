@@ -14,6 +14,7 @@
 	import FlowRadar from '$ui/flow/FlowRadar.svelte';
 	import FlowSearching from '$ui/flow/FlowSearching.svelte';
 	import { stepIn } from '$ui/flow/step-in.ts';
+	import { latChips } from '$ui/flow/lat-chips.ts';
 	import { casterFor, castSteps, device } from '$ui/components/tours.ts';
 	import * as saved from './saved.ts';
 	import { loc, t as tr } from './i18n.svelte.ts';
@@ -544,16 +545,14 @@
 					<h3 class="ask">{tr('¿Necesitás audio latino?')}</h3>
 					<FlowChoices even>
 						<!-- Mismas tarjetas con ícono que la conexión: el parlante late, el latino entra con un saludo. -->
-						<FlowChoice id="audio-any" title={tr('Audio original')} sub={tr('{n} opciones · busco una con subtítulos en español', { n: all.length })} tile={{ kind: 'wave' }} tone="var(--accent-fg)" i={0} onclick={() => chooseAudio(false)} />
+						<!-- Variante A (docs/mockups/audio-latino): chips en vez de texto; el detalle va en el title de cada uno. -->
+						{@const chips = latChips(named, maybe - named, toRead > 0, tr('Las reviso de a una hasta encontrar latino'))}
+						<FlowChoice id="audio-any" title={tr('Audio original')} sub={tr('Con subtítulos en español')} tile={{ kind: 'wave' }} tone="var(--accent-fg)" i={0} onclick={() => chooseAudio(false)} />
 						<FlowChoice
 							id="audio-lat"
-							title={tr('Solo audio latino')}
-							badge={toRead ? tr('Demora más') : null}
-							sub={!maybe
-								? tr('No hay torrents con audio latino')
-								: !toRead
-									? tr(named === 1 ? '1 opción lo tiene seguro' : '{n} opciones lo tienen seguro', { n: named })
-									: tr(maybe === 1 ? '1 opción podría tenerlo · la reviso por vos' : 'Hasta {n} opciones podrían tenerlo · las reviso por vos', { n: maybe })}
+							title={tr('Audio latino')}
+							chips={maybe ? chips : null}
+							sub={!maybe ? tr('No hay torrents con audio latino') : chips.map((c) => c.title ?? c.text).join(' · ')}
 							tile={{ kind: 'bubble', text: 'LAT' }}
 							tone="var(--green)"
 							i={1}

@@ -21,10 +21,13 @@
 	const st = $derived(store.st);
 
 	const applied = $derived(categoryOf(st.f.genre));
+	const appliedSubs = $derived(applied ? applied.subs.filter((x) => st.f.subs.includes(x.id)).map((x) => x.label) : []);
+	/** Hasta 2 subgéneros con nombre; con más, el primero y el resto en un círculo ("Terror · Psicológico (+8)"). */
+	const SHOWN = 2;
+	const shownSubs = $derived(appliedSubs.length > SHOWN ? appliedSubs.slice(0, 1) : appliedSubs);
+	const moreSubs = $derived(appliedSubs.length - shownSubs.length);
 	/** Texto del botón: "Terror" o "Terror · Folk, Slasher". */
-	const appliedText = $derived(
-		applied ? [applied.label, applied.subs.filter((x) => st.f.subs.includes(x.id)).map((x) => x.label).join(', ')].filter(Boolean).join(' · ') : ''
-	);
+	const appliedText = $derived(applied ? [applied.label, shownSubs.join(', ')].filter(Boolean).join(' · ') : '');
 
 	let open = $state(false);
 	/** Género que se está mirando (el aplicado al abrir) y sus subgéneros marcados (borrador hasta "Listo"). */
@@ -144,6 +147,7 @@
 		{#if applied}
 			<span class="art" style:--h={genreArt(applied.art).hue} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{@html genreArt(applied.art).svg}</svg></span>
 			<span class="t-text">{appliedText}</span>
+			{#if moreSubs}<span id="cat-genre-more" class="more" aria-label={t('{n} más', { n: moreSubs })}>+{moreSubs}</span>{/if}
 		{:else}
 			<Icon name="tag" size={16} /><span class="t-text">{t('Géneros')}</span>
 		{/if}
@@ -261,6 +265,8 @@
 	.trigger:active { scale: 0.96; }
 	.trigger.on { color: var(--text); background: color-mix(in srgb, var(--accent) 16%, var(--surface-2)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent-fg) 60%, transparent); }
 	.t-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.more { flex: none; display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 750; font-variant-numeric: tabular-nums; animation: more-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+	@keyframes more-pop { from { transform: scale(0); } }
 	.art { display: inline-flex; color: oklch(0.74 0.14 var(--h)); }
 	@media (prefers-color-scheme: light) { .art { color: oklch(0.52 0.15 var(--h)); } }
 	.clear { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--muted); }

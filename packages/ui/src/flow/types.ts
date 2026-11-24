@@ -5,6 +5,10 @@ import type { IconName } from '../components/icons.ts';
 /** Ícono de la tarjeta: barras de conexión (1-4 encendidas), parlante que late, globo con texto (LAT/ES), lista animada ("Ver todas") o ícono común. */
 export type TileSpec = { kind: 'net'; level: 1 | 2 | 3 | 4 } | { kind: 'wave' } | { kind: 'bubble'; text: string } | { kind: 'list' } | { kind: 'icon'; icon: IconName };
 
+/** Dato corto de una tarjeta en vez de texto (2026-11-23, variante A de docs/mockups/audio-latino): seguras (✓), a revisar
+ * (lupa), tarda más (reloj) o la resolución típica. `title`: el detalle al pasar el mouse. */
+export type FlowChip = { kind: 'ok' | 'maybe' | 'slow' | 'res'; text: string; title?: string | null };
+
 /** Tarjeta de un paso. `tone`: color CSS del ícono (p. ej. 'var(--green)'); `i`: orden para la entrada escalonada. */
 export type FlowChoiceProps = {
 	id: string;
@@ -15,6 +19,8 @@ export type FlowChoiceProps = {
 	i: number;
 	badge?: string | null;
 	note?: string | null;
+	/** Con chips, reemplazan a `sub` (que queda como texto para lectores de pantalla). */
+	chips?: FlowChip[] | null;
 	primary?: boolean;
 	picked?: boolean;
 	disabled?: boolean;
