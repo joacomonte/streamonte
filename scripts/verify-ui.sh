@@ -1,8 +1,8 @@
 #!/bin/sh
 # Verificación de UI en una pasada: contratos de pantalla + regresión visual, con un solo vite por app.
 #   sh scripts/verify-ui.sh [--changed|--all]    # --changed (por defecto con cambios) = solo la app tocada; --all = las dos
-# Toma el lock de tareas pesadas (scripts/lib/heavy-lock.sh), levanta desktop-mock y web (con HTTP_FIXTURES, TMDB_KEY y
-# APP_PASSWORD vacíos) una sola vez, corre `contracts.sh` y después `visual.mjs` contra esos mismos servers.
+# Toma el lock de tareas pesadas (scripts/lib/heavy-lock.sh), levanta desktop-mock y web (con HTTP_FIXTURES y
+# APP_PASSWORD vacío; TMDB_KEY de .env.local como contracts.sh: sin key la home no muestra el catálogo) una sola vez, corre `contracts.sh` y después `visual.mjs` contra esos mismos servers.
 # La web de visual (fixtures de tests/visual/fixtures/web, interceptadas en el navegador) y la de contratos
 # (HTTP_FIXTURES en el server) comparten server: investigado 2026-11-24, las 6 capturas web dan 0,000 % de diferencia.
 # No graba ni regraba nada: para eso `node scripts/visual.mjs --update --only <x>` (baselines) o `--record` (fixtures).
@@ -35,7 +35,7 @@ case " $APPS " in *" ui "*)
 esac
 case " $APPS " in *" web "*)
   p=$(port); WEB_URL="http://127.0.0.1:$p"
-  (cd web && TMDB_KEY="" APP_PASSWORD="" HTTP_FIXTURES="$PWD/../tests/fixtures/web-http" exec node node_modules/vite/bin/vite.js dev --port "$p" --strictPort --host 127.0.0.1 >"$tmp/web.log" 2>&1) & pids="$pids $!"
+  (cd web && APP_PASSWORD="" HTTP_FIXTURES="$PWD/../tests/fixtures/web-http" exec node node_modules/vite/bin/vite.js dev --port "$p" --strictPort --host 127.0.0.1 >"$tmp/web.log" 2>&1) & pids="$pids $!"
   waitfor "$WEB_URL/" ;;
 esac
 
