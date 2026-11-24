@@ -8,8 +8,8 @@ export interface KeysAdapter {
 	status(): Partial<Record<string, boolean>>;
 	/** Guarda la key (ya recortada) y actualiza `status()`. Devuelve el texto de confirmación; sin él, "¡{nombre} conectada!". */
 	set(service: string, value: string): Promise<string | void>;
-	/** Borra la key y actualiza `status()`. Sin esto no hay botón "Borrar". */
-	remove?(service: string): Promise<void>;
+	/** Borra la key y actualiza `status()`; `false` = se canceló (el form no toca nada). Sin esto no hay botón "Borrar". */
+	remove?(service: string): Promise<boolean | void>;
 }
 
 export const SAVED_MS = 1800;
@@ -31,6 +31,13 @@ export function createKeysForm(adapter: KeysAdapter) {
 		canRemove: !!adapter.remove,
 		has: (service: string): boolean => !!adapter.status()[service],
 		isEditing: (service: string): boolean => editing.includes(service),
+		/** Vuelve al estado inicial (al reabrir Ajustes): nada en edición, nada tipeado, sin mensajes. */
+		reset(): void {
+			typed = {};
+			editing = [];
+			saved = null;
+			error = null;
+		},
 		/** Abre/cierra el reemplazo; al cerrar descarta lo tipeado. */
 		async toggle(service: string): Promise<void> {
 			const opening = !editing.includes(service);
@@ -64,7 +71,7 @@ export function createKeysForm(adapter: KeysAdapter) {
 			busy = service;
 			error = null;
 			try {
-				await adapter.remove(service);
+				if ((await adapter.remove(service)) === false) return;
 				typed[service] = '';
 				editing = editing.filter((s) => s !== service);
 			} catch (e) {

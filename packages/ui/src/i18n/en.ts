@@ -913,6 +913,7 @@ const EN: Record<string, string> = {
 	"la key de OpenSubtitles.com": "the OpenSubtitles.com key",
 	"la key de TMDB": "the TMDB key",
 	"la key de TorBox": "the TorBox key",
+	"la key de Wyzie Subs": "the Wyzie Subs key",
 	"opensubtitles.com no dio el subtítulo.": "opensubtitles.com didn’t return the subtitle.",
 	"opensubtitles.com rechazó el usuario o la contraseña: revisalos en Ajustes.": "opensubtitles.com rejected the username or password: check them in Settings.",
 	"opensubtitles.com rechazó la key: revisala en Ajustes.": "opensubtitles.com rejected the key: check it in Settings.",

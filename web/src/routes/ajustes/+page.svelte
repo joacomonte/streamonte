@@ -26,7 +26,7 @@
 	let wiping = $state(false);
 	const loginSaved = $derived(!!(status?.opensubtitles_user && status?.opensubtitles_pass));
 
-	async function post(body: Record<string, string>): Promise<Status> {
+	async function post(body: Record<string, string | undefined>): Promise<Status> {
 		const r = await fetch('/api/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 		const j = await r.json();
 		if (!r.ok) throw new Error(j.message);
@@ -41,7 +41,7 @@
 			if (!(await confirmDialog(t('Borrar'), t('¿Borrar {x}?', { x: t(NAMES[service]) }), [
 				{ id: 'confirm-cancel', label: t('Cancelar'), value: false },
 				{ id: 'confirm-ok', label: t('Borrar'), value: true, primary: true, danger: true },
-			]))) return;
+			]))) return false;
 			status = await post({ [service]: '' });
 		}
 	});
@@ -54,7 +54,7 @@
 		loginBusy = true;
 		loginMsg = '';
 		try {
-			status = await post({ opensubtitles_user: osUser, opensubtitles_pass: osPass });
+			status = await post({ opensubtitles_user: osUser || undefined, opensubtitles_pass: osPass || undefined });
 			osUser = osPass = '';
 			loginOpen = false;
 			loginMsg = t('Guardado.');
@@ -69,8 +69,13 @@
 			{ id: 'confirm-cancel', label: t('Cancelar'), value: false },
 			{ id: 'confirm-ok', label: t('Borrar'), value: true, primary: true, danger: true },
 		]))) return;
-		loginOpen = false;
-		status = await post({ opensubtitles_user: '', opensubtitles_pass: '' });
+		loginMsg = '';
+		try {
+			status = await post({ opensubtitles_user: '', opensubtitles_pass: '' });
+			loginOpen = false;
+		} catch (err) {
+			loginMsg = (err as Error).message;
+		}
 	}
 
 	// Apodo: mismo validador que la bienvenida (lib/nick.ts).

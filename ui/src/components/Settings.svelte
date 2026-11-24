@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import Icon from '$ui/components/Icon.svelte';
   import Sheet from '$ui/components/Sheet.svelte';
+  import { confirmDialog } from '$ui/components/confirm-queue.ts';
   import Idioma from '$ui/settings/Idioma.svelte';
   import KeyField from '$ui/settings/KeyField.svelte';
   import { createKeysForm } from '$ui/settings/keys-form.svelte.ts';
@@ -26,6 +27,7 @@
     torbox: 'Con tu cuenta de TorBox, marca las opciones que ya tiene en su caché: se pueden ver al instante desde sus servidores, sin depender de los seeds.',
     opensubtitles: 'Para "Buscar en Premium" en los subtítulos: cuenta gratis, 20 descargas por día.'
   };
+  const NAMES: Record<string, string> = { tmdb: 'la key de TMDB', torbox: 'la key de TorBox', opensubtitles: 'la key de OpenSubtitles.com', wyzie: 'la key de Wyzie Subs' };
   const COMMON: Row[] = COMMON_KEYS.map((k) => ({ service: k.service, label: k.name, hint: k.hint, tip: TIPS[k.service], placeholder: k.placeholder, primary: k.service !== 'opensubtitles' }));
   const WYZIE: Row = { service: 'wyzie', label: 'Wyzie Subs', placeholder: 'Pegá la key', hint: 'Gratis · 1000 por día' };
   const EQ: { id: Raw.Equalizer; label: string; note: string }[] = [
@@ -53,7 +55,6 @@
   const configured = (service: string): boolean => keys.some((k) => k.service === service && k.configured);
   const latteamHas = $derived(configured('latteam'));
   const eqNote = $derived(EQ.find((o) => o.id === eq)?.note ?? '');
-  const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
   function setConfigured(service: string, on: boolean): void {
     keys = keys.some((k) => k.service === service) ? keys.map((k) => (k.service === service ? { ...k, configured: on } : k)) : [...keys, { service, configured: on }];
@@ -70,6 +71,11 @@
       return r.done;
     },
     remove: async (service) => {
+      const ok = await confirmDialog(t('Borrar'), t('¿Borrar {x}?', { x: t(NAMES[service] ?? service) }), [
+        { id: 'confirm-cancel', label: t('Cancelar'), value: false },
+        { id: 'confirm-ok', label: t('Borrar'), value: true, primary: true, danger: true }
+      ]);
+      if (!ok) return false;
       const r = await saveKey(core, service, '');
       if (r.event) document.dispatchEvent(new CustomEvent(r.event));
       setConfigured(service, false);
@@ -82,6 +88,7 @@
   }
 
   async function open(): Promise<void> {
+    keysForm.reset();
     latteamEdit = false;
     try {
       showOsLogin();
