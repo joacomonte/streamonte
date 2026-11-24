@@ -675,6 +675,26 @@ fn add_missing_sources(config: &mut Config) {
 mod tests {
     use super::*;
 
+    /// La web copia esta lista a mano (`web/src/lib/server/torrents.ts ADDONS`): el golden la ata.
+    #[test]
+    fn addons_golden() {
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../packages/golden/addons.json")).unwrap();
+        let out: Vec<_> = default_addons()
+            .into_iter()
+            .filter(|a| a.enabled && a.kind == SourceKind::Stremio)
+            .map(|a| {
+                let url = a.url.unwrap();
+                let base = url
+                    .strip_suffix("/manifest.json")
+                    .unwrap_or(&url)
+                    .to_string();
+                serde_json::json!([a.name, base])
+            })
+            .collect();
+        assert_eq!(serde_json::json!(out), cases[0]["out"]);
+    }
+
     fn temp_store(name: &str) -> (ConfigStore, crate::fsutil::TestDir) {
         let dir = crate::fsutil::test_dir(&format!("config-{name}"));
         (ConfigStore::at(dir.join("config.json")), dir)

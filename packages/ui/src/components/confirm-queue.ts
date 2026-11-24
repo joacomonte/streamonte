@@ -1,7 +1,7 @@
-// Cola del diálogo de confirmación: hay un solo <dialog> (`ConfirmDialog.svelte`), los pedidos se muestran de a uno.
+// Cola del diálogo de confirmación (web y desktop): hay un solo <dialog> por app (`ConfirmDialog.svelte`), los pedidos se muestran de a uno.
 export type ConfirmButton<T> = { id?: string; label: string; value: T; primary?: boolean; danger?: boolean };
-/** Texto, o una barra de progreso con nombre (reproducción que sigue bajando). */
-export type ConfirmBody = string | { name: string; pct: number };
+/** Texto, o un objeto que dibuja el snippet `rich` de `ConfirmDialog` (el desktop lo usa para la barra de progreso). */
+export type ConfirmBody = string | object;
 export type ConfirmRequest = { title: string; body: ConfirmBody; buttons: ConfirmButton<unknown>[]; resolve: (value: unknown) => void; closing: boolean };
 
 let current: ConfirmRequest | null = null;

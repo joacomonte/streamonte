@@ -6,6 +6,7 @@
 	// al copiar su link (nativos primero; si no trae, se buscan afuera; Premium plegado al final).
 	import Icon from '$ui/components/Icon.svelte';
 	import Sheet from '$ui/components/Sheet.svelte';
+	import { toast } from '$ui/components/toast-queue.ts';
 	import Tour from '$ui/components/Tour.svelte';
 	import CastVideo from './CastVideo.svelte';
 	import FlowChoice from '$ui/flow/FlowChoice.svelte';
@@ -102,18 +103,17 @@
 	let subsOpen = $state(false);
 	/** Hoja de "Link copiado": qué se copió (video o subtítulo) y su nombre. */
 	let copied = $state<{ kind: 'video' | 'sub'; name: string } | null>(null);
-	let toastEl = $state<HTMLElement>();
-	// Toast que se va solo; si se copia otro, vuelve a contar.
+	// Toast que se va solo; si se copia otro, vuelve a contar. `copied` solo dice qué se copió: lo dibuja `$ui/components/Toast.svelte` (montado en el layout).
 	$effect(() => {
-		if (!toastEl) return;
-		if (!copied) {
-			if (toastEl.matches(':popover-open')) toastEl.hidePopover();
-			return;
-		}
-		if (toastEl.matches(':popover-open')) toastEl.hidePopover();
-		toastEl.showPopover();
-		const id = setTimeout(() => (copied = null), 2800);
-		return () => clearTimeout(id);
+		if (!copied) return;
+		toast({
+			id: 'copied-toast',
+			check: true,
+			text: tr('Link copiado'),
+			sub: copied.kind === 'sub' ? tr('Pegalo en Web Video Caster: CC → link') : tr('Pegalo en Web Video Caster'),
+			action: { id: 'toast-tutorial', label: tr('Tutorial'), onclick: () => (videoOpen = true) },
+		});
+		copied = null;
 	});
 	/** Festejo grande de "¡Link copiado!" sobre todo (popover), antes de la hoja. */
 	let burstEl = $state<HTMLElement>();
@@ -724,21 +724,6 @@
 	{/key}
 </div>
 
-<!-- Toast: `popover` va a la capa de arriba, así se ve también sobre la hoja de subtítulos. -->
-<div id="copied-toast" class="toast" popover="manual" bind:this={toastEl} role="status">
-	{#key copied}
-		<svg class="toast-mark" viewBox="0 0 56 56" aria-hidden="true">
-			<circle cx="28" cy="28" r="26" />
-			<path d="M17 29l7.5 7.5L40 21" />
-		</svg>
-	{/key}
-	<span class="toast-text">
-		<strong>{tr('Link copiado')}</strong>
-		<span>{copied?.kind === 'sub' ? tr('Pegalo en Web Video Caster: CC → link') : tr('Pegalo en Web Video Caster')}</span>
-	</span>
-	<button id="toast-tutorial" type="button" class="toast-btn" onclick={() => { copied = null; videoOpen = true; }}>{tr('Tutorial')}</button>
-</div>
-
 {#if videoOpen}
 	<CastVideo onclose={() => (videoOpen = false)} />
 {/if}
@@ -793,35 +778,6 @@
 		transition: transform 0.15s var(--out), border-color 0.15s var(--ease);
 	}
 	.audio-opt:active { transform: scale(0.97); border-color: var(--accent-fg); }
-	.toast {
-		inset: auto 12px calc(16px + var(--safe-bottom)) 12px;
-		margin: 0 auto;
-		max-width: 420px;
-		width: auto;
-		display: none;
-		align-items: center;
-		gap: 12px;
-		padding: 10px 10px 10px 12px;
-		border: 1px solid var(--border);
-		border-radius: var(--r-lg);
-		background: color-mix(in srgb, var(--surface) 92%, transparent);
-		backdrop-filter: blur(14px);
-		-webkit-backdrop-filter: blur(14px);
-		color: var(--text);
-		box-shadow: 0 10px 30px var(--shadow-lg);
-	}
-	.toast:popover-open { display: flex; animation: toast-in 0.32s var(--out); }
-	@keyframes toast-in { from { transform: translateY(24px); opacity: 0; } }
-	.toast-mark { flex: none; width: 34px; height: 34px; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-	.toast-mark circle { fill: color-mix(in srgb, var(--green) 16%, transparent); stroke: var(--green); stroke-width: 3; transform-origin: center; animation: ring 0.45s var(--out) both; }
-	.toast-mark path { stroke: var(--green); stroke-width: 5; stroke-dasharray: 36; stroke-dashoffset: 36; animation: draw 0.35s 0.2s var(--out) forwards; }
-	@keyframes ring { from { transform: scale(0.6); opacity: 0; } }
-	@keyframes draw { to { stroke-dashoffset: 0; } }
-	@media (prefers-reduced-motion: reduce) { .toast-mark path { stroke-dashoffset: 0; } }
-	.toast-text { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 13px; color: var(--muted); }
-	.toast-text strong { font-size: 14.5px; color: var(--text); }
-	.toast-btn { flex: none; min-height: 36px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: var(--surface-3); color: var(--text); font-size: 13px; font-weight: 650; position: relative; }
-	.toast-btn::after { content: ''; position: absolute; inset: -4px 0; }
 	.small { font-size: 12.5px; margin: 6px 0 0; }
 	.actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
 	/* Hoja de subtítulos (2026-11-19): una línea de estado con dibujo, una nota y la lista. */

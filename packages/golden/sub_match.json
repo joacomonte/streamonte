@@ -1,0 +1,354 @@
+[
+ {
+  "nota": "mismo nombre de archivo",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "sub": {
+    "release": "Sintel.2010.720p.BluRay.x264-SURFER"
+   }
+  },
+  "out": 3
+ },
+ {
+  "nota": "hash de OpenSubtitles",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "sub": {
+    "release": "otro",
+    "exact": true
+   }
+  },
+  "out": 3
+ },
+ {
+  "nota": "mismo grupo y fuente, otra resolución",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "sub": {
+    "release": "Sintel.2010.1080p.BluRay.x264-SURFER"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "mismo grupo, otra fuente",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "sub": {
+    "release": "Sintel.2010.1080p.WEB-DL.x264-SURFER"
+   }
+  },
+  "out": 0
+ },
+ {
+  "nota": "WEBRip y WEB-DL son la misma fuente para el calce",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.WEB-DL.x264-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X.2010.WEBRip.x264-NTb"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "grupo sin fuente en el sub",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.WEB-DL.x264-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X 2010 NTb"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "el grupo es palabra entera",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "sub": {
+    "release": "Sintel.2010.BluRay-SURFERS"
+   }
+  },
+  "out": 0
+ },
+ {
+  "nota": "mismos fps, termina dentro",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "sub": {
+    "release": "otro",
+    "fps": 24.0,
+    "last": 2900
+   }
+  },
+  "out": 1
+ },
+ {
+  "nota": "mismos fps, sin último diálogo",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "sub": {
+    "release": "otro",
+    "fps": 24.0
+   }
+  },
+  "out": 1
+ },
+ {
+  "nota": "mismos fps pero termina muy antes",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "sub": {
+    "release": "otro",
+    "fps": 24.0,
+    "last": 1000
+   }
+  },
+  "out": 0
+ },
+ {
+  "nota": "otros fps",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "sub": {
+    "release": "otro",
+    "fps": 25.0,
+    "last": 2900
+   }
+  },
+  "out": 0
+ },
+ {
+  "nota": "sin fps del video no hay nada que comparar",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.WEB-DL.x264-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "otro",
+    "fps": 24.0
+   }
+  },
+  "out": 0
+ },
+ {
+  "nota": "fuente con grupo pegado: mismo grupo y fuente",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.WEB-DL-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X.2010.720p.WEB-DL-NTb"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "fuente con grupo pegado: otra fuente",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.WEB-DL-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X.2010.BluRay-NTb"
+   }
+  },
+  "out": 0
+ },
+ {
+  "nota": "WEBRip con grupo pegado cuenta como WEB-DL",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.WEB-DL-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X.2010.WEBRip-NTb"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "WEB y WEB-DL son la misma fuente",
+  "in": {
+   "video": {
+    "file": "The.Bear.S03E01.1080p.WEB.h264-ETHEL.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "The.Bear.S03E01.1080p.WEB-DL.h264-ETHEL"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "AMZN WEB-DL contra AMZN WEBRip",
+  "in": {
+   "video": {
+    "file": "Show.S01E01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "Show.S01E01.1080p.AMZN.WEBRip.DDP5.1.H.264-NTb"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "BluRay y BDRip son la misma fuente",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.BluRay.x264-GRP.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X.2010.BDRip.x264-GRP"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "video sin extensión: mismo release",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "Sintel.2010.720p.BluRay.x264-SURFER"
+   }
+  },
+  "out": 3
+ },
+ {
+  "nota": "video sin extensión: otro grupo no es exacto",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "Sintel.2010.720p.BluRay.x264-OTRO"
+   }
+  },
+  "out": 0
+ },
+ {
+  "nota": "orden: nativos, calce, latino, OpenSubtitles.com, descargas",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER.mkv",
+    "fps": 24.0,
+    "duration": 3000
+   },
+   "subs": [
+    {
+     "id": "a",
+     "release": "Sintel 2010 DVDRip",
+     "provider": "opensubtitles",
+     "latino": false,
+     "downloads": 5
+    },
+    {
+     "id": "b",
+     "release": "Sintel.2010.720p.BluRay.x264-SURFER",
+     "provider": "wyzie",
+     "latino": false,
+     "downloads": 1
+    },
+    {
+     "id": "c",
+     "release": "x",
+     "provider": "torrent",
+     "latino": false,
+     "downloads": 0
+    },
+    {
+     "id": "d",
+     "release": "otro",
+     "provider": "opensubtitles",
+     "latino": true,
+     "downloads": 1
+    },
+    {
+     "id": "e",
+     "release": "otro",
+     "provider": "wyzie",
+     "latino": true,
+     "downloads": 50
+    },
+    {
+     "id": "f",
+     "release": "x",
+     "provider": "opensubtitles",
+     "latino": false,
+     "downloads": 2,
+     "exact": true
+    }
+   ]
+  },
+  "out": [
+   "c",
+   "f",
+   "b",
+   "d",
+   "e",
+   "a"
+  ]
+ }
+]

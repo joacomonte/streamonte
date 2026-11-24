@@ -69,7 +69,7 @@ pub fn parse_release_name(name: &str) -> ReleaseName {
             title_end.get_or_insert(i);
             continue;
         }
-        if let Some(src) = source_of(&lower) {
+        if let Some(src) = source_with_group(&lower) {
             out.source.get_or_insert_with(|| src.to_string());
         }
         if i > 0 && is_marker(&lower) {
@@ -95,7 +95,7 @@ pub fn season_episodes(text: &str) -> impl Iterator<Item = (u16, Option<u16>)> +
         .filter_map(|t| parse_season_episode(&t.to_ascii_lowercase()))
 }
 
-fn strip_extension(file: &str) -> &str {
+pub(crate) fn strip_extension(file: &str) -> &str {
     let subtitle = std::path::Path::new(file)
         .extension()
         .and_then(|e| e.to_str())
@@ -137,6 +137,12 @@ fn parse_season_episode(token: &str) -> Option<(u16, Option<u16>)> {
         digits(s).filter(|_| s.len() <= 2)?,
         Some(digits(e).filter(|_| e.len() >= 2)?),
     ))
+}
+
+/// Como [`source_of`], pero acepta el grupo pegado con `-` (`web-dl-ntb`, `bluray-x`): primero la palabra entera
+/// (`web-dl` lleva guion propio) y, si no, sin el último `-GRUPO`. Misma regla en `packages/ui/src/sub-match.ts`.
+fn source_with_group(token: &str) -> Option<&'static str> {
+    source_of(token).or_else(|| source_of(token.rsplit_once('-')?.0))
 }
 
 /// Fuente del release (`WEB-DL`, `BluRay`, `CAM`…) por una palabra del nombre.

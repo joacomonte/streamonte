@@ -1,0 +1,6 @@
+[
+ { "nota": "Cinemeta dice Continuing: sigue", "in": "Continuing", "out": "returning" },
+ { "nota": "Cinemeta dice Ended", "in": "Ended", "out": "ended" },
+ { "nota": "otra palabra de Cinemeta: sin estado", "in": "Rumored", "out": null },
+ { "nota": "sin estado", "in": null, "out": null }
+]

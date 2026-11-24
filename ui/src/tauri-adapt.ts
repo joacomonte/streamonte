@@ -31,8 +31,9 @@ export const catalogPage = (raw: Raw.BrowsePage): CatalogPage => ({ items: catal
 const roleOf = (r: string): PersonRole => (r === 'director' ? 'director' : 'cast');
 export const personHits = (raw: Raw.SearchPerson[]): PersonHit[] => raw.map((p) => ({ id: p.id, name: p.name, photo: p.photo, known: p.known, role: p.role }));
 
-const STATES: Record<string, ShowStatus['state']> = {
-	Ended: 'ended', Canceled: 'canceled', Cancelled: 'canceled', 'Returning Series': 'returning', 'In Production': 'in-production', Planned: 'planned',
+/** Estado de la serie: TMDB y Cinemeta (`Continuing`). Rust manda (`seasons.rs tmdb_status` / `cinemeta_status`); golden `show_status*.json`. */
+export const STATES: Record<string, ShowStatus['state']> = {
+	Ended: 'ended', Canceled: 'canceled', Cancelled: 'canceled', 'Returning Series': 'returning', Continuing: 'returning', 'In Production': 'in-production', Pilot: 'in-production', Planned: 'planned',
 	returning: 'returning', 'in-production': 'in-production', planned: 'planned', ended: 'ended', canceled: 'canceled'
 };
 
