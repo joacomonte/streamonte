@@ -24,13 +24,14 @@ export function providersAr(wp: TmdbTitle['watch/providers']) {
 		.map((p) => ({ name: p.provider_name, logo: p.logo_path ? `${IMG}w92${p.logo_path}` : null }));
 }
 
-/** Director (solo películas) y 3 actores (`people` del desktop). */
 /** Hasta cuántos actores trae la ficha (`MAX_CAST` del desktop): la UI muestra los primeros y despliega el resto. */
 const MAX_CAST = 18;
 
-export function peopleOf(kind: Kind, credits: TmdbTitle['credits']) {
+/** Quien la hizo (película: el director; serie: el primer creador, 2026-11-24) y el reparto (`people` del desktop). */
+export function peopleOf(kind: Kind, credits: TmdbTitle['credits'], createdBy: TmdbTitle['created_by'] = []) {
+	const maker = kind === 'movie' ? credits?.crew?.find((c) => c.job === 'Director') : createdBy[0];
 	return [
-		...(kind === 'movie' ? (credits?.crew ?? []).filter((c) => c.job === 'Director').slice(0, 1) : []).map((c) => person(c, 'director', null)),
+		...(maker ? [person(maker, 'director', null)] : []),
 		...(credits?.cast ?? []).slice(0, MAX_CAST).map((c) => person(c, 'cast', c.character || null))
 	];
 }
@@ -67,8 +68,8 @@ export async function title(kind: Kind, id: string | number) {
 		// Los de series que juntan dos (y TMDB devuelve en inglés) se parten como en el desktop.
 		genres: [...new Set((about.genres ?? []).flatMap((g) => TV_GENRES[g.id]?.map((x) => translate(lang(), x)) ?? [g.name]))],
 		providers,
-		// Quién la hizo: en películas el director primero; después el reparto (hasta 18) con su personaje.
-		people: peopleOf(kind, r.credits),
+		// Quién la hizo (película: director; serie: creador) primero; después el reparto (hasta 18) con su personaje.
+		people: peopleOf(kind, r.credits, r.created_by),
 		companies: (r.production_companies ?? []).slice(0, 2).map((c) => c.name),
 		lang: langName ? langName[0].toUpperCase() + langName.slice(1) : null,
 		// Código ISO 639-1 del idioma original (`en`, `ja`…): el audio por defecto del video.

@@ -26,6 +26,7 @@ import { latOf as latOfRows, mbpsOf as mbpsFor, neededBps as neededBpsFor, rankO
 import type { LatState } from '$ui/types.ts';
 import { BG_GREEN, BG_YELLOW, bgTone, fileBytesOf, leechersFrom, pickLine, pinActive, playbackFor, PB_LIVE, PB_STARTING, seedsOf, trackersWin } from './options-logic.ts';
 import { flushStreams, mountCtxMenu, openCtxMenu, showStreams } from './streams-panel.svelte.ts';
+import { latPotential as latPotentialRule, latToCheck as latToCheckRule, type MatchFacts } from '$ui/flow/match-rules.ts';
 import type { CtxItem, ListView, MoreRowView, PanelView, SortView, StreamsView } from './streams-view.ts';
 import type { LibraryRow, NativeSpanish, PlaybackRow, PlayerKind, StreamCandidate as Candidate, StreamsUpdate } from './types.ts';
 
@@ -40,13 +41,17 @@ export const latOf = (c: Candidate): LatState =>
 /** Dice o trae español sin aclarar cuál (MULTI / Dual / español en el nombre, o una pista en español). */
 const saysSpanish = (c: Candidate): boolean =>
 	c.audio.includes('multi') || c.audio.includes('es') || !!rowsOf(c.info_hash).find((e) => e.live?.audio?.length)?.languages?.some((l) => l.code === 'es');
+/** Lo que mira `$ui/flow/match-rules.ts` de una candidata. */
+export const factsOf = (c: Candidate): MatchFacts => ({
+	latState: latOf(c),
+	saysSpanish: saysSpanish(c),
+	subsEs: hasSpanishSubs(c.info_hash),
+	audioRead: rowsOf(c.info_hash).some((e) => !!e.live?.audio?.length),
+});
 /** Sin confirmar pero vale la pena leer sus pistas: web latina, o español sin aclarar. */
-export const latToCheck = (c: Candidate): boolean => {
-	const s = latOf(c);
-	return s === 'likely' || (s === 'check' && saysSpanish(c));
-};
+export const latToCheck = (c: Candidate): boolean => latToCheckRule(factsOf(c));
 /** Con potencial de latino (única regla): latino o vale la pena revisarla. */
-export const latPotential = (c: Candidate): boolean => latOf(c) === 'lat' || latToCheck(c);
+export const latPotential = (c: Candidate): boolean => latPotentialRule(factsOf(c));
 /** ¿Pidió ver en latino? Afuera de ese modo, el latino solo se muestra confirmado. */
 const wantsLatino = (): boolean => sideOf()?.flow?.lat === true;
 /** ¿Trae subs en español? `true` / `false` según las pistas ya leídas o un .srt en español en TorBox (solo dice sí); `null` = no se sabe. */

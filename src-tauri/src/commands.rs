@@ -541,6 +541,19 @@ pub async fn catalog_season_ratings(
 ) -> CmdResult<streamonte_core::catalog::seasons::SeasonRatings> {
     Ok(core.catalog_season_ratings(&imdb_id, quick).await?)
 }
+/// Bytes crudos (ArrayBuffer en JS), no un arreglo de números en JSON.
+#[tauri::command]
+pub async fn catalog_image(core: Core<'_>, url: String) -> CmdResult<tauri::ipc::Response> {
+    Ok(tauri::ipc::Response::new(core.catalog_image(&url).await?))
+}
+#[tauri::command]
+pub async fn catalog_episode_ratings(
+    core: Core<'_>,
+    imdb_id: String,
+    season: u32,
+) -> CmdResult<Vec<streamonte_core::catalog::episode_ratings::EpisodeScore>> {
+    Ok(core.catalog_episode_ratings(&imdb_id, season).await?)
+}
 #[tauri::command]
 pub async fn catalog_awards(
     core: Core<'_>,

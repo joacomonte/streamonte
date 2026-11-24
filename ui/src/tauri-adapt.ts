@@ -1,5 +1,6 @@
 // Adaptadores puros del desktop: JSON serde del núcleo (snake_case, ver `types.ts`) → modelo de vista de `packages/ui`.
 // Sin `invoke` ni DOM (se prueban con las fixtures grabadas en `ui/mock/`); `tauriApi.ts` hace las llamadas.
+import { blankOption } from '../../packages/ui/src/blank-option.ts';
 import { hintOf } from '../../packages/ui/src/rank.ts';
 import type { Lang } from '../../packages/ui/src/i18n/translate.ts';
 import type {
@@ -169,10 +170,7 @@ export const magnetStatus = (s: Raw.MagnetStatus, hash: string): MagnetStatus =>
 	seeds: s.seeds,
 	eta: s.eta,
 	// El núcleo manda los archivos; la opción que se arma solo sabe su hash, nombre y peso.
-	options: s.files.map((f) => ({
-		hash, release: f.name, file: f.name, fileIdx: null, resolution: null, hdr: [], source: null, codec: null, audioFormat: [], sizeBytes: f.size || null, seeds: null,
-		leechers: null, completed: null, audio: [], subs: [], hint: null, multi: false, spanish: false, subFile: false, sites: [], addons: [], isPack: false
-	}))
+	options: s.files.map((f) => blankOption({ hash, release: f.name, file: f.name, sizeBytes: f.size || null }))
 });
 
 const identified = (i: Raw.Identified): Identified => ({ kind: kindOf(i.kind), id: i.id, imdb: i.id, title: i.name, year: i.year, poster: i.poster, rating: i.rating, season: i.season, episode: i.episode });

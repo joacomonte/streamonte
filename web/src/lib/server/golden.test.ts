@@ -21,6 +21,7 @@ const { constraints: interestConstraints, smallPoster } = await import('./intere
 const { results: osResults, seconds: osSeconds } = await import('./subs.ts');
 const { parseTracks } = await import('./mkv.ts');
 const { normalize: awardsOf } = await import('./awards.ts');
+const { normalize: episodeRatingsOf } = await import('./episode-ratings.ts');
 after(() => {
 	process.chdir(cwd);
 	rmSync(work, { recursive: true, force: true });
@@ -41,7 +42,7 @@ function golden(name: string, run: (input: any) => unknown) {
 }
 
 golden('providers_ar', (wp) => providersAr(wp ?? undefined));
-golden('people', ({ kind, credits }) => peopleOf(kind === 'movie' ? 'movie' : 'tv', credits));
+golden('people', ({ kind, credits, createdBy }) => peopleOf(kind === 'movie' ? 'movie' : 'tv', credits, createdBy));
 golden('show_status', (r) => {
 	const { status, next } = showStatus(r);
 	return { state: status, next };
@@ -49,6 +50,7 @@ golden('show_status', (r) => {
 golden('excluded', ({ countries, animation }) => detail({ origin_country: countries, genres: animation ? [{ id: 16, name: 'Animation' }] : [] }).excluded);
 golden('sub_lang', (path) => isSpanishSub(path));
 golden('awards', (data) => awardsOf(data));
+golden('episode_ratings', ({ data, season }) => episodeRatingsOf(data, season));
 golden('release', (name) => {
 	const t = parse({ infoHash: 'a'.repeat(40), title: name }, 'golden')!;
 	return { res: t.res, hdr: t.hdr, codec: t.codec, source: t.source, atmos: t.atmos, hint: t.hint === 'likely' ? 'likely' : t.hint, multi: t.multi, spa: t.spa, cam: t.cam, size: t.size, release: t.release, seeds: t.seeds };

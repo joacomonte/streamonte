@@ -125,6 +125,8 @@ pub fn run() {
             commands::torbox_magnet_download,
             commands::catalog_season_ratings,
             commands::catalog_awards,
+            commands::catalog_episode_ratings,
+            commands::catalog_image,
             commands::speed_test,
             commands::catalog_stop_swarm,
             commands::data_cache_size,

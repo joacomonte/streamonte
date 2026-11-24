@@ -17,6 +17,7 @@ const ROUTES = {
 	season: '/api/season/1396/1',
 	scores: '/api/scores/tt0903747',
 	awards: '/api/awards/tt0137523',
+	epscores: '/api/epscores/tt0903747/2',
 	'torrents-movie': '/api/torrents?imdb=tt0137523',
 	'torrents-episode': '/api/torrents?imdb=tt0903747&s=1&e=1',
 	subs: '/api/subs?imdb=tt0137523'

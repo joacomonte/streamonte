@@ -192,6 +192,9 @@ struct RawDetails {
     #[serde(rename = "watch/providers")]
     providers: Option<WatchProviders>,
     credits: Option<Credits>,
+    /// Series: sus creadores (van como "director": "Una serie de …").
+    #[serde(default)]
+    created_by: Vec<Credit>,
     #[serde(default)]
     production_companies: Vec<Named>,
 }
@@ -218,8 +221,9 @@ const PHOTO_BASE: &str = "https://image.tmdb.org/t/p/w185";
 /// Hasta cuántos actores trae la ficha (la UI muestra los primeros y despliega el resto).
 const MAX_CAST: usize = 18;
 
-/// Director (solo películas) y los primeros del reparto (hasta [`MAX_CAST`]), en ese orden.
-fn people(c: Credits, kind: MediaKind) -> Vec<Person> {
+/// Quien la hizo (película: el director; serie: el primer creador, 2026-11-24) y los primeros del reparto (hasta
+/// [`MAX_CAST`]), en ese orden.
+fn people(c: Credits, created_by: Vec<Credit>, kind: MediaKind) -> Vec<Person> {
     let person = |x: Credit, role: &str, note: Option<String>| Person {
         id: x.id,
         name: super::normalize::clean(&x.name),
@@ -229,17 +233,19 @@ fn people(c: Credits, kind: MediaKind) -> Vec<Person> {
             .map(|n| super::normalize::clean(&n))
             .filter(|n| !n.is_empty()),
     };
-    let director = c
-        .crew
-        .into_iter()
-        .filter(|x| kind == MediaKind::Movie && x.job.as_deref() == Some("Director"))
-        .take(1)
-        .map(|x| person(x, "director", None));
+    let director = match kind {
+        MediaKind::Movie => c
+            .crew
+            .into_iter()
+            .find(|x| x.job.as_deref() == Some("Director")),
+        _ => created_by.into_iter().next(),
+    }
+    .map(|x| person(x, "director", None));
     let cast = c.cast.into_iter().take(MAX_CAST).map(|x| {
         let note = x.character.clone();
         person(x, "cast", note)
     });
-    director.chain(cast).collect()
+    director.into_iter().chain(cast).collect()
 }
 
 #[derive(Deserialize)]
@@ -336,7 +342,7 @@ pub async fn details(
     };
     // v6: hasta 18 actores (v5: con reparto y productoras (v4: dónde verla y los textos en los idiomas elegidos, uno por combinación)).
     let file = format!(
-        "tmdb-detalle-v6-{}-{imdb_id}-{}-{}.json",
+        "tmdb-detalle-v7-{}-{imdb_id}-{}-{}.json",
         kind.as_str(),
         langs.titles.tmdb(),
         langs.app.tmdb()
@@ -516,7 +522,7 @@ async fn fetch_details(
             .into_iter()
             .map(|n| super::normalize::clean(&n.name))
             .collect(),
-        people: people(raw.credits.unwrap_or_default(), kind),
+        people: people(raw.credits.unwrap_or_default(), raw.created_by, kind),
         companies: raw
             .production_companies
             .into_iter()
@@ -902,7 +908,7 @@ mod tests {
               "crew":[{"id":9,"name":"Jim Uhls","job":"Screenplay"},{"id":7,"name":"David Fincher","job":"Director"}]}"#,
         )
         .unwrap();
-        let p = people(c, MediaKind::Movie);
+        let p = people(c, Vec::new(), MediaKind::Movie);
         let got: Vec<(&str, &str, Option<&str>)> = p
             .iter()
             .map(|x| (x.name.as_str(), x.role.as_str(), x.note.as_deref()))
@@ -960,8 +966,10 @@ mod tests {
                 _ => MediaKind::Series,
             };
             let credits: Credits = serde_json::from_value(case["in"]["credits"].clone()).unwrap();
+            let created_by: Vec<Credit> =
+                serde_json::from_value(case["in"]["createdBy"].clone()).unwrap_or_default();
             assert_eq!(
-                serde_json::json!(people(credits, kind)),
+                serde_json::json!(people(credits, created_by, kind)),
                 case["out"],
                 "{case}"
             );

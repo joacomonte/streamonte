@@ -166,6 +166,22 @@ impl AppCore {
         self.catalog.season_ratings(imdb_id, quick, timeout).await
     }
 
+    /// Puntaje de IMDb de cada capítulo de una temporada.
+    pub async fn catalog_episode_ratings(
+        &self,
+        imdb_id: &str,
+        season: u32,
+    ) -> Result<Vec<crate::catalog::episode_ratings::EpisodeScore>> {
+        let timeout = self.catalog_timeout().await;
+        self.catalog.episode_ratings(imdb_id, season, timeout).await
+    }
+
+    /// Los bytes de un póster (la UI lee su color predominante).
+    pub async fn catalog_image(&self, url: &str) -> Result<Vec<u8>> {
+        let timeout = self.catalog_timeout().await;
+        self.catalog.image(url, timeout).await
+    }
+
     /// Premios de un título (IMDb): totales y el detalle de los grandes.
     pub async fn catalog_awards(
         &self,

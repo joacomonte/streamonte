@@ -53,6 +53,8 @@ export type ShowState = 'returning' | 'in-production' | 'planned' | 'ended' | 'c
 export type NextEpisode = { season: number; episode: number; date: string };
 export type ShowStatus = { state: ShowState; next: NextEpisode | null };
 export type SeasonScore = { season: number; rating: number; episodes: number };
+/** Puntaje de IMDb de un capítulo. */
+export type EpisodeScore = { episode: number; rating: number };
 export type SeasonRatings = { seasons: SeasonScore[]; status: ShowStatus | null };
 
 export type Season = { number: number; name: string | null; episodeCount: number; year: string | null };
@@ -100,7 +102,9 @@ export type AwardEvent = 'oscar' | 'globe' | 'bafta' | 'emmy' | 'sag' | 'goya' |
 export type AwardEntry = { event: AwardEvent; won: boolean; award: string; category: string | null; year: number | null };
 /** Premios de un título (IMDb). `nominations`: las que no ganó. La misma forma sale del desktop (`catalog/awards.rs`) y
  * de la web (`server/awards.ts`). */
-export type TitleAwards = { wins: number; nominations: number; entries: AwardEntry[] };
+/** `interests`: subgéneros de IMDb del título (ids `in…`); `rating`: puntaje de IMDb, respaldo de la ficha. Los dos pueden
+ * faltar en respuestas viejas guardadas. */
+export type TitleAwards = { wins: number; nominations: number; entries: AwardEntry[]; interests?: string[]; rating?: number | null };
 
 export type SimilarItem = { id: string; title: string; year: string | null; poster: string | null; rating: number | null };
 

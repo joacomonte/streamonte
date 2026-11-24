@@ -756,5 +756,54 @@
    }
   ],
   "nota": "hasta 18 actores"
+ },
+ {
+  "in": {
+   "kind": "tv",
+   "credits": {
+    "cast": [
+     {
+      "id": 1,
+      "name": "Kelly Reilly",
+      "character": "Beth Dutton"
+     }
+    ],
+    "crew": [
+     {
+      "id": 5,
+      "name": "Stephen Kay",
+      "job": "Director"
+     }
+    ]
+   },
+   "createdBy": [
+    {
+     "id": 9,
+     "name": "Taylor Sheridan",
+     "profile_path": "/ts.jpg"
+    },
+    {
+     "id": 10,
+     "name": "Chad Feehan"
+    }
+   ]
+  },
+  "out": [
+   {
+    "id": 9,
+    "name": "Taylor Sheridan",
+    "photo": "https://image.tmdb.org/t/p/w185/ts.jpg",
+    "role": "director",
+    "note": null
+   },
+   {
+    "id": 1,
+    "name": "Kelly Reilly",
+    "photo": null,
+    "role": "cast",
+    "note": "Beth Dutton"
+   }
+  ],
+  "nota": "serie: el primer creador va como director (no el director de un capítulo)"
  }
 ]

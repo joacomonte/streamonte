@@ -14,12 +14,17 @@
 	import FlowRadar from '$ui/flow/FlowRadar.svelte';
 	import FlowSearching from '$ui/flow/FlowSearching.svelte';
 	import { stepIn } from '$ui/flow/step-in.ts';
+	import MoreRow from '$ui/flow/MoreRow.svelte';
+	import { fitsNet, NET, type NetChoice } from '$ui/flow/net.ts';
+	import { isMatch as matchRule, latFirst, latPotential, needsReading, type MatchFacts } from '$ui/flow/match-rules.ts';
+	import type { MoreRowView } from '$ui/flow/types.ts';
+	import { sxe } from '$ui/format.ts';
 	import { latChips } from '$ui/flow/lat-chips.ts';
 	import { casterFor, castSteps, device } from '$ui/components/tours.ts';
 	import * as saved from './saved.ts';
 	import { loc, t as tr } from './i18n.svelte.ts';
 	import { untrack } from 'svelte';
-	import { audioOf, latRank, latStatus, LAT_BADGE, type Tracks } from '$ui/audio.ts';
+	import { audioOf, latStatus, LAT_BADGE, type Tracks } from '$ui/audio.ts';
 	import type { Snippet } from 'svelte';
 	import { track } from './track.ts';
 	import { byQuality as rankQuality, optionMbps } from '$ui/rank.ts';
@@ -175,19 +180,12 @@
 	});
 
 	// ── Pasos ────────────────────────────────────────────────────────────────────────────────────────────────
-	/** Conexión donde se va a ver (2026-11-18): la elige el usuario en cada video y pone el tope de bitrate
-	 * del buen match; "¿Se cortó?" baja un nivel. `mbps`: lo más que se le pide al video (el piso del rango). */
-	const NET = [
-		{ key: 'terrible', label: 'Muy baja', range: 'Menos de 8 Mbps o señal que se corta: busco una muy liviana', mbps: 4, tone: 'red' },
-		{ key: 'low', label: 'Baja', range: '8 a 25 Mbps, o la tele en wifi 2.4 GHz', mbps: 10, tone: 'amber' },
-		{ key: 'normal', label: 'Normal', range: '25 a 100 Mbps', mbps: 25, tone: 'accent-fg' },
-		{ key: 'high', label: 'Alta', range: 'Más de 100 Mbps, en wifi 5 GHz o por cable', mbps: Infinity, tone: 'green' }
-	] as const;
+	// Conexión donde se va a ver: la tabla vive en `$ui/flow/net.ts` (textos sin traducir; se pasan por `tr` al mostrarlos).
 	/** La conexión elegida para este video: se pregunta siempre (cambia según dónde se vea). */
-	let net = $state<(typeof NET)[number] | null>(null);
+	let net = $state<NetChoice | null>(null);
 	/** La que se acaba de tocar: su ícono se llena del color del nivel antes de pasar al audio. */
 	let netPick = $state<string | null>(null);
-	function chooseNet(n: (typeof NET)[number]) {
+	function chooseNet(n: NetChoice) {
 		if (netPick) return;
 		track('conexión', n.label);
 		net = n;
@@ -203,7 +201,7 @@
 	/** Lo que mira el ranking compartido de una opción. */
 	const mbpsOf = (t: Torrent) => optionMbps(t, runtime);
 	/** ¿Entra en la conexión elegida? Sin peso no se sabe cuánto pide: no entra (no puede ser el buen match). */
-	const fits = (t: Torrent) => !!t.sizeBytes && (!net || mbpsOf(t) <= net.mbps);
+	const fits = (t: Torrent) => fitsNet(t.sizeBytes, mbpsOf(t), net);
 
 	/** Paso actual: la conexión (si no se eligió nunca), el audio, o el resultado (buscando el primer buen match, ese
 	 * match o, con `showAll`, todas). */
@@ -231,24 +229,25 @@
 	};
 	/** Estado del audio latino (regla única en audio.ts). */
 	const status = (t: Torrent) => latStatus(t, known(t));
-	/** Con potencial de latino: latino o probable, o sin confirmar pero con español (dicho en el nombre o leído sin
-	 * variante). Las que no dicen nada de idioma no cuentan. */
-	const potential = (t: Torrent) => {
-		const s = status(t);
-		return s === 'lat' || s === 'likely' || (s === 'check' && (t.spanish || known(t)?.audio === 'es'));
+	/** Lo que mira `$ui/flow/match-rules.ts` de una opción. */
+	const factsOf = (t: Torrent): MatchFacts => {
+		const k = known(t);
+		return {
+			latState: status(t),
+			saysSpanish: !!(t.spanish || k?.audio === 'es'),
+			subsEs: t.subFile || (k?.subs ?? 0) > 0 ? true : k ? false : null,
+			audioRead: !!k?.audio
+		};
 	};
-	const hasEs = (t: Torrent) => t.subFile || (known(t)?.subs ?? 0) > 0;
-	/** Única regla de "buen match": pidiendo latino, LAT (pistas o nombre; los subs no importan); con audio original,
-	 * sub ES nativo (dentro del video o .srt en el torrent). */
-	const isMatch = (t: Torrent) => (wantLat ? status(t) === 'lat' : hasEs(t));
-	/** Única regla de "candidata a leer": sin leer (ni leyéndose ni con error) y que pueda ser lo pedido. Latino: sin
-	 * confirmar y con algo que lo sugiera (web latina, MULTI / Dual / español sin aclarar); las que no dicen nada de
-	 * idioma no se leen. Audio original: sin saber si trae sub ES. */
-	const unread = (lat: boolean, t: Torrent) => typeof info[t.hash] !== 'string' && (lat ? !known(t)?.audio && (status(t) === 'likely' || (status(t) === 'check' && t.spanish)) : !hasEs(t) && !known(t));
+	const potential = (t: Torrent) => latPotential(factsOf(t));
+	const hasEs = (t: Torrent) => factsOf(t).subsEs === true;
+	const isMatch = (t: Torrent) => matchRule(wantLat, factsOf(t));
+	/** Candidata a leer: la regla compartida y, además, sin leer (ni leyéndose ni con error). */
+	const unread = (lat: boolean, t: Torrent) => typeof info[t.hash] !== 'string' && needsReading(lat, factsOf(t));
 	const byQuality = (a: Torrent, b: Torrent) => rankQuality(a, b, runtime);
 	/** Lo que entra con el audio elegido (latino: solo las con potencial, primero por señal de latino: `latRank`), de mejor a peor. `byBest`: solo las que entran
 	 * en la conexión (de ahí sale el buen match); `everything`: todas, para "Ver todas". */
-	const everything = $derived(wantLat ? all.filter(potential).sort(byQuality).sort((a, b) => latRank(status(a)) - latRank(status(b))) : [...all].sort(byQuality));
+	const everything = $derived(latFirst(wantLat ? all.filter(potential).sort(byQuality) : [...all].sort(byQuality), wantLat, status));
 	const byBest = $derived(everything.filter(fits));
 	const candidates = $derived(byBest.filter((t) => unread(wantLat, t)));
 	/** El próximo buen match todavía no mostrado, si viene antes (en calidad) que la próxima candidata; si no, null. */
@@ -259,6 +258,15 @@
 	/** Mientras se leen pistas: muestra Detener. `scan`: avance de la búsqueda en curso. */
 	let reading = $state(false);
 	let scan = $state({ done: 0, total: 0 });
+
+	/** Fila al pie del resultado: la búsqueda en curso (Detener) o "Seguir buscando"; null si no queda más. */
+	const moreView = $derived<MoreRowView | null>(
+		reading
+			? { kind: 'running', text: tr('Buscando…'), small: tr('{a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total }), stop: tr('Detener'), onstop: stopSearch }
+			: candidates.length || nextMatch
+				? { kind: 'more', title: wantLat ? tr('Seguir buscando latino') : tr('Seguir buscando sub ES'), small: candidates.length ? tr('{n} sin revisar', { n: candidates.length }) : null, onclick: findNext }
+				: null
+	);
 
 	function chooseAudio(lat: boolean) {
 		track('audio', lat ? 'Latino' : 'Cualquiera');
@@ -513,7 +521,7 @@
 		else manual = { url, release: name, kind: 'sub' };
 	}
 
-	const fileName = $derived(name + (s && e ? ` S${String(s).padStart(2, '0')}E${String(e).padStart(2, '0')}` : ''));
+	const fileName = $derived(name + (s && e ? ` ${sxe(s, e)}` : ''));
 </script>
 
 <section class="torrents" aria-label={tr('Torrents en TorBox')} aria-busy={!load.options && !error}>
@@ -626,14 +634,8 @@
 
 <!-- Al pie del resultado y de "todas": la búsqueda en curso (Detener), "Seguir buscando" o que no quedan más. -->
 {#snippet more()}
-	{#if reading}
-		<button id="more-stop" type="button" class="row-btn" onclick={stopSearch}>
-			<span class="spin"></span><span class="row-text"><b>{tr('Buscando…')}</b><small>{tr('{a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })}</small></span><span class="row-end">{tr('Detener')}</span>
-		</button>
-	{:else if candidates.length || nextMatch}
-		<button id="search-more" type="button" class="row-btn" onclick={findNext}>
-			<Icon name="search" size={18} /><span class="row-text"><b>{wantLat ? tr('Seguir buscando latino') : tr('Seguir buscando sub ES')}</b>{#if candidates.length}<small>{tr('{n} sin revisar', { n: candidates.length })}</small>{/if}</span>
-		</button>
+	{#if moreView}
+		<MoreRow more={moreView} look="row" />
 	{:else if found.length}
 		<p class="status muted">{tr('No hay más para buscar.')}</p>
 	{/if}
@@ -866,14 +868,6 @@
 	.summary { margin: 4px 0 0; font-size: 11.5px; color: color-mix(in srgb, var(--muted) 75%, transparent); font-variant-numeric: tabular-nums; }
 	/* Acciones al pie del resultado (2026-11-18): todas del mismo ancho y alto, ícono a la izquierda. */
 	.row-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
-	.row-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 16px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface-2); color: var(--text); font: inherit; text-align: left; transition: transform 0.15s var(--out), border-color 0.2s var(--ease); }
-	.row-btn:active { transform: scale(0.98); border-color: var(--accent-fg); }
-	.row-btn :global(svg) { flex: none; color: var(--muted); }
-	.row-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
-	.row-text b { font-size: 15px; font-weight: 650; }
-	.row-text small { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-	.row-end { font-size: 13.5px; font-weight: 600; color: var(--accent-fg); }
-	.row-btn .count { padding: 2px 9px; border-radius: var(--r-pill); background: var(--surface-3, var(--border)); color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 	.audio-hint { margin: 0 0 14px; font-size: 14px; }
 	.audio-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 	.audio-opt {

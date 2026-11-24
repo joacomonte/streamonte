@@ -1,6 +1,7 @@
 // Lógica pura de la lista de subtítulos (sin DOM ni Api): orden, textos de fila y cuota.
 import { groupOf, rank, sourceOf, type Match } from '../sub-match.ts';
 import { t } from '../i18n/runtime.ts';
+import { sxe } from '../format.ts';
 import type { MatchLevel, PremiumQuota, SubtitleOption } from '../types.ts';
 
 export type RankedSub = { sub: SubtitleOption; lvl: number };
@@ -50,7 +51,7 @@ export const keyOf = (sub: SubtitleOption): string => `${sub.premium ? 'p' : 'o'
 /** "S01E02" de `tt…:1:2`, o null si es película. */
 export function episodeLabel(videoId: string): string | null {
 	const [, s, e] = videoId.split(':');
-	return s && e ? `S${s.padStart(2, '0')}E${e.padStart(2, '0')}` : null;
+	return s && e ? sxe(s, e) : null;
 }
 
 export function quotaText(quota: PremiumQuota | null, hour: (ms: number) => string): string {

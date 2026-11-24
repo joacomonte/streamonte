@@ -2,7 +2,8 @@
 //! premios y nominaciones, y el detalle de los grandes (Óscar, Globos de Oro, BAFTA, Emmy, SAG, Goya y los premios
 //! principales de Cannes, Venecia y Berlín). Uso personal (la app es privada). La misma regla vive en la web
 //! (`web/src/lib/server/awards.ts`) con el golden `packages/golden/awards.json`; la UI agrupa y traduce
-//! (`packages/ui/src/title/awards.ts`).
+//! (`packages/ui/src/title/awards.ts`). En la misma consulta vienen los subgéneros de IMDb del título (`interests`, ids
+//! `in…`; 2026-11-24): la UI muestra los que conoce (`packages/ui/src/catalog/subgenres.ts`) en el hover de la tarjeta.
 
 use std::time::Duration;
 
@@ -41,6 +42,8 @@ const FESTIVAL_PRIZES: [&str; 11] = [
 ];
 /// Alcanza para todo lo de los eventos grandes aun en series largas (Breaking Bad: ~90).
 const MAX_ENTRIES: u32 = 150;
+/// Subgéneros de IMDb que se piden por título (IMDb rara vez da más de 10).
+const MAX_INTERESTS: u32 = 12;
 
 /// Premios de un título. `nominations`: las que no ganó (como dice IMDb, "45 wins & 148 nominations").
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -49,6 +52,12 @@ pub struct TitleAwards {
     pub wins: u32,
     pub nominations: u32,
     pub entries: Vec<AwardEntry>,
+    /// Subgéneros de IMDb del título (ids `in…`, en el orden de IMDb).
+    #[serde(default)]
+    pub interests: Vec<String>,
+    /// Puntaje de IMDb (respaldo de la ficha cuando Cinemeta o el dataset no lo tienen: títulos nuevos; 2026-11-24).
+    #[serde(default)]
+    pub rating: Option<f64>,
 }
 
 /// Un premio o nominación de un evento grande, con los textos como los da IMDb (en inglés).
@@ -80,6 +89,14 @@ struct Title {
     all: Option<Total>,
     won: Option<Total>,
     top: Option<Edges>,
+    interests: Option<IdEdges>,
+    #[serde(rename = "ratingsSummary")]
+    ratings_summary: Option<RatingsSummary>,
+}
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct RatingsSummary {
+    aggregate_rating: Option<f64>,
 }
 #[derive(Deserialize, Default)]
 #[serde(default)]
@@ -90,6 +107,15 @@ struct Total {
 #[serde(default)]
 struct Edges {
     edges: Vec<Edge>,
+}
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct IdEdges {
+    edges: Vec<IdEdge>,
+}
+#[derive(Deserialize)]
+struct IdEdge {
+    node: Event,
 }
 #[derive(Deserialize)]
 struct Edge {
@@ -118,21 +144,33 @@ struct Text {
     text: String,
 }
 
-/// La consulta: totales (todos y ganados) y los de los eventos grandes, los más importantes primero.
+/// La consulta: totales (todos y ganados), los de los eventos grandes (los más importantes primero) y los subgéneros.
 fn query_text(imdb_id: &str) -> String {
     let events: Vec<String> = EVENTS.iter().map(|(id, _)| format!("\"{id}\"")).collect();
     format!(
-        "{{ title(id: \"{imdb_id}\") {{ all: awardNominations(first: 0) {{ total }} won: awardNominations(first: 0, filter: {{ wins: WINS_ONLY }}) {{ total }} top: awardNominations(first: {MAX_ENTRIES}, filter: {{ events: [{}] }}, sort: {{ by: PRESTIGIOUS, order: DESC }}) {{ edges {{ node {{ isWinner award {{ text year event {{ id }} }} category {{ text }} }} }} }} }} }}",
+        "{{ title(id: \"{imdb_id}\") {{ all: awardNominations(first: 0) {{ total }} won: awardNominations(first: 0, filter: {{ wins: WINS_ONLY }}) {{ total }} top: awardNominations(first: {MAX_ENTRIES}, filter: {{ events: [{}] }}, sort: {{ by: PRESTIGIOUS, order: DESC }}) {{ edges {{ node {{ isWinner award {{ text year event {{ id }} }} category {{ text }} }} }} }} interests(first: {MAX_INTERESTS}) {{ edges {{ node {{ id }} }} }} ratingsSummary {{ aggregateRating }} }} }}",
         events.join(",")
     )
 }
 
 /// De la respuesta de IMDb (`data`) a [`TitleAwards`]: solo eventos conocidos y, de los festivales, los premios
-/// principales; textos recortados (vacío = sin categoría).
+/// principales; textos recortados (vacío = sin categoría); de los subgéneros, solo ids `in…`; puntaje solo si es > 0.
 fn normalize(data: Data) -> TitleAwards {
     let Some(t) = data.title else {
         return TitleAwards::default();
     };
+    let interests = t
+        .interests
+        .unwrap_or_default()
+        .edges
+        .into_iter()
+        .map(|e| e.node.id)
+        .filter(|id| id.starts_with("in"))
+        .collect();
+    let rating = t
+        .ratings_summary
+        .and_then(|r| r.aggregate_rating)
+        .filter(|r| *r > 0.0);
     let all = t.all.map_or(0, |x| x.total);
     let wins = t.won.map_or(0, |x| x.total);
     let entries = t
@@ -165,6 +203,8 @@ fn normalize(data: Data) -> TitleAwards {
         wins,
         nominations: all.saturating_sub(wins),
         entries,
+        interests,
+        rating,
     }
 }
 
@@ -218,5 +258,6 @@ mod tests {
         assert!(q.contains("title(id: \"tt0816692\")"));
         assert!(q.contains("\"ev0000003\",\"ev0000292\""));
         assert!(q.contains("wins: WINS_ONLY"));
+        assert!(q.contains("interests(first: 12)"));
     }
 }

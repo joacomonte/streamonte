@@ -5,7 +5,7 @@
 import { askAfterClose, onConfirmClose, openSettings, playbackLogs } from './dialog-flows.ts';
 import { $, $button, icon, setStatus } from './dom.ts';
 import { translateStatic } from './i18n.ts';
-import { langToggle } from './lang-picker.ts';
+import { mountLangToggle } from './mount-shared.ts';
 import { markFailed } from './catalog-options.ts';
 import { initSpeed, onSpeedEvent } from './speed.ts';
 import { startLive } from './live.svelte.ts';
@@ -74,7 +74,7 @@ export async function initApp(): Promise<void> {
   installTooltips();
   startUpdater();
   translateStatic(document.body);
-  $('#btn-settings').before(langToggle());
+  mountLangToggle($('#btn-settings'));
   $('#btn-settings').append(icon('gear', 24));
   $('#btn-settings').addEventListener('click', openSettings);
   document.addEventListener('keydown', onShortcut);

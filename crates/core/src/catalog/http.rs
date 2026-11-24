@@ -262,6 +262,13 @@ impl Http {
             .map_err(|_| FetchError::Timeout)?
     }
 
+    /// Una imagen (póster) en bytes, con el tope normal de [`MAX_BODY`].
+    pub async fn get_image(&self, url: &str, timeout: Duration) -> Result<Vec<u8>, FetchError> {
+        tokio::time::timeout(timeout, self.get_capped(url, LIMITS, "image/*"))
+            .await
+            .map_err(|_| FetchError::Timeout)?
+    }
+
     /// GET binario más grande que [`MAX_BODY`] (los datasets de IMDb, ~8 MB comprimidos).
     pub async fn get_large(
         &self,

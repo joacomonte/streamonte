@@ -1,5 +1,6 @@
 // Adaptadores puros de la web: JSON de /api/* → modelo de vista de `packages/ui`. Sin `fetch` ni DOM (se prueban solos);
 // `webApi.ts` hace los pedidos. Imports relativos: `node --test` no resuelve el alias `$ui`.
+import { blankOption } from '../../../packages/ui/src/blank-option.ts';
 import type {
 	CatalogItem, CatalogPage, Episode, Identified, MagnetStatus, MagnetView, OptionLink, OptionsUpdate, PersonHit, PremiumQuota,
 	SeasonRatings, SubtitleOption, TitleDetails, TorrentOption, TorrentTracks
@@ -67,11 +68,10 @@ export const seasonRatings = (raw: SeasonScore[]): SeasonRatings => ({ seasons: 
 export type TorrentRaw = Omit<Torrent, 'hint' | 'subFile'> & { hint: string | null; subFile?: boolean; codec?: string | null; atmos?: boolean };
 const HINTS = ['lat', 'likely', 'spain'] as const;
 
-export const option = (t: TorrentRaw): TorrentOption => ({
+export const option = (t: TorrentRaw): TorrentOption => blankOption({
 	hash: t.hash,
 	release: t.release,
 	file: t.file,
-	fileIdx: null,
 	resolution: t.res,
 	hdr: t.hdr,
 	source: t.source,
@@ -79,17 +79,11 @@ export const option = (t: TorrentRaw): TorrentOption => ({
 	audioFormat: t.atmos ? ['Atmos'] : [],
 	sizeBytes: t.size,
 	seeds: t.seeds,
-	leechers: null,
-	completed: null,
-	audio: [],
-	subs: [],
 	hint: HINTS.find((h) => h === t.hint) ?? null,
 	multi: t.multi,
 	spanish: t.spa,
 	subFile: t.subFile === true,
-	sites: [],
-	addons: t.addons,
-	isPack: false
+	addons: t.addons
 });
 
 export const link = (raw: LinkRaw): OptionLink => ({ url: raw.url, choices: raw.choices ?? [], video: raw.video ?? null, file: raw.file ?? null, natives: raw.natives ?? [], subsEs: raw.subsEs ?? null, ids: raw.ids ?? null });

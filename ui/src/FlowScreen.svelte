@@ -11,7 +11,7 @@
 	import FlowSearching from '$ui/flow/FlowSearching.svelte';
 	import { stepIn } from '$ui/flow/step-in.ts';
 	import OptionsList from '$ui/options/OptionsList.svelte';
-	import MoreRow from './MoreRow.svelte';
+	import MoreRow from '$ui/flow/MoreRow.svelte';
 	import type { ChoiceView, FlowButton, FlowView } from './streams-view.ts';
 
 	let { flow }: { flow: FlowView } = $props();
@@ -48,13 +48,13 @@
 			{:else if flow.kind === 'nolat'}
 				<p class="none" role="status">{flow.none}</p>
 				{@render choices(flow.choices)}
-				<div class="cat-flow-actions rows">{#if flow.more}<MoreRow more={flow.more} />{/if}</div>
+				<div class="cat-flow-actions rows">{#if flow.more}<MoreRow more={flow.more} look="cat" />{/if}</div>
 			{:else if flow.kind === 'match'}
 				{#if flow.note}<p class="cat-flow-note" role="status">{flow.note}</p>{/if}
 				<OptionsList rows={flow.rows} />
 				<div class="cat-flow-actions rows">
 					{#if flow.lighter}{@render flowBtn(flow.lighter)}{/if}
-					{#if flow.more}<MoreRow more={flow.more} />{/if}
+					{#if flow.more}<MoreRow more={flow.more} look="cat" />{/if}
 					{@render flowBtn(flow.all)}
 				</div>
 			{:else if flow.kind === 'spain'}

@@ -10,6 +10,8 @@
 	import AwardsBadge from './AwardsBadge.svelte';
 	import { awardsView, cardAwards } from './awards.ts';
 	import SeasonChart from './SeasonChart.svelte';
+	import { isSpoiler, lastSeenOf, type LastSeen } from './spoiler.ts';
+	import { posterTint, smallPoster } from './tint.ts';
 	import { episodeRows, MAX_ACTORS, outlookOf, pickPeople, providerView, seasonTiles, showCineNote, TITLE_IDS } from './title-state.ts';
 	import type { SeasonTile, TitleIds } from './title-state.ts';
 
@@ -46,10 +48,6 @@
 		titleEl?: HTMLElement;
 		/** Migas "← Temporadas › Temporada N" arriba de los episodios. */
 		crumbs?: boolean;
-		/** Miniatura de cada episodio (el desktop no, puede spoilear). */
-		stills?: boolean;
-		/** Episodios que todavía no salieron no se pueden abrir. */
-		lockUnaired?: boolean;
 		genreLabel?: (genre: string) => string;
 		ids?: TitleIds;
 		/** Locale BCP 47 para números y fechas. */
@@ -57,7 +55,7 @@
 	}
 	let {
 		kind, id, details, season = null, episode = null, onSeason, onEpisode, seasonHref, episodeHref, onPerson, onOpenTitle, onOpenImdb,
-		options, between, teaser, similar = false, collapsed = false, topInset = 0, titleEl = $bindable(), crumbs = true, stills = true, lockUnaired = false,
+		options, between, teaser, similar = false, collapsed = false, topInset = 0, titleEl = $bindable(), crumbs = true,
 		genreLabel = (g: string) => g, ids = TITLE_IDS, locale
 	}: Props = $props();
 
@@ -74,6 +72,13 @@
 	const d = $derived(details ?? fetched);
 	let ratings = $state<SeasonRatings | null | undefined>(undefined);
 	let episodes = $state<Episode[] | null>(null);
+	/** Puntaje de IMDb por capítulo de la temporada abierta (número → puntaje). */
+	let epScores = $state<Map<number, number>>(new Map());
+	/** Anti spoiler: prendido siempre al abrir la ficha (pedido 2026-11-24); no se recuerda. */
+	let antiSpoiler = $state(true);
+	let lastSeen = $state<LastSeen>(null);
+	/** Color predominante del póster (`r g b`): tiñe el fondo de la ficha. */
+	let tint = $state<string | null>(null);
 	let epError = $state('');
 	let more = $state(false);
 	let providersOpen = $state(false);
@@ -113,6 +118,37 @@
 		return () => (alive = false);
 	});
 	$effect(() => {
+		const poster = d?.poster ?? null;
+		tint = null;
+		if (!poster) return;
+		let alive = true;
+		let blob = '';
+		api.catalog.readableImage(smallPoster(poster))
+			.then((u) => ((blob = u.startsWith('blob:') ? u : ''), posterTint(u)))
+			.then((c) => alive && c && (tint = c.join(' ')))
+			.catch(() => {})
+			.finally(() => blob && URL.revokeObjectURL(blob));
+		return () => (alive = false);
+	});
+	// Hasta dónde viste la serie (Vistos): lo usa el anti spoiler.
+	$effect(() => {
+		const imdb = d?.kind === 'tv' ? d.imdb : null;
+		lastSeen = null;
+		if (!imdb) return;
+		let alive = true;
+		api.recent.list().then((l) => alive && (lastSeen = lastSeenOf(l, imdb))).catch(() => {});
+		return () => (alive = false);
+	});
+	// Puntaje por capítulo (IMDb): si falla, la lista se ve igual, sin puntajes.
+	$effect(() => {
+		const [n, imdb] = [season, d?.kind === 'tv' ? d.imdb : null];
+		epScores = new Map();
+		if (n == null || !imdb) return;
+		let alive = true;
+		api.title.episodeRatings(imdb, n).then((l) => alive && (epScores = new Map(l.map((x) => [x.episode, x.rating])))).catch(() => {});
+		return () => (alive = false);
+	});
+	$effect(() => {
 		const [n, tvId] = [season, d?.kind === 'tv' ? d.id : null];
 		episodes = null;
 		epError = '';
@@ -129,10 +165,12 @@
 	}
 
 	const people = $derived(d ? pickPeople(d.people) : []);
-	// El director va junto al título ("Film de …"); los actores, como texto: "Con A, B, C y N más" (2026-11-23, variante 2D).
+	// El director va arriba del título ("Una película de …"); los actores, como texto: "Con A, B, C y N más" (2026-11-23, variante 2D).
 	const director = $derived(people.find((p) => p.role === 'director'));
 	const cast = $derived((d?.people ?? []).filter((p) => p.role === 'cast'));
-	const castShown = $derived(castOpen ? cast : cast.slice(0, MAX_ACTORS));
+	/** Actores a la vista antes de "y N más" (2026-11-24: 3; `MAX_ACTORS` sigue siendo el tope de `pickPeople`). */
+	const CAST_SHOWN = 3;
+	const castShown = $derived(castOpen ? cast : cast.slice(0, CAST_SHOWN));
 	const provs = $derived(d ? providerView(d.providers, providersOpen) : { shown: [], more: 0 });
 	const tiles = $derived(d ? seasonTiles(d.seasons, ratings) : []);
 	const outlook = $derived(d ? outlookOf(d, ratings) : null);
@@ -150,6 +188,8 @@
 	const genres = $derived((d?.genres ?? []).map(genreLabel));
 	const seasonName = (n: number, name: string | null) => name || (n === 0 ? t('Especiales') : t('Temporada {n}', { n }));
 	const aboutTitle = $derived(d?.overview ? t('Sinopsis') : t('Idioma original'));
+	/** Puntaje de la ficha; si la ficha no lo trae (títulos nuevos), el de IMDb que llega con los premios. */
+	const rating = $derived(d?.rating || (awards?.rating ? awards.rating.toFixed(1) : null));
 	const aw = $derived(awardsView(awards, t));
 	/** Premios compactos junto al puntaje (como en la tarjeta); null = sin eventos grandes, no hay nada que desplegar. */
 	const awBadge = $derived(cardAwards(awards));
@@ -184,16 +224,21 @@
 {/snippet}
 
 {#snippet epRow(ep: Episode, future: boolean)}
-	{#if stills}{#if ep.still}<img src={ep.still} alt="" loading="lazy" width="300" height="169" referrerpolicy="no-referrer" />{:else}<span class="still-empty"></span>{/if}{/if}
+	{@const score = epScores.get(ep.number)}
+	{#if ep.still}<img src={ep.still} alt="" loading="lazy" width="300" height="169" referrerpolicy="no-referrer" />{:else}<span class="still-empty"></span>{/if}
 	<span class="ep-text">
-		<span class="ep-name">{ep.number}. {ep.title || t('Episodio {n}', { n: ep.number })}</span>
-		<span class="muted small">{ep.date ? (future ? t('Sale el {d}', { d: fmtDate(ep.date) }) : fmtDate(ep.date)) : ''}</span>
+		<span class="ep-name">{ep.number}. <span>{ep.title || t('Episodio {n}', { n: ep.number })}</span></span>
+		<span class="ep-meta muted small">
+			{#if future}<span class="unaired">{t('Aún no salió')}</span>{/if}
+			{ep.date ? (future ? t('Sale el {d}', { d: fmtDate(ep.date) }) : fmtDate(ep.date)) : ''}
+			{#if score}<span class="ep-score"><Icon name="star" size={12} />{fmtScore(score)}</span>{/if}
+		</span>
 		{#if ep.overview}<span class="ep-overview">{ep.overview}</span>{/if}
 	</span>
 	<span class="chev"><Icon name="next" size={18} /></span>
 {/snippet}
 
-<div class="title-view" style:--inset="{topInset}px">
+<div class="title-view" class:tinted={!!tint} style:--inset="{topInset}px" style:--tint={tint ? `rgb(${tint})` : null}>
 	{#if !d}
 		{#if loadError}
 			<p class="err inner">{loadError}</p>
@@ -207,20 +252,22 @@
 					<div class="inner hero-in">
 						{#if d.poster}<img id={ids.poster} class="poster" src={d.poster} alt="" width="342" height="513" referrerpolicy="no-referrer" onerror={hide} />{/if}
 						<div class="facts">
-							<h1 class="name" bind:this={titleEl}>{d.title}</h1>
+							<!-- Director arriba del título, como en los créditos de un afiche (2026-11-24): "UNA PELÍCULA DE Brad Bird". -->
 							{#if director}
 								{@const dir = director}
-								<p class="by">{t(d.kind === 'tv' ? 'Serie de' : 'Film de')} <button id={ids.person(dir)} type="button" class="by-link" title={t('Ver lo que dirigió')} onclick={() => onPerson(dir)}>{dir.name}</button></p>
+								<p class="by"><span class="by-pre">{t(d.kind === 'tv' ? 'Una serie de' : 'Una película de')}</span> <button id={ids.person(dir)} type="button" class="by-link" title={t('Ver lo que dirigió')} onclick={() => onPerson(dir)}>{dir.name}</button></p>
 							{/if}
+							<h1 class="name" bind:this={titleEl}>{d.title}</h1>
 							<p class="muted line">
 								<span>{heroLine}</span>
-								<!-- Puntaje con estrella (como en las tarjetas; abre IMDb) y premios compactos: ícono del mejor nivel y
+								<!-- Puntaje con estrella (como en las tarjetas; abre IMDb; sin puntaje todavía, dice "IMDb" y no queda la
+								     estrella sola, 2026-11-24) y premios compactos: ícono del mejor nivel y
 								     ganados/nominaciones; la flecha despliega la lista completa debajo de la cabecera. -->
 								{#if d.imdb}
 									{@const imdb = d.imdb}
-									<a id={ids.imdb} class="ext" href="https://www.imdb.com/title/{imdb}/" target="_blank" rel="noopener noreferrer" title={t('Ver en IMDb')} onclick={(e) => { if (onOpenImdb) { e.preventDefault(); onOpenImdb(imdb); } }}><span class="ext-star"><Icon name="star" size={13} /></span>{d.rating ?? ''}</a>
-								{:else if d.rating}
-									<span class="rate"><Icon name="star" size={13} />{d.rating}</span>
+									<a id={ids.imdb} class="ext" href="https://www.imdb.com/title/{imdb}/" target="_blank" rel="noopener noreferrer" title={t('Ver en IMDb')} onclick={(e) => { if (onOpenImdb) { e.preventDefault(); onOpenImdb(imdb); } }}>{#if rating}<span class="ext-star"><Icon name="star" size={13} /></span>{rating}{:else}<span class="ext-imdb">IMDb</span>{/if}</a>
+								{:else if rating}
+									<span class="rate"><Icon name="star" size={13} />{rating}</span>
 								{/if}
 								{#if aw && awBadge}
 									<button id={ids.awards} type="button" class="ext aw-pill" class:open={awardsOpen} aria-expanded={awardsOpen} aria-controls={ids.awardsBody} title={aw.line} aria-label={`${aw.line}. ${awardsOpen ? t('Ocultar premios') : t('Ver todos los premios')}`} onclick={() => (awardsOpen = !awardsOpen)}>
@@ -271,9 +318,9 @@
 							<p class="meta-row">
 								<Icon name="user" size={14} />
 								<span>
-									{#each castShown as p, i (p.id)}{@const and = i === castShown.length - 2 && (castOpen || cast.length <= MAX_ACTORS)}<span class="who-item"><button id={ids.person(p)} type="button" class="who" title={p.note ? `${p.name} · ${p.note}` : t('Ver lo que actuó')} onclick={() => onPerson(p)}>{p.name}{#if p.photo}<img class="who-face" src={p.photo} alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer" onerror={hide} />{/if}</button>{#if i < castShown.length - 1 && !and},{/if}</span>{#if i < castShown.length - 1}{and ? ` ${t('y')} ` : ' '}{/if}{/each}
-									{#if cast.length > MAX_ACTORS}
-										<button id={ids.cast} type="button" class="who-more" aria-expanded={castOpen} onclick={() => (castOpen = !castOpen)}>{castOpen ? t('ver menos') : t('y {n} más', { n: cast.length - MAX_ACTORS })}</button>
+									{#each castShown as p, i (p.id)}{@const and = i === castShown.length - 2 && (castOpen || cast.length <= CAST_SHOWN)}<span class="who-item"><button id={ids.person(p)} type="button" class="who" title={p.note ? `${p.name} · ${p.note}` : t('Ver lo que actuó')} onclick={() => onPerson(p)}>{p.name}{#if p.photo}<img class="who-face" src={p.photo} alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer" onerror={hide} />{/if}</button>{#if i < castShown.length - 1 && !and},{/if}</span>{#if i < castShown.length - 1}{and ? ` ${t('y')} ` : ' '}{/if}{/each}
+									{#if cast.length > CAST_SHOWN}
+										<button id={ids.cast} type="button" class="who-more" aria-expanded={castOpen} onclick={() => (castOpen = !castOpen)}>{castOpen ? t('ver menos') : t('y {n} más', { n: cast.length - CAST_SHOWN })}</button>
 									{/if}
 								</span>
 							</p>
@@ -379,6 +426,10 @@
 								{/if}
 							</ul>
 						{:else}
+							<!-- Anti spoiler arriba de los capítulos: prendido siempre al abrir (2026-11-24). -->
+							<button id="title-anti-spoiler" type="button" class="spoil" role="switch" aria-checked={antiSpoiler} title={t('Difumina imagen, título, sinopsis y puntaje de los capítulos que no viste')} onclick={() => (antiSpoiler = !antiSpoiler)}>
+								<Icon name={antiSpoiler ? 'eye-off' : 'eye'} size={16} />{t('Anti spoiler')}<span class="knob" aria-hidden="true"></span>
+							</button>
 							{#if crumbs}
 								<nav class="crumbs" aria-label={t('Ruta')}>
 									{#if d.seasons.length !== 1}
@@ -395,12 +446,12 @@
 							{:else}
 								<ul class="eps">
 									{#each rows as { ep, future } (ep.number)}
-										{@const locked = lockUnaired && future}
+										{@const hidden = antiSpoiler && isSpoiler(ep.season, ep.number, lastSeen)}
 										<li>
-											{#if episodeHref && !locked}
-												<a id={ids.episode(ep.season, ep.number)} class="ep" class:future href={episodeHref(ep)} data-sveltekit-preload-data="tap" onclick={(e) => { if (plain(e)) { e.preventDefault(); onEpisode(ep); } }}>{@render epRow(ep, future)}</a>
+											{#if episodeHref}
+												<a id={ids.episode(ep.season, ep.number)} class="ep" class:future class:spoiler={hidden} href={episodeHref(ep)} data-sveltekit-preload-data="tap" onclick={(e) => { if (plain(e)) { e.preventDefault(); onEpisode(ep); } }}>{@render epRow(ep, future)}</a>
 											{:else}
-												<button id={ids.episode(ep.season, ep.number)} type="button" class="ep" class:future disabled={locked} onclick={() => onEpisode(ep)}>{@render epRow(ep, future)}</button>
+												<button id={ids.episode(ep.season, ep.number)} type="button" class="ep" class:future class:spoiler={hidden} onclick={() => onEpisode(ep)}>{@render epRow(ep, future)}</button>
 											{/if}
 										</li>
 									{/each}
@@ -416,6 +467,10 @@
 
 <style>
 	.title-view { --accent-chip: var(--accent-fg, var(--accent)); }
+	/* Tinte del póster: arriba se nota, hacia abajo se funde con el fondo de la app. */
+	/* Solo la cabecera (póster, datos y sinopsis) y se funde progresivamente con el fondo de cada app al final de la
+	 * cabecera, sobre la fila de Similares (2026-11-24). Semitransparente: sirve sobre el panel del desktop y la web. */
+	.title-view.tinted .intro { background: linear-gradient(to bottom, color-mix(in srgb, var(--tint) 55%, transparent) 0%, color-mix(in srgb, var(--tint) 38%, transparent) 55%, color-mix(in srgb, var(--tint) 14%, transparent) 82%, transparent 100%); }
 	.inner { width: 100%; max-width: 1200px; margin: 0 auto; padding-inline: 16px; box-sizing: border-box; }
 	.muted { color: var(--muted); }
 	.err { color: var(--red); }
@@ -430,22 +485,30 @@
 	.hero::before {
 		content: '';
 		position: absolute;
-		inset: 0;
+		/* Más grande que la cabecera: el blur deja los bordes semitransparentes y se veía el recuadro (2026-11-24). */
+		inset: -24px;
 		background: var(--bd) center / cover;
 		filter: blur(2px) saturate(1.1);
 		opacity: 0.35;
-		mask-image: linear-gradient(to bottom, #000 40%, transparent);
+		/* Se funde de a poco hacia abajo (antes cortaba en seco al final de la cabecera). */
+		mask-image: linear-gradient(to bottom, #000 0%, #000 35%, rgb(0 0 0 / 0.55) 62%, rgb(0 0 0 / 0.18) 82%, transparent calc(100% - 24px));
 	}
 	.hero-in { position: relative; display: flex; gap: 14px; align-items: flex-end; padding-top: 18px; padding-bottom: 8px; }
 	.poster { width: 110px; height: auto; aspect-ratio: 2 / 3; border-radius: var(--r-md, 12px); box-shadow: 0 8px 24px var(--shadow-lg); object-fit: cover; flex: none; }
 	@media (min-width: 720px) { .poster { width: 170px; } }
 	.facts { min-width: 0; padding-bottom: 4px; }
-	.name { margin: 0 0 4px; font-size: 24px; line-height: 1.15; letter-spacing: -0.015em; text-wrap: balance; }
+	.name { margin: 0 0 10px; font-size: 24px; line-height: 1.15; letter-spacing: -0.015em; text-wrap: balance; }
 	.line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; font-size: 13.5px; }
 	.rate { display: inline-flex; align-items: center; gap: 3px; color: var(--yellow); font-weight: 650; }
-	.by { margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
-	.by-link { padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-weight: 650; cursor: pointer; }
-	@media (hover: hover) { .by-link:hover { text-decoration: underline; } }
+	/* Prefijo y nombre sobre la misma línea de base (2026-11-24: centrados, las mayúsculas chicas quedaban más arriba). */
+	.by { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; margin: 0 0 8px; line-height: 1; }
+	/* "UNA PELÍCULA DE" en versalitas espaciadas con una rayita ámbar delante; el nombre, en blanco, centrado en la misma línea. */
+	/* El margen negativo come el espaciado de letras que queda después de la última (si no, el nombre parece suelto). */
+	.by-pre { display: inline-flex; align-items: baseline; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+	.by-pre::before { content: ''; align-self: center; width: 18px; height: 2px; border-radius: 2px; background: var(--amber, #f5b942); }
+	/* Mismo tamaño, estilo y color que el prefijo (mayúsculas espaciadas): se lee como una sola línea; al pasar el mouse, ámbar. */
+	.by-link { padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 11px; font-weight: 700; line-height: 1; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; transition: color 0.2s; }
+	@media (hover: hover) { .by-link:hover { color: var(--amber, #f5b942); } }
 	/* Debajo del póster: géneros, reparto y dónde verla, una línea por dato con un ícono chico (2026-11-23, variante C). */
 	.meta { display: grid; gap: 6px; padding-top: 14px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
 	.meta-row { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; align-items: start; margin: 0; }
@@ -500,6 +563,7 @@
 	/* IMDb y tráiler: píldoras chicas en la línea de datos. */
 	.ext { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 9px; border-radius: var(--r-pill, 999px); background: var(--surface-2); color: var(--text); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: none; transition: background 0.2s var(--ease); }
 	.ext-star { display: inline-flex; color: var(--yellow); }
+	.ext-imdb { padding: 0 1px; font-weight: 800; letter-spacing: 0.02em; color: var(--yellow); }
 	@media (hover: hover) { .ext:hover { background: var(--surface-3, var(--border)); } }
 	/* Fila de plataformas. */
 	.networks { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 12px; }
@@ -568,8 +632,19 @@
 	.eps li { border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 6px; }
 	.ep { display: flex; gap: 12px; align-items: center; width: 100%; padding: 6px 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; text-decoration: none; border-radius: var(--r-md, 12px); cursor: pointer; }
 	.ep:active { background: var(--surface-2); }
-	.ep:disabled { cursor: default; }
-	.ep.future { opacity: 0.6; }
+	.ep.future { opacity: 0.75; }
+	.ep-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+	.unaired { padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--yellow); background: color-mix(in srgb, var(--yellow) 14%, transparent); }
+	.ep-score { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+	.ep-score :global(svg) { color: #e6b54a; fill: currentColor; }
+	/* Anti spoiler: el capítulo entero se difumina, sin bordes (2026-11-24: sin textos sueltos a la vista). */
+	.ep > * { transition: filter 0.3s var(--ease), opacity 0.3s var(--ease); }
+	.ep.spoiler > * { filter: blur(2.5px) saturate(0.85); opacity: 0.85; user-select: none; }
+	.spoil { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; margin: 4px 0 6px; padding: 0 6px 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer; }
+	.spoil .knob { position: relative; width: 34px; height: 20px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 40%, transparent); transition: background 0.2s var(--ease); }
+	.spoil .knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.2s var(--ease); }
+	.spoil[aria-checked='true'] .knob { background: var(--accent); }
+	.spoil[aria-checked='true'] .knob::after { transform: translateX(14px); }
 	.ep img, .still-empty { width: 120px; height: auto; aspect-ratio: 16 / 9; border-radius: var(--r-sm, 8px); object-fit: cover; background: var(--surface-2); flex: none; }
 	.ep-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 	.ep-name { font-weight: 600; font-size: 14px; }
@@ -578,8 +653,8 @@
 	/* Entrada: el fondo se enfoca desde un zoom y el texto sube en cascada. */
 	.hero::before { animation: backdrop-in 0.9s var(--out) backwards; will-change: transform; }
 	.name, .by, .line, .companies, .meta, .body { animation: rise 0.7s var(--out) backwards; }
-	.name { animation-delay: 0.12s; }
-	.by { animation-delay: 0.16s; }
+	.by { animation-delay: 0.08s; }
+	.name { animation-delay: 0.14s; }
 	.line { animation-delay: 0.2s; }
 	.companies { animation-delay: 0.26s; }
 	.meta { animation-delay: 0.28s; }

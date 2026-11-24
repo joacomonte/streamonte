@@ -27,6 +27,8 @@ export type TmdbTitle = TmdbItem & {
 	status?: string;
 	production_companies?: { name: string }[];
 	credits?: { cast?: TmdbPerson[]; crew?: TmdbPerson[] };
+	/** Series: sus creadores. */
+	created_by?: TmdbPerson[];
 	'watch/providers'?: { results?: Record<string, { flatrate?: TmdbProvider[]; ads?: TmdbProvider[]; free?: TmdbProvider[] }> };
 	next_episode_to_air?: { air_date?: string; season_number: number; episode_number: number } | null;
 	seasons?: TmdbSeason[];

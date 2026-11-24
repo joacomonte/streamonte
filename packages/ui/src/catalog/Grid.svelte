@@ -206,7 +206,7 @@
 {/snippet}
 
 <div class="area" class:fade>
-	<ul class="grid" aria-busy={st.loading}>
+	<ul class="grid" class:has-active={!!st.activeId && st.items.some((x) => x.id === st.activeId)} aria-busy={st.loading}>
 		{#each items as it (`${it.kind}${it.id}`)}
 			<li>
 				{#if href}
@@ -266,7 +266,11 @@
 	}
 	@media (min-width: 640px) { .grid { grid-template-columns: repeat(4, 1fr); gap: 24px 18px; } }
 	.card { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
-	.card.active img, .card.active .noposter { outline: 2px solid var(--accent); outline-offset: 1px; }
+	/* Con un título abierto (2026-11-24): el resto se desenfoca y apaga un poco; el elegido queda nítido, sin borde. */
+	.card { transition: filter 0.35s var(--out), opacity 0.35s var(--out), scale 0.35s var(--out); }
+	.has-active .card:not(.active) { filter: blur(2.5px) saturate(0.7) brightness(0.65); opacity: 0.85; }
+	.has-active .card.active { scale: 1.02; }
+	@media (hover: hover) { .has-active .card:not(.active):hover { filter: none; opacity: 1; } }
 	.card img, .noposter, .poster-skel {
 		width: 100%;
 		height: auto;
@@ -282,8 +286,9 @@
 	.meta { display: flex; flex-direction: column; padding: 6px 2px 0; }
 	.title { font-size: 13px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 	.sub { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: center; font-size: 12px; color: var(--muted); }
-	/* Premios al borde derecho de la línea; compactos para que entren en la misma. */
-	.aw { display: inline-flex; margin-left: auto; font-size: 10px; animation: aw-in 0.3s ease-out; }
+	/* Premios pegados al puntaje (2026-11-24; antes iban al borde derecho), separados por un punto como el año. */
+	.aw { display: inline-flex; align-items: center; margin-left: 2px; font-size: 10px; animation: aw-in 0.3s ease-out; }
+	.aw::before { content: '·'; margin-right: 5px; color: var(--muted); font-size: 12px; }
 	@keyframes aw-in { from { opacity: 0; } }
 	.rate { position: relative; display: inline-flex; align-items: center; gap: 2px; color: var(--yellow); }
 	/* El conteo cambia el texto en cada frame: ancho fijo y `contain` para que no recalcule la grilla entera. */

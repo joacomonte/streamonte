@@ -49,3 +49,6 @@ export function onlyCinema(released: string | null | undefined): boolean {
 	const days = (Date.now() - new Date(`${released}T00:00`).getTime()) / 864e5;
 	return days >= 0 && days < CINEMA_DAYS;
 }
+
+/** "S01E02" de temporada y episodio. */
+export const sxe = (s: number | string, e: number | string): string => `S${String(s).padStart(2, '0')}E${String(e).padStart(2, '0')}`;
