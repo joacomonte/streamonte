@@ -4,6 +4,8 @@
 #   sh scripts/release.sh [patch|minor] [--dry-run]     # patch por defecto
 #   sh scripts/release.sh --revert [--dry-run]          # deshace el último release y publica el patch siguiente
 # --dry-run imprime los pasos (líneas "+ …") sin escribir nada.
+# --revert usa `git revert <tag anterior>..<último tag>`: sirve con commits lineales; con merges --no-ff el revert es manual.
+# Sin --dry-run exige estar en main y con origin/main como ancestro de HEAD.
 # El updater solo avanza de versión: por eso --revert no "baja" el número, revierte el contenido y sube un patch.
 set -e
 cd "$(dirname "$0")/.."
@@ -20,6 +22,11 @@ done
 # Ejecuta (o, con --dry-run, solo muestra) un comando.
 do_() { echo "+ $*"; [ -n "$dry" ] || "$@"; }
 
+if [ -z "$dry" ]; then
+  [ "$(git branch --show-current)" = main ] || { echo "el release se hace desde main (estás en '$(git branch --show-current)')" >&2; exit 1; }
+  git fetch origin main
+  git merge-base --is-ancestor origin/main HEAD || { echo "origin/main tiene commits que HEAD no: actualizar main antes del release" >&2; exit 1; }
+fi
 [ -n "$dry" ] || [ -z "$(git status --porcelain)" ] || { echo "el árbol tiene cambios sin commitear: commitearlos antes del release" >&2; exit 1; }
 
 cur=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)

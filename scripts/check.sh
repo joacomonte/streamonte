@@ -35,7 +35,7 @@ changed() {
 STAMP_ENV="RUST=$RUST ALL=$ALL"
 RUST_PATHS="crates src-tauri Cargo.toml Cargo.lock packages/golden"
 TAURI=0
-if [ -n "$RUST" ] || [ "$ALL" = 1 ]; then
+if [ "$RUST" = 1 ] || [ "$ALL" = 1 ]; then
   RUST=1
   TAURI=1
 else
@@ -54,7 +54,7 @@ changed packages/golden && GOLD=1
 common=$(git rev-parse --git-common-dir)
 key=$({
   git rev-parse HEAD
-  git diff HEAD
+  git diff --binary HEAD
   git ls-files -o --exclude-standard
   git ls-files -o --exclude-standard -z | xargs -0 cat 2>/dev/null
   cat scripts/check.sh scripts/lib/*
@@ -93,7 +93,7 @@ if [ "$1" = "full" ]; then
   # packages/ui: tsc estricto con el typescript de ui/node_modules. Solo en full y en CI (el carril rápido lo cubre con
   # ui check): agarra globales de solo desktop (ui/src/globals.d.ts, vite/client) usados por error en packages/ui.
   if [ "$PKG" = 1 ] || [ "$UI" = 1 ]; then run uipkg sh -c 'cd packages/ui && ../../ui/node_modules/.bin/tsc -p tsconfig.json'; fi
-  if [ "$PKG" = 1 ]; then run uipkgtest sh -c 'cd packages/ui && node --test "src/**/*.test.ts"'; fi
+  if [ "$UI" = 1 ] || [ "$WEB" = 1 ] || [ "$PKG" = 1 ]; then run uipkgtest sh -c 'cd packages/ui && node --test "src/**/*.test.ts"'; fi
   if [ "$UI" = 1 ] || [ "$PKG" = 1 ]; then run uitest sh -c 'cd ui && node --test "src/**/*.test.{js,ts}"'; fi
   if [ "$WEB" = 1 ] || [ "$PKG" = 1 ] || [ "$GOLD" = 1 ]; then run webtest sh -c 'cd web && node --test "src/**/*.test.{js,ts}"'; fi
   # --lib --tests: sin compilar los ejemplos (los compila clippy de arriba).
