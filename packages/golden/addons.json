@@ -1,0 +1,12 @@
+[
+ {
+  "nota": "addons Stremio activados de fábrica: [nombre, base] (sin /manifest.json). Rust manda: crates/core/src/config.rs default_addons; la web los tiene copiados en web/src/lib/server/torrents.ts ADDONS (no se leen en runtime: solo se verifican).",
+  "in": "default_addons",
+  "out": [
+   ["Torrentio", "https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,uindex,knaben,ext,mejortorrent,wolfmax4k,cinecalidad|language=latino,spanish|sort=qualityseeders"],
+   ["Peerflix", "https://addon.peerflix.mov"],
+   ["Comet", "https://comet.feels.legal"],
+   ["TorrentsDB", "https://torrentsdb.com"]
+  ]
+ }
+]

@@ -3,7 +3,7 @@
 import { Fail } from '../http-route.ts';
 import { lang, tx } from '../lang.ts';
 import { added, download, tbRoot } from './client.ts';
-import type { Pick, TbRes, TbStream } from './client.ts';
+import type { Pick, TbAudio, TbRes, TbStream } from './client.ts';
 import { spanishSubs } from './tracks.ts';
 import { trackVariant } from '../../../../../packages/ui/src/latino.ts';
 
@@ -42,6 +42,19 @@ const ISO3: Record<string, string[]> = {
 	id: ['ind'], uk: ['ukr'], fa: ['per', 'fas'], cn: ['chi', 'zho'], is: ['ice', 'isl'], ro: ['rum', 'ron']
 };
 
+/** Qué audio poner (posiciones entre `audios`, sin red): `main` es el del idioma original (`orig`, ISO 639-1), si no
+ * inglés, si no -1 (el desktop usa 0: `torbox.rs pick_audio`); `lat` es el español latino, o null. Latino = la
+ * unión de las dos detecciones: el título de la pista, o el orden en que el nombre del release nombra los idiomas
+ * (`latinoByName`; las pistas cuyo título dice España no son candidatas, y "Cast" suelto no es castellano). `byOrig`: `main` es el idioma original (no el inglés de respaldo). Golden `torbox_pick.json`. */
+export function pickAudio(audios: TbAudio[], orig: string | null, release: string): { main: number; lat: number | null; byOrig: boolean } {
+	const codes = ISO3[orig ?? ''] ?? [];
+	const byOrig = audios.findIndex((a) => codes.includes(a.language));
+	const main = byOrig >= 0 ? byOrig : audios.findIndex((a) => a.language === 'eng');
+	const spa = audios.map((a, i) => ({ a, i })).filter(({ a }) => a.language === 'spa');
+	const lat = spa.find(({ a }) => trackVariant('', a.title ?? '') === 'lat') ?? latinoByName(spa.filter(({ a }) => !/españa|castellano|spain|es-es|castilian/i.test(a.title ?? '')), release);
+	return { main, lat: lat ? lat.i : null, byOrig: byOrig >= 0 };
+}
+
 /** Stream HLS de TorBox (`.m3u8`): Web Video Caster lo detecta como video (el link de descarga va como
  * `application/octet-stream` y lo abría como texto) y llega en segmentos que la tele reproduce.
  * Audio: el idioma original por defecto (muchos releases traen primero un doblaje ruso); si no está, inglés; si además
@@ -65,9 +78,7 @@ async function hls(id: number, fileId: number, release: string, orig: string | n
 		const v = d.metadata?.video ?? {};
 		const dur = String(v.duration ?? '').match(/^(\d+):(\d+):(\d+)/);
 		const video = { fps: Number(v.frame_rate) || null, duration: dur ? Number(dur[1]) * 3600 + Number(dur[2]) * 60 + Number(dur[3]) : null };
-		const codes = ISO3[orig ?? ''] ?? [];
-		const byOrig = audios.findIndex((a) => codes.includes(a.language));
-		const main = byOrig >= 0 ? byOrig : audios.findIndex((a) => a.language === 'eng');
+		const { main, lat, byOrig } = pickAudio(audios, orig, release);
 		// shortcut: hasta 4 (un stream por subtítulo, todos se piden ya); si un video trae más, sumar un pedido a demanda.
 		const natives: Native[] = (await Promise.all(spaSubs.slice(0, 4).map(async ({ i, label, kind }) => ({
 			label,
@@ -75,11 +86,9 @@ async function hls(id: number, fileId: number, release: string, orig: string | n
 			track: i + 1,
 			url: await at(main, i).catch(() => '')
 		})))).filter((n) => n.url.startsWith('https://'));
-		const spa = audios.map((a, i) => ({ a, i })).filter(({ a }) => a.language === 'spa');
-		const lat = spa.find(({ a }) => trackVariant('', a.title ?? '') === 'lat') ?? latinoByName(spa, release);
-		if (main >= 0 && lat && lat.i !== main) {
-			const [o, la] = await Promise.all([at(main), at(lat.i)]);
-			const name = new Intl.DisplayNames([lang()], { type: 'language' }).of(byOrig >= 0 && orig ? orig : 'en') ?? '';
+		if (main >= 0 && lat != null && lat !== main) {
+			const [o, la] = await Promise.all([at(main), at(lat)]);
+			const name = new Intl.DisplayNames([lang()], { type: 'language' }).of(byOrig && orig ? orig : 'en') ?? '';
 			const choices = [
 				{ key: 'orig', label: tx('Original ({l})', { l: name[0]?.toUpperCase() + name.slice(1) }), url: o },
 				{ key: 'lat', label: tx('Latino'), url: la }
@@ -103,7 +112,7 @@ export function latinoByName<T>(spa: T[], release: string): T | null {
 	const lat = release.search(/latino|\blat\b|latam|dual-lat/i);
 	if (lat < 0 || !spa.length) return null;
 	if (spa.length === 1) return spa[0];
-	const cas = release.search(/castellano|\bcast\b|españa|spain/i);
+	const cas = release.search(/castellano|españa|spain/i);
 	return cas >= 0 && cas < lat ? spa[1] : spa[0];
 }
 

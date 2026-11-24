@@ -96,10 +96,12 @@ if [ "$1" = "full" ]; then
   if [ "$UI" = 1 ] || [ "$WEB" = 1 ] || [ "$PKG" = 1 ]; then run uipkgtest sh -c 'cd packages/ui && node --test "src/**/*.test.ts"'; fi
   if [ "$UI" = 1 ] || [ "$PKG" = 1 ]; then run uitest sh -c 'cd ui && node --test "src/**/*.test.{js,ts}"'; fi
   if [ "$WEB" = 1 ] || [ "$PKG" = 1 ] || [ "$GOLD" = 1 ]; then run webtest sh -c 'cd web && node --test "src/**/*.test.{js,ts}"'; fi
+  # Solo cambió packages/golden/: el lector del desktop (ui) no corre con el resto.
+  if [ "$GOLD" = 1 ] && [ "$UI" != 1 ] && [ "$PKG" != 1 ]; then run uigolden sh -c 'cd ui && node --test src/golden-status.test.ts'; fi
   # --lib --tests: sin compilar los ejemplos (los compila clippy de arriba).
   if [ "$RUST" = 1 ]; then cargo nextest run -p streamonte-core --lib --tests --no-fail-fast --status-level fail --final-status-level fail || touch "$tmp/nextest.fail"; fi
 elif [ "$GOLD" = 1 ]; then
-  run webgolden sh -c 'cd web && node --test src/lib/server/golden.test.ts'
+  run webgolden sh -c 'cd web && node --test src/lib/server/golden.test.ts src/lib/server/golden-rules.test.ts'
 fi
 wait
 
