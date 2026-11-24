@@ -2,7 +2,7 @@
 // Uso: node scripts/visual.mjs [--update] [--only TEXTO] [--threshold PCT=0.1] [--tol CANAL=16] [--out DIR]
 //                              [--record]  (web: graba /api/* reales en tests/visual/fixtures/web/; corré el server con TMDB_KEY y pasá --web-url)
 //                              [--ui-url URL] [--web-url URL]  (usar servers ya levantados en vez de levantar los propios)
-//                              [--changed]  (solo las pantallas de la app que tocan los cambios sin commitear vs HEAD; packages/ = ambas)
+//                              [--changed]  (solo las pantallas de la app que tocan los cambios sin commitear vs HEAD; packages/ = ambas)  [--changed-apps]  (solo imprime esas apps, "ui web"; lo usa contracts.sh)
 // Sin red: desktop = ui con mock-tauri (ui/mock/*.json); web = /api/* respondido con fixtures; imágenes remotas = placeholder.
 // El diff de píxeles lo hace el propio Chrome (canvas): sin dependencias. Detalle y decisión de CI: tests/visual/README.md.
 import { createRequire } from 'node:module';
@@ -21,16 +21,17 @@ const update = flag('update'), record = flag('record');
 const threshold = Number(opt('threshold', 0.1)); // % de píxeles distintos tolerado
 const tol = Number(opt('tol', 16)); // diferencia máxima por canal (0-255) para contar un píxel como igual: absorbe antialiasing
 const only = flag('only') ? opt('only') : '';
-// --changed: qué app tocan los archivos modificados/nuevos (ui/ → desktop, web/ → web, packages/ → las dos).
+// --changed: qué app tocan los archivos modificados/nuevos y de los commits sin pushear (ui/ → desktop, web/ → web, packages/ → las dos).
 const touched = new Set();
-if (flag('changed')) {
+if (flag('changed') || flag('changed-apps')) {
   const { execSync } = await import('node:child_process');
-  const files = execSync('git diff --name-only HEAD && git ls-files --others --exclude-standard', { cwd: root, encoding: 'utf8' }).split('\n');
+  const files = execSync('git diff --name-only HEAD && git ls-files --others --exclude-standard && git log --format= --name-only HEAD --not --remotes=origin', { cwd: root, encoding: 'utf8' }).split('\n');
   for (const f of files) {
     if (f.startsWith('ui/src/') || f.startsWith('ui/index.html') || f.startsWith('ui/mock/')) touched.add('ui');
     if (f.startsWith('web/src/')) touched.add('web');
     if (f.startsWith('packages/ui/')) { touched.add('ui'); touched.add('web'); }
   }
+  if (flag('changed-apps')) { console.log([...touched].join(' ')); process.exit(0); } // lo usa contracts.sh --changed: una sola regla
   if (!touched.size) { console.log('visual: sin cambios de UI, nada que capturar'); process.exit(0); }
 }
 const baseDir = `${root}tests/visual/baseline`;
