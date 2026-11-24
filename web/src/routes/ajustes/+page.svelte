@@ -138,7 +138,7 @@
 			<ul id="saved-keys" class="st-list">
 				{#each COMMON_KEYS as k (k.service)}
 					{@const has = status[k.service]}
-					<KeyRow service={k.service} name={k.name} hint={t(k.hint)} {has} editing={open === k.service} href={k.href} panelId="panel-{k.service}" onchange={() => toggle(k.service)}>
+					<KeyRow service={k.service} name={k.name} hint={t(k.hint)} {has} editField={!has || open === k.service} editing={open === k.service} href={k.href} panelId="panel-{k.service}" onchange={() => toggle(k.service)}>
 						{#if !has}
 							<div class="st-block">
 								<input id="key-{k.service}" class="st-input" type="password" autocomplete="off" placeholder={t(k.placeholder)} aria-label="{k.name} API key" bind:value={typed[k.service]} />

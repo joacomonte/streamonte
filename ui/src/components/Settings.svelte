@@ -23,7 +23,7 @@
   const TIPS: Partial<Record<KeyService, string>> = {
     tmdb: 'Gratis. Filtrá por fecha, votos, idioma y géneros, con pósters que faltan, idioma original, cadena y similares. Sin key, solo lo que está en tendencia.',
     torbox: 'Con tu cuenta de TorBox, marca las opciones que ya tiene en su caché: se pueden ver al instante desde sus servidores, sin depender de los seeds.',
-    opensubtitles: 'Cuenta gratis · 20 por día'
+    opensubtitles: 'Para "Buscar en Premium" en los subtítulos: cuenta gratis, 20 descargas por día.'
   };
   const COMMON: Row[] = COMMON_KEYS.map((k) => ({ service: k.service, label: k.name, hint: k.hint, tip: TIPS[k.service], placeholder: k.placeholder, primary: k.service !== 'opensubtitles' }));
   const WYZIE: Row = { service: 'wyzie', label: 'Wyzie Subs', placeholder: 'Pegá la key', hint: 'Gratis · 1000 por día' };
@@ -200,7 +200,7 @@
 {#snippet keyRow(row: Row)}
   {@const ok = configured(row.service)}
   {@const edit = !ok || editing.includes(row.service)}
-  <KeyRow service={row.service} name={t(row.label)} hint={t(row.hint)} tip={row.tip && t(row.tip)} has={ok} editing={editing.includes(row.service)}
+  <KeyRow service={row.service} name={t(row.label)} hint={t(row.hint)} tip={row.tip && t(row.tip)} has={ok} editing={editing.includes(row.service)} editField={edit}
     changeId="key-{row.service}-change" getId="key-{row.service}-page" onget={() => core.openKeyPage(row.service).catch(showError)} onchange={() => toggleEdit(row.service)}>
     {#if saved?.service === row.service}
       <p class="st-block key-done" role="status">
@@ -380,7 +380,6 @@
 
 <style>
   .st { padding: 6px 4px 8px; }
-  .st-name label { cursor: inherit; }
   .lock { display: inline-flex; align-items: center; gap: 5px; }
   .warn { background: color-mix(in srgb, var(--yellow) 10%, transparent); }
   .warn .st-sub { color: var(--text); }

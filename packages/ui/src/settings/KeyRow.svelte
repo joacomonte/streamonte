@@ -22,18 +22,20 @@
 		changeId?: string;
 		getId?: string;
 		panelId?: string;
+		/** Hay un campo `key-<servicio>` en pantalla (para enlazar el label). */
+		editField?: boolean;
 		children?: Snippet;
 	}
 	let {
 		service, name, hint, tip, has, editing = false, okText, href, onget, onchange,
-		changeId = `change-${service}`, getId = `get-${service}`, panelId, children
+		changeId = `change-${service}`, getId = `get-${service}`, panelId, editField = false, children
 	}: Props = $props();
 </script>
 
 <li class="key-row" data-service={service}>
 	<div class="st-row">
 		<span class="st-lbl">
-			<span class="st-name"><label for="key-{service}">{name}</label>{#if tip}<button id="key-{service}-tip" type="button" class="tip-i" aria-label={tip} title={tip} onclick={(e) => e.preventDefault()}><Icon name="info" size={14} /></button>{/if}</span>
+			<span class="st-name"><label for={editField ? `key-${service}` : undefined}>{name}</label>{#if tip}<button id="key-{service}-tip" type="button" class="tip-i" aria-label={tip} title={tip} onclick={(e) => e.preventDefault()}><Icon name="info" size={14} /></button>{/if}</span>
 			<span class="st-sub">{hint}</span>
 		</span>
 		<span id="key-{service}-state" class="st-chip" class:ok={has}>{#if has}<Icon name="check" size={12} />{/if}{has ? (okText ?? t('Guardada')) : t('Falta')}</span>
