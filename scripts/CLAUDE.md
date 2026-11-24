@@ -3,7 +3,7 @@ Todo se corre desde la raíz del repo (o del worktree).
 
 ## Para X → script
 - Chequeo rápido (fmt, clippy, tipos/lint del carril tocado): `sh scripts/check.sh`. Con tests: `check.sh full`. Fuerza: `RUST=1`, `ALL=1`, `FORCE=1`.
-- UI sin mirar a ojo: `node scripts/shot.mjs <url> [--sel] [--click] [--only mobile|desktop]` (PNG + ids + errores de consola).
+- UI sin mirar a ojo: `node scripts/shot.mjs <url> [--sel] [--click] [--only mobile|desktop]` (PNG + ids + errores de consola). Flujo con escribir/tocar/esperar: escena suelta `node scripts/scenes.mjs --file x.json --snap` (mismo formato que `tests/scenes`).
 - Contratos + visual con un solo vite: `sh scripts/verify-ui.sh --changed`. Todo sale de un runner, `node scripts/scenes.mjs [nombre] [--contracts|--shots] [--changed] [--update]`; `contracts.sh` y `visual.mjs` son alias.
 - Lo mismo que el CI de GitHub: `sh scripts/ci-local.sh` (lee los `run:` de `ci.yml`).
 - Foto de `/api/*` de la web antes/después de reestructurar: `node scripts/api-snapshot.mjs take|diff`.
@@ -20,6 +20,7 @@ Todo se corre desde la raíz del repo (o del worktree).
 - Pesados (`full`, contracts, visual, ci-local) toman `scripts/lib/heavy-lock.sh`: uno a la vez.
 - `check.sh` salta si el contenido ya pasó (stamp); no ve ignorados como `.env.local`.
 - Visual: baselines de macOS; no corre en CI.
-- `.cargo/config.toml` (sin trackear) fija `target/` único y `jobs = 4`: clave para worktrees.
+- `.cargo/config.toml` (sin trackear, en la raíz: aplica también a los worktrees de `.claude/worktrees/`) fija `jobs = 4` y `rustc-wrapper = "sccache"`. `target/` es por worktree: uno compartido servía un core de otro worktree.
+- Escenas: `--jobs 4` por defecto; la espera del código de animales es 1 s (`APODO_WAIT_SECONDS`).
 - Los releases son para los usuarios, no para probar: usar `dogfood.sh`.
 - Tests de browser/visual: `tests/CLAUDE.md`. `shot.mjs` ya no corre contratos (eso es `scenes.mjs`).

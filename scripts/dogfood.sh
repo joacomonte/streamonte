@@ -7,7 +7,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH" # node 24 primero (igual que check.sh)
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$(cd "$(git rev-parse --git-common-dir)/.." && pwd)/target}"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$(git rev-parse --show-toplevel)/target}"
 start=$(date +%s)
 
 echo "› UI (vite build)"

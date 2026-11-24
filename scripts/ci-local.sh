@@ -8,7 +8,8 @@ set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH" # node 24 como el CI
 # target/ único para todos los worktrees y 4 jobs por cargo, como check.sh (2026-11-23).
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$(cd "$(git rev-parse --git-common-dir)/.." && pwd)/target}"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$(git rev-parse --show-toplevel)/target}"
+command -v sccache >/dev/null 2>&1 && export RUSTC_WRAPPER="${RUSTC_WRAPPER:-sccache}" # caché de deps entre worktrees
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}"
 . scripts/lib/heavy-lock.sh
 

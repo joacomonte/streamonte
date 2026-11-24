@@ -1,6 +1,6 @@
 // Runner único de escenas (tests/scenes/*.json): contratos de pantalla y capturas visuales.
-// Uso: node scripts/scenes.mjs [nombre...] [--contracts | --shots] [--only TEXTO] [--changed] [--all] [--update] [--record]
-//        [--ui-url URL] [--web-url URL] [--jobs N=2] [--threshold PCT=0.1] [--tol CANAL=16] [--out DIR] [--changed-apps]
+// Uso: node scripts/scenes.mjs [nombre...] [--contracts | --shots] [--only TEXTO] [--changed] [--all] [--update] [--record] [--file X.json] [--snap]
+//        [--ui-url URL] [--web-url URL] [--jobs N=4] [--threshold PCT=0.1] [--tol CANAL=16] [--out DIR] [--changed-apps]
 // Alias documentados: `scripts/contracts.sh` (= --contracts) y `scripts/visual.mjs` (= --shots). `verify-ui.sh` = lock + este runner con todo.
 //
 // Escena = { app: "desktop"|"web", url, viewport?, cookies?, apodo?(web: false = sin sesión de apodo), storage?, live?, setup[], must[], shot? }
@@ -23,7 +23,7 @@ import { apodoCookie } from './lib/web-apodo.mjs';
 const root = new URL('..', import.meta.url).pathname;
 const { chromium } = createRequire(`${root}web/package.json`)('playwright-core');
 const argv = process.argv.slice(2);
-const VALUED = new Set(['only', 'ui-url', 'web-url', 'jobs', 'threshold', 'tol', 'out']);
+const VALUED = new Set(['only', 'ui-url', 'web-url', 'jobs', 'threshold', 'tol', 'out', 'file']);
 const flag = (k) => argv.includes(`--${k}`);
 const opt = (k, d) => (argv.includes(`--${k}`) ? argv[argv.indexOf(`--${k}`) + 1] : d);
 const names = argv.filter((a, i) => !a.startsWith('--') && !VALUED.has((argv[i - 1] ?? '').slice(2)));
@@ -31,7 +31,7 @@ if (flag('help')) { console.log('uso: node scripts/scenes.mjs [nombre...] [--con
 const update = flag('update'), record = flag('record');
 const threshold = Number(opt('threshold', 0.1)); // % de píxeles distintos tolerado
 const tol = Number(opt('tol', 16)); // diferencia máxima por canal (0-255) para contar un píxel como igual: absorbe antialiasing
-const jobs = Number(opt('jobs', process.env.JOBS ?? 2));
+const jobs = Number(opt('jobs', process.env.JOBS ?? 4)); // 4: ~35 % menos que 2 (medido 2026-11-24); el lock pesado evita correr dos runners
 const only = opt('only', '');
 
 // ── qué app tocan los cambios (sin commitear y sin pushear): ui/ → desktop, web/ → web, packages/ui/ → las dos
@@ -53,11 +53,14 @@ const baseDir = `${root}tests/visual/baseline`;
 const fixDir = `${root}tests/fixtures/http/api`;
 const outDir = opt('out', `${tmpdir()}/streamonte-visual`);
 const appKey = (s) => (s.app === 'web' ? 'web' : 'ui');
-const scenes = readdirSync(sceneDir).filter((f) => f.endsWith('.json')).sort().map((f) => ({ name: f.slice(0, -5), ...JSON.parse(readFileSync(`${sceneDir}/${f}`, 'utf8')) }))
-  .filter((s) => !names.length || names.includes(s.name))
+// `--file X.json`: una escena suelta fuera de tests/scenes (pruebas a mano sin escribir Playwright); corre aunque sea live.
+const file = opt('file', '');
+const scenes = (file ? [{ name: file.split('/').pop().replace(/\.json$/, ''), ...JSON.parse(readFileSync(file, 'utf8')) }]
+  : readdirSync(sceneDir).filter((f) => f.endsWith('.json')).sort().map((f) => ({ name: f.slice(0, -5), ...JSON.parse(readFileSync(`${sceneDir}/${f}`, 'utf8')) })))
+  .filter((s) => file || !names.length || names.includes(s.name))
   .filter((s) => !only || s.name.includes(only))
   .filter((s) => !(flag('contracts') && s.shot) && !(flag('shots') && !s.shot))
-  .filter((s) => !s.live || process.env.LIVE || names.length)
+  .filter((s) => !s.live || process.env.LIVE || names.length || file)
   .filter((s) => !touched.size || touched.has(appKey(s)))
   .filter((s) => !record || (s.shot && s.app === 'web'));
 if (!scenes.length) { console.log('escenas: ninguna elegida'); process.exit(0); }
@@ -82,7 +85,7 @@ async function serve(given, cwd, args, env = {}) {
 }
 const baseUrl = {};
 if (scenes.some((s) => appKey(s) === 'ui')) baseUrl.ui = await serve(opt('ui-url', process.env.UI_URL), 'ui', []);
-if (scenes.some((s) => appKey(s) === 'web')) baseUrl.web = await serve(opt('web-url', process.env.WEB_URL), 'web', ['dev'], { HTTP_FIXTURES: `${root}tests/fixtures/http`, APP_PASSWORD: '', DATABASE_URL: '' });
+if (scenes.some((s) => appKey(s) === 'web')) baseUrl.web = await serve(opt('web-url', process.env.WEB_URL), 'web', ['dev'], { HTTP_FIXTURES: `${root}tests/fixtures/http`, APP_PASSWORD: '', DATABASE_URL: '', APODO_WAIT_SECONDS: '1' });
 // Sesión del apodo de prueba (cookie firmada `apodo`, en la base en memoria del vite): la usan las capturas.
 const webApodo = baseUrl.web ? await apodoCookie(baseUrl.web) : null;
 
@@ -185,6 +188,7 @@ async function runScene(s) {
       else if (m.status === 'regressed') regressed.push(label(m) + (m.note ? ` (${m.note})` : ''));
       else failed.push(label(m));
     }
+    if (flag('snap')) { mkdirSync(outDir, { recursive: true }); await page.screenshot({ path: `${outDir}/${s.name}.snap.png` }); console.log(`snap ${outDir}/${s.name}.snap.png`); } // --snap: captura del estado final de cualquier escena
     if (isShot && !failed.length) {
       await page.addStyleTag({ content: '*,*::before,*::after{caret-color:transparent!important;animation:none!important;transition:none!important}' });
       await page.evaluate(() => document.fonts.ready);

@@ -45,7 +45,9 @@ export type Store = {
 	alerts(): Promise<Row[]>;
 };
 
-const WAIT_MS = WAIT_SECONDS * 1000;
+/** Espera tras un error; `APODO_WAIT_SECONDS` solo la acorta en las escenas (scripts/scenes.mjs), nunca en Vercel. */
+const WAIT_S = Number(process.env.APODO_WAIT_SECONDS) || WAIT_SECONDS;
+const WAIT_MS = WAIT_S * 1000;
 
 /** Valida lo que llega del cliente: `CODE_LEN` ids distintos y conocidos (en cualquier orden). */
 export function parseCode(v: unknown): Code | null {
@@ -132,7 +134,7 @@ export async function enter(store: Store, apodo: string, code: Code, mode: 'nuev
 		return { ok: true, version: c.row.creado.getTime(), created: false };
 	}
 	await store.failure(apodo);
-	return { ok: false, reason: 'wrong', wait: WAIT_SECONDS };
+	return { ok: false, reason: 'wrong', wait: WAIT_S };
 }
 
 /** ¿La sesión firmada sigue valiendo? (el admin pudo resetear el código: entonces `creado` cambió o no hay fila). */
@@ -218,7 +220,7 @@ function neonStore(q: NonNullable<ReturnType<typeof sql>>): Store {
 		async claim(a) {
 			const d = await db();
 			// Atómico: dos intentos a la vez no pasan los dos.
-			const r = await one(d`UPDATE apodos SET espera_hasta = now() + make_interval(secs => ${WAIT_SECONDS})
+			const r = await one(d`UPDATE apodos SET espera_hasta = now() + make_interval(secs => ${WAIT_S})
 				WHERE apodo = ${a} AND (espera_hasta IS NULL OR espera_hasta <= now()) RETURNING *`);
 			if (r) return { row: r };
 			const [w] = (await d`SELECT ceil(extract(epoch FROM espera_hasta - now()))::int AS wait FROM apodos WHERE apodo = ${a}`) as { wait: number | null }[];
@@ -227,7 +229,7 @@ function neonStore(q: NonNullable<ReturnType<typeof sql>>): Store {
 		success: async (a) => void (await (await db())`UPDATE apodos SET espera_hasta = NULL WHERE apodo = ${a}`),
 		failure: async (a) =>
 			void (await (await db())`UPDATE apodos SET fallos = fallos + 1, ultimo_fallo = now(),
-				espera_hasta = now() + make_interval(secs => ${WAIT_SECONDS}) WHERE apodo = ${a}`),
+				espera_hasta = now() + make_interval(secs => ${WAIT_S}) WHERE apodo = ${a}`),
 		reset: async (a) => void (await (await db())`DELETE FROM apodos WHERE apodo = ${a}`),
 		markSeen: async (a) => void (await (await db())`UPDATE apodos SET vista_fallos = fallos WHERE apodo = ${a}`),
 		alerts: async () =>

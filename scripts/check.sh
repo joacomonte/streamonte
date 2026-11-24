@@ -9,10 +9,11 @@
 set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH" # node 24 primero (la web usa su type stripping; el de Homebrew es viejo); cargo-nextest
-# target/ único para el checkout principal y todos sus worktrees (2026-11-23): las dependencias se compilan una
-# vez, y el lock de cargo pone en fila los builds de distintos worktrees en vez de correrlos juntos (exit 137).
-SHARED_TARGET="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)/target"
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$SHARED_TARGET}"
+# target/ propio de cada worktree (2026-11-24): uno compartido servía un streamonte-core de OTRO worktree (el hash de
+# metadata de las path deps es relativo al workspace, así que choca). Lo que se comparte es la caché de sccache: las
+# dependencias se compilan una vez para todos los worktrees.
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$(git rev-parse --show-toplevel)/target}"
+command -v sccache >/dev/null 2>&1 && export RUSTC_WRAPPER="${RUSTC_WRAPPER:-sccache}"
 # Clippy y nextest corren a la vez: 4 jobs cada uno para no pasar los 8 núcleos.
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}"
 # clippy con su propia carpeta: si comparte la de nextest, cargo los serializa con su lock.
