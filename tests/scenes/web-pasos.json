@@ -1,0 +1,43 @@
+{
+ "app": "web",
+ "cookies": {
+  "nick": "Test"
+ },
+ "storage": {
+  "tour:welcome": "1"
+ },
+ "live": true,
+ "url": "/t/movie/550",
+ "setup": [
+  {
+   "click": "#net-high",
+   "timeout": 90000
+  },
+  {
+   "waitFor": "#audio-any"
+  },
+  {
+   "click": "#audio-any"
+  },
+  {
+   "waitFor": "#see-all-rest",
+   "timeout": 90000
+  }
+ ],
+ "must": [
+  {
+   "sel": "#crumb-net",
+   "text": "Conexión alta"
+  },
+  {
+   "sel": "#crumb-lat",
+   "text": "Audio original"
+  },
+  {
+   "sel": ".cat-options .cat-opt[data-hash]"
+  },
+  {
+   "sel": "#see-all-rest .count"
+  }
+ ]
+}

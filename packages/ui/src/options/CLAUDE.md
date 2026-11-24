@@ -3,7 +3,7 @@ Fila y lista de opciones; CSS en `packages/ui/css/options.css`.
 
 ## Para X → andá a Y
 - Badges de idioma (LAT, LAT?, Gallego, subs) → `row.ts` `langTags` (lógica y texto) → dibuja `OptionRow.svelte` (el texto "LAT" también está fijo ahí). Textos/tips del estado: `../audio.ts` `LAT_BADGE`. Color: `../../css/options.css` (`.cat-lang`, `.ok`, `.no`).
-- Resolución, tamaño, qué muestra cada fila → `row.ts`. Fila/lista → `OptionRow.svelte`, `OptionsList.svelte`.
+- Resolución, qué muestra cada fila, textos comunes (`hdrText`, `bestText`, `heavyText`, botón de leer pistas `readButton`, vacío `noMatches`) → `row.ts`. Tamaño: `humanBytes` (`../format.ts`, siempre es-AR). Fila/lista → `OptionRow.svelte`, `OptionsList.svelte`.
 - Carga y updates en vivo → `options-load.ts` (`getApi().options.load`). Salud estimada → `health.ts` (puro).
 - "hace X" → `since.ts`.
 

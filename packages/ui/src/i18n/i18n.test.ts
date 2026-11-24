@@ -10,7 +10,7 @@ const holes = (s: string): string[] => [...new Set(s.match(/\{\w+\}/g) ?? [])].s
 
 /** Textos iguales en los dos idiomas (nombres propios, unidades, palabras que no cambian): no necesitan entrada en en.ts. */
 const NEUTRAL = new Set([
-	'Streamonte', 'TMDB', 'TorBox', 'Lat-Team', 'Wyzie Subs', 'OpenSubtitles.com (Premium)', 'mpv', 'VLC', 'TCP', 'Firewall:',
+	'Streamonte', 'TMDB', 'TorBox', 'HDR', 'Lat-Team', 'Wyzie Subs', 'OpenSubtitles.com (Premium)', 'mpv', 'VLC', 'TCP', 'Firewall:',
 	'{a} Mbps', '{a} Mbps ', 'seeders × {a}', 'leechers × {a}', ' (probable)', 'Blu-ray', 'Streaming', 'Video', 'Normal', 'General', 'Error', 'Info',
 	'Debug / verbose', '{n} seeds', '~{a} min', ' · {a} leechers', '{TRACKERS_TIP} {seeders} seeders, {a} leechers.',
 	'{doubtful} {a} (MULTI / Dual)', '{a} Mbps · {b} s · {peers} peers{c}'

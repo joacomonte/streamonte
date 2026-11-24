@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as adapt from '../../../../ui/src/tauri-adapt.ts';
 import type * as Raw from '../../../../ui/src/types.ts';
 import { applyUpdate, emptyLoad, loadOptions, type OptionsLoad } from './options-load.ts';
-import { langTags, qualityOf, resKey, resLabel, sizeText, TipBook, type LangInput } from './row.ts';
+import { hdrText, heavyText, langTags, noMatches, qualityOf, resKey, resLabel, TipBook, type LangInput } from './row.ts';
 import type { OptionsUpdate } from '../types.ts';
 
 const events = JSON.parse(readFileSync(new URL('../../../../ui/mock/events__catalog_streams__movie_tt0137523.json', import.meta.url), 'utf8')) as Raw.CoreEvent[];
@@ -87,7 +87,7 @@ test('TipBook: el primero de cada tipo explica, de a uno; un globito que termin�
 	assert.equal(tips.tapped, null);
 });
 
-test('qualityOf, resKey/resLabel, sizeText', () => {
+test('qualityOf, resKey/resLabel, hdrText, heavyText, noMatches', () => {
 	const q = qualityOf('BluRay', 'Peli.1080p.BluRay', 'q', tr);
 	assert.ok(q.known && q.stars === 3 && q.name === 'Blu-ray');
 	assert.ok(qualityOf('CAM', 'x', 'q', tr).known);
@@ -96,7 +96,10 @@ test('qualityOf, resKey/resLabel, sizeText', () => {
 	assert.equal(resKey('480p'), 'other');
 	assert.equal(resLabel(resKey('2160p'), 'Otras'), '4K');
 	assert.equal(resLabel('other', 'Otras'), 'Otras');
-	assert.equal(sizeText(null, 'es'), '—');
-	assert.equal(sizeText(700 * 1024 ** 2, 'es'), '700 MB');
-	assert.equal(sizeText(1.5 * 1024 ** 3, 'en'), '1.5 GB');
+	assert.equal(hdrText([], tr), null);
+	assert.ok(/^Dolby Vision/.test(hdrText(['DV'], tr) ?? ''));
+	assert.equal(hdrText(['HDR10+'], tr), 'HDR');
+	assert.equal(heavyText(24.6, tr), 'Pide ~25 Mbps: más de lo que da tu conexión');
+	assert.deepEqual(noMatches(false, () => {}, tr), { text: 'No se encontraron torrents.', clear: null });
+	assert.equal(noMatches(true, () => {}, tr).clear?.text, 'Quitar filtros');
 });

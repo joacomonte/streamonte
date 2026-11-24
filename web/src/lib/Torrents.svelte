@@ -1,7 +1,7 @@
 <script lang="ts">
-	// Torrents de un video que TorBox tiene en caché, en pasos (como el desktop): buscando (fuente por fuente) →
-	// ¿audio latino? → el PRIMER BUEN MATCH (`isMatch`), leyendo pistas de a una de mejor a peor calidad, con "Seguir
-	// buscando" y "Ver todas las opciones"; migas para volver. Por fila: peso, calidad de
+	// Torrents de un video que TorBox tiene en caché, en pasos (la máquina compartida con el desktop, `$ui/flow/flow-model.ts`):
+	// buscando (fuente por fuente) → conexión → ¿audio latino? → el PRIMER BUEN MATCH, leyendo pistas de a una de mejor a peor
+	// calidad, con "Seguir buscando" y "Ver todas las opciones"; migas para volver. Por fila: peso, calidad de
 	// imagen, audio y subs en español, y copiar el link https de TorBox. Los subtítulos son de cada torrent: aparecen
 	// al copiar su link (nativos primero; si no trae, se buscan afuera; Premium plegado al final).
 	import Icon from '$ui/components/Icon.svelte';
@@ -16,14 +16,14 @@
 	import FlowSearching from '$ui/flow/FlowSearching.svelte';
 	import { stepIn } from '$ui/flow/step-in.ts';
 	import MoreRow from '$ui/flow/MoreRow.svelte';
-	import { fitsNet, NET, type NetChoice } from '$ui/flow/net.ts';
-	import { isMatch as matchRule, latFirst, latPotential, needsReading, type MatchFacts } from '$ui/flow/match-rules.ts';
-	import type { MoreRowView } from '$ui/flow/types.ts';
-	import { sxe } from '$ui/format.ts';
-	import { latChips } from '$ui/flow/lat-chips.ts';
+	import { fitsNet } from '$ui/flow/net.ts';
+	import type { MatchFacts } from '$ui/flow/match-rules.ts';
+	import { createFlow, newFlowState, type FlowCand, type FlowIds } from '$ui/flow/flow-model.ts';
+	import type { ChoiceView, FlowButton, FlowStep, MoreRowView } from '$ui/flow/types.ts';
+	import { humanBytes, sxe } from '$ui/format.ts';
 	import { casterFor, castSteps, device } from '$ui/components/tours.ts';
 	import * as saved from './saved.ts';
-	import { loc, t as tr } from './i18n.svelte.ts';
+	import { t as tr } from './i18n.svelte.ts';
 	import { untrack } from 'svelte';
 	import { audioOf, latStatus, LAT_BADGE, type Tracks } from '$ui/audio.ts';
 	import type { Snippet } from 'svelte';
@@ -32,7 +32,7 @@
 	import { getApi } from '$ui/context.ts';
 	import OptionsList from '$ui/options/OptionsList.svelte';
 	import { emptyLoad, loadOptions, type OptionsLoad } from '$ui/options/options-load.ts';
-	import { HDR_TIP, langTags, qualityOf, resLabel, sizeText, TipBook, type DockButton, type OptionRowView } from '$ui/options/row.ts';
+	import { bestText, hdrText, heavyText, langTags, noMatches, qualityOf, readButton, resKey, resLabel, TipBook, type DockButton, type OptionRowView } from '$ui/options/row.ts';
 	import SubRow from '$ui/subs/SubRow.svelte';
 	import SubsPicker from '$ui/subs/SubsPicker.svelte';
 	import type { SubsCtx } from '$ui/subs/subs-flow.ts';
@@ -152,20 +152,12 @@
 			error = '';
 			copy = {};
 			match = null;
-			net = null;
-			goStep('net');
-			wantLat = false;
-			found = [];
-			showAll = false;
+			// Torrent pegado: ya se sabe qué torrent es, no hay conexión ni audio para elegir (directo a todas).
+			flow = given ? { ...newFlowState('list', 'torbox'), all: true } : newFlowState('net', 'torbox');
 			tips.reset();
 			// Lista guardada 1 hora (saved.ts): se pinta en este mismo cuadro, sin pasar por la búsqueda.
 			const ready = given ?? hit;
 			load = ready ? { ...emptyLoad(), options: ready, done: true } : emptyLoad();
-			// Torrent pegado: ya se sabe qué torrent es, no hay conexión ni audio para elegir.
-			if (given) {
-				step = 'list';
-				showAll = true;
-			}
 			if (!ready)
 				loadOptions(api, r, (st) => {
 					load = st;
@@ -175,52 +167,28 @@
 		});
 		return () => {
 			live = false;
-			gen++;
+			// Lo que se estuviera leyendo de este video (al cambiar de video, además, el estado nuevo ya lo corta).
+			model.cancelWork();
 		};
 	});
 
-	// ── Pasos ────────────────────────────────────────────────────────────────────────────────────────────────
-	// Conexión donde se va a ver: la tabla vive en `$ui/flow/net.ts` (textos sin traducir; se pasan por `tr` al mostrarlos).
-	/** La conexión elegida para este video: se pregunta siempre (cambia según dónde se vea). */
-	let net = $state<NetChoice | null>(null);
-	/** La que se acaba de tocar: su ícono se llena del color del nivel antes de pasar al audio. */
+	// ── Pasos ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+	// La máquina es la compartida con el desktop (`$ui/flow/flow-model.ts`); acá quedan su estado (`$state`), cómo se leen las
+	// pistas (`probe`, contra /api) y cómo se dibuja una fila.
+	/** Pasos de este video: la conexión (se pregunta siempre, cambia según dónde se vea), el audio y el resultado. */
+	let flow = $state(newFlowState('net', 'torbox'));
+	/** La conexión que se acaba de tocar: su ícono se llena del color del nivel antes de pasar al audio. */
 	let netPick = $state<string | null>(null);
-	function chooseNet(n: NetChoice) {
-		if (netPick) return;
-		track('conexión', n.label);
-		net = n;
-		if (still()) return goStep('audio');
-		netPick = n.key;
-		const g = gen;
-		// Confirmación breve (≤220 ms); si en el medio cambió el video o el paso, no se pisa.
-		setTimeout(() => {
-			netPick = null;
-			if (g === gen) goStep('audio');
-		}, 220);
-	}
+	/** Ids estables (escenas y `scripts/bench-options.mjs`). */
+	const IDS: FlowIds = {
+		net: 'net-', latNo: 'audio-any', latYes: 'audio-lat', stop: 'search-stop',
+		nolatOriginal: 'fallback-original', nolatSpain: 'see-spain', nolatAll: 'see-all', matchAll: 'see-all-rest',
+		spainOriginal: 'fallback-original-spain', spainAll: 'see-all-spain', lighter: 'lighter', crumb: 'crumb-'
+	};
 	/** Lo que mira el ranking compartido de una opción. */
 	const mbpsOf = (t: Torrent) => optionMbps(t, runtime);
 	/** ¿Entra en la conexión elegida? Sin peso no se sabe cuánto pide: no entra (no puede ser el buen match). */
-	const fits = (t: Torrent) => fitsNet(t.sizeBytes, mbpsOf(t), net);
-
-	/** Paso actual: la conexión (si no se eligió nunca), el audio, o el resultado (buscando el primer buen match, ese
-	 * match o, con `showAll`, todas). */
-	let step = $state<'net' | 'audio' | 'list'>('audio');
-	let wantLat = $state(false);
-	/** Buenos matches que se muestran, en el orden en que aparecieron (hashes). */
-	let found = $state<string[]>([]);
-	/** Pidió "Ver todas las opciones". */
-	let showAll = $state(false);
-	/** Pidió latino, no hubo y vio las de español (casi seguro de España). */
-	let showSpain = $state(false);
-	/** Cada cambio de paso (o de video) invalida lo que se estaba leyendo: los bucles miran este número. */
-	let gen = 0;
-	function goStep(to: 'net' | 'audio' | 'list') {
-		gen++;
-		reading = false;
-		showSpain = false;
-		step = to;
-	}
+	const fits = (t: Torrent) => fitsNet(t.sizeBytes, mbpsOf(t), flow.net);
 
 	const all = $derived(load.options ?? []);
 	const known = (t: Torrent) => {
@@ -239,72 +207,50 @@
 			audioRead: !!k?.audio
 		};
 	};
-	const potential = (t: Torrent) => latPotential(factsOf(t));
 	const hasEs = (t: Torrent) => factsOf(t).subsEs === true;
-	const isMatch = (t: Torrent) => matchRule(wantLat, factsOf(t));
-	/** Candidata a leer: la regla compartida y, además, sin leer (ni leyéndose ni con error). */
-	const unread = (lat: boolean, t: Torrent) => typeof info[t.hash] !== 'string' && needsReading(lat, factsOf(t));
 	const byQuality = (a: Torrent, b: Torrent) => rankQuality(a, b, runtime);
-	/** Lo que entra con el audio elegido (latino: solo las con potencial, primero por señal de latino: `latRank`), de mejor a peor. `byBest`: solo las que entran
-	 * en la conexión (de ahí sale el buen match); `everything`: todas, para "Ver todas". */
-	const everything = $derived(latFirst(wantLat ? all.filter(potential).sort(byQuality) : [...all].sort(byQuality), wantLat, status));
-	const byBest = $derived(everything.filter(fits));
-	const candidates = $derived(byBest.filter((t) => unread(wantLat, t)));
-	/** El próximo buen match todavía no mostrado, si viene antes (en calidad) que la próxima candidata; si no, null. */
-	const nextMatch = $derived.by(() => {
-		const first = byBest.find((t) => unread(wantLat, t) || (isMatch(t) && !found.includes(t.hash)));
-		return first && !unread(wantLat, first) ? first : null;
+	/** Una opción en la forma del modelo: todas están en TorBox; se puede leer si no se está leyendo ni falló. */
+	const toCand = (t: Torrent): FlowCand<Torrent> => ({
+		hash: t.hash, bytes: t.sizeBytes ?? null, mbps: mbpsOf(t), res: resKey(t.resolution), facts: factsOf(t),
+		excluded: false, failed: false, readable: typeof info[t.hash] !== 'string', seeds: null, inTorbox: true, src: t
 	});
-	/** Mientras se leen pistas: muestra Detener. `scan`: avance de la búsqueda en curso. */
-	let reading = $state(false);
-	let scan = $state({ done: 0, total: 0 });
-
-	/** Fila al pie del resultado: la búsqueda en curso (Detener) o "Seguir buscando"; null si no queda más. */
-	const moreView = $derived<MoreRowView | null>(
-		reading
-			? { kind: 'running', text: tr('Buscando…'), small: tr('{a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total }), stop: tr('Detener'), onstop: stopSearch }
-			: candidates.length || nextMatch
-				? { kind: 'more', title: wantLat ? tr('Seguir buscando latino') : tr('Seguir buscando sub ES'), small: candidates.length ? tr('{n} sin revisar', { n: candidates.length }) : null, onclick: findNext }
-				: null
-	);
-
-	function chooseAudio(lat: boolean) {
-		track('audio', lat ? 'Latino' : 'Cualquiera');
-		wantLat = lat;
-		found = [];
-		showAll = false;
-		goStep('list');
-		findNext();
+	const model = createFlow<Torrent>({
+		state: () => flow,
+		cands: () => all.map(toCand),
+		sort: (cands) => [...cands].sort((a, b) => byQuality(a.src, b.src)),
+		row: (c, best) => rowOf(c.src, best),
+		read: async ([c]) => {
+			if (c) await probe(c.src);
+		},
+		// Reactiva: la vista sale de `$derived`.
+		changed: () => {},
+		ids: IDS,
+		allIgnoresLat: true,
+		track
+	});
+	/** La pantalla del paso (null: "Ver todas las opciones"), las migas y la fila "Seguir buscando" / Detener. */
+	const view = $derived(model.view());
+	const crumbs = $derived(model.crumbs());
+	const more = $derived(model.moreRow());
+	/** Tocar una conexión: se llena su ícono (≤220 ms) y recién ahí pasa al audio; si en el medio cambió el video o el paso, no se pisa. */
+	function tap(c: ChoiceView, step: FlowStep) {
+		if (step !== 'net' || still()) return c.onclick();
+		if (netPick) return;
+		netPick = c.id;
+		const f = flow;
+		setTimeout(() => {
+			netPick = null;
+			if (flow === f && f.step === 'net') c.onclick();
+		}, 220);
 	}
-	/** Lee las candidatas de a una, de mejor a peor calidad, hasta el próximo buen match (lo suma a `found`) o hasta
-	 * agotarlas. Se corta con Detener o si cambia el paso o el video. */
-	async function findNext() {
-		const my = ++gen;
-		reading = true;
-		scan = { done: 0, total: candidates.length };
-		for (;;) {
-			if (nextMatch) {
-				found = [...found, nextMatch.hash];
-				break;
-			}
-			const t = candidates[0];
-			if (!t) break;
-			await probe(t);
-			if (my !== gen) return;
-			scan.done++;
-		}
-		reading = false;
-	}
-	function stopSearch() {
-		gen++;
-		reading = false;
-	}
-	/** Español de España (pistas, nombre o web de origen), de mejor a peor. */
-	const spanish = $derived(all.filter((t) => status(t) === 'spain').sort(byQuality));
 	/** "Ver todas las opciones": todas, sin el filtro de audio, de mejor a peor (solo los chips HDR / Subs ES). */
 	const list = $derived([...all].sort(byQuality).filter((t) => (!onlyHdr || t.hdr.length) && (!onlyEs || hasEs(t))));
-	/** Qué se ve en el paso de resultado: buscando el primer match, el resultado o todas. */
-	const screen = $derived(step === 'net' || step === 'audio' ? step : showAll ? 'all' : showSpain ? 'spain' : reading && !found.length ? 'search' : 'match');
+	function clearFilters() {
+		onlyHdr = false;
+		onlyEs = false;
+	}
+	/** Qué pantalla se ve (para la entrada animada): cambia al cambiar de paso, no al redibujar la misma. */
+	const screen = $derived(!view ? 'all' : view.kind === 'choices' ? view.step : view.kind === 'nolat' ? 'match' : view.kind);
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 	/** El video que copiaste: los subtítulos se ordenan por cuánto calzan con él. */
 	let match = $state<{ hash: string; release: string; natives?: Native[]; file?: FileId; video?: Video } | null>(null);
@@ -361,26 +307,26 @@
 		const n = k?.subs ?? null;
 		const subsTitle = n != null && n > 0 ? tr(n > 1 ? 'El video trae {n} subtítulos en español adentro' : 'El video trae {n} subtítulo en español adentro', { n })
 			: t.subFile ? tr('El torrent trae un archivo de subtítulo en español') : undefined;
-		const { audio, subs } = langTags({ hash: t.hash, lat: status(t), want: wantLat, spokenEs: orig === 'es', subs: hasEs(t) ? true : n === 0 ? false : null, best,
+		const { audio, subs } = langTags({ hash: t.hash, lat: status(t), want: !!flow.lat, spokenEs: orig === 'es', subs: hasEs(t) ? true : n === 0 ? false : null, best,
 			fresh: fresh[t.hash], subsTitle, audioId: `audio-info-${t.hash}`, onTap: () => quickTip(t.hash) }, tips, tr);
 		const analyze = () => {
 			track('analizar', t.release);
 			probe(t);
 		};
-		const scan = (text: string, title: string, busy: string | null = null): DockButton =>
-			({ id: `scan-${t.hash}`, icon: 'search', text, busy, cancel: '', title, aria: busy ?? text, onclick: busy ? () => {} : analyze });
+		const scan = (title: string, busy: string | null, failed: boolean): DockButton =>
+			readButton({ id: `scan-${t.hash}`, icon: 'search', text: tr('Analizar audio y subs'), busy, failed, title, onclick: busy ? () => {} : analyze }, tr);
 		// Sin leer todavía: un botón chico para leerlo (audio latino y subs incluidos).
-		const dock = v === 'busy' ? [scan('', tr('Analizando…'), tr('Analizando…'))]
-			: v === 'err' ? [scan(tr('No se pudo · reintentar'), why[t.hash] ?? '')]
-			: !k ? [scan(tr('Analizar audio y subs'), tr('Analizar torrent: audio latino y subtítulos incluidos'))] : [];
+		const dock = v === 'busy' ? [scan(tr('Analizando…'), tr('Analizando…'), false)]
+			: v === 'err' ? [scan(why[t.hash] ?? '', null, true)]
+			: !k ? [scan(tr('Analizar torrent: audio latino y subtítulos incluidos'), null, false)] : [];
 		const c = copy[t.hash];
 		const label = c === 'err' ? tr('Reintentar copiar el link') : tr('Copiar link de TorBox');
 		return {
-			hash: t.hash, title: t.release, best, bestText: tr('Mejor opción'), idle: true, tooBig: false, skipped: false,
-			size: sizeText(t.sizeBytes, loc()),
-			hdr: t.hdr.length ? t.hdr.map((x) => HDR_TIP[x]).filter((x): x is string => !!x).map((x) => tr(x)).join('\n') || 'HDR' : null,
+			hash: t.hash, title: t.release, best, bestText: bestText(tr), idle: true, tooBig: false, skipped: false,
+			size: humanBytes(t.sizeBytes),
+			hdr: hdrText(t.hdr, tr),
 			res: t.resolution ? resLabel(t.resolution, tr('Otras')) : null,
-			heavy: t.sizeBytes && !fits(t) ? tr('Pide ~{m} Mbps: más de lo que da tu conexión', { m: Math.round(mbpsOf(t)) }) : null,
+			heavy: t.sizeBytes && !fits(t) ? heavyText(mbpsOf(t), tr) : null,
 			failedBefore: null, torbox: null, audio, subs, nofit: null, mid: null,
 			quality: qualityOf(t.source, t.release, `qinfo-${t.hash}`, tr),
 			// Como ▶ del desktop: un botón redondo; lleno en los buenos matches.
@@ -426,7 +372,7 @@
 	/** Copia ya (Chrome deja unos segundos después del toque); si el navegador no deja, un toque más en la hoja. */
 	async function copyUrl(t: Torrent, url: string) {
 		// Título · calidad · audio elegido · dónde (el panel lo separa por ` · `).
-		track('copiar link', `${name}${s ? ` T${s}E${e}` : ''} · ${t.resolution ?? ''} · ${wantLat ? 'Latino' : 'Original'} · ${/play\.html/.test(url) ? 'TV' : 'Celu'}`);
+		track('copiar link', `${name}${s ? ` T${s}E${e}` : ''} · ${t.resolution ?? ''} · ${flow.lat ? 'Latino' : 'Original'} · ${/play\.html/.test(url) ? 'TV' : 'Celu'}`);
 		// "Vistos recientemente": se marca al copiar; si falla, no se entera nadie.
 		if (seen && imdb) void api.recent.mark({ ...seen, imdb, title: name, season: s, episode: e }).catch(() => {});
 		if (copyNow(url)) return done(t, 'ok');
@@ -533,87 +479,38 @@
 	{:else if load.options && !all.length}
 		<p class="status muted">{tr('No hay torrents en TorBox para esto.')}</p>
 	{:else if load.options}
-		{#if step !== 'net' && net}
-			<FlowCrumbs aria={tr('Ruta')} items={[
-				{ id: 'crumb-net', label: tr('Conexión {c}', { c: tr(net.label).toLowerCase() }), title: tr('Cambiar la conexión'), onclick: () => goStep('net') },
-				...(step === 'list' ? [{ id: 'crumb-audio', label: wantLat ? tr('Audio latino') : tr('Audio original'), onclick: () => goStep('audio') }] : [])
-			]} />
-		{/if}
+		{#if crumbs}<FlowCrumbs aria={crumbs.aria} items={crumbs.items} />{/if}
 
 		{#key screen}
 			<div class="step" in:stepIn>
-				{#if screen === 'net'}
-					<h3 class="ask">{tr('¿Cómo es tu internet donde lo vas a ver?')}</h3>
-					<FlowChoices>
-						<!-- La más rápida arriba; NET queda de menor a mayor para que "¿Se cortó?" baje un nivel. -->
-						{#each [...NET].reverse() as n, i (n.key)}
-							<FlowChoice id="net-{n.key}" title={tr(n.label)} sub={tr(n.range)} tile={{ kind: 'net', level: (NET.indexOf(n) + 1) as 1 | 2 | 3 | 4 }} tone="var(--{n.tone})" {i} primary={net?.key === n.key} picked={netPick === n.key} onclick={() => chooseNet(n)} />
-						{/each}
-					</FlowChoices>
-				{:else if screen === 'audio'}
-					{@const named = all.filter((t) => status(t) === 'lat').length}
-					{@const toRead = all.filter((t) => unread(true, t)).length}
-					{@const maybe = all.filter(potential).length}
-					<h3 class="ask">{tr('¿Necesitás audio latino?')}</h3>
-					<FlowChoices even>
-						<!-- Mismas tarjetas con ícono que la conexión: el parlante late, el latino entra con un saludo. -->
-						<!-- Variante A (docs/mockups/audio-latino): chips en vez de texto; el detalle va en el title de cada uno. -->
-						{@const chips = latChips(named, maybe - named, toRead > 0, tr('Las reviso de a una hasta encontrar latino'))}
-						<FlowChoice id="audio-any" title={tr('Audio original')} sub={tr('Con subtítulos en español')} tile={{ kind: 'wave' }} tone="var(--accent-fg)" i={0} onclick={() => chooseAudio(false)} />
-						<FlowChoice
-							id="audio-lat"
-							title={tr('Audio latino')}
-							chips={maybe ? chips : null}
-							sub={!maybe ? tr('No hay torrents con audio latino') : chips.map((c) => c.title ?? c.text).join(' · ')}
-							tile={{ kind: 'bubble', text: 'LAT' }}
-							tone="var(--green)"
-							i={1}
-							disabled={!maybe}
-							onclick={() => chooseAudio(true)} />
-					</FlowChoices>
-				{:else if screen === 'search'}
+				{#if view?.kind === 'choices'}
+					<h3 class="ask">{view.title}</h3>
+					{@render choices(view.choices, view.step)}
+				{:else if view?.kind === 'scan'}
 					<!-- Buscando: un radar barre las opciones (puntos que se encienden al pasar); al primero que sirve, aparece el resultado. -->
-					<FlowRadar title={tr('Buscando el mejor torrent para vos')} frac={scan.done / Math.max(1, scan.total)} count={tr('{a} de {n}', { a: Math.min(scan.done + 1, scan.total), n: scan.total })} stopId="search-stop" stopText={tr('Detener')} onstop={stopSearch} />
-				{:else if screen === 'match'}
+					<FlowRadar title={view.text} frac={view.frac} count={view.count} stopId={view.stop.id} stopText={view.stop.text} onstop={view.stop.onclick} />
+				{:else if view?.kind === 'nolat'}
+					<!-- Sin latino: cómo seguir, con las mismas tarjetas que el paso de audio (sin lista, los botones ya lo dicen). -->
+					{#if error}<p class="status error" role="alert">{error}</p>{/if}
+					<p class="none" role="status">{view.none}</p>
+					{@render choices(view.choices, 'list')}
+					{#if view.more && view.more.kind !== 'done'}<div class="row-actions"><MoreRow more={view.more} look="row" /></div>{/if}
+				{:else if view?.kind === 'match'}
 					<!-- El resultado: solo los buenos matches; sin ninguno, las 3 de mejor calidad con el aviso. -->
 					{#if error}<p class="status error" role="alert">{error}</p>{/if}
-					{#if found.length}
-						{@render options(found.map((h) => all.find((t) => t.hash === h)).filter((t) => !!t), true)}
-					{:else if wantLat && byBest.length}
-						<!-- Sin latino: cómo seguir, con las mismas tarjetas que el paso de audio (sin lista, los botones ya lo dicen). -->
-						<p class="none" role="status">{tr('No se encontraron opciones con audio latino')}</p>
-						<FlowChoices even>
-							<FlowChoice id="fallback-original" title={tr('Buscar con audio original')} sub={tr('No encontré latino · busco una con subtítulos en español')} tile={{ kind: 'wave' }} tone="var(--accent-fg)" i={0} onclick={() => chooseAudio(false)} />
-							<FlowChoice id="see-spain" title={tr('Español de España')} sub={spanish.length ? tr(spanish.length === 1 ? '1 opción con español que casi seguro no es latino' : '{n} opciones con español que casi seguro no es latino', { n: spanish.length }) : tr('Ninguna con español de España')} tile={{ kind: 'bubble', text: 'ES' }} tone="var(--amber, #f5a524)" i={1} disabled={!spanish.length} onclick={() => (showSpain = true)} />
-							<FlowChoice id="see-all" title={tr('Ver todas las opciones')} sub={tr('{n} opciones, sin filtros · de mejor a peor calidad', { n: all.length })} tile={{ kind: 'list' }} tone="var(--muted)" i={2} onclick={() => (showAll = true)} />
-						</FlowChoices>
-						{#if candidates.length || reading}<div class="row-actions">{@render more()}</div>{/if}
-					{:else}
-						<h3 class="ask">{!byBest.length ? tr('Ninguna entra en tu conexión') : tr('Sin subtítulos en español adentro')}</h3>
-						<p class="muted latsum" role="status">{!byBest.length ? tr('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión.') : candidates.length ? tr('Búsqueda detenida: estas son las de mejor calidad.') : tr('Ninguna trae sub ES nativo: los subs se buscan afuera.')}</p>
-						{@render options(byBest.slice(0, 3), false)}
-					{/if}
-					{#if found.length || !wantLat || !byBest.length}
+					{#if view.title}<h3 class="ask">{view.title}</h3>{/if}
+					{#if view.note}<p class="muted latsum" role="status">{view.note}</p>{/if}
+					<OptionsList rows={view.rows} />
 					<div class="row-actions">
-						{@render more()}
-						<button id="see-all-rest" type="button" class="row-btn" onclick={() => (showAll = true)}>
-							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{all.length}</span>
-						</button>
+						{@render moreRow(view.more)}
+						{@render rowBtn(view.all)}
 					</div>
-					{/if}
-				{:else if screen === 'spain'}
-					<h3 class="ask">{tr('Probablemente español de España')}</h3>
-					<p class="muted latsum">{tr('Traen audio en español sin decir que es latino (o marcado de España): casi seguro es castellano.')}</p>
+				{:else if view?.kind === 'spain'}
+					<h3 class="ask">{view.title}</h3>
+					<p class="muted latsum">{view.note}</p>
 					{#if error}<p class="status error" role="alert">{error}</p>{/if}
-					{@render options(spanish, false)}
-					<div class="row-actions">
-						<button id="fallback-original-spain" type="button" class="row-btn" onclick={() => chooseAudio(false)}>
-							<Icon name="volume" size={18} /><span class="row-text"><b>{tr('Buscar con audio original')}</b><small>{tr('Con subtítulos en español')}</small></span>
-						</button>
-						<button id="see-all-spain" type="button" class="row-btn" onclick={() => { showSpain = false; showAll = true; }}>
-							<Icon name="list" size={18} /><span class="row-text"><b>{tr('Ver todas las opciones')}</b></span><span class="count">{all.length}</span>
-						</button>
-					</div>
+					<OptionsList rows={view.rows} />
+					<div class="row-actions">{@render rowBtn(view.original)}{@render rowBtn(view.all)}</div>
 				{:else}
 					<div class="filters-bar">
 						<div class="chips toggles" role="toolbar" aria-label={tr('Filtros de torrents')}>
@@ -623,27 +520,42 @@
 						<p class="summary" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>{tr('{n} de {f} en TorBox · de mejor a peor calidad', { n: list.length, f: all.length })}</p>
 					</div>
 					{#if error}<p class="status error" role="alert">{error}</p>{/if}
-					{#if !list.length}<p class="status muted">{tr('No hay opciones con estos filtros.')}</p>{/if}
-					{@render options(list, false)}
-					{@render more()}
+					{#if !list.length}
+						<!-- Mismo vacío que el desktop: qué pasó y "Quitar filtros". -->
+						{@const empty = noMatches(all.length > 0, clearFilters, tr)}
+						<p class="status muted" role="status">{empty.text}{#if empty.clear}<button id="filters-off" type="button" class="filters-off" onclick={empty.clear.onclick}>{empty.clear.text}</button>{/if}</p>
+					{/if}
+					<OptionsList rows={list.map((t) => rowOf(t, false))} />
+					{@render moreRow(more)}
 				{/if}
 			</div>
 		{/key}
 	{/if}
 </section>
 
-<!-- Al pie del resultado y de "todas": la búsqueda en curso (Detener), "Seguir buscando" o que no quedan más. -->
-{#snippet more()}
-	{#if moreView}
-		<MoreRow more={moreView} look="row" />
-	{:else if found.length}
-		<p class="status muted">{tr('No hay más para buscar.')}</p>
+<!-- Al pie del resultado y de "todas": la búsqueda en curso (Detener), "Seguir buscando" o que no quedan más (si hubo match). -->
+{#snippet moreRow(m: MoreRowView | null)}
+	{#if m && m.kind !== 'done'}
+		<MoreRow more={m} look="row" />
+	{:else if m?.kind === 'done' && m.found}
+		<p class="status muted">{m.text}</p>
 	{/if}
 {/snippet}
 
-<!-- Opciones: `best` = buenos matches (destacados, con el botón de copiar lleno). La lista es la compartida con el desktop. -->
-{#snippet options(items: Torrent[], best: boolean)}
-	<OptionsList rows={items.map((t) => rowOf(t, best))} />
+<!-- Tarjetas de un paso; las de conexión pasan por `tap` (se llena el ícono antes de seguir). -->
+{#snippet choices(list: ChoiceView[], step: FlowStep)}
+	<FlowChoices even={list.length <= 3 && list.length > 1}>
+		{#each list as c (c.id)}
+			<FlowChoice id={c.id} title={c.title} sub={c.sub} tile={c.tile} tone={c.tone} i={c.i} badge={c.badge} note={c.note} chips={c.chips} primary={c.primary} picked={netPick === c.id} disabled={c.disabled} onclick={() => tap(c, step)} />
+		{/each}
+	</FlowChoices>
+{/snippet}
+
+<!-- Botón ancho al pie (todas del mismo ancho y alto, ícono a la izquierda). -->
+{#snippet rowBtn(b: FlowButton)}
+	<button id={b.id} type="button" class="row-btn" title={b.title} onclick={b.onclick}>
+		<Icon name={b.icon} size={18} /><span class="row-text"><b>{b.text}</b>{#if b.small}<small>{b.small}</small>{/if}</span>{#if b.count != null}<span class="count">{b.count}</span>{/if}
+	</button>
 {/snippet}
 
 <!-- Subtítulos que trae el video: copiar el video con ese subtítulo puesto. -->
@@ -848,6 +760,7 @@
 	/* Mismo aire que arriba de las migas (~27 px contando el alto de sus botones). */
 	.none { margin: 16px 0 16px; text-align: center; font-size: 13.5px; color: var(--muted); }
 	.latsum { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
+	.filters-off { margin-left: 6px; padding: 0; border: 0; background: none; color: var(--accent-fg); font: inherit; text-decoration: underline; text-underline-offset: 3px; }
 	.link-btn.inline { flex-basis: auto; min-height: 32px; margin-left: auto; color: var(--accent-fg); }
 	.toggle:not(.on) { border-style: dashed; background: transparent; color: var(--muted); }
 	.summary { margin: 4px 0 0; font-size: 11.5px; color: color-mix(in srgb, var(--muted) 75%, transparent); font-variant-numeric: tabular-nums; }

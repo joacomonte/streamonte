@@ -1,43 +1,12 @@
 // Modelo de vista del panel de opciones del desktop (`#cat-streams`): lo arman `catalog-options.ts` (lista, análisis, filtros)
-// y `catalog-flow.ts` (pasos); lo dibujan `StreamsPanel.svelte`, `FlowScreen.svelte` y sus partes. Textos ya traducidos.
+// y `catalog-flow.ts` (pasos, modelo en `$ui/flow/flow-model.ts`); lo dibujan `StreamsPanel.svelte`, `FlowScreen.svelte` y sus partes. Textos ya traducidos.
 import type { IconName } from '$ui/components/icons.ts';
-import type { FlowChip, FlowCrumb, MoreRowView, TileSpec } from '$ui/flow/types.ts';
+import type { CrumbsView, FlowView, MoreRowView } from '$ui/flow/types.ts';
 
 export type { MoreRowView };
 import type { OptionRowView } from '$ui/options/row.ts';
 
 export type Click = (ev: MouseEvent & { currentTarget: HTMLButtonElement }) => void;
-
-/** Migas: lo elegido hasta ahora; las que tienen `onclick` vuelven a ese paso. */
-export type CrumbsView = { aria: string; items: FlowCrumb[] };
-
-/** Tarjeta de un paso (la dibuja `$ui/flow/FlowChoice.svelte`): ícono (`tile`), su color CSS (`tone`) y la posición en la pantalla
- *  (`i`, entrada escalonada). */
-export type ChoiceView = {
-	id: string;
-	tile: TileSpec;
-	tone: string;
-	i: number;
-	title: string;
-	sub: string;
-	note: string | null;
-	badge: string | null;
-	chips: FlowChip[] | null;
-	disabled: boolean;
-	primary: boolean;
-	onclick: () => void;
-};
-/** Botón ancho de los pasos (`.cat-flow-btn`): con `small`, título en negrita y aclaración debajo; `count`, el número al costado. */
-export type FlowButton = { id: string; icon: IconName; text: string; small: string | null; title: string | null; count: string | null; onclick: () => void };
-
-type Screen = { crumbs: CrumbsView | null; title: string | null };
-export type FlowView =
-	| { kind: 'search'; title: string; sub: string; frac: number | null }
-	| (Screen & { kind: 'choices'; choices: ChoiceView[] })
-	| (Screen & { kind: 'scan'; text: string; /** Avance 0..1. */ frac: number; count: string; stop: FlowButton })
-	| (Screen & { kind: 'nolat'; none: string; choices: ChoiceView[]; more: MoreRowView | null })
-	| (Screen & { kind: 'match'; note: string | null; rows: OptionRowView[]; lighter: FlowButton | null; more: MoreRowView | null; all: FlowButton })
-	| (Screen & { kind: 'spain'; note: string; rows: OptionRowView[]; original: FlowButton; all: FlowButton });
 
 /** Panel del análisis de la resolución abierta (`groupPanel`). */
 export type PanelView =
