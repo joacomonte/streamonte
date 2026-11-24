@@ -6,7 +6,7 @@
 - Campo nuevo en la ficha → `docs/recetas/comando-nuevo.md` (sección B); el tipo es `TitleDetails` en `../types.ts`.
 
 ## Relación
-Usa `getApi().title.*`, `../season.ts`, `../format.ts`. Lo montan `web/src/routes/t/[kind]/[id]/+page.svelte` y `ui/src/SidePanel.svelte`.
+Usa `getApi().title.*`. Lo montan la ruta `t/[kind]/[id]` de la web y `ui/src/SidePanel.svelte`.
 
 ## Trampas
 - Los ids de la ficha difieren por app (`WEB_IDS` / `DESKTOP_IDS`): cambiarlos rompe `tests/contracts/*ficha*.json`.

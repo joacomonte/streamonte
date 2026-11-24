@@ -20,4 +20,6 @@ Todo se corre desde la raíz del repo (o del worktree).
 - Pesados (`full`, contracts, visual, ci-local) toman `scripts/lib/heavy-lock.sh`: uno a la vez.
 - `check.sh` salta si el contenido ya pasó (stamp); no ve ignorados como `.env.local`.
 - Visual: baselines de macOS; no corre en CI.
+- `.cargo/config.toml` (sin trackear) fija `target/` único y `jobs = 4`: clave para worktrees.
+- Los releases son para los usuarios, no para probar: usar `dogfood.sh`.
 - Tests de browser/visual: `tests/CLAUDE.md`.

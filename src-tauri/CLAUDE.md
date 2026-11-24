@@ -7,7 +7,7 @@ Crea la ventana, arranca `AppCore`, expone comandos y reenvía eventos. Sin lóg
 - Ventana, CSP, updater, recursos → `tauri.conf.json`; permisos → `capabilities/default.json`; mpv empaquetado → `mpv/`.
 
 ## Relación
-Usa `crates/core` (`AppCore`, `CoreEvent` en `events.rs`); lo usa `ui/src/core.ts` (espejo 1:1). Nombre UI `xxxYyy` = `xxx_yyy`; el comando llama a `core.<mismo nombre>()` salvo unas pocas excepciones (`library_get`→`library`, `config_set_*`→`set_*`, `api_key_set`→`set_api_key`, `install_mpv`→`player::install_mpv`: buscar con `rg`).
+Usa `crates/core` (`AppCore`, `CoreEvent`); lo usa `ui/src/core.ts` (espejo 1:1: `xxxYyy` = `xxx_yyy`). Unos pocos comandos no se llaman igual que el método de `AppCore` (`library_get`→`library`, `config_set_*`→`set_*`): `rg` en `commands.rs`.
 
 ## Trampas
 - Comando sin sumar al `invoke_handler`: falla en runtime.

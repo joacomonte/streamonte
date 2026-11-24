@@ -12,6 +12,3 @@ Parte de `../rqbit.rs` (`RqbitEmbedded`); librqbit corre en proceso.
 - Seleccionado = los trackers ven `left > 0` y dan seeders.
 - `state_dir` = `rqbit-state/<pid>-<n>`; si la app muere queda en %TEMP%.
 - librqbit borra su bitfield al quitar el torrent: fastresume lo copia junto a los datos.
-
-## Cómo se prueba
-`cargo nextest run -p streamonte-core rqbit`.

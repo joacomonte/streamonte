@@ -4,10 +4,10 @@
 - Flujo (buscar, bajar, premium) → `subs-flow.ts`. Ranking, fuente, calce, "no calza" → `subs-logic.ts`; nivel/grupo de match → `../sub-match.ts`.
 
 ## Relación
-Usa `getApi().subs` y `.premium`. Lo usan `web/src/lib/Torrents.svelte` y `ui/src/SubsStep.svelte` (vía `ui/src/mount-shared.ts`).
+Usa `getApi().subs` y `.premium`. Lo usan `Torrents.svelte` (web) y `ui/src/SubsStep.svelte`.
 
 ## Trampas
-- "Es latino" lo decide `../latino.ts` (golden `spanish_variant`); `sub_lang` = idioma por nombre en Rust y web.
+- `sub_lang` (golden) = idioma por nombre, igual en Rust y web.
 - Premium solo con toque del usuario (gasta cuota); buscar es gratis.
 
 ## Cómo se prueba

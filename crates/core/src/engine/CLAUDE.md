@@ -14,6 +14,3 @@ Lo crean `analyzer` (análisis) y `playback/flow.rs` (escucha + DHT); mpv lee `h
 - `prioritize_ranges` es EXCLUSIVO; al completar un rango emite `RangeReady` (`preload::run` lo espera).
 - HTTP solo en 127.0.0.1; `remove(delete_data)` detiene todo y borra la carpeta.
 - Un solo dueño del DHT persistente por proceso (`DhtLease`). Sin feature `rqbit` → `Unsupported`.
-
-## Cómo se prueba
-Unit en `mod.rs`; webtorrent sin unit tests. `cargo nextest run -p streamonte-core engine`.

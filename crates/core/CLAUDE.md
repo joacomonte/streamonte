@@ -17,7 +17,6 @@ Biblioteca Rust: magnets, análisis de swarms, catálogo/addons, mpv/VLC, limpie
 - Sin `regex` (patrones a mano), sin deps nuevas sin preguntar.
 - Secretos nunca en `config.json` ni logs; en debug las keys van a `dev-secrets.json`.
 - Largo = tarea tokio + `CoreEvent`; nada bloquea.
-- Golden compartido con la web: la salida de Rust manda.
 
 ## Cómo se prueba
 - Unit al pie de cada `.rs`; integración en `tests/` (`tests/CLAUDE.md`). `cargo nextest run -p streamonte-core <filtro>` · `sh scripts/check.sh full`.

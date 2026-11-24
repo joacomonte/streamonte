@@ -15,6 +15,3 @@ Usa `engine`, `preload`, `player`, `subtitles`. Lo llama `AppCore::play`; avisa 
 - `start` y `start_stream` serializan con `shared.starting`.
 - `teardown` solo guarda con `file_index` + magnet y sin pedido de borrar; si no, borra.
 - Retomar: mpv arranca `RESUME_REWIND_SECS` antes. Sin respuesta al "¿seguir bajando?" → pausa. `stop_all(true)` borra también las pausadas.
-
-## Cómo se prueba
-Unit con `manager_under`. `cargo nextest run -p streamonte-core playback`.

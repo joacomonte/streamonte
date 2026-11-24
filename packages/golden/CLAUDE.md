@@ -17,4 +17,4 @@ Cambio en Rust → actualizar el JSON → `cargo nextest run -p streamonte-core 
 ## Trampas
 - No editar un golden para que pase la web: el caso lleva `diverge` (se salta en web y se lista al final).
 - `include_str!` usa rutas relativas a la profundidad del `.rs`: moverlo rompe el path.
-- Sin golden por no haber equivalente puro en la web: `torbox.rs` `in_cache`/`main_video`/`pick_audio` e `imdb_index`.
+- Sin golden por no haber equivalente puro en la web: `torbox.rs` `in_cache`/`main_video`/`pick_audio` y `seasons.rs build_index` ↔ `imdb.ts buildIndex` (lee y escribe archivos).

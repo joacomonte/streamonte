@@ -18,4 +18,4 @@ Lo llaman `session::prefetch` y `analyzer/subs.rs`; Premium solo desde `app/subt
 - `subs.json` se invalida si cambia el idioma o faltan archivos. Subdivx: no se evaden bloqueos. Teclas por `define-section`.
 
 ## Cómo se prueba
-Unit por archivo; fixtures `crates/core/tests/fixtures/subtitles/`. `cargo nextest run -p streamonte-core subtitles`.
+Fixtures: `crates/core/tests/fixtures/subtitles/`.

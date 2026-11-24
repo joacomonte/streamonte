@@ -9,13 +9,11 @@ Web de Streamonte (celu/tele): catálogo → torrents en caché de TorBox → li
 ## Deploy
 Proyecto `streamonte-web` linkeado en la RAÍZ del monorepo (Root Directory=`web`); `vercel` se corre desde la raíz, no desde `web/`. Receta con preview + `promote`: `scripts/CLAUDE.md`. `.vercelignore` sube solo `web/` y `packages/`.
 
-## Env vars (solo NOMBRES; nunca imprimir valores ni prefijo público)
-`APP_PASSWORD` (candado) · `ADMIN_PASSWORD` (`/admin`) · `DATABASE_URL` (Neon; sin ella no hay tracking) · `TMDB_KEY` `TORBOX_KEY` `OPENSUBTITLES_KEY` `OPENSUBTITLES_USER` `OPENSUBTITLES_PASS` (pisan `.data/keys.json`) · `VERCEL`. Local: `web/.env.local`.
+## Env vars
+Solo nombres, nunca valores ni prefijo público: `cut -d= -f1 web/.env.local`. Sin `DATABASE_URL` no hay tracking; sin `APP_PASSWORD` no hay candado.
 
 ## Trampas
 - Node 24, type stripping: imports con `.ts`, sin `enum`/`namespace`/parameter properties, `import type` explícito.
-- Textos en español = clave de i18n (`packages/ui/src/i18n/en.ts`).
-- Desktop y web dan lo mismo vía `packages/golden`; Rust manda.
 - `.data/` local gitignoreado (en Vercel va a `/tmp`).
 
 ## Cómo se prueba

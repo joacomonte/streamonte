@@ -8,10 +8,12 @@ TMDB, IMDb, addons de torrents, TorBox, OpenSubtitles y Neon. Los `api/*/+server
 - Subtítulos (OS.org y premium) → `subs.ts`. Keys → `keys.ts`; carpeta de datos → `config.ts`. Tracking/intentos → `track.ts`, `intentos.ts`.
 
 ## Relación
-Reglas con golden contra Rust: `parse`, `otherFilm`, `merge`, `parseTracks`, subs, `constraints`, `detail`, `peopleOf`, `providersAr`, `showStatus`, `isSpanishSub`, `normalize` de awards (`packages/golden/CLAUDE.md`). La regla de latino se importa de `packages/ui/src/latino.ts` por ruta relativa (`node --test` no resuelve `$ui`).
+Muchas reglas tienen golden contra Rust (`packages/golden/CLAUDE.md`). La de latino se importa de `packages/ui/src/latino.ts` por ruta relativa (`node --test` no resuelve `$ui`).
 
 ## Trampas
 - `config.ts dataDir()`: `.data` local, `/tmp/.data` con `VERCEL`; cada cold start re-baja IMDb (~60 MB). Se lee en cada llamada.
+- `keys.ts` usa siempre `.data` (también en Vercel).
+- `route(fn, cache)`: con `cache` pone `Cache-Control` de CDN; `perLang` solo si la URL trae `l=<títulos>.<app>` (lo agregan `webApi.ts cachedFetch` y `hooks.server.ts`).
 - `torbox/client.ts download`: el link lleva la key → no cachear ni loguear; por eso `tracks` recibe `ids`.
 - `keep()` y `detail().excluded` = `is_excluded` del desktop.
 - `subs.ts` UA `VLSub 0.11.1` es el único que acepta OS.org anónimo. Solo `POST /api/premium/[id]` gasta cuota.

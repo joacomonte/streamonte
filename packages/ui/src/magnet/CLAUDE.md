@@ -4,7 +4,7 @@
 - Hash de un magnet → `../magnet-hash.ts`.
 
 ## Relación
-Usa `getApi().magnet` (web `/api/magnet`, desktop comandos de magnet). Lo montan `web/src/routes/m/[hash]/+page.svelte` y `ui/src/catalog-magnet.ts` (vía `mount-shared.ts`).
+Usa `getApi().magnet`. Lo montan la ruta `m/[hash]` de la web y `ui/src/catalog-magnet.ts`.
 
 ## Trampas
 - Las opciones del magnet pegado son `TorrentOption[]` y NO miden velocidad en desktop (Pasted).

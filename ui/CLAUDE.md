@@ -16,8 +16,9 @@ Usa `packages/ui/src/` por `$ui`. El "clique" de `catalog*.ts` (vía `catalog-st
 ## Trampas
 - Mock: sin `__TAURI__` responde con `mock/<cmd>__<args>.json` (slug = `record_fixtures.rs`); con id `tt…` solo la fixture de ese id. `?scenario=<nombre>` reproduce `mock/events__<nombre>.json`; `?live` suma una fila.
 - `window.__TAURI__` solo en `core.ts` y `updater.ts`; la CSP no permite red desde la UI.
-- `catalog-state.ts` no importa otros módulos del catálogo (ciclos). Puerto 1420 fijo.
-- Tests que importan i18n/dom/core: `import './test-stub.ts'` PRIMERO.
+- `catalog-state.ts` no importa otros módulos del catálogo (ciclos). Puerto 1420 fijo; sin Vite la ventana de Tauri queda en blanco.
+- Orden de `main.ts`: el mock va antes de `i18n.ts` (lee la config al cargar); `boot.ts` se importa dinámico, después.
+- Los modelos reciben `typeof core` para probarse sin Tauri. Tests que importan i18n/dom/core: `import './test-stub.ts'` PRIMERO; `activity-feed.ts` y `live.ts` traducen con `$ui/i18n/runtime.ts`.
 
 ## Cómo se prueba
 `cd ui && pnpm test | lint | check`; `sh scripts/check.sh`. Convenciones: `TYPING.md`.

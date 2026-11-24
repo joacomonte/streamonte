@@ -6,7 +6,7 @@
 - Letras que entran desenfocadas en inputs → `type-fx.ts`. Pantalla "Actualizando" → `Updating.svelte`.
 
 ## Relación
-Usado por `web/` y `ui/` (Settings, LogDialog y ConfirmDialog del desktop se montan sobre `Sheet`).
+Lo usan `web/` y `ui/` (los diálogos del desktop se montan sobre `Sheet`).
 
 ## Trampas
 - `Sheet` es `<dialog>`: ids de cierre/título por props, los contratos los usan.

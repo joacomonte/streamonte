@@ -15,6 +15,3 @@ Usa `engine` (`TorrentEngine`), `library`, `catalog`. Lo llama `AppCore::analyze
 - Una medición parcial nunca pisa una completa.
 - Swarm: conexiones ≈ concurrencia × max_peers; >~300 satura routers. El motor tiene 40 permisos de E/S (`../engine/rqbit/CLAUDE.md`).
 - `fetch_names` no usa el pipeline a propósito.
-
-## Cómo se prueba
-Unit con `Measurer` falso (`start_paused`). `cargo nextest run -p streamonte-core analyzer`.

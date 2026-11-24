@@ -12,8 +12,6 @@ Usa `$ui` (rank, audio, latino, formatos, i18n). Lo usan `routes/`. No importa d
 
 ## Trampas
 - Si cambia el formato de una respuesta cacheada, subir su versión en `saved.ts`.
-- Texto siempre `t('español')` + traducción en `packages/ui/src/i18n/en.ts`.
-- "Es latino": solo `packages/ui/src/latino.ts`; `TYPICAL_MBPS` en `packages/ui/src/rank.ts`.
 
 ## Cómo se prueba
 `web-adapt.test.ts`, `i18n/i18n.test.ts`; ranking/audio/formato en `packages/ui/src/*.test.ts`.

@@ -8,12 +8,11 @@ Fila y lista de opciones; CSS en `packages/ui/css/options.css`.
 - "hace X" → `since.ts`.
 
 ## Relación
-Usa `rank.ts`, `audio.ts`, `latino.ts`. Lo usan `web/src/lib/Torrents.svelte` y, en desktop, `ui/src/StreamsPanel.svelte`, `ui/src/FlowScreen.svelte` y `ui/src/catalog-options.ts`.
+Usa `rank.ts`, `audio.ts`, `latino.ts`. Lo usan la web (`Torrents.svelte`) y el desktop (`StreamsPanel`, `FlowScreen`).
 
 ## Trampas
 - `Mid`/`Action` de la fila son solo desktop (`capabilities.speedTests`).
 - Es la misma lista en las dos apps: un cambio acá cambia las dos.
-- Regla de latino: no reimplementar acá; `latino.ts`.
 
 ## Cómo se prueba
 `options.test.ts` (fixture `ui/mock/events__catalog_streams__*`), `health.test.ts`, `*.flow.test.ts`.

@@ -9,14 +9,14 @@ Cinemeta + TMDB + datasets IMDb para buscar y enriquecer; addons Stremio y fuent
 - Fuentes propias → `wpreact.rs`, `elitetorrent.rs`, `latteam.rs`, `torbox.rs`. Pistas de un MKV → `mkv.rs`.
 
 ## Relación
-Lo orquesta `app/catalog.rs`. Reglas con golden en la web: `release`, `excluded`, `providers_ar`, `people`, `show_status`, `awards`, `interests`, `mkv` (`packages/golden/CLAUDE.md`).
+Lo orquesta `app/catalog.rs`. Reglas con golden: ver `packages/golden/CLAUDE.md`.
 
 ## Trampas
 - La versión de caché va en el nombre de archivo (`tmdb-detalle-vN`, `ficha-vN`, `torbox2`, `imdb-temporadas-vN`): si cambia la forma serializada, subirla (no se migra).
 - Sin key de TMDB → vacío/`None` sin error; la key va en la URL: nunca loguear URL (`http::redact`).
-- Exclusión anime: `cinemeta::is_excluded` = `keep()` de la web.
+- Exclusión anime en 3 lugares: `cinemeta::is_excluded`, `tmdb.rs best_hit`, `people.rs pick` (= `keep()` de la web).
 - Dedup por info hash; orden idioma → sub es → resolución → seeders → tamaño → hash. Candidato sin idioma nunca se descarta.
-- wpreact/elitetorrent solo películas; latteam solo toma el hash. TorBox siempre directo con la key del usuario.
+- wpreact/elitetorrent solo películas; latteam solo toma el hash. TorBox siempre directo con la key del usuario; `requestdl` la lleva en la URL (no loguear).
 
 ## Cómo se prueba
-`#[cfg(test)]` al pie; addon falso en `crates/core/tests/it/catalog_mock.rs`. `cargo nextest run -p streamonte-core catalog::`.
+Addon falso: `crates/core/tests/it/catalog_mock.rs`.

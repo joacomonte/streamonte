@@ -6,7 +6,12 @@ Alias `$ui` → `src/` (web: `web/vite.config.ts`; desktop: `ui/vite.config.ts`)
 - Regla de latino, badges de audio → `latino.ts`, `audio.ts`; ranking/calidad (`TYPICAL_MBPS`) → `rank.ts`; match de subs → `sub-match.ts`.
 - Formatos (`humanBytes`, `mbps`) → `format.ts`; temporadas → `season.ts`; magnet → `magnet-hash.ts`.
 - Por área (cada una con CLAUDE.md): `catalog/` · `options/` · `flow/` · `title/` · `subs/` · `magnet/` · `components/` · `i18n/`.
-- CSS → `css/` (`packages/CLAUDE.md`).
+- CSS → `css/` (abajo).
+
+## CSS compartido (`css/`)
+- `tokens.css` (`:root`, solo oscuro) · `base.css` · `components.css` (`.btn` `.chip` `.pill` `.badge` `.sheet` `.menu` `.fade-dark`) · `settings.css` (`.st-*`) · `options.css` (`.cat-*`). Lo importan `web/src/app.css` y `ui/src/main.ts`.
+- Baldosa/tarjeta con imagen de fondo: fade a oscuro (`--fade-dark`, `.fade-dark`), no tintes. CSS sin prefijo: cuidado con colisiones; el layout de cada pantalla, scoped. Sin test: `scripts/shot.mjs`.
+- `packages/golden/` (vectores Rust ↔ web) → `packages/golden/CLAUDE.md`. Sin build propio; `.vercelignore` lo sube a Vercel.
 
 ## Convenciones
 - Imports internos relativos con `.ts`. Lo que prueba `node --test` se importa por ruta relativa, no `$ui`.
