@@ -13,7 +13,7 @@ const cwd = process.cwd();
 process.chdir(work);
 process.env.TMDB_KEY = 'x';
 delete process.env.VERCEL;
-const { detail, firstTrailer, peopleOf, providersAr, showStatus } = await import('./tmdb.ts');
+const { detail, peopleOf, providersAr, showStatus } = await import('./tmdb.ts');
 const { parse } = await import('./torrents.ts');
 const { isSpanishSub } = await import('./torbox.ts');
 const { normalize: awardsOf } = await import('./awards.ts');
@@ -36,7 +36,6 @@ function golden(name: string, run: (input: any) => unknown) {
 	}
 }
 
-golden('trailer', (videos) => firstTrailer(videos));
 golden('providers_ar', (wp) => providersAr(wp ?? undefined));
 golden('people', ({ kind, credits }) => peopleOf(kind === 'movie' ? 'movie' : 'tv', credits));
 golden('show_status', (r) => {

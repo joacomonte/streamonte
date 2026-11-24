@@ -6,7 +6,7 @@ Busca películas/series (Cinemeta + TMDB), enriquece fichas (TMDB, datasets IMDb
 - `mod.rs:204 Catalog` · `:41 MediaKind` · `:72 VideoId` · `:919 by_relevance` · `:535 meta` · `:647 streams` · `:703 start_streams` · `:729 torbox_cached`
 - `http.rs:70 Http` (2 req/host `:17`, 5 MB `:16`) · `:103 get_json` · `:127 get_json_auth` · `FetchError:25`
 - `cinemeta.rs:84 search` · `:124 trending` · `:164 meta` · `:321 is_excluded`
-- `tmdb.rs:354 details` · `:497 fetch_details` · `:568 similar` · `:687 episodes` · `:842 identify` · `:427 names` · `:315 first_trailer` · `:275 providers_ar`
+- `tmdb.rs:354 details` · `:497 fetch_details` · `:568 similar` · `:687 episodes` · `:842 identify` · `:427 names` · `:275 providers_ar`
 - `people.rs:94 search` · `:142 credits` · `:166 pick`
 - `awards.rs` — premios por IMDb GraphQL (`fetch`, `normalize` con golden `awards.json`); `mod.rs awards` los guarda 7 d (`imdb-premios-v1-*`, vencido si IMDb falla). Igual que `web/src/lib/server/awards.ts`.
 - `interests.rs` — subgéneros de IMDb por GraphQL (`list`, `examples`); `mod.rs browse_interests`/`interest_examples` (sin key de TMDB). Igual que `web/src/lib/server/interests.ts`.
@@ -27,7 +27,7 @@ Busca películas/series (Cinemeta + TMDB), enriquece fichas (TMDB, datasets IMDb
 - Dedup por info hash; orden idioma → sub es → resolución → seeders → tamaño → hash (`aggregate.rs:121`). Candidato sin idioma nunca se descarta.
 - wpreact/elitetorrent solo películas; latteam solo toma el hash del magnet (`latteam.rs:5-9`); elitetorrent no evade Cloudflare.
 - TorBox: siempre directo con la key propia (`torbox::api`); `requestdl` la lleva también en la URL (no loguear).
-- Golden compartidos con la web (`/Users/monti/Documents/Dev/streamonte/packages/golden/`): `trailer`, `providers_ar`, `people` (`tmdb.rs:995,1007,1017`), `show_status` (`seasons.rs:457`), `awards` (`awards.rs` tests), `release`/`excluded` (`../../tests/it/golden.rs:14,30`).
+- Golden compartidos con la web (`/Users/monti/Documents/Dev/streamonte/packages/golden/`): `providers_ar`, `people` (`tmdb.rs`), `show_status` (`seasons.rs:457`), `awards` (`awards.rs` tests), `release`/`excluded` (`../../tests/it/golden.rs:14,30`).
 
 ## Tests
 - `#[cfg(test)]` al pie (normalize `:426`, aggregate `:498`, top `:531`, mod `:949`); addon mock en `../../tests/it/catalog_mock.rs`. `top.rs:649 dataset_real` usa red. `cargo nextest run -p streamonte-core catalog::`.

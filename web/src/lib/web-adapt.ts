@@ -46,7 +46,6 @@ export const titleDetails = (raw: Title): TitleDetails => ({
 	people: raw.people.map((p) => ({ id: p.id, name: p.name, photo: p.photo, role: p.role, note: p.note })),
 	companies: raw.companies,
 	networks: [],
-	trailer: raw.trailer,
 	imdb: raw.imdb,
 	status: showStatus(raw.status, raw.next),
 	seasons: raw.seasons.map((s) => ({ number: s.n, name: s.name || null, episodeCount: s.count, year: s.year })),

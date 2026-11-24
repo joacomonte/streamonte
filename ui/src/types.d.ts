@@ -383,7 +383,6 @@ export type Meta = {
     cast: string[];
     awards: string | null;
     released: string | null;
-    trailer: string | null;
     imdb_votes: number | null;
 };
 /**
@@ -417,7 +416,6 @@ export type Details = {
     providers: Provider[];
     original_language: string | null;
     networks: string[];
-    trailer: string | null;
     people: Person[];
     companies: string[];
 };

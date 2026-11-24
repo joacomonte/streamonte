@@ -27,9 +27,6 @@
    "sel": "#cat-open-imdb"
   },
   {
-   "sel": "#cat-open-trailer"
-  },
-  {
    "sel": "#cat-providers"
   },
   {
@@ -50,8 +47,8 @@
   },
   {
    "sel": "#cat-awards-toggle",
-   "text": "Ganó|Nominada",
-   "note": "premios de IMDb (mock catalog_awards) en una línea"
+   "text": "\\d",
+   "note": "premios compactos junto al puntaje (ganados/nominaciones); despliega la lista"
   },
   {
    "sel": "#cat-about-toggle",

@@ -165,7 +165,6 @@ export const api = {
    *  @param {string[]} languages @param {string[]} interests @returns {Promise<import('./types.js').BrowsePage>} */
   catalogBrowseInterests: (kind, sort, from, to, minVotes, languages, interests) => invoke('catalog_browse_interests', { kind, sort, from, to, minVotes, languages, interests }),
   /** Abre el tráiler en YouTube, en el navegador. @param {string} youtubeId @returns {Promise<void>} */
-  catalogOpenTrailer: (youtubeId) => invoke('catalog_open_trailer', { youtubeId }),
   /** Tests de conexión de la última hora (datos guardados). @param {InfoHash[]} hashes @returns {Promise<Record<InfoHash, import('./types.js').SavedTest>>} */
   catalogSwarmSaved: (hashes) => invoke('catalog_swarm_saved', { hashes }),
   /** Espacio libre del disco de descargas, en bytes (null si no se pudo leer). @returns {Promise<number|null>} */

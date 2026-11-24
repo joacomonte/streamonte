@@ -37,7 +37,6 @@
 			onPerson={actions.person}
 			onOpenTitle={actions.openTitle}
 			onOpenImdb={actions.imdb}
-			onOpenTrailer={actions.trailer}
 			similar={panel.hasKey === true}
 			teaser={panel.hasKey === false ? teaser : undefined}
 			collapsed={panel.season != null}

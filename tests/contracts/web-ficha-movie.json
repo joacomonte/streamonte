@@ -19,9 +19,6 @@
    "sel": "#imdb-link"
   },
   {
-   "sel": "#trailer-link"
-  },
-  {
    "sel": "#providers-toggle"
   },
   {

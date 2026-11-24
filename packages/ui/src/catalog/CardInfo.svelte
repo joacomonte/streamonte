@@ -17,9 +17,8 @@
 </script>
 
 <script lang="ts">
-	// Detalles sobre el póster al pasar el mouse: géneros, año · puntaje · duración · premios (íconos con número), categoría por
-	// puntaje y, en series, barras por temporada. Los premios ganados van en dorado solo si hay alguno de los eventos grandes (los que
-	// nombra la ficha); si no, son el total de IMDb (premios chicos incluidos) y van en gris como las nominaciones.
+	// Detalles sobre el póster al pasar el mouse: géneros, año · puntaje · duración y, en series, barras por temporada.
+	// Los premios no van acá: se ven siempre debajo del póster (Grid.svelte).
 	// Se monta recién cuando el mouse se detiene un momento encima (Grid.svelte); la ficha queda en caché.
 	import { onMount } from 'svelte';
 	import Icon from '../components/Icon.svelte';
@@ -28,22 +27,17 @@
 	import type { Outlook } from '../season.ts';
 	import type { Chart } from '../title/title-state.ts';
 	import type { CatalogItem } from '../types.ts';
-	import { cardAwards, cardAwardsLabel } from '../title/awards.ts';
-	import { cardSeasons, ratingTier } from './card-info.ts';
+	import { cardSeasons } from './card-info.ts';
 
 	let { item }: { item: CatalogItem } = $props();
 	const api = getApi();
 	/** undefined = cargando, null = no hay ficha. */
 	let d = $state<TitleDetails | null | undefined>(undefined);
 	let seasons = $state<{ chart: Chart | null; outlook: Outlook | null } | null | undefined>(undefined);
-	let aw = $state<ReturnType<typeof cardAwards>>(null);
-	const tier = $derived(d ? ratingTier(d.kind, d.rating) : null);
 	const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).replace('.', '');
 
 	onMount(async () => {
 		d = await loadDetails(api, item.kind, item.id);
-		// Los premios llegan aparte (IMDb): si tardan o fallan, el resto ya se ve.
-		if (d?.imdb) void loadAwards(api, d.imdb).then((a) => (aw = cardAwards(a)));
 		if (!d || item.kind !== 'tv' || !d.imdb) return void (seasons = null);
 		const r = await loadRatings(api, d.imdb);
 		seasons = r && cardSeasons(d, r);
@@ -59,10 +53,7 @@
 			{:else}
 				{#if d.genres.length}<span class="genres">{d.genres.slice(0, 3).join(' · ')}</span>{/if}
 				<!-- La duración solo en películas: en series depende del capítulo. -->
-				<!-- Premios en la misma línea, solo ícono + número: Óscar ganados (estatuilla), premios ganados (copa, amarillo) y
-				     nominaciones (escarapela, gris). Van al borde derecho; si no entran, bajan juntos a la línea de abajo (también a la derecha). -->
-				<span class="meta"><span class="facts">{#if d.year}<span>{d.year}</span>{/if}{#if d.rating}<span class="star">★ {d.rating}</span>{/if}{#if d.kind === 'movie' && d.runtimeMin}<span class="dim">{d.runtimeMin} min</span>{/if}</span>{#if aw}{@const awText = cardAwardsLabel(aw, t)}<span class="aw" role="img" title={awText} aria-label={awText}>{#if aw.oscars}<span class="aw-oscar"><Icon name="oscar" size={13} />{aw.oscars}</span>{/if}{#if aw.wins}<span class="aw-win" class:major={aw.majorWins > 0}><Icon name="trophy" size={11} />{aw.wins}</span>{/if}{#if aw.nominations}<span class="aw-nom"><Icon name="award" size={11} />{aw.nominations}</span>{/if}</span>{/if}</span>
-				{#if tier}<span class="tier">{tier.emoji} {t(tier.name)}</span>{/if}
+				<span class="meta"><span class="facts">{#if d.year}<span>{d.year}</span>{/if}{#if d.rating}<span class="star">★ {d.rating}</span>{/if}{#if d.kind === 'movie' && d.runtimeMin}<span class="dim">{d.runtimeMin} min</span>{/if}</span></span>
 				{#if item.kind === 'tv'}
 					<span class="seasons">
 						{#if seasons === undefined}
@@ -117,17 +108,8 @@
 	.meta { display: flex; flex-wrap: wrap; align-items: center; row-gap: 3px; white-space: nowrap; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 	.facts { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 	.facts > span + span::before { content: ' · '; color: rgb(255 255 255 / 0.5); font-weight: 600; }
-	.aw { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding-left: 8px; pointer-events: auto; animation: aw-in 0.3s var(--out, ease-out); }
-	.aw > span { display: inline-flex; align-items: center; gap: 1px; }
-	.aw :global(svg) { flex: none; }
-	.aw-oscar { color: #ffd66b; }
-	.aw-win { color: rgb(255 255 255 / 0.6); font-weight: 600; }
-	.aw-win.major { color: #f2c94c; font-weight: 700; }
-	.aw-nom { color: rgb(255 255 255 / 0.6); font-weight: 600; }
-	@keyframes aw-in { from { opacity: 0; } }
 	.star { color: #f2c94c; }
 	.dim { color: rgb(255 255 255 / 0.6); font-weight: 600; }
-	.tier { font-size: 12px; font-weight: 700; }
 	.seasons { display: grid; gap: 5px; margin-top: 2px; }
 	.seasons:empty { display: none; }
 	.sbars { display: flex; align-items: stretch; gap: 3px; height: 24px; }

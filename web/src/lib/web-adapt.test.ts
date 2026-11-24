@@ -50,7 +50,7 @@ test('titleDetails: ficha de serie con estado y temporadas', () => {
 	const raw = {
 		id: 1396, kind: 'tv', title: 'Breaking Bad', year: '2008', released: null, poster: 'p', rating: '9.5', documentary: false, backdrop: 'b', overview: 'Sinopsis', runtime: 47,
 		genres: ['Drama'], providers: [{ name: 'Netflix', logo: 'l' }], people: [{ id: 1, name: 'Bryan', photo: null, role: 'cast', note: 'Walter' }], companies: ['AMC'],
-		lang: 'Inglés', origLang: 'en', status: 'ended', next: null, imdb: 'tt0903747', trailer: 'abc', seasons: [{ n: 1, name: 'Temporada 1', count: 7, year: '2008' }]
+		lang: 'Inglés', origLang: 'en', status: 'ended', next: null, imdb: 'tt0903747', seasons: [{ n: 1, name: 'Temporada 1', count: 7, year: '2008' }]
 	} satisfies Title;
 	const d = adapt.titleDetails(raw);
 	assert.equal(d.id, '1396');

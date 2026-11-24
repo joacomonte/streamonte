@@ -26,16 +26,9 @@
    "note": "hover: duración"
   },
   {
-   "sel": "#cat-card-tt0137523",
-   "text": "Clásico eterno|De Óscar",
-   "hover": "#cat-card-tt0137523",
-   "note": "hover: categoría por puntaje (RATING_TIERS)"
-  },
-  {
-   "sel": "#cat-info-tt0137523 [class*=aw-win]",
+   "sel": "#cat-awards-tt0137523",
    "text": "\\d",
-   "hover": "#cat-card-tt0137523",
-   "note": "hover: premios ganados (copa + número) en la línea del puntaje"
+   "note": "premios compactos bajo el póster (ganados/nominaciones), sin hover"
   }
  ]
 }

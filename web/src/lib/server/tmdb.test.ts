@@ -91,23 +91,12 @@ const MOVIE = {
 	credits: {
 		crew: [person(20, 'Productor', { job: 'Producer' }), person(21, 'Director Uno', { job: 'Director' }), person(22, 'Director Dos', { job: 'Director' })],
 		cast: [1, 2, 3, 4].map((n) => person(30 + n, `Actor ${n}`, { character: n === 2 ? '' : `Personaje ${n}` }))
-	},
-	videos: {
-		results: [
-			{ key: 'official-2021', site: 'YouTube', type: 'Trailer', official: true, published_at: '2021-01-01T00:00:00.000Z' },
-			{ key: 'official-2019', site: 'YouTube', type: 'Trailer', official: true, published_at: '2019-01-01T00:00:00.000Z' },
-			{ key: 'unofficial-2018', site: 'YouTube', type: 'Trailer', official: false, published_at: '2018-01-01T00:00:00.000Z' },
-			{ key: 'teaser', site: 'YouTube', type: 'Teaser', official: true, published_at: '2010-01-01T00:00:00.000Z' },
-			{ key: 'vimeo', site: 'Vimeo', type: 'Trailer', official: true, published_at: '2009-01-01T00:00:00.000Z' }
-		]
 	}
 };
 
-test('title (película): tráiler, providers AR, people, companies', async () => {
+test('title (película): providers AR, people, companies', async () => {
 	mockFetch({ '/movie/1': MOVIE });
 	const t = await title('movie', 1);
-	// Oficial primero y, entre oficiales, el más viejo; ni teasers ni otros sitios.
-	assert.equal(t.trailer, 'official-2019');
 	// Solo Argentina, sin repetir, por prioridad.
 	assert.deepEqual(t.providers, [
 		{ name: 'A', logo: null },
@@ -168,10 +157,9 @@ test('title (serie): sin director, temporadas, género doble y próximo episodio
 	]);
 });
 
-test('title: sin tráiler válido -> null', async () => {
-	mockFetch({ '/movie/1': { ...MOVIE, videos: { results: [] }, credits: undefined, production_companies: undefined } });
+test('title: sin créditos ni productoras -> vacíos', async () => {
+	mockFetch({ '/movie/1': { ...MOVIE, credits: undefined, production_companies: undefined } });
 	const t = await title('movie', 1);
-	assert.equal(t.trailer, null);
 	assert.deepEqual(t.people, []);
 	assert.deepEqual(t.companies, []);
 });

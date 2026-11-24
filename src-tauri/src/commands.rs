@@ -289,12 +289,6 @@ pub async fn open_key_page(core: Core<'_>, service: String) -> CmdResult<()> {
     let core = core.inner().clone();
     blocking(move || Ok(core.open_key_page(&service)?)).await
 }
-/// Tráiler en YouTube, en el navegador.
-#[tauri::command]
-pub async fn catalog_open_trailer(core: Core<'_>, youtube_id: String) -> CmdResult<()> {
-    let core = core.inner().clone();
-    blocking(move || Ok(core.open_trailer(&youtube_id)?)).await
-}
 /// Ficha de IMDb del título en el navegador.
 #[tauri::command]
 pub async fn catalog_open_imdb(core: Core<'_>, imdb_id: String) -> CmdResult<()> {

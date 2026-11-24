@@ -27,10 +27,10 @@ export const ICONS = {
 	info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".9" fill="currentColor"/>',
 	monitor: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
 	award: '<circle cx="12" cy="9" r="6"/><path d="M8.6 13.9 7 21l5-2.6 5 2.6-1.6-7.1"/>',
-	/** Premio ganado: copa (cuerpo lleno, se lee a 12 px). */
+	/** Premio a mejor película o serie: copa (cuerpo lleno, se lee a 12 px). */
 	trophy: '<path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z" fill="currentColor"/><path d="M7.5 6H5a2.5 2.5 0 0 0 2.6 4.2M16.5 6H19a2.5 2.5 0 0 1-2.6 4.2M12 13.5v4M9.5 17.5h5M8 20.5h8"/>',
-	/** Óscar ganado: la estatuilla (silueta llena). */
-	oscar: '<circle cx="12" cy="4.3" r="2.7" fill="currentColor" stroke="none"/><path d="M8.6 8h6.8l-1.1 4.6.7 5.2H9l.7-5.2z" fill="currentColor" stroke="none"/><path d="M6.8 18.8h10.4l.8 3H6z" fill="currentColor" stroke="none"/>',
+	/** Premio ganado en otra categoría (actor, sonido…): medalla con cinta, menos que la copa. */
+	medal: '<path d="M8 3l2.6 6.2M16 3l-2.6 6.2"/><circle cx="12" cy="15" r="5.5" fill="currentColor"/>',
 	flag: '<path d="M5 21V4"/><path d="M5 4h12l-2.5 4.5L17 13H5"/>',
 	ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
 	list: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/>',

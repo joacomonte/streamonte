@@ -68,7 +68,6 @@ export function titleDetails(meta: Raw.Meta, view: Raw.DetailsView | null, lang:
 		people: (d?.people ?? []).map((p) => ({ id: p.id, name: p.name, photo: p.photo, role: roleOf(p.role), note: p.note })),
 		companies: d?.companies ?? [],
 		networks: d?.networks ?? [],
-		trailer: d?.trailer ?? meta.trailer,
 		imdb: meta.id,
 		status: state ? { state, next: null } : null,
 		seasons: seasonsOf(meta.episodes),

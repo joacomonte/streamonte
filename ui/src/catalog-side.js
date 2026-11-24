@@ -110,7 +110,6 @@ Object.assign(actions, {
   /** @param {string} imdb */
   imdb: (imdb) => api.catalogOpenImdb(imdb).catch(showError),
   /** @param {string} youtube */
-  trailer: (youtube) => api.catalogOpenTrailer(youtube).catch(showError),
   setupTmdb: openSettings,
   optionsMounted: renderStreamsOnly,
 });

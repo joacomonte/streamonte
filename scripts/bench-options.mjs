@@ -179,7 +179,7 @@ async function web(browser, url, n) {
       if (u.includes('/api/torrents')) return Promise.resolve(new Response(new ReadableStream({ start(c) { ctrl = c; window.__benchOpen = true; } }), { headers: { 'content-type': 'application/x-ndjson' } }));
       return realFetch(input, init);
     };`);
-  const title = { id: 550, imdb: VIDEO, title: 'Fight Club', origLang: 'en', runtime: 139, kind: 'movie', year: '1999', seasons: [], genres: [], providers: [], people: [], companies: [], trailer: null, poster: null, backdrop: null, overview: '', lang: 'Inglés' };
+  const title = { id: 550, imdb: VIDEO, title: 'Fight Club', origLang: 'en', runtime: 139, kind: 'movie', year: '1999', seasons: [], genres: [], providers: [], people: [], companies: [], poster: null, backdrop: null, overview: '', lang: 'Inglés' };
   await page.route('**/api/title/**', (r) => r.fulfill({ json: title }));
   await page.route(/\/api\/(tracks|scores|season|premium|keys|track)/, (r) => r.abort());
   await page.goto(url, { waitUntil: 'networkidle' });

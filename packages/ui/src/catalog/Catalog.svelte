@@ -36,13 +36,12 @@
 		onneedskey?: () => void;
 		/** Buscando, la barra de búsqueda queda a la vista al scrollear (desktop), con fondo opaco. */
 		pinned?: boolean;
-		cardMin?: number;
 		/** Degradado al pie de la ventana (la web). */
 		fade?: boolean;
 		/** Abre un título de "Vistos recientemente" (`ep`: capítulo a abrir; null = la ficha). Sin esto no se muestra la fila. */
 		onresume?: (item: RecentItem, ep: EpisodeRef | null) => void;
 	}
-	let { store, onopen, href, header, top, onmagnet, onlog, onsettings, onneedskey, pinned = false, cardMin, fade = false, onresume }: Props = $props();
+	let { store, onopen, href, header, top, onmagnet, onlog, onsettings, onneedskey, pinned = false, fade = false, onresume }: Props = $props();
 	const st = $derived(store.st);
 
 	/** Alto de lo que se va al scrollear (marca, buscador, tipo): la barra de chips queda pegada arriba. */
@@ -233,7 +232,7 @@
 	<div class="body inner">
 		{@render top?.(searching)}
 		{#if onresume && !searching}<RecentRow {onresume} />{/if}
-		<Grid {store} {onopen} {href} {onsettings} {cardMin} {fade} bind:sentinel />
+		<Grid {store} {onopen} {href} {onsettings} {fade} bind:sentinel />
 	</div>
 </div>
 

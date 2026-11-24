@@ -25,10 +25,9 @@
    "note": "hover: estado de la serie (la fixture quick no trae puntajes: sin barras)"
   },
   {
-   "sel": "#cat-info-tt0903747 [class*=aw-win]",
-   "text": "\\d",
-   "hover": "#cat-card-tt0903747",
-   "note": "hover: premios ganados (copa + número) en la línea del puntaje"
+   "sel": "#cat-awards-tt0903747",
+   "text": "\\d+/\\d+",
+   "note": "premios compactos bajo el póster (ganados/nominaciones), sin hover"
   }
  ]
 }

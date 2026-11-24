@@ -88,7 +88,6 @@ export type TitleDetails = {
 	companies: string[];
 	networks: string[];
 	/** Id de YouTube del tráiler. */
-	trailer: string | null;
 	imdb: string | null;
 	status: ShowStatus | null;
 	seasons: Season[];

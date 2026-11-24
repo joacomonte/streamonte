@@ -25,10 +25,9 @@ export type PanelActions = {
 	person: (p: Person) => void;
 	openTitle: (kind: Kind, id: string, name: string) => void;
 	imdb: (imdb: string) => void;
-	trailer: (youtube: string) => void;
 	setupTmdb: () => void;
 	/** La lista de opciones (`catalog-options.ts`) se dibuja en `#cat-streams`: avisa que ya existe. */
 	optionsMounted: () => void;
 };
 const noop = (): void => {};
-export const actions: PanelActions = { close: noop, season: noop, episode: noop, person: noop, openTitle: noop, imdb: noop, trailer: noop, setupTmdb: noop, optionsMounted: noop };
+export const actions: PanelActions = { close: noop, season: noop, episode: noop, person: noop, openTitle: noop, imdb: noop, setupTmdb: noop, optionsMounted: noop };

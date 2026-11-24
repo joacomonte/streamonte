@@ -52,23 +52,27 @@ test('sin eventos grandes: los totales; sin nada: null', () => {
 	assert.equal(awardsView(null, es), null);
 });
 
-test('cardAwards: Óscar ganados aparte de los totales', () => {
+test('cardAwards: solo eventos grandes; mejor película o serie aparte del resto de los ganados', () => {
 	const inc = cardAwards(inception)!;
-	assert.deepEqual({ oscars: inc.oscars, wins: inc.wins, nominations: inc.nominations }, { oscars: 4, wins: 160, nominations: 220 });
-	assert.ok(inc.majorWins >= inc.oscars);
-	assert.equal(cardAwards(fixture('tt0137523'))?.oscars, 0);
-	assert.equal(cardAwards({ wins: 0, nominations: 0, entries: [] }), null);
+	const won = inception.entries.filter((e) => e.won).length;
+	assert.equal(inc.best + inc.other, won);
+	assert.equal(inc.nominations, inception.entries.length - won);
+	assert.deepEqual({ imdbWins: inc.imdbWins, imdbNominations: inc.imdbNominations }, { imdbWins: 160, imdbNominations: 220 });
+	assert.ok(cardAwards(bad)!.best >= 2, 'Breaking Bad: Emmy a mejor serie dramática');
+	assert.equal(cardAwards({ wins: 5, nominations: 3, entries: [] }), null);
+	const mix = { wins: 9, nominations: 9, entries: [
+		{ event: 'oscar', won: true, award: 'Oscar', category: 'Best Motion Picture of the Year', year: 2019 },
+		{ event: 'oscar', won: true, award: 'Oscar', category: 'Best Performance by an Actor in a Leading Role', year: 2019 },
+		{ event: 'cannes', won: true, award: "Palme d'Or", category: null, year: 2019 },
+		{ event: 'cannes', won: true, award: 'Best Director', category: null, year: 2019 },
+		{ event: 'globe', won: false, award: 'Golden Globe', category: 'Best Motion Picture - Drama', year: 2019 }
+	] } satisfies TitleAwards;
+	assert.deepEqual(cardAwards(mix), { best: 2, other: 2, nominations: 1, imdbWins: 9, imdbNominations: 9 });
 });
 
-test('cardAwards: majorWins cuenta solo ganados en eventos grandes; el dorado depende de eso', () => {
-	const small = { wins: 107, nominations: 20, entries: [{ event: 'oscar', won: false, award: 'Oscar', category: 'Best Picture', year: 2019 }] } satisfies TitleAwards;
-	assert.equal(cardAwards(small)!.majorWins, 0);
-	assert.equal(cardAwards({ ...small, entries: [{ event: 'emmy', won: true, award: 'Emmy', category: 'Best Actor', year: 2019 }] })!.majorWins, 1);
-});
-
-test('cardAwardsLabel: óscar · premios · nominaciones, en los dos idiomas', () => {
-	assert.equal(cardAwardsLabel({ oscars: 7, wins: 370, nominations: 378, majorWins: 20 }, es), '7 Óscar · 370 premios · 378 nominaciones');
-	assert.equal(cardAwardsLabel({ oscars: 7, wins: 370, nominations: 378, majorWins: 20 }, en), '7 Oscars · 370 awards · 378 nominations');
-	assert.equal(cardAwardsLabel({ oscars: 1, wins: 1, nominations: 0, majorWins: 1 }, en), '1 Oscar · 1 award');
-	assert.equal(cardAwardsLabel({ oscars: 0, wins: 0, nominations: 1, majorWins: 0 }, es), '1 nominación');
+test('cardAwardsLabel: mejor película · premios · nominaciones · totales de IMDb, en los dos idiomas', () => {
+	const c = { best: 1, other: 3, nominations: 15, imdbWins: 164, imdbNominations: 165 };
+	assert.equal(cardAwardsLabel(c, es), '1 a mejor película o serie · 3 premios · 15 nominaciones · En IMDb, 164 premios y 165 nominaciones en total.');
+	assert.equal(cardAwardsLabel(c, en), '1 for best picture or series · 3 awards · 15 nominations · On IMDb, 164 awards and 165 nominations in total.');
+	assert.equal(cardAwardsLabel({ best: 0, other: 0, nominations: 1, imdbWins: 0, imdbNominations: 0 }, es), '1 nominación');
 });

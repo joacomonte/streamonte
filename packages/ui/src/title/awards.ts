@@ -65,6 +65,7 @@ const CATEGORIES: [RegExp, string][] = [
 	[/Drama Series|Series - Drama/i, 'Mejor serie dramática'],
 	[/Comedy Series|Series - (Musical or )?Comedy/i, 'Mejor serie de comedia'],
 	[/Limited|Miniseries|Mini-Series/i, 'Mejor miniserie'],
+	[/British Film/i, 'Mejor película británica'],
 	[/Motion Picture|Best Picture|Best Film|Outstanding Film/i, 'Mejor película']
 ];
 
@@ -88,7 +89,8 @@ export function entryLabel(e: AwardEntry, t: T): string {
 	return key ? t(key) : (e.category ?? t(EVENTS[e.event].name));
 }
 
-export type AwardItem = { label: string; count: number; years: number[] };
+/** `best`: premio a mejor película o serie (va primero y con la copa en la ficha). */
+export type AwardItem = { label: string; count: number; years: number[]; best: boolean };
 export type AwardGroup = { event: AwardEvent; name: string; count: number; items: AwardItem[] };
 export type AwardsView = {
 	won: AwardGroup[];
@@ -108,13 +110,13 @@ function groups(entries: AwardEntry[], won: boolean, t: T): AwardGroup[] {
 		const items = new Map<string, AwardItem>();
 		for (const e of list) {
 			const label = entryLabel(e, t);
-			const item = items.get(label) ?? { label, count: 0, years: [] };
+			const item = items.get(label) ?? { label, count: 0, years: [], best: isBest(e) };
 			item.count++;
 			if (e.year && !item.years.includes(e.year)) item.years.push(e.year);
 			items.set(label, item);
 		}
 		for (const item of items.values()) item.years.sort((a, b) => a - b);
-		return [{ event, name: t(EVENTS[event].name), count: list.length, items: [...items.values()] }];
+		return [{ event, name: t(EVENTS[event].name), count: list.length, items: [...items.values()].sort((a, b) => Number(b.best) - Number(a.best)) }];
 	});
 }
 
@@ -142,20 +144,37 @@ export function awardsView(a: TitleAwards | null | undefined, t: T): AwardsView 
 	return { won, nominated, showYears: years.size > 1, line: parts.join(' · '), wins: a.wins, nominations: a.nominations };
 }
 
-export type CardAwards = { oscars: number; wins: number; nominations: number; majorWins: number };
+/** Lo que cuenta como "mejor película o serie" (claves de CATEGORIES y los premios mayores de festival). */
+const BEST = new Set(['Mejor película', 'Mejor película británica', 'Mejor película animada', 'Mejor película internacional', 'Mejor documental', 'Mejor serie dramática', 'Mejor serie de comedia', 'Mejor miniserie', 'Mejor serie internacional', 'Palma de Oro', 'León de Oro', 'Oso de Oro']);
 
-/** Lo que va en la tarjeta del catálogo: Óscar ganados (ícono propio), premios ganados y nominaciones; null si nada.
- *  `majorWins` = ganados en los eventos grandes (los que nombra la ficha): sin ninguno, los `wins` de IMDb (incluye premios chicos) no van en dorado. */
-export function cardAwards(a: TitleAwards | null | undefined): CardAwards | null {
-	if (!a || (!a.wins && !a.nominations)) return null;
-	return { oscars: a.entries.filter((e) => e.event === 'oscar' && e.won).length, wins: a.wins, nominations: a.nominations, majorWins: a.entries.filter((e) => e.won).length };
+function isBest(e: AwardEntry): boolean {
+	const key = FESTIVALS.has(e.event) ? match(PRIZES, e.award) : match(CATEGORIES, e.category ?? e.award);
+	return !!key && BEST.has(key);
 }
 
-/** Texto del grupo de premios de la tarjeta (tooltip y lector de pantalla): "7 Óscar · 370 premios · 378 nominaciones". */
+/** Lo que va en la tarjeta del catálogo, solo de los eventos grandes (los que dicen la categoría): ganados a mejor película o
+ *  serie, otros ganados (actor, sonido…) y nominaciones; null si nada. `imdbWins`/`imdbNominations`: totales de IMDb (tooltip). */
+export type CardAwards = { best: number; other: number; nominations: number; imdbWins: number; imdbNominations: number };
+
+export function cardAwards(a: TitleAwards | null | undefined): CardAwards | null {
+	if (!a) return null;
+	const won = a.entries.filter((e) => e.won);
+	const best = won.filter(isBest).length;
+	const nominations = a.entries.length - won.length;
+	if (!won.length && !nominations) return null;
+	return { best, other: won.length - best, nominations, imdbWins: a.wins, imdbNominations: a.nominations };
+}
+
+/** Texto de los premios de la tarjeta (tooltip y lector de pantalla):
+ *  "1 a mejor película o serie · 3 premios · 15 nominaciones · En IMDb, 164 premios y 165 nominaciones en total." */
 export function cardAwardsLabel(c: CardAwards, t: T): string {
 	const parts: string[] = [];
-	if (c.oscars) parts.push(c.oscars === 1 ? `1 ${t('Óscar')}` : t('{n} Óscar', { n: c.oscars }));
-	if (c.wins) parts.push(t(c.wins === 1 ? '{n} premio' : '{n} premios', { n: c.wins }));
+	if (c.best) parts.push(t('{n} a mejor película o serie', { n: c.best }));
+	if (c.other) parts.push(t(c.other === 1 ? '{n} premio' : '{n} premios', { n: c.other }));
 	if (c.nominations) parts.push(t(c.nominations === 1 ? '{n} nominación' : '{n} nominaciones', { n: c.nominations }));
+	if (c.imdbWins || c.imdbNominations) parts.push(t('En IMDb, {a} y {b} en total.', {
+		a: t(c.imdbWins === 1 ? '{n} premio' : '{n} premios', { n: c.imdbWins }),
+		b: t(c.imdbNominations === 1 ? '{n} nominación' : '{n} nominaciones', { n: c.imdbNominations })
+	}));
 	return parts.join(' · ');
 }

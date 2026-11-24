@@ -1032,15 +1032,6 @@ impl AppCore {
         crate::player::players_status(&self.config.read().await.player)
     }
 
-    /// Abre el tráiler en YouTube (solo ids de video válidos).
-    pub fn open_trailer(&self, youtube_id: &str) -> Result<()> {
-        if !crate::catalog::cinemeta::is_youtube_id(youtube_id) {
-            return Err(CoreError::NotFound(format!("tráiler {youtube_id}")));
-        }
-        crate::external::open_external(format!("https://www.youtube.com/watch?v={youtube_id}"))
-            .map_err(|_| CoreError::Unsupported("abrir el navegador"))
-    }
-
     /// Póster de TMDB para un título cuyo póster de Cinemeta no existe (2026-11-15).
     pub async fn catalog_poster(&self, imdb_id: &str) -> Option<String> {
         let timeout = self.catalog_timeout().await;

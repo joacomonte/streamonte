@@ -12,7 +12,6 @@ CSS compartido, TS compartido (`ui/src/`) y vectores de prueba, sin build propio
 - `golden/*.json` — `[{ "in", "out", "nota"?, "diverge"? }]`, Rust fuente de verdad. Rust ↔ web:
   - `release.json` — `crates/core/tests/it/golden.rs:15` ↔ `torrents.ts:33 parse`
   - `excluded.json` — `golden.rs:39` ↔ `tmdb.ts:104 detail`
-  - `trailer.json` — `crates/core/src/catalog/tmdb.rs:996` ↔ `tmdb.ts:294 firstTrailer`
   - `providers_ar.json` — `tmdb.rs:1008` ↔ `tmdb.ts:269 providersAr`
   - `people.json` — `tmdb.rs:1018` ↔ `tmdb.ts:279 peopleOf`
   - `show_status.json` — `crates/core/src/catalog/seasons.rs:459` ↔ `tmdb.ts:287 showStatus`

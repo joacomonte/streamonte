@@ -6,7 +6,9 @@
 	import { onlyCinema } from '../format.ts';
 	import { t } from '../i18n/runtime.ts';
 	import type { CatalogItem } from '../types.ts';
-	import CardInfo, { loadDetails, loadRatings } from './CardInfo.svelte';
+	import AwardsBadge from '../title/AwardsBadge.svelte';
+	import { cardAwards, cardAwardsLabel, type CardAwards } from '../title/awards.ts';
+	import CardInfo, { loadAwards, loadDetails, loadRatings } from './CardInfo.svelte';
 	import { changedCount } from './filters.ts';
 	import type { CatalogStore } from './store.ts';
 
@@ -17,14 +19,12 @@
 		href?: (item: CatalogItem) => string;
 		/** Ir a Ajustes (botón del estado de error). */
 		onsettings?: () => void;
-		/** Ancho mínimo de una tarjeta, px. */
-		cardMin?: number;
 		/** Degradado al pie de la ventana (la web). */
 		fade?: boolean;
 		/** Cuándo hay que traer más: lo decide el que sabe de qué scrollea. */
 		sentinel?: HTMLElement;
 	}
-	let { store, onopen, href, onsettings, cardMin = 150, fade = false, sentinel = $bindable() }: Props = $props();
+	let { store, onopen, href, onsettings, fade = false, sentinel = $bindable() }: Props = $props();
 	const st = $derived(store.st);
 	const mode = $derived(store.mode());
 	const items = $derived(store.visible());
@@ -55,8 +55,11 @@
 	};
 	const leaveCard = () => clearTimeout(hoverT);
 
-	/** Precarga los datos del hover de las tarjetas que quedan a la vista ~0,4 s (no las que pasan scrolleando ni las de
-	 * abajo), de a 3 pedidos a la vez; quedan en la caché de CardInfo y el hover sale al instante. Solo con mouse. */
+	/** Premios de cada tarjeta (debajo del póster), por id; sin clave = todavía no llegaron. */
+	let awardsOf = $state<Record<string, CardAwards | null>>({});
+	/** Carga lo de las tarjetas que quedan a la vista ~0,4 s (no las que pasan scrolleando ni las de abajo), de a 3 pedidos a la
+	 * vez: la ficha (trae el id de IMDb) y los premios, en todos los dispositivos; las temporadas del hover, solo con mouse.
+	 * Todo queda en la caché de CardInfo y el hover sale al instante. */
 	const warmQueue: CatalogItem[] = [];
 	let warming = 0;
 	function pump(): void {
@@ -64,13 +67,20 @@
 			const it = warmQueue.shift() as CatalogItem;
 			warming++;
 			loadDetails(api, it.kind, it.id)
-				.then((d) => (it.kind === 'tv' && d?.imdb ? loadRatings(api, d.imdb) : null))
+				.then((d) => {
+					if (!d?.imdb) return;
+					const imdb = d.imdb;
+					return Promise.all([
+						loadAwards(api, imdb).then((a) => (awardsOf[it.id] = cardAwards(a))),
+						canHover && it.kind === 'tv' ? loadRatings(api, imdb) : null
+					]);
+				})
 				.finally(() => (warming--, pump()));
 		}
 	}
 	const dwell = new Map<Element, ReturnType<typeof setTimeout>>();
 	const visibleObs =
-		canHover && typeof IntersectionObserver !== 'undefined'
+		typeof IntersectionObserver !== 'undefined'
 			? new IntersectionObserver(
 					(entries) => {
 						for (const e of entries) {
@@ -185,11 +195,17 @@
 		<span class="title">{it.title}</span>
 		<span class="sub">
 			{it.year}{#if it.rating}<span class="rate"><Icon name="star" size={11} /><span class="num">{it.rating}</span></span>{/if}
+			<!-- Premios de los eventos grandes, compactos: ícono del mejor nivel y ganados/nominaciones (AwardsBadge). -->
+			{#if awardsOf[it.id]}
+				{@const aw = awardsOf[it.id] as CardAwards}
+				{@const awText = cardAwardsLabel(aw, t)}
+				<span id="cat-awards-{it.id}" class="aw" role="img" title={awText} aria-label={awText}><AwardsBadge c={aw} size={9} /></span>
+			{/if}
 		</span>
 	</div>
 {/snippet}
 
-<div class="area" class:fade style:--card-min="{cardMin}px">
+<div class="area" class:fade>
 	<ul class="grid" aria-busy={st.loading}>
 		{#each items as it (`${it.kind}${it.id}`)}
 			<li>
@@ -248,7 +264,7 @@
 		grid-template-columns: repeat(3, 1fr);
 		gap: 14px 10px;
 	}
-	@media (min-width: 640px) { .grid { grid-template-columns: repeat(auto-fill, minmax(var(--card-min, 150px), 1fr)); gap: 20px 14px; } }
+	@media (min-width: 640px) { .grid { grid-template-columns: repeat(4, 1fr); gap: 24px 18px; } }
 	.card { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
 	.card.active img, .card.active .noposter { outline: 2px solid var(--accent); outline-offset: 1px; }
 	.card img, .noposter, .poster-skel {
@@ -265,7 +281,10 @@
 	.noposter { display: grid; place-items: center; padding: 8px; text-align: center; font-size: 13px; font-weight: 700; color: #fff; text-wrap: balance; background: linear-gradient(160deg, hsl(var(--hue, 220) 45% 32%), hsl(calc(var(--hue, 220) + 40) 50% 14%)); }
 	.meta { display: flex; flex-direction: column; padding: 6px 2px 0; }
 	.title { font-size: 13px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-	.sub { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+	.sub { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: center; font-size: 12px; color: var(--muted); }
+	/* Premios al borde derecho de la línea; compactos para que entren en la misma. */
+	.aw { display: inline-flex; margin-left: auto; font-size: 10px; animation: aw-in 0.3s ease-out; }
+	@keyframes aw-in { from { opacity: 0; } }
 	.rate { position: relative; display: inline-flex; align-items: center; gap: 2px; color: var(--yellow); }
 	/* El conteo cambia el texto en cada frame: ancho fijo y `contain` para que no recalcule la grilla entera. */
 	.num { display: inline-block; min-width: 2.6ch; font-variant-numeric: tabular-nums; contain: layout paint; }

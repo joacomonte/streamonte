@@ -66,7 +66,6 @@ export const showCineNote = (d: TitleDetails): boolean => d.kind === 'movie' && 
 export type TitleIds = {
 	poster: string;
 	imdb: string;
-	trailer: string;
 	providers: string;
 	cast: string;
 	genres: string;
@@ -86,12 +85,12 @@ export type TitleIds = {
 	episode: (season: number, episode: number) => string;
 };
 export const WEB_IDS: TitleIds = {
-	poster: 'poster', imdb: 'imdb-link', trailer: 'trailer-link', providers: 'providers-toggle', cast: 'cast-toggle', genres: 'genres-toggle', provider: (i) => `provider-${i}`,
+	poster: 'poster', imdb: 'imdb-link', providers: 'providers-toggle', cast: 'cast-toggle', genres: 'genres-toggle', provider: (i) => `provider-${i}`,
 	person: (p) => `person-${p.id}`, about: 'about-toggle', aboutBody: 'about-body', awards: 'awards-toggle', awardsBody: 'awards-body', cine: 'cine-note', similarToggle: 'similar-toggle', similar: (id) => `similar-${id}`,
 	crumbSeasons: 'crumb-seasons', season: (n) => `season-${n}`, bar: (n) => `score-s${n}`, nextSeason: 'season-next', episode: (_s, e) => `ep-${e}`
 };
 export const DESKTOP_IDS: TitleIds = {
-	poster: 'cat-poster', imdb: 'cat-open-imdb', trailer: 'cat-open-trailer', providers: 'cat-providers', cast: 'cat-cast', genres: 'cat-genres', provider: (i) => `cat-provider-${i}`,
+	poster: 'cat-poster', imdb: 'cat-open-imdb', providers: 'cat-providers', cast: 'cat-cast', genres: 'cat-genres', provider: (i) => `cat-provider-${i}`,
 	person: (p) => `cat-who-${p.role}-${p.id}`, about: 'cat-about-toggle', aboutBody: 'cat-about-body', awards: 'cat-awards-toggle', awardsBody: 'cat-awards-body', cine: 'cat-cine-note', similarToggle: 'cat-similar-toggle',
 	similar: (id) => `cat-similar-${id}`, crumbSeasons: 'cat-crumb-seasons', season: (n) => `cat-season-${n}`, bar: (n) => `cat-season-bar-${n}`,
 	nextSeason: 'cat-season-next', episode: (s, e) => `cat-ep-${s}-${e}`

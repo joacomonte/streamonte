@@ -133,7 +133,6 @@ pub fn run() {
             commands::catalog_open_imdb,
             commands::catalog_swarm_saved,
             commands::downloads_free_bytes,
-            commands::catalog_open_trailer,
             commands::catalog_streams,
             commands::catalog_stop_streams,
             commands::catalog_add,

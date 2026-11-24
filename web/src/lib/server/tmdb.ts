@@ -16,7 +16,6 @@ type TmdbItem = { id: number; title?: string; name?: string; release_date?: stri
 type TmdbPage = { results: TmdbItem[]; page: number; total_pages: number };
 type TmdbPerson = { id: number; name: string; profile_path?: string | null; character?: string; job?: string };
 type TmdbProvider = { provider_id: number; provider_name: string; logo_path?: string | null; display_priority: number };
-type TmdbVideo = { key: string; site: string; type: string; official?: boolean; published_at?: string };
 type TmdbSeason = { season_number: number; episode_count: number; name: string; air_date?: string | null };
 type TmdbTitle = TmdbItem & {
 	imdb_id?: string | null;
@@ -31,7 +30,6 @@ type TmdbTitle = TmdbItem & {
 	status?: string;
 	production_companies?: { name: string }[];
 	credits?: { cast?: TmdbPerson[]; crew?: TmdbPerson[] };
-	videos?: { results?: TmdbVideo[] };
 	'watch/providers'?: { results?: Record<string, { flatrate?: TmdbProvider[]; ads?: TmdbProvider[]; free?: TmdbProvider[] }> };
 	next_episode_to_air?: { air_date?: string; season_number: number; episode_number: number } | null;
 	seasons?: TmdbSeason[];
@@ -322,22 +320,13 @@ export function showStatus(r: Pick<TmdbTitle, 'status' | 'next_episode_to_air'>)
 	return { status: map[r.status as string] ?? null, next: n?.air_date ? { season: n.season_number, episode: n.episode_number, date: n.air_date } : null };
 }
 
-/** Tráiler de YouTube: oficial primero, el más viejo (`first_trailer` del desktop). */
-export function firstTrailer(videos: TmdbVideo[] | undefined): string | null {
-	return (
-		(videos ?? [])
-			.filter((v) => v.site === 'YouTube' && v.type === 'Trailer')
-			.sort((a, b) => Number(b.official) - Number(a.official) || String(a.published_at).localeCompare(String(b.published_at)))[0]?.key ?? null
-	);
-}
-
 /** Ficha: datos, IMDb id (para los torrents) y temporadas. */
 export async function title(kind: Kind, id: string | number) {
 	// Sinopsis y géneros siempre en el idioma de la app: un pedido más (si difiere de los títulos), en paralelo.
 	// El dataset de IMDb se espera junto con TMDB: en una instancia recién creada todavía no está cargado y el puntaje
 	// salía vacío. Si no se puede bajar, la ficha sale igual, sin puntaje.
 	const [r, info, table] = await Promise.all([
-		tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits,videos', include_video_language: 'es,en,null' }) as Promise<TmdbTitle>,
+		tmdb(`/${kind}/${id}`, { append_to_response: 'external_ids,watch/providers,credits' }) as Promise<TmdbTitle>,
 		lang() !== titlesLang() ? (tmdb(`/${kind}/${id}`, {}, lang()) as Promise<TmdbTitle>) : null,
 		ratings().catch(() => null)
 	]);
@@ -366,7 +355,6 @@ export async function title(kind: Kind, id: string | number) {
 		...showStatus(r),
 		imdb,
 		// Tráiler de YouTube: el más viejo (en series, el de la temporada 1), oficial primero; como en el desktop.
-		trailer: firstTrailer(r.videos?.results),
 		seasons: (r.seasons ?? [])
 			.filter((s) => s.season_number > 0 && s.episode_count > 0)
 			.map((s) => ({ n: s.season_number, name: s.name, count: s.episode_count, year: String(s.air_date ?? '').slice(0, 4) || null }))

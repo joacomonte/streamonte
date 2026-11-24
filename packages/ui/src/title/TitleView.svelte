@@ -7,7 +7,8 @@
 	import { getApi } from '../context.ts';
 	import { t } from '../i18n/runtime.ts';
 	import type { Episode, Kind, Person, SeasonRatings, SimilarItem, TitleAwards, TitleDetails } from '../types.ts';
-	import { awardsView } from './awards.ts';
+	import AwardsBadge from './AwardsBadge.svelte';
+	import { awardsView, cardAwards } from './awards.ts';
 	import SeasonChart from './SeasonChart.svelte';
 	import { episodeRows, MAX_ACTORS, outlookOf, pickPeople, providerView, seasonTiles, showCineNote, WEB_IDS } from './title-state.ts';
 	import type { SeasonTile, TitleIds } from './title-state.ts';
@@ -29,7 +30,6 @@
 		onOpenTitle?: (kind: Kind, id: string, name: string) => void;
 		/** Abrir fuera de la app (el desktop no puede con un `<a target>`): con handler se frena el link. */
 		onOpenImdb?: (imdb: string) => void;
-		onOpenTrailer?: (youtube: string) => void;
 		/** Dónde van los torrents: películas y, en el desktop, el episodio elegido. */
 		options: Snippet;
 		/** Entre la cabecera y el cuerpo (el desktop pone ahí sus migas fijas). */
@@ -56,7 +56,7 @@
 		locale: string;
 	}
 	let {
-		kind, id, details, season = null, episode = null, onSeason, onEpisode, seasonHref, episodeHref, onPerson, onOpenTitle, onOpenImdb, onOpenTrailer,
+		kind, id, details, season = null, episode = null, onSeason, onEpisode, seasonHref, episodeHref, onPerson, onOpenTitle, onOpenImdb,
 		options, between, teaser, similar = false, collapsed = false, topInset = 0, titleEl = $bindable(), crumbs = true, stills = true, lockUnaired = false,
 		genreLabel = (g: string) => g, ids = WEB_IDS, locale
 	}: Props = $props();
@@ -151,9 +151,9 @@
 	const seasonName = (n: number, name: string | null) => name || (n === 0 ? t('Especiales') : t('Temporada {n}', { n }));
 	const aboutTitle = $derived(d?.overview ? t('Sinopsis') : t('Idioma original'));
 	const aw = $derived(awardsView(awards, t));
-	/** Hay detalle para desplegar (si no, la línea son solo los totales). */
-	const awDetail = $derived(!!aw && (aw.won.length > 0 || aw.nominated.length > 0));
-	const awSections = $derived(aw ? [{ won: true, title: t('Ganó'), groups: aw.won }, { won: false, title: t('Nominaciones'), groups: aw.nominated }].filter((x) => x.groups.length) : []);
+	/** Premios compactos junto al puntaje (como en la tarjeta); null = sin eventos grandes, no hay nada que desplegar. */
+	const awBadge = $derived(cardAwards(awards));
+	const awSections = $derived(aw ? [{ won: true, title: t('Ganó'), groups: aw.won }, { won: false, title: t('Nominaciones'), groups: aw.nominated }].filter((x) => x.groups.length).map((x) => ({ ...x, count: x.groups.reduce((n, g) => n + g.count, 0) })) : []);
 	const awTotal = $derived(aw ? t('En IMDb, {a} y {b} en total.', {
 		a: t(aw.wins === 1 ? '{n} premio' : '{n} premios', { n: aw.wins.toLocaleString(locale) }),
 		b: t(aw.nominations === 1 ? '{n} nominación' : '{n} nominaciones', { n: aw.nominations.toLocaleString(locale) })
@@ -214,46 +214,46 @@
 							{/if}
 							<p class="muted line">
 								<span>{heroLine}</span>
-								<!-- IMDb (con su puntaje) y tráiler como píldoras junto a los datos; sin IMDb, la estrella sola. -->
+								<!-- Puntaje con estrella (como en las tarjetas; abre IMDb) y premios compactos: ícono del mejor nivel y
+								     ganados/nominaciones; la flecha despliega la lista completa debajo de la cabecera. -->
 								{#if d.imdb}
 									{@const imdb = d.imdb}
-									<a id={ids.imdb} class="ext" href="https://www.imdb.com/title/{imdb}/" target="_blank" rel="noopener noreferrer" title={t('Ver en IMDb')} onclick={(e) => { if (onOpenImdb) { e.preventDefault(); onOpenImdb(imdb); } }}><span class="imdb-seal">IMDb</span>{d.rating ?? ''}</a>
+									<a id={ids.imdb} class="ext" href="https://www.imdb.com/title/{imdb}/" target="_blank" rel="noopener noreferrer" title={t('Ver en IMDb')} onclick={(e) => { if (onOpenImdb) { e.preventDefault(); onOpenImdb(imdb); } }}><span class="ext-star"><Icon name="star" size={13} /></span>{d.rating ?? ''}</a>
 								{:else if d.rating}
 									<span class="rate"><Icon name="star" size={13} />{d.rating}</span>
 								{/if}
-								{#if d.trailer}
-									{@const yt = d.trailer}
-									<a id={ids.trailer} class="ext" href="https://www.youtube.com/watch?v={yt}" target="_blank" rel="noopener noreferrer" title={t('Ver el tráiler en YouTube')} onclick={(e) => { if (onOpenTrailer) { e.preventDefault(); onOpenTrailer(yt); } }}><Icon name="play" size={11} />{t('Tráiler')}</a>
+								{#if aw && awBadge}
+									<button id={ids.awards} type="button" class="ext aw-pill" class:open={awardsOpen} aria-expanded={awardsOpen} aria-controls={ids.awardsBody} title={aw.line} aria-label={`${aw.line}. ${awardsOpen ? t('Ocultar premios') : t('Ver todos los premios')}`} onclick={() => (awardsOpen = !awardsOpen)}>
+										<AwardsBadge c={awBadge} size={13} /><span class="aw-chev" aria-hidden="true"><Icon name="chev" size={13} /></span>
+									</button>
 								{/if}
 							</p>
-							<!-- Premios: una línea con elipsis; si hay detalle, la línea despliega la lista completa debajo de la cabecera. -->
-							{#if aw}
-								{#if awDetail}
-									<button id={ids.awards} type="button" class="aw-line" class:won={aw.won.length > 0} class:open={awardsOpen} aria-expanded={awardsOpen} aria-controls={ids.awardsBody} title={awardsOpen ? t('Ocultar premios') : t('Ver todos los premios')} onclick={() => (awardsOpen = !awardsOpen)}>
-										<Icon name={aw.won.length ? 'trophy' : 'award'} size={14} /><span class="aw-text">{aw.line}</span><span class="aw-chev" aria-hidden="true"><Icon name="chev" size={14} /></span>
-									</button>
-								{:else}
-									<p class="aw-line" class:won={aw.wins > 0}><Icon name={aw.wins ? 'trophy' : 'award'} size={14} /><span class="aw-text">{aw.line}</span></p>
-								{/if}
-							{/if}
 							{#if d.companies.length}<p class="companies">{d.companies.join(' · ')}</p>{/if}
 						</div>
 					</div>
 				</div>
 
-				{#if aw && awDetail}
+				{#if aw && awBadge}
 					<div id={ids.awardsBody} class="inner aw-body" class:open={awardsOpen} inert={!awardsOpen}>
 						<div class="aw-in">
+							<!-- Lista completa: por sección (ganó / nominaciones) una fila por evento y sus categorías como etiquetas;
+							     las de mejor película o serie van primero, con la copa. -->
 							<div class="aw-panel">
 								{#each awSections as sec (sec.won)}
 									<section class="aw-sec" class:won={sec.won}>
-										<h3><Icon name={sec.won ? 'trophy' : 'award'} size={14} />{sec.title}</h3>
-										<dl>
+										<h3><Icon name={sec.won ? 'trophy' : 'award'} size={14} />{sec.title}<span class="aw-n">{sec.count}</span></h3>
+										<div class="aw-rows">
 											{#each sec.groups as g (g.event)}
-												<dt>{g.name}{#if g.count > 1}<span class="aw-n">{g.count}</span>{/if}</dt>
-												<dd>{#each g.items as it, i (it.label)}{#if i}{' · '}{/if}<span class="aw-item">{it.label}{#if it.count > Math.max(1, aw.showYears ? it.years.length : 1)}<span class="aw-x">×{it.count}</span>{/if}{#if aw.showYears && it.years.length}<span class="aw-years">{it.years.join(', ')}</span>{/if}</span>{/each}</dd>
+												<div class="aw-row">
+													<span class="aw-ev">{g.name}</span>
+													<ul class="aw-tags">
+														{#each g.items as it (it.label)}
+															<li class="aw-tag" class:best={sec.won && it.best}>{#if sec.won}<Icon name={it.best ? 'trophy' : 'medal'} size={11} />{/if}{it.label}{#if it.count > Math.max(1, aw.showYears ? it.years.length : 1)}<span class="aw-x">×{it.count}</span>{/if}{#if aw.showYears && it.years.length}<span class="aw-years">{it.years.join(', ')}</span>{/if}</li>
+														{/each}
+													</ul>
+												</div>
 											{/each}
-										</dl>
+										</div>
 									</section>
 								{/each}
 								<p class="aw-total">{awTotal}</p>
@@ -466,41 +466,40 @@
 	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
 	/* Premios: el dorado se arma con el amarillo del tema (oscuro en claro, brillante en oscuro). */
 	.title-view { --gold: color-mix(in srgb, var(--yellow) 65%, #e0a800); }
-	.aw-line { display: flex; align-items: center; gap: 6px; max-width: 100%; min-height: 28px; margin: 6px 0 0; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; text-align: left; }
-	button.aw-line { cursor: pointer; }
-	/* Llega después que el resto (otro pedido): entra suave en su lugar. */
-	.aw-line { animation: aw-in 0.5s var(--out) backwards; }
+	/* Premios compactos: píldora como la de IMDb, con la flecha que despliega la lista. Llegan después (otro pedido): entran suaves. */
+	.aw-pill { gap: 4px; padding-right: 4px; border: 0; font-family: inherit; cursor: pointer; animation: aw-in 0.5s var(--out) backwards; }
 	@keyframes aw-in { from { opacity: 0; transform: translateY(6px); } }
-	.aw-line > :global(svg) { flex: none; }
-	.aw-line.won > :global(svg) { color: var(--gold); }
-	.aw-text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-	.aw-chev { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: var(--r-pill, 999px); background: var(--surface-2); transition: transform 0.35s var(--out), background 0.2s var(--ease); }
-	.aw-line.open .aw-chev { transform: rotate(180deg); }
-	@media (hover: hover) { button.aw-line:hover { color: var(--text); } button.aw-line:hover .aw-chev { background: var(--surface-3, var(--border)); } }
-	button.aw-line:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+	.aw-chev { display: grid; place-items: center; flex: none; width: 18px; height: 18px; border-radius: var(--r-pill, 999px); color: var(--muted); transition: transform 0.35s var(--out); }
+	.aw-pill.open .aw-chev { transform: rotate(180deg); }
+	.aw-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 	/* Lista completa: crece con grid-template-rows (como la sinopsis) y el contenido entra subiendo y enfocándose. */
 	.aw-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.42s var(--out); }
 	.aw-body.open { grid-template-rows: 1fr; }
 	.aw-in { min-height: 0; overflow: hidden; }
 	.aw-panel { display: grid; gap: 14px; margin-top: 12px; padding: 14px 16px 12px; border: 1px solid var(--border); border-radius: var(--r-card, 14px); background: var(--surface); opacity: 0; transform: translateY(-6px); filter: blur(3px); transition: opacity 0.3s var(--ease), transform 0.42s var(--out), filter 0.3s var(--ease); }
 	.aw-body.open .aw-panel { opacity: 1; transform: none; filter: none; transition-delay: 0.06s; }
-	.aw-sec h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 14px; font-weight: 650; color: var(--text); }
+	.aw-sec h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: 14px; font-weight: 650; color: var(--text); }
 	.aw-sec h3 :global(svg) { color: var(--muted); }
 	.aw-sec.won h3 :global(svg) { color: var(--gold); }
-	.aw-sec dl { display: grid; grid-template-columns: 8.4em minmax(0, 1fr); gap: 7px 16px; margin: 0; font-size: 13.5px; line-height: 1.45; }
-	.aw-sec dt { display: flex; align-items: baseline; gap: 6px; font-weight: 650; color: var(--text); }
 	.aw-n { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
-	.aw-sec dd { margin: 0; color: var(--muted); }
-	.aw-sec.won dd { color: var(--text); }
-	.aw-x, .aw-years { margin-left: 5px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
+	.aw-rows { display: grid; gap: 10px; }
+	.aw-row { display: grid; grid-template-columns: 8em minmax(0, 1fr); gap: 12px; align-items: start; }
+	.aw-ev { padding-top: 3px; font-size: 13px; font-weight: 650; color: var(--text); }
+	.aw-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+	.aw-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: var(--r-pill, 999px); background: var(--surface-2); font-size: 12.5px; line-height: 1.35; color: var(--muted); }
+	.aw-tag :global(svg) { flex: none; color: color-mix(in srgb, var(--gold) 75%, var(--muted)); }
+	.won .aw-tag { color: var(--text); }
+	.aw-tag.best { background: color-mix(in srgb, var(--gold) 16%, var(--surface-2)); }
+	.aw-tag.best :global(svg) { color: var(--gold); }
+	.aw-x, .aw-years { margin-left: 2px; font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--muted); }
+	@media (max-width: 560px) { .aw-row { grid-template-columns: minmax(0, 1fr); gap: 5px; } .aw-ev { padding-top: 0; } }
 	.aw-total { margin: 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--muted); }
 	.cine-wrap { padding-top: 12px; }
 	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: var(--r-card, 14px); background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
 	.cine-note :global(svg) { flex: none; margin-top: 1px; color: var(--amber, #f5a524); }
 	/* IMDb y tráiler: píldoras chicas en la línea de datos. */
-	.ext { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 4px; border-radius: var(--r-pill, 999px); background: var(--surface-2); color: var(--text); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: none; transition: background 0.2s var(--ease); }
-	.ext:not(:has(.imdb-seal)) { padding-left: 9px; }
-	.imdb-seal { padding: 2px 4px; border-radius: 4px; background: #f5c518; color: #000; font-size: 10px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; }
+	.ext { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 9px; border-radius: var(--r-pill, 999px); background: var(--surface-2); color: var(--text); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: none; transition: background 0.2s var(--ease); }
+	.ext-star { display: inline-flex; color: var(--yellow); }
 	@media (hover: hover) { .ext:hover { background: var(--surface-3, var(--border)); } }
 	/* Fila de plataformas. */
 	.networks { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 12px; }
@@ -588,7 +587,7 @@
 	@keyframes backdrop-in { from { opacity: 0; transform: scale(1.18); } }
 	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 	@media (prefers-reduced-motion: reduce) {
-		.hero::before, .name, .by, .line, .companies, .meta, .body, .aw-line { animation: none; }
+		.hero::before, .name, .by, .line, .companies, .meta, .body, .aw-pill { animation: none; }
 		.ext, .who-face, .about-body, .about-chev, .intro, .aw-body, .aw-panel, .aw-chev { transition: none; }
 	}
 </style>

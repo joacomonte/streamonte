@@ -124,10 +124,6 @@ pub struct Details {
     pub original_language: Option<String>,
     /// Series: dónde se emite (HBO, Netflix…).
     pub networks: Vec<String>,
-    /// Id de YouTube del tráiler más viejo (en series, el de la temporada 1). Cinemeta trae
-    /// varios sin título ni orden: el primero puede ser de la última temporada.
-    #[serde(default)]
-    pub trailer: Option<String>,
     /// Quién la hizo (2026-11-22): en películas el director primero; después los 3 actores principales.
     #[serde(default)]
     pub people: Vec<Person>,
@@ -193,7 +189,6 @@ struct RawDetails {
     original_language: Option<String>,
     #[serde(default)]
     networks: Vec<Named>,
-    videos: Option<Videos>,
     #[serde(rename = "watch/providers")]
     providers: Option<WatchProviders>,
     credits: Option<Credits>,
@@ -294,35 +289,6 @@ fn providers_ar(p: Option<WatchProviders>) -> Vec<Provider> {
             logo: x.logo_path.map(|l| format!("{LOGO_BASE}{l}")),
         })
         .collect()
-}
-
-#[derive(Deserialize)]
-struct Videos {
-    #[serde(default)]
-    results: Vec<Video>,
-}
-
-#[derive(Deserialize)]
-struct Video {
-    key: String,
-    site: String,
-    #[serde(rename = "type")]
-    kind: String,
-    #[serde(default)]
-    official: bool,
-    #[serde(default)]
-    published_at: String,
-}
-
-/// El tráiler oficial de YouTube publicado primero (sin oficiales, cualquiera).
-fn first_trailer(videos: Vec<Video>) -> Option<String> {
-    videos
-        .into_iter()
-        .filter(|v| {
-            v.site == "YouTube" && v.kind == "Trailer" && super::cinemeta::is_youtube_id(&v.key)
-        })
-        .min_by(|a, b| (!a.official, &a.published_at).cmp(&(!b.official, &b.published_at)))
-        .map(|v| v.key)
 }
 
 #[derive(Deserialize, Clone)]
@@ -519,12 +485,7 @@ async fn fetch_details(
                 .ok()
         }
     };
-    // Los videos en inglés (o sin idioma), como antes de pedir en el idioma de los títulos.
-    let raw = get(
-        langs.titles,
-        "&append_to_response=videos,watch/providers,credits&include_video_language=en,null",
-    )
-    .await?;
+    let raw = get(langs.titles, "&append_to_response=watch/providers,credits").await?;
     // Sinopsis y géneros siempre en el idioma de la app: un pedido más solo si difiere.
     let about = if langs.app == langs.titles {
         None
@@ -555,7 +516,6 @@ async fn fetch_details(
             .into_iter()
             .map(|n| super::normalize::clean(&n.name))
             .collect(),
-        trailer: first_trailer(raw.videos.map(|v| v.results).unwrap_or_default()),
         people: people(raw.credits.unwrap_or_default(), kind),
         companies: raw
             .production_companies
@@ -964,19 +924,6 @@ mod tests {
     }
 
     #[test]
-    fn trailer_oficial_mas_viejo() {
-        let v: Videos = serde_json::from_str(
-            r#"{"results":[
-              {"key":"SSSSSSSSSS5","site":"YouTube","type":"Trailer","official":true,"published_at":"2024-01-01"},
-              {"key":"TEASERxxxxx","site":"YouTube","type":"Teaser","official":true,"published_at":"2018-01-01"},
-              {"key":"FANxxxxxxxx","site":"YouTube","type":"Trailer","official":false,"published_at":"2017-01-01"},
-              {"key":"SSSSSSSSSS1","site":"YouTube","type":"Trailer","official":true,"published_at":"2019-03-01"}]}"#,
-        )
-        .unwrap();
-        assert_eq!(first_trailer(v.results).as_deref(), Some("SSSSSSSSSS1"));
-    }
-
-    #[test]
     fn toma_el_primer_poster_de_pelicula_o_serie() {
         let r: FindResponse = serde_json::from_str(
             r#"{"movie_results":[],"tv_results":[{"poster_path":null},{"poster_path":"/x.jpg"}]}"#,
@@ -993,18 +940,6 @@ mod tests {
     // Vectores compartidos con la web (`/packages/golden/`): la fuente de verdad es esta salida.
     fn golden(json: &str) -> Vec<serde_json::Value> {
         serde_json::from_str(json).unwrap()
-    }
-
-    #[test]
-    fn golden_trailer() {
-        for case in golden(include_str!("../../../../packages/golden/trailer.json")) {
-            let videos: Vec<Video> = serde_json::from_value(case["in"].clone()).unwrap();
-            assert_eq!(
-                serde_json::json!(first_trailer(videos)),
-                case["out"],
-                "{case}"
-            );
-        }
     }
 
     #[test]

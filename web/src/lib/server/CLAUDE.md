@@ -4,7 +4,7 @@ TMDB, IMDb, addons de torrents, TorBox, OpenSubtitles y Neon. Los endpoints de `
 ## Mapa
 - `http.ts` — `:7 Fail` · `:21 Cache` · `:25 route(fn, cache?)` (con `cache`: `Cache-Control` CDN `s-maxage` + `stale-while-revalidate`; `perLang` solo si la URL trae `l=<ui>.<títulos>`, que agrega `webApi.ts cachedFetch` y `hooks.server.ts` usa en vez de la cookie) · `:42 get` (timeout 12 s; `HTTP_FIXTURES` → `:51 fixture` graba/responde TMDB, addons y OS.org). `lang.ts` — `:8 langStore` · `:11 LANG_PARAM` · `:15 tx`. `params.ts:2 episode`.
 - `keys.ts` — `:15 ENV` · `:17 keys` · `:24 setKeys`.
-- `tmdb.ts` — `:42 tmdb` · `:72 keep` · `:80 DIR` · `:90 VOTES` · `:104 detail` · `:119 fillDetails` · `:141 candidates` · `:166 build` · `:185 discover` · `:198 search` · `:216 people` · `:239 personTitles` · `:269 providersAr` · `:279 peopleOf` · `:287 showStatus` · `:294 firstTrailer` · `:303 title` · `:347 namesOf` · `:362 season`.
+- `tmdb.ts` — `:42 tmdb` · `:72 keep` · `:80 DIR` · `:90 VOTES` · `:104 detail` · `:119 fillDetails` · `:141 candidates` · `:166 build` · `:185 discover` · `:198 search` · `:216 people` · `:239 personTitles` · `:269 providersAr` · `:279 peopleOf` · `:287 showStatus` · `:303 title` · `:347 namesOf` · `:362 season`.
 - `interests.ts` — subgéneros de IMDb (GraphQL `caching.graphql.imdb.com`, header `x-imdb-client-name`): `interestList` (lista ordenada hasta 250) · `examples` (ejemplos por subgénero); `tmdb.ts imdbPage` pasa una página de tt a tarjetas vía `/find`. Desktop: `crates/core/src/catalog/interests.rs`.
 - `awards.ts` — premios de IMDb (GraphQL, como `interests.ts`): `awards(tt)` (memoria 1 día) · `normalize` (golden `awards.json` = `crates/core/src/catalog/awards.rs`) ← `routes/api/awards/[imdb]`.
 - `imdb.ts` — `:59 ratings` · `:74 imdbOf` · `:88 buildIndex` · `:132 seasonScores`.
@@ -18,7 +18,7 @@ TMDB, IMDb, addons de torrents, TorBox, OpenSubtitles y Neon. Los endpoints de `
 - `DIR`: `.data` local, `/tmp/.data` con `VERCEL` (`tmdb.ts:80`, `imdb.ts:11`, `subs.ts:98`): cada cold start re-baja IMDb (~60 MB); `keys.ts:4` siempre `.data`.
 - `torbox.ts:262 download`: el link lleva la key → no cachear ni loguear; por eso `tracks` recibe `ids`.
 - `keep()` (`tmdb.ts:72`) y `detail().excluded` (`:113`) = `is_excluded` del desktop; cambiar uno obliga a golden y Rust.
-- Funciones con golden (`parse`, `detail`, `firstTrailer`, `peopleOf`, `providersAr`, `showStatus`, `isSpanishSub`) deben coincidir con Rust (`/Users/monti/Documents/Dev/streamonte/packages/golden/`).
+- Funciones con golden (`parse`, `detail`, `peopleOf`, `providersAr`, `showStatus`, `isSpanishSub`) deben coincidir con Rust (`/Users/monti/Documents/Dev/streamonte/packages/golden/`).
 - `subs.ts:10` UA `VLSub 0.11.1` es el único que acepta OS.org anónimo.
 - Solo `POST /api/premium/[id]` gasta cuota premium.
 

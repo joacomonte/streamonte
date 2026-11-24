@@ -19,9 +19,6 @@
    "sel": "#imdb-link"
   },
   {
-   "sel": "#trailer-link"
-  },
-  {
    "sel": "#person-17419",
    "text": "Cranston"
   },

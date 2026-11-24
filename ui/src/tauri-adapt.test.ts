@@ -30,7 +30,6 @@ test('titleDetails de serie: Cinemeta + TMDB, estado, temporadas desde los episo
 	assert.equal(d.imdb, 'tt0903747');
 	assert.equal(d.runtimeMin, 49);
 	assert.equal(d.rating, '9.5');
-	assert.equal(d.trailer, 'VFkjBy2b50Q');
 	assert.deepEqual(d.status, { state: 'ended', next: null });
 	assert.equal(d.originalLanguage, 'en');
 	assert.equal(d.languageName, 'inglés');

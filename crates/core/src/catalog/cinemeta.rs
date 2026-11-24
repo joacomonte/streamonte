@@ -62,9 +62,6 @@ pub struct Meta {
     /// Fecha de estreno `AAAA-MM-DD` (para avisar "En cines").
     #[serde(default)]
     pub released: Option<String>,
-    /// Id de YouTube del primer tráiler.
-    #[serde(default)]
-    pub trailer: Option<String>,
     /// Votos de IMDb (dataset oficial, si ya está cargado); no se guarda con la ficha.
     #[serde(default)]
     pub imdb_votes: Option<u32>,
@@ -249,23 +246,8 @@ fn to_meta(m: RawMeta, kind: MediaKind, id: &str, now: chrono::DateTime<chrono::
             .map(|c| clean(c))
             .collect(),
         awards: m.awards.as_deref().and_then(awards_es),
-        trailer: m
-            .trailer_streams
-            .unwrap_or_default()
-            .iter()
-            .filter_map(|t| t.get("ytId")?.as_str())
-            .find(|id| is_youtube_id(id))
-            .map(str::to_string),
         imdb_votes: None,
     }
-}
-
-/// Id de video de YouTube: 11 caracteres de `[A-Za-z0-9_-]` (también valida lo que pide la UI).
-pub fn is_youtube_id(id: &str) -> bool {
-    id.len() == 11
-        && id
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
 }
 
 /// `Won 2 Oscars. 164 wins & 165 nominations total` → `Ganó 2 Óscar · 164 premios`; sin premios
