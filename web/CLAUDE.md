@@ -1,32 +1,20 @@
-# streamonte/web — SvelteKit 2, Svelte 5 runes, TS
-Web de Streamonte (celu/tele): catálogo TMDB+IMDb → torrents en caché de TorBox → link https + subs en español para copiar a un reproductor. Comparte reglas y CSS con el desktop Rust.
+# web — SvelteKit 2, Svelte 5, TS
+Web de Streamonte (celu/tele): catálogo → torrents en caché de TorBox → link https + subs en español. Comparte reglas y UI con el desktop.
 
-## Mapa (`/Users/monti/Documents/Dev/streamonte/web/`)
-- `src/hooks.server.ts` — `:64 handle` cookie `dev`, idiomas (`langStore`), candado `APP_PASSWORD` `:74`.
-- `src/routes/` → `src/routes/CLAUDE.md` · `src/lib/` → `src/lib/CLAUDE.md` · `src/lib/server/` → `src/lib/server/CLAUDE.md`
-- `src/app.css` — importa el CSS de `/Users/monti/Documents/Dev/streamonte/packages/CLAUDE.md`.
-- `db/schema.sql` — tablas Neon `eventos` e `intentos`, idempotente.
-- `.data/` — cachés locales gitignoreadas (en Vercel van a `/tmp`).
-- `vite.config.ts` — adapter Vercel si `process.env.VERCEL`, si no node; `version.pollInterval` 5 min.
-- `vite.config.ts` también: alias `$ui` → `packages/ui/src` (tipos: `tsconfig.json` `paths`).
-- `package.json` — alias `#lib` → `src/lib/index.ts`, `#lib/*` → `src/lib/*`.
+## Para X → andá a Y
+- Páginas y endpoints → `src/routes/CLAUDE.md`. Cliente (componentes, `webApi`) → `src/lib/CLAUDE.md`. Servidor (TMDB, TorBox, subs) → `src/lib/server/CLAUDE.md`.
+- Candado, cookies, idioma → `src/hooks.server.ts`. CSS → `src/app.css` (importa `packages/ui/css`).
+- Tablas Neon (`eventos`, `intentos`) → `db/schema.sql`. Adapter Vercel/node, alias `$ui` → `vite.config.ts`.
 
-## Deploy (Vercel)
-- Proyecto `streamonte-web`, linkeado en la RAÍZ del monorepo (`/Users/monti/Documents/Dev/streamonte/.vercel/project.json`, Root Directory=`web`).
-- Prod: `vercel deploy --prod --yes` desde la RAÍZ (desde `web/` falla). "push" de la web incluye deploy.
-- `/Users/monti/Documents/Dev/streamonte/.vercelignore` sube solo `web/` y `packages/`. Los tests no corren en Vercel.
+## Deploy
+Proyecto `streamonte-web` linkeado en la RAÍZ del monorepo (Root Directory=`web`); `vercel` se corre desde la raíz, no desde `web/`. Receta con preview + `promote`: `scripts/CLAUDE.md`. `.vercelignore` sube solo `web/` y `packages/`.
 
-## Env vars (solo NOMBRES; `cut -d= -f1 web/.env.local`, nunca imprimir valores; nunca prefijo público)
-`APP_PASSWORD` (candado; sin ella no hay) · `ADMIN_PASSWORD` (`/admin`) · `DATABASE_URL` (Neon; sin ella no hay tracking) · `TMDB_KEY`, `TORBOX_KEY`, `OPENSUBTITLES_KEY`, `OPENSUBTITLES_USER`, `OPENSUBTITLES_PASS` (pisan `.data/keys.json`) · `VERCEL`.
+## Env vars
+Solo nombres, nunca valores ni prefijo público: `cut -d= -f1 web/.env.local`. Sin `DATABASE_URL` no hay tracking; sin `APP_PASSWORD` no hay candado.
 
 ## Trampas
-- Node 24 (`.nvmrc`), type stripping: imports con extensión `.ts`, sin `enum`/`namespace`/parameter properties, `import type` explícito.
-- Textos de UI en español SON la clave de i18n (`packages/ui/src/i18n/en.ts`, compartido con el desktop).
-- Desktop ↔ web deben dar lo mismo vía `packages/golden/*.json`; Rust es la fuente de verdad.
-- Sin dependencias nuevas sin preguntar.
+- Node 24, type stripping: imports con `.ts`, sin `enum`/`namespace`/parameter properties, `import type` explícito.
+- `.data/` local gitignoreado (en Vercel va a `/tmp`).
 
-## Flujo
-home `/` → `/api/catalog` → ficha `/t/[kind]/[id]` → `<Torrents>` → `/api/torrents` → `/api/link` → copiar (+ `/api/subs`).
-
-## Tests
-`pnpm test` (`node --test`), `pnpm check`; todo el repo: `/Users/monti/Documents/Dev/streamonte/scripts/check.sh`.
+## Cómo se prueba
+`pnpm test` (`node --test`) y `pnpm check` en `web/`; todo: `sh scripts/check.sh`.

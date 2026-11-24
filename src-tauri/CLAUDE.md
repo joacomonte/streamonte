@@ -1,25 +1,21 @@
 # src-tauri — cáscara Tauri 2 (crate `streamonte`, lib `streamonte_app`)
 Crea la ventana, arranca `AppCore`, expone comandos y reenvía eventos. Sin lógica de negocio: cada comando = 1 llamada a `AppCore`.
 
-## Mapa
-- `/Users/monti/Documents/Dev/streamonte/src-tauri/src/main.rs:5` `main` → `streamonte_app::run()`.
-- `lib.rs:28` `run`: plugins `process:30` `updater:31` · `setup:32` (`AppCore::start`, `crates/core/src/app/mod.rs:109`) · `on_window_event:41` · `invoke_handler:64-140` (TODOS los comandos) · `:15` `CLOSING` · `:18` `TauriSink` (emite `core://event`, :22).
-- `commands.rs`: 77 `#[tauri::command]`, lista en `:46-606`. `:26` `Core` · `:27` `CmdResult` · `:30` `UiError{message,detail}` (:35 From<CoreError>) · `:163` `blocking()`.
-- Nombre UI `api.xxxYyy` ↔ `xxx_yyy`; comando → `core.<mismo nombre>()` salvo: `library_get`→`library` · `library_remove`→`remove` · `library_add_selected`→`add_selected_magnets` · `playbacks_get`→`playbacks` · `config_get`→`config` · `config_set_*`→`set_*` · `api_key_set`→`set_api_key` · `opensubtitles_login_set`→`set_opensubtitles_login` · `install_mpv`→`streamonte_core::player::install_mpv` (sin AppCore).
-- `tauri.conf.json` (devUrl 1420, `frontendDist ../ui/dist`, `withGlobalTauri`, CSP sin red directa, updater → GitHub), `capabilities/default.json`, `mpv/` (resource), `binaries/` y `gen/` gitignorados.
+## Para X → andá a Y
+- Comando nuevo → `src/commands.rs` (fn) + `src/lib.rs` (`invoke_handler`) + `ui/src/core.ts`; receta en `docs/recetas/comando-nuevo.md`.
+- Cierre de la app, plugins, evento `core://event` → `src/lib.rs`.
+- Ventana, CSP, updater, recursos → `tauri.conf.json`; permisos → `capabilities/default.json`; mpv empaquetado → `mpv/`.
 
-## Flujo
-- Cierre: X → `lib.rs:41` `prevent_close`; con `active_playbacks` emite `ConfirmClose` (:53) → UI → `on_close` (`commands.rs:150`); sin ellas `on_close(StopAll)` + `CLOSING` + `exit(0)` (:56-62).
+## Relación
+Usa `crates/core` (`AppCore`, `CoreEvent`); lo usa `ui/src/core.ts` (espejo 1:1: `xxxYyy` = `xxx_yyy`). Unos pocos comandos no se llaman igual que el método de `AppCore` (`library_get`→`library`, `config_set_*`→`set_*`): `rg` en `commands.rs`.
 
 ## Trampas
-- Comando nuevo = 3 sitios: fn en `commands.rs` + `lib.rs:64-140` + `ui/src/api.js` (+ typedef en `ui/src/types.js`). Si falta en el handler, falla en runtime.
-- `fn` sin async corre en el hilo principal y congela la ventana (`commands.rs:161-162`): disco/almacén seguro/procesos van por `blocking()` (:163).
-- `capabilities/default.json`: solo `core:event:allow-listen/unlisten`, `process:allow-restart`, `updater:default`; permiso nuevo → ahí.
-- Args de `invoke` en camelCase se mapean a snake_case (`fileIndex`→`file_index`).
-- `on_close` (`commands.rs:150`) sale siempre con `exit(0)` aunque el core falle.
-- Errores a la UI `{message, detail}`; `detail` es para el log, no para la UI.
+- Comando sin sumar al `invoke_handler`: falla en runtime.
+- `fn` sin async corre en el hilo principal y congela la ventana: disco, almacén seguro y procesos van por `blocking()`.
+- Permiso nuevo → `capabilities/default.json`. Args de `invoke` en camelCase se mapean a snake_case.
+- `on_close` sale siempre con `exit(0)` aunque el core falle.
+- Errores a la UI `{message, detail}`; `detail` es para el log.
+- La UI se compila en `release.yml`, no en `beforeBuildCommand` (Tauri lo corre en otro cwd).
 
-## Tests
-Sin tests propios; `cd /Users/monti/Documents/Dev/streamonte && sh scripts/check.sh` (fmt + clippy + JS), `full` suma nextest. Eventos `CoreEvent`: `/Users/monti/Documents/Dev/streamonte/crates/core/src/events.rs`.
-
-@AGENTS.md
+## Cómo se prueba
+Sin tests propios: `sh scripts/check.sh` (src-tauri se chequea solo si cambió).
