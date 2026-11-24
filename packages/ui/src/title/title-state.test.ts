@@ -65,7 +65,9 @@ test('episodeRows: futuros atenuados', () => {
 });
 
 test('showCineNote: solo películas', () => {
+	// Hace dos días en fecha local (`onlyCinema` lee la fecha a la medianoche local; la de UTC puede ser mañana).
+	const recent = new Date(Date.now() - 2 * 864e5).toLocaleDateString('sv');
 	assert.equal(showCineNote(fight), false);
-	assert.equal(showCineNote({ ...fight, released: new Date().toISOString().slice(0, 10) }), true);
-	assert.equal(showCineNote({ ...bad, released: new Date().toISOString().slice(0, 10) }), false);
+	assert.equal(showCineNote({ ...fight, released: recent }), true);
+	assert.equal(showCineNote({ ...bad, released: recent }), false);
 });

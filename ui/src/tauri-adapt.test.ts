@@ -10,7 +10,7 @@ const fixture = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../mock
 
 test('search: kind series → tv, name → title, imdb_rating → rating', () => {
 	const items = adapt.catalogItems(fixture<Raw.CatalogItem[]>('catalog_search__fight-club'));
-	assert.deepEqual(items[0], { id: 'tt0137523', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'https://images.metahub.space/poster/small/tt0137523/img', rating: '8.8', released: null, excluded: false });
+	assert.deepEqual(items[0], { id: 'tt0137523', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'https://images.metahub.space/poster/small/tt0137523/img', rating: '8.8', released: null, excluded: false, documentary: false });
 	assert.ok(items.some((i) => i.kind === 'tv'), 'una serie sale como tv');
 });
 

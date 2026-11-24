@@ -18,7 +18,9 @@ export const catalogItem = (c: CardRaw): CatalogItem => ({
 	poster: c.poster,
 	rating: c.rating,
 	released: c.released,
-	excluded: false
+	excluded: false,
+	// Respuestas guardadas antes de que existiera (`tests/fixtures/web-http`, cachés) no lo traen.
+	documentary: c.documentary ?? false
 });
 
 export const catalogPage = (raw: Pick<CatalogPageRaw, 'items' | 'page' | 'pages'>): CatalogPage => ({ items: raw.items.map(catalogItem), hasMore: raw.page < raw.pages });

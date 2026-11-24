@@ -92,6 +92,9 @@ struct DiscoverPage {
     results: Vec<Candidate>,
 }
 
+/// Id de TMDB del género Documental (el mismo en películas y series; en la web, `DOCUMENTARY` de `tmdb.ts`).
+const DOCUMENTARY: u32 = 99;
+
 /// Película o serie de discover o de los créditos de una persona (las series traen `name` y
 /// `first_air_date`).
 #[derive(Debug, Clone, Deserialize)]
@@ -103,6 +106,8 @@ pub(super) struct Candidate {
     release_date: Option<String>,
     poster_path: Option<String>,
     pub(super) popularity: Option<f64>,
+    #[serde(default)]
+    genre_ids: Vec<u32>,
 }
 
 /// Un género de TMDB para el filtro de Explorar, con su nombre en el idioma de la app.
@@ -485,6 +490,7 @@ fn preview(
         year: released.as_ref().map(|d| d[..4.min(d.len())].to_string()),
         imdb_rating: rating.map(rating_label),
         excluded,
+        documentary: c.genre_ids.contains(&DOCUMENTARY),
         poster: c.poster_path.map(|p| format!("{IMAGE_BASE}{p}")),
         released,
         popularity: c.popularity,
@@ -551,6 +557,7 @@ mod tests {
             release_date: Some("2025-04-18".into()),
             poster_path: None,
             popularity: None,
+            genre_ids: Vec::new(),
         }
     }
 

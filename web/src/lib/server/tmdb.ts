@@ -52,6 +52,9 @@ async function tmdb(path: string, params: Record<string, unknown> = {}, language
 	return r.json();
 }
 
+/** Id de TMDB del género Documental (el mismo en películas y series; en el desktop, `DOCUMENTARY` de `top.rs`). */
+const DOCUMENTARY = 99;
+
 const card = (r: TmdbItem, kind: Kind) => ({
 	id: r.id,
 	kind,
@@ -60,7 +63,8 @@ const card = (r: TmdbItem, kind: Kind) => ({
 	// Fecha de estreno de las películas (AAAA-MM-DD): recién estrenada = probablemente solo copias de cine (ver cinema.js).
 	released: kind === 'movie' ? r.release_date || null : null,
 	poster: r.poster_path ? `${IMG}w342${r.poster_path}` : null,
-	rating: null
+	rating: null,
+	documentary: r.genre_ids?.includes(DOCUMENTARY) ?? false
 });
 
 /** Card con el puntaje de IMDb (mismo criterio en explorar y búsqueda). `r` es null si IMDb no lo tiene. */

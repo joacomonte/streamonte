@@ -41,14 +41,14 @@ test('optionsUpdates: {error} lanza con el mensaje', async () => {
 });
 
 test('catalogPage / catalogItem', () => {
-	const page = adapt.catalogPage({ items: [{ id: 550, kind: 'movie', title: 'Fight Club', year: '1999', released: '1999-10-15', poster: 'p.jpg', rating: '8.8' }], page: 1, pages: 3 });
-	assert.deepEqual(page, { items: [{ id: '550', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'p.jpg', rating: '8.8', released: '1999-10-15', excluded: false }], hasMore: true });
+	const page = adapt.catalogPage({ items: [{ id: 550, kind: 'movie', title: 'Fight Club', year: '1999', released: '1999-10-15', poster: 'p.jpg', rating: '8.8', documentary: false }], page: 1, pages: 3 });
+	assert.deepEqual(page, { items: [{ id: '550', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'p.jpg', rating: '8.8', released: '1999-10-15', excluded: false, documentary: false }], hasMore: true });
 	assert.equal(adapt.catalogPage({ items: [], page: 3, pages: 3 }).hasMore, false);
 });
 
 test('titleDetails: ficha de serie con estado y temporadas', () => {
 	const raw = {
-		id: 1396, kind: 'tv', title: 'Breaking Bad', year: '2008', released: null, poster: 'p', rating: '9.5', backdrop: 'b', overview: 'Sinopsis', runtime: 47,
+		id: 1396, kind: 'tv', title: 'Breaking Bad', year: '2008', released: null, poster: 'p', rating: '9.5', documentary: false, backdrop: 'b', overview: 'Sinopsis', runtime: 47,
 		genres: ['Drama'], providers: [{ name: 'Netflix', logo: 'l' }], people: [{ id: 1, name: 'Bryan', photo: null, role: 'cast', note: 'Walter' }], companies: ['AMC'],
 		lang: 'Inglés', origLang: 'en', status: 'ended', next: null, imdb: 'tt0903747', trailer: 'abc', seasons: [{ n: 1, name: 'Temporada 1', count: 7, year: '2008' }]
 	} satisfies Title;

@@ -23,6 +23,9 @@ pub struct MetaPreview {
     pub imdb_rating: Option<String>,
     /// FR-40, si la preview trae país y géneros (Explorar sí; la búsqueda no, ver `find_excluded`).
     pub excluded: bool,
+    /// Género Documental: la tarjeta lo marca arriba del póster.
+    #[serde(default)]
+    pub documentary: bool,
     pub poster: Option<String>,
     /// Fecha de estreno (película) o de primera emisión (serie), `AAAA-MM-DD`, si Cinemeta la trae.
     pub released: Option<String>,
@@ -154,6 +157,10 @@ fn preview(m: RawMeta, kind: MediaKind) -> Option<MetaPreview> {
         name: clean(m.name.as_deref().unwrap_or("?")),
         year: year_of(&m.release_info, &m.year),
         excluded: is_excluded(m.country.as_deref(), &m.genres.clone().unwrap_or_default()),
+        documentary: m
+            .genres
+            .as_ref()
+            .is_some_and(|g| g.iter().any(|g| g == "Documentary")),
         imdb_rating: m.imdb_rating.as_deref().map(clean),
         poster: https_only(m.poster),
         released: m.released.as_deref().and_then(|r| r.get(..10)).map(clean),

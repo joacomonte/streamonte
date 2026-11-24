@@ -20,6 +20,8 @@ export type CatalogItem = {
 	released: string | null;
 	/** Anime / Japón: lo que el filtro "Sin anime" esconde. */
 	excluded: boolean;
+	/** Género Documental: la tarjeta lo marca arriba del póster. */
+	documentary: boolean;
 };
 /** `filtered: false` = la página ignoró los filtros (el desktop sin key de TMDB solo trae tendencias). */
 export type CatalogPage = { items: CatalogItem[]; hasMore: boolean; filtered?: boolean };

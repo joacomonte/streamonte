@@ -19,7 +19,9 @@ export const catalogItem = (c: Raw.CatalogItem): CatalogItem => ({
 	poster: c.poster,
 	rating: c.imdb_rating,
 	released: c.released,
-	excluded: c.excluded
+	excluded: c.excluded,
+	// Las fixtures de `ui/mock/` se grabaron antes de que existiera.
+	documentary: c.documentary ?? false
 });
 
 export const catalogItems = (raw: Raw.CatalogItem[]): CatalogItem[] => raw.map(catalogItem);

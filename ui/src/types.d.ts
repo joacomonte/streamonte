@@ -342,6 +342,7 @@ export type CatalogItem = {
     year: string | null;
     imdb_rating: string | null;
     excluded: boolean;
+    documentary: boolean;
     poster: string | null;
     released: string | null;
     popularity: number | null;

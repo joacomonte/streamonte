@@ -1004,6 +1004,7 @@ mod tests {
             year: None,
             imdb_rating: None,
             excluded: false,
+            documentary: false,
             poster: None,
             released: None,
             popularity: None,

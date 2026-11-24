@@ -175,7 +175,12 @@
 		<div class="noposter" style:--hue={hue(it.id)}>{it.title}</div>
 	{/if}
 	{#if asked.includes(it.id)}<CardInfo item={it} />{/if}
-	{#if onlyCinema(it.released)}<span class="cine" title={t('Recién estrenada: probablemente solo haya copias filmadas en el cine')}><Icon name="film" size={11} />{t('En cines')}</span>{/if}
+	{#if it.documentary || onlyCinema(it.released)}
+		<span class="tags">
+			{#if it.documentary}<span id="cat-doc-{it.id}" class="doc"><Icon name="video" size={11} />{t('Documental')}</span>{/if}
+			{#if onlyCinema(it.released)}<span class="cine" title={t('Recién estrenada: probablemente solo haya copias filmadas en el cine')}><Icon name="film" size={11} />{t('En cines')}</span>{/if}
+		</span>
+	{/if}
 	<div class="meta">
 		<span class="title">{it.title}</span>
 		<span class="sub">
@@ -267,7 +272,27 @@
 	/* Entrada: sube, crece con rebote y se enfoca; la estrella gira y suelta un destello cuando la tarjeta aterriza. */
 	/* overflow: hidden recorta el brillo, que se mueve con transform (sin repintar cada frame). */
 	/* Recién estrenada en cines: chip arriba del póster. */
-	.cine { position: absolute; top: 6px; left: 6px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: var(--r-pill); background: rgb(0 0 0 / 0.72); color: #fff; font-size: 11px; font-weight: 700; }
+	.tags { position: absolute; top: 6px; left: 6px; right: 6px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; pointer-events: none; }
+	/* Documental: pastilla de vidrio (desenfoca el póster de atrás), con la cámara en el color del género. */
+	.doc {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		max-width: 100%;
+		height: 20px;
+		padding: 0 7px 0 6px;
+		border-radius: var(--r-pill);
+		background: rgb(10 12 16 / 0.5);
+		backdrop-filter: blur(10px) saturate(1.4);
+		-webkit-backdrop-filter: blur(10px) saturate(1.4);
+		box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.18);
+		color: #fff;
+		font-size: 10.5px;
+		font-weight: 650;
+		white-space: nowrap;
+	}
+	.doc :global(svg) { flex: none; color: oklch(0.8 0.11 195); }
+	.cine { display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: var(--r-pill); background: rgb(0 0 0 / 0.72); color: #fff; font-size: 11px; font-weight: 700; }
 	.card { --t: calc(var(--i, 0) * 70ms); position: relative; overflow: hidden; animation: card-in 0.9s cubic-bezier(0.25, 0.8, 0.3, 1) var(--t) backwards var(--play, paused); }
 	/* Las que llegan scrolleando: entrada corta, escalonado mínimo y desde medio visibles (en pausa ya se ven). */
 	.card:global(.late) { --t: calc(min(var(--i, 0), 4) * 35ms); animation-name: card-rise; animation-duration: 0.6s; }

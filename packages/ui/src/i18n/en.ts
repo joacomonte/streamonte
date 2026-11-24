@@ -667,6 +667,7 @@ const EN: Record<string, string> = {
 	"Actualizando Streamonte": "Updating Streamonte",
 	"Bajando la versión {version}…": "Downloading version {version}…",
 	"Instalando…": "Installing…",
+	"Documental": "Documentary",
 	"Reiniciando…": "Restarting…",
 	"Cargando la versión nueva…": "Loading the new version…",
 	"Falló, reintentar": "Failed, retry",
