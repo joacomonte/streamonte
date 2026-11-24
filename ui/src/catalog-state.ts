@@ -4,6 +4,7 @@
 // Ojo: `reportError` también existe como función global del navegador; sin este import se usaría esa.
 
 import { showError as reportError } from './dom.ts';
+import { safeGet } from '../../packages/ui/src/storage.ts';
 import type { healthCalibration } from './health-store.ts';
 import type { Deep, VideoTests } from './catalog-tests.ts';
 import type { Flow } from './catalog-flow.ts';
@@ -14,9 +15,8 @@ import type { DetailsView, EpisodeText, LibraryRow, MediaKind, Meta, SeasonRatin
 export const showError = (e: unknown): void => reportError(e, { activity: false, ignoreCancelled: true });
 
 // ---------- estado ----------
-/** localStorage puede fallar (vista previa, almacenamiento bloqueado): nunca rompe la UI. */
-export const safeGet = (k: string): string | null => { try { return localStorage.getItem(k); } catch { return null; } };
-export const safeSet = (k: string, v: string): void => { try { localStorage.setItem(k, v); } catch { /* sin almacenamiento */ } };
+// Re-export: los módulos del catálogo siguen importándolos de acá.
+export { safeGet, safeSet } from '../../packages/ui/src/storage.ts';
 
 /** Lo que se eligió en el panel lateral. Los campos opcionales se van llenando al abrir la ficha, las temporadas, etc.
  *  `similar`: undefined = sin pedir, null = cargando. */

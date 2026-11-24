@@ -1,6 +1,7 @@
 // Contenido de los tutoriales (bienvenida y cómo mandarlo a la tele) y qué ya vio el usuario en este navegador.
 // Los textos se arman al abrir el tutorial, en el idioma elegido.
 import { t } from '../i18n/runtime.ts';
+import { safeGet, safeSet } from '../storage.ts';
 import type { Step, StoreLink } from './tour-state.ts';
 
 // Íconos: artworkUrl512 de itunes.apple.com/lookup (iOS) y og:image de la ficha de Google Play (tamaño =s256).
@@ -68,17 +69,5 @@ export function castSteps(d: Device): Step[] {
 
 /** Marcas que quedan en este navegador (`welcome`: ya vio la bienvenida; `cast-never`: no ofrecer el de la tele).
  * Sin storage no se recuerda: se vuelve a mostrar, nada se rompe. */
-export function seen(name: string): boolean {
-	try {
-		return localStorage.getItem(`tour:${name}`) === '1';
-	} catch {
-		return false;
-	}
-}
-export function markSeen(name: string): void {
-	try {
-		localStorage.setItem(`tour:${name}`, '1');
-	} catch {
-		// Sin storage: no queda guardado.
-	}
-}
+export const seen = (name: string): boolean => safeGet(`tour:${name}`) === '1';
+export const markSeen = (name: string): void => safeSet(`tour:${name}`, '1');

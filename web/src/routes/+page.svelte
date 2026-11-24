@@ -5,6 +5,7 @@
 	import logo from '$ui/assets/logo-mark.svg';
 	import Catalog from '$ui/catalog/Catalog.svelte';
 	import Icon from '$ui/components/Icon.svelte';
+	import LangToggle from '$ui/components/LangToggle.svelte';
 	import type { EpisodeRef, RecentItem } from '$ui/catalog/recent.ts';
 	import type { CatalogItem } from '$ui/types.ts';
 	import { webCatalog } from '#lib/catalog.svelte.ts';
@@ -19,7 +20,6 @@
 	$effect(() => void (store.st.covered = touring()));
 	onMount(() => void fetch('/api/keys').then((r) => r.json()).then((k) => (keys = k)));
 
-	const UI_LANGS: ('es' | 'en')[] = ['es', 'en'];
 	/** ES / EN de la app (los títulos tienen su propio idioma, en Ajustes): sinopsis y géneros siguen a la app. */
 	function switchLang(l: 'es' | 'en') {
 		if (l === i18n.lang) return;
@@ -50,11 +50,7 @@
 			{/if}
 		</div>
 		<div class="top-actions">
-			<div class="lang" role="radiogroup" aria-label={t('Idioma')}>
-				{#each UI_LANGS as l (l)}
-					<button id="lang-{l}" type="button" role="radio" aria-checked={i18n.lang === l} onclick={() => switchLang(l)}>{l.toUpperCase()}</button>
-				{/each}
-			</div>
+			<LangToggle id="lang" value={i18n.lang} label={t('Idioma')} onpick={switchLang} touch />
 			<a id="go-settings" class="btn-icon" href="/ajustes" aria-label={t('Ajustes')}><Icon name="gear" /></a>
 		</div>
 	</div>
@@ -72,11 +68,6 @@
 <style>
 	.row { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-right: -10px; }
 	.top-actions { display: flex; align-items: center; gap: 4px; }
-	/* ES / EN: dos letras, la elegida resaltada; sin ocupar más que un ícono y medio. */
-	.lang { display: inline-flex; padding: 2px; border-radius: var(--r-pill); background: var(--surface-2); }
-	.lang button { position: relative; min-width: 34px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--r-pill); background: none; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: 0.04em; transition: background 0.2s var(--ease), color 0.2s var(--ease); }
-	.lang button::after { content: ''; position: absolute; inset: -8px -2px; }
-	.lang button[aria-checked='true'] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px var(--shadow); }
 	.brand { margin: 0; flex: none; line-height: 0; align-self: center; }
 	.brand img { display: block; width: 24px; height: 27px; }
 	/* En el celu más chica: entra "Streamonte  Hola Joaco! 👋" junto a los botones. */

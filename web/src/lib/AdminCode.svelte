@@ -2,6 +2,7 @@
 	// Código del panel (/admin): 3 casillas; al completar la tercera lo prueba y, si está bien, entra solo.
 	import { goto } from '$app/navigation';
 	import { deserialize } from '$app/forms';
+	import { safeSet } from '$ui/storage.ts';
 
 	interface Props {
 		id?: string;
@@ -26,11 +27,7 @@
 		const r = await fetch('/admin?/login', { method: 'POST', body: fd, headers: { 'x-sveltekit-action': 'true' } }).then(async (x) => deserialize(await x.text())).catch(() => null);
 		busy = false;
 		if (r?.type === 'redirect') {
-			try {
-				localStorage.setItem('sw.admin', '1');
-			} catch {
-				/* sin almacenamiento: la próxima vez pide el código de nuevo */
-			}
+			safeSet('sw.admin', '1'); // sin almacenamiento: la próxima vez pide el código de nuevo
 			goto('/admin', { invalidateAll: true });
 		} else {
 			blocked = r?.type === 'failure' ? Number(r.data?.wait) || 0 : 0;
