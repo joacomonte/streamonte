@@ -9,6 +9,7 @@
 	import type { Episode, Kind, Person, SeasonRatings, SimilarItem, TitleAwards, TitleDetails } from '../types.ts';
 	import AwardsBadge from './AwardsBadge.svelte';
 	import { awardsView, cardAwards } from './awards.ts';
+	import { subgenreLabels } from '../catalog/subgenres.ts';
 	import SeasonChart from './SeasonChart.svelte';
 	import { isSpoiler, lastSeenOf, type LastSeen } from './spoiler.ts';
 	import { posterTint, smallPoster } from './tint.ts';
@@ -86,6 +87,8 @@
 	let similarOpen = $state(false);
 	let similarList = $state<SimilarItem[] | null | undefined>(undefined);
 	let awards = $state<TitleAwards | null>(null);
+	/** Los premios ya respondieron (bien o mal): hasta entonces no se muestran géneros, para que no salten de TMDB a IMDb. */
+	let awardsDone = $state(false);
 	let awardsOpen = $state(false);
 
 	$effect(() => {
@@ -112,9 +115,10 @@
 	$effect(() => {
 		const imdb = d?.imdb ?? null;
 		awards = null;
+		awardsDone = !imdb;
 		if (!imdb) return;
 		let alive = true;
-		api.title.awards(imdb).then((a) => alive && (awards = a)).catch(() => alive && (awards = null));
+		api.title.awards(imdb).then((a) => alive && (awards = a)).catch(() => alive && (awards = null)).finally(() => alive && (awardsDone = true));
 		return () => (alive = false);
 	});
 	$effect(() => {
@@ -185,7 +189,12 @@
 	});
 	const rows = $derived(episodeRows(episodes ?? [], today));
 	const heroLine = $derived(d ? [d.year, d.runtimeMin ? `${d.runtimeMin} min` : '', d.kind === 'tv' && d.seasons.length ? t(d.seasons.length === 1 ? '{n} temporada' : '{n} temporadas', { n: d.seasons.length }) : ''].filter(Boolean).join(' · ') : '');
-	const genres = $derived((d?.genres ?? []).map(genreLabel));
+	/** Subgéneros de IMDb (los del hover de la tarjeta, hasta 3); si IMDb no trae, los géneros de TMDB. */
+	const genres = $derived.by(() => {
+		if (!awardsDone) return [];
+		const subs = subgenreLabels(awards?.interests ?? []).slice(0, 3);
+		return subs.length ? subs : (d?.genres ?? []).map(genreLabel);
+	});
 	const seasonName = (n: number, name: string | null) => name || (n === 0 ? t('Especiales') : t('Temporada {n}', { n }));
 	const aboutTitle = $derived(d?.overview ? t('Sinopsis') : t('Idioma original'));
 	/** Puntaje de la ficha; si la ficha no lo trae (títulos nuevos), el de IMDb que llega con los premios. */
