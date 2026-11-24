@@ -5,7 +5,7 @@ import type { PremiumQuota, SubtitleOption } from '../types.ts';
 import { SubsFlow } from './subs-flow.ts';
 import { episodeLabel, headOf, keyOf, noFitText, pickKey, quotaText, rankSubs, specOf, srcOf, timingOf } from './subs-logic.ts';
 
-const sub = (id: string, over: Partial<SubtitleOption> = {}): SubtitleOption => ({ id, release: 'Peli.2024.1080p.WEB-DL-GRP', latino: false, format: 'srt', downloads: 1, level: 'none', premium: false, fps: null, last: null, group: null, ...over });
+const sub = (id: string, over: Partial<SubtitleOption> = {}): SubtitleOption => ({ id, release: 'Peli.2024.1080p.WEB-DL.x264-GRP', latino: false, format: 'srt', downloads: 1, level: 'none', premium: false, fps: null, last: null, group: null, ...over });
 const quota = (over: Partial<PremiumQuota> = {}): PremiumQuota => ({ hasKey: true, remaining: 3, perDay: 5, resetsAt: null, loginError: null, ...over });
 
 /** Api mínima: solo lo que toca el flujo de subtítulos. */
@@ -33,7 +33,7 @@ test('rankSubs: sin match respeta level; con match calcula (mismo grupo = 2)', (
 test('textos de fila, claves, cuota y episodio', () => {
 	assert.equal(headOf(sub('a')), 'GRP');
 	assert.equal(headOf(sub('a', { release: 'x', premium: true })), 'OpenSubtitles');
-	assert.equal(specOf(sub('a')), 'WEB 1080p');
+	assert.equal(specOf(sub('a')), 'WEB-DL 1080p');
 	assert.equal(keyOf(sub('7', { premium: true })), 'p7');
 	assert.equal(episodeLabel('tt1:1:2'), 'S01E02');
 	assert.equal(episodeLabel('tt1'), null);

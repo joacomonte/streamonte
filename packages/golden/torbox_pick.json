@@ -1,0 +1,319 @@
+[
+ {
+  "nota": "el más grande",
+  "in": {
+   "files": [
+    {
+     "name": "Peli/a.mkv",
+     "size": 943718400
+    },
+    {
+     "name": "Peli/b.mkv",
+     "size": 2097152000
+    }
+   ]
+  },
+  "out": "b.mkv"
+ },
+ {
+  "nota": "descarta la muestra aunque sea más grande",
+  "in": {
+   "files": [
+    {
+     "name": "Peli/Sample/peli.sample.mkv",
+     "size": 3145728000
+    },
+    {
+     "name": "Peli/Peli.2026.1080p.mkv",
+     "size": 2097152000
+    }
+   ]
+  },
+  "out": "Peli.2026.1080p.mkv"
+ },
+ {
+  "nota": "solo muestras",
+  "in": {
+   "files": [
+    {
+     "name": "clip.sample.mp4",
+     "size": 314572800
+    }
+   ]
+  },
+  "out": null
+ },
+ {
+  "nota": "sin video",
+  "in": {
+   "files": [
+    {
+     "name": "Album/01.mp3",
+     "size": 419430400
+    }
+   ]
+  },
+  "out": null
+ },
+ {
+  "nota": "un subtítulo más grande no cuenta",
+  "in": {
+   "files": [
+    {
+     "name": "a/b.srt",
+     "size": 5242880000
+    },
+    {
+     "name": "a/b.mkv",
+     "size": 838860800
+    }
+   ]
+  },
+  "out": "b.mkv"
+ },
+ {
+  "nota": "menos del mínimo no es el video del torrent",
+  "in": {
+   "files": [
+    {
+     "name": "clip.mp4",
+     "size": 62914560
+    }
+   ]
+  },
+  "out": null,
+  "diverge": "la web no exige el tamaño mínimo (MIN_VIDEO) del desktop"
+ },
+ {
+  "nota": "título dice latino",
+  "in": {
+   "audios": [
+    {
+     "language": "rus"
+    },
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa",
+     "title": "Español Latino"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.2026"
+  },
+  "out": {
+   "main": 1,
+   "lat": 2
+  }
+ },
+ {
+  "nota": "original japonés, latino por título",
+  "in": {
+   "audios": [
+    {
+     "language": "rus"
+    },
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa",
+     "title": "Latino"
+    },
+    {
+     "language": "jpn"
+    }
+   ],
+   "orig": "ja",
+   "release": "Peli"
+  },
+  "out": {
+   "main": 3,
+   "lat": 2
+  }
+ },
+ {
+  "nota": "sin latino",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa",
+     "title": "Castellano"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.CASTELLANO"
+  },
+  "out": {
+   "main": 0,
+   "lat": null
+  }
+ },
+ {
+  "nota": "un solo español y el release dice latino",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.2026.1080p.LATINO"
+  },
+  "out": {
+   "main": 0,
+   "lat": 1
+  }
+ },
+ {
+  "nota": "un solo español y el release no dice nada",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.2026.1080p"
+  },
+  "out": {
+   "main": 0,
+   "lat": null
+  }
+ },
+ {
+  "nota": "latino antes que castellano en el nombre",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa"
+    },
+    {
+     "language": "spa"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.ENG.LATINO.CASTELLANO"
+  },
+  "out": {
+   "main": 0,
+   "lat": 1
+  }
+ },
+ {
+  "nota": "castellano antes que latino en el nombre",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa"
+    },
+    {
+     "language": "spa"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.ENG.CASTELLANO.LATINO"
+  },
+  "out": {
+   "main": 0,
+   "lat": 2
+  }
+ },
+ {
+  "nota": "el título gana sobre el nombre",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa",
+     "title": "Latino"
+    },
+    {
+     "language": "spa",
+     "title": "Castellano"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.CASTELLANO.LATINO"
+  },
+  "out": {
+   "main": 0,
+   "lat": 1
+  }
+ },
+ {
+  "nota": "lat como palabra suelta",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.1080p.DUAL-LAT"
+  },
+  "out": {
+   "main": 0,
+   "lat": 1
+  }
+ },
+ {
+  "nota": "lat dentro de otra palabra no cuenta",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.Plata.2026"
+  },
+  "out": {
+   "main": 0,
+   "lat": null
+  }
+ },
+ {
+  "nota": "sin audios en español",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "fre"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.LATINO"
+  },
+  "out": {
+   "main": 0,
+   "lat": null
+  }
+ }
+]

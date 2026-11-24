@@ -52,6 +52,8 @@ fn release() {
             "spa": spa,
             "cam": c.source.as_deref() == Some("CAM"),
             "size": size,
+            "release": c.release_name,
+            "seeds": c.seeders_declared.unwrap_or(0),
         });
         assert_eq!(out, case["out"], "{case}");
     }

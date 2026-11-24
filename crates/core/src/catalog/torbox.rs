@@ -324,7 +324,9 @@ async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Api
     }
     let file = files
         .into_iter()
-        .filter(|f| crate::engine::is_video(&f.name))
+        .filter(|f| {
+            crate::engine::is_video(&f.name) && !f.name.to_ascii_lowercase().contains("sample")
+        })
         .max_by_key(|f| f.size)
         .ok_or(crate::CoreError::NoVideo)?;
     Ok((api, id, file))
@@ -419,7 +421,11 @@ pub async fn cast_url(
     timeout: Duration,
 ) -> Result<String> {
     let (api, id, file) = video_file(http, magnet, timeout).await?;
-    match hls_url(http, &api, id, file.id, orig, latino, timeout).await {
+    let release = crate::magnet::Magnet::parse(magnet)
+        .ok()
+        .and_then(|m| m.display_name)
+        .unwrap_or_default();
+    match hls_url(http, &api, id, file.id, orig, latino, &release, timeout).await {
         Ok(url) => Ok(url),
         Err(e) => {
             tracing::info!("TorBox sin stream HLS, va el link de descarga: {e}");
@@ -436,6 +442,7 @@ pub async fn cast_url(
         }
     }
 }
+#[allow(clippy::too_many_arguments)]
 async fn hls_url(
     http: &Http,
     api: &Api,
@@ -443,6 +450,7 @@ async fn hls_url(
     file_id: u64,
     orig: Option<&str>,
     latino: bool,
+    release: &str,
     timeout: Duration,
 ) -> Result<String> {
     let base = format!("stream/createstream?id={id}&file_id={file_id}&type=torrent");
@@ -459,7 +467,7 @@ async fn hls_url(
         .as_ref()
         .map(|m| m.audios.as_slice())
         .unwrap_or_default();
-    let audio = pick_audio(audios, orig, latino);
+    let audio = pick_audio(audios, orig, latino, release);
     let data = if audio > 0 {
         ask(format!("{base}&chosen_audio_index={audio}")).await?
     } else {
@@ -504,9 +512,10 @@ pub fn iso3(iso1: &str) -> Option<&'static str> {
         _ => return None,
     })
 }
-/// Posición del audio a poner: latino (español cuyo título dice latino según `audio::spanish_variant`) si se pidió y está; si no, el
-/// idioma original; si no, inglés; si no, el primero.
-fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool) -> usize {
+/// Posición del audio a poner: latino si se pidió y está (español cuyo título dice latino según
+/// `audio::spanish_variant`, o, si ningún título lo dice, el que el nombre del release deja deducir:
+/// [`latino_by_name`]); si no, el idioma original; si no, inglés; si no, el primero.
+fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool, release: &str) -> usize {
     let find = |f: &dyn Fn(&StreamAudio) -> bool| audios.iter().position(f);
     let lat = || {
         find(&|a| {
@@ -515,11 +524,54 @@ fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool) -> usize
                     crate::audio::spanish_variant(t) == crate::audio::SpanishVariant::Latino
                 })
         })
+        .or_else(|| {
+            let spa: Vec<usize> = (0..audios.len())
+                .filter(|&i| audios[i].language == "spa")
+                .collect();
+            latino_by_name(&spa, release)
+        })
     };
     (if latino { lat() } else { None })
         .or_else(|| orig.and_then(|o| find(&|a| a.language == o)))
         .or_else(|| find(&|a| a.language == "eng"))
         .unwrap_or(0)
+}
+
+/// Posición de `word` como palabra entera (letras, dígitos y `_` pegados no cuentan), en minúsculas.
+fn word_at(text: &str, word: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let is_word = |b: u8| b.is_ascii_alphanumeric() || b == b'_';
+    text.match_indices(word).map(|(i, _)| i).find(|&i| {
+        (i == 0 || !is_word(bytes[i - 1]))
+            && bytes.get(i + word.len()).map_or(true, |&b| !is_word(b))
+    })
+}
+
+/// Audio latino cuando los títulos no lo dicen: con un solo audio en español en un release latino, ese; si trae latino
+/// y castellano, el orden en que el nombre los nombra (`ENG.LATINO.CASTELLANO` → el primero). Igual que `latinoByName`
+/// de la web (`web/src/lib/server/torbox/link.ts`); golden `torbox_pick.json`. `spa`: posiciones de los audios en español.
+/// Supone que los audios siguen el orden del nombre; si falla, mirar la pista en el reproductor.
+fn latino_by_name(spa: &[usize], release: &str) -> Option<usize> {
+    let r = release.to_lowercase();
+    let first = |parts: [Option<usize>; 3]| parts.into_iter().flatten().min();
+    let lat = first([r.find("latino"), word_at(&r, "lat"), r.find("latam")])?;
+    let first_spa = *spa.first()?;
+    if spa.len() == 1 {
+        return Some(first_spa);
+    }
+    let cas = [
+        r.find("castellano"),
+        word_at(&r, "cast"),
+        r.find("españa").or_else(|| r.find("spain")),
+    ]
+    .into_iter()
+    .flatten()
+    .min();
+    Some(if cas.is_some_and(|c| c < lat) {
+        spa[1]
+    } else {
+        first_spa
+    })
 }
 
 /// Un torrent pegado en TorBox (2026-11-20, "Pegar magnet" de la web): `cached` (en su caché: se agrega al instante),
@@ -770,9 +822,45 @@ mod tests {
             a("spa", Some("Español Latino")),
             a("jpn", None),
         ];
-        assert_eq!(pick_audio(&audios, Some("jpn"), false), 3);
-        assert_eq!(pick_audio(&audios, Some("jpn"), true), 2);
-        assert_eq!(pick_audio(&audios, Some("kor"), false), 1);
-        assert_eq!(pick_audio(&[a("rus", None)], None, true), 0);
+        assert_eq!(pick_audio(&audios, Some("jpn"), false, ""), 3);
+        assert_eq!(pick_audio(&audios, Some("jpn"), true, ""), 2);
+        assert_eq!(pick_audio(&audios, Some("kor"), false, ""), 1);
+        assert_eq!(pick_audio(&[a("rus", None)], None, true, ""), 0);
+    }
+
+    /// Vectores compartidos con la web: `packages/golden/torbox_pick.json` (archivo y audio).
+    #[test]
+    fn torbox_pick_golden() {
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../../packages/golden/torbox_pick.json"))
+                .unwrap();
+        for case in cases {
+            let input = &case["in"];
+            if let Some(files) = input.get("files") {
+                let entry = serde_json::json!({ "files": files });
+                assert_eq!(
+                    serde_json::json!(main_video(&entry)),
+                    case["out"],
+                    "{}",
+                    case["nota"]
+                );
+                continue;
+            }
+            let audios: Vec<StreamAudio> = input["audios"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|a| StreamAudio {
+                    language: a["language"].as_str().unwrap().into(),
+                    title: a["title"].as_str().map(Into::into),
+                })
+                .collect();
+            let orig = input["orig"].as_str().and_then(iso3);
+            let release = input["release"].as_str().unwrap();
+            let main = pick_audio(&audios, orig, false, release);
+            let lat = pick_audio(&audios, orig, true, release);
+            let out = serde_json::json!({ "main": main, "lat": (lat != main).then_some(lat) });
+            assert_eq!(out, case["out"], "{}", case["nota"]);
+        }
     }
 }

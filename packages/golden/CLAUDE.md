@@ -9,7 +9,8 @@
 - `show_status` — `seasons.rs` ↔ `tmdb/title.ts`. `awards` — `catalog/awards.rs` ↔ `server/awards.ts`.
 - `sub_lang` — `subtitles/providers/lang.rs` ↔ `torbox/client.ts isSpanishSub`. `mkv` — `catalog/mkv.rs` ↔ `server/mkv.ts`.
 - `interests`, `small_poster` — `catalog/interests.rs` ↔ `server/interests.ts`. `opensubs_org` — `opensubtitles_org.rs` ↔ `server/subs.ts`.
-- Lector web: `web/src/lib/server/golden.test.ts`. Los pares exactos: `rg -n '<nombre>.json'`.
+- `sub_match` — `subtitles/golden.rs` (`release_match`, `fit_by_timing`, `rank_order`) ↔ `packages/ui/src/sub-match.ts`. `torbox_pick` — `torbox.rs main_video`/`pick_audio` ↔ `torbox/client.ts pick`, `torbox/link.ts pickAudio`. `addons` — `config.rs default_addons` ↔ `server/torrents.ts ADDONS` (solo verificada). `show_status_cinemeta` — `seasons.rs cinemeta_status` ↔ `ui/src/tauri-adapt.ts STATES` (`ui/src/golden-status.test.ts`).
+- Lector web: `web/src/lib/server/golden.test.ts` y `golden-rules.test.ts`. Los pares exactos: `rg -n '<nombre>.json'`.
 
 ## Agregar o cambiar uno
 Cambio en Rust → actualizar el JSON → `cargo nextest run -p streamonte-core golden` y `pnpm test` en `web/` (o `sh scripts/check.sh full`).
@@ -17,4 +18,4 @@ Cambio en Rust → actualizar el JSON → `cargo nextest run -p streamonte-core 
 ## Trampas
 - No editar un golden para que pase la web: el caso lleva `diverge` (se salta en web y se lista al final).
 - `include_str!` usa rutas relativas a la profundidad del `.rs`: moverlo rompe el path.
-- Sin golden por no haber equivalente puro en la web: `torbox.rs` `in_cache`/`main_video`/`pick_audio` y `seasons.rs build_index` ↔ `imdb.ts buildIndex` (lee y escribe archivos).
+- Sin golden por no haber equivalente puro en la web: `torbox.rs` `in_cache` y `seasons.rs build_index` ↔ `imdb.ts buildIndex` (lee y escribe archivos).

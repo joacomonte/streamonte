@@ -7,7 +7,7 @@ import { hacktorrent } from './hacktorrent.ts';
 import { namesOf } from './tmdb.ts';
 import { HINT_RANK, LAT_SITES, SPAIN_SITES } from '../../../../packages/ui/src/latino.ts';
 
-const ADDONS = [
+export const ADDONS = [
 	['Torrentio', 'https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,uindex,knaben,ext,mejortorrent,wolfmax4k,cinecalidad|language=latino,spanish|sort=qualityseeders'],
 	['Peerflix', 'https://addon.peerflix.mov'],
 	['Comet', 'https://comet.feels.legal'],
