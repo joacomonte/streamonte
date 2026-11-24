@@ -1,0 +1,141 @@
+[
+ {
+  "in": "Latino",
+  "out": "latino"
+ },
+ {
+  "in": "Español (Latinoamérica)",
+  "out": "latino"
+ },
+ {
+  "in": "Spanish [LAT]",
+  "out": "latino"
+ },
+ {
+  "in": "LATAM Dub",
+  "out": "latino"
+ },
+ {
+  "in": "es-419",
+  "out": "latino"
+ },
+ {
+  "in": "es-MX",
+  "out": "latino"
+ },
+ {
+  "in": "es-AR",
+  "out": "latino"
+ },
+ {
+  "in": "Castellano mexicano",
+  "out": "latino",
+  "nota": "latino gana a España"
+ },
+ {
+  "in": "México",
+  "out": "latino"
+ },
+ {
+  "in": "Mexican Spanish",
+  "out": "latino"
+ },
+ {
+  "in": "Argentino",
+  "out": "latino"
+ },
+ {
+  "in": "Latin America",
+  "out": "latino"
+ },
+ {
+  "in": "Latinoamericano",
+  "out": "latino"
+ },
+ {
+  "in": "Dub 419",
+  "out": "latino"
+ },
+ {
+  "in": "lat",
+  "out": "latino"
+ },
+ {
+  "in": "Castellano",
+  "out": "spain"
+ },
+ {
+  "in": "Spanish (Spain)",
+  "out": "spain"
+ },
+ {
+  "in": "España",
+  "out": "spain"
+ },
+ {
+  "in": "Espanol Espana",
+  "out": "spain"
+ },
+ {
+  "in": "Castilian",
+  "out": "spain"
+ },
+ {
+  "in": "es-ES",
+  "out": "spain"
+ },
+ {
+  "in": "European Spanish",
+  "out": "spain"
+ },
+ {
+  "in": "Spanish (EU)",
+  "out": "spain"
+ },
+ {
+  "in": "Europe",
+  "out": "spain"
+ },
+ {
+  "in": "Collation",
+  "out": "unknown"
+ },
+ {
+  "in": "Platinum",
+  "out": "unknown"
+ },
+ {
+  "in": "Translated",
+  "out": "unknown"
+ },
+ {
+  "in": "Latin",
+  "out": "unknown",
+  "nota": "solo 'latin' no basta"
+ },
+ {
+  "in": "Español",
+  "out": "unknown"
+ },
+ {
+  "in": "Spanish",
+  "out": "unknown"
+ },
+ {
+  "in": "",
+  "out": "unknown"
+ },
+ {
+  "in": "es",
+  "out": "unknown"
+ },
+ {
+  "in": "Ukrainian Tatiana",
+  "out": "unknown"
+ },
+ {
+  "in": "Format",
+  "out": "unknown",
+  "nota": "'mat' no es palabra"
+ }
+]

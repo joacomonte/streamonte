@@ -5,6 +5,7 @@ import { isHash40 } from './params.ts';
 import { cached } from './torbox.ts';
 import { hacktorrent } from './hacktorrent.ts';
 import { namesOf } from './tmdb.ts';
+import { HINT_RANK, LAT_SITES, SPAIN_SITES } from '../../../../packages/ui/src/latino.ts';
 
 const ADDONS = [
 	['Torrentio', 'https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,uindex,knaben,ext,mejortorrent,wolfmax4k,cinecalidad|language=latino,spanish|sort=qualityseeders'],
@@ -14,12 +15,6 @@ const ADDONS = [
 ];
 const RES_RANK: Record<string, number> = { '2160p': 5, '1440p': 4, '1080p': 3, '720p': 2, '480p': 1 };
 const LAT_FLAGS = ['🇲🇽', '🇦🇷', '🇨🇴', '🇨🇱', '🇵🇪', '🇻🇪', '🇺🇾'];
-// Webs de origen (proveedor del addon o dominio dentro del nombre): solo orientan, no confirman.
-const LAT_SITES = ['cinecalidad', 'verpeliculasonline', 'pelisplus', 'cuevana', 'pelispanda', 'pelismart'];
-const SPAIN_SITES = ['mejortorrent', 'wolfmax4k', 'dontorrent', 'divxtotal', 'elitetorrent'];
-/** Qué tan fuerte es cada pista al unir el mismo torrent de varios addons. */
-const HINT_RANK: Record<string, number> = { lat: 3, spain: 2, likely: 1 };
-
 const after = (text: string, emoji: string) => text.split(emoji)[1]?.trim().split(/\s{2,}|[\n⚙🌐🔎👤💾]/u)[0]?.trim();
 
 /** "2.1 GB" → bytes. */

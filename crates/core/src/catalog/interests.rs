@@ -298,4 +298,55 @@ mod tests {
             "https://m.media-amazon.com/images/M/abc@._V1_QL75_UX342_.jpg"
         );
     }
+
+    // Vector compartido con la web (`/packages/golden/interests.json`): sin espacios ni comas (GraphQL los ignora).
+    #[test]
+    fn golden_constraints() {
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../../packages/golden/interests.json"))
+                .unwrap();
+        for case in cases {
+            let i = &case["in"];
+            let strings = |k: &str| -> Vec<String> {
+                i[k].as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|v| v.as_str().unwrap().to_string())
+                    .collect()
+            };
+            let date =
+                |k: &str| NaiveDate::parse_from_str(i[k].as_str().unwrap(), "%Y-%m-%d").unwrap();
+            let q = InterestQuery {
+                kind: if i["kind"] == "tv" {
+                    MediaKind::Series
+                } else {
+                    MediaKind::Movie
+                },
+                sort: BrowseSort::Popular,
+                from: date("from"),
+                to: date("to"),
+                min_votes: i["votes"].as_u64().unwrap() as u32,
+                languages: strings("langs"),
+                interests: strings("interests"),
+                titles: Lang::Es,
+            };
+            let out: String = constraints(&q)
+                .chars()
+                .filter(|c| !c.is_whitespace() && *c != ',')
+                .collect();
+            assert_eq!(serde_json::json!(out), case["out"], "{case}");
+        }
+    }
+
+    #[test]
+    fn golden_small_poster() {
+        let cases: Vec<serde_json::Value> = serde_json::from_str(include_str!(
+            "../../../../packages/golden/small_poster.json"
+        ))
+        .unwrap();
+        for case in cases {
+            let out = small_poster(case["in"].as_str().unwrap(), 342);
+            assert_eq!(serde_json::json!(out), case["out"], "{case}");
+        }
+    }
 }

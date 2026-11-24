@@ -1,0 +1,137 @@
+[
+ {
+  "in": {
+   "release": "The.Hunger.Games.Mockingjay.Part.2.2015.1080p.BluRay",
+   "titles": [
+    "The Hunger Games: Sunrise on the Reaping",
+    "Los Juegos del Hambre: Amanecer en la cosecha"
+   ],
+   "year": 2026
+  },
+  "out": true,
+  "nota": "año distinto"
+ },
+ {
+  "in": {
+   "release": "Жатва / The Reaping REMUX",
+   "titles": [
+    "The Hunger Games: Sunrise on the Reaping",
+    "Los Juegos del Hambre: Amanecer en la cosecha"
+   ],
+   "year": 2026
+  },
+  "out": true,
+  "nota": "otra película sin año"
+ },
+ {
+  "in": {
+   "release": "The Hunger Games Sunrise on the Reaping 2026 1080p WEB-DL",
+   "titles": [
+    "The Hunger Games: Sunrise on the Reaping",
+    "Los Juegos del Hambre: Amanecer en la cosecha"
+   ],
+   "year": 2026
+  },
+  "out": false
+ },
+ {
+  "in": {
+   "release": "Los Juegos del Hambre Amanecer en la cosecha (2026) Latino",
+   "titles": [
+    "The Hunger Games: Sunrise on the Reaping",
+    "Los Juegos del Hambre: Amanecer en la cosecha"
+   ],
+   "year": 2026
+  },
+  "out": false,
+  "nota": "título en español con tildes y año"
+ },
+ {
+  "in": {
+   "release": "How.to.Rob.a.Bank.2007.720p.BluRay",
+   "titles": [
+    "How to Rob a Bank",
+    "Cómo robar un banco"
+   ],
+   "year": 2026
+  },
+  "out": true
+ },
+ {
+  "in": {
+   "release": "Como Robar Un Banco 1080p WEB-DL",
+   "titles": [
+    "How to Rob a Bank",
+    "Cómo robar un banco"
+   ],
+   "year": 2026
+  },
+  "out": false,
+  "nota": "sin tildes ni año"
+ },
+ {
+  "in": {
+   "release": "F1.2025.2160p.WEB-DL",
+   "titles": [
+    "F1"
+   ],
+   "year": 2025
+  },
+  "out": false,
+  "nota": "título de 2 letras: sin palabras de 3+, no se descarta por título"
+ },
+ {
+  "in": {
+   "release": "Movie.2025.1080p",
+   "titles": [
+    "Movie"
+   ],
+   "year": 2026
+  },
+  "out": false,
+  "nota": "año ±1"
+ },
+ {
+  "in": {
+   "release": "Movie.2024.1080p",
+   "titles": [
+    "Movie"
+   ],
+   "year": 2026
+  },
+  "out": true,
+  "nota": "año a 2 de distancia"
+ },
+ {
+  "in": {
+   "release": "Movie.1080p",
+   "titles": [
+    "Movie"
+   ],
+   "year": null
+  },
+  "out": false,
+  "nota": "sin año pedido"
+ },
+ {
+  "in": {
+   "release": "Algo.Distinto.2026",
+   "titles": [
+    "Movie"
+   ],
+   "year": 2026
+  },
+  "out": true
+ },
+ {
+  "in": {
+   "release": "The.Movie.2026",
+   "titles": [
+    "The Movie"
+   ],
+   "year": 2026
+  },
+  "out": false,
+  "nota": "conectores 'the' no cuentan"
+ }
+]

@@ -98,38 +98,31 @@ pub enum SpanishVariant {
 /// Variante del español por texto libre: título de una pista de audio, descripción o nombre de
 /// un subtítulo, nombre del idioma ("Español (Latinoamérica)", `es-419`, "Castellano"…).
 pub fn spanish_variant(text: &str) -> SpanishVariant {
+    // Por palabra entera (alfanumérica): "Collation" o "Platinum" no son latino. Misma regla que
+    // `packages/ui/src/latino.ts spanishVariant` (golden `spanish_variant.json`).
     let lower = text.to_lowercase();
     let words: Vec<&str> = lower
         .split(|c: char| !c.is_alphanumeric())
         .filter(|w| !w.is_empty())
         .collect();
-    let has_word = |ws: &[&str]| words.iter().any(|w| ws.contains(w));
-    let latino = has_word(&["lat", "latam", "419"])
-        || contains_any(
-            &lower,
-            &[
-                "latino",
-                "latin america",
-                "latinoam",
-                "méxico",
-                "mexic",
-                "argentin",
-                "es-mx",
-            ],
-        );
-    let spain = contains_any(
-        &lower,
-        &[
-            "castellano",
-            "españa",
-            "espana",
-            "spain",
-            "castilian",
-            "european",
-            "es-es",
-            "(eu)",
-        ],
-    );
+    let word = |ws: &[&str]| words.iter().any(|w| ws.contains(w));
+    let prefix = |ps: &[&str]| words.iter().any(|w| ps.iter().any(|p| w.starts_with(p)));
+    let pair = |a: &str, b: &str| words.windows(2).any(|w| w[0] == a && w[1] == b);
+    let latino = word(&["lat", "latam", "latino", "419", "méxico"])
+        || prefix(&["latinoam", "mex", "argentin"])
+        || pair("latin", "america")
+        || pair("es", "mx")
+        || pair("es", "ar");
+    let spain = word(&[
+        "castellano",
+        "castilian",
+        "españa",
+        "espana",
+        "spain",
+        "europe",
+        "european",
+    ]) || pair("es", "es")
+        || lower.contains("(eu)");
     if latino {
         SpanishVariant::Latino
     } else if spain {

@@ -1,0 +1,69 @@
+[
+ {
+  "in": "1a45dfa340074282847765626d1853806740561654ae6b4050ae40208340010222b59c400473706100536e40064c6174696e6f864006415f41433300ae402a8340011122b59c4003656e6722b59d400665732d34313955aa40010186400b535f544558542f55544638",
+  "out": [
+   {
+    "type": 2,
+    "lang": "spa",
+    "name": "Latino",
+    "forced": false,
+    "codec": "A_AC3"
+   },
+   {
+    "type": 17,
+    "lang": "es-419",
+    "name": "",
+    "forced": true,
+    "codec": "S_TEXT/UTF8"
+   }
+  ],
+  "nota": "BCP47 pisa al ISO; el \\0 final del idioma se saca"
+ },
+ {
+  "in": "1a45dfa340010018538067400d1654ae6b4007ae400483400101",
+  "out": [
+   {
+    "type": 1,
+    "lang": "eng",
+    "name": "",
+    "forced": false,
+    "codec": ""
+   }
+  ],
+  "nota": "pista sin idioma queda en eng"
+ },
+ {
+  "in": "6573746f206e6f20657320756e206d6b762c206e69206365726361",
+  "out": null
+ },
+ {
+  "in": "",
+  "out": null,
+  "nota": "vacío"
+ },
+ {
+  "in": "1a45dfa340074282847765626d185380674056",
+  "out": null,
+  "nota": "cortado justo después del Segment"
+ },
+ {
+  "in": "1853806701ffffffffffffff1654ae6b4050ae40208340010222b59c400473706100536e40064c6174696e6f864006415f41433300ae402a8340011122b59c4003656e6722b59d400665732d34313955aa40010186400b535f544558542f55544638",
+  "out": [
+   {
+    "type": 2,
+    "lang": "spa",
+    "name": "Latino",
+    "forced": false,
+    "codec": "A_AC3"
+   },
+   {
+    "type": 17,
+    "lang": "es-419",
+    "name": "",
+    "forced": true,
+    "codec": "S_TEXT/UTF8"
+   }
+  ],
+  "nota": "Segment de tamaño desconocido"
+ }
+]

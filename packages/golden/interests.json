@@ -1,0 +1,99 @@
+[
+ {
+  "in": {
+   "kind": "movie",
+   "from": "2020-01-01",
+   "to": "2024-12-31",
+   "votes": 0,
+   "langs": [],
+   "interests": [
+    "in0000114"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}",
+  "nota": "mínimo: sin votos ni idioma"
+ },
+ {
+  "in": {
+   "kind": "tv",
+   "from": "2000-01-01",
+   "to": "2024-12-31",
+   "votes": 0,
+   "langs": [],
+   "interests": [
+    "in0000114",
+    "in0000115"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"\"in0000115\"]}titleTypeConstraint:{anyTitleTypeIds:[\"tvSeries\"\"tvMiniSeries\"]}releaseDateConstraint:{releaseDateRange:{start:\"2000-01-01\"end:\"2024-12-31\"}}",
+  "nota": "series = tvSeries + tvMiniSeries"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "from": "2020-01-01",
+   "to": "2024-12-31",
+   "votes": 5000,
+   "langs": [
+    "en"
+   ],
+   "interests": [
+    "in0000114"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}userRatingsConstraint:{ratingsCountRange:{min:5000}}languageConstraint:{anyPrimaryLanguages:[\"en\"]}",
+  "nota": "votos e idioma"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "from": "2020-01-01",
+   "to": "2024-12-31",
+   "votes": 1000,
+   "langs": [
+    "en",
+    "es"
+   ],
+   "interests": [
+    "in0000114"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}userRatingsConstraint:{ratingsCountRange:{min:1000}}languageConstraint:{anyPrimaryLanguages:[\"en\"\"es\"]}",
+  "nota": "varios idiomas"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "from": "2020-01-01",
+   "to": "2024-12-31",
+   "votes": 0,
+   "langs": [
+    "eng",
+    "E1",
+    "es"
+   ],
+   "interests": [
+    "in0000114"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}languageConstraint:{anyPrimaryLanguages:[\"es\"]}",
+  "nota": "idiomas que no son ISO 639-1 en minúscula se descartan"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "from": "2020-01-01",
+   "to": "2024-12-31",
+   "votes": 0,
+   "langs": [],
+   "interests": [
+    "in0000114",
+    "in1\"}",
+    "tt0000001"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}",
+  "nota": "ids inválidos no entran",
+  "diverge": "web: no filtra los ids (los arma la UI desde su lista cerrada); Rust solo deja ids in + 7 dígitos"
+ }
+]

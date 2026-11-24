@@ -15,8 +15,6 @@ const PAGE = 20;
 const LIST_TTL = 10 * 60 * 1000;
 /** Tope de listas y de títulos en memoria por instancia: se va la más vieja. */
 const MAX_LISTS = 40;
-/** Pisos de votos de IMDb que ofrece la web (como `VOTES` de catalog.svelte.js); `/api/catalog` acepta solo estos. */
-export const VOTES = [0, 1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
 
 const lists = new Map<string, { at: number; list: Promise<ReturnType<typeof scored>[]> }>();
 

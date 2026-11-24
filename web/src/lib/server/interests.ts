@@ -33,7 +33,7 @@ export type InterestFilters = { kind: Kind; sort: string; from: string; to: stri
 export type Hit = { tt: string; rating: string | null };
 
 /** Constraints de la búsqueda: subgéneros (alcanza con uno), tipo, fechas, votos e idioma original. */
-function constraints(f: InterestFilters): string {
+export function constraints(f: InterestFilters): string {
 	const c = [
 		`interestConstraint: { anyInterestIds: ${ids(f.interests)} }`,
 		`titleTypeConstraint: { anyTitleTypeIds: ${ids([...TYPES[f.kind]])} }`
