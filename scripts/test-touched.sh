@@ -1,24 +1,31 @@
 #!/bin/sh
 # Tests de node (sin Chrome ni Rust) de lo tocado: lo sin commitear (incluidos archivos nuevos) y los commits sin pushear
 # (mismo criterio que `changed` de check.sh). Nunca corre cargo.
-#   packages/ui/**          → todos los tests de packages/ui (src/**/*.test.ts y test/*.test.ts)
-#   otro .ts/.js/.svelte    → los *.test.* de su misma carpeta (ui/src, web/src…)
-#   otra cosa en ui/ web/ packages/ (config, json, css) → no se sabe qué afecta: todos los tests de node
+#   packages/ui/** o packages/golden/* → todos los tests de node (packages/ui, ui y web)
+#   web/*                   → todos los de web (los tests viven en carpetas padre: no se mapea por carpeta)
+#   ui/*                    → todos los de ui
 #   crates/, src-tauri/, docs/, scripts/, tests/…        → nada
-# Sin nada que correr sale en silencio. Uso: sh scripts/test-touched.sh   (ALL=1 fuerza todo)
+# Sin nada que correr sale en silencio. Uso: sh scripts/test-touched.sh   (ALL=1 fuerza todo; TOUCHED="a b" simula la lista de tocados)
 set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH"
 
-touched=$({
-  git status --porcelain | cut -c4- | sed 's/.* -> //'
-  git log --format= --name-only HEAD --not --remotes=origin
-} | sort -u)
+if [ -n "$TOUCHED" ]; then
+  touched=$TOUCHED
+else
+  touched=$({
+    git status --porcelain | cut -c4- | sed 's/.* -> //'
+    git log --format= --name-only HEAD --not --remotes=origin
+  } | sort -u)
+fi
 
 all_tests() {
-  ls packages/ui/src/*/*.test.ts packages/ui/src/*.test.ts packages/ui/test/*.test.ts ui/src/*.test.* web/src/lib/*.test.* web/src/lib/*/*.test.* 2>/dev/null || true
-  find web/src -name '*.test.*' 2>/dev/null
+  ls packages/ui/src/*/*.test.ts packages/ui/src/*.test.ts packages/ui/test/*.test.ts 2>/dev/null || true
+  web_tests
+  ui_tests
 }
+web_tests() { find web/src -name '*.test.*' -not -path '*/node_modules/*' 2>/dev/null || true; }
+ui_tests() { find ui/src -name '*.test.*' -not -path '*/node_modules/*' 2>/dev/null || true; }
 
 files=""
 if [ "$ALL" = 1 ]; then
@@ -26,16 +33,11 @@ if [ "$ALL" = 1 ]; then
 else
   for f in $touched; do
     case "$f" in
-      packages/ui/*) files="$files
-$(ls packages/ui/src/*/*.test.ts packages/ui/src/*.test.ts packages/ui/test/*.test.ts 2>/dev/null)" ;;
-      ui/*|web/*|packages/*)
-        case "$f" in
-          *.ts|*.js|*.svelte)
-            dir=$(dirname "$f")
-            files="$files
-$(ls "$dir"/*.test.ts "$dir"/*.test.js 2>/dev/null || true)" ;;
-          *) files=$(all_tests); break ;;
-        esac ;;
+      packages/ui/*|packages/golden/*) files=$(all_tests); break ;; # check.sh manda packages/ui a ui + web
+      web/*) files="$files
+$(web_tests)" ;;
+      ui/*) files="$files
+$(ui_tests)" ;;
     esac
   done
 fi
