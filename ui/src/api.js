@@ -136,8 +136,9 @@ export const api = {
   /** En tendencia ahora (sin key de TMDB): {items, has_more}, 50 por página desde `skip`.
    *  @param {MediaKind} kind @param {number} skip @returns {Promise<import('./types.js').BrowsePage>} */
   catalogTrending: (kind, skip) => invoke('catalog_trending', { kind, skip }),
-  /** Géneros de TMDB del tipo, en el idioma de la app (filtro de Explorar). @param {MediaKind} kind @returns {Promise<import('./types.js').GenreName[]>} */
-  catalogGenres: (kind) => invoke('catalog_genres', { kind }),
+  /** Ejemplos populares de cada subgénero de IMDb (filtro de géneros). @param {MediaKind} kind @param {string[]} ids
+   *  @returns {Promise<Record<string, import('./types.js').InterestExample[]>>} */
+  catalogInterestExamples: (kind, ids) => invoke('catalog_interest_examples', { kind, ids }),
   /** Episodios de una temporada en los idiomas elegidos; vacío sin key de TMDB. @param {string} imdbId @param {number} season @returns {Promise<import('./types.js').EpisodeText[]>} */
   catalogEpisodes: (imdbId, season) => invoke('catalog_episodes', { imdbId, season }),
   /** "Pegar magnet" con TorBox: estado, videos y (con `who`) qué película o serie es.
@@ -153,10 +154,14 @@ export const api = {
    *  @param {string} imdbId @param {boolean=} quick @returns {Promise<import('./types.js').SeasonRatings>} */
   catalogSeasonRatings: (imdbId, quick = false) => invoke('catalog_season_ratings', { imdbId, quick }),
   /** Explorar con filtros de IMDb (necesita key de TMDB): {items, has_more:false}. sort: 'popular' | 'rating'.
-   *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera. genres: ids de TMDB (alcanza con uno).
+   *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera.
    *  @param {MediaKind} kind @param {'popular'|'rating'} sort @param {string} from @param {string|null} to @param {number} minVotes
-   *  @param {string[]} languages @param {number[]} genres @returns {Promise<import('./types.js').BrowsePage>} */
-  catalogBrowseTop: (kind, sort, from, to, minVotes, languages, genres) => invoke('catalog_browse_top', { kind, sort, from, to, minVotes, languages, genres }),
+   *  @param {string[]} languages @returns {Promise<import('./types.js').BrowsePage>} */
+  catalogBrowseTop: (kind, sort, from, to, minVotes, languages) => invoke('catalog_browse_top', { kind, sort, from, to, minVotes, languages }),
+  /** Explorar con un género elegido: subgéneros de IMDb (`interests`, alcanza con uno), los mismos filtros, sin key de TMDB.
+   *  @param {MediaKind} kind @param {'rating'|'popular'} sort @param {string} from @param {string|null} to @param {number} minVotes
+   *  @param {string[]} languages @param {string[]} interests @returns {Promise<import('./types.js').BrowsePage>} */
+  catalogBrowseInterests: (kind, sort, from, to, minVotes, languages, interests) => invoke('catalog_browse_interests', { kind, sort, from, to, minVotes, languages, interests }),
   /** Abre el tráiler en YouTube, en el navegador. @param {string} youtubeId @returns {Promise<void>} */
   catalogOpenTrailer: (youtubeId) => invoke('catalog_open_trailer', { youtubeId }),
   /** Tests de conexión de la última hora (datos guardados). @param {InfoHash[]} hashes @returns {Promise<Record<InfoHash, import('./types.js').SavedTest>>} */

@@ -37,7 +37,7 @@
    "sel": "#cat-sort"
   },
   {
-   "sel": "#genre-all"
+   "sel": "#cat-genre"
   },
   {
    "sel": "#votes-value",

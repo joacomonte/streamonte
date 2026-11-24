@@ -1,11 +1,11 @@
 // Adaptadores puros de la web: JSON de /api/* → modelo de vista de `packages/ui`. Sin `fetch` ni DOM (se prueban solos);
 // `webApi.ts` hace los pedidos. Imports relativos: `node --test` no resuelve el alias `$ui`.
 import type {
-	CatalogItem, CatalogPage, Episode, Genre, Identified, MagnetStatus, MagnetView, OptionLink, OptionsUpdate, PersonHit, PremiumQuota,
+	CatalogItem, CatalogPage, Episode, Identified, MagnetStatus, MagnetView, OptionLink, OptionsUpdate, PersonHit, PremiumQuota,
 	SeasonRatings, SubtitleOption, TitleDetails, TorrentOption, TorrentTracks
 } from '../../../packages/ui/src/types.ts';
 import type {
-	CatalogPageRaw, Episodes, Genres, Ident, LinkRaw, MagnetRaw, PeopleRaw, QuotaRaw, PremiumRaw, SeasonScore, Sub, Title, Torrent, TracksRaw
+	CatalogPageRaw, Episodes, Ident, LinkRaw, MagnetRaw, PeopleRaw, QuotaRaw, PremiumRaw, SeasonScore, Sub, Title, Torrent, TracksRaw
 } from './types.ts';
 
 type CardRaw = CatalogPageRaw['items'][number];
@@ -25,7 +25,6 @@ export const catalogItem = (c: CardRaw): CatalogItem => ({
 
 export const catalogPage = (raw: Pick<CatalogPageRaw, 'items' | 'page' | 'pages'>): CatalogPage => ({ items: raw.items.map(catalogItem), hasMore: raw.page < raw.pages });
 
-export const genres = (raw: Genres): Genre[] => raw.map((g) => ({ id: g.id, name: g.name }));
 export const people = (raw: PeopleRaw): PersonHit[] => raw.map((p) => ({ ...p }));
 
 export const titleDetails = (raw: Title): TitleDetails => ({

@@ -8,7 +8,7 @@ import type * as Raw from './types.js';
 
 /** Lo que usa el adaptador de `api.js`. */
 export type CoreApi = Pick<typeof import('./api.js').api,
-	| 'apiKeys' | 'catalogBrowseTop' | 'catalogTrending' | 'catalogSearch' | 'catalogPeople' | 'catalogPersonTitles' | 'catalogGenres' | 'catalogMeta' | 'catalogDetails' | 'catalogPoster'
+	| 'apiKeys' | 'catalogBrowseTop' | 'catalogTrending' | 'catalogSearch' | 'catalogPeople' | 'catalogPersonTitles' | 'catalogInterestExamples' | 'catalogBrowseInterests' | 'catalogMeta' | 'catalogDetails' | 'catalogPoster'
 	| 'catalogSimilar' | 'catalogEpisodes' | 'catalogSeasonRatings' | 'catalogStreams' | 'catalogLink' | 'catalogTorboxTracks' | 'library' | 'catalogSubtitles'
 	| 'catalogSubtitleUse' | 'catalogPremiumUse' | 'catalogPremiumSearch' | 'premiumQuota' | 'torboxMagnet' | 'torboxMagnetDownload'>;
 export type Core = { api: CoreApi; listen: (handler: (e: Raw.CoreEvent) => void) => Promise<() => void>; lang: () => Lang };
@@ -46,15 +46,17 @@ export function createTauriApi(core: Core): Api {
 			async browse(f, page) {
 				const hasTmdb = (await api.apiKeys()).some((k) => k.service === 'tmdb' && k.configured);
 				const kind = adapt.rawKind(f.kind);
-				// Sin key de TMDB solo hay tendencias (sin filtros); Explorar con filtros devuelve todo en una página.
+				// Con género: subgéneros de IMDb (sin key de TMDB). Sin key de TMDB solo hay tendencias (sin filtros); Explorar con
+				// filtros devuelve todo en una página.
+				if (f.interests.length) return page > 1 ? EMPTY : adapt.catalogPage(await api.catalogBrowseInterests(kind, f.sort, f.from, f.to || null, f.minVotes, f.languages, f.interests));
 				if (!hasTmdb) return { ...adapt.catalogPage(await api.catalogTrending(kind, (page - 1) * TRENDING_PAGE)), filtered: false };
 				if (page > 1) return EMPTY;
-				return adapt.catalogPage(await api.catalogBrowseTop(kind, f.sort, f.from, f.to || null, f.minVotes, f.languages, f.genres.map(Number)));
+				return adapt.catalogPage(await api.catalogBrowseTop(kind, f.sort, f.from, f.to || null, f.minVotes, f.languages));
 			},
 			search: async (q, page) => (page > 1 ? EMPTY : { items: adapt.catalogItems(await api.catalogSearch(q)), hasMore: false }),
 			people: async (q) => adapt.personHits(await api.catalogPeople(q)),
 			personTitles: async (id, role) => adapt.catalogItems(await api.catalogPersonTitles(id, role)),
-			genres: async (kind) => adapt.genres(await api.catalogGenres(adapt.rawKind(kind))),
+			examples: (kind, ids) => api.catalogInterestExamples(adapt.rawKind(kind), ids),
 			poster: async (id) => (await api.catalogPoster(id).catch(() => null)) ?? null
 		},
 		title: {

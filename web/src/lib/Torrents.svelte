@@ -14,7 +14,7 @@
 	import FlowRadar from '$ui/flow/FlowRadar.svelte';
 	import FlowSearching from '$ui/flow/FlowSearching.svelte';
 	import { stepIn } from '$ui/flow/step-in.ts';
-	import { castSteps, device } from '$ui/components/tours.ts';
+	import { casterFor, castSteps, device } from '$ui/components/tours.ts';
 	import * as saved from './saved.ts';
 	import { loc, t as tr } from './i18n.svelte.ts';
 	import { untrack } from 'svelte';
@@ -125,6 +125,11 @@
 	let tutorialOpen = $state(false);
 	/** Tutorial animado de Web Video Caster (CastVideo), tras copiar el link. */
 	let videoOpen = $state(false);
+	/** Hoja "¡Link copiado!": 1 = dibujo + "Ver tutorial"; 2 = bajar Web Video Caster antes del video (2026-11-23). */
+	let castStep = $state<1 | 2>(1);
+	$effect(() => {
+		if (linkDone) castStep = 1;
+	});
 	/** Buscar subtítulos afuera sin tocar "Buscar más" (se abrió la lista sin que el video traiga en español). */
 	let subsAuto = $state(false);
 
@@ -752,10 +757,36 @@
 				<path class="ok-tick" d="M141 16l3.5 3.5L151 12" />
 			</svg>
 		</div>
-		<button id="watch-tutorial" type="button" class="watch" onclick={() => { linkDone = null; videoOpen = true; }}>
-			<span class="watch-play"><Icon name="play" size={22} /></span>
-			<span class="watch-text"><b>{tr('Ver tutorial')}</b><small>{tr('Cómo verlo en la tele · 15 s')}</small></span>
-		</button>
+		{#if castStep === 1}
+			<button id="watch-tutorial" type="button" class="watch" onclick={() => (castStep = 2)}>
+				<span class="watch-play"><Icon name="play" size={22} /></span>
+				<span class="watch-text"><b>{tr('Ver tutorial')}</b><small>{tr('Cómo verlo en la tele · 15 s')}</small></span>
+			</button>
+		{:else}
+			<!-- Paso 2: bajar la app con el botón de la tienda del celu; "Ya la tengo" sigue al video. -->
+			<div class="get-app">
+				<div class="get-art" aria-hidden="true">
+					<div class="get-phone"><span class="get-halo"></span><span class="get-icon" style:background-image="url('{casterFor(device())[0].icon}')"></span></div>
+					<svg class="get-arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v14M6 12l6 6 6-6" /></svg>
+					<span class="get-free">{tr('Gratis')}</span>
+				</div>
+				<p class="get-title">{tr('Bajá Web Video Caster')}</p>
+				<p class="get-desc">{tr('Es la app que manda el video del celu a la tele.')}</p>
+				{#each casterFor(device()) as l (l.href)}
+					{@const ios = l.store === 'App Store'}
+					<a id={ios ? 'get-app-ios' : 'get-app-android'} class="get-store" href={l.href} target="_blank" rel="noopener">
+						{#if ios}
+							<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.2 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-3.9zM14 5.5c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z" /></svg>
+						{:else}
+							<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2.6 13.3 12 4 21.4c-.3-.2-.5-.6-.5-1V3.6c0-.4.2-.8.5-1z" fill="#34a853" /><path d="m16.5 8.8-3.2 3.2L4 2.6c.2-.1.6-.1.9.1z" fill="#4285f4" /><path d="M16.5 15.2 4.9 21.3c-.3.2-.7.2-.9.1l9.3-9.4z" fill="#ea4335" /><path d="m20 10.9-3.5-2.1-3.2 3.2 3.2 3.2 3.5-2c.7-.5.7-1.8 0-2.3z" fill="#fbbc04" /></svg>
+						{/if}
+						<span><small>{ios ? tr('Bajala en el') : tr('Bajala en')}</small>{l.store}</span>
+					</a>
+				{/each}
+				<button id="get-app-skip" type="button" class="get-skip" onclick={() => { linkDone = null; videoOpen = true; }}>{tr('Ya la tengo, ver tutorial')}<Icon name="chev" size={16} /></button>
+			</div>
+		{/if}
+		<div class="get-dots" aria-hidden="true"><i class:on={castStep === 1}></i><i class:on={castStep === 2}></i></div>
 	{/if}
 </Sheet>
 
@@ -943,6 +974,32 @@
 	@keyframes beat { 0%, 70%, 100% { transform: scale(1); } 80% { transform: scale(1.1); } 90% { transform: scale(0.96); } }
 	@media (prefers-reduced-motion: reduce) { .watch::after, .watch-play { animation: none; } }
 	@media (prefers-reduced-motion: reduce) { .done-art .link-fly { animation: none; } .done-art .ok-tick { stroke-dashoffset: 0; } }
+	/* Paso 2 de la hoja: el ícono de la app cae dentro del celu, con aro que late, flecha y "Gratis". */
+	.get-app { display: flex; flex-direction: column; animation: get-in 0.5s var(--out); }
+	.get-art { position: relative; display: grid; place-items: center; height: 200px; }
+	.get-phone { position: relative; display: grid; place-items: center; width: 100px; height: 180px; border-radius: 22px; box-shadow: inset 0 0 0 4px var(--muted); }
+	.get-phone::before { content: ''; position: absolute; top: 9px; width: 30px; height: 5px; border-radius: 3px; background: var(--muted); opacity: 0.6; }
+	.get-icon { width: 58px; height: 58px; border-radius: 15px; background: center / cover; box-shadow: 0 10px 24px rgb(0 0 0 / 0.45); animation: get-drop 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both; }
+	.get-halo { position: absolute; width: 58px; height: 58px; border-radius: 15px; box-shadow: 0 0 0 2px var(--accent-fg); animation: get-halo 1.8s var(--out) 1.2s infinite; }
+	.get-arrow { position: absolute; top: 4px; left: 50%; translate: -50% 0; color: var(--accent-fg); animation: get-fall 1.6s ease-in-out infinite; }
+	.get-free { position: absolute; left: calc(50% + 62px); bottom: 36px; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--green) 20%, transparent); color: var(--green); font-size: 11.5px; font-weight: 750; animation: get-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.1s both; }
+	.get-title { margin: 6px 0 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; text-align: center; }
+	.get-desc { margin: 6px auto 0; max-width: 28ch; font-size: 14.5px; line-height: 1.45; color: var(--muted); text-align: center; }
+	.get-store { display: flex; align-items: center; justify-content: center; gap: 10px; height: 56px; margin-top: 20px; border-radius: 16px; background: #fff; color: #000; font-size: 16.5px; font-weight: 750; text-decoration: none; box-shadow: 0 10px 30px rgb(0 0 0 / 0.12), inset 0 0 0 1px rgb(0 0 0 / 0.08); transition: transform 0.2s var(--out); }
+	.get-store + .get-store { margin-top: 10px; }
+	.get-store:active { transform: scale(0.97); }
+	.get-store span { line-height: 1.15; text-align: left; }
+	.get-store small { display: block; font-size: 11px; font-weight: 600; line-height: 1; opacity: 0.65; }
+	.get-skip { display: flex; align-items: center; justify-content: center; gap: 4px; height: 46px; margin-top: 10px; border: 0; background: none; color: var(--accent-fg); font: inherit; font-size: 15px; font-weight: 650; }
+	.get-dots { display: flex; justify-content: center; gap: 6px; margin-top: 16px; }
+	.get-dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--surface-3); transition: width 0.4s var(--out), background 0.4s; }
+	.get-dots i.on { width: 20px; background: var(--accent-fg); }
+	@keyframes get-in { from { opacity: 0; transform: translateX(24px); } }
+	@keyframes get-drop { 0% { transform: translateY(-70px) scale(0.6); opacity: 0; } 60% { opacity: 1; } }
+	@keyframes get-halo { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.5); opacity: 0; } }
+	@keyframes get-fall { 0%, 100% { transform: translateY(-4px); opacity: 0; } 30% { opacity: 1; } 70% { transform: translateY(10px); opacity: 0; } }
+	@keyframes get-pop { from { transform: scale(0); } }
+	@media (prefers-reduced-motion: reduce) { .get-app, .get-icon, .get-halo, .get-arrow, .get-free { animation: none; } }
 	.where { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 0 6px; }
 	.spot {
 		display: flex;

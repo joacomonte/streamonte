@@ -2,7 +2,7 @@
 import type { Api } from '../../../packages/ui/src/api.ts';
 import type { ApiEvent, BrowseFilters, Kind, OptionRef, SubtitleOption, TorrentOption } from '../../../packages/ui/src/types.ts';
 import * as adapt from './web-adapt.ts';
-import type { ApiError, CatalogPageRaw, Episodes, Genres, LinkRaw, MagnetRaw, PeopleRaw, PremiumRaw, QuotaRaw, SeasonScore, Sub, Title, TracksRaw } from './types.ts';
+import type { ApiError, CatalogPageRaw, Episodes, Examples, LinkRaw, MagnetRaw, PeopleRaw, PremiumRaw, QuotaRaw, SeasonScore, Sub, Title, TracksRaw } from './types.ts';
 
 type Fetch = typeof fetch;
 
@@ -23,7 +23,7 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 		return body as T;
 	}
 	const browseQuery = (f: BrowseFilters, page: number) =>
-		new URLSearchParams({ kind: f.kind, sort: f.sort, from: f.from, to: f.to, votes: String(f.minVotes), lang: f.languages.join(','), genres: f.genres.join(','), page: String(page) });
+		new URLSearchParams({ kind: f.kind, sort: f.sort, from: f.from, to: f.to, votes: String(f.minVotes), lang: f.languages.join(','), interests: f.interests.join(','), page: String(page) });
 
 	return {
 		capabilities: { speedTests: false, premiumSubs: true, library: false, localPlayer: false },
@@ -32,7 +32,7 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			search: async (q, page) => adapt.catalogPage(await json<CatalogPageRaw>(`/api/catalog?${new URLSearchParams({ q, page: String(page) })}`)),
 			people: async (q) => adapt.people(await json<PeopleRaw>(`/api/people?${new URLSearchParams({ q })}`)),
 			personTitles: async (id, role) => adapt.catalogPage(await json<CatalogPageRaw>(`/api/catalog?${new URLSearchParams({ person: String(id), role })}`)).items,
-			genres: async (kind: Kind) => adapt.genres(await json<Genres>(`/api/genres?kind=${kind}`)),
+			examples: async (kind: Kind, ids: string[]) => await json<Examples>(`/api/examples?${new URLSearchParams({ kind, ids: ids.join(',') })}`),
 			// Los pósters de la web ya son de TMDB: no hay otro para reintentar.
 			poster: async () => null
 		},
@@ -84,13 +84,13 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 }
 
 /** GET que el CDN de Vercel cachea por idioma: llevan `l=<títulos>.<app>` (ver web/src/lib/server/lang.ts). */
-const PER_LANG = /^\/api\/(catalog|genres|people|title|season)[/?]/;
+const PER_LANG = /^\/api\/(catalog|people|title|season)[/?]/;
 
-/** Catálogo y géneros quedan guardados un día: al volver a entrar se ve al instante. */
+/** Catálogo y ejemplos de subgéneros quedan guardados un día: al volver a entrar se ve al instante. */
 const cachedFetch: Fetch = async (input, init) => {
 	let url = String(input);
 	if (!init?.method && PER_LANG.test(url)) url += `${url.includes('?') ? '&' : '?'}l=${(await import('./i18n.svelte.ts')).contentKey()}`;
-	if (init?.method || !/^\/api\/(catalog|genres)\?/.test(url)) return fetch(url, init);
+	if (init?.method || !/^\/api\/(catalog|examples)\?/.test(url)) return fetch(url, init);
 	// Import dinámico: `saved.ts` arrastra `i18n.svelte.ts`, que `node --test` (web-adapt.test.ts) no puede cargar.
 	const { json, DAY } = await import('./saved.ts');
 	const { ok, status, data } = await json(fetch, url, DAY);

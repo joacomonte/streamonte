@@ -49,7 +49,7 @@ export type Ident = {
 // Lo que devuelven las rutas de la API de títulos (el tipo sale del servidor: no se repite a mano).
 export type Title = Awaited<ReturnType<typeof import('./server/tmdb.ts').title>>;
 export type Episodes = Awaited<ReturnType<typeof import('./server/tmdb.ts').season>>;
-export type Genres = Awaited<ReturnType<typeof import('./server/tmdb.ts').genres>>;
+export type Examples = Awaited<ReturnType<typeof import('./server/interests.ts').examples>>;
 
 /** IMDb de cada temporada (`/api/scores/:imdb`). */
 export type SeasonScore = { season: number; rating: number; episodes: number };

@@ -47,7 +47,7 @@ test('options.load: eventos catalog-streams → actualizaciones hasta done', asy
 test('catalog.browse sin key de TMDB: tendencias, 50 por página', async () => {
 	const calls: string[] = [];
 	const api = createTauriApi(fakeCore(calls));
-	const page = await api.catalog.browse({ kind: 'tv', sort: 'popular', from: '', to: '', minVotes: 0, languages: [], genres: [] }, 3);
+	const page = await api.catalog.browse({ kind: 'tv', sort: 'popular', from: '', to: '', minVotes: 0, languages: [], interests: [] }, 3);
 	assert.deepEqual(calls, ['trending series 100']);
 	assert.equal(page.hasMore, true);
 });

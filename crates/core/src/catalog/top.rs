@@ -40,8 +40,6 @@ const TMDB_VOTE_RATIO: u32 = 250;
 /// shortcut: sin rango de fechas (toda la historia) quedan afuera las de menos votos en TMDB;
 /// si hiciera falta, paginar hasta que el piso corte en vez de este tope.
 const MAX_PAGES: u32 = 30;
-/// La lista de géneros de TMDB casi no cambia.
-const GENRES_TTL: Duration = Duration::from_secs(30 * 24 * 3600);
 
 /// Filtros de la lista (los de la URL de IMDb).
 #[derive(Debug, Clone)]
@@ -54,8 +52,6 @@ pub struct TopQuery {
     pub min_votes: u32,
     /// ISO 639-1 (`en`, `es`); vacío = cualquier idioma. Idioma original (alcanza con que sea uno de estos).
     pub languages: Vec<String>,
-    /// Géneros de TMDB (ids de su lista, [`genre_list`]): alcanza con uno. Vacío = todos.
-    pub genres: Vec<u32>,
     /// Idioma de los títulos.
     pub titles: Lang,
 }
@@ -108,50 +104,6 @@ pub(super) struct Candidate {
     pub(super) popularity: Option<f64>,
     #[serde(default)]
     genre_ids: Vec<u32>,
-}
-
-/// Un género de TMDB para el filtro de Explorar, con su nombre en el idioma de la app.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GenreName {
-    pub id: u32,
-    pub name: String,
-}
-
-#[derive(Deserialize)]
-struct GenreList {
-    #[serde(default)]
-    genres: Vec<GenreName>,
-}
-
-/// Géneros de películas o series (TMDB tiene listas e ids distintos para cada tipo), en `lang`.
-/// Guardados un mes por tipo e idioma. Requiere la key de TMDB.
-pub async fn genre_list(
-    http: &Http,
-    data: &DataCache,
-    kind: MediaKind,
-    lang: Lang,
-    timeout: Duration,
-) -> Result<Vec<GenreName>> {
-    let file = format!("tmdb-generos-{}-{}.json", kind.as_str(), lang.tmdb());
-    if let Some((saved, _)) = data
-        .get::<Vec<GenreName>>(&file)
-        .filter(|(_, age)| *age < GENRES_TTL)
-    {
-        return Ok(saved);
-    }
-    let key = crate::secrets::secret(super::tmdb::ACCOUNT).ok_or_else(no_key)?;
-    let url = format!(
-        "{API}/genre/{}/list?api_key={key}&language={}",
-        path_of(kind),
-        lang.tmdb()
-    );
-    let list: GenreList = match http.get_json(&url, timeout).await {
-        Ok(l) => l,
-        Err(FetchError::Status(401)) => return Err(bad_key()),
-        Err(e) => return Err(super::fetch_error("cargar los géneros de TMDB", &e)),
-    };
-    data.put(&file, &list.genres);
-    Ok(list.genres)
 }
 
 const fn path_of(kind: MediaKind) -> &'static str {
@@ -423,14 +375,9 @@ async fn discover(
     }
 }
 
-/// Idioma de los títulos y géneros (`|` = alcanza con uno, como en la web): los filtra TMDB, no la UI.
+/// Idioma de los títulos: lo da TMDB, no la UI.
 fn discover_filters(q: &TopQuery) -> String {
-    let mut out = format!("&language={}", q.titles.tmdb());
-    if !q.genres.is_empty() {
-        let ids: Vec<String> = q.genres.iter().map(u32::to_string).collect();
-        out.push_str(&format!("&with_genres={}", ids.join("|")));
-    }
-    out
+    format!("&language={}", q.titles.tmdb())
 }
 
 fn detail(raw: RawDetail) -> Detail {
@@ -545,7 +492,6 @@ mod tests {
             to: NaiveDate::from_ymd_opt(2026, 11, 30).unwrap(),
             min_votes,
             languages: languages.iter().map(|s| s.to_string()).collect(),
-            genres: Vec::new(),
             titles: Lang::Es,
         }
     }
@@ -562,15 +508,11 @@ mod tests {
     }
 
     #[test]
-    fn generos_e_idioma_los_filtra_tmdb() {
+    fn idioma_lo_filtra_tmdb() {
         let mut query = q(0, &[]);
         assert_eq!(discover_filters(&query), "&language=es-MX");
-        query.genres = vec![28, 53];
         query.titles = Lang::En;
-        assert_eq!(
-            discover_filters(&query),
-            "&language=en-US&with_genres=28|53"
-        );
+        assert_eq!(discover_filters(&query), "&language=en-US");
     }
 
     #[test]

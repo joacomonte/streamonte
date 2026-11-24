@@ -144,7 +144,6 @@ async function fillDetails(kind: Kind, ids: number[]): Promise<Record<string, De
 /** Títulos del rango, de más a menos votados en TMDB, hasta el piso proporcional o 30 páginas. */
 async function candidates(f: Filters): Promise<TmdbItem[]> {
 	const date = f.kind === 'movie' ? 'primary_release_date' : 'first_air_date';
-	const genres = f.genres.join('|');
 	const page = async (page: number) =>
 		(await tmdb(`/discover/${f.kind}`, {
 			sort_by: 'vote_count.desc',
@@ -154,7 +153,6 @@ async function candidates(f: Filters): Promise<TmdbItem[]> {
 			[`${date}.lte`]: f.to,
 			'vote_count.gte': Math.max(Math.floor(f.votes / TMDB_VOTE_RATIO), 20),
 			with_original_language: f.lang.split(',').filter(Boolean).join('|'),
-			with_genres: genres,
 			page
 		})) as TmdbPage;
 	const first = await page(1);
@@ -184,7 +182,7 @@ async function build(f: Filters) {
 	return hits.map(({ votes, pop, ...h }) => h);
 }
 
-export type Filters = { kind: Kind; sort: string; from: string; to: string; votes: number; lang: string; genres: string[]; page: number };
+export type Filters = { kind: Kind; sort: string; from: string; to: string; votes: number; lang: string; page: number };
 
 export async function discover(f: Filters) {
 	const { page, ...rest } = f;
@@ -265,9 +263,32 @@ export async function personTitles(id: number, role: 'cast' | 'director') {
 	return { items, page: 1, pages: 1 };
 }
 
-export async function genres(kind: Kind) {
-	const j = (await tmdb(`/genre/${kind}/list`, {}, lang())) as { genres: { id: number; name: string }[] };
-	return j.genres.map((g) => ({ id: String(g.id), name: g.name }));
+/** Tarjeta de un título de IMDb (los de la búsqueda por subgéneros): la web navega por id de TMDB, así que se busca con
+ * `/find`. null si TMDB no lo tiene o es de los excluidos. Queda en memoria, por idioma de títulos. */
+const found = new Map<string, Promise<ReturnType<typeof scored> | null>>();
+const MAX_FOUND = 3000;
+function cardOfImdb(kind: Kind, tt: string, rating: string | null) {
+	const key = `${titlesLang()}:${kind}:${tt}`;
+	let hit = found.get(key);
+	if (!hit) {
+		hit = (tmdb(`/find/${tt}`, { external_source: 'imdb_id' }) as Promise<{ movie_results?: TmdbItem[]; tv_results?: TmdbItem[] }>).then((r) => {
+			const m = (kind === 'movie' ? r.movie_results : r.tv_results)?.[0];
+			return m && keep(m) ? { ...card(m, kind), rating } : null;
+		});
+		hit.catch(() => found.delete(key));
+		capped(found, key, hit, MAX_FOUND);
+	}
+	return hit;
+}
+
+/** Una página de 20 de una lista de IMDb ya ordenada, como tarjetas (de a 20 pedidos a `/find` a la vez). */
+export async function imdbPage(kind: Kind, list: { tt: string; rating: string | null }[], page: number) {
+	const slice = list.slice((page - 1) * PAGE, page * PAGE);
+	const cards = await Promise.all(slice.map((h) => cardOfImdb(kind, h.tt, h.rating).catch((e) => {
+		if (e instanceof Fail && (e.status === 401 || e.status === 428)) throw e;
+		return null;
+	})));
+	return { items: cards.filter((c) => c !== null), page, pages: Math.max(1, Math.ceil(list.length / PAGE)) };
 }
 
 /** Persona de los créditos de la ficha. `note`: personaje (actores). */

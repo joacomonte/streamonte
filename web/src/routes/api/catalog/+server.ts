@@ -1,4 +1,5 @@
-import { discover, personTitles, search, VOTES } from '#lib/server/tmdb.ts';
+import { discover, imdbPage, personTitles, search, VOTES } from '#lib/server/tmdb.ts';
+import { interestList } from '#lib/server/interests.ts';
 import { route } from '#lib/server/http.ts';
 
 /** Solo valores que puede mandar la web: cada combinación nueva arma una lista con hasta 30 pedidos de discover y
@@ -16,14 +17,16 @@ export const GET = route(async ({ url }) => {
 	const q = p.get('q')?.trim().slice(0, 100);
 	if (q) return search(q, page);
 	const votes = Number(p.get('votes'));
-	return discover({
-		kind: p.get('kind') === 'tv' ? 'tv' : 'movie',
+	const f = {
+		kind: p.get('kind') === 'tv' ? ('tv' as const) : ('movie' as const),
 		sort: p.get('sort') === 'popular' ? 'popular' : 'rating',
 		from: date(p.get('from')),
 		to: date(p.get('to')),
 		votes: VOTES.includes(votes) ? votes : 0,
-		lang: set(p.get('lang'), /^[a-z]{2}$/, 6).join(','),
-		genres: set(p.get('genres'), /^\d{1,6}$/, 5),
-		page
-	});
+		lang: set(p.get('lang'), /^[a-z]{2}$/, 6).join(',')
+	};
+	// Con un género elegido, la lista sale de la búsqueda por subgéneros de IMDb; sin género, de TMDB discover.
+	const interests = set(p.get('interests'), /^in\d{7}$/, 30);
+	if (interests.length) return imdbPage(f.kind, await interestList({ ...f, interests }), page);
+	return discover({ ...f, page });
 }, { cdn: 3600, perLang: true });

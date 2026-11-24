@@ -22,10 +22,6 @@ test('trending: has_more → hasMore', () => {
 	assert.equal(typeof page.hasMore, 'boolean');
 });
 
-test('genres: id numérico → string', () => {
-	assert.deepEqual(adapt.genres(fixture<Raw.GenreName[]>('catalog_genres__movie')).slice(0, 2), [{ id: '28', name: 'Action' }, { id: '12', name: 'Adventure' }]);
-});
-
 test('titleDetails de serie: Cinemeta + TMDB, estado, temporadas desde los episodios', () => {
 	const d = adapt.titleDetails(fixture<Raw.Meta>('catalog_meta__series_tt0903747'), fixture<Raw.DetailsView>('catalog_details__series_tt0903747'), 'es');
 	assert.equal(d.id, 'tt0903747');

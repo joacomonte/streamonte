@@ -2,8 +2,9 @@
 // Todo cambio pasa por `st.x = …`, así con el proxy de `$state` la pantalla se actualiza sola.
 import type { Api } from '../api.ts';
 import { t } from '../i18n/runtime.ts';
-import type { CatalogItem, CatalogPage, Genre, Kind, PersonHit, PersonRole, Unsubscribe } from '../types.ts';
+import type { CatalogItem, CatalogPage, InterestExample, Kind, PersonHit, PersonRole, Unsubscribe } from '../types.ts';
 import { DEFAULTS, parseSaved, toBrowse, type Filters } from './filters.ts';
+import { categoryOf } from './subgenres.ts';
 
 export type PickedPerson = { id: number; name: string; photo: string | null; role: PersonRole };
 /** browse = catálogo con filtros · search = texto escrito · person = lo que actuó o dirigió alguien. */
@@ -20,7 +21,8 @@ export type CatalogState = {
 	/** Esperando la pausa de tipeo o de filtros antes de pedir la lista. */
 	pending: boolean;
 	error: string | null;
-	genreList: Partial<Record<Kind, Genre[]>>;
+	/** Ejemplos de cada interest de IMDb para las tarjetas de géneros, por `tipo:id` (se piden al abrir un género). */
+	examples: Record<string, InterestExample[]>;
 	people: PersonHit[];
 	peopleLoading: boolean;
 	/** false: la lista ignoró los filtros (desktop sin key de TMDB: solo tendencias). */
@@ -59,7 +61,7 @@ export function initialState(storage: CatalogOptions['storage'], key: string): C
 	}
 	return {
 		f: parseSaved(raw), q: '', person: null, items: [], page: 0, done: false, loading: false, pending: false, error: null,
-		genreList: {}, people: [], peopleLoading: false, filtered: true, excluded: [], activeId: null, covered: false
+		examples: {}, people: [], peopleLoading: false, filtered: true, excluded: [], activeId: null, covered: false
 	};
 }
 
@@ -120,22 +122,30 @@ export function createCatalog(api: Api, st: CatalogState, opts: CatalogOptions) 
 		}, wait);
 	}
 
-	async function loadGenres(kind: Kind): Promise<void> {
-		if (st.genreList[kind]) return;
-		try {
-			st.genreList[kind] = await api.catalog.genres(kind);
-		} catch {
-			/* sin géneros: la hoja queda con el esqueleto */
-		}
+	/** Ejemplos de las interests que falten (una sola vez por tipo e id; si falla, las tarjetas quedan sin pósters). */
+	const asked = new Set<string>();
+	async function loadExamples(kind: Kind, ids: string[]): Promise<void> {
+		const missing = ids.filter((id) => !asked.has(`${kind}:${id}`));
+		if (!missing.length) return;
+		for (const id of missing) asked.add(`${kind}:${id}`);
+		// De a 12 por pedido (el tope de la web).
+		const chunks = Array.from({ length: Math.ceil(missing.length / 12) }, (_, i) => missing.slice(i * 12, i * 12 + 12));
+		await Promise.all(chunks.map(async (chunk) => {
+			try {
+				const got = await api.catalog.examples(kind, chunk);
+				for (const id of chunk) st.examples[`${kind}:${id}`] = got[id] ?? [];
+			} catch {
+				for (const id of chunk) asked.delete(`${kind}:${id}`);
+			}
+		}));
 	}
 
 	function setFilters(changes: Partial<Filters>): void {
 		const kindChanged = changes.kind !== undefined && changes.kind !== st.f.kind;
 		Object.assign(st.f, changes);
-		if (kindChanged) {
-			st.f.genres = [];
-			void loadGenres(st.f.kind);
-		}
+		// Un género que no existe en el otro tipo (reality en películas) se saca.
+		const cat = categoryOf(st.f.genre);
+		if (kindChanged && cat?.only && cat.only !== st.f.kind) Object.assign(st.f, { genre: null, subs: [] });
 		try {
 			storage?.setItem(storageKey, JSON.stringify(st.f));
 		} catch {
@@ -143,8 +153,9 @@ export function createCatalog(api: Api, st: CatalogState, opts: CatalogOptions) 
 		}
 		restart(filterWait);
 	}
-	const resetFilters = (): void => setFilters({ votes: DEFAULTS.votes, genres: [] });
-	const toggleGenre = (id: string): void => setFilters({ genres: st.f.genres.includes(id) ? st.f.genres.filter((g) => g !== id) : [...st.f.genres, id] });
+	const resetFilters = (): void => setFilters({ votes: DEFAULTS.votes, genre: null, subs: [] });
+	/** Un género (null = ninguno) y sus subgéneros elegidos ([] = todos). */
+	const setGenre = (genre: string | null, subs: string[] = []): void => setFilters({ genre, subs: genre ? subs : [] });
 
 	function closePeople(): void {
 		clearTimeout(peopleTimer);
@@ -195,15 +206,12 @@ export function createCatalog(api: Api, st: CatalogState, opts: CatalogOptions) 
 		st.person = { id: p.id, name: p.name, photo: p.photo, role: p.role };
 		restart(0);
 	}
-	/** Cambió un idioma (app o títulos): géneros y lista se vuelven a pedir. */
+	/** Cambió un idioma (app o títulos): la lista se vuelve a pedir (los ejemplos vienen como los da IMDb). */
 	function relang(): void {
-		st.genreList = {};
-		void loadGenres(st.f.kind);
 		restart(0);
 	}
-	/** Primera vez: la lista y los géneros (si ya hay lista, queda como estaba). */
+	/** Primera vez: la lista (si ya hay lista, queda como estaba). */
 	function start(): void {
-		void loadGenres(st.f.kind);
 		if (!st.items.length && !st.loading && !st.pending) void loadMore();
 	}
 	/** Eventos en vivo del Api; devuelve cómo soltarlos. */
@@ -213,7 +221,7 @@ export function createCatalog(api: Api, st: CatalogState, opts: CatalogOptions) 
 		});
 	}
 
-	return { st, mode, visible, loadMore, restart, loadGenres, setFilters, resetFilters, toggleGenre, setQuery, clearSearch, pickPerson, closePeople, relang, start, connect };
+	return { st, mode, visible, loadMore, restart, loadExamples, setFilters, resetFilters, setGenre, setQuery, clearSearch, pickPerson, closePeople, relang, start, connect };
 }
 
 export type CatalogStore = ReturnType<typeof createCatalog>;

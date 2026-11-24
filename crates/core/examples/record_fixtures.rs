@@ -160,7 +160,6 @@ async fn main() {
             firsts.extend(p.items.first().map(|i| (kind, k, i.id.clone())));
         }
         save("catalog_trending", &[k, "0"], page);
-        save("catalog_genres", &[k], core.catalog_genres(kind).await);
     }
     // Defaults de la UI (`DEFAULTS` en ui/src/catalog.js): 12 meses atrás, 10000 votos, en/es, sin género.
     let from = (chrono::Utc::now() - chrono::Months::new(12))
@@ -176,7 +175,6 @@ async fn main() {
             None,
             10000,
             vec!["en".into(), "es".into()],
-            vec![],
         )
         .await,
     );

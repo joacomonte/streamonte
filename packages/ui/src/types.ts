@@ -35,10 +35,11 @@ export type BrowseFilters = {
 	minVotes: number;
 	/** Idioma original ISO 639-1; [] = cualquiera. */
 	languages: string[];
-	/** Ids de género (alcanza con uno). */
-	genres: string[];
+	/** Interests de IMDb (`in…`, alcanza con una; `catalog/subgenres.ts`). Con alguna, la lista sale de la búsqueda de IMDb. */
+	interests: string[];
 };
-export type Genre = { id: string; name: string };
+/** Película o serie de ejemplo de un subgénero (título como viene de IMDb). */
+export type InterestExample = { title: string; poster: string | null };
 
 export type PersonRole = 'cast' | 'director';
 /** Sugerencia de persona del buscador. */

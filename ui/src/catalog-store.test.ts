@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import type { Api } from '../../packages/ui/src/api.ts';
 import { DEFAULTS, parseSaved, toBrowse } from '../../packages/ui/src/catalog/filters.ts';
 import { createCatalog, initialState, type CatalogOptions } from '../../packages/ui/src/catalog/store.ts';
-import type { ApiEvent, BrowseFilters, CatalogItem, CatalogPage, PersonRole } from '../../packages/ui/src/types.ts';
+import type { ApiEvent, BrowseFilters, CatalogItem, CatalogPage, Kind, PersonRole } from '../../packages/ui/src/types.ts';
 import * as adapt from './tauri-adapt.ts';
 import type * as Raw from './types.js';
 
@@ -13,7 +13,6 @@ const fixture = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../mock
 const trending = adapt.catalogPage(fixture<Raw.BrowsePage>('catalog_trending__movie_0'));
 const top = adapt.catalogPage(fixture<Raw.BrowsePage>('catalog_browse_top__movie_rating'));
 const found = adapt.catalogItems(fixture<Raw.CatalogItem[]>('catalog_search__fight-club'));
-const genreList = adapt.genres(fixture<Raw.GenreName[]>('catalog_genres__movie'));
 const wait = (ms = 0) => new Promise((r) => setTimeout(r, ms));
 
 type Calls = { browse: [BrowseFilters, number][]; search: [string, number][]; person: [number, PersonRole][] };
@@ -27,7 +26,7 @@ function fakeApi(over: { browse?: (f: BrowseFilters, page: number) => Promise<Ca
 			search: (q: string, page: number) => (calls.search.push([q, page]), Promise.resolve({ items: found, hasMore: false })),
 			people: () => Promise.resolve([]),
 			personTitles: (id: number, role: PersonRole): Promise<CatalogItem[]> => (calls.person.push([id, role]), Promise.resolve(found.slice(0, 3))),
-			genres: () => Promise.resolve(genreList)
+			examples: (_kind: Kind, ids: string[]) => Promise.resolve(Object.fromEntries(ids.map((id) => [id, [{ title: 'Ej', poster: null }]])))
 		},
 		events: { subscribe: (h: (e: ApiEvent) => void) => ((emit = h), () => {}) }
 	} as unknown as Api;
@@ -45,14 +44,17 @@ function make(api: Api, opts: Partial<CatalogOptions> = {}, saved?: string) {
 
 test('filtros → pedido: fechas ISO, "hasta hoy" vacío, idiomas y géneros', () => {
 	const now = new Date(2026, 10, 22);
-	const q = toBrowse({ ...DEFAULTS, from: 12, to: 3, genres: ['28'] }, now);
-	assert.deepEqual(q, { kind: 'movie', sort: 'rating', from: '2025-11-22', to: '2026-08-22', minVotes: 10000, languages: ['en', 'es'], genres: ['28'] });
+	const q = toBrowse({ ...DEFAULTS, from: 12, to: 3, genre: 'horror', subs: ['in0000114'] }, now);
+	assert.deepEqual(q, { kind: 'movie', sort: 'rating', from: '2025-11-22', to: '2026-08-22', minVotes: 10000, languages: ['en', 'es'], interests: ['in0000114'] });
+	assert.deepEqual(toBrowse({ ...DEFAULTS, genre: 'music' }, now).interests, ['in0000130', 'in0000133'], 'Todos = el género entero');
+	assert.deepEqual(toBrowse(DEFAULTS, now).interests, [], 'sin género: TMDB');
 	assert.equal(toBrowse(DEFAULTS, now).to, '');
 });
 
 test('restaurar: lo guardado vale, lo roto vuelve a su valor por defecto', () => {
-	const ok = parseSaved(JSON.stringify({ kind: 'tv', sort: 'popular', from: 60, to: 12, votes: 100000, genres: ['18'] }));
-	assert.deepEqual(ok, { kind: 'tv', sort: 'popular', from: 60, to: 12, votes: 100000, genres: ['18'] });
+	const ok = parseSaved(JSON.stringify({ kind: 'tv', sort: 'popular', from: 60, to: 12, votes: 100000, genre: 'horror', subs: ['in0000114', 'in9999999'] }));
+	assert.deepEqual(ok, { kind: 'tv', sort: 'popular', from: 60, to: 12, votes: 100000, genre: 'horror', subs: ['in0000114'] });
+	assert.equal(parseSaved(JSON.stringify({ genres: ['18'] })).genre, null, 'lo viejo (ids de TMDB) queda sin género');
 	// Lo guardado antes de los 3 niveles cae en el más cercano (5.000 → 10.000; 0 → 1.000), y el idioma viejo se ignora.
 	assert.equal(parseSaved(JSON.stringify({ votes: 5000, lang: '' })).votes, 10000);
 	assert.equal(parseSaved(JSON.stringify({ votes: 0 })).votes, 1000);
@@ -78,23 +80,27 @@ test('paginado: la página 2 se suma sin repetir y termina con hasMore false', a
 	assert.equal(calls.browse.length, 2, 'terminado: no pide más');
 });
 
-test('cambiar el tipo: vacía la lista, borra géneros, guarda y pide con el filtro nuevo', async () => {
+test('cambiar el tipo: vacía la lista, mantiene el género (salvo uno solo de series), guarda y pide con el filtro nuevo', async () => {
 	const { api, calls } = fakeApi();
 	const { store, st, storage } = make(api);
 	store.start();
 	await wait();
-	store.toggleGenre('28');
+	store.setGenre('horror', ['in0000114']);
 	await wait();
-	assert.deepEqual(st.f.genres, ['28']);
+	assert.deepEqual(calls.browse.at(-1)?.[0].interests, ['in0000114']);
 	store.setFilters({ kind: 'tv', votes: 5000 });
 	assert.equal(st.items.length, 0);
-	assert.deepEqual(st.f.genres, []);
+	assert.equal(st.f.genre, 'horror');
 	await wait();
 	const last = calls.browse.at(-1)?.[0];
 	assert.equal(last?.kind, 'tv');
 	assert.equal(last?.minVotes, 5000);
 	assert.equal(JSON.parse(storage.getItem('k') ?? '{}').kind, 'tv');
-	assert.ok(st.genreList.tv, 'géneros del tipo nuevo');
+	store.setGenre('reality');
+	store.setFilters({ kind: 'movie' });
+	assert.equal(st.f.genre, null, 'Reality es solo de series');
+	await store.loadExamples('tv', ['in0000114']);
+	assert.equal(st.examples['tv:in0000114'].length, 1);
 });
 
 test('una respuesta de una lista anterior no pisa a la nueva', async () => {

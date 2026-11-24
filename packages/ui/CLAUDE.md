@@ -40,7 +40,8 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
   - `catalog.svelte.ts` `:8 createCatalogStore` (`$state` + `store.ts`) · ← `web/src/lib/catalog.svelte.ts`, `ui/src/catalog-mount.ts`.
   - `Catalog.svelte` (props `store` `onopen` `href` `header` `top` `onmagnet` `onlog` `pinned` `cardMin`) → `Search` `Segmented` `Since` `Grid` `FiltersSheet` · ← `web/src/routes/+page.svelte`, `ui/src/catalog-mount.ts`.
   - `CardInfo.svelte` (hover de la tarjeta: géneros, duración, categoría, premios, barras de temporada; lo monta `Grid.svelte` tras 250 ms con mouse) → `card-info.ts` `:22 ratingTier` `:30 cardSeasons` (test `card-info.test.ts`, fixtures `ui/mock/`), `getApi().title.details/seasonRatings(imdb, quick)`; `Grid.svelte` reintenta el póster roto con `getApi().catalog.poster` (web: null).
-  - `Search.svelte` · `Segmented.svelte` · `Since.svelte` · `Grid.svelte` · `FiltersSheet.svelte` → `components/Icon.svelte`, `components/Sheet.svelte`.
+  - `Search.svelte` · `Segmented.svelte` · `Since.svelte` · `Votes.svelte` · `Grid.svelte` → `components/Icon.svelte`.
+  - `GenrePicker.svelte` (botón + hoja de vidrio en celu / desplegable en PC; géneros → subgéneros con ejemplos de IMDb) → `subgenres.ts` (`categories` `categoryOf` `interestsOf`: ids `in…` de IMDb), `genre-art.ts`, `store.loadExamples`. Con género, `BrowseFilters.interests` va a IMDb (web `server/interests.ts`, desktop `catalog/interests.rs`).
 - `assets/logo.svg` (ícono completo: favicon web) · `assets/logo-mark.svg` (solo el triángulo: encabezado web/desktop y paso de bienvenida de `Tour.svelte`).
 - `globals.d.ts` tipos mínimos `node:test`, `node:assert/strict`, `node:fs` (sin @types/node).
 - Tests junto al código: `*.test.ts`; `i18n/i18n.test.ts` escanea `web/src`, `ui/src`, `packages/ui/src` y `ui/index.html`.

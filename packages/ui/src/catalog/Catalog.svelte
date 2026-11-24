@@ -7,13 +7,14 @@
 	import { t } from '../i18n/runtime.ts';
 	import type { CatalogItem, PersonHit } from '../types.ts';
 	import { KINDS, SORTS, backLabel, votesLabel, type Filters } from './filters.ts';
-	import Genres from './Genres.svelte';
+	import GenrePicker from './GenrePicker.svelte';
 	import Grid from './Grid.svelte';
 	import Search from './Search.svelte';
 	import Segmented from './Segmented.svelte';
 	import Since from './Since.svelte';
 	import Votes from './Votes.svelte';
 	import type { CatalogStore } from './store.ts';
+	import { categoryOf } from './subgenres.ts';
 
 	interface Props {
 		store: CatalogStore;
@@ -60,8 +61,13 @@
 	const searching = $derived(mode !== 'browse');
 	/** Sin key de TMDB: tendencias sin filtros. */
 	const trendingOnly = $derived(!st.filtered && !searching);
-	const genres = $derived(st.genreList[st.f.kind] ?? []);
-	const genreNames = $derived(genres.filter((g) => st.f.genres.includes(g.id)).map((g) => g.name).join(', '));
+	/** "Terror" o "Terror: Folk, Slasher". */
+	const genreText = (f: Filters): string => {
+		const c = categoryOf(f.genre);
+		if (!c) return '';
+		const subs = c.subs.filter((x) => f.subs.includes(x.id)).map((x) => x.label);
+		return subs.length ? `${c.label}: ${subs.join(', ')}` : c.label;
+	};
 	/** Orden elegido y el otro (un solo botón que alterna). */
 	const sortNow = $derived(SORTS.find((s) => s.v === st.f.sort) ?? SORTS[0]);
 	const sortNext = $derived(SORTS.find((s) => s.v !== sortNow.v) ?? SORTS[1]);
@@ -80,7 +86,7 @@
 			`${ago(st.f.from)} – ${st.f.to ? ago(st.f.to) : t('hoy')}`,
 			t(SORTS.find((s) => s.v === st.f.sort)?.label ?? ''),
 			st.f.votes ? votesLabel(st.f.votes) : '',
-			genreNames
+			genreText(st.f)
 		].filter(Boolean)
 	);
 	/** Cuánto se esconde al quedar pegada: todo lo de arriba, salvo desplegada o (desktop) buscando. */
@@ -141,10 +147,10 @@
 		loggedFilter = setTimeout(() => {
 			const f = st.f;
 			const meses = (m: number) => (m === 0 ? 'hoy' : m < 12 ? `hace ${m} ${m === 1 ? 'mes' : 'meses'}` : `hace ${m / 12} ${m === 12 ? 'año' : 'años'}`);
-			const names = genres.filter((g) => f.genres.includes(g.id)).map((g) => g.name);
+			const genre = genreText(f);
 			const dato = [
 				KINDS.find((k) => k.v === f.kind)?.label ?? '',
-				names.length ? `Género: ${names.join(', ')}` : '',
+				genre ? `Género: ${genre}` : '',
 				`Orden: ${SORTS.find((s) => s.v === f.sort)?.label ?? f.sort}`,
 				`Votos: ${f.votes / 1000}k+`,
 				`Fechas: desde ${meses(f.from)} hasta ${meses(f.to)}`
@@ -206,7 +212,7 @@
 					{:else}
 						<Since {store} onset={setF} />
 						<Votes {store} onset={setF} />
-						<Genres {store} ontoggle={(id) => (store.toggleGenre(id), afterFilter())} onclear={() => setF({ genres: [] })} />
+						<GenrePicker {store} onpick={(genre, subs) => (store.setGenre(genre, subs), afterFilter())} />
 					{/if}
 				{/if}
 			</div>

@@ -2,10 +2,12 @@
 import { t } from '../i18n/runtime.ts';
 import type { BrowseFilters, Kind } from '../types.ts';
 import type { IconName } from '../components/icons.ts';
+import { categoryOf, interestsOf } from './subgenres.ts';
 
 export type Sort = BrowseFilters['sort'];
-/** `from`/`to`: meses hacia atrás (la escala de la ruedita); `votes`: uno de `VOTE_LEVELS`. */
-export type Filters = { kind: Kind; sort: Sort; from: number; to: number; votes: number; genres: string[] };
+/** `from`/`to`: meses hacia atrás (la escala de la ruedita); `votes`: uno de `VOTE_LEVELS`; `genre`: clave de `subgenres.ts`
+ * (null = sin género) y `subs`: los subgéneros elegidos ([] = todos). */
+export type Filters = { kind: Kind; sort: Sort; from: number; to: number; votes: number; genre: string | null; subs: string[] };
 
 export const KINDS: { v: Kind; label: string; icon: IconName }[] = [
 	{ v: 'movie', label: 'Películas', icon: 'film' },
@@ -38,7 +40,7 @@ export const backSteps = (now: Date = new Date()): number[] => [
 ];
 export const BACK = backSteps();
 
-export const DEFAULTS: Filters = { kind: 'movie', sort: 'rating', from: 12, to: 0, votes: 10000, genres: [] };
+export const DEFAULTS: Filters = { kind: 'movie', sort: 'rating', from: 12, to: 0, votes: 10000, genre: null, subs: [] };
 
 export const backLabel = (m: number): string =>
 	m === 0 ? t('hoy') : m < 12 ? t(m === 1 ? 'hace {n} mes' : 'hace {n} meses', { n: m }) : t(m === 12 ? 'hace {n} año' : 'hace {n} años', { n: m / 12 });
@@ -59,17 +61,17 @@ export const toBrowse = (f: Filters, now: Date = new Date()): BrowseFilters => (
 	to: f.to ? isoMonthsAgo(f.to, now) : '',
 	minVotes: f.votes,
 	languages: LANGUAGES,
-	genres: f.genres
+	interests: interestsOf(f.genre, f.subs)
 });
 
-/** Filtros que achican la lista y no están en su valor por defecto (votos y géneros): sin resultados, se ofrece restablecerlos. */
-export const changedCount = (f: Filters): number => Number(f.votes !== DEFAULTS.votes) + f.genres.length;
+/** Filtros que achican la lista y no están en su valor por defecto (votos y género): sin resultados, se ofrece restablecerlos. */
+export const changedCount = (f: Filters): number => Number(f.votes !== DEFAULTS.votes) + Number(f.genre !== null);
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
 /** Lo guardado en el almacenamiento (borde externo): cada campo se valida; lo viejo o roto queda en su valor por defecto. */
 export function parseSaved(raw: string | null, back: number[] = BACK): Filters {
-	const f: Filters = { ...DEFAULTS, genres: [] };
+	const f: Filters = { ...DEFAULTS, subs: [] };
 	if (!raw) return f;
 	let v: unknown;
 	try {
@@ -84,6 +86,11 @@ export function parseSaved(raw: string | null, back: number[] = BACK): Filters {
 	if (typeof v.to === 'number' && back.includes(v.to)) f.to = v.to;
 	if (f.to >= f.from) f.to = 0;
 	if (typeof v.votes === 'number') f.votes = VOTE_LEVELS[nearestLevel(v.votes)].v;
-	if (Array.isArray(v.genres)) f.genres = v.genres.filter((g): g is string => typeof g === 'string');
+	// Lo guardado antes de los subgéneros (`genres`, ids de TMDB) se descarta: queda sin género.
+	const cat = typeof v.genre === 'string' ? categoryOf(v.genre) : null;
+	if (cat && (!cat.only || cat.only === f.kind)) {
+		f.genre = cat.key;
+		if (Array.isArray(v.subs)) f.subs = v.subs.filter((id): id is string => typeof id === 'string' && cat.subs.some((x) => x.id === id));
+	}
 	return f;
 }

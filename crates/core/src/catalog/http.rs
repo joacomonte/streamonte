@@ -141,6 +141,30 @@ impl Http {
         serde_json::from_slice(&bytes).map_err(|_| FetchError::NotJson)
     }
 
+    /// POST de JSON con headers fijos (la API GraphQL de IMDb), respuesta JSON. Con el reintento de los GET: el cuerpo
+    /// son bytes y se puede clonar.
+    pub async fn post_json<T: serde::de::DeserializeOwned>(
+        &self,
+        url: &str,
+        headers: &[(&'static str, &str)],
+        body: &serde_json::Value,
+        timeout: Duration,
+    ) -> Result<T, FetchError> {
+        let mut req = self
+            .client
+            .post(url)
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/json")
+            .body(body.to_string());
+        for (k, v) in headers {
+            req = req.header(*k, *v);
+        }
+        let bytes = tokio::time::timeout(timeout, crate::http::get_bytes(req, LIMITS))
+            .await
+            .map_err(|_| FetchError::Timeout)??;
+        serde_json::from_slice(&bytes).map_err(|_| FetchError::NotJson)
+    }
+
     /// POST `multipart/form-data` con un header de acceso (como [`Self::get_json_auth`]), respuesta JSON
     /// (TorBox `createtorrent`, que según su OpenAPI solo acepta multipart). Sin reintento: el cuerpo no se
     /// puede clonar.

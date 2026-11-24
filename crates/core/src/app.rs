@@ -1453,25 +1453,43 @@ impl AppCore {
         to: Option<&str>,
         min_votes: u32,
         languages: Vec<String>,
-        genres: Vec<u32>,
     ) -> Result<BrowsePage> {
         let timeout = self.catalog_timeout().await;
         let titles = self.languages().await.titles;
         self.catalog
-            .browse_top(
-                kind, sort, from, to, min_votes, languages, genres, titles, timeout,
+            .browse_top(kind, sort, from, to, min_votes, languages, titles, timeout)
+            .await
+    }
+
+    /// Explorar con un género elegido: búsqueda por subgéneros de IMDb (sin key de TMDB).
+    #[allow(clippy::too_many_arguments)]
+    pub async fn catalog_browse_interests(
+        &self,
+        kind: MediaKind,
+        sort: BrowseSort,
+        from: &str,
+        to: Option<&str>,
+        min_votes: u32,
+        languages: Vec<String>,
+        interests: Vec<String>,
+    ) -> Result<BrowsePage> {
+        let timeout = self.catalog_timeout().await;
+        let titles = self.languages().await.titles;
+        self.catalog
+            .browse_interests(
+                kind, sort, from, to, min_votes, languages, interests, titles, timeout,
             )
             .await
     }
 
-    /// Géneros de TMDB del tipo, en el idioma de la app (filtro de Explorar).
-    pub async fn catalog_genres(
+    /// Ejemplos populares de cada subgénero de IMDb (tarjetas del filtro de géneros).
+    pub async fn catalog_interest_examples(
         &self,
         kind: MediaKind,
-    ) -> Result<Vec<crate::catalog::top::GenreName>> {
+        ids: Vec<String>,
+    ) -> Result<std::collections::HashMap<String, Vec<crate::catalog::interests::Example>>> {
         let timeout = self.catalog_timeout().await;
-        let app = self.languages().await.app;
-        self.catalog.genres(kind, app, timeout).await
+        self.catalog.interest_examples(kind, ids, timeout).await
     }
 
     /// Títulos y sinopsis de los episodios de una temporada en los idiomas elegidos (vacío sin key de TMDB).

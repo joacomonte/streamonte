@@ -8,6 +8,7 @@ Busca películas/series (Cinemeta + TMDB), enriquece fichas (TMDB, datasets IMDb
 - `cinemeta.rs:84 search` · `:124 trending` · `:164 meta` · `:321 is_excluded`
 - `tmdb.rs:354 details` · `:497 fetch_details` · `:568 similar` · `:687 episodes` · `:842 identify` · `:427 names` · `:315 first_trailer` · `:275 providers_ar`
 - `people.rs:94 search` · `:142 credits` · `:166 pick`
+- `interests.rs` — subgéneros de IMDb por GraphQL (`list`, `examples`); `mod.rs browse_interests`/`interest_examples` (sin key de TMDB). Igual que `web/src/lib/server/interests.ts`.
 - `top.rs:181 TopRated` · `:204 list` · `:342 imdb_dataset` · `:495 rank` · `seasons.rs:79 Seasons` · `:97 list` · `:300 build_index`
 - `addons.rs:69 Addon::streams` · `:152 fetch_manifest` · `protocol.rs:30 Manifest` · `:91 Stream`
 - `normalize.rs:89 parse` · `:15 StreamCandidate` · `aggregate.rs:363 run_inner` · `:67 Merged` · `:121 sorted` · `:220 merge`

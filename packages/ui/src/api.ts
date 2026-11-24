@@ -1,7 +1,7 @@
 // Interfaz de datos que consume la UI compartida. La web la implementa con `fetch` a /api/* (`web/src/lib/webApi.ts`) y el
 // desktop con `invoke` de Tauri (`ui/src/tauriApi.ts`). Métodos de dominio: devuelven el modelo de `types.ts`.
 import type {
-	ApiEvent, BrowseFilters, Capabilities, CatalogItem, CatalogPage, Episode, Genre, Kind, MagnetStatus, MagnetView, OptionLink, OptionRef,
+	ApiEvent, BrowseFilters, Capabilities, CatalogItem, CatalogPage, Episode, InterestExample, Kind, MagnetStatus, MagnetView, OptionLink, OptionRef,
 	OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings, SimilarItem, SubtitleOption, TitleDetails, TorboxIds, TorrentOption, TorrentTracks, Unsubscribe
 } from './types.ts';
 
@@ -19,7 +19,8 @@ export interface Api {
 		search(query: string, page: number): Promise<CatalogPage>;
 		people(query: string): Promise<PersonHit[]>;
 		personTitles(id: number, role: PersonRole): Promise<CatalogItem[]>;
-		genres(kind: Kind): Promise<Genre[]>;
+		/** Ejemplos populares de cada interest de IMDb (ids `in…`), para las tarjetas de géneros. */
+		examples(kind: Kind, ids: string[]): Promise<Record<string, InterestExample[]>>;
 		/** Póster alternativo cuando el de la tarjeta no carga (desktop: TMDB); null si no hay otro. */
 		poster(id: string): Promise<string | null>;
 	};

@@ -9,6 +9,7 @@ pub mod aggregate;
 pub mod cinemeta;
 pub mod elitetorrent;
 pub mod http;
+pub mod interests;
 pub mod latteam;
 pub mod mkv;
 pub mod normalize;
@@ -347,14 +348,33 @@ impl Catalog {
         tmdb::episodes(&self.http, &self.data, imdb_id, season, langs, timeout).await
     }
 
-    /// Géneros de TMDB para el filtro de Explorar, en el idioma de la app.
-    pub async fn genres(
+    /// Ejemplos populares de cada subgénero de IMDb (tarjetas del filtro de géneros). Guardados una semana por tipo y
+    /// subgénero.
+    pub async fn interest_examples(
         &self,
         kind: MediaKind,
-        app: Lang,
+        ids: Vec<String>,
         timeout: Duration,
-    ) -> Result<Vec<top::GenreName>> {
-        top::genre_list(&self.http, &self.data, kind, app, timeout).await
+    ) -> Result<HashMap<String, Vec<interests::Example>>> {
+        const TTL: Duration = Duration::from_secs(7 * 24 * 3600);
+        let file = |id: &str| format!("imdb-ejemplos-{}-{id}.json", kind.as_str());
+        let mut out = HashMap::new();
+        let mut missing = Vec::new();
+        for id in ids.into_iter().take(12) {
+            match self.data.get::<Vec<interests::Example>>(&file(&id)) {
+                Some((list, age)) if age < TTL => {
+                    out.insert(id, list);
+                }
+                _ => missing.push(id),
+            }
+        }
+        if !missing.is_empty() {
+            for (id, list) in interests::examples(&self.http, kind, &missing, timeout).await? {
+                self.data.put(&file(&id), &list);
+                out.insert(id, list);
+            }
+        }
+        Ok(out)
     }
 
     /// La película o serie de un torrent pegado, por su nombre, con el puntaje de IMDb si ya está cargado.
@@ -496,7 +516,6 @@ impl Catalog {
         to: Option<&str>,
         min_votes: u32,
         languages: Vec<String>,
-        genres: Vec<u32>,
         titles: Lang,
         timeout: Duration,
     ) -> Result<BrowsePage> {
@@ -508,24 +527,67 @@ impl Catalog {
             to,
             min_votes,
             languages,
-            genres,
             titles,
         };
-        let genres: Vec<String> = q.genres.iter().map(u32::to_string).collect();
         let key = format!(
-            "lista-top-{}-{:?}-{}-{}-{}-{}-{}-{}.json",
+            "lista-top-{}-{:?}-{}-{}-{}-{}-{}.json",
             q.kind.as_str(),
             q.sort,
             q.from,
             q.to,
             q.min_votes,
             q.languages.join("+"),
-            genres.join("+"),
             q.titles.tmdb()
         );
         self.browse_page(key, Duration::from_secs(6 * 3600), async {
             Ok(BrowsePage {
                 items: self.top.list(&self.http, &q, timeout).await?,
+                has_more: false,
+            })
+        })
+        .await
+    }
+
+    /// Explorar con un género elegido: búsqueda por subgéneros de IMDb (alcanza con uno), con los mismos filtros.
+    /// Toda la lista de una vez (ya ordenada). No necesita la key de TMDB.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn browse_interests(
+        &self,
+        kind: MediaKind,
+        sort: BrowseSort,
+        from: &str,
+        to: Option<&str>,
+        min_votes: u32,
+        languages: Vec<String>,
+        interests: Vec<String>,
+        titles: Lang,
+        timeout: Duration,
+    ) -> Result<BrowsePage> {
+        let (from, to) = date_range(from, to)?;
+        let q = interests::InterestQuery {
+            kind,
+            sort,
+            from,
+            to,
+            min_votes,
+            languages,
+            interests,
+            titles,
+        };
+        let key = format!(
+            "lista-imdb-{}-{:?}-{}-{}-{}-{}-{}-{}.json",
+            q.kind.as_str(),
+            q.sort,
+            q.from,
+            q.to,
+            q.min_votes,
+            q.languages.join("+"),
+            q.interests.join("+"),
+            q.titles.tmdb()
+        );
+        self.browse_page(key, Duration::from_secs(6 * 3600), async {
+            Ok(BrowsePage {
+                items: interests::list(&self.http, &q, timeout).await?,
                 has_more: false,
             })
         })

@@ -3,7 +3,7 @@
 import { hintOf } from '../../packages/ui/src/rank.ts';
 import type { Lang } from '../../packages/ui/src/i18n/translate.ts';
 import type {
-	ApiEvent, CatalogItem, CatalogPage, Episode, Genre, Identified, Kind, MagnetStatus, MagnetView, OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings,
+	ApiEvent, CatalogItem, CatalogPage, Episode, Identified, Kind, MagnetStatus, MagnetView, OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings,
 	ShowStatus, SimilarItem, SourceStatus, SubtitleOption, TitleDetails, TorrentOption, TorrentTracks
 } from '../../packages/ui/src/types.ts';
 import type * as Raw from './types.js';
@@ -26,7 +26,6 @@ export const catalogItem = (c: Raw.CatalogItem): CatalogItem => ({
 
 export const catalogItems = (raw: Raw.CatalogItem[]): CatalogItem[] => raw.map(catalogItem);
 export const catalogPage = (raw: Raw.BrowsePage): CatalogPage => ({ items: catalogItems(raw.items), hasMore: raw.has_more });
-export const genres = (raw: Raw.GenreName[]): Genre[] => raw.map((g) => ({ id: String(g.id), name: g.name }));
 
 const roleOf = (r: string): PersonRole => (r === 'director' ? 'director' : 'cast');
 export const personHits = (raw: Raw.SearchPerson[]): PersonHit[] => raw.map((p) => ({ id: p.id, name: p.name, photo: p.photo, known: p.known, role: p.role }));

@@ -575,27 +575,45 @@ pub async fn catalog_browse_top(
     to: Option<String>,
     min_votes: u32,
     languages: Vec<String>,
-    genres: Vec<u32>,
 ) -> CmdResult<BrowsePage> {
     Ok(core
-        .catalog_browse_top(
+        .catalog_browse_top(kind, sort, &from, to.as_deref(), min_votes, languages)
+        .await?)
+}
+/// Explorar con un género elegido: búsqueda por subgéneros de IMDb.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn catalog_browse_interests(
+    core: Core<'_>,
+    kind: MediaKind,
+    sort: BrowseSort,
+    from: String,
+    to: Option<String>,
+    min_votes: u32,
+    languages: Vec<String>,
+    interests: Vec<String>,
+) -> CmdResult<BrowsePage> {
+    Ok(core
+        .catalog_browse_interests(
             kind,
             sort,
             &from,
             to.as_deref(),
             min_votes,
             languages,
-            genres,
+            interests,
         )
         .await?)
 }
-/// Géneros de TMDB del tipo, en el idioma de la app (filtro de Explorar).
+/// Ejemplos populares de cada subgénero de IMDb (tarjetas del filtro de géneros).
 #[tauri::command]
-pub async fn catalog_genres(
+pub async fn catalog_interest_examples(
     core: Core<'_>,
     kind: MediaKind,
-) -> CmdResult<Vec<streamonte_core::catalog::top::GenreName>> {
-    Ok(core.catalog_genres(kind).await?)
+    ids: Vec<String>,
+) -> CmdResult<std::collections::HashMap<String, Vec<streamonte_core::catalog::interests::Example>>>
+{
+    Ok(core.catalog_interest_examples(kind, ids).await?)
 }
 /// Títulos y sinopsis de los episodios de una temporada en los idiomas elegidos.
 #[tauri::command]

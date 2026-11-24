@@ -435,9 +435,9 @@ export type Similar = {
     rating: number | null;
     tmdb_rating: number | null;
 };
-export type GenreName = {
-    id: number;
-    name: string;
+export type InterestExample = {
+    title: string;
+    poster: string | null;
 };
 export type EpisodeText = {
     episode: number;
