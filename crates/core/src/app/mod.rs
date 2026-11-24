@@ -82,6 +82,8 @@ pub struct AppCore {
     pub paths: AppPaths,
     config: Arc<tokio::sync::RwLock<Config>>,
     config_store: ConfigStore,
+    /// Lista compartida de trackers (la actualiza la tarea diaria; aparte de `Config`).
+    trackers: crate::trackers::Shared,
     library: Arc<Mutex<Library>>,
     analyzer: AnalyzerHandle,
     playback: PlaybackManager,
@@ -169,15 +171,18 @@ impl AppCore {
         let library = Arc::new(Mutex::new(library));
         spawn_library_saver(&library);
 
+        let trackers = crate::trackers::Shared::default();
         let analyzer = AnalyzerHandle::spawn(crate::analyzer::AnalyzerDeps {
             paths: paths.clone(),
             config: config.clone(),
+            trackers: trackers.clone(),
             library: library.clone(),
             events: events.clone(),
         });
         let playback = PlaybackManager::new(crate::playback::PlaybackDeps {
             paths: paths.clone(),
             config: config.clone(),
+            trackers: trackers.clone(),
             library: library.clone(),
             events: events.clone(),
             calibration,
@@ -188,6 +193,7 @@ impl AppCore {
         let intake = Intake::spawn(
             paths.clone(),
             config.clone(),
+            trackers.clone(),
             library.clone(),
             events.clone(),
             analyzer.clone(),
@@ -215,11 +221,11 @@ impl AppCore {
         }
         // Lista compartida de trackers, de fondo: la primera reproducción no la espera.
         if opts.background_fetch {
-            let (config, file) = (config.clone(), paths.shared_trackers_file());
+            let (trackers, file) = (trackers.clone(), paths.shared_trackers_file());
             tokio::spawn(async move {
                 let list = crate::trackers::shared_list(&file).await;
                 tracing::info!(n = list.len(), "trackers de la lista compartida");
-                config.write().await.shared_trackers = list;
+                trackers.set(list);
             });
         }
         tracing::info!("núcleo iniciado");
@@ -231,6 +237,7 @@ impl AppCore {
             paths,
             config,
             config_store,
+            trackers,
             adding_addon: Mutex::new(()),
             swarm_cancel: std::sync::Mutex::default(),
             tests_file: Mutex::new(()),

@@ -163,7 +163,7 @@ async fn run_once(
                     Some(path) => TorrentSource::TorrentFile(path.clone()),
                     None => TorrentSource::Magnet(magnet.with_trackers(&cfg.trackers)),
                 },
-                AddOptions { trackers: cfg.all_trackers(), download_dir: dir.clone(), initial_peers: Vec::new(), download_bps: None },
+                AddOptions { trackers: cfg.all_trackers(&[]), download_dir: dir.clone(), initial_peers: Vec::new(), download_bps: None },
             )
             .await
             .map_err(|e| e.to_string())?;

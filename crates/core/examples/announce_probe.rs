@@ -143,7 +143,7 @@ async fn probe_one(
     ));
     let cached = paths.torrent_cache_file(&m.info_hash);
     let opts = AddOptions {
-        trackers: cfg.all_trackers(),
+        trackers: cfg.all_trackers(&[]),
         download_dir: dir.clone(),
         initial_peers: vec![],
         download_bps: Some(16 * 1024), // = COUNT_DOWNLOAD_BPS de analyzer/swarm.rs
@@ -151,7 +151,7 @@ async fn probe_one(
     let Ok(h) = engine::add_cached_or_magnet(
         &*engine,
         &cached,
-        m.with_trackers(&cfg.all_trackers()),
+        m.with_trackers(&cfg.all_trackers(&[])),
         opts,
     )
     .await

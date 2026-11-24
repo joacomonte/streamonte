@@ -121,6 +121,7 @@ pub struct SwarmCount {
 pub async fn count(
     paths: &AppPaths,
     cfg: &Config,
+    shared_trackers: Vec<String>,
     magnets: Vec<Magnet>,
     depth: Depth,
     cancel: CancellationToken,
@@ -157,10 +158,11 @@ pub async fn count(
     let slots = Arc::new(tokio::sync::Semaphore::new(plan.concurrency));
     let mut tasks = tokio::task::JoinSet::new();
     for (m, dir) in magnets.into_iter().zip(dirs.clone()) {
-        let (engine, paths, cfg, slots, report, plan) = (
+        let (engine, paths, cfg, shared_trackers, slots, report, plan) = (
             engine.clone(),
             paths.clone(),
             cfg.clone(),
+            shared_trackers.clone(),
             slots.clone(),
             on_count.clone(),
             plan.clone(),
@@ -174,6 +176,7 @@ pub async fn count(
                 &paths,
                 &cleanup,
                 &cfg,
+                &shared_trackers,
                 &m,
                 &dir,
                 &plan,
@@ -206,6 +209,7 @@ async fn count_one(
     paths: &AppPaths,
     cleanup: &Cleanup,
     cfg: &Config,
+    shared_trackers: &[String],
     magnet: &Magnet,
     dir: &std::path::Path,
     plan: &Plan,
@@ -227,6 +231,7 @@ async fn count_one(
         dir,
         magnet,
         cfg,
+        shared_trackers,
         Some(COUNT_DOWNLOAD_BPS),
     )
     .await

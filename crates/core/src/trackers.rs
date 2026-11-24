@@ -268,6 +268,14 @@ pub(crate) mod fake {
 mod tests {
     use super::*;
 
+    #[test]
+    fn shared_se_comparte_entre_clones() {
+        let a = Shared::default();
+        let b = a.clone();
+        a.set(vec!["udp://a/announce".into()]);
+        assert_eq!(b.get(), ["udp://a/announce"]);
+    }
+
     fn hash(seeders: u8, leechers: u8) -> InfoHash {
         let mut b = [7u8; 20];
         b[0] = seeders;
@@ -376,6 +384,20 @@ pub async fn shared_list(file: &std::path::Path) -> Vec<String> {
     std::fs::read_to_string(file)
         .map(|text| parse_shared_list(&text))
         .unwrap_or_default()
+}
+
+/// La lista compartida en memoria: la escribe la tarea diaria de [`shared_list`] y la leen quienes
+/// arman un torrent. Vive aparte de `Config`, así guardar la config no la pisa. Clonable.
+#[derive(Debug, Clone, Default)]
+pub struct Shared(std::sync::Arc<std::sync::RwLock<Vec<String>>>);
+
+impl Shared {
+    pub fn get(&self) -> Vec<String> {
+        self.0.read().expect("trackers").clone()
+    }
+    pub fn set(&self, list: Vec<String>) {
+        *self.0.write().expect("trackers") = list;
+    }
 }
 
 async fn fetch_shared_list() -> Result<String, reqwest::Error> {

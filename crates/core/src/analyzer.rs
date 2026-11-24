@@ -168,6 +168,7 @@ pub struct MeasureCtl {
 pub struct AnalyzerDeps {
     pub paths: AppPaths,
     pub config: Arc<tokio::sync::RwLock<Config>>,
+    pub trackers: crate::trackers::Shared,
     pub library: Arc<tokio::sync::Mutex<Library>>,
     pub events: Arc<dyn EventSink>,
 }
@@ -211,7 +212,7 @@ pub struct AnalyzerHandle {
 impl AnalyzerHandle {
     /// Arranca la tarea de fondo (una sola por app) con el medidor real.
     pub fn spawn(deps: AnalyzerDeps) -> Self {
-        let measurer = Arc::new(LiveMeasurer::new(deps.paths.clone()));
+        let measurer = Arc::new(LiveMeasurer::new(deps.paths.clone(), deps.trackers.clone()));
         Self::spawn_with(deps, measurer)
     }
 

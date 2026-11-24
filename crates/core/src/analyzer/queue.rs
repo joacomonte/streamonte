@@ -977,6 +977,7 @@ mod tests {
             AnalyzerDeps {
                 paths,
                 config: Arc::new(tokio::sync::RwLock::new(cfg)),
+                trackers: Default::default(),
                 library: library.clone(),
                 events: sink.clone(),
             },

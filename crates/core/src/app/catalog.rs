@@ -42,8 +42,14 @@ impl AppCore {
         let cancel = self.swarm_cancel.lock().expect("swarm").clone();
         let magnets = self.catalog.magnets_of(hashes);
         let cfg = self.config.read().await.clone();
-        let found =
-            crate::analyzer::swarm::count(&self.paths, &cfg, magnets, depth, cancel.clone(), {
+        let found = crate::analyzer::swarm::count(
+            &self.paths,
+            &cfg,
+            self.trackers.get(),
+            magnets,
+            depth,
+            cancel.clone(),
+            {
                 let events = self.events.clone();
                 move |hash, count, done| {
                     events.emit(if done {
@@ -52,8 +58,9 @@ impl AppCore {
                         CoreEvent::CatalogSwarmProgress { hash, count, deep }
                     })
                 }
-            })
-            .await;
+            },
+        )
+        .await;
         // Cortado por el usuario: lo que no llegó no es "nadie respondió" y no se guarda. La prueba
         // rápida no se guarda: es barata y se repite al volver a abrir.
         if deep && !cancel.is_cancelled() {
@@ -269,9 +276,10 @@ impl AppCore {
     pub async fn catalog_streams(&self, kind: MediaKind, video_id: &str) -> Result<()> {
         let cfg = self.config.read().await.clone();
         let events = self.events.clone();
-        self.catalog.streams(&cfg, kind, video_id, move |update| {
-            events.emit(CoreEvent::CatalogStreams { update });
-        })
+        self.catalog
+            .streams(&cfg, self.trackers.get(), kind, video_id, move |update| {
+                events.emit(CoreEvent::CatalogStreams { update });
+            })
     }
 
     /// "Detener" el análisis profundo (2026-11-16): corta los conteos de enjambre en curso; la
@@ -298,7 +306,7 @@ impl AppCore {
         let video = VideoId::parse(video_id)?;
         let timeout = self.catalog_timeout().await;
         let meta = self.catalog.meta(kind, video.imdb_id(), timeout).await.ok();
-        let trackers = self.config.read().await.all_trackers();
+        let trackers = self.config.read().await.all_trackers(&self.trackers.get());
         let mut library = self.library.lock().await;
         let mut added = Vec::new();
         for hash in hashes {

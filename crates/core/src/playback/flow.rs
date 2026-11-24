@@ -127,6 +127,7 @@ pub(super) async fn run(
 ) -> Result<()> {
     let deps = &shared.deps;
     let cfg = deps.config.read().await.clone();
+    let shared_trackers = deps.trackers.get();
 
     // 1. Origen: `.torrent` en caché (sin esperar metadatos, FR-13) o magnet + trackers (FR-10).
     let magnet = match req.magnet {
@@ -139,7 +140,7 @@ pub(super) async fn run(
             Magnet::parse(&entry.magnet)?
         }
     };
-    let full_magnet = magnet.with_trackers(&cfg.all_trackers());
+    let full_magnet = magnet.with_trackers(&cfg.all_trackers(&shared_trackers));
     *slot.magnet_uri.lock().expect("magnet") = Some(full_magnet.to_uri());
     let cached = deps.paths.torrent_cache_file(&req.key.info_hash);
     if cached.is_file() {
@@ -156,7 +157,7 @@ pub(super) async fn run(
         &cached,
         full_magnet,
         AddOptions {
-            trackers: cfg.all_trackers(),
+            trackers: cfg.all_trackers(&shared_trackers),
             download_dir: slot.dir.clone(),
             initial_peers: Vec::new(),
             download_bps: None,

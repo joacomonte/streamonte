@@ -733,6 +733,7 @@ impl Catalog {
     pub fn streams(
         &self,
         cfg: &Config,
+        shared_trackers: Vec<String>,
         kind: MediaKind,
         video_id: &str,
         emit: impl Fn(aggregate::StreamsUpdate) + Send + Sync + 'static,
@@ -777,7 +778,7 @@ impl Catalog {
             audio_order: cfg.catalog.audio_order.clone(),
             exclude_cam: cfg.catalog.exclude_cam,
             default_timeout: Duration::from_millis(cfg.catalog.timeout_ms),
-            trackers: cfg.all_trackers(),
+            trackers: cfg.all_trackers(&shared_trackers),
             scrape_timeout: Duration::from_secs(cfg.analyzer.scrape_timeout_secs),
             latest: self.latest.clone(),
         };
