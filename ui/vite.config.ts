@@ -8,7 +8,7 @@ const shared = fileURLToPath(new URL('../packages/ui/src', import.meta.url));
 // Puerto fijo: tauri.conf.json (build.devUrl) apunta acá.
 export default defineConfig({
   plugins: [svelte({ compilerOptions: { runes: true } })],
-  // `svelte` se resuelve desde ui/node_modules también para los archivos de packages/ui (sin node_modules propio).
+  // packages/ui tiene su node_modules (workspace): `dedupe` fuerza una sola copia de svelte, la de ui.
   resolve: { alias: { $ui: shared }, dedupe: ['svelte'] },
   clearScreen: false,
   server: { port: 1420, strictPort: true, host: '127.0.0.1', fs: { allow: ['..'] } },

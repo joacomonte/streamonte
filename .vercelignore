@@ -1,7 +1,15 @@
 # Vercel deploya solo la web (Root Directory = web) y el CSS compartido; el resto es el desktop.
+# Workspace pnpm: sube la raíz del workspace y el package.json de ui/ (el lockfile lo lista como importer).
 /*
 !/web
 !/packages
+!/package.json
+!/pnpm-workspace.yaml
+!/pnpm-lock.yaml
+!/ui
+/ui/*
+!/ui/package.json
 /web/node_modules
 /web/.svelte-kit
 /web/.vercel
+/packages/ui/node_modules

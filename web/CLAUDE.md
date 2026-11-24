@@ -7,7 +7,7 @@ Web de Streamonte (celu/tele): catálogo → torrents en caché de TorBox → li
 - Tablas Neon (`eventos`, `intentos`) → `db/schema.sql`. Adapter Vercel/node, alias `$ui` → `vite.config.ts`.
 
 ## Deploy
-Proyecto `streamonte-web` linkeado en la RAÍZ del monorepo (Root Directory=`web`); `vercel` se corre desde la raíz, no desde `web/`. Receta con preview + `promote`: `scripts/CLAUDE.md`. `.vercelignore` sube solo `web/` y `packages/`.
+Proyecto `streamonte-web` linkeado en la RAÍZ del monorepo (Root Directory=`web`); `vercel` se corre desde la raíz, no desde `web/`. Receta con preview + `promote`: `scripts/CLAUDE.md`. `.vercelignore` sube `web/`, `packages/` y lo mínimo del workspace (raíz + `ui/package.json`).
 
 ## Env vars
 Solo nombres, nunca valores ni prefijo público: `cut -d= -f1 web/.env.local`. Sin `DATABASE_URL` no hay tracking; sin `APP_PASSWORD` no hay candado.

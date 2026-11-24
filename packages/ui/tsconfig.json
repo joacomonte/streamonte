@@ -12,7 +12,7 @@
     "noEmit": true,
     "skipLibCheck": true,
     "types": ["./src/globals.d.ts"],
-    "paths": { "svelte": ["../../ui/node_modules/svelte"], "svelte/*": ["../../ui/node_modules/svelte/*"] }
+    "paths": { "svelte": ["./node_modules/svelte"], "svelte/*": ["./node_modules/svelte/*"] }
   },
   "include": ["src", "test"]
 }

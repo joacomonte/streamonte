@@ -79,7 +79,7 @@ jobs:
         shell: bash
       # UI build here, not in tauri.conf.json's beforeBuildCommand: the Tauri CLI runs that from a directory it picks
       # (not the repo root), so `cd ui` failed on every platform in v2.0.0.
-      - run: npm i -g pnpm@10.34.9 && cd ui && pnpm install --frozen-lockfile && pnpm build
+      - run: npm i -g pnpm@10.34.9 && pnpm install --frozen-lockfile && cd ui && pnpm build
         shell: bash
       - uses: tauri-apps/tauri-action@v1
         env:

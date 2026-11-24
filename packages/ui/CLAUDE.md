@@ -1,5 +1,5 @@
 # packages/ui — código compartido web ↔ desktop (TS estricto, sin `any`)
-Alias `$ui` → `src/` (web: `web/vite.config.ts`; desktop: `ui/vite.config.ts`). Sin node_modules propio (usa los de `ui/`).
+Alias `$ui` → `src/` (web: `web/vite.config.ts`; desktop: `ui/vite.config.ts`). devDeps propias (`typescript`, `svelte`, `svelte-check`) en el workspace pnpm de la raíz.
 
 ## Para X → andá a Y (`packages/ui/src/`)
 - Contrato con las apps: `types.ts` (tipos de vista) + `api.ts` (`Api`) + `context.ts` (`getApi`/`setApi`).
