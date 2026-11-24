@@ -1,4 +1,4 @@
-<!-- Pasos antes de la lista de opciones (`catalog-flow.ts` `flowStep`): buscando, torrent/TorBox, conexión, ¿latino?, calidad, y los
+<!-- Pasos antes de la lista de opciones (`$ui/flow/flow-model.ts` vía `catalog-flow.ts`): buscando, torrent/TorBox, conexión, ¿latino?, calidad, y los
      resultados de TorBox. Buscando, tarjetas, radar y migas son las piezas de la web (`$ui/flow/`); cada pantalla entra con `stepIn`
      (solo al cambiar de pantalla: redibujar la misma no repite la entrada). -->
 <script lang="ts">
@@ -12,7 +12,7 @@
 	import { stepIn } from '$ui/flow/step-in.ts';
 	import OptionsList from '$ui/options/OptionsList.svelte';
 	import MoreRow from '$ui/flow/MoreRow.svelte';
-	import type { ChoiceView, FlowButton, FlowView } from './streams-view.ts';
+	import type { ChoiceView, FlowButton, FlowView } from '$ui/flow/types.ts';
 
 	let { flow }: { flow: FlowView } = $props();
 	const screen = $derived(flow.kind === 'search' ? 'search' : `${flow.kind}:${flow.title ?? ''}`);

@@ -20,7 +20,7 @@ import {
 } from './catalog-tests.ts';
 import { crumbs, fitsNet, flowFilter, flowStep, hasResStep, isMatch, moreRow, newFlow } from './catalog-flow.ts';
 import { healthOf, type HealthEvidence } from '$ui/options/health.ts';
-import { HDR_TIP, langTags as langTagsOf, qualityOf, QUALITY_TEXT, RES_ORDER as RES, resKey as resKeyOf, resLabel as resLabelOf, TipBook } from '$ui/options/row.ts';
+import { bestText, hdrText, heavyText, langTags as langTagsOf, noMatches as noMatchesOf, qualityOf, readButton, QUALITY_TEXT, RES_ORDER as RES, resKey as resKeyOf, resLabel as resLabelOf, TipBook } from '$ui/options/row.ts';
 import type { Action, DockButton, Mid, OptionRowView, People, Verdict } from '$ui/options/row.ts';
 import { latOf as latOfRows, mbpsOf as mbpsFor, neededBps as neededBpsFor, rankOptions, tierOf as tierOfCount, toMbps, typicalMbps } from '$ui/rank.ts';
 import type { LatState } from '$ui/types.ts';
@@ -119,18 +119,17 @@ function checkButton(hash: string, kind: 'subs' | 'lat'): DockButton {
 		? (['subs', tr('¿Trae subs?'), tr('Leyendo subs…'), tr('Mira adentro del video si trae subtítulos en español (no baja nada)')] as const)
 		: (['speaker', tr('¿Audio latino?'), tr('Leyendo audio…'), tr('Lee sus pistas de audio para confirmar si es latino')] as const);
 	// No se pudo leer: dice por qué (antes volvía al botón de siempre y parecía que no hizo nada).
-	const text = error ? tr('No se pudo · reintentar') : text0;
 	const tip = error ? tr('No se pudo leer: {error}. Tocá para reintentar', { error }) : tip0;
-	return {
-		id: `cat-${kind}check-${hash}`, icon: ic, text, busy: reading ? busy : null, cancel: tr('Cancelar'),
+	return readButton({
+		id: `cat-${kind}check-${hash}`, icon: ic, text: text0, busy: reading ? busy : null, failed: !!error, cancel: tr('Cancelar'),
 		title: reading ? tr('Tocá para cancelar') : `${tip} (${inTorbox.has(hash) ? tr('un pedido a TorBox, unos segundos') : tr('por torrent: necesita seeds')})`,
-		aria: reading ? tr('{busy} Tocá para cancelar', { busy }) : text,
+		aria: reading ? tr('{busy} Tocá para cancelar', { busy }) : undefined,
 		onclick: (e) => {
 			e.stopPropagation();
 			if (reading) stopReading(hash);
 			else readSubsNow(hash, inTorbox.has(hash));
 		},
-	};
+	}, tr);
 }
 // ---------- opciones (FR-42–49) ----------
 export async function loadStreams(videoId: string): Promise<void> {
@@ -691,7 +690,6 @@ export function rowView(c: Candidate, best = false): OptionRowView {
 		c.is_pack && tr('Pack: varios episodios en un torrent'),
 		tr('Fuentes: {a}{b}', { a: c.addons.join(' + '), b: c.sites.length ? ` (${c.sites.join(', ')})` : '' }),
 	].filter(Boolean).join('\n');
-	const hdrTip = c.hdr.map((x) => HDR_TIP[x]).filter(Boolean).map((x) => tr(x)).join('\n');
 	const checked = checkedBy(c);
 	const partial = busy ? liveCount.get(hash) : undefined; // en vivo mientras testea
 	// Prueba rápida en curso: igual que el test, con los seeds reales llegando en vivo.
@@ -747,10 +745,10 @@ export function rowView(c: Candidate, best = false): OptionRowView {
 	const acts = pbStatus || bg ? [] : langActions(c);
 	const { audio, subs } = langTags(c, confirmed);
 	return {
-		hash, title: tip, best: confirmed, bestText: tr('Mejor opción'), idle: tbIdle, tooBig: big, skipped: skipped.has(hash),
-		size: humanBytes(c.size_bytes), hdr: hdrTip || null,
+		hash, title: tip, best: confirmed, bestText: bestText(tr), idle: tbIdle, tooBig: big, skipped: skipped.has(hash),
+		size: humanBytes(c.size_bytes), hdr: hdrText(c.hdr, tr),
 		res: hasResStep() ? null : resLabel(resKey(c)),
-		heavy: hasResStep() || fitsNet(c) || c.size_bytes == null ? null : tr('Pide ~{a} Mbps: más de lo que da tu conexión', { a: Math.round(mbpsOf(c)) }),
+		heavy: hasResStep() || fitsNet(c) || c.size_bytes == null ? null : heavyText(mbpsOf(c), tr),
 		failedBefore: failedBefore.has(hash) && !pbStatus ? tr('Esta opción ya falló al reproducirse en esta compu (sin video, archivo roto o el reproductor no la abrió). Va al final de la lista.') : null,
 		// Por TorBox ya se eligió en los pasos: el badge solo informa por torrent.
 		torbox: inTorbox.has(hash) && sideOf()?.flow?.mode !== 'torbox' ? tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Este ya lo tiene bajado: se ve al instante y sin depender de los seeds, sin bajar nada a tu Mac.') : null,
@@ -992,8 +990,7 @@ function streamsView(): StreamsView | null {
 
 /** Lista vacía: si la resolución tiene torrents que los filtros esconden, lo dice y ofrece sacarlos. */
 function noMatches(hasCandidates: boolean): ListView['empty'] {
-	if (!hasCandidates) return { text: tr('No se encontraron torrents.'), clear: null };
-	return { text: tr('No hay opciones con estos filtros. '), clear: { text: tr('Quitar filtros'), onclick: clearFilters } };
+	return noMatchesOf(hasCandidates, clearFilters, tr);
 }
 /** Quita todos los filtros que limitan la lista: HDR, Subs ES, latino y TorBox (pasa a torrent, sin filtro). */
 function clearFilters(): void {

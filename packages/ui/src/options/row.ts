@@ -110,6 +110,27 @@ export const HDR_TIP: Record<string, string> = {
 	DV: 'Dolby Vision: HDR dinámico de Dolby. En pantallas sin Dolby Vision puede verse con colores raros (verde/violeta).'
 };
 
+type Tr = (s: string, p?: Record<string, string | number>) => string;
+/** Tooltip del badge HDR de una fila (`hdr` del torrent); sin HDR, null. Un tipo sin tooltip propio dice "HDR". */
+export const hdrText = (hdr: string[], tr: Tr): string | null =>
+	hdr.length ? hdr.map((x) => HDR_TIP[x]).filter((x): x is string => !!x).map((x) => tr(x)).join('\n') || 'HDR' : null;
+/** Etiqueta de la opción destacada. */
+export const bestText = (tr: Tr): string => tr('Mejor opción');
+/** Aviso de la fila que pide más de lo que da la conexión elegida. */
+export const heavyText = (mbps: number, tr: Tr): string => tr('Pide ~{a} Mbps: más de lo que da tu conexión', { a: Math.round(mbps) });
+/** Lista vacía: si hay torrents que los filtros esconden, lo dice y ofrece sacarlos (`clear`). */
+export type EmptyList = { text: string; clear: { text: string; onclick: () => void } | null };
+export function noMatches(hasCandidates: boolean, clear: () => void, tr: Tr): EmptyList {
+	if (!hasCandidates) return { text: tr('No se encontraron torrents.'), clear: null };
+	return { text: tr('No hay opciones con estos filtros. '), clear: { text: tr('Quitar filtros'), onclick: clear } };
+}
+/** Botón del dock que lee las pistas de un torrent (web: analizar audio y subs; desktop: ¿trae subs? / ¿audio latino?). Leyendo,
+ * muestra `busy`; si la última lectura falló, ofrece reintentar. `aria`: por defecto lo que se ve. */
+export function readButton(p: { id: string; icon: DockButton['icon']; text: string; busy: string | null; failed: boolean; title: string; aria?: string; cancel?: string; onclick: Click }, tr: Tr): DockButton {
+	const text = p.failed ? tr('No se pudo · reintentar') : p.text;
+	return { id: p.id, icon: p.icon, text, busy: p.busy, cancel: p.cancel ?? '', title: p.title, aria: p.aria ?? p.busy ?? text, onclick: p.onclick };
+}
+
 // ---------- globitos ----------
 const TIP_MS = 3000;
 /** Globitos de los badges de un video: cuándo apareció cada uno (no vuelven a salir), el primero de cada tipo explica qué
@@ -192,15 +213,3 @@ export function langTags(p: LangInput, tips: TipBook, tr: (s: string) => string)
 	return { audio, subs };
 }
 
-/** Bytes para la fila: "1,4 GB" / "700 MB" / "—". */
-export function sizeText(bytes: number | null | undefined, locale: string): string {
-	if (bytes == null) return '—';
-	return bytes >= 1024 ** 3 ? `${gbFormat(locale).format(bytes / 1024 ** 3)} GB` : `${Math.round(bytes / 1024 ** 2)} MB`;
-}
-// Un formateador por idioma: toLocaleString arma uno nuevo en cada fila y cada update.
-const gbFormats = new Map<string, Intl.NumberFormat>();
-function gbFormat(locale: string): Intl.NumberFormat {
-	let f = gbFormats.get(locale);
-	if (!f) gbFormats.set(locale, (f = new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 1 })));
-	return f;
-}

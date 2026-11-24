@@ -1,6 +1,7 @@
-// Contrato de las piezas compartidas de los pasos (buscar torrents → elegir → buscar el mejor): las dibujan los componentes de
-// esta carpeta con la UI y animaciones de la web; las usan `web/src/lib/Torrents.svelte` y `ui/src/FlowScreen.svelte`.
+// Contrato de los pasos (buscar torrents → elegir → buscar el mejor): las piezas de esta carpeta las dibujan con la UI y
+// animaciones de la web; `FlowView` es lo que arma `flow-model.ts` y dibujan `web/src/lib/Torrents.svelte` y `ui/src/FlowScreen.svelte`.
 import type { IconName } from '../components/icons.ts';
+import type { OptionRowView } from '../options/row.ts';
 
 /** Ícono de la tarjeta: barras de conexión (1-4 encendidas), parlante que late, globo con texto (LAT/ES), lista animada ("Ver todas") o ícono común. */
 export type TileSpec = { kind: 'net'; level: 1 | 2 | 3 | 4 } | { kind: 'wave' } | { kind: 'bubble'; text: string } | { kind: 'list' } | { kind: 'icon'; icon: IconName };
@@ -35,3 +36,37 @@ export type MoreRowView =
 	| { kind: 'running'; text: string; small?: string; stop: string; onstop: () => void }
 	| { kind: 'done'; found: boolean; text: string }
 	| { kind: 'more'; title: string; small: string | null; onclick: () => void };
+
+/** Migas con su etiqueta para lectores de pantalla. */
+export type CrumbsView = { aria: string; items: FlowCrumb[] };
+
+/** Pasos: modo (TorBox / torrent, solo desktop), conexión, ¿latino?, calidad (solo por torrent) y el resultado / la lista. */
+export type FlowStep = 'mode' | 'net' | 'lat' | 'res' | 'list';
+
+/** Tarjeta de un paso (la dibuja `FlowChoice.svelte`): ícono (`tile`), su color CSS (`tone`) y la posición (`i`, entrada escalonada). */
+export type ChoiceView = {
+	id: string;
+	tile: TileSpec;
+	tone: string;
+	i: number;
+	title: string;
+	sub: string;
+	note: string | null;
+	badge: string | null;
+	chips: FlowChip[] | null;
+	disabled: boolean;
+	primary: boolean;
+	onclick: () => void;
+};
+/** Botón ancho de los pasos: con `small`, título en negrita y aclaración debajo; `count`, el número al costado. */
+export type FlowButton = { id: string; icon: IconName; text: string; small: string | null; title: string | null; count: string | null; onclick: () => void };
+
+type Screen = { crumbs: CrumbsView | null; title: string | null };
+/** Una pantalla de los pasos, con textos ya traducidos. `search` lo arma cada app (cómo carga sus fuentes es suyo). */
+export type FlowView =
+	| { kind: 'search'; title: string; sub: string; frac: number | null }
+	| (Screen & { kind: 'choices'; step: FlowStep; choices: ChoiceView[] })
+	| (Screen & { kind: 'scan'; text: string; /** Avance 0..1. */ frac: number; count: string; stop: FlowButton })
+	| (Screen & { kind: 'nolat'; none: string; choices: ChoiceView[]; more: MoreRowView | null })
+	| (Screen & { kind: 'match'; note: string | null; rows: OptionRowView[]; lighter: FlowButton | null; more: MoreRowView | null; all: FlowButton })
+	| (Screen & { kind: 'spain'; note: string; rows: OptionRowView[]; original: FlowButton; all: FlowButton });
