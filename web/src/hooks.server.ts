@@ -10,12 +10,14 @@ import { attempt } from '#lib/server/intentos.ts';
 
 /** Pide a Chrome (Android) el modelo del equipo y la versión del sistema en los pedidos siguientes (los lee track()). */
 const HINTS = 'Sec-CH-UA-Model, Sec-CH-UA-Platform-Version';
+/** Archivos de la instalación como app (PWA): el navegador los baja sin cookies. */
+const INSTALL_FILES = new Set(['/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/apple-touch-icon.png']);
 /** IPs que ya entraron con el código correcto en esta instancia (vencimiento en ms): así el pedido de todos los
  * días no consulta la base. Una IP bloqueada no entra acá, y una que entró y falla después se saca. */
 const okIps = new Map<string, number>();
 
 const GATE = `<!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Streamonte</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0d1014"><title>Streamonte</title>
 <style>
 	:root { color-scheme: dark; --bg: #0d1014; --fg: #eee; --card: #171b21; --line: #2c323b; }
 	/* Arriba y a distancia fija (no centrado ni en dvh): el teclado abre debajo sin tapar ni mover las casillas. */
@@ -79,6 +81,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 			return res;
 		};
 		if (!pass) return app();
+		// Lo que pide el navegador para instalar la app (sin cookies): manifest e íconos pasan sin código.
+		if (INSTALL_FILES.has(event.url.pathname)) return resolve(event);
 		const code = event.cookies.get('code');
 		let wait: number | undefined;
 		if (code) {
