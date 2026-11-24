@@ -1,4 +1,4 @@
-// Código del apodo (2026-11-24): 2 animales en orden (de los 20 de packages/ui/src/animals/animals.ts, 380 códigos) para
+// Código del apodo (2026-11-24): 2 animales, en cualquier orden (de los 20 de packages/ui/src/animals/animals.ts, 380 códigos) para
 // que nadie escriba el apodo de otro y vea o ensucie sus Vistos. Tabla `apodos` de Neon (db/schema.sql; se crea sola si
 // falta, como `vistos`): el hash scrypt con sal, la ayuda del login, fechas y fallos. Nunca se guarda ni se devuelve el
 // código en claro, ni cuáles 2 de las 12 cartas de la ayuda son.
@@ -8,7 +8,7 @@ import { sql } from './track.ts';
 import { sealCode } from './apodo-cifrado.ts';
 import { ALERT_FAILS, ANIMAL_IDS, CODE_LEN, HELP_SIZE, WAIT_SECONDS } from '../../../../packages/ui/src/animals/animals.ts';
 
-/** Posiciones (en `ANIMAL_IDS`) de los animales elegidos, en orden. */
+/** Posiciones (en `ANIMAL_IDS`) de los animales elegidos. Lo guardado (hash y cifrado) va siempre ordenado (`canon`). */
 export type Code = number[];
 
 /** Lo guardado de un apodo. `hash` null no pasa (sin código no hay fila); `creado` versiona la sesión. */
@@ -34,8 +34,8 @@ export type Store = {
 	get(apodo: string): Promise<Row | null>;
 	/** Crea el código si el apodo no tiene; `null` si otro lo creó antes. Devuelve `creado`. */
 	create(apodo: string, hash: string, sal: string, ayuda: number[], cifrado: string): Promise<Date | null>;
-	/** Guarda el código cifrado de un código creado antes del cifrado (solo si falta). */
-	seal(apodo: string, cifrado: string): Promise<void>;
+	/** Reemplaza hash, sal y cifrado (código anterior: hasheado en el orden elegido o sin cifrado). `creado` no cambia: la sesión sigue. */
+	rehash(apodo: string, hash: string, sal: string, cifrado: string): Promise<void>;
 	/** `{ row }`: el intento quedó reservado (la espera ya corre); `{ wait }`: segundos que faltan; `null`: sin código. */
 	claim(apodo: string): Promise<{ row: Row } | { wait: number } | null>;
 	success(apodo: string): Promise<void>;
@@ -47,26 +47,34 @@ export type Store = {
 
 const WAIT_MS = WAIT_SECONDS * 1000;
 
-/** Valida lo que llega del cliente: `CODE_LEN` ids distintos y conocidos, en orden. */
+/** Valida lo que llega del cliente: `CODE_LEN` ids distintos y conocidos (en cualquier orden). */
 export function parseCode(v: unknown): Code | null {
 	if (!Array.isArray(v) || v.length !== CODE_LEN) return null;
 	const out = v.map((id) => (typeof id === 'string' ? ANIMAL_IDS.indexOf(id) : -1));
 	return out.every((n) => n >= 0) && new Set(out).size === CODE_LEN ? out : null;
 }
 
+/** El par en su forma guardada: ordenado por posición, así elegir A-B o B-A es el mismo código. */
+export const canon = (code: Code): Code => [...code].sort((a, b) => a - b);
+
 const derive = (code: Code, sal: Buffer) =>
 	new Promise<Buffer>((ok, ko) => scrypt(code.join('.'), sal, 32, { N: 2 ** 14 }, (e, k) => (e ? ko(e) : ok(k))));
 
 export async function hashCode(code: Code): Promise<{ hash: string; sal: string }> {
 	const sal = randomBytes(16);
-	return { hash: (await derive(code, sal)).toString('base64'), sal: sal.toString('base64') };
+	return { hash: (await derive(canon(code), sal)).toString('base64'), sal: sal.toString('base64') };
 }
 
-/** Compara en tiempo constante. */
-export async function checkCode(code: Code, hash: string, sal: string): Promise<boolean> {
+/** Compara en tiempo constante, sin importar el orden: siempre prueba los 2 órdenes (el canónico y el invertido, que es
+ * el de los códigos anteriores hasheados en el orden elegido). `legacy`: acertó con el invertido, hay que re-hashear. */
+export async function checkCode(code: Code, hash: string, sal: string): Promise<{ ok: boolean; legacy: boolean }> {
 	const want = Buffer.from(hash, 'base64');
-	const got = await derive(code, Buffer.from(sal, 'base64'));
-	return want.length === got.length && timingSafeEqual(want, got);
+	const salBuf = Buffer.from(sal, 'base64');
+	const same = (got: Buffer) => want.length === got.length && timingSafeEqual(want, got);
+	const sorted = canon(code);
+	const direct = same(await derive(sorted, salBuf));
+	const reversed = same(await derive([...sorted].reverse(), salBuf));
+	return { ok: direct || reversed, legacy: !direct && reversed };
 }
 
 /** Las 12 cartas de la ayuda: el código + 10 señuelos al azar, mezclados. Se arma una vez (al crear el código) y se
@@ -107,16 +115,20 @@ export type Outcome =
 export async function enter(store: Store, apodo: string, code: Code, mode: 'nuevo' | 'login'): Promise<Outcome> {
 	if (mode === 'nuevo') {
 		const { hash, sal } = await hashCode(code);
-		const creado = await store.create(apodo, hash, sal, pickHelp(code), sealCode(code));
+		const creado = await store.create(apodo, hash, sal, pickHelp(code), sealCode(canon(code)));
 		return creado ? { ok: true, version: creado.getTime(), created: true } : { ok: false, reason: 'taken' };
 	}
 	const c = await store.claim(apodo);
 	if (!c) return { ok: false, reason: 'taken' };
 	if ('wait' in c) return { ok: false, reason: 'wait', wait: c.wait };
-	if (await checkCode(code, c.row.hash, c.row.sal)) {
+	const hit = await checkCode(code, c.row.hash, c.row.sal);
+	if (hit.ok) {
 		await store.success(apodo);
-		// Código de antes del cifrado: acá el server conoce el par, se completa.
-		if (!c.row.cifrado) await store.seal(apodo, sealCode(code));
+		// Código anterior (hasheado en el orden elegido, o sin cifrado): acá el server conoce el par, se deja canónico.
+		if (hit.legacy || !c.row.cifrado) {
+			const again = await hashCode(code);
+			await store.rehash(apodo, again.hash, again.sal, sealCode(canon(code)));
+		}
 		return { ok: true, version: c.row.creado.getTime(), created: false };
 	}
 	await store.failure(apodo);
@@ -144,9 +156,9 @@ export function memoryStore(now: () => number = Date.now): Store {
 			rows.set(a, { apodo: a, hash, sal, ayuda, creado, fallos: 0, ultimoFallo: null, esperaHasta: null, vistaFallos: 0, cifrado });
 			return creado;
 		},
-		async seal(a, cifrado) {
+		async rehash(a, hash, sal, cifrado) {
 			const r = rows.get(a);
-			if (r && !r.cifrado) r.cifrado = cifrado;
+			if (r) Object.assign(r, { hash, sal, cifrado });
 		},
 		async claim(a) {
 			const r = rows.get(a);
@@ -202,7 +214,7 @@ function neonStore(q: NonNullable<ReturnType<typeof sql>>): Store {
 				ON CONFLICT (apodo) DO NOTHING RETURNING *`);
 			return r?.creado ?? null;
 		},
-		seal: async (a, cifrado) => void (await (await db())`UPDATE apodos SET codigo_cifrado = ${cifrado} WHERE apodo = ${a} AND codigo_cifrado IS NULL`),
+		rehash: async (a, hash, sal, cifrado) => void (await (await db())`UPDATE apodos SET hash = ${hash}, sal = ${sal}, codigo_cifrado = ${cifrado} WHERE apodo = ${a}`),
 		async claim(a) {
 			const d = await db();
 			// Atómico: dos intentos a la vez no pasan los dos.

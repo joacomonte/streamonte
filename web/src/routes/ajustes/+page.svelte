@@ -150,8 +150,8 @@
 		</div>
 		<p id="nick-msg" class="st-msg st-foot bad" role="status">{nickMsg}</p>
 		{#if animals}
-			<section id="my-animals" class="mine" aria-label={t('Tu clave: estos 2, en este orden')}>
-				<p class="mine-lead">🔑 {t('Tu clave: estos 2, en este orden')}</p>
+			<section id="my-animals" class="mine" aria-label={t('Tu clave: estos 2')}>
+				<p class="mine-lead">🔑 {t('Tu clave: estos 2')}</p>
 				<div class="mine-cards">
 					{#each animals as a, i (a.id)}
 						<div id="my-animal-{i + 1}" class="mine-card" style="--i:{i}">
