@@ -47,18 +47,6 @@ export async function askTmdbKey(): Promise<void> {
   input?.scrollIntoView({ block: 'center' });
   input?.focus();
 }
-/** Cambió la key de TMDB en Ajustes (2026-11-17): la lista se vuelve a pedir ya (con o sin sus filtros) y, si hay un
- *  título abierto, sus datos de TMDB. */
-document.addEventListener('streamonte:tmdb-key', () => {
-  core.forgetTitles();
-  store?.relang();
-  const s = state.side;
-  if (s) {
-    s.similar = undefined;
-    core.catalogDetails(s.kind, s.id).then((d) => { if (state.side === s) { s.details = d; renderSide(); } }).catch(() => {});
-  }
-});
-
 // ---------- Fuentes (FR-41) ----------
 async function openSources(): Promise<void> {
   let dlg = $<HTMLDialogElement>('#dlg-sources');
@@ -122,12 +110,25 @@ export function setPastedHost(node: HTMLElement | null): void { pastedHost = nod
 /** Redibuja la sección de pegados (llega una fila nueva, se quita una o se sabe si hay key de TorBox). */
 export function refreshPasted(): void { pastedHost?.replaceChildren(...[pastedSection()].filter((n) => n !== null)); }
 
+/** Cambió la key de TMDB en Ajustes (2026-11-17): la lista se vuelve a pedir ya (con o sin sus filtros) y, si hay un
+ *  título abierto, sus datos de TMDB. */
+function onTmdbKey(): void {
+  core.forgetTitles();
+  store?.relang();
+  const s = state.side;
+  if (s) {
+    s.similar = undefined;
+    core.catalogDetails(s.kind, s.id).then((d) => { if (state.side === s) { s.details = d; renderSide(); } }).catch(() => {});
+  }
+}
+
 /** Arranque del catálogo: lo llama `main.ts` después de montar los diálogos (busca `#catalog` y `#btn-sources`). */
 export async function initCatalog(): Promise<void> {
   // La grilla, el buscador y los filtros los monta `catalog-mount.ts` (catálogo compartido) en #cat-root.
   $('#catalog').append(
     el('div', { class: 'cat-main' }, el('div', { id: 'cat-root' })),
     el('aside', { id: 'cat-side', class: 'cat-side', 'aria-label': t('Opciones') }));
+  document.addEventListener('streamonte:tmdb-key', onTmdbKey);
   $('#btn-sources').addEventListener('click', openSources); // en Ajustes (2026-11-15)
   document.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey && ev.key.toLowerCase() === 'f') { ev.preventDefault(); $('#cat-q').focus(); }
