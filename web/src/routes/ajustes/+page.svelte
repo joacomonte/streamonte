@@ -12,8 +12,8 @@
 	import { COMMON_KEYS } from '$ui/settings/keys.ts';
 	import { langOptions } from '#lib/langs.ts';
 	import AdminCode from '#lib/AdminCode.svelte';
-	import { saveNick } from '#lib/nick.ts';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { enterNick } from '#lib/apodo.svelte.ts';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
 	type Status = { tmdb: boolean; torbox: boolean; opensubtitles: boolean; opensubtitles_user: boolean; opensubtitles_pass: boolean };
@@ -78,7 +78,7 @@
 		}
 	}
 
-	// Apodo: mismo validador que la bienvenida (lib/nick.ts).
+	// Apodo: mismo flujo que la bienvenida (apodo + código de animales, lib/apodo.svelte.ts).
 	let nick = $state((() => page.data.nick ?? '')());
 	let nickMsg = $state('');
 	let nickBad = $state(false);
@@ -86,14 +86,11 @@
 	async function onNick(e: SubmitEvent) {
 		e.preventDefault();
 		nickSaving = true;
-		const r = await saveNick(nick);
+		const r = await enterNick(nick);
 		nickSaving = false;
-		nickBad = !r.nick;
+		nickBad = !r.nick && !!r.error;
 		nickMsg = r.nick ? t('Guardado.') : t(r.error ?? '');
-		if (r.nick) {
-			nick = r.nick;
-			invalidateAll();
-		}
+		if (r.nick) nick = r.nick;
 	}
 
 	/** Panel de uso: si este equipo ya entró, va directo; si no, pide el código acá mismo. */

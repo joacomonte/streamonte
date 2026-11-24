@@ -232,13 +232,16 @@
 
 <style>
 	/* ── Botón ── */
-	.pick-row { display: flex; align-items: center; gap: 6px; margin: 6px 0 10px; }
+	/* `min-width: 0`: en la fila del orden se achica (el rótulo se corta con …) en vez de desbordar a 375 px. */
+	.pick-row { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 6px 0 10px; }
 	.trigger { display: inline-flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; height: 44px; padding: 0 14px 0 8px; border: 0; border-radius: 14px; background: linear-gradient(180deg, #1a1e26, #12151b); color: #e7eaee; font-size: 14px; font-weight: 650; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.35); -webkit-tap-highlight-color: transparent; transition: box-shadow 0.25s var(--out), color 0.25s var(--out), scale 0.2s var(--out); }
 	.trigger:active { scale: 0.96; }
 	.trigger.on { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), inset 0 0 0 1px rgb(96 165 250 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35); }
 	.stack { display: flex; flex: none; }
 	.mini { flex: none; width: 26px; height: 26px; margin-left: -8px; border-radius: 8px; background: #1a1f27 center / cover; box-shadow: 0 0 0 2px #161a21; }
 	.mini:first-child { margin-left: 0; }
+	/* Celu angosto: una sola miniatura, así entra el rótulo. */
+	@media (max-width: 400px) { .mini:nth-child(n + 2) { display: none; } .trigger { gap: 7px; padding-right: 10px; } }
 	.mini.art { display: grid; place-items: center; color: oklch(0.74 0.14 var(--h, 250)); }
 	.lbl { display: flex; flex-direction: column; min-width: 0; overflow: hidden; line-height: 1.1; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 	.lbl em { overflow: hidden; font-style: normal; font-size: 11px; font-weight: 500; color: #8a939e; text-overflow: ellipsis; }

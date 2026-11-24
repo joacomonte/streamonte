@@ -3,7 +3,7 @@
 //        [--ui-url URL] [--web-url URL] [--jobs N=2] [--threshold PCT=0.1] [--tol CANAL=16] [--out DIR] [--changed-apps]
 // Alias documentados: `scripts/contracts.sh` (= --contracts) y `scripts/visual.mjs` (= --shots). `verify-ui.sh` = lock + este runner con todo.
 //
-// Escena = { app: "desktop"|"web", url, viewport?, cookies?, storage?, live?, setup[], must[], shot? }
+// Escena = { app: "desktop"|"web", url, viewport?, cookies?, apodo?(web: false = sin sesión de apodo), storage?, live?, setup[], must[], shot? }
 //   setup: { click | type+text | hover | contextmenu | wait(ms) | waitFor(sel) | waitText(texto) | waitUrl(regex) | scroll(sel),
 //            after?(ms; 400 en contratos, 0 en capturas), timeout?, optional? (click: se saltea si no aparece) }
 //   must:  { sel, text?(regex), count?(>=), hover?(selector a pasar el mouse antes), status?: "regressed", note?, timeout?, after? }
@@ -18,6 +18,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
+import { apodoCookie } from './lib/web-apodo.mjs';
 
 const root = new URL('..', import.meta.url).pathname;
 const { chromium } = createRequire(`${root}web/package.json`)('playwright-core');
@@ -81,7 +82,9 @@ async function serve(given, cwd, args, env = {}) {
 }
 const baseUrl = {};
 if (scenes.some((s) => appKey(s) === 'ui')) baseUrl.ui = await serve(opt('ui-url', process.env.UI_URL), 'ui', []);
-if (scenes.some((s) => appKey(s) === 'web')) baseUrl.web = await serve(opt('web-url', process.env.WEB_URL), 'web', ['dev'], { HTTP_FIXTURES: `${root}tests/fixtures/http`, APP_PASSWORD: '' });
+if (scenes.some((s) => appKey(s) === 'web')) baseUrl.web = await serve(opt('web-url', process.env.WEB_URL), 'web', ['dev'], { HTTP_FIXTURES: `${root}tests/fixtures/http`, APP_PASSWORD: '', DATABASE_URL: '' });
+// Sesión del apodo de prueba (cookie firmada `apodo`, en la base en memoria del vite): la usan las capturas.
+const webApodo = baseUrl.web ? await apodoCookie(baseUrl.web) : null;
 
 // ── contextos de navegador
 const CONTRACT_VP = {
@@ -136,7 +139,7 @@ async function runScene(s) {
     const ctx = await browser.newContext(isShot
       ? { ...SHOT_VP[s.shot.viewport], deviceScaleFactor: 1, colorScheme: 'dark', reducedMotion: 'reduce', locale: 'es-AR', timezoneId: 'UTC' }
       : { ...CONTRACT_VP[s.viewport ?? 'desktop'], reducedMotion: 'reduce' });
-    const cookies = { ...(isShot ? { nick: 'Joaco' } : {}), ...s.cookies }; // sin apodo la web lo pide en un diálogo
+    const cookies = { ...(s.app === 'web' && s.apodo !== false ? { apodo: webApodo } : {}), ...s.cookies }; // sin apodo la web lo pide en un diálogo (`"apodo": false`: la escena lo prueba)
     const storage = { ...(isShot ? { 'tour:welcome': '1', 'tour:nick': '1' } : {}), ...s.storage };
     await ctx.addCookies(Object.entries(cookies).map(([name, value]) => ({ name, value, url: origin })));
     await ctx.addInitScript((kv) => { try { for (const k in kv) localStorage.setItem(k, kv[k]); } catch { /* sin storage */ } }, storage);

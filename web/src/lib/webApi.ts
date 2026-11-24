@@ -84,7 +84,7 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			download: async (hash, name) =>
 				adapt.magnetStatus(await json<MagnetRaw>('/api/magnet', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ hash, dn: name }) }))
 		},
-		// Vistos: del servidor por apodo (cookie `nick`), siempre frescos. `id` de la web = el de TMDB; el servidor lo guarda como `tmdb`.
+		// Vistos: del servidor por apodo verificado (cookie firmada `apodo`), siempre frescos. `id` de la web = el de TMDB; el servidor lo guarda como `tmdb`.
 		recent: {
 			list: async () => (await json<Seen[]>('/api/vistos')).filter((v) => v.tmdb).map(({ tmdb, ...v }): RecentItem => ({ ...v, id: String(tmdb) })),
 			mark: (item) => post({ action: 'mark', item: seenOf(item) }),

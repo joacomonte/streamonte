@@ -3,6 +3,8 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import AdminCode from '#lib/AdminCode.svelte';
+	import { enhance } from '$app/forms';
+	import { confirmDialog } from '$ui/components/confirm-queue.ts';
 	import type { ComponentProps } from 'svelte';
 	import type { PageProps } from './$types';
 
@@ -18,6 +20,16 @@
 		arming = true;
 		clearTimeout(disarm);
 		disarm = setTimeout(() => (arming = false), 4000);
+	}
+	/** Resetear el código de animales: confirma antes de mandar el form. */
+	async function confirmReset(e: MouseEvent) {
+		e.preventDefault();
+		const form = (e.currentTarget as HTMLButtonElement).form;
+		const ok = await confirmDialog('Resetear código', `${data.nick} va a tener que crear un código nuevo al entrar (el primero que entre con ese apodo lo crea). Las sesiones abiertas se cierran.`, [
+			{ id: 'reset-cancel', label: 'Cancelar', value: false },
+			{ id: 'reset-confirm', label: 'Resetear', value: true, danger: true }
+		]);
+		if (ok) form?.requestSubmit();
 	}
 	async function refresh() {
 		loading = true;
@@ -161,10 +173,31 @@
 		{/if}
 	</header>
 
+	<!-- Alertas: apodos con más de 3 códigos errados (no bloquean: se puede reintentar cada 15 s). -->
+	{#if !data.locked && data.alertas?.length}
+		<section id="admin-alerts" class="alerts" aria-label="Alertas">
+			{#each data.alertas as a (a.apodo)}
+				<div class="alert" role="alert">
+					<span class="alert-ic" aria-hidden="true">!</span>
+					<span class="alert-txt">
+						<a id="alert-user-{a.apodo.replace(/ /g, '-')}" href="/admin?u={encodeURIComponent(a.apodo)}"><b>{a.apodo}</b></a>
+						<span>{a.fallos} códigos errados · último {cuando(a.ultimo)}</span>
+					</span>
+					<!-- Con la búsqueda actual (`u`, `d`, `v`): así se queda en la misma vista. -->
+					<form method="POST" action="?{page.url.searchParams.size ? `${page.url.searchParams}&` : ''}/vista" use:enhance>
+						<input type="hidden" name="u" value={a.apodo} />
+						<button id="alert-seen-{a.apodo.replace(/ /g, '-')}" type="submit" class="alert-btn">Marcar como vista</button>
+					</form>
+				</div>
+			{/each}
+		</section>
+	{/if}
+
 	{#if data.locked}
 		<div class="login"><p class="muted">Código del panel</p><AdminCode id="admin-pass" wait={data.wait} /></div>
 	{:else if data.noDb}
 		<p class="muted">Falta DATABASE_URL: no hay datos.</p>
+		{#if data.codigo}<section class="card"><h2>{data.nick}</h2>{@render codigo()}</section>{/if}
 	{:else if equipos && open}
 		<section class="card">
 			<h2>{open.dato}</h2>
@@ -192,6 +225,7 @@
 				</button>
 				{#if arming}<span class="muted del-note">Se borra todo lo registrado de este usuario. No se puede deshacer.</span>{/if}
 			</form>
+			{#if data.codigo}{@render codigo()}{/if}
 		</section>
 		{#if reproducciones.length}
 			<h2>Reproducciones</h2>
@@ -285,6 +319,28 @@
 	{/if}
 </main>
 
+<!-- Código de animales del apodo abierto: si tiene, desde cuándo, fallos (sin acertar desde el último) y resetear. -->
+{#snippet codigo()}
+	{@const c = data.codigo!}
+	<div id="user-code" class="code">
+		<p><b>Código de animales:</b> {c.tiene && c.creado ? `sí, desde ${cuando(c.creado)}` : 'no tiene (el próximo que entre lo crea)'}</p>
+		{#if c.tiene}
+			<p class="muted">{c.fallos} {c.fallos === 1 ? 'fallo' : 'fallos'} sin acertar{#if c.ultimo}{` · último ${cuando(c.ultimo)}`}{/if}</p>
+			{#if data.fallosRecientes?.length}
+				<ul class="fails">
+					{#each data.fallosRecientes as f (f.id)}
+						<li><span>{equipo(f.equipo)}{#if f.lugar}{` · ${f.lugar}`}{/if}</span><time>{cuando(f.fecha)}</time></li>
+					{/each}
+				</ul>
+			{/if}
+			<form method="POST" action="?/resetear" class="del-form">
+				<input type="hidden" name="u" value={data.nick} />
+				<button id="user-code-reset" type="submit" class="del" onclick={confirmReset}><Icon name="refresh" size={14} />Resetear código</button>
+			</form>
+		{/if}
+	</div>
+{/snippet}
+
 <!-- Hora de Argentina y, debajo, la local del usuario si vive en otra zona. -->
 {#snippet hora(fecha: string, zona: string | null | undefined)}
 	{@const l = local(fecha, zona)}
@@ -354,4 +410,14 @@
 	.plays .what span { color: var(--muted); font-size: 13px; }
 	.entradas { margin: 8px 2px 0; }
 	.equipos li { margin-bottom: 8px; font-size: 14px; }
+	.alerts { display: grid; gap: 8px; margin-bottom: 16px; }
+	.alert { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-lg); background: color-mix(in srgb, var(--red) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--red) 55%, transparent); }
+	.alert-ic { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--red); color: #2a0505; font-weight: 900; }
+	.alert-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; }
+	.alert-txt a { color: var(--text); }
+	.alert-txt span { color: var(--muted); font-size: 13px; }
+	.alert-btn { min-height: 36px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+	.code { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-strong); font-size: 14px; }
+	.fails li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border); }
+	.fails time { white-space: nowrap; }
 </style>

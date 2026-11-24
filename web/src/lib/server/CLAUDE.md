@@ -5,7 +5,8 @@ TMDB, IMDb, addons de torrents, TorBox, OpenSubtitles y Neon. Los `api/*/+server
 - Fachada HTTP (`route`, `Fail`, `get`) → `http.ts`, `http-route.ts`, `fetch.ts`; params → `params.ts`; idioma → `lang.ts`.
 - TMDB: ficha, listas, personas → `tmdb.ts` (fachada de `tmdb/`: `client` `cache` `lists` `title`). IMDb: puntajes → `imdb.ts`; subgéneros → `interests.ts`; premios → `awards.ts`.
 - Torrents de addons → `torrents.ts`. TorBox → `torbox.ts` (`torbox/`: `client` `link` `tracks`). MKV → `mkv.ts`. Magnet pegado → `magnet.ts`.
-- Subtítulos (OS.org y premium) → `subs.ts`. Keys → `keys.ts`; carpeta de datos → `config.ts`. Tracking/intentos → `track.ts`, `intentos.ts`.
+- Subtítulos (OS.org y premium) → `subs.ts`. Keys → `keys.ts`; carpeta de datos → `config.ts`. Tracking/intentos → `track.ts`, `intentos.ts`. Vistos → `vistos.ts`.
+- Código de animales del apodo (hash, ayuda, espera de 15 s, alertas) → `apodos.ts`; cookie firmada y apodo verificado → `apodo-session.ts`.
 
 ## Relación
 Muchas reglas tienen golden contra Rust (`packages/golden/CLAUDE.md`). La de latino se importa de `packages/ui/src/latino.ts` por ruta relativa (`node --test` no resuelve `$ui`).
@@ -17,6 +18,7 @@ Muchas reglas tienen golden contra Rust (`packages/golden/CLAUDE.md`). La de lat
 - `torbox/client.ts download`: el link lleva la key → no cachear ni loguear; por eso `tracks` recibe `ids`.
 - `keep()` y `detail().excluded` = `is_excluded` del desktop.
 - `subs.ts` UA `VLSub 0.11.1` es el único que acepta OS.org anónimo. Solo `POST /api/premium/[id]` gasta cuota.
+- Apodo: confiar solo en `verifiedNick()` (cookie `apodo` firmada + versión del código), nunca en un apodo que mande el cliente. Sin `DATABASE_URL`, `apodos.ts` guarda en memoria (se pierde al reiniciar).
 - Tests nuevos importan `http-route.ts`/`fetch.ts`, no `http.ts` (arrastra `@sveltejs/kit`).
 
 ## Cómo se prueba

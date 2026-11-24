@@ -6,7 +6,7 @@
 	import { markSeen, nickStep, seen, welcomeSteps } from '$ui/components/tours.ts';
 	import { i18n, syncLangs, t } from '#lib/i18n.svelte.ts';
 	import { updated } from '$app/state';
-	import { beforeNavigate, invalidateAll, onNavigate } from '$app/navigation';
+	import { beforeNavigate, onNavigate } from '$app/navigation';
 	import { setContext } from 'svelte';
 	import { setApi } from '$ui/context.ts';
 	import { webApi } from '#lib/webApi.ts';
@@ -16,7 +16,8 @@
 	import Updating from '$ui/components/Updating.svelte';
 	import { track } from '#lib/track.ts';
 	import { langOptions } from '#lib/langs.ts';
-	import { saveNick } from '#lib/nick.ts';
+	import { enterNick } from '#lib/apodo.svelte.ts';
+	import ApodoCode from '#lib/ApodoCode.svelte';
 	import { installTypeFx } from '$ui/components/type-fx.ts';
 
 	// Letras que entran desenfocadas al escribir, en todos los campos de texto.
@@ -46,12 +47,8 @@
 		if (!seen('welcome')) welcomeOpen = touring = true;
 		else if (!data.nick) nickOpen = true;
 	});
-	/** Guarda el apodo; el saludo de la portada lo lee de los datos del layout. */
-	const onnick = async (raw: string) => {
-		const r = await saveNick(raw);
-		if (r.nick) invalidateAll();
-		return r;
-	};
+	/** Apodo + código de animales (crear o entrar); el saludo de la portada lo lee de los datos del layout. */
+	const onnick = enterNick;
 	// Se rearma al cambiar el idioma en su paso: el resto del tutorial ya sale en el elegido.
 	const welcome = $derived(welcomeOpen ? welcomeSteps() : null);
 
@@ -143,6 +140,9 @@
 {#if nickOpen}
 	<Tour id="nick" label={t('Tu apodo')} open steps={[nickStep()]} nick={data.nick} {onnick} onclose={() => (nickOpen = false)} />
 {/if}
+
+<!-- Encima de la bienvenida (y de Ajustes): el código de animales del apodo. -->
+<ApodoCode />
 
 <style>
 	/* Grilla ↔ ficha. El póster usa solo la imagen nueva (en vivo, nítida) y se levanta en el vuelo. */

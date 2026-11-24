@@ -12,6 +12,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { apodoCookie } from './lib/web-apodo.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const { chromium } = createRequire(new URL('../web/package.json', import.meta.url))('playwright-core');
@@ -166,7 +167,7 @@ function runLive(page, cdp, list, target) {
 
 async function web(browser, url, n) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
-  await ctx.addCookies([{ name: 'nick', value: 'Bench', url }]); // sin apodo la app abre su bienvenida
+  await ctx.addCookies([{ name: 'apodo', value: await apodoCookie(url.replace(/\/$/, ''), 'Bench'), url }]); // sin apodo la app abre su bienvenida
   const page = await ctx.newPage();
   await page.addInitScript(INIT + `
     for (const k of ['welcome', 'cast-never', 'cast']) localStorage.setItem('tour:' + k, '1');

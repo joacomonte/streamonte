@@ -1,0 +1,25 @@
+{
+ "app": "web",
+ "apodo": false,
+ "viewport": "mobile",
+ "storage": {
+  "tour:welcome": "1"
+ },
+ "url": "/",
+ "setup": [
+  { "type": "#nick-nick", "text": "Nueva" },
+  { "click": "#nick-nick-go" },
+  { "waitFor": "#animal-warn-ok" },
+  { "click": "#animal-warn-ok" },
+  { "click": "#animal-yaguarete" },
+  { "click": "#animal-caracal" },
+  { "scroll": "#animal-credit" },
+  { "click": "#animal-done" },
+  { "waitText": "Acordate de estos 2" },
+  { "click": "#animal-done-ok" },
+  { "waitText": "Nueva" }
+ ],
+ "must": [
+  { "sel": ".hello", "text": "Nueva" }
+ ]
+}

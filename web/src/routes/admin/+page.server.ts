@@ -2,9 +2,30 @@
 // shortcut: contraseña fija en env guardada tal cual en una cookie; si hay datos sensibles, pasar a login real.
 // Con el mismo límite de intentos que el código de acceso (lib/server/intentos.js), aparte por IP.
 import { fail, redirect } from '@sveltejs/kit';
+import type { Cookies } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { sql } from '#lib/server/track.ts';
 import { attempt } from '#lib/server/intentos.ts';
+import { store } from '#lib/server/apodos.ts';
+import { cleanNick } from '#lib/nick.ts';
+
+/** Alertas de apodos con más de 3 fallos (arriba de todo) y el código del usuario abierto. Sin DATABASE_URL salen de la
+ * base en memoria (lib/server/apodos.ts). Nunca el código ni la ayuda. */
+async function codigos(nick: string | null) {
+	const s = store();
+	const [alertas, row] = await Promise.all([s.alerts(), nick ? s.get(nick) : Promise.resolve(null)]);
+	return {
+		alertas: alertas.map((r) => ({ apodo: r.apodo, fallos: r.fallos, ultimo: r.ultimoFallo?.toISOString() ?? '' })),
+		codigo: nick ? (row ? { tiene: true, creado: row.creado.toISOString(), fallos: row.fallos, ultimo: row.ultimoFallo?.toISOString() ?? null } : { tiene: false, creado: null, fallos: 0, ultimo: null }) : null
+	};
+}
+/** Las acciones del panel piden la misma cookie que la lectura, con el mismo límite de intentos por IP y comparación en
+ * tiempo constante (`attempt`, lib/server/intentos.ts). */
+async function isAdmin(cookies: Cookies, ip: string): Promise<boolean> {
+	const pass = process.env.ADMIN_PASSWORD;
+	const admin = cookies.get('admin');
+	return !!pass && !!admin && (await attempt(`admin:${ip}`, admin, pass)).ok;
+}
 
 export const load: PageServerLoad = async ({ cookies, url, getClientAddress }) => {
 	const pass = process.env.ADMIN_PASSWORD;
@@ -16,14 +37,15 @@ export const load: PageServerLoad = async ({ cookies, url, getClientAddress }) =
 		cookies.delete('admin', { path: '/' });
 		return { locked: true, wait: r.wait };
 	}
-	const q = sql();
-	if (!q) return { locked: false, noDb: true };
 	// Usuario abierto: por apodo (`u`) o, si nunca puso apodo, por dispositivo (`d`). /api/nick le pone el apodo a lo
 	// que el dispositivo hizo antes, así que sin apodo quedan solo los que nunca lo eligieron.
 	const nick = url.searchParams.get('u');
+	const cod = await codigos(nick);
+	const q = sql();
+	if (!q) return { locked: false, noDb: true, nick, ...cod, fallosRecientes: [] };
 	const dev = nick ? null : url.searchParams.get('d');
 	const quien = nick ? q`apodo = ${nick}` : q`apodo IS NULL AND dispositivo = ${dev}`;
-	const [resumen, dias, usuarios, equipos, eventos] = await Promise.all([
+	const [resumen, dias, usuarios, equipos, eventos, fallosRecientes] = await Promise.all([
 		// Entradas quedan contadas pero en segundo plano (el panel destaca usuarios y reproducciones).
 		q`SELECT count(*) FILTER (WHERE accion = 'entrar')::int AS entradas,
 			count(*) FILTER (WHERE accion = 'entrar' AND fecha > now() - interval '1 day')::int AS hoy,
@@ -60,6 +82,10 @@ export const load: PageServerLoad = async ({ cookies, url, getClientAddress }) =
 			? q`SELECT id::int, accion, dato, fecha, dispositivo, zona FROM eventos WHERE ${quien}
 				AND (accion <> 'entrar' OR id = (SELECT id FROM eventos WHERE ${quien} AND accion = 'entrar' ORDER BY fecha LIMIT 1))
 				ORDER BY fecha DESC LIMIT 500`
+			: Promise.resolve([]),
+		// Códigos de animales errados con este apodo (desde cualquier dispositivo), los últimos 10.
+		nick
+			? q`SELECT id::int, fecha, equipo, lugar FROM eventos WHERE accion = 'código mal' AND dato = ${nick} ORDER BY fecha DESC LIMIT 10`
 			: Promise.resolve([])
 	]);
 	return {
@@ -69,6 +95,8 @@ export const load: PageServerLoad = async ({ cookies, url, getClientAddress }) =
 		usuarios: usuarios as { apodo: string | null; dispositivo: string | null; equipo: string | null; pantalla: string | null; ultimo: string | null; ultima: string; reproducciones: number; dispositivos: number }[],
 		equipos: equipos as { dispositivo: string; equipo: string | null; lugar: string | null; zona: string | null; modelo: string | null; pantalla: string | null; primera: string; ultima: string; reproducciones: number; entradas: number; acciones: number }[],
 		eventos: eventos as { id: number; accion: string; dato: string | null; fecha: string; dispositivo: string; zona: string | null }[],
+		fallosRecientes: fallosRecientes as { id: number; fecha: string; equipo: string | null; lugar: string | null }[],
+		...cod,
 		nick,
 		dev
 	};
@@ -85,9 +113,8 @@ export const actions: Actions = {
 	},
 	/** Borra todo lo registrado de un usuario (por apodo, o por dispositivo si nunca puso apodo): usuarios de prueba
 	 * o que entraron sin nombre. Si ese equipo vuelve a usar la app, aparece de nuevo con lo nuevo. */
-	borrar: async ({ request, cookies }) => {
-		const pass = process.env.ADMIN_PASSWORD;
-		if (!pass || cookies.get('admin') !== pass) return fail(401, { wrong: true });
+	borrar: async ({ request, cookies, getClientAddress }) => {
+		if (!(await isAdmin(cookies, getClientAddress()))) return fail(401, { wrong: true });
 		const q = sql();
 		if (!q) return fail(503, { noDb: true });
 		const f = await request.formData();
@@ -96,5 +123,20 @@ export const actions: Actions = {
 		if (nick) await q`DELETE FROM eventos WHERE apodo = ${nick}`;
 		else if (dev) await q`DELETE FROM eventos WHERE apodo IS NULL AND dispositivo = ${dev}`;
 		redirect(303, '/admin');
+	},
+	/** Borra el código de animales del apodo (y su ayuda y fallos): el próximo que entre con ese apodo crea uno nuevo, y
+	 * las sesiones abiertas con el código viejo dejan de valer. */
+	resetear: async ({ request, cookies, getClientAddress }) => {
+		if (!(await isAdmin(cookies, getClientAddress()))) return fail(401, { wrong: true });
+		const nick = cleanNick((await request.formData()).get('u')).nick;
+		if (nick) await store().reset(nick);
+		redirect(303, nick ? `/admin?u=${encodeURIComponent(nick)}` : '/admin');
+	},
+	/** Marca la alerta de fallos como vista: vuelve si hay fallos nuevos. */
+	vista: async ({ request, cookies, getClientAddress }) => {
+		if (!(await isAdmin(cookies, getClientAddress()))) return fail(401, { wrong: true });
+		const nick = cleanNick((await request.formData()).get('u')).nick;
+		if (nick) await store().markSeen(nick);
+		return { ok: true };
 	}
 };

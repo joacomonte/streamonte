@@ -1,6 +1,6 @@
-// Apodo del usuario: lo pide la bienvenida (obligatorio) y se cambia en Ajustes. Vive en la cookie `nick` (legible,
-// 5 años, como `dev`); la pone /api/nick, que lo vuelve a validar, y la lee track() del servidor.
-// El mismo validador corre en el navegador (error al toque) y en el servidor (la cookie se puede tocar a mano).
+// Apodo del usuario: lo pide la bienvenida (obligatorio) y se cambia en Ajustes, siempre con su código de animales
+// (apodo.svelte.ts). La sesión es la cookie firmada `apodo` (lib/server/apodo-session.ts).
+// El mismo validador corre en el navegador (error al toque) y en el servidor.
 
 /** Letras (con acentos y ñ) separadas por un solo espacio. */
 const NICK = /^\p{L}+( \p{L}+)*$/u;
@@ -13,17 +13,4 @@ export function cleanNick(raw: unknown): { nick?: string; error?: string } {
 	if (!NICK.test(s)) return { error: 'Solo letras y espacios' };
 	if (s.length < 2 || s.length > 20) return { error: 'Entre 2 y 20 letras' };
 	return { nick: s[0].toUpperCase() + s.slice(1).toLowerCase() };
-}
-
-/** Lo guarda en el servidor (cookie + apodo en lo que ya registró este dispositivo). */
-export async function saveNick(raw: string): Promise<{ nick?: string; error?: string }> {
-	const c = cleanNick(raw);
-	if (!c.nick) return c;
-	try {
-		const r = await fetch('/api/nick', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nick: c.nick }) });
-		const j = await r.json();
-		return r.ok ? { nick: j.nick } : { error: j.message };
-	} catch {
-		return { error: 'No se pudo guardar. Probá de nuevo.' };
-	}
 }
