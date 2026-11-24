@@ -1,5 +1,7 @@
 # CI de pruebas (F0, NFR-17). Las pruebas de red (#[ignore = "... network"]) NO corren acá:
 # se corren en la sesión real del usuario (lección 7).
+# scripts/ci-local.sh corre los `run:` de este archivo en la Mac (lee los jobs con un parser mínimo: mantener el formato
+# `- run: <comando>` con `working-directory:` en el paso o en `defaults:`).
 name: ci
 # Solo branches (y PRs): un tag apunta a un commit que ya pasó por su branch, y repetirlo dejaba el job de macOS
 # esperando máquina hasta cancelarse (v2.1.6, 2026-11-23). El build del tag lo hace release.yml.
@@ -7,50 +9,47 @@ on:
   push:
     branches: ['**']
   pull_request:
+  workflow_dispatch:
 jobs:
   core:
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
+        # Windows en cada push; macOS solo en PRs y a mano (el día a día en macOS lo cubre scripts/ci-local.sh).
+        os: ${{ fromJSON(github.event_name == 'push' && '["windows-latest"]' || '["windows-latest","macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with: { components: "clippy, rustfmt" }
+      - uses: swatinem/rust-cache@v2
       - run: cargo fmt --all --check
       - run: cargo clippy -p streamonte-core --all-targets -- -D warnings
-      - run: cargo test -p streamonte-core
+      - run: cargo test -p streamonte-core --lib --tests
   web:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: web } }
     steps:
       - uses: actions/checkout@v4
+      - run: corepack enable
       - uses: actions/setup-node@v4
-        with: { node-version: 24 }
-      - run: corepack enable && pnpm install --frozen-lockfile
+        with: { node-version: 24, cache: pnpm, cache-dependency-path: web/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm test
   ui:
+    # ui/ y packages/ui (código compartido web + desktop; usa el typescript de ui/node_modules, no tiene node_modules propio).
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: ui } }
     steps:
       - uses: actions/checkout@v4
+      - run: corepack enable
       - uses: actions/setup-node@v4
-        with: { node-version: 24 }
-      - run: corepack enable && pnpm install --frozen-lockfile
+        with: { node-version: 24, cache: pnpm, cache-dependency-path: ui/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm check
       - run: pnpm test
       - run: pnpm build
-  shared-ui:
-    # packages/ui: código compartido web + desktop. Usa el typescript de ui/node_modules (no tiene node_modules propio).
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 24 }
-      - run: corepack enable && pnpm install --frozen-lockfile
-        working-directory: ui
       - run: pnpm check
         working-directory: packages/ui
       - run: pnpm test

@@ -1,15 +1,1 @@
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jq -r '.tool_input.command // \"\"' | grep -q 'cargo ' && (nohup sh \"$CLAUDE_PROJECT_DIR/scripts/trim-target.sh\" >/dev/null 2>&1 &); exit 0"
-          }
-        ]
-      }
-    ]
-  }
-}
+{}

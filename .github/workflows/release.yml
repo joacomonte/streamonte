@@ -1,4 +1,4 @@
-# Push a tag like v0.2.0 (same version as src-tauri/tauri.conf.json): a draft release is created,
+# Push a tag like v0.2.0 (scripts/release.sh does it; the `guard` job fails if the tag differs from the Cargo.toml version): a draft release is created,
 # Mac and Windows build in parallel and upload to it, then the last job writes latest.json
 # (which installed apps check at launch) and publishes the release. Same mechanism as monti-git.
 name: release
@@ -11,7 +11,19 @@ permissions:
   contents: write
 
 jobs:
+  # The tag must equal the version in Cargo.toml (and tauri.conf.json, while it still has one): the updater compares them.
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          v=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          t=$(sed -n 's/^ *"version": *"\(.*\)".*/\1/p' src-tauri/tauri.conf.json | head -1)
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME != Cargo.toml version $v"; exit 1; }
+          [ -z "$t" ] || [ "$t" = "$v" ] || { echo "tauri.conf.json version $t != Cargo.toml version $v"; exit 1; }
+
   create-release:
+    needs: guard
     runs-on: ubuntu-latest
     outputs:
       id: ${{ steps.create.outputs.id }}
@@ -20,9 +32,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NOTES: |
-            Mac: the universal .dmg (Apple Silicon and Intel). The first time macOS blocks it (not notarized): System Settings → Privacy & Security → "Open Anyway".
+            Mac: pick the .dmg for your chip (aarch64 = Apple Silicon, x64 = Intel). The first time macOS blocks it (not notarized): System Settings → Privacy & Security → "Open Anyway".
             Windows: the -setup.exe. If SmartScreen warns, "More info" → "Run anyway".
-            Mac: pick the .dmg for your chip (aarch64 = Apple Silicon, x64 = Intel).
             mpv is included (macOS 15 or newer, and Windows). On older macOS, install mpv (Settings → Player → Install mpv) or use VLC if you have it.
         # The id comes from the create response: a draft isn't findable by its tag until it's published.
         run: |
@@ -84,7 +95,11 @@ jobs:
     needs: [create-release, build]
     runs-on: ubuntu-latest
     steps:
+      # Full history and tags: latest-json.mjs builds the notes with `git log <previous tag>..<tag>`.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       # Everything by release id (the release is still a draft): fetch the signatures, upload latest.json, then publish.
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
