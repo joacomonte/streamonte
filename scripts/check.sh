@@ -90,9 +90,9 @@ if [ "$WEB" = 1 ] || [ "$PKG" = 1 ]; then
   run web sh -c 'cd web && node_modules/.bin/svelte-kit sync >/dev/null && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json >/dev/null'
 fi
 if [ "$1" = "full" ]; then
-  # packages/ui: tsc estricto con el typescript de ui/node_modules. Solo en full y en CI (el carril rápido lo cubre con
+  # packages/ui: tsc estricto con su propio typescript (workspace). Solo en full y en CI (el carril rápido lo cubre con
   # ui check): agarra globales de solo desktop (ui/src/globals.d.ts, vite/client) usados por error en packages/ui.
-  if [ "$PKG" = 1 ] || [ "$UI" = 1 ]; then run uipkg sh -c 'cd packages/ui && ../../ui/node_modules/.bin/tsc -p tsconfig.json'; fi
+  if [ "$PKG" = 1 ] || [ "$UI" = 1 ]; then run uipkg sh -c 'cd packages/ui && node_modules/.bin/tsc -p tsconfig.json'; fi
   if [ "$UI" = 1 ] || [ "$WEB" = 1 ] || [ "$PKG" = 1 ]; then run uipkgtest sh -c 'cd packages/ui && node --test "src/**/*.test.ts"'; fi
   if [ "$UI" = 1 ] || [ "$PKG" = 1 ]; then run uitest sh -c 'cd ui && node --test "src/**/*.test.{js,ts}"'; fi
   if [ "$WEB" = 1 ] || [ "$PKG" = 1 ] || [ "$GOLD" = 1 ]; then run webtest sh -c 'cd web && node --test "src/**/*.test.{js,ts}"'; fi

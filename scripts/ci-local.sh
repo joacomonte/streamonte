@@ -24,6 +24,11 @@ step() {
   case $3 in "cargo clippy"*) export CARGO_TARGET_DIR="$CARGO_TARGET_DIR/clippy" ;; esac
   (cd "$2" && eval "$3")
 }
+# Los `pnpm install` (workspace en la raíz) corren una sola vez, de a uno, antes de lanzar los jobs: en paralelo se pisarían
+# el node_modules. Dedupe por (carpeta, comando); dentro de cada job se saltean.
+awk -F"$tab" '$3 ~ /^pnpm install/ && !seen[$2 FS $3]++ { print $2 FS $3 }' "$tmp/steps" >"$tmp/installs"
+awk -F"$tab" '$3 !~ /^pnpm install/' "$tmp/steps" >"$tmp/steps.rest" && mv "$tmp/steps.rest" "$tmp/steps"
+while IFS="$tab" read -r dir cmd; do step install "$dir" "$cmd" >"$tmp/install.log" 2>&1 || { echo "── install falló"; tail -40 "$tmp/install.log"; exit 1; }; done <"$tmp/installs"
 for job in $(cut -f1 "$tmp/steps" | sort -u); do
   grep "^$job$tab" "$tmp/steps" >"$tmp/$job.steps"
   if ! grep -qv "^$job$tab[^$tab]*${tab}cargo " "$tmp/$job.steps"; then

@@ -4,8 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "../../ui/node_modules/.bin/tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json",
     "test": "node --test \"src/**/*.test.ts\" \"test/*.test.ts\""
+  },
+  "devDependencies": {
+    "svelte": "^5.57.3",
+    "svelte-check": "^4.7.8",
+    "typescript": "^6.0.3"
   },
   "packageManager": "pnpm@10.34.9"
 }

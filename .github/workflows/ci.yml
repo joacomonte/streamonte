@@ -27,25 +27,27 @@ jobs:
       - run: cargo test -p streamonte-core --lib --tests
   web:
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: web } }
     steps:
       - uses: actions/checkout@v4
       - run: corepack enable
       - uses: actions/setup-node@v4
-        with: { node-version: 24, cache: pnpm, cache-dependency-path: web/pnpm-lock.yaml }
+        with: { node-version: 24, cache: pnpm, cache-dependency-path: pnpm-lock.yaml }
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+        working-directory: web
       - run: pnpm test
+        working-directory: web
   ui:
-    # ui/ y packages/ui (código compartido web + desktop; usa el typescript de ui/node_modules, no tiene node_modules propio).
+    # ui/ y packages/ui (código compartido web + desktop). Un solo install en la raíz (workspace pnpm).
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: ui } }
     steps:
       - uses: actions/checkout@v4
       - run: corepack enable
       - uses: actions/setup-node@v4
-        with: { node-version: 24, cache: pnpm, cache-dependency-path: ui/pnpm-lock.yaml }
+        with: { node-version: 24, cache: pnpm, cache-dependency-path: pnpm-lock.yaml }
       - run: pnpm install --frozen-lockfile
+        working-directory: .
       - run: pnpm lint
       - run: pnpm check
       - run: pnpm test

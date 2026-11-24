@@ -9,7 +9,7 @@ Todo se corre desde la raíz del repo (o del worktree).
 - Foto de `/api/*` de la web antes/después de reestructurar: `node scripts/api-snapshot.mjs take|diff`.
 - Benchmark de la lista de opciones: `node scripts/bench-options.mjs` (base: `bench/options-baseline.json`).
 - Probar la app instalada sin release: `sh scripts/dogfood.sh`.
-- Worktree listo en ~10 s: `sh scripts/wt-setup.sh`. Mpv empaquetado: `fetch-mpv.sh`. Podar `target/`: `trim-target.sh`.
+- Worktree listo en ~10 s (un solo `pnpm install` del workspace de la raíz: `ui`, `web`, `packages/ui`, un lockfile): `sh scripts/wt-setup.sh`. Mpv empaquetado: `fetch-mpv.sh`. Podar `target/`: `trim-target.sh`.
 - Release: `sh scripts/release.sh [patch|minor] [--dry-run]`, solo desde `main` y con orden del usuario.
 - Tests de lo tocado en node (~1,4 s): `sh scripts/test-touched.sh`.
 
