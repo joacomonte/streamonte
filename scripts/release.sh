@@ -1,7 +1,7 @@
 #!/bin/sh
 # Release de la app (2026-11-24): sube la versión, commitea "vX.Y.Z", crea el tag, pushea y sigue el CI.
 # SOLO lo corre el usuario (commitea y pushea). Los releases son para los usuarios, no para probar (para eso: dogfood.sh).
-#   sh scripts/release.sh [patch|minor] [--dry-run]     # patch por defecto
+#   sh scripts/release.sh [patch|minor|major] [--dry-run]     # patch por defecto
 #   sh scripts/release.sh --revert [--dry-run]          # deshace el último release y publica el patch siguiente
 # --dry-run imprime los pasos (líneas "+ …") sin escribir nada.
 # --revert usa `git revert <tag anterior>..<último tag>`: sirve con commits lineales; con merges --no-ff el revert es manual.
@@ -13,10 +13,10 @@ cd "$(dirname "$0")/.."
 bump=patch; revert=""; dry=""
 for a in "$@"; do
   case $a in
-    patch | minor) bump=$a ;;
+    patch | minor | major) bump=$a ;;
     --revert) revert=1 ;;
     --dry-run) dry=1 ;;
-    *) echo "uso: sh scripts/release.sh [patch|minor] [--revert] [--dry-run]" >&2; exit 2 ;;
+    *) echo "uso: sh scripts/release.sh [patch|minor|major] [--revert] [--dry-run]" >&2; exit 2 ;;
   esac
 done
 # Ejecuta (o, con --dry-run, solo muestra) un comando.
@@ -49,7 +49,7 @@ fi
 IFS=. read -r major minor patch <<EOF
 $base
 EOF
-if [ "$bump" = minor ]; then new="$major.$((minor + 1)).0"; else new="$major.$minor.$((patch + 1))"; fi
+if [ "$bump" = major ]; then new="$((major + 1)).0.0"; elif [ "$bump" = minor ]; then new="$major.$((minor + 1)).0"; else new="$major.$minor.$((patch + 1))"; fi
 echo "nueva versión: $new"
 
 # Cargo.toml: la primera línea `version = "…"` (la de [workspace.package]); tauri.conf.json: su "version", si la tiene.
