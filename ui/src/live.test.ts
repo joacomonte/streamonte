@@ -1,5 +1,5 @@
 // Reductor del estado en vivo (live.ts): eventos del núcleo → `Live` nuevo, sin mutar el anterior.
-import './test-stub.js';
+import './test-stub.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { emptyLive, loaded, reduce, titleOf } from './live.ts';

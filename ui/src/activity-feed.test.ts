@@ -1,5 +1,5 @@
 // Actividad (activity-feed.ts): evento → líneas (solo cambios), resumen de lo que corre y agrupado de líneas.
-import './test-stub.js';
+import './test-stub.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { busyText, eventLines, mergeLine, type Line } from './activity-feed.ts';

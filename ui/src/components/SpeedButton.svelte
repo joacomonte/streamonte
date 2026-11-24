@@ -1,7 +1,7 @@
 <!-- Contenido del botón #btn-speed de la barra: medidor y velocidad. `host` es el botón (su clase y aria-busy siguen al estado). -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { t } from '../i18n.js';
+  import { t } from '../i18n.ts';
   import { fmtMbps } from '../speed-model.ts';
   import { speedStore } from '../speed-instance.ts';
   import Gauge from './Gauge.svelte';

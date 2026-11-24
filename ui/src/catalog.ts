@@ -1,42 +1,39 @@
-// @ts-check
 // Lo que queda del catálogo del desktop en JS: el panel lateral y las opciones cuelgan de acá (la grilla, los filtros y el
 // buscador son el catálogo compartido `packages/ui/src/catalog/`, que monta `catalog-mount.ts`). Este módulo conserva
 // "Pegados", "Fuentes", los atajos, la biblioteca y el despacho de eventos del núcleo hacia las opciones/pruebas/subtítulos.
 // Todo texto que viene de Cinemeta o de los addons entra como texto, nunca como HTML (NFR-24).
 
-import { api, forgetTitles, onCoreEvent } from './api.js';
-import { play } from './audio-picker.js';
-import { openSettings } from './dialogs.js';
-import { $, el, icon, setStatus } from './dom.js';
+import * as core from './core.ts';
+import { play } from './audio-picker.ts';
+import { openSettings } from './dialog-flows.ts';
+import { $, el, icon, setStatus } from './dom.ts';
 import { humanBytes } from '$ui/format.ts';
-import { playbackText } from './format.js';
-import { t } from './i18n.js';
+import { playbackText } from './format.ts';
+import { t } from './i18n.ts';
 import { bgText, cardSig, measurePlayback, onPlaybackRow, onStreams, renderStreamsOnly, starting } from './catalog-options.ts';
-import { magnetHash, openMagnet } from './catalog-magnet.js';
-import { subsProgress } from './catalog-subs.js';
-import { closeSide, renderSide } from './catalog-side.js';
-import { showError, state, view } from './catalog-state.js';
+import { magnetHash, openMagnet } from './catalog-magnet.ts';
+import { subsProgress } from './catalog-subs.ts';
+import { closeSide, renderSide } from './catalog-side.ts';
+import { showError, state, view, type PickedPerson } from './catalog-state.ts';
 import { onSwarmEvent } from './catalog-tests.ts';
+import type { CatalogStore } from '../../packages/ui/src/catalog/store.ts';
+import type { CoreEvent, LibraryRow } from './types.ts';
 
-/** @typedef {import('./types.ts').LibraryRow} LibraryRow */
-/** @typedef {import('./catalog-state.js').PickedPerson} PickedPerson */
-/** @typedef {import('../../packages/ui/src/catalog/store.ts').CatalogStore} CatalogStore */
 
-/** Mensaje de un rechazo del núcleo (`UiError`) o de cualquier otro error. @param {unknown} e */
-const errText = (e) => t(/** @type {{message?: string}|null|undefined} */ (e)?.message ?? String(e));
-export const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** Mensaje de un rechazo del núcleo (`UiError`) o de cualquier otro error. */
+const errText = (e: unknown): string => t((e as { message?: string } | null | undefined)?.message ?? String(e));
+export const reduceMotion = (): boolean => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** El catálogo compartido (lo fija `catalog-mount.ts`). @type {CatalogStore|null} */
-let store = null;
-/** @param {CatalogStore} s */
-export function attachStore(s) { store = s; }
-/** Elegido un actor o director desde el panel: el catálogo muestra lo que actuó o dirigió. @param {PickedPerson} p */
-export const pickPerson = (p) => store?.pickPerson(p);
+/** El catálogo compartido (lo fija `catalog-mount.ts`). */
+let store: CatalogStore | null = null;
+export function attachStore(s: CatalogStore): void { store = s; }
+/** Elegido un actor o director desde el panel: el catálogo muestra lo que actuó o dirigió. */
+export const pickPerson = (p: PickedPerson): void => store?.pickPerson(p);
 
-/** Magnet pegado en el buscador: se agrega a Pegados; con TorBox, además se abre lo que TorBox sabe de él. @param {string} raw */
-export async function pasteMagnet(raw) {
+/** Magnet pegado en el buscador: se agrega a Pegados; con TorBox, además se abre lo que TorBox sabe de él. */
+export async function pasteMagnet(raw: string): Promise<void> {
   try {
-    await api.addSelected([raw]);
+    await core.addSelected([raw]);
     setStatus(t('Magnet pegado: queda en Pegados.'));
     const hash = magnetHash(raw);
     if (hash && view.torboxKey) openMagnet(hash, new URLSearchParams(raw.split('?')[1] ?? '').get('dn') ?? '');
@@ -44,7 +41,7 @@ export async function pasteMagnet(raw) {
 }
 
 /** Abre Ajustes en la key de TMDB. */
-export async function askTmdbKey() {
+export async function askTmdbKey(): Promise<void> {
   await openSettings();
   const input = $('#key-tmdb');
   input?.scrollIntoView({ block: 'center' });
@@ -53,24 +50,23 @@ export async function askTmdbKey() {
 /** Cambió la key de TMDB en Ajustes (2026-11-17): la lista se vuelve a pedir ya (con o sin sus filtros) y, si hay un
  *  título abierto, sus datos de TMDB. */
 document.addEventListener('streamonte:tmdb-key', () => {
-  forgetTitles();
+  core.forgetTitles();
   store?.relang();
   const s = state.side;
   if (s) {
     s.similar = undefined;
-    api.catalogDetails(s.kind, s.id).then((d) => { if (state.side === s) { s.details = d; renderSide(); } }).catch(() => {});
+    core.catalogDetails(s.kind, s.id).then((d) => { if (state.side === s) { s.details = d; renderSide(); } }).catch(() => {});
   }
 });
 
 // ---------- Fuentes (FR-41) ----------
-async function openSources() {
-  /** @type {HTMLDialogElement} */
-  let dlg = $('#dlg-sources');
+async function openSources(): Promise<void> {
+  let dlg = $<HTMLDialogElement>('#dlg-sources');
   if (!dlg) {
     dlg = el('dialog', { id: 'dlg-sources', class: 'dialog wide' });
     document.body.append(dlg);
   }
-  const addons = await api.catalogAddons().catch((e) => { showError(e); return []; });
+  const addons = await core.catalogAddons().catch((e) => { showError(e); return []; });
   const input = el('input', { id: 'cat-add-url', type: 'text', placeholder: t('Pegá la URL del manifest (https://…/manifest.json)'), class: 'cat-add-url' });
   const msg = el('p', { class: 'hint' });
   const refresh = () => openSources();
@@ -78,21 +74,21 @@ async function openSources() {
     el('h3', {}, t('Fuentes de torrents')),
     el('p', { class: 'hint' }, t('Addons de Stremio que se consultan al abrir una película o episodio. La app no indexa contenido: solo junta lo que devuelven. En P2P tu IP es visible para los demás del torrent.')),
     el('ul', { class: 'cat-sources' }, addons.map((a) => el('li', {},
-      el('label', {}, el('input', { id: `cat-addon-${a.id}`, type: 'checkbox', checked: a.enabled, onchange: (ev) => api.catalogSetAddonEnabled(a.id, ev.target.checked).catch(showError) }), ` ${a.name}`),
+      el('label', {}, el('input', { id: `cat-addon-${a.id}`, type: 'checkbox', checked: a.enabled, onchange: (ev) => core.catalogSetAddonEnabled(a.id, ev.target.checked).catch(showError) }), ` ${a.name}`),
       el('span', { class: 'hint cat-url' }, a.display_url),
-      a.own ? null : el('button', { id: `cat-addon-rm-${a.id}`, class: 'small danger', onclick: () => api.catalogRemoveAddon(a.id).then(refresh, showError) }, t('Quitar'))))),
+      a.own ? null : el('button', { id: `cat-addon-rm-${a.id}`, class: 'small danger', onclick: () => core.catalogRemoveAddon(a.id).then(refresh, showError) }, t('Quitar'))))),
     el('div', { class: 'key-line' }, input,
       el('button', { id: 'cat-add-addon', onclick: async () => {
         msg.textContent = t('Validando…');
         try {
-          const a = await api.catalogAddAddon(input.value);
+          const a = await core.catalogAddAddon(input.value);
           setStatus(t('{n} ✓ agregado.', { n: a.name }));
           refresh();
         } catch (e) { msg.textContent = errText(e); }
       } }, t('Agregar'))),
     msg,
     el('div', { class: 'dialog-actions' },
-      el('button', { id: 'cat-sources-reset', onclick: () => api.catalogResetAddons().then(refresh, showError) }, t('Restaurar lista por defecto')),
+      el('button', { id: 'cat-sources-reset', onclick: () => core.catalogResetAddons().then(refresh, showError) }, t('Restaurar lista por defecto')),
       el('button', { id: 'cat-sources-close', onclick: () => dlg.close() }, t('Cerrar'))),
   );
   if (!dlg.open) dlg.showModal();
@@ -101,11 +97,11 @@ async function openSources() {
 // ---------- Pegados ----------
 /** Magnets pegados (portapapeles o buscador; sin ficha del catálogo), arriba de todo (2026-11-15: reemplaza a "Mis
  *  magnets"). Lo más nuevo primero. Con key de TorBox, cada uno abre lo que TorBox sabe de él (2026-11-20). */
-function pastedSection() {
+function pastedSection(): HTMLElement | null {
   const rows = [...state.library.values()].filter((e) => !e.origin)
     .sort((a, b) => String(b.added_at ?? '').localeCompare(String(a.added_at ?? '')));
   if (!rows.length) return null;
-  const name = (/** @type {LibraryRow} */ e) => {
+  const name = (e: LibraryRow): string => {
     const r = e.release;
     const ep = r?.season != null && r?.episode != null ? ` T${r.season}·E${r.episode}` : '';
     return r?.title ? `${r.title}${ep}` : e.torrent_name || e.name;
@@ -117,18 +113,17 @@ function pastedSection() {
       e.video_size ? el('span', { class: 'cat-pasted-size' }, humanBytes(e.video_size)) : null,
       view.torboxKey ? el('button', { id: `cat-pasted-torbox-${e.key}`, class: 'cat-icon-btn', title: t('Ver en TorBox: si lo tiene, al instante; si no, bajarlo en sus servidores'), 'aria-label': t('Ver en TorBox'),
         onclick: () => openMagnet(e.info_hash, e.torrent_name || e.name) }, icon('cloud', 16)) : null,
-      el('button', { id: `cat-pasted-rm-${e.key}`, class: 'cat-icon-btn', title: t('Quitar de Pegados'), 'aria-label': t('Quitar'), onclick: () => api.remove(e.key).catch(showError) }, '✕'),
+      el('button', { id: `cat-pasted-rm-${e.key}`, class: 'cat-icon-btn', title: t('Quitar de Pegados'), 'aria-label': t('Quitar'), onclick: () => core.remove(e.key).catch(showError) }, '✕'),
       el('button', { id: `cat-pasted-play-${e.key}`, class: 'cat-icon-btn primary', title: t('Reproducir'), 'aria-label': t('Reproducir'), onclick: (ev) => play(e.key, ev.currentTarget, e) }, icon('play', 16))))));
 }
 /** Dónde va "Pegados": un div que monta el catálogo compartido arriba de la grilla (null mientras se busca). */
-/** @type {HTMLElement|null} */
-let pastedHost = null;
-/** @param {HTMLElement|null} node */
-export function setPastedHost(node) { pastedHost = node; refreshPasted(); }
+let pastedHost: HTMLElement | null = null;
+export function setPastedHost(node: HTMLElement | null): void { pastedHost = node; refreshPasted(); }
 /** Redibuja la sección de pegados (llega una fila nueva, se quita una o se sabe si hay key de TorBox). */
-export function refreshPasted() { pastedHost?.replaceChildren(...[pastedSection()].filter((n) => n !== null)); }
+export function refreshPasted(): void { pastedHost?.replaceChildren(...[pastedSection()].filter((n) => n !== null)); }
 
-async function init() {
+/** Arranque del catálogo: lo llama `main.ts` después de montar los diálogos (busca `#catalog` y `#btn-sources`). */
+export async function initCatalog(): Promise<void> {
   // La grilla, el buscador y los filtros los monta `catalog-mount.ts` (catálogo compartido) en #cat-root.
   $('#catalog').append(
     el('div', { class: 'cat-main' }, el('div', { id: 'cat-root' })),
@@ -141,10 +136,10 @@ async function init() {
       && !document.querySelector('dialog[open]') && !document.querySelector('#pk.on')) closeSide();
   });
   try {
-    const cfg = await api.config();
+    const cfg = await core.config();
     // Anime siempre oculto (se sacó el toggle, 2026-11-15); si estaba apagado, se vuelve a prender.
-    if (cfg.catalog?.exclude_japanese === false) api.catalogSetExcludeJapanese(true).catch(showError);
-    const lib = await api.library();
+    if (cfg.catalog?.exclude_japanese === false) core.catalogSetExcludeJapanese(true).catch(showError);
+    const lib = await core.library();
     for (const e of [...lib.pasted_now, ...lib.previous]) state.library.set(e.key, e);
   } catch (e) { showError(e); }
   refreshPasted();
@@ -154,7 +149,7 @@ async function init() {
   // no está garantizado.
   window.addEventListener('playback-changed', (ev) => {
     // app.js lo manda con el evento del núcleo ya guardado en `detail`.
-    const event = /** @type {CustomEvent<Extract<import('./types.ts').CoreEvent, {type: 'playback-updated' | 'playback-removed'}>>} */ (ev).detail;
+    const event = (ev as CustomEvent<Extract<CoreEvent, { type: 'playback-updated' | 'playback-removed' }>>).detail;
     if (event.type === 'playback-removed') { if (state.update) renderStreamsOnly(); return; }
     const n = starting.size;
     onPlaybackRow(event.row);
@@ -168,7 +163,7 @@ async function init() {
     if (c) cardSig.set(hash, sig);
     if (state.update && (starting.size !== n || changed)) renderStreamsOnly();
   });
-  await onCoreEvent((event) => {
+  await core.onCoreEvent((event) => {
     switch (event.type) {
       case 'catalog-streams': onStreams(event.update); break;
       case 'catalog-swarm-progress':
@@ -192,4 +187,3 @@ async function init() {
   });
 }
 
-init().catch(showError);

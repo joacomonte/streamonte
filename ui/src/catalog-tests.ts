@@ -1,13 +1,13 @@
 // Pruebas de conexión del catálogo (2026-11-17): estado por torrent (rápida y a fondo, etapas), el embudo prueba rápida →
 // análisis profundo, el modo "Elegí la mejor" y dejar pruebas de fondo al cambiar de video. El estado vive acá (módulo), no en
 // los componentes: sobrevive a cerrar la ficha. Reglas puras en `options-logic.ts`.
-import { api } from './api.js';
-import { setStatus } from './dom.js';
-import { t as tr } from './i18n.js';
+import * as core from './core.ts';
+import { setStatus } from './dom.ts';
+import { t as tr } from './i18n.ts';
 import { currentNetwork } from './health-store.ts';
 import { bgLoads, groupsOf, health, inScope, isSafeBest, knownSeeds, lowerRes, openGroup, renderStreamsOnly, RES_ORDER, resLabel, scheduleRender, sortOptions, startBg } from './catalog-options.ts';
 import { cancelFlowWork, type Flow } from './catalog-flow.ts';
-import { safeGet, safeSet, showError, state, type Side } from './catalog-state.js';
+import { safeGet, safeSet, showError, state, type Side } from './catalog-state.ts';
 import { etaSecs, isUnlikely, learned, quickGroupOf, seedsOf, topFinalists, type Count } from './options-logic.ts';
 import type { CoreEvent, StreamCandidate as Candidate } from './types.ts';
 
@@ -59,7 +59,7 @@ export function once(t: VideoTests, key: string): boolean {
 }
 /** Los testeados en la última hora (datos guardados) no se repiten; recién con eso se prueba. */
 export async function loadSavedTests(video: string, cands: Candidate[]): Promise<void> {
-	const saved = await api.catalogSwarmSaved(cands.map((c) => c.info_hash)).catch(() => ({}));
+	const saved = await core.catalogSwarmSaved(cands.map((c) => c.info_hash)).catch(() => ({}));
 	if (sideOf()?.videoId !== video) return;
 	for (const [h, t] of Object.entries(saved)) {
 		if (!counted.has(h) && !counting.has(h)) {
@@ -156,7 +156,7 @@ export function stopTests(): void {
 	counting.forEach((h) => stopped.add(h));
 	quickRunning.clear();
 	quickLive.clear();
-	if (counting.size || t) api.catalogStopSwarm().catch(showError);
+	if (counting.size || t) core.catalogStopSwarm().catch(showError);
 	renderStreamsOnly();
 }
 const waitUntil = async (ok: () => boolean): Promise<void> => {
@@ -185,7 +185,7 @@ export async function runCensus(video: string, cands: Candidate[]): Promise<void
 		.slice(0, CENSUS_MAX)
 		.map((c) => c.info_hash);
 	try {
-		const res = await api.catalogCensus(hashes);
+		const res = await core.catalogCensus(hashes);
 		// Mapa vacío = cortado o sin DHT: no se sabe nada (no es "0 en todos").
 		if (sideOf()?.videoId !== video || !Object.keys(res).length) return;
 		hashes.forEach((h) => census.set(h, res[h] ?? 0));
@@ -247,7 +247,7 @@ export async function runQuick(video: string | null | undefined, res: string): P
 	hashes.forEach((h) => quickRunning.add(h));
 	renderStreamsOnly();
 	try {
-		await api.catalogSwarm(hashes, 'quick'); // cada resultado llega antes por `catalog-swarm-counted`
+		await core.catalogSwarm(hashes, 'quick'); // cada resultado llega antes por `catalog-swarm-counted`
 	} catch {
 		/* sin prueba rápida queda el orden por trackers */
 	} finally {
@@ -267,7 +267,7 @@ export async function countSeeds(hashes: string[]): Promise<void> {
 	renderStreamsOnly();
 	const video = sideOf()?.videoId;
 	try {
-		const found = await api.catalogSwarm(todo, 'deep');
+		const found = await core.catalogSwarm(todo, 'deep');
 		if (sideOf()?.videoId !== video) return; // se fue de ese video: el resultado no se usa
 		// Sin resultado = nadie dio los metadatos a tiempo: "nadie respondió" (no el número inflado de los trackers).
 		// Detenido por el usuario: lo que no llegó a contarse queda sin contar.
@@ -395,8 +395,8 @@ export async function runDeep(video: string | null | undefined, res: string | nu
 export async function quickAnalyze(hashes: string[]): Promise<void> {
 	if (!hashes.length) return;
 	try {
-		await api.catalogAdd(side().kind, side().videoId, hashes);
-		await Promise.all(hashes.map((hash) => api.analyze({ kind: 'quick', hash })));
+		await core.catalogAdd(side().kind, side().videoId, hashes);
+		await Promise.all(hashes.map((hash) => core.analyze({ kind: 'quick', hash })));
 	} catch (e) {
 		showError(e);
 	}

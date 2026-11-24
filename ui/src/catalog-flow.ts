@@ -5,11 +5,11 @@
 // calidad, y se muestra solo ese, con "Seguir buscando" el próximo y "Ver todas las opciones". Las migas vuelven a un paso;
 // volver o cambiar de video corta lo que esté analizando. Estado en `side().flow` (uno por video, `newFlow`); la vista la
 // dibuja `FlowScreen.svelte` (modelo en `streams-view.ts`).
-import { api } from './api.js';
-import { t as tr } from './i18n.js';
-import { state, view } from './catalog-state.js';
+import * as core from './core.ts';
+import { t as tr } from './i18n.ts';
+import { state, view } from './catalog-state.ts';
 import { failedBefore, flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, latPotential, latToCheck, mbpsOf, openGroup, renderStreamsOnly, rowView, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.ts';
-import { readTracks } from './catalog-subs.js';
+import { readTracks } from './catalog-subs.ts';
 import { quickAnalyze, side, sideOf, startAnalysis, stopTests, unlikely } from './catalog-tests.ts';
 import { scanSecs, SWARM_PARALLEL, SWARM_SECS } from './options-logic.ts';
 import { latRank } from '$ui/audio.ts';
@@ -175,7 +175,7 @@ function stopScan(): void {
 	s.running = false;
 	const pending = s.batch.filter((h) => !tracksRead(h));
 	pending.forEach((h) => f.scanned.delete(h));
-	if (f.mode !== 'torbox') api.analyzerCancel(pending).catch(() => {});
+	if (f.mode !== 'torbox') core.analyzerCancel(pending).catch(() => {});
 }
 /** Al volver a un paso o dejar el video: corta todo lo que esté analizando. */
 export function cancelFlowWork(): void {

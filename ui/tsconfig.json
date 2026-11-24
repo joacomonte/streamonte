@@ -29,9 +29,7 @@
       "svelte/*": [
         "./node_modules/svelte/*"
       ]
-    },
-    "allowJs": true,
-    "checkJs": false
+    }
   },
   "include": [
     "src/main.ts",

@@ -2,7 +2,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Sheet from '$ui/components/Sheet.svelte';
-  import { t } from '../i18n.js';
+  import { t } from '../i18n.ts';
   import { host } from '../ui-host.ts';
 
   let pre = $state<HTMLPreElement>();

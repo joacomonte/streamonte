@@ -5,6 +5,8 @@ type TauriDownloadEvent =
   | { event: 'Finished' };
 interface TauriUpdate {
   version: string;
+  /** Notas de la versión (el cuerpo del release). */
+  body?: string;
   downloadAndInstall(onEvent?: (e: TauriDownloadEvent) => void): Promise<void>;
 }
 interface TauriGlobal {

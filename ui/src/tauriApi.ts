@@ -1,17 +1,13 @@
-// `Api` del desktop: llamadas del núcleo por `api.js` (invoke de Tauri, sigue siendo la única puerta) + `core://event`, y los
+// `Api` del desktop: llamadas del núcleo por `core.ts` (invoke de Tauri, sigue siendo la única puerta) + `core://event`, y los
 // adaptadores puros de `tauri-adapt.ts`. `createTauriApi` recibe sus dependencias para probarse sin Tauri.
 import type { Api } from '../../packages/ui/src/api.ts';
 import type { Lang } from '../../packages/ui/src/i18n/translate.ts';
 import type { ApiEvent, OptionsUpdate, TitleDetails } from '../../packages/ui/src/types.ts';
 import * as adapt from './tauri-adapt.ts';
+import * as coreCommands from './core.ts';
 import type * as Raw from './types.ts';
 
-/** Lo que usa el adaptador de `api.js`. */
-export type CoreApi = Pick<typeof import('./api.js').api,
-	| 'apiKeys' | 'catalogBrowseTop' | 'catalogTrending' | 'catalogSearch' | 'catalogPeople' | 'catalogPersonTitles' | 'catalogInterestExamples' | 'catalogBrowseInterests' | 'catalogMeta' | 'catalogDetails' | 'catalogPoster'
-	| 'catalogSimilar' | 'catalogEpisodes' | 'catalogSeasonRatings' | 'catalogAwards' | 'catalogStreams' | 'catalogLink' | 'catalogTorboxTracks' | 'library' | 'catalogSubtitles'
-	| 'catalogSubtitleUse' | 'catalogPremiumUse' | 'catalogPremiumSearch' | 'premiumQuota' | 'torboxMagnet' | 'torboxMagnetDownload'>;
-export type Core = { api: CoreApi; listen: (handler: (e: Raw.CoreEvent) => void) => Promise<() => void>; lang: () => Lang };
+export type Core = { api: typeof coreCommands; listen: (handler: (e: Raw.CoreEvent) => void) => Promise<() => void>; lang: () => Lang };
 
 /** El desktop trae 50 por página en tendencias. */
 const TRENDING_PAGE = 50;
@@ -143,9 +139,6 @@ export function createTauriApi(core: Core): Api {
 	};
 }
 
-/** `Api` del desktop sobre el núcleo real. `api.js` se importa acá (no arriba) porque lee `window.__TAURI__` al cargar: tiene que
- * correr después del mock del navegador (`mock-tauri.ts`) y no en los tests. */
-export async function createDesktopApi(lang: () => Lang): Promise<Api> {
-	const { api, onCoreEvent } = await import('./api.js');
-	return createTauriApi({ api, listen: onCoreEvent, lang });
-}
+/** `Api` del desktop sobre el núcleo real (`core.ts`). */
+export const createDesktopApi = (lang: () => Lang): Api =>
+	createTauriApi({ api: coreCommands, listen: coreCommands.onCoreEvent, lang });
