@@ -23,7 +23,7 @@ const LIMITS: Limits = Limits {
 pub(super) fn http() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
     CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::http::client(crate::http::Kind::Api)
             .user_agent(USER_AGENT)
             .timeout(HTTP_TIMEOUT)
             .build()
@@ -35,7 +35,7 @@ pub(super) fn http() -> &'static reqwest::Client {
 pub(super) fn local_http() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
     CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
+        crate::http::client(crate::http::Kind::Download)
             .no_proxy()
             .timeout(Duration::from_secs(90))
             .build()

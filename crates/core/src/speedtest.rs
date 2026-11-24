@@ -51,7 +51,9 @@ impl SpeedTest {
     pub fn new(file: PathBuf) -> Self {
         Self {
             file,
-            client: reqwest::Client::new(),
+            client: crate::http::client(crate::http::Kind::Download)
+                .build()
+                .unwrap_or_default(),
             running: tokio::sync::Mutex::default(),
         }
     }

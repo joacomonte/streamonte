@@ -161,16 +161,6 @@ export type CopiedMagnet = {
     name: string | null;
 };
 export type AnalyzeScope = {
-    kind: "all";
-} | {
-    kind: "only-unmeasured";
-} | {
-    kind: "one";
-    hash: InfoHash;
-} | {
-    kind: "selected";
-    hashes: InfoHash[];
-} | {
     kind: "quick";
     hash: InfoHash;
 };

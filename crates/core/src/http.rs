@@ -26,6 +26,26 @@ pub(crate) enum HttpError {
     },
 }
 
+/// Para qué se usa el cliente.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Kind {
+    /// Pedidos cortos a servicios: User-Agent genérico (NFR-22) y `connect_timeout` de 10 s.
+    Api,
+    /// Descargas largas (speedtest, motor local): solo `connect_timeout` de 10 s, sin User-Agent propio.
+    Download,
+}
+
+/// Base de los clientes `reqwest` del core: fija UA y `connect_timeout` según `kind`. Nunca pone
+/// timeout total (cada llamador agrega el suyo si lo necesita: `speedtest` descarga mucho rato).
+/// Lo que el llamador encadene después (p. ej. `.connect_timeout`) gana.
+pub(crate) fn client(kind: Kind) -> reqwest::ClientBuilder {
+    let builder = reqwest::Client::builder().connect_timeout(Duration::from_secs(10));
+    match kind {
+        Kind::Api => builder.user_agent(concat!("Streamonte/", env!("CARGO_PKG_VERSION"))),
+        Kind::Download => builder,
+    }
+}
+
 /// Límites de un [`get_bytes`].
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Limits {

@@ -480,6 +480,45 @@ impl Library {
         keys
     }
 
+    /// Guarda en las filas de este torrent lo leído por TorBox (audios, subtítulos, fps, duración).
+    /// Sin medición previa crea una vacía (sin velocidad: no se midió el enjambre).
+    pub fn record_probe(
+        &mut self,
+        hash: &InfoHash,
+        probe: &crate::catalog::mkv::Probe,
+        title: &str,
+        candidate: Option<&crate::catalog::normalize::StreamCandidate>,
+    ) -> Vec<VideoKey> {
+        let (duration, audio, subs, fps) = probe;
+        self.update_torrent(hash, |e| {
+            let live = e.live.get_or_insert_with(|| LiveMeasurement {
+                measured_at: Utc::now(),
+                torrent_name: Some(title.to_string()),
+                file_index: candidate.and_then(|c| c.file_idx).unwrap_or(0),
+                file_name: candidate
+                    .and_then(|c| c.file_name.clone())
+                    .unwrap_or_else(|| title.to_string()),
+                file_size: candidate.and_then(|c| c.size_bytes).unwrap_or(0),
+                peers: 0,
+                seeds: 0,
+                partial: false,
+                measured_secs: 0.0,
+                avg_speed_bps: 0.0,
+                max_speed_bps: 0.0,
+                duration_secs: None,
+                audio: None,
+                subs: None,
+                fps: None,
+            });
+            if duration.is_some() {
+                live.duration_secs = *duration;
+            }
+            live.audio = Some(audio.clone());
+            live.subs = Some(subs.clone());
+            live.fps = fps.or(live.fps);
+        })
+    }
+
     /// ¿Queda alguna fila de este torrent? (su análisis, FR-06d, es del torrent).
     pub fn has_torrent(&self, hash: &InfoHash) -> bool {
         self.any_of(hash).is_some()
