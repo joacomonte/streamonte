@@ -1,5 +1,7 @@
 // Menú desplegable de la barra superior que todavía usa speed.js (Velocidad). El magnet copiado y Descargas ya son
 // Svelte (components/CopiedMagnet.svelte, components/Downloads.svelte); se borra cuando speed.js migre.
+import { dismiss } from '$ui/components/dismiss.ts';
+
 const pop = document.createElement('div');
 pop.id = 'top-pop';
 pop.className = 'top-pop';
@@ -33,11 +35,7 @@ export async function togglePop(btn: HTMLElement, render: () => unknown): Promis
 	await render();
 }
 
-document.addEventListener('pointerdown', (ev) => {
-	const target = ev.target as Element;
-	if (open && !pop.contains(target) && !open.btn.contains(target) && !target.closest('dialog')) closePop();
-});
-document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && open && !document.querySelector('dialog[open]')) closePop(); });
+dismiss(pop, { onDismiss: closePop, active: () => !!open, ignore: (target) => !!open?.btn.contains(target), dialogGuard: true });
 window.addEventListener('resize', closePop);
 
 /** El elemento del menú abierto si es el de `btnId` (para redibujarlo), o null. */

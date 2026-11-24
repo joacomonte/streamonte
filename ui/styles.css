@@ -168,7 +168,6 @@ button.danger { color: var(--red); }
 .dialog::backdrop { background: rgb(0 0 0 / .35); }
 .dialog h3 { margin: 0 0 8px; }
 #dlg-confirm-text { white-space: pre-line; overflow-wrap: anywhere; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 
 /* Ajustes */
 .sheet h4 { margin: 14px 0 6px; font-size: 13px; }

@@ -6,6 +6,7 @@ import { titleOf } from './live.ts';
 import { $, el, icon, setStatus, showError, type ElChild } from './dom.ts';
 import type { AudioOption, LibraryRow, PlayerKind } from './types.ts';
 import { blockTips, wantTip } from './tooltip.ts';
+import { dismiss } from '$ui/components/dismiss.ts';
 
 /** Una opción de un paso con botones. */
 type WizardOpt = { label: string; sub?: string | null; art?: HTMLElement; tip?: string | null; value?: string };
@@ -138,8 +139,11 @@ pk.addEventListener('keydown', (ev) => {
     os[(i + (ev.key === 'ArrowDown' ? 1 : -1) + os.length) % os.length].focus();
   }
 });
-document.addEventListener('pointerdown', (ev) => { if (pkBtn && !pk.contains(ev.target as Node) && !liveBtn(pkBtn).contains(ev.target as Node)) closePk(false); });
-document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { if (pkBtn) closePk(true); else wantTip(null); } });
+dismiss(pk, {
+  onDismiss: (by) => (by === 'escape' ? (pkBtn ? closePk(true) : wantTip(null)) : closePk(false)),
+  active: (by) => by === 'escape' || !!pkBtn,
+  ignore: (target) => !!pkBtn && liveBtn(pkBtn).contains(target),
+});
 // Scroll de la página (no el de adentro del panel): el ▶ se movió y el panel lo sigue. Cerrarlo acá lo cerraba solo:
 // la lista del catálogo se redibuja mientras se prepara y al restaurar su scroll dispara este evento (2026-11-18).
 document.addEventListener('scroll', (ev) => { if (pkBtn && !pk.contains(ev.target as Node)) place(); }, { capture: true, passive: true });

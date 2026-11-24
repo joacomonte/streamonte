@@ -1,6 +1,6 @@
 // Flujos con diálogos que llama el resto de la app: Ajustes, cierre de mpv, limpieza, cierre de la ventana, log.
 import { humanBytes } from '$ui/format.ts';
-import { confirmDialog } from './confirm-queue.ts';
+import { confirmDialog } from '$ui/components/confirm-queue.ts';
 import * as core from './core.ts';
 import { setStatus, showError } from './dom.ts';
 import { t } from './i18n.ts';
