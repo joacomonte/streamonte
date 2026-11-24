@@ -1,6 +1,6 @@
 // Qué se cuenta en la burbuja de actividad (components/Activity.svelte es el widget): eventos del núcleo → líneas del
 // log, el resumen de lo que corre de fondo para su píldora y cómo se agrupan las líneas. Puro: lo prueba activity-feed.test.ts.
-import { t as tr } from './i18n.ts';
+import { t as tr } from '../../packages/ui/src/i18n/runtime.ts';
 import { clock, humanBytes, mb, nf } from '../../packages/ui/src/format.ts';
 import { fullName, titleOf, type Live } from './live.ts';
 import type { CoreEvent } from './types.ts';

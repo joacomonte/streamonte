@@ -6,8 +6,7 @@
 import * as core from './core.ts';
 // Diccionario único con la web: packages/ui/src/i18n/en.ts (relativo, no `$ui`: `node --test` no resuelve alias).
 import EN from '../../packages/ui/src/i18n/en.ts';
-import { setTranslator } from '../../packages/ui/src/i18n/runtime.ts';
-import { translate } from '../../packages/ui/src/i18n/translate.ts';
+import { createLangStore } from '../../packages/ui/src/i18n/store.svelte.ts';
 import type { LanguageConfig } from './types.ts';
 
 /** Los elegidos, guardados en la config del núcleo. Se leen una vez al cargar (todo módulo que importa este espera):
@@ -16,17 +15,22 @@ const saved = await core.config().then((c) => c.language, () => null);
 export const langs: LanguageConfig = { app: saved?.app === 'en' ? 'en' : 'es', titles: saved?.titles === 'en' ? 'en' : 'es' };
 document.documentElement.lang = langs.app;
 
+/** Persistencia del idioma de la app: la config del núcleo; cambiarlo recarga la ventana (el núcleo sigue corriendo:
+ *  descargas y reproducciones quedan). */
+const store = createLangStore({
+  load: () => langs.app,
+  save: async (app) => { await core.setLanguage({ ...langs, app }); location.reload(); },
+});
 /** Texto en el idioma de la app. */
-export const t = (s: string, vars?: Record<string, string | number | null | undefined>): string => translate(langs.app, s, vars);
-// La lógica compartida (format.ts…) traduce con el idioma de esta app.
-setTranslator(t);
+export const t = store.t;
 console.assert(t('{n} de {d}', { n: 1, d: 3 }) === (langs.app === 'en' ? '1 of 3' : '1 de 3') && t('texto sin traducir') === 'texto sin traducir', 'i18n t()');
 
 /** Locale para fechas y números. */
-export const locale = () => (langs.app === 'en' ? 'en-US' : 'es-AR');
+export const locale = store.loc;
 
-/** Cambia uno o los dos idiomas y recarga la ventana (el núcleo sigue corriendo: descargas y reproducciones quedan). */
+/** Cambia el idioma de la app o el de los títulos y recarga la ventana. */
 export async function setLangs(next: Partial<LanguageConfig>): Promise<void> {
+  if (next.app && !next.titles) return store.setLang(next.app);
   await core.setLanguage({ ...langs, ...next });
   location.reload();
 }
