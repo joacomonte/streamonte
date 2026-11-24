@@ -268,7 +268,6 @@
 	.more { flex: none; display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 750; font-variant-numeric: tabular-nums; animation: more-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 	@keyframes more-pop { from { transform: scale(0); } }
 	.art { display: inline-flex; color: oklch(0.74 0.14 var(--h)); }
-	@media (prefers-color-scheme: light) { .art { color: oklch(0.52 0.15 var(--h)); } }
 	.clear { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--muted); }
 	.trigger:focus-visible, .clear:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	@media (hover: hover) { .trigger:hover, .clear:hover { color: var(--text); } }
@@ -277,7 +276,7 @@
 	.layer { position: fixed; inset: 0; z-index: 60; }
 	.scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgb(0 0 0 / 0.35); cursor: default; animation: fade 0.3s var(--out); }
 	.wide .scrim { background: rgb(0 0 0 / 0.25); }
-	/* Vidrio esmerilado (oscuro también en tema claro: las baldosas son pósters). */
+	/* Vidrio esmerilado (las baldosas son pósters). */
 	.glass { --acc: #2563eb; --acc-fg: #7ab0ff; color: #e7eaee; background: rgb(22 26 32 / 0.66); backdrop-filter: blur(28px) saturate(1.6); -webkit-backdrop-filter: blur(28px) saturate(1.6); box-shadow: 0 -20px 60px rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.1); }
 	.sheet { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 92dvh; border-radius: 26px 26px 0 0; padding-bottom: var(--safe-bottom, 0px); animation: sheet-in 0.55s var(--out); }
 	.grab { flex: none; width: 38px; height: 5px; margin: 8px auto 4px; border-radius: 3px; background: rgb(255 255 255 / 0.3); }

@@ -17,8 +17,7 @@ const okIps = new Map<string, number>();
 const GATE = `<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Streamonte</title>
 <style>
-	:root { color-scheme: light dark; --bg: #f6f7f9; --fg: #111; --card: #fff; --line: #d0d4da; }
-	@media (prefers-color-scheme: dark) { :root { --bg: #0d1014; --fg: #eee; --card: #171b21; --line: #2c323b; } }
+	:root { color-scheme: dark; --bg: #0d1014; --fg: #eee; --card: #171b21; --line: #2c323b; }
 	/* Arriba y a distancia fija (no centrado ni en dvh): el teclado abre debajo sin tapar ni mover las casillas. */
 	body { margin: 0; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: calc(env(safe-area-inset-top) + 40px) 16px 0; box-sizing: border-box; background: var(--bg); color: var(--fg); font: 18px system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
 	#gate-dialog { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 32px 24px 24px; width: min(100%, 360px); text-align: center; box-sizing: border-box; }

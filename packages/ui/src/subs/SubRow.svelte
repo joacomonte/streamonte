@@ -50,7 +50,7 @@
 	.dots { display: inline-flex; gap: 2px; }
 	.dots i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.25; }
 	.dots i.on { opacity: 1; }
-	.fit.l3 { color: light-dark(#12733a, #4ade80); font-weight: 600; }
-	.fit.l2 { color: light-dark(#3d7a55, #b5d86a); }
-	.fit.l1 { color: light-dark(#76681c, #d9a85b); }
+	.fit.l3 { color: #4ade80; font-weight: 600; }
+	.fit.l2 { color: #b5d86a; }
+	.fit.l1 { color: #d9a85b; }
 </style>

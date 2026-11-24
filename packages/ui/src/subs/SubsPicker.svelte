@@ -151,7 +151,7 @@
 	.msg.none { font-size: 12px; }
 	.msg.err { color: var(--red); }
 	.sep { height: 1px; margin: 10px 0 6px; background: var(--border); }
-	.cost { color: light-dark(#9a5b00, #f5b041); font-weight: 700; }
+	.cost { color: #f5b041; font-weight: 700; }
 	.cost-btn { grid-column: span 2; display: inline-flex; align-items: center; gap: 6px; }
 	.cost-btn[aria-disabled='true'] { opacity: 0.45; }
 	.more, .gate { display: grid; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: var(--r-card); color: var(--text); text-align: left; font: inherit; }
@@ -162,7 +162,7 @@
 	/* Premium, último recurso: sin caja; solo se marca cuando ya probaste varios. */
 	.gate { grid-template-columns: 30px minmax(0, 1fr) auto; border: 1px solid transparent; background: none; }
 	.gate:not(.hot) b { font-weight: 600; color: var(--muted); }
-	.gate.hot { border-color: color-mix(in srgb, light-dark(#9a5b00, #f5b041) 70%, var(--border)); background: color-mix(in srgb, light-dark(#9a5b00, #f5b041) 7%, var(--surface)); }
+	.gate.hot { border-color: color-mix(in srgb, #f5b041 70%, var(--border)); background: color-mix(in srgb, #f5b041 7%, var(--surface)); }
 	.gi { display: grid; place-items: center; width: 30px; height: 30px; color: var(--muted); }
 	.chev { display: inline-flex; color: var(--muted); transition: transform 0.2s var(--ease); }
 	.chev.up { transform: rotate(180deg); }

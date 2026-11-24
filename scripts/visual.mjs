@@ -154,36 +154,34 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const checker = await browser.newPage();
 const t0 = Date.now();
 let failed = 0;
-for (const theme of ['light', 'dark']) {
-  for (const s of SCREENS) {
-    const base = s.app === 'ui' ? uiUrl : webUrl;
-    const ctx = await browser.newContext({ ...VIEWPORTS[s.vp], deviceScaleFactor: 1, colorScheme: theme, reducedMotion: 'reduce', locale: 'es-AR', timezoneId: 'UTC' });
-    await ctx.addInitScript(() => { try { localStorage.setItem('tour:welcome', '1'); localStorage.setItem('tour:nick', '1'); } catch { /* sin storage */ } });
-    await ctx.addCookies([{ name: 'nick', value: 'Joaco', url: base }]); // sin apodo la web lo pide en un diálogo
-    await stubNetwork(ctx, new URL(base).origin);
-    const page = await ctx.newPage();
-    const errors = [];
-    page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(base + s.path, { waitUntil: 'networkidle' });
-    await s.run(page);
-    await page.addStyleTag({ content: '*,*::before,*::after{caret-color:transparent!important;animation:none!important;transition:none!important}' });
-    await page.evaluate(() => document.fonts.ready);
-    const file = `${s.name}-${s.vp}-${theme}.png`;
-    const shot = await page.screenshot(); // solo el viewport: estable y liviano
-    await ctx.close();
-    if (errors.length) console.warn(`${file}: errores de página: ${errors.join(' | ')}`);
-    if (record) { console.log(`grabado ${file}`); continue; }
-    if (update) { writeFileSync(`${baseDir}/${file}`, shot); console.log(`baseline ${file} (${(shot.length / 1024).toFixed(0)} KB)`); continue; }
-    if (!existsSync(`${baseDir}/${file}`)) { console.log(`FALTA ${file} (corré con --update)`); failed++; continue; }
-    const r = await diff(checker, readFileSync(`${baseDir}/${file}`).toString('base64'), shot.toString('base64'));
-    const bad = r.pct > threshold;
-    if (bad) {
-      failed++;
-      writeFileSync(`${outDir}/${file.replace('.png', '.actual.png')}`, shot);
-      if (r.png) writeFileSync(`${outDir}/${file.replace('.png', '.diff.png')}`, Buffer.from(r.png, 'base64'));
-    }
-    console.log(`${bad ? 'FALLA' : 'ok   '} ${file} ${r.size ?? `${r.pct.toFixed(3)} %`}`);
+for (const s of SCREENS) {
+  const base = s.app === 'ui' ? uiUrl : webUrl;
+  const ctx = await browser.newContext({ ...VIEWPORTS[s.vp], deviceScaleFactor: 1, colorScheme: 'dark', reducedMotion: 'reduce', locale: 'es-AR', timezoneId: 'UTC' });
+  await ctx.addInitScript(() => { try { localStorage.setItem('tour:welcome', '1'); localStorage.setItem('tour:nick', '1'); } catch { /* sin storage */ } });
+  await ctx.addCookies([{ name: 'nick', value: 'Joaco', url: base }]); // sin apodo la web lo pide en un diálogo
+  await stubNetwork(ctx, new URL(base).origin);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(base + s.path, { waitUntil: 'networkidle' });
+  await s.run(page);
+  await page.addStyleTag({ content: '*,*::before,*::after{caret-color:transparent!important;animation:none!important;transition:none!important}' });
+  await page.evaluate(() => document.fonts.ready);
+  const file = `${s.name}-${s.vp}-dark.png`;
+  const shot = await page.screenshot(); // solo el viewport: estable y liviano
+  await ctx.close();
+  if (errors.length) console.warn(`${file}: errores de página: ${errors.join(' | ')}`);
+  if (record) { console.log(`grabado ${file}`); continue; }
+  if (update) { writeFileSync(`${baseDir}/${file}`, shot); console.log(`baseline ${file} (${(shot.length / 1024).toFixed(0)} KB)`); continue; }
+  if (!existsSync(`${baseDir}/${file}`)) { console.log(`FALTA ${file} (corré con --update)`); failed++; continue; }
+  const r = await diff(checker, readFileSync(`${baseDir}/${file}`).toString('base64'), shot.toString('base64'));
+  const bad = r.pct > threshold;
+  if (bad) {
+    failed++;
+    writeFileSync(`${outDir}/${file.replace('.png', '.actual.png')}`, shot);
+    if (r.png) writeFileSync(`${outDir}/${file.replace('.png', '.diff.png')}`, Buffer.from(r.png, 'base64'));
   }
+  console.log(`${bad ? 'FALLA' : 'ok   '} ${file} ${r.size ?? `${r.pct.toFixed(3)} %`}`);
 }
 await browser.close();
 console.log(`${((Date.now() - t0) / 1000).toFixed(1)} s${failed ? `; ${failed} fallaron: diffs en ${outDir}` : ''}`);
