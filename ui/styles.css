@@ -434,11 +434,3 @@ button.link { border: 0; background: none; color: var(--accent-fg); padding: 0; 
 .top-bg-play:hover { filter: brightness(1.1); }
 .top-bg-play:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 
-/* ---------- Idiomas (2026-11-20, como la web) ---------- */
-/* ES / EN en la barra de arriba: dos letras, la elegida resaltada. */
-.top-lang { display: inline-flex; padding: 2px; border-radius: var(--r-pill); background: var(--surface-2); }
-.top-lang button { min-width: 34px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--r-pill); background: none; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .04em; transition: background .2s var(--ease), color .2s var(--ease); }
-.top-lang button[aria-checked="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px var(--shadow); }
-@media (prefers-reduced-motion: reduce) {
-  .top-lang button { transition: none; }
-}

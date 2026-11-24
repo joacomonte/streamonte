@@ -5,6 +5,7 @@ import {
 	calibration, KINDS, rawPrediction, sustained, SHORT_FROM, SHORT_MIN, WIN_FROM, WIN_MIN, WIN_TO,
 	type HealthCalibration, type HealthEvidence, type HealthMeasurement, type HealthStore, type MeasuredRow
 } from '$ui/options/health.ts';
+import { safeJson, safeSet } from '$ui/storage.ts';
 import type { PlaybackRow } from './types.ts';
 
 export { DEFAULT_SEED_MBPS, MIN_SAMPLES, TRACKER_MIN, fidelity, predict } from '$ui/options/health.ts';
@@ -27,20 +28,9 @@ export function setLinkMbps(v: number, net: string | null = null): void {
 	window.dispatchEvent(new Event('health-calib-changed'));
 }
 
-function load(): HealthStore {
-	try {
-		const v: unknown = JSON.parse(localStorage.getItem(KEY) ?? 'null');
-		return v && typeof v === 'object' ? (v as HealthStore) : {};
-	} catch {
-		return {};
-	}
-}
+const load = (): HealthStore => safeJson<HealthStore>(KEY, {});
 function save(v: HealthStore): void {
-	try {
-		localStorage.setItem(KEY, JSON.stringify(v));
-	} catch {
-		/* sin almacenamiento */
-	}
+	safeSet(KEY, JSON.stringify(v));
 	window.dispatchEvent(new Event('health-calib-changed'));
 }
 
