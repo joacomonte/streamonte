@@ -21,11 +21,11 @@ const update = flag('update'), record = flag('record');
 const threshold = Number(opt('threshold', 0.1)); // % de píxeles distintos tolerado
 const tol = Number(opt('tol', 16)); // diferencia máxima por canal (0-255) para contar un píxel como igual: absorbe antialiasing
 const only = flag('only') ? opt('only') : '';
-// --changed: qué app tocan los archivos modificados/nuevos (ui/ → desktop, web/ → web, packages/ → las dos).
+// --changed: qué app tocan los archivos modificados/nuevos y de los commits sin pushear (ui/ → desktop, web/ → web, packages/ → las dos).
 const touched = new Set();
 if (flag('changed') || flag('changed-apps')) {
   const { execSync } = await import('node:child_process');
-  const files = execSync('git diff --name-only HEAD && git ls-files --others --exclude-standard', { cwd: root, encoding: 'utf8' }).split('\n');
+  const files = execSync('git diff --name-only HEAD && git ls-files --others --exclude-standard && git log --format= --name-only HEAD --not --remotes=origin', { cwd: root, encoding: 'utf8' }).split('\n');
   for (const f of files) {
     if (f.startsWith('ui/src/') || f.startsWith('ui/index.html') || f.startsWith('ui/mock/')) touched.add('ui');
     if (f.startsWith('web/src/')) touched.add('web');
