@@ -58,6 +58,9 @@
    "sel": "#set-mpv-note"
   },
   {
+   "sel": "#eq-intensity"
+  },
+  {
    "sel": "#btn-settings-x"
   }
  ]

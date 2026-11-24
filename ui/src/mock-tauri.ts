@@ -9,7 +9,7 @@ const slug = (args?: Record<string, unknown>) =>
 const defaults: Record<string, unknown> = {
   library_get: { pasted_now: [], previous: [] },
   playbacks_get: [],
-  config_get: { language: { app: 'es', titles: 'es' }, engine: { incoming: true, upnp: true, announce_early: false }, player: { equalizer: 'cine' } },
+  config_get: { language: { app: 'es', titles: 'es' }, engine: { incoming: true, upnp: true, announce_early: false }, player: { equalizer: 'cine', equalizer_intensity: 100 } },
   api_keys: [],
   catalog_census: {}, // sin DHT: la UI lo toma como "no se sabe"
   catalog_swarm_saved: {},

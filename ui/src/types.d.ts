@@ -275,6 +275,7 @@ export type PlayerConfig = {
     use_app_profile: boolean;
     modern_ui: boolean;
     equalizer: Equalizer;
+    equalizer_intensity: number;
 };
 /**
  * Respuesta de `config_get`.

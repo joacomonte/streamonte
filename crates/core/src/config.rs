@@ -290,6 +290,30 @@ pub struct PlayerConfig {
     pub modern_ui: bool,
     /// Ecualizador de mpv (2026-11-17, Ajustes): por defecto el "cine" que venía fijo.
     pub equalizer: Equalizer,
+    /// Intensidad del ecualizador en % (0–[`EQ_MAX_INTENSITY`]): escala las ganancias del preset.
+    pub equalizer_intensity: u8,
+}
+
+/// Tope de la intensidad del ecualizador (%).
+pub const EQ_MAX_INTENSITY: u8 = 150;
+/// Intensidad por defecto (%): las ganancias tal cual las define cada preset.
+pub const EQ_DEFAULT_INTENSITY: u8 = 100;
+/// Headroom (dB) antes de realzar, a 100 %: se escala con la intensidad para no saturar.
+pub const EQ_HEADROOM_DB: f64 = 2.0;
+
+/// Una banda del ecualizador (`equalizer` de lavfi, ancho en Q).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EqBand {
+    pub freq_hz: f64,
+    pub width_q: f64,
+    /// Ganancia a 100 % de intensidad.
+    pub gain_db: f64,
+}
+
+/// Número sin ceros de más (`2`, `1.5`, `0.8`) para las cadenas de lavfi y las opciones del script.
+pub fn eq_num(x: f64) -> String {
+    let s = format!("{x:.2}");
+    s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
 /// Presets del ecualizador de mpv (Ajustes → Reproductor).
@@ -305,15 +329,51 @@ pub enum Equalizer {
     Flat,
 }
 
+const fn band(freq_hz: f64, width_q: f64, gain_db: f64) -> EqBand {
+    EqBand {
+        freq_hz,
+        width_q,
+        gain_db,
+    }
+}
+
 impl Equalizer {
-    /// Cadena de filtros lavfi para `--af-append`; `None` = sin ecualizador. Siempre -2 dB antes de
-    /// realzar, para no saturar.
-    pub fn lavfi(self) -> Option<&'static str> {
+    /// Bandas del preset a 100 %; vacío = sin ecualizador. Única fuente: la cadena de lavfi y el
+    /// script de teclas de mpv (`player::eq_script_opts`) salen de acá.
+    pub fn bands(self) -> &'static [EqBand] {
+        // `const`: una llamada a fn (aunque sea const) no se promueve sola a `'static`.
+        const CINE: &[EqBand] = &[
+            band(80.0, 0.8, 2.0),
+            band(3000.0, 1.0, 1.5),
+            band(10000.0, 1.0, 1.0),
+        ];
+        const VOICES: &[EqBand] = &[band(1500.0, 1.0, 1.5), band(3000.0, 1.0, 3.0)];
         match self {
-            Equalizer::Cine => Some("volume=-2dB,equalizer=f=80:t=q:w=0.8:g=2,equalizer=f=3000:t=q:w=1:g=1.5,equalizer=f=10000:t=q:w=1:g=1"),
-            Equalizer::Voices => Some("volume=-2dB,equalizer=f=1500:t=q:w=1:g=1.5,equalizer=f=3000:t=q:w=1:g=3"),
-            Equalizer::Flat => None,
+            Equalizer::Cine => CINE,
+            Equalizer::Voices => VOICES,
+            Equalizer::Flat => &[],
         }
+    }
+
+    /// Cadena lavfi para `--af-append`; `None` = sin ecualizador (preset plano o intensidad 0).
+    /// Ganancias y headroom (-2 dB a 100 %) escalan con `intensity` (%, tope 150).
+    pub fn lavfi(self, intensity: u8) -> Option<String> {
+        let bands = self.bands();
+        let intensity = intensity.min(EQ_MAX_INTENSITY);
+        if bands.is_empty() || intensity == 0 {
+            return None;
+        }
+        let k = f64::from(intensity) / 100.0;
+        let mut parts = vec![format!("volume=-{}dB", eq_num(EQ_HEADROOM_DB * k))];
+        for b in bands {
+            parts.push(format!(
+                "equalizer=f={}:t=q:w={}:g={}",
+                eq_num(b.freq_hz),
+                eq_num(b.width_q),
+                eq_num(b.gain_db * k)
+            ));
+        }
+        Some(parts.join(","))
     }
 }
 
@@ -325,6 +385,7 @@ impl Default for PlayerConfig {
             use_app_profile: true,
             modern_ui: false,
             equalizer: Equalizer::default(),
+            equalizer_intensity: EQ_DEFAULT_INTENSITY,
         }
     }
 }
@@ -658,6 +719,27 @@ mod tests {
         c.engine.listen_ports = [43_210, 43_219];
         store.save(&c).unwrap();
         assert_eq!(store.load().unwrap(), c);
+    }
+
+    #[test]
+    fn ecualizador_escala_ganancias_con_la_intensidad() {
+        // 100 % = las cadenas fijas de antes.
+        assert_eq!(
+            Equalizer::Cine.lavfi(100).as_deref(),
+            Some("volume=-2dB,equalizer=f=80:t=q:w=0.8:g=2,equalizer=f=3000:t=q:w=1:g=1.5,equalizer=f=10000:t=q:w=1:g=1")
+        );
+        assert_eq!(
+            Equalizer::Voices.lavfi(50).as_deref(),
+            Some("volume=-1dB,equalizer=f=1500:t=q:w=1:g=0.75,equalizer=f=3000:t=q:w=1:g=1.5")
+        );
+        // 150 % también sube el headroom; con el tope se recorta lo que pase de 150.
+        assert_eq!(Equalizer::Voices.lavfi(150), Equalizer::Voices.lavfi(200));
+        assert!(Equalizer::Voices
+            .lavfi(150)
+            .unwrap()
+            .starts_with("volume=-3dB,"));
+        assert_eq!(Equalizer::Cine.lavfi(0), None);
+        assert_eq!(Equalizer::Flat.lavfi(100), None);
     }
 
     #[test]

@@ -42,11 +42,11 @@ test('cada guardado llama a su comando', async () => {
 	await toggleLatTeam(f.api, false);
 	await saveLatTeamToken(f.api, ' tok ');
 	await saveOsLogin(f.api, ' user ', ' p ');
-	await saveEqualizer(f.api, 'voices');
+	await saveEqualizer(f.api, 'voices', 120);
 	await saveNetwork(f.api, { incoming: true, upnp: false, announce: true });
 	assert.deepEqual(f.calls, [
 		'catalogSetAddonEnabled(latteam,false)', 'setApiKey(latteam,tok)',
-		'setOpensubtitlesLogin(user, p )', 'setEqualizer(voices)', 'setNetwork(true,false,true)'
+		'setOpensubtitlesLogin(user, p )', 'setEqualizer(voices,120)', 'setNetwork(true,false,true)'
 	]);
 	assert.ok((await installMpv(f.api)).startsWith('mpv instalado'));
 });
@@ -54,12 +54,13 @@ test('cada guardado llama a su comando', async () => {
 test('loadSettings arma el estado desde config, keys, addons y reproductores', async () => {
 	const s = await loadSettings({
 		apiKeys: () => Promise.resolve([{ service: 'tmdb', configured: true }]),
-		config: () => Promise.resolve({ engine: { incoming: true, upnp: false, announce_early: true }, player: { equalizer: 'flat' } } as Raw.Config),
+		config: () => Promise.resolve({ engine: { incoming: true, upnp: false, announce_early: true }, player: { equalizer: 'flat', equalizer_intensity: 80 } } as Raw.Config),
 		catalogAddons: () => Promise.resolve([{ id: 'latteam', enabled: true }, { id: 'x', enabled: false }] as Raw.AddonView[]),
 		playersStatus: () => Promise.resolve({ mpv: null, vlc: true, can_install_mpv: true })
 	});
 	assert.deepEqual(s.net, { incoming: true, upnp: false, announce: true });
 	assert.equal(s.eq, 'flat');
+	assert.equal(s.eqIntensity, 80);
 	assert.equal(s.latteamOn, true);
 	assert.equal(s.keys.length, 1);
 });

@@ -674,9 +674,15 @@ impl AppCore {
     }
 
     /// Ecualizador del reproductor (Ajustes, 2026-11-17): rige desde la próxima reproducción.
-    pub async fn set_equalizer(&self, equalizer: crate::config::Equalizer) -> Result<()> {
+    /// `intensity` en % (se recorta a 0–150).
+    pub async fn set_equalizer(
+        &self,
+        equalizer: crate::config::Equalizer,
+        intensity: u8,
+    ) -> Result<()> {
         self.update_config(|c| {
             c.player.equalizer = equalizer;
+            c.player.equalizer_intensity = intensity.min(crate::config::EQ_MAX_INTENSITY);
             Ok(())
         })
         .await

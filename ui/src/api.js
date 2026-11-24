@@ -230,8 +230,8 @@ export const api = {
   playersStatus: () => invoke('players_status'),
   /** Con Homebrew instala mpv (minutos); si no, abre la guía. true = instalado. @returns {Promise<boolean>} */
   installMpv: () => invoke('install_mpv'),
-  /** 'cine' | 'voices' | 'flat' (Ajustes → Reproductor, 2026-11-17). @param {import('./types.js').Equalizer} equalizer @returns {Promise<void>} */
-  setEqualizer: (equalizer) => invoke('config_set_equalizer', { equalizer }),
+  /** 'cine' | 'voices' | 'flat' + intensidad en % 0–150 (Ajustes → Reproductor, 2026-11-17). @param {import('./types.js').Equalizer} equalizer @param {number} intensity @returns {Promise<void>} */
+  setEqualizer: (equalizer, intensity) => invoke('config_set_equalizer', { equalizer, intensity }),
   /** Idiomas de la app y de los títulos: {app: 'es'|'en', titles: 'es'|'en'}. @param {import('./types.js').LanguageConfig} language @returns {Promise<void>} */
   setLanguage: (language) => invoke('config_set_language', { language }),
   /** Ajustes → Red (ADR-30): entrantes / UPnP. @param {boolean} incoming @param {boolean} upnp @param {boolean} announceEarly @returns {Promise<void>} */

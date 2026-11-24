@@ -25,6 +25,47 @@ const IPC_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const QUIT_TIMEOUT: Duration = Duration::from_secs(2);
 static NEXT_IPC: AtomicU64 = AtomicU64::new(1);
 
+/// Script de mpv con las teclas del ecualizador en vivo.
+const EQ_SCRIPT: &str = include_str!("player_eq.lua");
+/// En cuántas reproducciones (las primeras) mpv avisa las teclas del ecualizador.
+const EQ_TIP_PLAYS: u32 = 3;
+
+/// Opciones (`streamonte-eq-<clave>`) que el script lee con `mp.get_opt`: bandas de cada preset
+/// (`freq/Q/dB;…`, a 100 %), headroom y el estado inicial (el de Ajustes). El script no sabe nada
+/// de presets: todo sale de [`crate::config::Equalizer::bands`].
+fn eq_script_opts(cfg: &PlayerConfig) -> Vec<(&'static str, String)> {
+    use crate::config::{eq_num, Equalizer, EQ_HEADROOM_DB, EQ_MAX_INTENSITY};
+    let bands = |eq: Equalizer| {
+        eq.bands()
+            .iter()
+            .map(|b| {
+                format!(
+                    "{}/{}/{}",
+                    eq_num(b.freq_hz),
+                    eq_num(b.width_q),
+                    eq_num(b.gain_db)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(";")
+    };
+    let start = match cfg.equalizer {
+        Equalizer::Cine => "cine",
+        Equalizer::Voices => "voices",
+        Equalizer::Flat => "flat",
+    };
+    vec![
+        ("cine", bands(Equalizer::Cine)),
+        ("voices", bands(Equalizer::Voices)),
+        ("headroom", eq_num(EQ_HEADROOM_DB)),
+        ("start", start.to_string()),
+        (
+            "intensity",
+            cfg.equalizer_intensity.min(EQ_MAX_INTENSITY).to_string(),
+        ),
+    ]
+}
+
 /// El reproductor que se usa: el que el usuario eligió en ESTE ▶ (se pregunta en cada uno,
 /// 2026-11-20). Sin elección (hay uno solo, o de fondo sin reproductor): mpv; y si es mpv y no hay
 /// ninguno (ni el incluido ni uno instalado, p. ej. macOS < 15 sin mpv), VLC si está instalado.
@@ -350,6 +391,29 @@ impl PlayerLauncher {
         })
     }
 
+    /// Deja el script Lua del ecualizador (embebido en el binario) en la carpeta de datos. Se
+    /// reescribe solo si cambió: dos mpv arrancando a la vez no lo pisan a mitad de lectura.
+    fn write_eq_script(&self) -> std::io::Result<PathBuf> {
+        let dir = self.paths.data_dir.join("mpv-scripts");
+        std::fs::create_dir_all(&dir)?;
+        let path = dir.join("streamonte-eq.lua");
+        if std::fs::read_to_string(&path).ok().as_deref() != Some(EQ_SCRIPT) {
+            std::fs::write(&path, EQ_SCRIPT)?;
+        }
+        Ok(path)
+    }
+
+    /// ¿Esta reproducción avisa las teclas del ecualizador? Sí en las primeras [`EQ_TIP_PLAYS`]:
+    /// cuenta en `mpv-scripts/eq-tips` (si no se puede escribir, no avisa).
+    fn eq_tip_due(&self) -> bool {
+        let path = self.paths.data_dir.join("mpv-scripts").join("eq-tips");
+        let shown: u32 = std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| s.trim().parse().ok())
+            .unwrap_or(0);
+        shown < EQ_TIP_PLAYS && std::fs::write(&path, (shown + 1).to_string()).is_ok()
+    }
+
     /// Argumentos de mpv para streaming (FR-34 completo — perfil propio, HDR, teclas — llega en F5).
     /// Por ahora respeta la config personal del usuario y agrega solo lo necesario para streaming.
     pub fn mpv_args(&self, req: &LaunchRequest, ipc_path: &str) -> Vec<String> {
@@ -372,9 +436,24 @@ impl PlayerLauncher {
             "--force-window=immediate".into(),
         ];
         // Ecualizador elegido en Ajustes (2026-11-17; antes fijo en "cine"). `af-append` suma al
-        // final: no pisa los filtros del mpv.conf del usuario.
-        if let Some(af) = self.config.equalizer.lavfi() {
-            args.push(format!("--af-append=lavfi=[{af}]"));
+        // final: no pisa los filtros del mpv.conf del usuario. Con label `@eq` para que el script
+        // de teclas (más abajo) lo cambie en vivo.
+        if let Some(af) = self.config.equalizer.lavfi(self.config.equalizer_intensity) {
+            args.push(format!("--af-append=@eq:lavfi=[{af}]"));
+        }
+        // Teclas del ecualizador en vivo (Alt+←→ tipo, Alt+↑↓ intensidad). Sin el script (disco),
+        // el ecualizador de Ajustes rige igual, solo que sin teclas.
+        match self.write_eq_script() {
+            Ok(script) => {
+                args.push(format!("--script={}", script.display()));
+                for (key, value) in eq_script_opts(&self.config) {
+                    args.push(format!("--script-opts-append=streamonte-eq-{key}={value}"));
+                }
+                if self.eq_tip_due() {
+                    args.push("--script-opts-append=streamonte-eq-tip=yes".into());
+                }
+            }
+            Err(e) => tracing::warn!("no se pudo escribir el script del ecualizador: {e}"),
         }
         for sub in &req.subtitle_files {
             args.push(format!("--sub-file={}", sub.display()));

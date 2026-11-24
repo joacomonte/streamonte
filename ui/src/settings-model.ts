@@ -34,8 +34,8 @@ export const toggleLatTeam = (api: Pick<DesktopApi, 'catalogSetAddonEnabled'>, o
 /** Usuario y contraseña de OpenSubtitles.com (vacíos = borrar). */
 export const saveOsLogin = (api: Pick<DesktopApi, 'setOpensubtitlesLogin'>, user: string, pass: string): Promise<void> => api.setOpensubtitlesLogin(user.trim(), pass);
 
-export async function saveEqualizer(api: Pick<DesktopApi, 'setEqualizer'>, eq: Raw.Equalizer): Promise<string> {
-	await api.setEqualizer(eq);
+export async function saveEqualizer(api: Pick<DesktopApi, 'setEqualizer'>, eq: Raw.Equalizer, intensity: number): Promise<string> {
+	await api.setEqualizer(eq, intensity);
 	return t('Sonido guardado: rige desde la próxima reproducción.');
 }
 
@@ -86,7 +86,7 @@ export function netCheckView(r: Raw.IncomingCheck): { cls: 'ok' | 'bad' | ''; te
 	return { cls: '', text: `${r.problem ?? t('No se pudo probar.')}${ip}` };
 }
 
-export type SettingsSnapshot = { keys: Raw.ApiKeyStatus[]; eq: Raw.Equalizer; net: Net; latteamOn: boolean; players: Raw.PlayersStatus };
+export type SettingsSnapshot = { keys: Raw.ApiKeyStatus[]; eq: Raw.Equalizer; eqIntensity: number; net: Net; latteamOn: boolean; players: Raw.PlayersStatus };
 /** Todo lo que muestra Ajustes al abrirse. */
 export async function loadSettings(api: Pick<DesktopApi, 'apiKeys' | 'config' | 'catalogAddons' | 'playersStatus'>): Promise<SettingsSnapshot> {
 	const keys = await api.apiKeys();
@@ -96,6 +96,7 @@ export async function loadSettings(api: Pick<DesktopApi, 'apiKeys' | 'config' | 
 	return {
 		keys,
 		eq: player.equalizer,
+		eqIntensity: player.equalizer_intensity ?? 100,
 		net: { incoming: engine.incoming, upnp: engine.upnp, announce: engine.announce_early },
 		latteamOn: addons.some((a) => a.id === 'latteam' && a.enabled),
 		players

@@ -31,6 +31,7 @@
   let isOpen = $state(false);
   let keys = $state<Raw.ApiKeyStatus[]>([]);
   let eq = $state<Raw.Equalizer>('cine');
+  let eqIntensity = $state(100);
   let net = $state<Net>({ incoming: false, upnp: false, announce: false });
   let latteamOn = $state(false);
   let players = $state<PlayersView | null>(null);
@@ -69,6 +70,7 @@
       const s = await loadSettings(desktop);
       keys = s.keys;
       eq = s.eq;
+      eqIntensity = s.eqIntensity;
       net = s.net;
       latteamOn = s.latteamOn;
       players = playersView(s.players);
@@ -133,10 +135,11 @@
     }
   }
 
-  async function onEqualizer(value: Raw.Equalizer): Promise<void> {
+  async function onEqualizer(value: Raw.Equalizer, intensity: number = eqIntensity): Promise<void> {
     try {
       eq = value;
-      setStatus(await saveEqualizer(desktop, value));
+      eqIntensity = intensity;
+      setStatus(await saveEqualizer(desktop, value, intensity));
     } catch (e) {
       showError(e);
     }
@@ -249,6 +252,12 @@
             {/each}
           </div>
         </li>
+        <li class="st-row">
+          <span class="st-lbl"><label class="st-name" for="eq-intensity">{t('Intensidad')}</label><span class="st-sub" id="eq-keys-help">{t('Durante la reproducción: Option/Alt+←/→ cambia el tipo, Option/Alt+↑/↓ la intensidad')}</span></span>
+          <input id="eq-intensity" class="eq-range" type="range" min="0" max="150" step="10" value={eqIntensity} disabled={eq === 'flat'} aria-describedby="eq-keys-help"
+            oninput={(e) => (eqIntensity = e.currentTarget.valueAsNumber)} onchange={(e) => onEqualizer(eq, e.currentTarget.valueAsNumber)}>
+          <output id="eq-intensity-value" class="eq-pct" for="eq-intensity">{eqIntensity}%</output>
+        </li>
         <li>
           <details class="st-more">
             <summary id="set-h-keys" class="st-row">
@@ -263,6 +272,8 @@
                   <tr><th>S</th><td>{t('Ocultar / mostrar subtítulos')}</td></tr>
                   <tr><th>Z / X</th><td>{t('La voz llega antes / después (±0,1 s; con Shift ±1 s)')}</td></tr>
                   <tr><th>R</th><td>{t('Volver la sincronización a cero')}</td></tr>
+                  <tr><th>Option/Alt+← / →</th><td>{t('Cambiar el ecualizador')}</td></tr>
+                  <tr><th>Option/Alt+↑ / ↓</th><td>{t('Intensidad del ecualizador (±10 %)')}</td></tr>
                 </tbody>
               </table>
             </div>
@@ -397,6 +408,9 @@
   .warn .st-sub { color: var(--text); }
   /* Sonido: tres opciones en un segmentado chico; la nota de la elegida va debajo del nombre. */
   .eq { display: inline-grid; grid-auto-flow: column; padding: 3px; border-radius: var(--r-pill); background: var(--surface-3); }
+  .eq-range { flex: none; width: 150px; accent-color: var(--accent); }
+  .eq-range:disabled { opacity: 0.45; }
+  .eq-pct { flex: none; min-width: 3.2em; text-align: right; font-size: 13px; font-weight: 650; color: var(--muted); font-variant-numeric: tabular-nums; }
   .eq-opt { position: relative; cursor: pointer; }
   .eq-opt input { position: absolute; opacity: 0; pointer-events: none; }
   .eq-opt span { display: block; padding: 6px 12px; border-radius: var(--r-pill); color: var(--muted); font-size: 13px; font-weight: 650; white-space: nowrap; transition: background 0.2s var(--ease), color 0.2s var(--ease); }

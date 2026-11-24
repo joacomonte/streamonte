@@ -255,8 +255,9 @@ pub async fn config_set_language(
 pub async fn config_set_equalizer(
     core: Core<'_>,
     equalizer: streamonte_core::config::Equalizer,
+    intensity: u8,
 ) -> CmdResult<()> {
-    Ok(core.set_equalizer(equalizer).await?)
+    Ok(core.set_equalizer(equalizer, intensity).await?)
 }
 #[tauri::command]
 pub async fn config_set_network(
