@@ -243,6 +243,13 @@
 	.lbl { display: flex; flex-direction: column; min-width: 0; overflow: hidden; line-height: 1.1; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 	.lbl em { overflow: hidden; font-style: normal; font-size: 11px; font-weight: 500; color: #8a939e; text-overflow: ellipsis; }
 
+	/* Celu angosto (2026-11-24): un solo póster, sin la segunda línea y menos aire, para que entre al lado del orden sin desbordar. */
+	.pick-row { min-width: 0; }
+	@media (max-width: 479px) {
+		.trigger { gap: 7px; height: 42px; padding: 0 9px 0 6px; font-size: 13.5px; }
+		.mini:nth-child(n + 2) { display: none; }
+		.lbl em { display: none; }
+	}
 	.clear { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--muted); }
 	.trigger:focus-visible, .clear:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	@media (hover: hover) { .trigger:hover, .clear:hover { color: var(--text); } }

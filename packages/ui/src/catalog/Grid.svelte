@@ -316,6 +316,9 @@
 		white-space: nowrap;
 	}
 	.doc :global(svg) { flex: none; color: oklch(0.8 0.11 195); }
+	/* En hover, "Documental" pasa a la lista de subgéneros de CardInfo: el chip se oculta para no pisarse. */
+	.doc { transition: opacity 0.22s ease-out; }
+	@media (hover: hover) { .card:hover .doc, .card:focus-visible .doc { opacity: 0; } }
 	.cine { display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: var(--r-pill); background: rgb(0 0 0 / 0.72); color: #fff; font-size: 11px; font-weight: 700; }
 	.card { --t: calc(var(--i, 0) * 70ms); position: relative; overflow: hidden; animation: card-in 0.9s cubic-bezier(0.25, 0.8, 0.3, 1) var(--t) backwards var(--play, paused); }
 	/* Las que llegan scrolleando: entrada corta, escalonado mínimo y desde medio visibles (en pausa ya se ven). */

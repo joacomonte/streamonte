@@ -17,8 +17,8 @@
 </script>
 
 <script lang="ts">
-	// Detalles sobre el póster al pasar el mouse: géneros, subgéneros de IMDb (los que conocemos) y, en series, barras por
-	// temporada. Año, puntaje, duración y premios no van acá: ya se ven debajo del póster (Grid.svelte). Los subgéneros vienen con los
+	// Detalles sobre el póster al pasar el mouse, abajo: subgéneros de IMDb (los que conocemos) en una línea con puntos y, en
+	// series, barras por temporada. Los géneros de TMDB no van (2026-11-24: los reemplazan los subgéneros). Año, puntaje, duración y premios no van acá: ya se ven debajo del póster (Grid.svelte). Los subgéneros vienen con los
 	// premios (misma consulta y caché que Grid: no pide nada extra).
 	// Se monta recién cuando el mouse se detiene un momento encima (Grid.svelte); la ficha queda en caché.
 	import { onMount } from 'svelte';
@@ -36,6 +36,7 @@
 	/** undefined = cargando, null = no hay ficha. */
 	let d = $state<TitleDetails | null | undefined>(undefined);
 	let subs = $state<string[]>([]);
+	const labels = $derived(item.documentary ? [t('Documental'), ...subs] : subs);
 	let seasons = $state<{ chart: Chart | null; outlook: Outlook | null } | null | undefined>(undefined);
 	const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).replace('.', '');
 
@@ -52,11 +53,11 @@
 {#if d !== null}
 	<span id="cat-info-{item.id}" class="info" aria-hidden="true">
 		<span class="body">
+			<!-- Abajo, una línea que se parte, separada por puntos; Documental va primero (el chip de Grid se oculta en hover). -->
+			{#if labels.length}<span class="subs">{#each labels as s, i (s)}{#if i}<span class="sep" aria-hidden="true">·</span>{/if}<span class="sub">{s}</span>{/each}</span>{/if}
 			{#if d === undefined}
 				<span class="skel line"></span><span class="skel line short"></span>
 			{:else}
-				{#if d.genres.length}<span class="genres">{d.genres.slice(0, 3).join(' · ')}</span>{/if}
-				{#if subs.length}<span class="subs">{#each subs as s (s)}<span class="sub">{s}</span>{/each}</span>{/if}
 				{#if item.kind === 'tv'}
 					<span class="seasons">
 						{#if seasons === undefined}
@@ -95,8 +96,8 @@
 	 * por su cuenta (antes subía 6 px y no acompañaba el "apretar" del póster: quedaba una caja corrida).
 	 * `width: 100%` y no `left: 0; right: 0`: con aspect-ratio, WebKit (desktop y Safari) achicaba el velo (2026-11-23). */
 	.info { position: absolute; top: 0; left: 0; width: 100%; aspect-ratio: 2 / 3; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px 11px; border-radius: var(--r-md); pointer-events: none; color: #fff;
-		/* Fade mínimo: solo el tercio de abajo, donde va el texto; el póster queda a la vista (2026-11-24). */
-		background: linear-gradient(to top, rgb(6 8 12 / 0.88) 0%, rgb(6 8 12 / 0.55) 18%, rgb(6 8 12 / 0) 38%);
+		/* Fade mínimo abajo, donde va el texto; el póster queda a la vista (2026-11-24). */
+		background: linear-gradient(to top, rgb(6 8 12 / 0.85) 0%, rgb(6 8 12 / 0.5) 16%, rgb(6 8 12 / 0) 34%);
 		opacity: 0; transition: opacity 0.22s ease-out, transform 0.15s var(--ease); }
 	.body { display: flex; flex-direction: column; gap: 5px; transform: translateY(6px); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 	/* Solo con mouse: en el celu un toque no tiene que "hacer hover" (en iOS el primer toque se gastaría ahí). */
@@ -108,9 +109,9 @@
 	:global(.card:active) .info { transform: scale(0.97); }
 	.line { height: 9px; border-radius: 4px; opacity: 0.5; }
 	.short { width: 60%; }
-	.genres { font-size: 11.5px; font-weight: 600; line-height: 1.3; color: rgb(255 255 255 / 0.9); text-shadow: 0 1px 3px rgb(0 0 0 / 0.6); }
-	.subs { display: flex; flex-wrap: wrap; gap: 4px; }
-	.sub { padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.35; color: #fff; background: rgb(255 255 255 / 0.16); backdrop-filter: blur(6px); animation: sub-in 0.25s ease-out both; }
+	/* Subgéneros: una línea mínima separada por puntos, que se parte si no entra. */
+	.subs { font-size: 11px; font-weight: 600; line-height: 1.35; color: rgb(255 255 255 / 0.9); text-shadow: 0 1px 3px rgb(0 0 0 / 0.6); animation: sub-in 0.25s ease-out both; }
+	.sep { padding: 0 5px; color: rgb(255 255 255 / 0.5); }
 	@keyframes sub-in { from { opacity: 0; transform: translateY(3px); } }
 	.seasons { display: grid; gap: 5px; margin-top: 2px; }
 	.seasons:empty { display: none; }
@@ -121,10 +122,10 @@
 	.good i { background: color-mix(in srgb, var(--green) 55%, var(--yellow)); }
 	.meh i { background: var(--yellow); }
 	.bad i { background: var(--red); }
-	.next { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: rgb(255 255 255 / 0.8); }
+	.next { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: rgb(255 255 255 / 0.9); text-shadow: 0 1px 3px rgb(0 0 0 / 0.8); }
 	.when { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: #fff; }
 	.dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: rgb(255 255 255 / 0.5); }
 	.wait .dot { background: var(--yellow); }
 	.stop .dot { background: var(--red); }
-	@media (prefers-reduced-motion: reduce) { .info { transition: opacity 0.15s; } .body { transition: none; transform: none; } .sub { animation: none; } }
+	@media (prefers-reduced-motion: reduce) { .info { transition: opacity 0.15s; } .body { transition: none; transform: none; } .subs { animation: none; } }
 </style>

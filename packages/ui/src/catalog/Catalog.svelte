@@ -284,6 +284,8 @@
 	/* Orden primero y géneros al lado; el orden no se achica por debajo de lo que entra en celu. */
 	.sort-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 	.ks-sort { flex: 0 1 280px; min-width: 168px; margin: 6px 0 10px; padding: 3px; }
+	/* Celu: el orden ocupa lo que sobra y géneros (compacto en GenrePicker) se queda con lo suyo, sin cortarse. */
+	@media (max-width: 479px) { .ks-sort { flex: 1 1 0; min-width: 160px; } }
 
 
 	.body { padding: 14px 16px calc(24px + var(--safe-bottom)); }

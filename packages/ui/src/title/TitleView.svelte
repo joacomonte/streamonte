@@ -265,7 +265,7 @@
 								     ganados/nominaciones; la flecha despliega la lista completa debajo de la cabecera. -->
 								{#if d.imdb}
 									{@const imdb = d.imdb}
-									<a id={ids.imdb} class="ext" href="https://www.imdb.com/title/{imdb}/" target="_blank" rel="noopener noreferrer" title={t('Ver en IMDb')} onclick={(e) => { if (onOpenImdb) { e.preventDefault(); onOpenImdb(imdb); } }}>{#if rating}<span class="ext-star"><Icon name="star" size={13} /></span>{rating}{:else}<span class="ext-imdb">IMDb</span>{/if}</a>
+									<a id={ids.imdb} class="ext" href="https://www.imdb.com/title/{imdb}/" target="_blank" rel="noopener noreferrer" title={t('Ver en IMDb')} onclick={(e) => { if (onOpenImdb) { e.preventDefault(); onOpenImdb(imdb); } }}>{#if rating}<span class="ext-star"><Icon name="star" size={13} /></span>{rating}{:else}<span class="ext-imdb">IMDb</span>{/if}<span class="ext-chev" aria-hidden="true"><Icon name="next" size={13} /></span></a>
 								{:else if rating}
 									<span class="rate"><Icon name="star" size={13} />{rating}</span>
 								{/if}
@@ -529,8 +529,8 @@
 	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
 	/* Premios: el dorado se arma con el amarillo del tema. */
 	.title-view { --gold: color-mix(in srgb, var(--yellow) 65%, #e0a800); }
-	/* Premios compactos: píldora como la de IMDb, con la flecha que despliega la lista. Llegan después (otro pedido): entran suaves. */
-	.aw-pill { gap: 4px; padding-right: 4px; border: 0; font-family: inherit; cursor: pointer; animation: aw-in 0.5s var(--out) backwards; }
+	/* Premios compactos: como el puntaje, con la flecha que despliega la lista. Llegan después (otro pedido): entran suaves. */
+	.aw-pill { gap: 4px; border: 0; font-family: inherit; cursor: pointer; animation: aw-in 0.5s var(--out) backwards; }
 	@keyframes aw-in { from { opacity: 0; transform: translateY(6px); } }
 	.aw-chev { display: grid; place-items: center; flex: none; width: 18px; height: 18px; border-radius: var(--r-pill, 999px); color: var(--muted); transition: transform 0.35s var(--out); }
 	.aw-pill.open .aw-chev { transform: rotate(180deg); }
@@ -560,11 +560,12 @@
 	.cine-wrap { padding-top: 12px; }
 	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: var(--r-card, 14px); background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
 	.cine-note :global(svg) { flex: none; margin-top: 1px; color: var(--amber, #f5a524); }
-	/* IMDb y tráiler: píldoras chicas en la línea de datos. */
-	.ext { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 9px; border-radius: var(--r-pill, 999px); background: var(--surface-2); color: var(--text); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: none; transition: background 0.2s var(--ease); }
+	/* Puntaje (IMDb) y premios en la línea de datos: sin fondo (2026-11-24); el chevron dice que se tocan. */
+	.ext { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 2px; border-radius: var(--r-pill, 999px); background: none; color: var(--text); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: none; transition: opacity 0.2s var(--ease); }
+	.ext-chev { display: grid; place-items: center; margin-left: -2px; color: var(--muted); transition: transform 0.25s var(--out); }
 	.ext-star { display: inline-flex; color: var(--yellow); }
 	.ext-imdb { padding: 0 1px; font-weight: 800; letter-spacing: 0.02em; color: var(--yellow); }
-	@media (hover: hover) { .ext:hover { background: var(--surface-3, var(--border)); } }
+	@media (hover: hover) { .ext:hover { opacity: 0.85; } a.ext:hover .ext-chev { transform: translateX(2px); } }
 	/* Fila de plataformas. */
 	.networks { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 12px; }
 	.network { display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border-radius: var(--r-pill, 999px); border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border)); background: var(--surface-2); color: var(--accent-chip); font-size: 12.5px; font-weight: 600; }

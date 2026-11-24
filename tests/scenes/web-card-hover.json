@@ -14,11 +14,11 @@
    "count": 10
   },
   {
-   "sel": "[id^=cat-info-] [class*=genres]",
+   "sel": "[id^=cat-info-] .sub",
    "text": "\\w",
    "hover": "[id^=cat-card-]",
    "timeout": 6000,
-   "note": "hover: géneros"
+   "note": "hover: subgéneros (etiquetas arriba)"
   }
  ]
 }
