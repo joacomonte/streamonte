@@ -218,7 +218,7 @@
 
 {#snippet foot(g: Category)}
 	<div class="foot">
-		<div class="bar">
+		<div class="sumbar">
 			<span id="genre-sum" class="sum">
 				{#if mark === 'all'}{t('Todos los subgéneros')}{:else if mark === 'part'}<b>{t('{n} de {m} elegidos', { n: sel.length, m: g.subs.length })}</b> · {g.subs.filter((x) => sel.includes(x.id)).map((x) => x.label).join(', ')}{:else}{t('Elegí al menos uno')}{/if}
 			</span>
@@ -273,7 +273,7 @@
 
 <style>
 	/* ── Botón ── */
-	.pick-row { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; }
+	.pick-row { display: flex; align-items: center; gap: 6px; margin: 6px 0 10px; }
 	.trigger { display: inline-flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; height: 44px; padding: 0 14px 0 8px; border: 0; border-radius: 14px; background: linear-gradient(180deg, #1a1e26, #12151b); color: #e7eaee; font-size: 14px; font-weight: 650; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.35); -webkit-tap-highlight-color: transparent; transition: box-shadow 0.25s var(--out), color 0.25s var(--out), scale 0.2s var(--out); }
 	.trigger:active { scale: 0.96; }
 	.trigger.on { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), inset 0 0 0 1px rgb(96 165 250 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35); }
@@ -371,7 +371,7 @@
 	/* ── Pie: resumen a la izquierda y "Listo" blanco a la derecha ── */
 	.foot { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 26px 16px calc(16px + var(--safe-bottom, 0px)); background: linear-gradient(to top, #0b0d11 55%, transparent); pointer-events: none; }
 	.wide .foot { padding-bottom: 16px; }
-	.bar { display: flex; align-items: center; gap: 16px; padding: 10px 10px 10px 18px; border-radius: 999px; background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07); pointer-events: auto; }
+	.sumbar { display: flex; align-items: center; gap: 16px; padding: 10px 10px 10px 18px; border-radius: 999px; background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07); pointer-events: auto; }
 	.sum { flex: 1; min-width: 0; overflow: hidden; font-size: 13.5px; color: rgb(255 255 255 / 0.55); white-space: nowrap; text-overflow: ellipsis; }
 	.sum b { color: #fff; font-weight: 700; }
 	.done { display: inline-flex; align-items: center; gap: 8px; flex: none; height: 44px; padding: 0 20px 0 22px; border: 0; border-radius: 999px; background: #fff; color: #0b0d11; font-size: 15px; font-weight: 750; box-shadow: 0 6px 20px rgb(255 255 255 / 0.12); transition: opacity 0.25s, scale 0.2s var(--out); }
