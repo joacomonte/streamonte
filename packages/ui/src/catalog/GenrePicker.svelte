@@ -171,7 +171,7 @@
 {/snippet}
 
 {#snippet genreTile(g: Category, k: number)}
-	<button id="genre-{g.key}" type="button" class="tile g-tile" style:--h={genreArt(g.art).hue} style:--k={k} onclick={() => enter(g.key)}>
+	<button id="genre-{g.key}" type="button" class="tile g-tile fade-dark" style:--h={genreArt(g.art).hue} style:--k={k} onclick={() => enter(g.key)}>
 		{@render posters(level1[k] ?? null)}
 		<span class="ic">{@render glyph(genreArt(g.art).svg)}</span>
 		<b>{g.label}</b>
@@ -181,7 +181,7 @@
 {#snippet subs(g: Category)}
 	{@const all = level2[0] ?? null}
 	<div class="grid sub">
-		<button bind:this={tiles.all} id="sub-all" type="button" class="tile s-tile" class:part={mark === 'part'} class:off={mark === 'none'} aria-pressed={mark === 'all'} style:--k={0} onclick={toggleAll}>
+		<button bind:this={tiles.all} id="sub-all" type="button" class="tile s-tile fade-dark" class:part={mark === 'part'} class:off={mark === 'none'} aria-pressed={mark === 'all'} style:--k={0} onclick={toggleAll}>
 			<span class="chk" aria-hidden="true"><Icon name="check" size={14} /><i class="dash"></i></span>
 			{@render posters(all)}
 			<span class="ic">{@render glyph(ALL_ART.svg, 16)}</span>
@@ -194,7 +194,7 @@
 		{#each g.subs as s, k (s.id)}
 			{@const on = sel.includes(s.id)}
 			{@const list = level2[k + 1] ?? null}
-			<button bind:this={tiles[s.id]} id="sub-{s.id}" type="button" class="tile s-tile" class:off={!on} aria-pressed={on} style:--k={k + 1} onclick={() => toggle(s.id)}>
+			<button bind:this={tiles[s.id]} id="sub-{s.id}" type="button" class="tile s-tile fade-dark" class:off={!on} aria-pressed={on} style:--k={k + 1} onclick={() => toggle(s.id)}>
 				<span class="chk" aria-hidden="true"><Icon name="check" size={14} /></span>
 				{@render posters(list)}
 				<span class="fr">
@@ -312,21 +312,20 @@
 	.p:nth-child(3) { margin-top: -10px; animation-delay: -6s; }
 	.p.ghost { background: linear-gradient(160deg, #222a35, #151a21); }
 	.ic { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: auto; border-radius: 10px; background: rgb(255 255 255 / 0.12); backdrop-filter: blur(8px); color: #fff; }
+	.g-tile .ic { color: oklch(0.8 0.14 var(--h)); background: color-mix(in oklch, oklch(0.7 0.14 var(--h)) 22%, rgb(255 255 255 / 0.06)); }
 	.tile b { font-size: 16px; font-weight: 750; }
 
-	/* Nivel 1: el género con su color. */
-	.g-tile { --g: oklch(0.62 0.14 var(--h)); height: 120px; animation: pop 0.55s var(--out) both; animation-delay: calc(var(--k) * 40ms); }
-	.g-tile::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, color-mix(in oklch, var(--g) 30%, #0b0e12) 25%, color-mix(in oklch, var(--g) 18%, rgb(11 14 18 / 0.55)) 70%, rgb(11 14 18 / 0.15)); }
+	/* Nivel 1: fade a oscuro (.fade-dark); el color del género queda en el ícono. */
+	.g-tile { height: 120px; animation: pop 0.55s var(--out) both; animation-delay: calc(var(--k) * 40ms); }
 	.g-tile:active { scale: 0.97; }
 
-	/* Nivel 2: subgéneros con panel de vidrio sobre los pósters; elegido = borde azul, sacado = gris y hundido. */
+	/* Nivel 2: subgéneros con fade a oscuro (sin panel de vidrio: el fade ya da el contraste); elegido = borde azul, sacado = gris y hundido. */
 	.s-tile { height: 178px; padding: 8px; box-shadow: inset 0 0 0 2px var(--acc), 0 6px 22px rgb(37 99 235 / 0.22); animation: tile-in 0.7s var(--out) both; animation-delay: calc(var(--k) * 60ms + 80ms); transition: filter 0.5s var(--w, 0ms), opacity 0.5s var(--w, 0ms), scale 0.5s var(--out) var(--w, 0ms), box-shadow 0.35s; }
-	.s-tile::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to bottom, rgb(8 10 14 / 0.35), transparent 40%); }
 	.s-tile .col { transform: rotate(-6deg) translate(6px, -18px) scale(1.2); }
 	.s-tile .p { width: 70px; animation: deal 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both, drift 9s ease-in-out 1s infinite alternate; animation-delay: calc(var(--k) * 60ms + 240ms), 0s; }
 	.s-tile .ic { position: absolute; top: 9px; left: 9px; background: rgb(14 17 22 / 0.45); backdrop-filter: blur(10px); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2); }
 	.s-tile.off { filter: grayscale(1) brightness(0.6); opacity: 0.7; scale: 0.96; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08); }
-	.fr { display: block; padding: 8px 9px 9px; border-radius: 13px; background: rgb(14 17 22 / 0.42); backdrop-filter: blur(14px) saturate(1.5); -webkit-backdrop-filter: blur(14px) saturate(1.5); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.12); animation: frost-in 0.6s var(--out) both; animation-delay: calc(var(--k) * 60ms + 300ms); }
+	.fr { display: block; padding: 4px 6px 6px; text-shadow: 0 1px 6px rgb(0 0 0 / 0.8); animation: frost-in 0.6s var(--out) both; animation-delay: calc(var(--k) * 60ms + 300ms); }
 	.fr b { display: block; font-size: 15px; }
 	.fr .d { display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.3; color: rgb(255 255 255 / 0.8); }
 	.fr .ej { display: -webkit-box; margin-top: 6px; overflow: hidden; font-size: 11px; font-weight: 600; color: #9cc4ff; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }

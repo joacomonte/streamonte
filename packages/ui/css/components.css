@@ -98,6 +98,10 @@
 /* Surface: panel con fondo, borde y radio de tarjeta. */
 .surface { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); }
 
+/* Fade a oscuro (convención para tarjetas con imagen): poné .fade-dark en el contenedor; el degradé (--fade-dark) queda sobre la imagen y bajo el texto. */
+.fade-dark { position: relative; isolation: isolate; }
+.fade-dark::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--fade-dark); pointer-events: none; }
+
 /* Lista de filas: <ul class="list"> con <li class="row">; la fila resalta al pasar y separa con borde. */
 .list { margin: 0; padding: 0; list-style: none; }
 .list > .row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); }

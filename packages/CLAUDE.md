@@ -16,12 +16,14 @@ CSS compartido, TS compartido (`ui/src/`) y vectores de prueba, sin build propio
   - `providers_ar.json` — `tmdb.rs:1008` ↔ `tmdb.ts:269 providersAr`
   - `people.json` — `tmdb.rs:1018` ↔ `tmdb.ts:279 peopleOf`
   - `show_status.json` — `crates/core/src/catalog/seasons.rs:459` ↔ `tmdb.ts:287 showStatus`
+  - `awards.json` — `crates/core/src/catalog/awards.rs normalize` ↔ `web/src/lib/server/awards.ts normalize` (entrada = `data` de IMDb GraphQL)
   - `sub_lang.json` — `crates/core/src/subtitles/providers/lang.rs:57` ↔ `torbox.ts:13 isSpanishSub`
   - Lector web: `web/src/lib/server/golden.test.ts:28 golden`.
 
 ## Trampas
 - No editar un golden para que pase la web: el JSON sigue a Rust y el caso lleva `diverge` (se salta en web y se lista al final).
 - `include_str!` usa rutas relativas a la profundidad del `.rs`: moverlo rompe el path.
+- Convención: toda tarjeta/baldosa con imagen de fondo usa el fade a oscuro (`--fade-dark` en `ui/css/tokens.css`, clase `.fade-dark` en `ui/css/components.css`; transparente arriba, casi negro abajo, texto blanco), no tintes de color; hoy: `ui/src/catalog/GenrePicker.svelte`.
 - CSS sin prefijo: cuidado con colisiones; el layout de cada pantalla va scoped en su componente.
 
 ## Flujo

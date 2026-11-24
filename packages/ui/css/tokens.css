@@ -73,6 +73,9 @@
 	--display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, sans-serif; /* conflicto: web (suma -apple-system) */
 	--mono: 'Cascadia Mono', Consolas, ui-monospace, monospace;
 
+	/* Fade a oscuro: transparente arriba, casi negro abajo. Va sobre imágenes, así que es oscuro también en tema claro. Usar con .fade-dark. */
+	--fade-dark: linear-gradient(to bottom, rgb(8 10 14 / 0) 0%, rgb(8 10 14 / 0.5) 30%, rgb(8 10 14 / 0.94) 65%, rgb(8 10 14 / 0.96) 100%);
+
 	/* Movimiento */
 	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 	--out: cubic-bezier(0.16, 1, 0.3, 1);
