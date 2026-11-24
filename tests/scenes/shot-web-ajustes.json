@@ -1,0 +1,12 @@
+{
+ "app": "web",
+ "url": "/ajustes",
+ "shot": {
+  "viewport": "mobile"
+ },
+ "setup": [
+  {
+   "wait": 1000
+  }
+ ]
+}

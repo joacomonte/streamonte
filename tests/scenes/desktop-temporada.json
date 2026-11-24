@@ -11,7 +11,7 @@
    "after": 2000
   },
   {
-   "click": "#cat-season-1",
+   "click": "#season-1",
    "after": 1500
   }
  ],
@@ -24,11 +24,11 @@
    "text": "Breaking Bad"
   },
   {
-   "sel": "[id^=cat-ep-1-]",
+   "sel": "[id^=ep-]",
    "count": 7
   },
   {
-   "sel": "#cat-ep-1-1",
+   "sel": "#ep-1",
    "text": "Principio del fin"
   }
  ]

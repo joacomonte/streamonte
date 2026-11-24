@@ -15,9 +15,9 @@ Contrato primero: `Api` y sus tipos son de la UI compartida.
 3. **Web**
    - `web/src/lib/server/<x>.ts`: la lógica. `web/src/routes/api/<x>/+server.ts`: delgado, con `route()` y validación de `params.ts`.
    - `web/src/lib/types.ts` (forma de la respuesta), `web/src/lib/webApi.ts` (fetch) y `web/src/lib/web-adapt.ts` (a la vista).
-   - Ruta nueva: sumarla a `scripts/api-snapshot.mjs`; fixtures HTTP en `tests/fixtures/web-http/` (se graban con red).
+   - Ruta nueva: sumarla a `scripts/api-snapshot.mjs`; fixtures HTTP en `tests/fixtures/http/` (se graban con red).
 4. Texto nuevo: `packages/ui/src/i18n/en.ts` (el español es la clave).
-5. Si cambian ids/textos de pantalla: `tests/contracts/*.json`.
+5. Si cambian ids/textos de pantalla: `tests/scenes/*.json`.
 
 Regla C5: los mocks y fixtures se regraban solo si cambia la FORMA del dato, no por cada cambio de lógica.
 Verificar: `sh scripts/check.sh`; con pantalla, `sh scripts/verify-ui.sh --changed`.
@@ -28,4 +28,4 @@ De dónde viene: Cinemeta = `Meta` (nombre, año, puntaje, reparto, premios); TM
 - **Web**: `web/src/lib/server/tmdb/client.ts` (tipo crudo) → `tmdb/title.ts` `title` (lo arma) → `web/src/lib/types.ts` `Title` → `web/src/lib/web-adapt.ts` `titleDetails`.
 - **Compartido**: `packages/ui/src/types.ts` `TitleDetails` → `packages/ui/src/title/TitleView.svelte` (o `title-state.ts` si es lógica) → `i18n/en.ts`.
 - Regla en Rust y TS (reparto, estado de serie, plataformas): golden (`providers_ar`, `people`, `show_status`).
-- Mocks: `ui/mock/catalog_details__*` y `catalog_meta__*` (solo si cambió la forma), `tests/contracts/*ficha*.json`.
+- Mocks: `ui/mock/catalog_details__*` y `catalog_meta__*` (solo si cambió la forma), `tests/scenes/*ficha*.json`.

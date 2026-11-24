@@ -10,7 +10,7 @@
 	import AwardsBadge from './AwardsBadge.svelte';
 	import { awardsView, cardAwards } from './awards.ts';
 	import SeasonChart from './SeasonChart.svelte';
-	import { episodeRows, MAX_ACTORS, outlookOf, pickPeople, providerView, seasonTiles, showCineNote, WEB_IDS } from './title-state.ts';
+	import { episodeRows, MAX_ACTORS, outlookOf, pickPeople, providerView, seasonTiles, showCineNote, TITLE_IDS } from './title-state.ts';
 	import type { SeasonTile, TitleIds } from './title-state.ts';
 
 	interface Props {
@@ -58,7 +58,7 @@
 	let {
 		kind, id, details, season = null, episode = null, onSeason, onEpisode, seasonHref, episodeHref, onPerson, onOpenTitle, onOpenImdb,
 		options, between, teaser, similar = false, collapsed = false, topInset = 0, titleEl = $bindable(), crumbs = true, stills = true, lockUnaired = false,
-		genreLabel = (g: string) => g, ids = WEB_IDS, locale
+		genreLabel = (g: string) => g, ids = TITLE_IDS, locale
 	}: Props = $props();
 
 	const api = getApi();

@@ -4,7 +4,7 @@ Todo se corre desde la raíz del repo (o del worktree).
 ## Para X → script
 - Chequeo rápido (fmt, clippy, tipos/lint del carril tocado): `sh scripts/check.sh`. Con tests: `check.sh full`. Fuerza: `RUST=1`, `ALL=1`, `FORCE=1`.
 - UI sin mirar a ojo: `node scripts/shot.mjs <url> [--sel] [--click] [--only mobile|desktop]` (PNG + ids + errores de consola).
-- Contratos + visual con un solo vite: `sh scripts/verify-ui.sh --changed`. Por separado: `contracts.sh`, `node scripts/visual.mjs [--update] [--changed]`.
+- Contratos + visual con un solo vite: `sh scripts/verify-ui.sh --changed`. Todo sale de un runner, `node scripts/scenes.mjs [nombre] [--contracts|--shots] [--changed] [--update]`; `contracts.sh` y `visual.mjs` son alias.
 - Lo mismo que el CI de GitHub: `sh scripts/ci-local.sh` (lee los `run:` de `ci.yml`).
 - Foto de `/api/*` de la web antes/después de reestructurar: `node scripts/api-snapshot.mjs take|diff`.
 - Benchmark de la lista de opciones: `node scripts/bench-options.mjs` (base: `bench/options-baseline.json`).
@@ -22,4 +22,4 @@ Todo se corre desde la raíz del repo (o del worktree).
 - Visual: baselines de macOS; no corre en CI.
 - `.cargo/config.toml` (sin trackear) fija `target/` único y `jobs = 4`: clave para worktrees.
 - Los releases son para los usuarios, no para probar: usar `dogfood.sh`.
-- Tests de browser/visual: `tests/CLAUDE.md`.
+- Tests de browser/visual: `tests/CLAUDE.md`. `shot.mjs` ya no corre contratos (eso es `scenes.mjs`).

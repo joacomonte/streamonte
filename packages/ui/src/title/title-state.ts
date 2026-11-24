@@ -62,7 +62,7 @@ export const episodeRows = (eps: Episode[], today: string): EpisodeRow[] => eps.
 /** Aviso de "todavía no hay buenos torrents" (solo películas recién estrenadas). */
 export const showCineNote = (d: TitleDetails): boolean => d.kind === 'movie' && !!d.released && onlyCinema(d.released);
 
-/** Ids de los elementos interactivos: cada app conserva los suyos (los usan `scripts/shot.mjs` y los tests). */
+/** Ids de los elementos interactivos: los mismos en web y desktop (los usan `scripts/shot.mjs` y los tests). */
 export type TitleIds = {
 	poster: string;
 	imdb: string;
@@ -84,14 +84,8 @@ export type TitleIds = {
 	nextSeason: string;
 	episode: (season: number, episode: number) => string;
 };
-export const WEB_IDS: TitleIds = {
+export const TITLE_IDS: TitleIds = {
 	poster: 'poster', imdb: 'imdb-link', providers: 'providers-toggle', cast: 'cast-toggle', genres: 'genres-toggle', provider: (i) => `provider-${i}`,
 	person: (p) => `person-${p.id}`, about: 'about-toggle', aboutBody: 'about-body', awards: 'awards-toggle', awardsBody: 'awards-body', cine: 'cine-note', similarToggle: 'similar-toggle', similar: (id) => `similar-${id}`,
 	crumbSeasons: 'crumb-seasons', season: (n) => `season-${n}`, bar: (n) => `score-s${n}`, nextSeason: 'season-next', episode: (_s, e) => `ep-${e}`
-};
-export const DESKTOP_IDS: TitleIds = {
-	poster: 'cat-poster', imdb: 'cat-open-imdb', providers: 'cat-providers', cast: 'cat-cast', genres: 'cat-genres', provider: (i) => `cat-provider-${i}`,
-	person: (p) => `cat-who-${p.role}-${p.id}`, about: 'cat-about-toggle', aboutBody: 'cat-about-body', awards: 'cat-awards-toggle', awardsBody: 'cat-awards-body', cine: 'cat-cine-note', similarToggle: 'cat-similar-toggle',
-	similar: (id) => `cat-similar-${id}`, crumbSeasons: 'cat-crumb-seasons', season: (n) => `cat-season-${n}`, bar: (n) => `cat-season-bar-${n}`,
-	nextSeason: 'cat-season-next', episode: (s, e) => `cat-ep-${s}-${e}`
 };

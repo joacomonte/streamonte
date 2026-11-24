@@ -2,7 +2,6 @@
 <script lang="ts">
 	import { t } from '$ui/i18n/runtime.ts';
 	import TitleView from '$ui/title/TitleView.svelte';
-	import { DESKTOP_IDS } from '$ui/title/title-state.ts';
 	import { actions, panel } from './side-panel.svelte.ts';
 
 	interface Props {
@@ -44,7 +43,6 @@
 			stills={false}
 			lockUnaired
 			{genreLabel}
-			ids={DESKTOP_IDS}
 			{locale}
 		>
 			{#snippet between()}

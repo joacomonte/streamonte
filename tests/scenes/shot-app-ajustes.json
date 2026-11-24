@@ -1,0 +1,22 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "shot": {
+  "viewport": "desktop"
+ },
+ "setup": [
+  {
+   "waitFor": "[id^=cat-card-]"
+  },
+  {
+   "click": "#btn-settings",
+   "after": 0
+  },
+  {
+   "waitFor": "#dlg-settings[open]"
+  },
+  {
+   "wait": 800
+  }
+ ]
+}

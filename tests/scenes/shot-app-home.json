@@ -1,0 +1,12 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "shot": {
+  "viewport": "desktop"
+ },
+ "setup": [
+  {
+   "waitFor": "[id^=cat-card-]"
+  }
+ ]
+}

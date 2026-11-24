@@ -1,30 +1,25 @@
 // Capturas + posiciones de elementos con id en 1 comando.
 // Uso: node scripts/shot.mjs <url> [--out DIR] [--sel CSS] [--only mobile|desktop] [--click CSS]...
-// Contrato de pantalla: node scripts/shot.mjs --contract tests/contracts/X.json --base http://host:puerto [--all]
-//   Contrato = {app, url, viewport?, cookies?, storage?, setup:[{click|type+text|hover|contextmenu|wait, after?, timeout?, optional? (click: se saltea si no aparece)}],
-//   must:[{sel, text?(regex), count?(>=), hover?(selector a pasar el mouse antes), status?:'regressed', note?}]}.
-//   Imprime {contract, passed, failed, regressed, fixed?}; exit 1 si falla algo que no es `regressed` (--all: también esos).
+// Contratos y capturas de regresión: scripts/scenes.mjs (tests/scenes/*.json).
 import { createRequire } from 'node:module';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 
 const { chromium } = createRequire(new URL('../web/package.json', import.meta.url))('playwright-core');
 
 const argv = process.argv.slice(2);
 const url = argv.find((a, i) => !a.startsWith('--') && !argv[i - 1]?.startsWith('--'));
 const opt = (k) => argv.flatMap((a, i) => (a === `--${k}` ? [argv[i + 1]] : []));
-const contractFile = opt('contract')[0];
-if (!url && !contractFile) { console.error('uso: node scripts/shot.mjs <url> [--out DIR] [--sel CSS] [--only mobile|desktop] [--click CSS]...'); process.exit(2); }
+if (!url) { console.error('uso: node scripts/shot.mjs <url> [--out DIR] [--sel CSS] [--only mobile|desktop] [--click CSS]...'); process.exit(2); }
 const slug = (url ?? '').replace(/^https?:\/\//, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
 const out = opt('out')[0] ?? `/tmp/shots/${slug}`;
 const sel = opt('sel')[0] ?? 'main, body';
 const clicks = opt('click');
-if (!contractFile) mkdirSync(out, { recursive: true });
+mkdirSync(out, { recursive: true });
 
 const viewports = {
   mobile: { viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
   desktop: { viewport: { width: 1280, height: 800 } },
 };
-if (contractFile) process.exit(await runContract(contractFile, opt('base')[0], argv.includes('--all')));
 const only = opt('only')[0];
 const names = Object.keys(viewports).filter((v) => !only || v === only);
 
@@ -63,54 +58,3 @@ for (const vp of names) {
 }
 await browser.close();
 process.exit(fail ? 1 : 0);
-
-/** Corre un contrato: pasos de `setup` y chequeo de cada `must`. Imprime 1 línea JSON; devuelve el exit code. */
-async function runContract(file, base, all) {
-  if (!base) { console.error('falta --base URL'); return 2; }
-  const c = JSON.parse(readFileSync(file, 'utf8'));
-  const browser = await chromium.launch({ channel: 'chrome', headless: true });
-  const ctx = await browser.newContext({ ...viewports[c.viewport ?? 'desktop'], reducedMotion: 'reduce' });
-  const origin = new URL(base).origin;
-  if (c.cookies) await ctx.addCookies(Object.entries(c.cookies).map(([name, value]) => ({ name, value, url: origin })));
-  if (c.storage) await ctx.addInitScript((kv) => { for (const k in kv) localStorage.setItem(k, kv[k]); }, c.storage);
-  const page = await ctx.newPage();
-  const failed = [], regressed = [], fixed = [];
-  let passed = 0;
-  const label = (m) => [m.hover && m.hover !== m.sel && `hover ${m.hover}`, m.hover && m.hover === m.sel && 'hover', m.sel, m.text && `/${m.text}/`, m.count && `x>=${m.count}`].filter(Boolean).join(' ');
-  try {
-    await page.goto(base + c.url, { waitUntil: 'networkidle' });
-    for (const st of c.setup ?? []) {
-      if (st.wait) await page.waitForTimeout(st.wait);
-      else if (st.type) await page.fill(st.type, st.text);
-      else if (st.contextmenu) await page.dispatchEvent(st.contextmenu, 'contextmenu', { bubbles: true, cancelable: true, clientX: 300, clientY: 300 });
-      else if (st.hover) await page.hover(st.hover);
-      else if (st.optional) { try { await page.click(st.click, { timeout: st.timeout ?? 15000 }); } catch { /* el estado alternativo no trae este botón */ } }
-      else await page.click(st.click, { timeout: st.timeout ?? 15000 });
-      await page.waitForTimeout(st.after ?? 400);
-    }
-  } catch (e) { failed.push(`setup: ${String(e.message).split('\n')[0]}`); }
-  if (!failed.length) for (const m of c.must) {
-    let ok = false;
-    try {
-      if (m.hover) { await page.hover(m.hover, { timeout: 5000 }); await page.waitForTimeout(m.after ?? 900); }
-      const t0 = Date.now();
-      do {
-        ok = await page.evaluate(({ sel, text, count }) => {
-          const re = text ? new RegExp(text, 'i') : null;
-          const hits = [...document.querySelectorAll(sel)].filter((e) => {
-            const r = e.getBoundingClientRect();
-            return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && (!re || re.test(e.textContent ?? ''));
-          });
-          return hits.length >= (count ?? 1);
-        }, m);
-        if (!ok) await page.waitForTimeout(250);
-      } while (!ok && Date.now() - t0 < (m.timeout ?? 3000));
-    } catch { ok = false; }
-    if (ok) { passed++; if (m.status === 'regressed') fixed.push(label(m)); }
-    else if (m.status === 'regressed') regressed.push(label(m) + (m.note ? ` (${m.note})` : ''));
-    else failed.push(label(m));
-  }
-  console.log(JSON.stringify({ contract: file.replace(/^.*\//, '').replace(/\.json$/, ''), passed, failed, regressed, ...(fixed.length ? { fixed } : {}) }));
-  await browser.close();
-  return failed.length || (all && regressed.length) ? 1 : 0;
-}

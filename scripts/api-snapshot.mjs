@@ -2,7 +2,7 @@
 // Foto de las respuestas de /api/* de la web, para probar que una reestructura no cambia lo que devuelve el server.
 //   node scripts/api-snapshot.mjs take <dir> [--fixtures DIR]   # levanta la web sin red (HTTP_FIXTURES) y guarda un JSON por ruta
 //   node scripts/api-snapshot.mjs diff <a> <b>                  # compara valores y tipos; exit 1 si hay diferencias
-// Sin TorBox (link, tracks, premium): usan tokens y red real. --fixtures por defecto tests/fixtures/web-http (graba lo que falte).
+// Sin TorBox (link, tracks, premium): usan tokens y red real. --fixtures por defecto tests/fixtures/http (graba lo que falte).
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
@@ -26,7 +26,7 @@ const [cmd, a, b] = process.argv.slice(2);
 
 async function take(dir) {
 	const i = process.argv.indexOf('--fixtures');
-	const fixtures = path.resolve(i > 0 ? process.argv[i + 1] : `${root}/tests/fixtures/web-http`);
+	const fixtures = path.resolve(i > 0 ? process.argv[i + 1] : `${root}/tests/fixtures/http`);
 	const port = await new Promise((ok) => { const s = net.createServer().listen(0, () => { const p = s.address().port; s.close(() => ok(p)); }); });
 	const web = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'dev', '--port', String(port), '--strictPort'], { cwd: `${root}/web`, env: { ...process.env, HTTP_FIXTURES: fixtures }, stdio: 'ignore' });
 	const base = `http://localhost:${port}`;
