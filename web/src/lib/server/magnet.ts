@@ -1,7 +1,7 @@
 // "Pegar magnet" (2026-11-18): un torrent que el usuario trae de afuera (1337x, un foro…). TorBox dice si lo tiene en
 // caché; si no, lo baja en sus servidores y acá se lee el avance. Sus videos salen como opciones normales (el link y
 // los subs usan el mismo camino que el resto), y del nombre se identifica la película o serie en TMDB.
-import { Fail } from './http.ts';
+import { checkHash40 } from './params.ts';
 import { checkFiles, mine, addMagnet } from './torbox.ts';
 import { fileTorrent } from './torrents.ts';
 import type { Torrent } from './torrents.ts';
@@ -43,7 +43,7 @@ export async function identify(name: string) {
  * avance), `ready` (ya bajado en tu cuenta) o `missing` (no lo tiene). `files`: sus videos como opciones.
  */
 export async function status(hash: string): Promise<{ state: 'cached' | 'downloading' | 'ready' | 'missing'; name: string | null; progress?: number; speed?: number; seeds?: number; eta?: number; files: Torrent[] }> {
-	if (!/^[0-9a-f]{40}$/.test(hash)) throw new Fail(400, 'Hash inválido.');
+	checkHash40(hash);
 	const options = (files: { name: string; size: number }[]) =>
 		files.filter((f) => VIDEO.test(f.name)).map((f) => fileTorrent(hash, f.name, f.size || null)).sort((a, b) => (b.size ?? 0) - (a.size ?? 0));
 	const own = await mine(hash);
@@ -58,7 +58,7 @@ export async function status(hash: string): Promise<{ state: 'cached' | 'downloa
 /** "Bajarlo en TorBox": lo agrega a la cuenta aunque no esté en caché (lo baja en sus servidores).
  */
 export async function download(hash: string, dn: string) {
-	if (!/^[0-9a-f]{40}$/.test(hash)) throw new Fail(400, 'Hash inválido.');
+	checkHash40(hash);
 	await addMagnet(`magnet:?xt=urn:btih:${hash}${dn ? `&dn=${encodeURIComponent(dn)}` : ''}`);
 	return status(hash);
 }

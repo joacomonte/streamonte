@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import { Fail, get } from './http.ts';
 import { keys } from './keys.ts';
+import { dataDir } from './config.ts';
 
 const ENDPOINT = 'https://api.opensubtitles.org/xml-rpc';
 /** El único user agent que acepta para sesiones anónimas. */
@@ -95,7 +96,7 @@ export async function download(id: string): Promise<string> {
 
 const OS_API = 'https://api.opensubtitles.com/api/v1';
 // En Vercel solo se puede escribir en /tmp (se borra al reciclar la función: volver a copiar gasta 1 de nuevo).
-const PREMIUM_DIR = process.env.VERCEL ? '/tmp/premium' : '.data/premium';
+const premiumDir = () => (process.env.VERCEL ? '/tmp/premium' : `${dataDir()}/premium`);
 /** Cuota según la última descarga (null = no se sabe desde que arrancó el servidor). */
 let quota: { remaining: number; perDay: number; resetsAt: number | null } | null = null;
 
@@ -212,15 +213,15 @@ async function fetchPremium(id: string) {
 	const file = await get(j.link, {}, 20_000);
 	if (!file.ok) throw new Fail(502, 'opensubtitles.com no dio el subtítulo.');
 	const bytes = new Uint8Array(await file.arrayBuffer());
-	await mkdir(PREMIUM_DIR, { recursive: true });
-	await writeFile(`${PREMIUM_DIR}/${id}.srt`, utf8(bytes));
+	await mkdir(premiumDir(), { recursive: true });
+	await writeFile(`${premiumDir()}/${id}.srt`, utf8(bytes));
 	return premiumQuota();
 }
 
 /** El texto de un Premium ya bajado, o null. */
 export async function premiumFile(id: string): Promise<string | null> {
 	if (!/^\d+$/.test(id)) return null;
-	return readFile(`${PREMIUM_DIR}/${id}.srt`, 'utf8').catch(() => null);
+	return readFile(`${premiumDir()}/${id}.srt`, 'utf8').catch(() => null);
 }
 
 /** Bytes de un subtítulo → texto UTF-8 (muchos vienen en Windows-1252), sin BOM. */

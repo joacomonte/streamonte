@@ -1,6 +1,7 @@
 // Torrents de los mismos addons que Streamonte, unidos por hash, y solo los que TorBox tiene en caché.
 // Parseo portado de crates/core/src/catalog/normalize.rs y audio.rs (versión corta).
 import { get } from './http.ts';
+import { isHash40 } from './params.ts';
 import { cached } from './torbox.ts';
 import { hacktorrent } from './hacktorrent.ts';
 import { namesOf } from './tmdb.ts';
@@ -33,7 +34,7 @@ type Stream = { infoHash?: string; title?: string; description?: string; name?: 
 
 export function parse(s: Stream, addon: string) {
 	const hash = s.infoHash?.trim().toLowerCase() ?? '';
-	if (!/^[0-9a-f]{40}$/.test(hash)) return null;
+	if (!isHash40(hash)) return null;
 	const body = s.title ?? s.description ?? '';
 	const hints: NonNullable<Stream['behaviorHints']> = s.behaviorHints ?? {};
 	const lines = body.split('\n').map((l) => l.trim()).filter(Boolean);

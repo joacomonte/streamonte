@@ -2,28 +2,29 @@
 TMDB, IMDb, addons de torrents, TorBox, OpenSubtitles y Neon. Los endpoints de `/Users/monti/Documents/Dev/streamonte/web/src/routes/api/` son delgados y llaman acá.
 
 ## Mapa
-- `http.ts` — `:7 Fail` · `:21 Cache` · `:25 route(fn, cache?)` (con `cache`: `Cache-Control` CDN `s-maxage` + `stale-while-revalidate`; `perLang` solo si la URL trae `l=<ui>.<títulos>`, que agrega `webApi.ts cachedFetch` y `hooks.server.ts` usa en vez de la cookie) · `:42 get` (timeout 12 s; `HTTP_FIXTURES` → `:51 fixture` graba/responde TMDB, addons y OS.org). `lang.ts` — `:8 langStore` · `:11 LANG_PARAM` · `:15 tx`. `params.ts:2 episode`.
-- `keys.ts` — `:15 ENV` · `:17 keys` · `:24 setKeys`.
-- `tmdb.ts` — `:42 tmdb` · `:72 keep` · `:80 DIR` · `:90 VOTES` · `:104 detail` · `:119 fillDetails` · `:141 candidates` · `:166 build` · `:185 discover` · `:198 search` · `:216 people` · `:239 personTitles` · `:269 providersAr` · `:279 peopleOf` · `:287 showStatus` · `:303 title` · `:347 namesOf` · `:362 season`.
-- `interests.ts` — subgéneros de IMDb (GraphQL `caching.graphql.imdb.com`, header `x-imdb-client-name`): `interestList` (lista ordenada hasta 250) · `examples` (ejemplos por subgénero); `tmdb.ts imdbPage` pasa una página de tt a tarjetas vía `/find`. Desktop: `crates/core/src/catalog/interests.rs`.
+- `http.ts` — fachada: re-exporta `Fail` `route` (`http-route.ts`: `route(fn, cache?)`, con `cache`: `Cache-Control` CDN `s-maxage` + `stale-while-revalidate`; `perLang` solo si la URL trae `l=<ui>.<títulos>`, que agrega `webApi.ts cachedFetch` y `hooks.server.ts` usa en vez de la cookie) y `get` (`fetch.ts`, timeout 12 s; con `HTTP_FIXTURES` carga `http-fixture.ts`, que graba/responde TMDB, addons y OS.org); define `srtResponse`. Los tests nuevos importan `http-route.ts`/`fetch.ts` para no arrastrar `@sveltejs/kit`. `lang.ts` — `langStore` · `LANG_PARAM` · `tx`. `params.ts` — `episode` · `imdbOrFail` · `hash40`/`checkHash40`/`isHash40` · `osHash`.
+- `config.ts` — `dataDir()` (`.data`, o `/tmp/.data` con `VERCEL`) y `key(name)`: leen en cada llamada, no al cargar el módulo.
+- `keys.ts` — `ENV` · `keys` · `setKeys`.
+- `tmdb.ts` — fachada de `tmdb/`: `client.ts` (`tmdb`, tipos, `card`, `keep`) · `cache.ts` (`capped`, `detail`, `fillDetails`: fichas en `.data/`) · `lists.ts` (`VOTES`, `discover`, `search`, `people`, `personTitles`, `imdbPage`) · `title.ts` (`providersAr`, `peopleOf`, `showStatus`, `title`, `namesOf`, `tmdbOf`, `season`).
+- `interests.ts` — subgéneros de IMDb (GraphQL `caching.graphql.imdb.com`, header `x-imdb-client-name`): `interestList` (lista ordenada hasta 250) · `examples` (ejemplos por subgénero); `tmdb/lists.ts imdbPage` pasa una página de tt a tarjetas vía `/find`. Desktop: `crates/core/src/catalog/interests.rs`.
 - `awards.ts` — premios de IMDb (GraphQL, como `interests.ts`): `awards(tt)` (memoria 1 día) · `normalize` (golden `awards.json` = `crates/core/src/catalog/awards.rs`) ← `routes/api/awards/[imdb]`.
-- `imdb.ts` — `:59 ratings` · `:74 imdbOf` · `:88 buildIndex` · `:132 seasonScores`.
-- `torrents.ts` — `:7 ADDONS` · `:33 parse` · `:96 otherFilm` · `:107 fileTorrent` · `:116 merge` · `:140 torrents`.
-- `torbox.ts` — `:13 isSpanishSub` · `:52 cached` · `:85 link` · `:101 tracks` · `:122 spanishSubs` · `:136 checkFiles` · `:143 mine` · `:158 addMagnet` · `:166 added` · `:199 hls` · `:252 latinoByName` · `:262 download` · `:271 pick`.
-- `mkv.ts` — `:41 parseTracks` · `:64 tracksOf` · `:83 isSpanish`. `magnet.ts` — `:16 parseName` · `:30 identify` · `:45 status` · `:60 download`.
-- `subs.ts` — OS.org: `:47 search` · `:82 download`; OS.com premium: `:140 premiumQuota` · `:165 premiumSearch` · `:186 premiumDownload` · `:221 premiumFile`.
-- `track.ts` — `:8 sql` (null sin `DATABASE_URL`) · `:11 track`. `intentos.ts:10 attempt` (5 fallos/15 min por IP).
+- `imdb.ts` — `ratings` · `imdbOf` · `buildIndex` · `seasonScores`.
+- `torrents.ts` — `ADDONS` · `parse` · `otherFilm` · `fileTorrent` · `merge` · `torrents`.
+- `torbox.ts` — fachada de `torbox/`: `client.ts` (`key`, `tb`, `tbRoot`, `cached`, `checkFiles`, `mine`, `addMagnet`, `added`, `download`, `pick`, `isSpanishSub`) · `link.ts` (`link`, `hls`, `latinoByName`) · `tracks.ts` (`tracks`, `spanishVariant`, `spanishSubs`).
+- `mkv.ts` — `parseTracks` · `tracksOf` · `isSpanish`. `magnet.ts` — `parseName` · `identify` · `status` · `download`.
+- `subs.ts` — OS.org: `search` · `download`; OS.com premium: `premiumQuota` · `premiumSearch` · `premiumDownload` · `premiumFile`.
+- `track.ts` — `sql` (null sin `DATABASE_URL`) · `track`. `intentos.ts attempt` (5 fallos/15 min por IP).
 
 ## Trampas
-- `DIR`: `.data` local, `/tmp/.data` con `VERCEL` (`tmdb.ts:80`, `imdb.ts:11`, `subs.ts:98`): cada cold start re-baja IMDb (~60 MB); `keys.ts:4` siempre `.data`.
-- `torbox.ts:262 download`: el link lleva la key → no cachear ni loguear; por eso `tracks` recibe `ids`.
-- `keep()` (`tmdb.ts:72`) y `detail().excluded` (`:113`) = `is_excluded` del desktop; cambiar uno obliga a golden y Rust.
+- `config.ts dataDir()`: `.data` local, `/tmp/.data` con `VERCEL` (`tmdb/cache.ts`, `imdb.ts`, `subs.ts`): cada cold start re-baja IMDb (~60 MB); `keys.ts` siempre `.data`.
+- `torbox/client.ts download`: el link lleva la key → no cachear ni loguear; por eso `tracks` recibe `ids`.
+- `keep()` (`tmdb/client.ts`) y `detail().excluded` (`tmdb/cache.ts`) = `is_excluded` del desktop; cambiar uno obliga a golden y Rust.
 - Funciones con golden (`parse`, `detail`, `peopleOf`, `providersAr`, `showStatus`, `isSpanishSub`) deben coincidir con Rust (`/Users/monti/Documents/Dev/streamonte/packages/golden/`).
-- `subs.ts:10` UA `VLSub 0.11.1` es el único que acepta OS.org anónimo.
+- `subs.ts` UA `VLSub 0.11.1` es el único que acepta OS.org anónimo.
 - Solo `POST /api/premium/[id]` gasta cuota premium.
 
 ## Flujo
 `/api/torrents` → `torrents` → 4 addons → `merge` → `cached` (TorBox) → NDJSON; `/api/link` → `link` → `added` → `hls`/`download` → url https.
 
 ## Tests
-`golden`, `torrents`, `torbox`, `tmdb`, `subs`, `mkv`, `magnet`, `imdb` `.test.ts`; `golden.test.ts:15` hace `delete VERCEL`.
+`golden`, `torrents`, `torbox`, `tmdb`, `subs`, `mkv`, `magnet`, `imdb` `.test.ts`; `golden.test.ts` y `tmdb.test.ts` hacen `chdir` a un tmp y `delete VERCEL` (la carpeta de datos es relativa al cwd); `desktop-proxy.test.ts` prueba el stub sin build.
