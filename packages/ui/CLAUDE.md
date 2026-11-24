@@ -5,7 +5,7 @@ Alias `$ui` → `src/` (web: `web/vite.config.ts`; desktop: `ui/vite.config.ts`)
 - Contrato con las apps: `types.ts` (tipos de vista) + `api.ts` (`Api`) + `context.ts` (`getApi`/`setApi`).
 - Regla de latino, badges de audio → `latino.ts`, `audio.ts`; ranking/calidad (`TYPICAL_MBPS`) → `rank.ts`; match de subs → `sub-match.ts`.
 - Formatos (`humanBytes`, `mbps`) → `format.ts`; temporadas → `season.ts`; magnet → `magnet-hash.ts`.
-- Por área (cada una con CLAUDE.md): `catalog/` · `options/` · `flow/` · `title/` · `subs/` · `magnet/` · `components/` · `i18n/`.
+- Por área (cada una con CLAUDE.md): `settings/` (Section, Idioma, KeyRow, keys.ts: lo común de Ajustes) · `catalog/` · `options/` · `flow/` · `title/` · `subs/` · `magnet/` · `components/` · `i18n/`.
 - CSS → `css/` (abajo).
 
 ## CSS compartido (`css/`)

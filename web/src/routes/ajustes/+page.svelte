@@ -3,7 +3,10 @@
 	import Icon from '$ui/components/Icon.svelte';
 	import { wipe } from '#lib/saved.ts';
 	import { t } from '#lib/i18n.svelte.ts';
-	import LangPicker from '$ui/components/LangPicker.svelte';
+	import Idioma from '$ui/settings/Idioma.svelte';
+	import KeyRow from '$ui/settings/KeyRow.svelte';
+	import Section from '$ui/settings/Section.svelte';
+	import { COMMON_KEYS } from '$ui/settings/keys.ts';
 	import { langOptions } from '#lib/langs.ts';
 	import AdminCode from '#lib/AdminCode.svelte';
 	import { saveNick } from '#lib/nick.ts';
@@ -25,13 +28,6 @@
 	const loginSaved = $derived(!!(status?.opensubtitles_user && status?.opensubtitles_pass));
 	const anyMissing = $derived(!status?.tmdb || !status?.torbox || !status?.opensubtitles || !loginSaved);
 	const anyTyped = $derived(!!(typed.tmdb || typed.torbox || typed.opensubtitles || osUser || osPass));
-
-	/** Las tres keys, en el orden de la lista; la cuenta de OpenSubtitles va aparte (dos campos). */
-	const KEYS: { which: ApiKey; name: string; hint: string; placeholder: string; href: string }[] = [
-		{ which: 'tmdb', name: 'TMDB', hint: 'catálogo', placeholder: 'API key (v3)', href: 'https://www.themoviedb.org/settings/api' },
-		{ which: 'torbox', name: 'TorBox', hint: 'torrents', placeholder: 'API key', href: 'https://torbox.app/settings' },
-		{ which: 'opensubtitles', name: 'OpenSubtitles.com', hint: 'subtítulos', placeholder: 'API key', href: 'https://www.opensubtitles.com/consumers' }
-	];
 
 	function clearTyped() {
 		typed = { tmdb: '', torbox: '', opensubtitles: '' };
@@ -118,8 +114,7 @@
 </header>
 
 <main class="wrap st">
-	<section class="st-sec" aria-labelledby="h-profile">
-		<h2 class="st-h" id="h-profile">{t('Perfil')}</h2>
+	<Section id="set-profile" headId="h-profile" title={t('Perfil')}>
 		<form id="nick-form" class="st-list" novalidate onsubmit={onNick}>
 			<div class="st-row">
 				<label class="st-name" for="nick-input">{t('Apodo')}</label>
@@ -132,52 +127,33 @@
 			</div>
 		</form>
 		<p id="nick-msg" class="st-msg st-foot" class:bad={nickBad} role="status">{nickMsg}</p>
-	</section>
+	</Section>
 
-	<section class="st-sec" aria-labelledby="h-lang">
-		<h2 class="st-h" id="h-lang">{t('Idioma')}</h2>
-		<LangPicker id="settings-lang" {...langOptions()} />
-	</section>
+	<Idioma id="set-lang" headId="h-lang" pickerId="settings-lang" {...langOptions()} />
 
 	<!-- Una sola lista: las keys que faltan muestran su campo (las guarda #keys-save); las guardadas, "Cambiar". Mientras carga status no se muestra para no saltar. -->
 	<form id="keys-form" class="st-sec" aria-labelledby="h-keys" onsubmit={save}>
 		<h2 class="st-h" id="h-keys">{t('Cuentas y keys')}</h2>
 		{#if status}
 			<ul id="saved-keys" class="st-list">
-				{#each KEYS as k (k.which)}
-					{@const has = status[k.which]}
-					<li>
-						<div class="st-row">
-							<span class="st-lbl"><span class="st-name">{k.name}</span><span class="st-sub">{t(k.hint)}</span></span>
-							{@render chip(has)}
-							{#if has}
-								<button id="change-{k.which}" type="button" class="st-link" aria-expanded={open === k.which} aria-controls="panel-{k.which}" onclick={() => toggle(k.which)}>{open === k.which ? t('Cancelar') : t('Cambiar')}</button>
-							{:else}
-								<a id="get-{k.which}" class="st-link" href={k.href} target="_blank" rel="noreferrer">{t('Conseguir')}<Icon name="external" size={13} /></a>
-							{/if}
-						</div>
+				{#each COMMON_KEYS as k (k.service)}
+					{@const has = status[k.service]}
+					<KeyRow service={k.service} name={k.name} hint={t(k.hint)} {has} editing={open === k.service} href={k.href} panelId="panel-{k.service}" onchange={() => toggle(k.service)}>
 						{#if !has}
 							<div class="st-block">
-								<input id="key-{k.which}" class="st-input" type="password" autocomplete="off" placeholder={k.placeholder} aria-label="{k.name} API key" bind:value={typed[k.which]} />
+								<input id="key-{k.service}" class="st-input" type="password" autocomplete="off" placeholder={t(k.placeholder)} aria-label="{k.name} API key" bind:value={typed[k.service]} />
 							</div>
-						{:else if open === k.which}
-							<div id="panel-{k.which}" class="st-block panel">
+						{:else if open === k.service}
+							<div id="panel-{k.service}" class="st-block panel">
 								<div class="st-inline">
-									<input id="key-{k.which}" class="st-input" type="password" autocomplete="off" placeholder={k.placeholder} aria-label="{k.name} API key" bind:value={typed[k.which]} />
-									{@render actions(k.which, !!typed[k.which])}
+									<input id="key-{k.service}" class="st-input" type="password" autocomplete="off" placeholder={t(k.placeholder)} aria-label="{k.name} API key" bind:value={typed[k.service]} />
+									{@render actions(k.service, !!typed[k.service])}
 								</div>
 							</div>
 						{/if}
-					</li>
+					</KeyRow>
 				{/each}
-				<li>
-					<div class="st-row">
-						<span class="st-lbl"><span class="st-name">{t('Cuenta de OpenSubtitles.com')}</span><span class="st-sub">{t('opcional')}</span></span>
-						{@render chip(loginSaved)}
-						{#if loginSaved}
-							<button id="change-login" type="button" class="st-link" aria-expanded={open === 'login'} aria-controls="panel-login" onclick={() => toggle('login')}>{open === 'login' ? t('Cancelar') : t('Cambiar')}</button>
-						{/if}
-					</div>
+				<KeyRow service="login" name={t('Cuenta de OpenSubtitles.com')} hint={t('opcional')} has={loginSaved} editing={open === 'login'} panelId="panel-login" onchange={() => toggle('login')}>
 					{#if !loginSaved}
 						<div class="st-block">
 							<div class="st-inline">
@@ -197,7 +173,7 @@
 							<div class="st-inline end">{@render actions('login', !!(osUser || osPass))}</div>
 						</div>
 					{/if}
-				</li>
+				</KeyRow>
 			</ul>
 			<div class="foot">
 				<p class="st-foot"><Icon name="lock" size={12} />{t('Quedan solo en el servidor')}</p>
@@ -211,8 +187,7 @@
 		{/if}
 	</form>
 
-	<section class="st-sec" aria-labelledby="h-data">
-		<h2 class="st-h" id="h-data">{t('Datos')}</h2>
+	<Section id="set-data" headId="h-data" title={t('Datos')}>
 		<div class="st-list">
 			<div class="st-row">
 				<span class="st-lbl"><span class="st-name">{t('Caché')}</span><span class="st-sub">{t('de este navegador')}</span></span>
@@ -250,17 +225,13 @@
 				{/if}
 			</div>
 		</div>
-	</section>
+	</Section>
 
 	<p id="credits" class="credits">
 		{t('Fichas, pósters y géneros:')} <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">TMDB</a>. {t('Este producto usa la API de TMDB, pero TMDB no lo respalda ni lo certifica.')}
 		{t('Puntajes:')} <a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener noreferrer">{t('datasets de IMDb')}</a> {t('(uso personal, no comercial).')}
 	</p>
 </main>
-
-{#snippet chip(ok: boolean)}
-	{#if ok}<span class="st-chip ok"><Icon name="check" size={12} />{t('Guardada')}</span>{:else}<span class="st-chip">{t('Falta')}</span>{/if}
-{/snippet}
 
 {#snippet actions(which: KeyName, filled: boolean)}
 	<button id={which === 'login' ? 'del-os-login' : `del-${which}`} type="button" class="st-link danger" onclick={() => remove(which)}>{t('Borrar')}</button>

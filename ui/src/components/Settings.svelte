@@ -1,12 +1,16 @@
-<!-- Ajustes del desktop: Idioma (SettingsLang se monta en #set-lang-picker) · Reproducción · Conexión · Cuentas · Subtítulos.
+<!-- Ajustes del desktop: Idioma · Reproducción · Conexión · Cuentas y keys (con las de subtítulos).
      Filas de lista de packages/ui/css/settings.css; cada key muestra su estado y su campo mientras falta. Lógica en settings-model.ts. -->
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import Icon from '$ui/components/Icon.svelte';
   import Sheet from '$ui/components/Sheet.svelte';
+  import Idioma from '$ui/settings/Idioma.svelte';
+  import KeyRow from '$ui/settings/KeyRow.svelte';
+  import Section from '$ui/settings/Section.svelte';
+  import { COMMON_KEYS } from '$ui/settings/keys.ts';
   import * as core from '../core.ts';
   import { setStatus, showError } from '../dom.ts';
-  import { t } from '../i18n.ts';
+  import { langs, setLangs, t } from '../i18n.ts';
   import {
     installMpv, loadSettings, netCheckView, osLoginText, playersView, saveEqualizer, saveKey, saveLatTeamToken, saveNetwork,
     saveOsLogin, toggleLatTeam, type KeyService, type Net, type PlayersView
@@ -14,14 +18,15 @@
   import { host } from '../ui-host.ts';
   import type * as Raw from '../types.ts';
 
-  /** `tip`: lo que antes era párrafo, ahora en el tooltip del ⓘ. */
+  /** `tip`: lo que antes era párrafo, ahora en el tooltip del ⓘ. Las tres keys comunes salen de `$ui/settings/keys.ts`. */
   type Row = { service: KeyService; label: string; hint: string; tip?: string; placeholder: string; primary?: boolean };
-  const TMDB: Row = { service: 'tmdb', label: 'TMDB', primary: true, placeholder: 'Pegá la API key (v3)', hint: 'Catálogo con filtros y pósters',
-    tip: 'Gratis. Filtrá por fecha, votos, idioma y géneros, con pósters que faltan, idioma original, cadena y similares. Sin key, solo lo que está en tendencia.' };
-  const TORBOX: Row = { service: 'torbox', label: 'TorBox', primary: true, placeholder: 'Pegá tu API key de TorBox', hint: 'Ver al instante desde su caché',
-    tip: 'Con tu cuenta de TorBox, marca las opciones que ya tiene en su caché: se pueden ver al instante desde sus servidores, sin depender de los seeds.' };
+  const TIPS: Partial<Record<KeyService, string>> = {
+    tmdb: 'Gratis. Filtrá por fecha, votos, idioma y géneros, con pósters que faltan, idioma original, cadena y similares. Sin key, solo lo que está en tendencia.',
+    torbox: 'Con tu cuenta de TorBox, marca las opciones que ya tiene en su caché: se pueden ver al instante desde sus servidores, sin depender de los seeds.',
+    opensubtitles: 'Cuenta gratis · 20 por día'
+  };
+  const COMMON: Row[] = COMMON_KEYS.map((k) => ({ service: k.service, label: k.name, hint: k.hint, tip: TIPS[k.service], placeholder: k.placeholder, primary: k.service !== 'opensubtitles' }));
   const WYZIE: Row = { service: 'wyzie', label: 'Wyzie Subs', placeholder: 'Pegá la key', hint: 'Gratis · 1000 por día' };
-  const OPENSUBS: Row = { service: 'opensubtitles', label: 'OpenSubtitles.com (Premium)', placeholder: 'Pegá la key', hint: 'Cuenta gratis · 20 por día' };
   const EQ: { id: Raw.Equalizer; label: string; note: string }[] = [
     { id: 'cine', label: 'Cine', note: 'Graves y voces un poco más presentes.' },
     { id: 'voices', label: 'Voces claras', note: 'Diálogos al frente, graves sin tocar.' },
@@ -195,19 +200,8 @@
 {#snippet keyRow(row: Row)}
   {@const ok = configured(row.service)}
   {@const edit = !ok || editing.includes(row.service)}
-  <li class="key-row" data-service={row.service}>
-    <div class="st-row">
-      <span class="st-lbl">
-        <span class="st-name"><label for="key-{row.service}">{t(row.label)}</label>{#if row.tip}{@render tipIcon(`key-${row.service}-tip`, t(row.tip))}{/if}</span>
-        <span class="st-sub">{t(row.hint)}</span>
-      </span>
-      {@render chip(`key-${row.service}-state`, ok, t('Guardada'), t('Falta'))}
-      {#if ok}
-        <button id="key-{row.service}-change" class="st-link" type="button" onclick={() => toggleEdit(row.service)}>{editing.includes(row.service) ? t('Cancelar') : t('Cambiar')}</button>
-      {:else}
-        <button id="key-{row.service}-page" class="st-link" type="button" onclick={() => core.openKeyPage(row.service).catch(showError)}>{t('Conseguir')}<Icon name="external" size={13} /></button>
-      {/if}
-    </div>
+  <KeyRow service={row.service} name={t(row.label)} hint={t(row.hint)} tip={row.tip && t(row.tip)} has={ok} editing={editing.includes(row.service)}
+    changeId="key-{row.service}-change" getId="key-{row.service}-page" onget={() => core.openKeyPage(row.service).catch(showError)} onchange={() => toggleEdit(row.service)}>
     {#if saved?.service === row.service}
       <p class="st-block key-done" role="status">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>{saved.text}
@@ -221,18 +215,14 @@
         </div>
       </div>
     {/if}
-  </li>
+  </KeyRow>
 {/snippet}
 
 <Sheet id="dlg-settings" title={t('Ajustes')} titleId="set-title" closeId="btn-settings-x" open={isOpen} onclose={() => (isOpen = false)} maxWidth="min(600px, 92vw)">
   <div class="st">
-    <section class="st-sec" id="set-lang" aria-labelledby="set-h-lang">
-      <h3 class="st-h" id="set-h-lang">{t('Idioma')}</h3>
-      <div id="set-lang-picker"></div>
-    </section>
+    <Idioma id="set-lang" headId="set-h-lang" pickerId="set-lang" level={3} app={langs.app} titles={langs.titles} onpick={(key, value) => langs[key] !== value && setLangs({ [key]: value })} />
 
-    <section class="st-sec" id="set-player" aria-labelledby="set-h-player">
-      <h3 class="st-h" id="set-h-player">{t('Reproducción')}</h3>
+    <Section id="set-player" headId="set-h-player" level={3} title={t('Reproducción')}>
       <ul class="st-list">
         <li class="st-row">
           <span class="st-lbl"><span class="st-name">mpv</span><span class="st-sub" id="set-mpv-note">{players?.mpvNote ?? t('Recomendado: anda mejor y gasta menos.')}</span></span>
@@ -281,10 +271,9 @@
         </li>
       </ul>
       <p id="set-player-ask" class="st-foot">{t('Al reproducir te preguntamos con cuál abrirlo.')}</p>
-    </section>
+    </Section>
 
-    <section class="st-sec" id="set-catalog" aria-labelledby="set-h-net">
-      <h3 class="st-h" id="set-h-net">{t('Conexión')}</h3>
+    <Section id="set-catalog" headId="set-h-net" level={3} title={t('Conexión')}>
       <ul class="st-list">
         <li class="st-row">
           <span class="st-lbl"><span class="st-name">{t('Fuentes de torrents')}</span><span class="st-sub">{t('Addons que se consultan al abrir un título')}</span></span>
@@ -333,13 +322,26 @@
           </details>
         </li>
       </ul>
-    </section>
+    </Section>
 
-    <section class="st-sec" id="set-accounts" aria-labelledby="set-h-accounts">
-      <h3 class="st-h" id="set-h-accounts">{t('Cuentas y keys')}</h3>
+    <Section id="set-accounts" headId="set-h-accounts" level={3} title={t('Cuentas y keys')}>
       <ul class="st-list">
-        {@render keyRow(TMDB)}
-        {@render keyRow(TORBOX)}
+        {#each COMMON as row (row.service)}{@render keyRow(row)}{/each}
+        <li id="os-login">
+          <div class="st-row">
+            <span class="st-lbl">
+              <span class="st-name">{t('Cuenta de OpenSubtitles.com')}{@render tipIcon('os-login-tip', t('Opcional: con tu cuenta de OpenSubtitles.com se ve cuántas descargas te quedan desde que abrís la app y se baja con la cuota de tu cuenta. Se guarda en el almacén seguro.'))}</span>
+              <span id="os-login-state" class="st-sub" role="status">{osState}</span>
+            </span>
+          </div>
+          <div class="st-block">
+            <div class="st-inline">
+              <input id="os-user" class="st-input" type="text" placeholder={t('Usuario')} autocomplete="username" aria-label={t('Usuario de OpenSubtitles.com')} bind:value={osUser}>
+              <input id="os-pass" class="st-input" type="password" placeholder={t('Contraseña')} autocomplete="current-password" aria-label={t('Contraseña de OpenSubtitles.com')} bind:value={osPass}>
+              <button id="os-login-save" class="st-btn" type="button" onclick={onSaveOs}>{t('Guardar')}</button>
+            </div>
+          </div>
+        </li>
         <li id="set-latteam">
           <div class="st-row">
             <span class="st-lbl">
@@ -364,32 +366,10 @@
             </div>
           {/if}
         </li>
+        {@render keyRow(WYZIE)}
       </ul>
       <p class="st-foot lock"><Icon name="lock" size={12} />{t('En el almacén seguro del sistema; nunca se muestran')}</p>
-    </section>
-
-    <section class="st-sec" id="set-subs" aria-labelledby="set-h-subs">
-      <h3 class="st-h" id="set-h-subs">{t('Subtítulos')}</h3>
-      <ul class="st-list">
-        {@render keyRow(WYZIE)}
-        {@render keyRow(OPENSUBS)}
-        <li id="os-login">
-          <div class="st-row">
-            <span class="st-lbl">
-              <span class="st-name">{t('Cuenta de OpenSubtitles.com')}{@render tipIcon('os-login-tip', t('Opcional: con tu cuenta de OpenSubtitles.com se ve cuántas descargas te quedan desde que abrís la app y se baja con la cuota de tu cuenta. Se guarda en el almacén seguro.'))}</span>
-              <span id="os-login-state" class="st-sub" role="status">{osState}</span>
-            </span>
-          </div>
-          <div class="st-block">
-            <div class="st-inline">
-              <input id="os-user" class="st-input" type="text" placeholder={t('Usuario')} autocomplete="username" aria-label={t('Usuario de OpenSubtitles.com')} bind:value={osUser}>
-              <input id="os-pass" class="st-input" type="password" placeholder={t('Contraseña')} autocomplete="current-password" aria-label={t('Contraseña de OpenSubtitles.com')} bind:value={osPass}>
-              <button id="os-login-save" class="st-btn" type="button" onclick={onSaveOs}>{t('Guardar')}</button>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </section>
+    </Section>
   </div>
   {#snippet footer()}
     <footer class="set-foot">
@@ -401,8 +381,6 @@
 <style>
   .st { padding: 6px 4px 8px; }
   .st-name label { cursor: inherit; }
-  .tip-i { display: inline-flex; padding: 0; border: 0; background: none; color: var(--muted); cursor: help; border-radius: 50%; }
-  .tip-i:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
   .lock { display: inline-flex; align-items: center; gap: 5px; }
   .warn { background: color-mix(in srgb, var(--yellow) 10%, transparent); }
   .warn .st-sub { color: var(--text); }
