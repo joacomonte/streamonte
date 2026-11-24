@@ -1,7 +1,7 @@
 //! Graba respuestas reales del catálogo en `ui/mock/*.json` (las usa `ui/src/mock-tauri.ts` para ver la
 //! UI desktop en el navegador sin Tauri). Usa las keys/config reales del usuario y necesita red.
 //! Nombre del archivo: `<comando>__<args-slug>.json`; el slug es el MISMO que calcula `mock-tauri.ts`:
-//! valores de los args en el orden de `ui/src/api.js`, unidos con `_`, y todo lo que no sea [a-z0-9_-] → `-`.
+//! valores de los args en el orden de `ui/src/core.ts`, unidos con `_`, y todo lo que no sea [a-z0-9_-] → `-`.
 //! Solo comandos de catálogo (datos públicos de TMDB/Cinemeta): nunca config, keys ni rutas locales.
 //! Además graba los eventos `catalog-streams` de `catalog_streams` (mismo JSON que emite TauriSink en
 //! `core://event`) como `events__catalog_streams__<slug>.json`; el mock los reproduce al invocar el comando.

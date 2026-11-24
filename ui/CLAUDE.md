@@ -1,50 +1,23 @@
-# ui — UI del escritorio (webview de Tauri)
-TS estricto (Svelte 5 + TS con Vite). Habla con el core SOLO vía `core.ts` → comandos Tauri (ver `/Users/monti/Documents/Dev/streamonte/src-tauri/CLAUDE.md`).
+# ui — UI del escritorio (webview de Tauri, Svelte 5 + TS con Vite)
+Habla con el core SOLO vía `src/core.ts` (ver `src-tauri/CLAUDE.md`). Lo compartido con la web vive en `packages/ui/`.
 
-## Mapa
-- `/Users/monti/Documents/Dev/streamonte/ui/index.html`: shell estático (`#catalog`; Ajustes/log/confirmación son Svelte, `components/Settings.svelte`…); carga `/src/main.ts`. `main.ts`: CSS, mock del navegador (dinámico, tiene que ir antes de `i18n.ts`, que lee la config al cargar) y `boot.ts` (`startMain`: imports estáticos; monta los diálogos y recién después llama `initApp` (`app.ts`) e `initCatalog` (`catalog.ts`), que buscan elementos del DOM). Ningún módulo hace trabajo al cargarse salvo `audio-picker.ts` (agrega `#pk` al body).
-- `vite.config.ts`: alias `$ui` → `/Users/monti/Documents/Dev/streamonte/packages/ui/src`, `fs.allow ..`; puerto 1420 `strictPort` (= `devUrl` de tauri.conf.json), `outDir dist`. Un solo `tsconfig.json` (`strict`, paths `$ui`); `.oxlintrc.json`: oxlint (browser, no-undef). `TYPING.md`: convenciones.
-- `styles.css` (516): tokens `:root`, topbar, Ajustes · `catalog.css` (~800): tokens que faltan al catálogo compartido, panel lateral `.catalog.side-open` (:5), filas de opción. Secciones por comentario `/* … */`.
-- En `/Users/monti/Documents/Dev/streamonte/ui/src/`:
-- `tauriApi.ts` `createTauriApi` · `createDesktopApi` (único: lo crea `boot.ts`) → `core.ts`, `tauri-adapt.ts` (`kindOf` `titleDetails` `optionsUpdate` `apiEvent`) · ← `packages/ui/src/api.ts` (`Api`). `types.ts`: tipos serde (editable; `import type … from './types.ts'`).
-- `core.ts`: una función por comando (espejo 1:1 de commands.rs; `invoke<T>` lee `window.__TAURI__` en cada llamada) · `once` (`catalogMeta`/`catalogDetails`: una invocación por título; `forgetTitles` ← `catalog.ts`) · `onCoreEvent`. Los consumidores hacen `import * as core from './core.ts'`; los modelos reciben `typeof core` (con `Pick`) para probarse sin Tauri (`core.test.ts`).
-- `live.ts` (puro, con test): `Live:6` `reduce:26` `loaded:46` `titleOf:64` · `live.svelte.ts`: `live:13` (`$state.raw`) `activityLog:35` `activity:55` `startLive:59` (única suscripción de app.ts) → `live.ts`, `activity-feed.ts` · ← `audio-picker.ts`, `dialog-flows.ts`, `catalog-options.ts`, `dom.ts` (leen `live.v` y `activity` directo), `components/{CopiedMagnet,Downloads,Activity}.svelte` (← `boot.ts`).
-- `app.ts`: `onShortcut` `onEvent` (lo no migrado; recibe `prev`) · `initApp` (tooltips, updater, atajos, `startLive(onEvent)`, `initSpeed`) · el log de reproducción en vivo (`playbackLogs`) vive en `dialog-flows.ts`.
-- `catalog.ts`: lo que queda del catálogo en JS — `pickPerson:34` `pasteMagnet` `askTmdbKey` `setPastedHost:126` `refreshPasted:128` `openSources` · listener de eventos del núcleo en `initCatalog`. Grilla/filtros/buscador = `packages/ui/src/catalog/` montado por `catalog-mount.ts` `mountCatalog(api)` (→ `catalog-side.ts:openSide`; ← `boot.ts`). `catalog-store.test.ts` (fixtures `mock/`).
-- `catalog-state.ts`: `showError` `safeGet` `state` (`side` con gancho `hooks.side` → `catalog-mount.ts`) `view` (sin imports del catálogo).
-- `catalog-side.ts`: dueño de `state.side` — `openSide:18` `closeSide:52` `goSeason:64` `renderSide:83` (→ `side-panel.svelte.ts`) · `Object.assign(actions):95` `genreName` · ← `catalog-mount.ts`, `catalog-magnet.ts`, `catalog-options.ts`.
-- `side-panel.svelte.ts` `panel` `actions` (puente JS↔Svelte) · `SidePanel.svelte` (cerrar, migas, `#cat-streams`) → `$ui/title/TitleView.svelte` · montado en `#cat-side` por `boot.ts` con el mismo `Api`.
-- `catalog-options.ts`: `loadStreams:122` `onStreams:150` `sortOptions:180` `loadTorbox:237` `groupPanel:406` `startBg:625` `rowView:669` `playButtons:759` `renderStreamsOnly:822` (arma la vista + FLIP) `streamsView:933` `playOption:1025` → `options-logic.ts`, `streams-panel.svelte.ts`, fila `$ui/options/row.ts` · ← `catalog.ts`, `catalog-side.ts`, `app.ts`.
-- `streams-panel.svelte.ts` `showStreams:17` (monta `StreamsPanel.svelte` en `#cat-streams`) `openCtxMenu:35` (`CtxMenu.svelte`) · modelo de vista `streams-view.ts` · `StreamsPanel.svelte` → `GroupPanel.svelte`, `FlowScreen.svelte`, `Crumbs.svelte`, `MoreRow.svelte`, `$ui/options/OptionsList.svelte` · ← `catalog-options.ts`.
-- `catalog-flow.ts`: `newFlow:36` `flowFilter:82` `cancelFlowWork:174` `crumbs:218` `flowStep:236` (→ `FlowView`) `moreRow:409` · ← `catalog-options.ts`, `catalog-tests.ts`.
-- `catalog-tests.ts` (estado de pruebas en módulo): `startAnalysis:75` `toggleBest:94` `runCensus:182` `runQuick:234` `runDeep:369` `onSwarmEvent:407` · `options-logic.ts` (puro, test `options-logic.test.ts` con `mock/`): `quickGroupOf` `seedsOf` `fileBytesOf` `playbackFor` `pinActive` `topFinalists`.
-- `catalog-subs.ts`: `subsProgress:34` `readTracks:64` `readSubsNow:119` `subsStep:198` `openSubs:211` → `mount-shared.ts`, `SubsStep.svelte` (→ `packages/ui/src/subs/SubsPicker.svelte`).
-- `catalog-magnet.ts:18` `openMagnet` → `mount-shared.ts` `mountMagnet` (→ `packages/ui/src/magnet/MagnetView.svelte`) · `magnetHash` ← `packages/ui/src/magnet-hash.ts`.
-- `mount-shared.ts` `mountSubsStep` `mountMagnet` `provideApi:11` (lo llama `boot.ts`) → `packages/ui/src/context.ts` `apiContext` · ← `catalog-subs.ts`, `catalog-magnet.ts`.
-- `audio-picker.ts`: `closeWizard:53` `openWizard:125` `originalAudio:165` `play:223`.
-- `dialog-flows.ts`: `openSettings` `askAfterClose` `openLog` `cleanTemp` `clearDataCache` `stopAllAndClean` `onConfirmClose` `playbackLogs` · `confirm-queue.ts` (`confirmDialog` + cola) · `ui-host.ts` (`host`: `openSettings` `openLog` `showSpeedPanel`) · ← `app.ts` `catalog*.ts`.
-- `components/`: `Dialogs.svelte` (monta `Settings` `LogDialog` `ConfirmDialog`, los tres sobre `$ui/components/Sheet.svelte`; `boot.ts` lo monta ANTES de `initApp`) · `Settings.svelte` (secciones Idioma · Reproducción · Conexión · Cuentas y keys · Subtítulos; filas de `packages/ui/css/settings.css`; textos largos en el tooltip del ⓘ) → `settings-model.ts` (con test; recibe `typeof core`: comandos solo desktop, no están en `Api`).
-- `top-menus.ts`: `togglePop` `popFor` `closePop` (popover de speed.ts; ← `components/Downloads.svelte` lo cierra).
-- `activity-feed.ts` (puro, con test): `mergeLine` `busyText` `eventLines` (`activity` y `live` salen de `live.svelte.ts`).
-- `speed.ts`: `onSpeedEvent` `initSpeed` → `speed-instance.ts` → `speed-store.ts` + `speed-model.ts` (con test) · `components/SpeedButton.svelte` `SpeedPanel.svelte` `Gauge.svelte` · `health-store.ts` (localStorage + red; cuentas en `$ui/options/health.ts`): `setLinkMbps` `healthCalibration` `trackPlayback` `speedOf` `notePrediction` `incomingStatus`.
-- `Welcome.svelte` (Tour compartido, pasos del desktop) · `welcome-state.ts`: `isTouring` `setTouring` `STORE` (← `catalog.ts`) · `SettingsLang.svelte` (LangPicker compartido en `#set-lang-picker`) · `lang-picker.ts`: `langToggle` (cambiar idioma recarga) · `updater.ts` `startUpdater` (plugin updater: al iniciar y cada 6 h; muestra las notas del release).
-- `dom.ts`: `el:35` `icon` (paths ← `packages/ui/src/components/icons.ts`) `setStatus:106` `showError:114` · `format.ts`: `playbackText:8` (resto ← `packages/ui/src/format.ts`) · `season` ← `packages/ui/src/season.ts` · `tooltip.ts` (`installTooltips`, lo llama `initApp`) · `i18n.ts`: `t` `langs` `setLangs` `translateStatic` (adaptador de `packages/ui/src/i18n/store.svelte.ts`: la persistencia es la config del núcleo + recargar; diccionario ← `packages/ui/src/i18n/en.ts`) · `test-stub.ts` (stub de webview, no es test).
+## Para X → andá a Y (`ui/src/`)
+- Arranque → `main.ts` (CSS, mock) → `boot.ts` (diálogos, luego `initApp` e `initCatalog`).
+- Comando del core → `core.ts` (espejo de `commands.rs`) + `types.ts` (serde); `Api` compartida → `tauriApi.ts` + `tauri-adapt.ts`.
+- Eventos `core://event` → `live.svelte.ts` (`startLive`) y `catalog.ts`; estado puro → `live.ts`, `activity-feed.ts`.
+- Catálogo desktop: ficha `catalog-side.ts` · lista/orden/panel `catalog-options.ts` · pasos latino/TorBox `catalog-flow.ts` · pruebas y análisis `catalog-tests.ts` · subs `catalog-subs.ts` · magnet `catalog-magnet.ts` · estado `catalog-state.ts`.
+- Diálogos y acciones → `dialog-flows.ts`, `confirm-queue.ts`; pantallas → `components/CLAUDE.md`.
+- Velocidad/salud → `speed*.ts`, `health-store.ts`. Idioma → `i18n.ts`. Updater → `updater.ts`.
+- Mock del navegador → `mock-tauri.ts` + `ui/mock/`. CSS global (`styles.css`, `catalog.css`) tiende a 0: lo nuevo, scoped o en `packages/ui/css/`.
 
-## Flujo
-- Búsqueda: `catalog-mount.ts` → catálogo compartido → `core.catalogSearch` → `commands.rs` `catalog_search` → `AppCore::catalog_search` (`/Users/monti/Documents/Dev/streamonte/crates/core/src/app/catalog.rs`) → `state.results` → `render`.
-- Torrents: `catalog-options.ts` `loadStreams` → `core.catalogStreams` → `commands.rs` `catalog_streams` → `AppCore::catalog_streams` (`/Users/monti/Documents/Dev/streamonte/crates/core/src/app/catalog.rs`) → evento `catalog-streams` → `catalog.ts` `initCatalog` → `onStreams`; swarm/census → `catalog-swarm-*` → `onSwarmEvent`.
-- Reproducir: `audio-picker.ts` `play` → `core.play` → evento `playback-updated` → `live.svelte.ts` `startLive` → `live.v.playbacks` → `app.ts` `onEvent`; `app.ts` avisa con CustomEvent `playback-changed` y `catalog.ts` lo escucha.
-- Cierre: evento `confirm-close` → `app.ts` `onEvent` → `dialog-flows.ts` `onConfirmClose` → `core.onClose`.
+## Relación
+Usa `packages/ui/src/` por `$ui`. El "clique" de `catalog*.ts` (vía `catalog-state.ts`) sigue hasta N3-ui-bus.
 
 ## Trampas
-- `src/mock-tauri.ts`: sin `__TAURI__` (Vite en el navegador) instala un invoke que responde con `ui/mock/<cmd>__<args>.json` (slug igual a `crates/core/examples/record_fixtures.rs`); con id de título (`tt…`) responde SOLO la fixture de ese id (sin fixture → default/null + `console.warn('[mock] sin fixture')`, nunca la de otro título); sin id (página, búsqueda) cae a la primera `<cmd>__*`. `catalog_streams` reproduce `ui/mock/events__catalog_streams__<slug>.json` por `core://event` (secuencia progresiva de ≤6 eventos, uno cada 500 ms; grabada SIN la caché de 1 h: `record_fixtures` usa carpetas temporales con la config real; solo streams; swarm/censo/velocidad/playback sin mock; `?live` emite una fila + una descarga de fondo). Eventos a mano: `?scenario=<nombre>` reproduce `ui/mock/events__<nombre>.json` (o la primera `events__<nombre>__*`) con 300 ms entre eventos, tras 1,5 s: `analyze__basic` (análisis + cola + actividad), `speed__basic` (medición de velocidad), `downloads__basic` (fila: metadata → preparando → reproduciendo → de fondo → pausada → quitada), `subs__basic` (progreso de subtítulos); escritos a mano, `record_fixtures` no los toca. `main.ts` importa `boot.ts` dinámicamente, después del mock.
-- Comando nuevo: función en `core.ts` + tipo en `types.ts` (+ commands.rs y lib.rs). `core.xxxYyy` ↔ `xxx_yyy`. Campos serde en snake_case, enums kebab-case.
-- Único canal `core://event`; listeners: `live.svelte.ts` (`startLive`) y `catalog.ts` (`initCatalog`). `window.__TAURI__` solo en `core.ts` y `updater.ts`; la CSP no permite red desde la UI.
-- `catalog-state.ts` no importa otros módulos del catálogo (ciclos).
-- Lógica pura (sin DOM) en `packages/ui/src/`; los JS que prueba `node --test` importan `packages/ui` por ruta relativa, el resto por `$ui`.
-- i18n: texto nuevo → `packages/ui/src/i18n/en.ts` (`packages/ui/src/i18n/i18n.test.ts` falla si falta; neutros en `NEUTRAL`).
-- Puerto 1420 fijo: si está ocupado Vite falla.
-- Tests que importan i18n/dom/core: `import './test-stub.ts'` PRIMERO. `activity-feed.ts` y `live.ts` traducen con `$ui/i18n/runtime.ts` (no `i18n.ts`, que usa `store.svelte.ts` y no carga en node).
+- Mock: sin `__TAURI__` responde con `mock/<cmd>__<args>.json` (slug = `record_fixtures.rs`); con id `tt…` solo la fixture de ese id. `?scenario=<nombre>` reproduce `mock/events__<nombre>.json`; `?live` suma una fila.
+- `window.__TAURI__` solo en `core.ts` y `updater.ts`; la CSP no permite red desde la UI.
+- `catalog-state.ts` no importa otros módulos del catálogo (ciclos). Puerto 1420 fijo.
+- Tests que importan i18n/dom/core: `import './test-stub.ts'` PRIMERO.
 
-## Tests
-`cd /Users/monti/Documents/Dev/streamonte/ui && pnpm test` (`node --test`); `pnpm lint` (oxlint); `pnpm check` (svelte-check + tsc de los JS); `sh scripts/check.sh` (full suma tests). Dev: `pnpm dev` + `cargo run -p streamonte`.
+## Cómo se prueba
+`cd ui && pnpm test | lint | check`; `sh scripts/check.sh`. Convenciones: `TYPING.md`.

@@ -1,4 +1,4 @@
-// Adaptadores puros del desktop: JSON serde del núcleo (snake_case, ver `types.js`) → modelo de vista de `packages/ui`.
+// Adaptadores puros del desktop: JSON serde del núcleo (snake_case, ver `types.ts`) → modelo de vista de `packages/ui`.
 // Sin `invoke` ni DOM (se prueban con las fixtures grabadas en `ui/mock/`); `tauriApi.ts` hace las llamadas.
 import { hintOf } from '../../packages/ui/src/rank.ts';
 import type { Lang } from '../../packages/ui/src/i18n/translate.ts';

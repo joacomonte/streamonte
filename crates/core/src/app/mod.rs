@@ -1,6 +1,6 @@
 //! `app` — [`AppCore`]: cablea los módulos y es la ÚNICA superficie que ve la UI (NFR-01).
 //! Cada método corresponde 1:1 a un comando Tauri (`src-tauri/src/commands.rs`) y a una
-//! función de `ui/src/api.js`. Ningún método bloquea: lo largo corre en tareas y avisa por eventos (NFR-10).
+//! función de `ui/src/core.ts`. Ningún método bloquea: lo largo corre en tareas y avisa por eventos (NFR-10).
 //! Ningún comando hace `panic`: los errores vuelven como [`CoreError`] con mensaje para el usuario.
 
 mod catalog;

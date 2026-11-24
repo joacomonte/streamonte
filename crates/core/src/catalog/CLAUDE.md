@@ -1,33 +1,22 @@
-# catalog (streamonte-core)
+# catalog/ — búsqueda, fichas y torrents de addons
+Cinemeta + TMDB + datasets IMDb para buscar y enriquecer; addons Stremio y fuentes propias para torrents, en una lista única. No conoce engine/analyzer/playback.
 
-Busca películas/series (Cinemeta + TMDB), enriquece fichas (TMDB, datasets IMDb) y junta torrents de addons Stremio y fuentes propias en una lista única. No conoce engine/analyzer/playback: los orquesta `AppCore`.
+## Para X → andá a Y
+- Búsqueda, trending, ficha base → `cinemeta.rs`, `mod.rs` (`Catalog`).
+- Campo de la ficha de TMDB (dónde verla, gente, idioma) → `tmdb.rs` `Details`.
+- Premios / subgéneros de IMDb → `awards.rs` / `interests.rs`. Top e IMDb dataset → `top.rs`; temporadas → `seasons.rs`.
+- Torrents: addons `addons.rs`, `protocol.rs`; parseo `normalize.rs`; unión y orden `aggregate.rs`.
+- Fuentes propias → `wpreact.rs`, `elitetorrent.rs`, `latteam.rs`, `torbox.rs`. Pistas de un MKV → `mkv.rs`.
 
-## Mapa (rutas relativas a esta carpeta)
-- `mod.rs:204 Catalog` · `:41 MediaKind` · `:72 VideoId` · `:919 by_relevance` · `:535 meta` · `:647 streams` · `:703 start_streams` · `:729 torbox_cached`
-- `http.rs:70 Http` (2 req/host `:17`, 5 MB `:16`) · `:103 get_json` · `:127 get_json_auth` · `FetchError:25`
-- `cinemeta.rs:84 search` · `:124 trending` · `:164 meta` · `:321 is_excluded`
-- `tmdb.rs:354 details` · `:497 fetch_details` · `:568 similar` · `:687 episodes` · `:842 identify` · `:427 names` · `:275 providers_ar`
-- `people.rs:94 search` · `:142 credits` · `:166 pick`
-- `awards.rs` — premios por IMDb GraphQL (`fetch`, `normalize` con golden `awards.json`); `mod.rs awards` los guarda 7 d (`imdb-premios-v1-*`, vencido si IMDb falla). Igual que `web/src/lib/server/awards.ts`.
-- `interests.rs` — subgéneros de IMDb por GraphQL (`list`, `examples`); `mod.rs browse_interests`/`interest_examples` (sin key de TMDB). Igual que `web/src/lib/server/interests.ts`.
-- `top.rs:181 TopRated` · `:204 list` · `:342 imdb_dataset` · `:495 rank` · `seasons.rs:79 Seasons` · `:97 list` · `:300 build_index`
-- `addons.rs:69 Addon::streams` · `:152 fetch_manifest` · `protocol.rs:30 Manifest` · `:91 Stream`
-- `normalize.rs:89 parse` · `:15 StreamCandidate` · `aggregate.rs:363 run_inner` · `:67 Merged` · `:121 sorted` · `:220 merge`
-- Fuentes propias: `wpreact.rs:201` · `elitetorrent.rs:275` · `latteam.rs:118` · `torbox.rs:70 api` · `:169 cached` · `:412 stream_url`
-
-## Flujo
-- Streams: `catalog_streams` → `mod.rs:647 streams` → caché 1 h o `start_streams:703` → `aggregate::run` → `Addon::streams` → `normalize::parse` → `Merged::add/merge` → scrape → `StreamsUpdate` (`../events.rs:59`).
-- Búsqueda: `mod.rs:284 search_flagging_excluded` → `search:252` → spawn `find_excluded:596`. Ficha: `mod.rs:535 meta` → mem → disco `ficha-v3-*` → `cinemeta::meta`.
+## Relación
+Lo orquesta `app/catalog.rs`. Reglas con golden en la web: `release`, `excluded`, `providers_ar`, `people`, `show_status`, `awards`, `interests`, `mkv` (`packages/golden/CLAUDE.md`).
 
 ## Trampas
-- Versión de caché en el nombre de archivo: `tmdb-detalle-v6` (`tmdb.rs:373`, v6 = hasta 18 actores `MAX_CAST`), `ficha-v3` (`mod.rs:549`), `torbox2` (`mod.rs:736`), `imdb-temporadas-v1` (`seasons.rs:27`). Si cambia la forma serializada, subir la versión (no se migra).
-- TTLs: detalle/similares 7 d (`tmdb.rs:183`), fichas 30 d / en emisión 12 h (`mod.rs:553`), streams y TorBox 1 h (`mod.rs:64`), datasets IMDb 1 día (`top.rs:27`), discover 90 d (`top.rs:29`).
-- Sin key de TMDB → vacío/`None` sin error (`tmdb.rs:354 details`); `top::no_key :372`/`bad_key :379` sí dan error. La key va en la URL: nunca loguear URL (`http::redact`).
-- Exclusión anime: `cinemeta::is_excluded:321`, `tmdb.rs:817 best_hit`, `people.rs:166 pick`; golden `excluded.json` = web.
-- Dedup por info hash; orden idioma → sub es → resolución → seeders → tamaño → hash (`aggregate.rs:121`). Candidato sin idioma nunca se descarta.
-- wpreact/elitetorrent solo películas; latteam solo toma el hash del magnet (`latteam.rs:5-9`); elitetorrent no evade Cloudflare.
-- TorBox: siempre directo con la key propia (`torbox::api`); `requestdl` la lleva también en la URL (no loguear).
-- Golden compartidos con la web (`/Users/monti/Documents/Dev/streamonte/packages/golden/`): `providers_ar`, `people` (`tmdb.rs`), `show_status` (`seasons.rs:457`), `awards` (`awards.rs` tests), `release`/`excluded` (`../../tests/it/golden.rs:14,30`).
+- La versión de caché va en el nombre de archivo (`tmdb-detalle-vN`, `ficha-vN`, `torbox2`, `imdb-temporadas-vN`): si cambia la forma serializada, subirla (no se migra).
+- Sin key de TMDB → vacío/`None` sin error; la key va en la URL: nunca loguear URL (`http::redact`).
+- Exclusión anime: `cinemeta::is_excluded` = `keep()` de la web.
+- Dedup por info hash; orden idioma → sub es → resolución → seeders → tamaño → hash. Candidato sin idioma nunca se descarta.
+- wpreact/elitetorrent solo películas; latteam solo toma el hash. TorBox siempre directo con la key del usuario.
 
-## Tests
-- `#[cfg(test)]` al pie (normalize `:426`, aggregate `:498`, top `:531`, mod `:949`); addon mock en `../../tests/it/catalog_mock.rs`. `top.rs:649 dataset_real` usa red. `cargo nextest run -p streamonte-core catalog::`.
+## Cómo se prueba
+`#[cfg(test)]` al pie; addon falso en `crates/core/tests/it/catalog_mock.rs`. `cargo nextest run -p streamonte-core catalog::`.

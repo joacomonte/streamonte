@@ -1,6 +1,6 @@
 //! Eventos núcleo → UI. El núcleo no conoce Tauri: emite a través de [`EventSink`] y la
 //! cáscara (src-tauri) lo implementa con `AppHandle::emit` (NFR-01, NFR-10).
-//! Nombres de evento en la UI: `core://<variante en kebab-case>` (ver ui/src/api.js).
+//! Nombres de evento en la UI: `core://<variante en kebab-case>` (ver ui/src/core.ts).
 
 use serde::Serialize;
 
