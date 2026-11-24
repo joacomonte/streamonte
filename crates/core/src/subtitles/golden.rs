@@ -1,5 +1,5 @@
 //! Vectores compartidos con la web (`/packages/golden/sub_match.json`): calce y orden de subtítulos.
-//! Rust es la fuente de verdad; la web lo lee en `web/src/lib/server/golden-subs.test.ts`.
+//! Rust es la fuente de verdad; la web lo lee en `web/src/lib/server/golden-rules.test.ts`.
 
 use serde_json::{json, Value};
 

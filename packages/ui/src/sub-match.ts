@@ -4,7 +4,7 @@
 /** El video copiado: su release y lo que se leyó de él. */
 export type Match = { release: string; video?: { fps: number | null; duration: number | null } };
 /** Lo que se lee de un subtítulo para calzarlo. `native`: viene con el video; `com`: es de OpenSubtitles.com (Premium). */
-export type MatchableSub = { release: string; exact?: boolean; fps?: number | null; last?: number | null; latino: boolean; downloads: number; native?: boolean; com?: boolean };
+export type MatchableSub = { release: string; exact?: boolean; fps?: number | null; last?: number | null; group?: string | null; latino: boolean; downloads: number; native?: boolean; com?: boolean };
 
 const EXTENSIONS = ['mkv', 'mp4', 'm4v', 'mov', 'avi', 'webm', 'ts', 'm2ts', 'wmv', 'srt', 'ass', 'ssa', 'vtt'];
 
@@ -49,9 +49,10 @@ export function groupOf(x: string): string {
 }
 
 const words = (text: string): string[] => text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-const flat = (s: string | null): string | null => (s ? words(s).join('') : null);
+/** WEB, WEB-DL y WEBRip cuentan como la misma fuente (se encuentran más subs). BluRay ya agrupa BDRip y BRRip. */
+const flat = (s: string | null): string | null => (s ? (s.startsWith('WEB') ? 'web' : words(s).join('')) : null);
 
-/** 3 hecho para ese archivo (hash, o su nombre dentro del release), 2 mismo grupo y, si se sabe, misma fuente,
+/** 3 hecho para ese archivo (hash, o su nombre dentro del release), 2 mismo grupo (palabra del release o `group` del proveedor) y, si se sabe, misma fuente (WEB = WEB-DL = WEBRip),
  * 1 mismos fps y termina dentro del video (80 % a +5 s; sin último diálogo alcanza con los fps), 0 nada. */
 export function level(sub: MatchableSub, match: Match | null): number {
 	if (sub.exact) return 3;
@@ -60,7 +61,8 @@ export function level(sub: MatchableSub, match: Match | null): number {
 	if (stem && sub.release.toLowerCase().includes(stem)) return 3;
 	const g = groupOf(rel).toLowerCase();
 	const [a, b] = [flat(sourceOf(rel)), flat(sourceOf(sub.release))];
-	if (g.length >= 2 && words(sub.release).includes(g) && (!a || !b || a === b)) return 2;
+	// `sub.group` (lo que dice OpenSubtitles.org) solo existe en la web: Rust no lo tiene.
+	if (g.length >= 2 && (words(sub.release).includes(g) || (sub.group ?? '').toLowerCase() === g) && (!a || !b || a === b)) return 2;
 	const v = match?.video;
 	const ends = !v?.duration || !sub.last || (sub.last >= v.duration * 0.8 && sub.last <= v.duration + 5);
 	return v?.fps && sub.fps && Math.abs(v.fps - sub.fps) < 0.05 && ends ? 1 : 0;

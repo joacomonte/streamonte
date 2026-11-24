@@ -128,12 +128,21 @@ export async function download(id: number, file: TbFile): Promise<string> {
 	return `${dl.data}${String(dl.data).includes('?') ? '&' : '?'}f=video${ext}`;
 }
 
+/** ¿Es una muestra? El archivo es `sample` o empieza con `sample` + separador, o termina en `-sample` / `.sample` antes
+ * de la extensión, o una carpeta se llama exactamente `sample` / `samples`; nunca por una subcadena. Como `is_sample` de
+ * `torbox.rs`; golden `torbox_pick.json`. */
+export function isSample(path: string): boolean {
+	const parts = path.toLowerCase().split(/[/\\]/);
+	const stem = (parts.pop() ?? '').replace(/\.[^.]*$/, '');
+	return /^sample([._ -]|$)|[-.]sample$/.test(stem) || parts.some((d) => d === 'sample' || d === 'samples');
+}
+
 /** El archivo del addon; si no, el del episodio (packs de temporada); si no, el más grande. Solo videos, nunca una muestra
- * (`sample` en la ruta, como `torbox.rs main_video`). shortcut: sin el mínimo de tamaño del desktop (`MIN_VIDEO`).
+ * (`isSample`, como `torbox.rs main_video`). shortcut: sin el mínimo de tamaño del desktop (`MIN_VIDEO`).
  * Golden `torbox_pick.json`.
  */
 export function pick(all: TbFile[], t: { file: string | null; s: string | null; e: string | null }): TbFile | null {
-	const files = all.filter((f) => VIDEO.test(f.name ?? '') && !String(f.name).toLowerCase().includes('sample'));
+	const files = all.filter((f) => VIDEO.test(f.name ?? '') && !isSample(String(f.name)));
 	const name = (f: TbFile) => String(f.short_name ?? f.name).toLowerCase();
 	if (t.file) {
 		const f = files.find((x) => name(x).endsWith(t.file?.toLowerCase() ?? ''));

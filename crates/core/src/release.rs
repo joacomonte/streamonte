@@ -95,7 +95,7 @@ pub fn season_episodes(text: &str) -> impl Iterator<Item = (u16, Option<u16>)> +
         .filter_map(|t| parse_season_episode(&t.to_ascii_lowercase()))
 }
 
-fn strip_extension(file: &str) -> &str {
+pub(crate) fn strip_extension(file: &str) -> &str {
     let subtitle = std::path::Path::new(file)
         .extension()
         .and_then(|e| e.to_str())

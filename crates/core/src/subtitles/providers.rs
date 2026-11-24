@@ -172,14 +172,12 @@ fn words(text: &str) -> Vec<String> {
 }
 
 /// Coincidencia por nombre de release (FR-24): [`MatchKind::Exact`] si es el mismo nombre de
-/// archivo; [`MatchKind::Release`] si es el mismo grupo y no dice otra fuente (Blu-ray vs WEB…).
+/// archivo; [`MatchKind::Release`] si es el mismo grupo y no dice otra fuente (Blu-ray vs WEB…; WEB, WEB-DL y WEBRip
+/// son la misma).
 pub(super) fn release_match(video: &VideoIdentity, release: &str) -> MatchKind {
     let r = release.to_lowercase();
-    let stem = video
-        .file_name
-        .rsplit_once('.')
-        .map_or(video.file_name.as_str(), |(s, _)| s)
-        .to_lowercase();
+    // Sin la extensión (solo si es de video o subtítulo: un nombre sin extensión no pierde su último tramo).
+    let stem = crate::release::strip_extension(&video.file_name).to_lowercase();
     if !stem.is_empty() && r.contains(&stem) {
         return MatchKind::Exact;
     }
@@ -188,7 +186,16 @@ pub(super) fn release_match(video: &VideoIdentity, release: &str) -> MatchKind {
         .as_deref()
         .map(str::to_lowercase)
         .filter(|g| g.len() >= 2);
-    let source = |s: Option<&str>| s.map(|s| normalized_title(s).replace(' ', ""));
+    // WEB, WEB-DL y WEBRip cuentan como la misma fuente (se encuentran más subs); BluRay ya agrupa BDRip y BRRip.
+    let source = |s: Option<&str>| {
+        s.map(|s| normalized_title(s).replace(' ', "")).map(|s| {
+            if s.starts_with("web") {
+                "web".to_string()
+            } else {
+                s
+            }
+        })
+    };
     let theirs = source(
         crate::release::parse_release_name(release)
             .source

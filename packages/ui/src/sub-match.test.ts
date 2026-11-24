@@ -28,3 +28,9 @@ test('level / rank: calce del subtítulo con el video copiado', () => {
 	);
 	assert.deepEqual(ranked.map((s) => s.id), ['b', 'c', 'a']);
 });
+
+test("level: el grupo que dice OpenSubtitles.org (solo web, Rust no lo tiene) sube a 2", () => {
+	const match = { release: "X.1080p.WEB-DL.x264-NTb.mkv" };
+	assert.equal(level({ ...sub, release: "otro nombre", group: "ntb" }, match), 2);
+	assert.equal(level({ ...sub, release: "otro nombre", group: "OTRO" }, match), 0);
+});

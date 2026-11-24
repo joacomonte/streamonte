@@ -11,7 +11,7 @@ const LEVEL_NUM: Record<MatchLevel, number> = { exact: 3, release: 2, fps: 1, no
 /** 3 hecho para ese archivo · 2 mismo release · 1 mismos fps y duración · 0 nada. Con `match` (web) se calcula acá; sin él, del `level` que ya trae. */
 export function rankSubs(list: SubtitleOption[], match: Match | null): RankedSub[] {
 	if (!match) return list.map((sub) => ({ sub, lvl: LEVEL_NUM[sub.level] }));
-	const items = list.map((sub) => ({ sub, release: sub.release, exact: sub.level === 'exact', fps: sub.fps, last: sub.last, latino: sub.latino, downloads: sub.downloads, com: sub.premium }));
+	const items = list.map((sub) => ({ sub, release: sub.release, exact: sub.level === 'exact', fps: sub.fps, last: sub.last, group: sub.group, latino: sub.latino, downloads: sub.downloads, com: sub.premium }));
 	return rank(items, match).map(({ sub, level }) => ({ sub, lvl: level }));
 }
 

@@ -57,7 +57,7 @@
   "out": 0
  },
  {
-  "nota": "WEBRip y WEB-DL son fuentes distintas",
+  "nota": "WEBRip y WEB-DL son la misma fuente para el calce",
   "in": {
    "video": {
     "file": "X.2010.1080p.WEB-DL.x264-NTb.mkv",
@@ -68,7 +68,7 @@
     "release": "X.2010.WEBRip.x264-NTb"
    }
   },
-  "out": 0
+  "out": 2
  },
  {
   "nota": "grupo sin fuente en el sub",
@@ -205,7 +205,7 @@
   "out": 0
  },
  {
-  "nota": "WEBRip con grupo pegado no es WEB-DL",
+  "nota": "WEBRip con grupo pegado cuenta como WEB-DL",
   "in": {
    "video": {
     "file": "X.2010.1080p.WEB-DL-NTb.mkv",
@@ -214,6 +214,76 @@
    },
    "sub": {
     "release": "X.2010.WEBRip-NTb"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "WEB y WEB-DL son la misma fuente",
+  "in": {
+   "video": {
+    "file": "The.Bear.S03E01.1080p.WEB.h264-ETHEL.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "The.Bear.S03E01.1080p.WEB-DL.h264-ETHEL"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "AMZN WEB-DL contra AMZN WEBRip",
+  "in": {
+   "video": {
+    "file": "Show.S01E01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "Show.S01E01.1080p.AMZN.WEBRip.DDP5.1.H.264-NTb"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "BluRay y BDRip son la misma fuente",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.BluRay.x264-GRP.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X.2010.BDRip.x264-GRP"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "video sin extensión: mismo release",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "Sintel.2010.720p.BluRay.x264-SURFER"
+   }
+  },
+  "out": 3
+ },
+ {
+  "nota": "video sin extensión: otro grupo no es exacto",
+  "in": {
+   "video": {
+    "file": "Sintel.2010.720p.BluRay.x264-SURFER",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "Sintel.2010.720p.BluRay.x264-OTRO"
    }
   },
   "out": 0

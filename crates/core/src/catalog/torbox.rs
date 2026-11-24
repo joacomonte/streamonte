@@ -193,6 +193,23 @@ fn files(entry: &serde_json::Value) -> Option<&Vec<serde_json::Value>> {
     entry.get("files").and_then(|f| f.as_array())
 }
 
+/// ¿Es una muestra? El nombre del archivo es `sample` o empieza con `sample` + separador, o termina en `-sample` /
+/// `.sample` antes de la extensión, o una carpeta se llama exactamente `sample` / `samples`. Nunca por una subcadena
+/// (`Resample`). Misma regla en `web/src/lib/server/torbox/client.ts`; golden `torbox_pick.json`.
+fn is_sample(path: &str) -> bool {
+    let lower = path.to_ascii_lowercase();
+    let mut parts: Vec<&str> = lower.split(['/', '\\']).collect();
+    let file = parts.pop().unwrap_or("");
+    let stem = file.rsplit_once('.').map_or(file, |(s, _)| s);
+    let named = stem == "sample"
+        || stem.ends_with("-sample")
+        || stem.ends_with(".sample")
+        || stem
+            .strip_prefix("sample")
+            .is_some_and(|rest| rest.starts_with(['.', '-', '_', ' ']));
+    named || parts.iter().any(|d| *d == "sample" || *d == "samples")
+}
+
 /// El video más grande que no es una muestra, si pesa al menos `MIN_VIDEO`.
 fn main_video(entry: &serde_json::Value) -> Option<String> {
     files(entry)?
@@ -204,9 +221,7 @@ fn main_video(entry: &serde_json::Value) -> Option<String> {
             ))
         })
         .filter(|(name, size)| {
-            crate::engine::is_video(name)
-                && *size >= MIN_VIDEO
-                && !name.to_ascii_lowercase().contains("sample")
+            crate::engine::is_video(name) && *size >= MIN_VIDEO && !is_sample(name)
         })
         .max_by_key(|(_, size)| *size)
         .map(|(name, _)| name.rsplit('/').next().unwrap_or(name).to_string())
@@ -324,9 +339,7 @@ async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Api
     }
     let file = files
         .into_iter()
-        .filter(|f| {
-            crate::engine::is_video(&f.name) && !f.name.to_ascii_lowercase().contains("sample")
-        })
+        .filter(|f| crate::engine::is_video(&f.name) && !is_sample(&f.name))
         .max_by_key(|f| f.size)
         .ok_or(crate::CoreError::NoVideo)?;
     Ok((api, id, file))
@@ -525,8 +538,10 @@ fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool, release:
                 })
         })
         .or_else(|| {
+            // Solo los que su título no dice España: esos no son candidatos a latino por el nombre.
             let spa: Vec<usize> = (0..audios.len())
                 .filter(|&i| audios[i].language == "spa")
+                .filter(|&i| !says_spain(audios[i].title.as_deref().unwrap_or("")))
                 .collect();
             latino_by_name(&spa, release)
         })
@@ -535,6 +550,14 @@ fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool, release:
         .or_else(|| orig.and_then(|o| find(&|a| a.language == o)))
         .or_else(|| find(&|a| a.language == "eng"))
         .unwrap_or(0)
+}
+
+/// ¿El título de la pista dice España? (`España`, `Castellano`, `Spain`, `es-ES`, `Castilian`).
+fn says_spain(title: &str) -> bool {
+    let t = title.to_lowercase();
+    ["españa", "castellano", "spain", "es-es", "castilian"]
+        .iter()
+        .any(|w| t.contains(w))
 }
 
 /// Posición de `word` como palabra entera (letras, dígitos y `_` pegados no cuentan), en minúsculas.
@@ -561,7 +584,6 @@ fn latino_by_name(spa: &[usize], release: &str) -> Option<usize> {
     }
     let cas = [
         r.find("castellano"),
-        word_at(&r, "cast"),
         r.find("españa").or_else(|| r.find("spain")),
     ]
     .into_iter()

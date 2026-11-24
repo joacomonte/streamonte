@@ -315,5 +315,130 @@
    "main": 0,
    "lat": null
   }
+ },
+ {
+  "nota": "Resample no es una muestra (subcadena)",
+  "in": {
+   "files": [
+    {
+     "name": "Peli/Resample.2020.mkv",
+     "size": 2097152000
+    },
+    {
+     "name": "Peli/otro.mkv",
+     "size": 524288000
+    }
+   ]
+  },
+  "out": "Resample.2020.mkv"
+ },
+ {
+  "nota": "carpeta Samples",
+  "in": {
+   "files": [
+    {
+     "name": "Peli/Samples/x.mkv",
+     "size": 3145728000
+    },
+    {
+     "name": "Peli/a.mkv",
+     "size": 524288000
+    }
+   ]
+  },
+  "out": "a.mkv"
+ },
+ {
+  "nota": "termina en -sample",
+  "in": {
+   "files": [
+    {
+     "name": "Peli/peli-sample.mkv",
+     "size": 3145728000
+    },
+    {
+     "name": "Peli/peli.mkv",
+     "size": 524288000
+    }
+   ]
+  },
+  "out": "peli.mkv"
+ },
+ {
+  "nota": "empieza con sample + separador",
+  "in": {
+   "files": [
+    {
+     "name": "Peli/Sample.mkv",
+     "size": 3145728000
+    },
+    {
+     "name": "Peli/peli.mkv",
+     "size": 524288000
+    }
+   ]
+  },
+  "out": "peli.mkv"
+ },
+ {
+  "nota": "carpeta que solo empieza con sample no es muestra",
+  "in": {
+   "files": [
+    {
+     "name": "Peli/sampled-scenes/real.mkv",
+     "size": 2097152000
+    },
+    {
+     "name": "Peli/a.mkv",
+     "size": 524288000
+    }
+   ]
+  },
+  "out": "real.mkv"
+ },
+ {
+  "nota": "las pistas que dicen España no son candidatas por nombre",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa",
+     "title": "Castellano"
+    },
+    {
+     "language": "spa"
+    }
+   ],
+   "orig": "en",
+   "release": "Peli.LATINO"
+  },
+  "out": {
+   "main": 0,
+   "lat": 2
+  }
+ },
+ {
+  "nota": "Cast suelto no es castellano",
+  "in": {
+   "audios": [
+    {
+     "language": "eng"
+    },
+    {
+     "language": "spa"
+    },
+    {
+     "language": "spa"
+    }
+   ],
+   "orig": "en",
+   "release": "Cast.Away.2000.LATINO.CASTELLANO"
+  },
+  "out": {
+   "main": 0,
+   "lat": 1
+  }
  }
 ]
