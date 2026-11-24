@@ -1,4 +1,5 @@
-import { discover, imdbPage, personTitles, search, VOTES } from '#lib/server/tmdb.ts';
+import { discover, imdbPage, personTitles, search } from '#lib/server/tmdb.ts';
+import { VOTES } from '$ui/catalog/votes.ts';
 import { interestList } from '#lib/server/interests.ts';
 import { route } from '#lib/server/http.ts';
 

@@ -1,0 +1,18 @@
+[
+ {
+  "in": "https://m.media-amazon.com/images/M/abc@._V1_.jpg",
+  "out": "https://m.media-amazon.com/images/M/abc@._V1_QL75_UX342_.jpg"
+ },
+ {
+  "in": "https://m.media-amazon.com/images/M/abc@._V1_UX100_CR0,0,100,148_.jpg",
+  "out": "https://m.media-amazon.com/images/M/abc@._V1_QL75_UX342_.jpg"
+ },
+ {
+  "in": "https://m.media-amazon.com/images/M/abc.jpg",
+  "out": "https://m.media-amazon.com/images/M/abc.jpg"
+ },
+ {
+  "in": "https://example.com/x._V1_.png",
+  "out": "https://example.com/x._V1_.png"
+ }
+]

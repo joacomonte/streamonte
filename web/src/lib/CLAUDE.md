@@ -16,7 +16,7 @@ Tipos, ranking puro, caché de navegador, i18n y componentes Svelte 5. Lo que to
 - `TYPICAL_MBPS` y `level` siguen al desktop: `packages/ui/src/rank.ts`, `packages/ui/src/sub-match.ts`, `crates/core/src/subtitles.rs`.
 - Si cambia el formato de una respuesta, subir su versión en `saved.ts V`.
 - Textos siempre `t('texto en español')` + traducción en `packages/ui/src/i18n/en.ts`.
-- Una sola regla de audio latino: `packages/ui/src/audio.ts`.
+- Una sola regla de audio latino: `packages/ui/src/latino.ts`.
 - No importa de `server/` salvo `import type` (`types.ts`).
 
 ## Tests

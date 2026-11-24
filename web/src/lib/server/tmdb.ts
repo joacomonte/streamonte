@@ -3,7 +3,7 @@
 // Fachada: el código vive en `tmdb/{client,cache,lists,title}.ts`.
 export { keep } from './tmdb/client.ts';
 export { capped, detail } from './tmdb/cache.ts';
-export { VOTES, discover, search, people, personTitles, imdbPage } from './tmdb/lists.ts';
+export { discover, search, people, personTitles, imdbPage } from './tmdb/lists.ts';
 export type { Filters } from './tmdb/lists.ts';
 export { providersAr, peopleOf, showStatus, title, namesOf, tmdbOf, season } from './tmdb/title.ts';
 export type { Names } from './tmdb/title.ts';

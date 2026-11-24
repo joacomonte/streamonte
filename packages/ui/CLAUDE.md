@@ -12,7 +12,7 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
 - `title/awards.ts` `awardsView` (línea + lista agrupada de la ficha) `cardAwards` (premios compactos de tarjeta y ficha) `entryLabel` `AWARD_KEYS` (categorías/premios de IMDb → clave en español de `en.ts`) → `types.ts` `TitleAwards` · ← `TitleView.svelte`, `catalog/Grid.svelte` · test `title/awards.test.ts` (fixtures `ui/mock/catalog_awards__*`).
 - `title/SeasonChart.svelte` → `title-state.ts:43 chartModel` · ← `TitleView.svelte`.
 - `title/title-state.ts` `:12 pickPeople` `:19 providerView` `:26 seasonTiles` `:34 outlookOf` `:43 chartModel` `:59 episodeRows` `:62 showCineNote` `:83 WEB_IDS` `:88 DESKTOP_IDS` → `season.ts`, `format.ts` · test `title/title-state.test.ts` (fixtures `ui/mock/`).
-- `rank.ts` `:17 QUALITY_STARS` `:20 TYPICAL_MBPS` `:25 mbpsOf` `:29 neededBps` `:37 optionMbps` `:44 byQuality` `:60 hintOf` `:71 latOf` `:84 tierOf` `:113 rankOptions` → `types.ts` · ← `web/src/lib/Torrents.svelte`, `ui/src/catalog-options.ts`, `ui/src/tauri-adapt.ts`.
+- `rank.ts` `:17 QUALITY_STARS` `:20 TYPICAL_MBPS` `:25 mbpsOf` `:29 neededBps` `:37 optionMbps` `:44 byQuality` `:84 tierOf` `:113 rankOptions` → `types.ts` · ← `web/src/lib/Torrents.svelte`, `ui/src/catalog-options.ts`, `ui/src/tauri-adapt.ts`.
 - `options/` — lista de opciones de torrents (web ↔ desktop; CSS `packages/ui/css/options.css`):
   - `OptionsList.svelte` (`rows` por hash) → `OptionRow.svelte` (`row`) → `since.ts` `:6 since`, `components/Icon.svelte` · ← `web/src/lib/Torrents.svelte`, `ui/src/StreamsPanel.svelte`, `ui/src/FlowScreen.svelte`.
   - `row.ts` `:58 OptionRowView` (`Mid`/`Action` desktop-only = `capabilities.speedTests`) `:83 RES_ORDER` `:101 qualityOf` `:117 TipBook` `:174 langTags` `:196 sizeText` → `audio.ts`, `rank.ts` · ← `ui/src/catalog-options.ts`, `Torrents.svelte`.
@@ -20,7 +20,9 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
   - `health.ts` (salud estimada, puro) `:131 rawPrediction` `:154 learnBias` `:201 predict` `:210 shownLevel` `:219 fidelity` `:268 calibration` `:305 healthOf` · ← `ui/src/health-store.ts`, `ui/src/catalog-options.ts`; tipos re-exportados en `ui/src/types.ts`.
   - tests `options/options.test.ts` (fixture `ui/mock/events__catalog_streams__*`), `options/health.test.ts`.
 - `sub-match.ts` `:9 sourceOf` `:13 groupOf` `:16 level` `:28 rank` · ← `web/src/lib/Torrents.svelte`.
-- `audio.ts` `:13 audioOf` `:23 latStatus` `:30 LAT_BADGE` → `types.ts` · ← `web/src/lib/Torrents.svelte`.
+- `latino.ts` — la única regla de "es latino" (sin imports salvo `types.ts`): `spanishVariant` (palabra entera; golden `spanish_variant.json`) `trackVariant` `audioOf` `latStatus` `hintOf` `latOf` `LAT_SITES` `SPAIN_SITES` `HINT_RANK` · `rank.ts` y `audio.ts` re-exportan; el server web la importa por ruta relativa (`node --test` no resuelve `$ui`).
+- `catalog/votes.ts` — `VOTES` (pisos de votos; `/api/catalog` los acepta).
+- `audio.ts` `LAT_BADGE` `latRank` (re-exporta `audioOf` `latStatus`) → `types.ts` · ← `web/src/lib/Torrents.svelte`.
 - `magnet-hash.ts` `:4 magnetHash` · ← `ui/src/catalog-magnet.ts`.
 - `context.ts` `:16 apiContext` (mount desde JS) · ← `ui/src/mount-shared.ts`.
 - `subs/` — `SubsPicker.svelte` (`ref` `option` `file` `match` `lead` `actions` `onUse`) → `subs-flow.ts` `:25 SubsFlow` · `subs-logic.ts` `:11 rankSubs` `srcOf` `timingOf` `noFitText` `keyOf` · `SubRow.svelte` → `components/Icon.svelte`, `getApi().subs/.premium` · ← `web/src/lib/Torrents.svelte`, `ui/src/SubsStep.svelte` · test `subs/subs.test.ts`.

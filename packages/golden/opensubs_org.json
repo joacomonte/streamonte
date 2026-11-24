@@ -1,0 +1,112 @@
+[
+ {
+  "in": {
+   "results": "<?xml version=\"1.0\"?><methodResponse><params><param><value><struct><member><name>status</name><value><string>200 OK</string></value></member><member><name>data</name><value><array><data><value><struct><member><name>IDSubtitleFile</name><value><string>111</string></value></member><member><name>SubFormat</name><value><string>srt</string></value></member><member><name>SubLanguageID</name><value><string>spa</string></value></member><member><name>MovieReleaseName</name><value><string>Movie.2023.1080p.WEB-DL</string></value></member><member><name>SubDownloadsCnt</name><value><int>42</int></value></member><member><name>MovieFPS</name><value><double>23.976</double></value></member><member><name>SubLastTS</name><value><string>01:42:10</string></value></member></struct></value><value><struct><member><name>IDSubtitleFile</name><value><string>222</string></value></member><member><name>SubFormat</name><value><string>ass</string></value></member><member><name>SubLanguageID</name><value><string>spl</string></value></member><member><name>MovieReleaseName</name><value><string></string></value></member></struct></value></data></array></value></member></struct></value></param></params></methodResponse>"
+  },
+  "out": [
+   {
+    "IDSubtitleFile": "111",
+    "SubFormat": "srt",
+    "SubLanguageID": "spa",
+    "MovieReleaseName": "Movie.2023.1080p.WEB-DL",
+    "SubDownloadsCnt": "42",
+    "MovieFPS": "23.976",
+    "SubLastTS": "01:42:10"
+   },
+   {
+    "IDSubtitleFile": "222",
+    "SubFormat": "ass",
+    "SubLanguageID": "spl",
+    "MovieReleaseName": ""
+   }
+  ],
+  "nota": "dos resultados; los tipos int/double se leen como texto"
+ },
+ {
+  "in": {
+   "results": "<?xml version=\"1.0\"?><methodResponse><params><param><value><struct><member><name>status</name><value><string>200 OK</string></value></member><member><name>data</name><value><array><data><value><struct><member><name>IDSubtitleFile</name><value><string>1</string></value></member><member><name>MovieReleaseName</name><value><string>Tom &amp; Jerry &lt;HD&gt; &quot;x&quot; &apos;y&apos;</string></value></member></struct></value></data></array></value></member></struct></value></param></params></methodResponse>"
+  },
+  "out": [
+   {
+    "IDSubtitleFile": "1",
+    "MovieReleaseName": "Tom & Jerry <HD> \"x\" 'y'"
+   }
+  ],
+  "nota": "entidades XML"
+ },
+ {
+  "in": {
+   "results": "<?xml version=\"1.0\"?><methodResponse><params><param><value><struct><member><name>status</name><value><string>200 OK</string></value></member><member><name>data</name><value><array><data><value><struct><member><name>IDSubtitleFile</name><value><string>1</string></value></member><member><name>MovieReleaseName</name><value>sin tipo</value></member></struct></value></data></array></value></member></struct></value></param></params></methodResponse>"
+  },
+  "out": [
+   {
+    "IDSubtitleFile": "1",
+    "MovieReleaseName": "sin tipo"
+   }
+  ],
+  "nota": "valor sin etiqueta de tipo"
+ },
+ {
+  "in": {
+   "results": "<?xml version=\"1.0\"?><methodResponse><params><param><value><struct><member><name>status</name><value><string>200 OK</string></value></member><member><name>data</name><value><array><data><value><struct><member><name>IDSubtitleFile</name><value><string>1</string></value></member><member><name>SubFileName</name><value><string/></value></member></struct></value></data></array></value></member></struct></value></param></params></methodResponse>"
+  },
+  "out": [
+   {
+    "IDSubtitleFile": "1",
+    "SubFileName": ""
+   }
+  ],
+  "nota": "string vacío autocerrado"
+ },
+ {
+  "in": {
+   "results": "<methodResponse><params><param><value><struct><member><name>status</name><value><string>407 Download limit reached</string></value></member></struct></value></param></params></methodResponse>"
+  },
+  "out": [],
+  "nota": "sin data"
+ },
+ {
+  "in": {
+   "results": "<?xml version=\"1.0\"?><methodResponse><params><param><value><struct><member><name>status</name><value><string>200 OK</string></value></member><member><name>data</name><value><array><data></data></array></value></member></struct></value></param></params></methodResponse>"
+  },
+  "out": [],
+  "nota": "data vacío"
+ },
+ {
+  "in": {
+   "seconds": "01:42:10"
+  },
+  "out": 6130
+ },
+ {
+  "in": {
+   "seconds": "00:00:05"
+  },
+  "out": 5
+ },
+ {
+  "in": {
+   "seconds": "01:02:03.500"
+  },
+  "out": 3723,
+  "nota": "las milésimas se descartan"
+ },
+ {
+  "in": {
+   "seconds": "2:00:00"
+  },
+  "out": 7200
+ },
+ {
+  "in": {
+   "seconds": ""
+  },
+  "out": null
+ },
+ {
+  "in": {
+   "seconds": "basura"
+  },
+  "out": null
+ }
+]

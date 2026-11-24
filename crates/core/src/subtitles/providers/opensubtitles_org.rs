@@ -463,4 +463,22 @@ mod tests {
         let login = "<struct><member><name>token</name><value><string>abc123</string></value></member><member><name>status</name><value><string>200 OK</string></value></member></struct>";
         assert_eq!(results_token(login).as_deref(), Some("abc123"));
     }
+
+    // Vector compartido con la web (`/packages/golden/opensubs_org.json`): XML-RPC → miembros, y `hh:mm:ss` → segundos.
+    #[test]
+    fn golden_opensubs_org() {
+        let cases: Vec<serde_json::Value> = serde_json::from_str(include_str!(
+            "../../../../../packages/golden/opensubs_org.json"
+        ))
+        .unwrap();
+        for case in cases {
+            let out = if let Some(xml) = case["in"]["results"].as_str() {
+                serde_json::json!(results(xml))
+            } else {
+                let ts = case["in"]["seconds"].as_str().unwrap();
+                serde_json::json!(hms_secs(ts).map(|s| s as u64))
+            };
+            assert_eq!(out, case["out"], "{case}");
+        }
+    }
 }

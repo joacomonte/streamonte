@@ -5,6 +5,7 @@ import { lang, tx } from '../lang.ts';
 import { added, download, tbRoot } from './client.ts';
 import type { Pick, TbRes, TbStream } from './client.ts';
 import { spanishSubs } from './tracks.ts';
+import { trackVariant } from '../../../../../packages/ui/src/latino.ts';
 
 /** Link https del video: agrega el torrent (solo si está en caché) y pide el link del archivo. Audio por defecto: el
  * idioma original del título (`orig`, ISO 639-1 de TMDB); si no está, inglés. Si además trae latino, `choices` trae
@@ -75,7 +76,7 @@ async function hls(id: number, fileId: number, release: string, orig: string | n
 			url: await at(main, i).catch(() => '')
 		})))).filter((n) => n.url.startsWith('https://'));
 		const spa = audios.map((a, i) => ({ a, i })).filter(({ a }) => a.language === 'spa');
-		const lat = spa.find(({ a }) => /lat|419|mex/i.test(a.title ?? '')) ?? latinoByName(spa, release);
+		const lat = spa.find(({ a }) => trackVariant('', a.title ?? '') === 'lat') ?? latinoByName(spa, release);
 		if (main >= 0 && lat && lat.i !== main) {
 			const [o, la] = await Promise.all([at(main), at(lat.i)]);
 			const name = new Intl.DisplayNames([lang()], { type: 'language' }).of(byOrig >= 0 && orig ? orig : 'en') ?? '';

@@ -9,15 +9,22 @@ CSS compartido, TS compartido (`ui/src/`) y vectores de prueba, sin build propio
 - `ui/css/options.css` — fila y lista de opciones (`.cat-opt`, `.cat-tag`, `.cat-play`, `.cat-dock`, `.cat-tip`) de `packages/ui/src/options/OptionRow.svelte`.
 - Consumidores: `web/src/app.css:2-6`, `ui/src/main.ts:4-10`.
 - `ui/src/` — TS compartido (`$ui`) → `ui/CLAUDE.md` en `/Users/monti/Documents/Dev/streamonte/packages/ui/CLAUDE.md` · ← `web/src/lib/webApi.ts`, `ui/src/tauriApi.ts`.
-- `golden/*.json` — `[{ "in", "out", "nota"?, "diverge"? }]`, Rust fuente de verdad. Rust ↔ web:
-  - `release.json` — `crates/core/tests/it/golden.rs:15` ↔ `torrents.ts:33 parse`
-  - `excluded.json` — `golden.rs:39` ↔ `tmdb.ts:104 detail`
-  - `providers_ar.json` — `tmdb.rs:1008` ↔ `tmdb.ts:269 providersAr`
-  - `people.json` — `tmdb.rs:1018` ↔ `tmdb.ts:279 peopleOf`
-  - `show_status.json` — `crates/core/src/catalog/seasons.rs:459` ↔ `tmdb.ts:287 showStatus`
-  - `awards.json` — `crates/core/src/catalog/awards.rs normalize` ↔ `web/src/lib/server/awards.ts normalize` (entrada = `data` de IMDb GraphQL)
-  - `sub_lang.json` — `crates/core/src/subtitles/providers/lang.rs:57` ↔ `torbox.ts:13 isSpanishSub`
-  - Lector web: `web/src/lib/server/golden.test.ts:28 golden`.
+- `golden/*.json` — `[{ "in", "out", "nota"?, "diverge"? }]`, Rust fuente de verdad. Rust ↔ web (por función, sin líneas; buscar con `rg`):
+  - `release.json` — `/Users/monti/Documents/Dev/streamonte/crates/core/tests/it/golden.rs` `release` (`normalize::parse`: res/hdr/codec/source/atmos/hint/multi/spa/cam/size) ↔ `torrents.ts parse`
+  - `spanish_variant.json` — `audio.rs spanish_variant` ↔ `/Users/monti/Documents/Dev/streamonte/packages/ui/src/latino.ts` (`spanishVariant`, `trackVariant`, `audioOf`) y la etiqueta de `torbox/tracks.ts spanishVariant`. Sin `diverge`: una sola regla de "latino", por palabra entera.
+  - `other_film.json` — `aggregate.rs other_film` ↔ `torrents.ts otherFilm`
+  - `merge.json` — `aggregate.rs Merged::add/sorted` ↔ `torrents.ts merge`
+  - `excluded.json` — `golden.rs excluded` ↔ `tmdb/cache.ts detail`
+  - `providers_ar.json` — `tmdb.rs golden_providers_ar` ↔ `tmdb/title.ts providersAr`
+  - `people.json` — `tmdb.rs golden_people` ↔ `tmdb/title.ts peopleOf`
+  - `show_status.json` — `seasons.rs golden_show_status` ↔ `tmdb/title.ts showStatus`
+  - `awards.json` — `awards.rs normalize` ↔ `/Users/monti/Documents/Dev/streamonte/web/src/lib/server/awards.ts normalize` (entrada = `data` de IMDb GraphQL)
+  - `sub_lang.json` — `subtitles/providers/lang.rs` ↔ `torbox/client.ts isSpanishSub`
+  - `mkv.json` — `catalog/mkv.rs parse_tracks` ↔ `mkv.ts parseTracks` (entrada = head en hex)
+  - `interests.json` / `small_poster.json` — `catalog/interests.rs constraints`/`small_poster` ↔ `interests.ts constraints`/`smallPoster` (la consulta se compara sin espacios ni comas)
+  - `opensubs_org.json` — `opensubtitles_org.rs results`/`hms_secs` ↔ `subs.ts results`/`seconds`
+  - Sin golden por no haber equivalente puro en la web: `torbox.rs` `in_cache`/`main_video`/`pick_audio` (la web los hace inline en `torbox/client.ts cached` y `torbox/link.ts`) e `imdb_index` (`seasons.rs build_index` ↔ `imdb.ts buildIndex`, que lee y escribe archivos).
+  - Lector web: `web/src/lib/server/golden.test.ts golden`.
 
 ## Trampas
 - No editar un golden para que pase la web: el JSON sigue a Rust y el caso lleva `diverge` (se salta en web y se lista al final).

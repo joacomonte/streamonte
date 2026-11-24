@@ -3,6 +3,7 @@ import { Fail } from '../http-route.ts';
 import { isSpanish, tracksOf } from '../mkv.ts';
 import { added, download } from './client.ts';
 import type { Pick, TbSub } from './client.ts';
+import { trackVariant } from '../../../../../packages/ui/src/latino.ts';
 
 /** Subtítulos en español y audios que trae el video adentro, leyendo el encabezado del archivo (primer MB) por el
  * link de descarga: anda en cualquier plan de TorBox. Con `ids` (de un link ya copiado) es un solo pedido a TorBox;
@@ -23,8 +24,10 @@ export async function tracks(t: Pick, ids: { tid: number; fid: number } | null =
 }
 
 /** Latinoamérica, España o Español, por el nombre o el código de la pista. */
-export const spanishVariant = (name: string, lang: string): string =>
-	/lat|419/i.test(name) || /^es-419/i.test(lang) ? 'Latinoamérica' : /spain|españa|castellano|es-es/i.test(name) || /^es-ES/.test(lang) ? 'España' : 'Español';
+export const spanishVariant = (name: string, lang: string): string => {
+	const v = trackVariant(lang, name);
+	return v === 'lat' ? 'Latinoamérica' : v === 'spain' ? 'España' : 'Español';
+};
 
 /** Subtítulos en español de la metadata de createstream, los forzados al final; `i` es su posición entre todos.
  */

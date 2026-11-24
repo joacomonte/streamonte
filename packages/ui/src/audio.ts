@@ -1,30 +1,7 @@
 // Audio latino de una opción: lo que dicen sus pistas (si se leyeron) y, si no, lo que dice el nombre.
 // Una regla, un lugar: lo usan los badges y la búsqueda del primer buen match.
-import type { LatHint, LatState } from './types.ts';
-
-/** Lo leído de un torrent: cuántos subs en español trae y su mejor audio en español.
- * `audio`: 'lat' confirmado · 'es' español sin decir cuál · 'spain' castellano · 'none' sin español · null sin leer.
- * `audios`: las pistas tal como vienen (para mostrar qué dicen); falta en lo guardado antes de tenerlas. */
-export type Tracks = { subs: number; audio: 'lat' | 'es' | 'spain' | 'none' | null; audios?: { language: string; title: string }[] };
-
-const SPANISH = /^(spa|es)(\b|-|_)/i;
-
-/** El mejor audio en español de las pistas (`language` ISO, `title` libre). */
-export function audioOf(audios: { language: string; title: string }[]): Tracks['audio'] {
-	const kinds = audios
-		.filter((a) => SPANISH.test(a.language))
-		.map((a) => (/^es-419/i.test(a.language) || /lat|latino|latam|419|mex/i.test(a.title) ? 'lat' : /^es-es/i.test(a.language) || /cast|españa|espana|spain|europe/i.test(a.title) ? 'spain' : 'es'));
-	return kinds.includes('lat') ? 'lat' : kinds.includes('es') ? 'es' : kinds.includes('spain') ? 'spain' : 'none';
-}
-
-/** Estado del audio latino de una opción: la única regla (la usan los badges, el buen match y las listas).
- * - Las pistas leídas ganan cuando dicen cuál español es (latino, de España) o que no hay español.
- * - "spa" sin variante no decide: decide el nombre (o la web de origen) del torrent. */
-export function latStatus(t: { hint: LatHint | null }, info: Tracks | null | undefined): LatState {
-	const read = info?.audio;
-	if (read === 'lat' || read === 'spain' || read === 'none') return read;
-	return t.hint ?? 'check';
-}
+import type { LatState } from './types.ts';
+export { audioOf, latStatus, type Tracks } from './latino.ts';
 
 /** Texto, explicación corta (globito) y larga (title) de cada estado. */
 /** Orden de búsqueda pidiendo latino (2026-11-23), antes que la calidad: primero las que ya son latino (por nombre o

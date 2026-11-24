@@ -535,6 +535,79 @@ mod tests {
         ));
     }
 
+    // Vectores compartidos con la web (`/packages/golden/`): la fuente de verdad es esta salida.
+    #[test]
+    fn golden_other_film() {
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../../packages/golden/other_film.json"))
+                .unwrap();
+        for case in cases {
+            let want = Want {
+                titles: case["in"]["titles"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|t| t.as_str().unwrap().to_string())
+                    .collect(),
+                year: case["in"]["year"].as_u64().map(|y| y as u16),
+            };
+            let got = other_film(case["in"]["release"].as_str().unwrap(), &want);
+            assert_eq!(serde_json::json!(got), case["out"], "{case}");
+        }
+    }
+
+    #[test]
+    fn golden_merge() {
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../../packages/golden/merge.json")).unwrap();
+        for case in cases {
+            let mut m = Merged::new(order(), true);
+            let want = &case["in"]["want"];
+            if !want.is_null() {
+                m.set_want(Some(Want {
+                    titles: want["titles"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|t| t.as_str().unwrap().to_string())
+                        .collect(),
+                    year: want["year"].as_u64().map(|y| y as u16),
+                }));
+            }
+            for item in case["in"]["items"].as_array().unwrap() {
+                let mut c = cand(
+                    item["h"].as_u64().unwrap() as u8,
+                    item["addon"].as_str().unwrap(),
+                    item["rank"].as_u64().unwrap() as usize,
+                );
+                c.release_name = item["release"].as_str().unwrap().to_string();
+                c.seeders_declared = item["seeds"].as_u64().map(|n| n as u32);
+                c.size_bytes = item["size"].as_u64();
+                c.size_exact = item["exact"].as_bool().unwrap_or(false);
+                c.file_name = item["file"].as_str().map(String::from);
+                if item["cam"].as_bool().unwrap_or(false) {
+                    c.source = Some("CAM".into());
+                }
+                m.add(c);
+            }
+            let mut out: Vec<serde_json::Value> = m
+                .sorted()
+                .iter()
+                .map(|c| {
+                    serde_json::json!({
+                        "h": c.info_hash.as_bytes()[0],
+                        "seeds": c.seeders_declared.unwrap_or(0),
+                        "size": c.size_bytes,
+                        "file": c.file_name,
+                        "addons": c.addons,
+                    })
+                })
+                .collect();
+            out.sort_by_key(|v| v["h"].as_u64());
+            assert_eq!(serde_json::json!(out), case["out"], "{case}");
+        }
+    }
+
     fn cand(hash: u8, addon: &str, rank: usize) -> StreamCandidate {
         StreamCandidate {
             info_hash: InfoHash::from_bytes([hash; 20]),

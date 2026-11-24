@@ -1,6 +1,5 @@
 // Ranking de opciones de torrents: una sola regla para la web y el desktop (antes `torrent-rank.ts` y `options-rank.js`).
 // Puro: sin DOM ni estado global; lo que dependía del estado de cada app llega por parámetro.
-import type { LatHint, LatState } from './types.ts';
 
 // ---------- Calidad y bitrate ----------
 /** Calidad de imagen por la fuente del release: [nombre, estrellas de 4]. */
@@ -48,33 +47,8 @@ export const byQuality = (a: QualityInput, b: QualityInput, runtimeMin: number |
 export const resOf = (resolution: string | null): string => (resolution === '2160p' || resolution === '1440p' || resolution === '1080p' || resolution === '720p' ? resolution : 'other');
 
 // ---------- Audio latino por nombre y pistas leídas ----------
-// Webs de origen dentro del nombre: solo orientan, no confirman.
-const LAT_SITES = ['cinecalidad', 'verpeliculasonline', 'pelisplus', 'cuevana', 'pelispanda', 'pelismart'];
-const SPAIN_SITES = ['mejortorrent', 'wolfmax4k', 'dontorrent', 'divxtotal', 'elitetorrent'];
-
-export type LatInput = { release: string; file?: string | null; audio: string[] };
-/** Lo leído de un torrent en la biblioteca (desktop): si ya se leyeron las pistas de audio y qué idiomas dieron. */
-export type ReadTracks = { audioRead: boolean; languages: string[] };
-
-/** Lo que sugiere el nombre sobre el audio latino: idiomas dichos, o la web de origen. */
-export function hintOf(c: LatInput): LatHint | null {
-	if (c.audio.includes('lat')) return 'lat';
-	if (c.audio.includes('cast')) return 'spain';
-	const name = `${c.release} ${c.file ?? ''}`.toLowerCase();
-	if (LAT_SITES.some((w) => name.includes(w))) return 'likely';
-	if (SPAIN_SITES.some((w) => name.includes(w))) return 'spain';
-	return null;
-}
-
-/** Estado del audio latino (única regla, igual que `latStatus` de audio.ts): las pistas leídas ganan cuando dicen cuál
- * español es (latino, castellano) o que no hay español; español sin variante no decide: decide el nombre y la web. */
-export function latOf(c: LatInput, rows: ReadTracks[]): LatState {
-	const read = rows.find((e) => e.audioRead);
-	if (read?.languages.includes('lat')) return 'lat';
-	if (read?.languages.includes('cast')) return 'spain';
-	if (read && !read.languages.includes('es')) return 'none';
-	return hintOf(c) ?? 'check';
-}
+// La regla vive en `latino.ts`; se re-exporta para no cambiar a los importadores.
+export { hintOf, latOf, type LatInput, type ReadTracks } from './latino.ts';
 
 // ---------- Orden de las opciones del desktop ----------
 export type CountedEntry = { reached?: boolean; peers?: number };

@@ -1,0 +1,415 @@
+[
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A",
+     "seeds": 53,
+     "size": 100
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 53,
+    "size": 100,
+    "file": null,
+    "addons": [
+     "A"
+    ]
+   }
+  ],
+  "nota": "un solo addon"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A",
+     "seeds": 10
+    },
+    {
+     "h": 1,
+     "addon": "B",
+     "rank": 1,
+     "release": "rel-B",
+     "seeds": 30
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 30,
+    "size": null,
+    "file": null,
+    "addons": [
+     "A",
+     "B"
+    ]
+   }
+  ],
+  "nota": "seeds: el máximo"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A",
+     "size": 100
+    },
+    {
+     "h": 1,
+     "addon": "B",
+     "rank": 1,
+     "release": "rel-B",
+     "size": 200
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 0,
+    "size": 100,
+    "file": null,
+    "addons": [
+     "A",
+     "B"
+    ]
+   }
+  ],
+  "nota": "tamaño: se queda el primero"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A"
+    },
+    {
+     "h": 1,
+     "addon": "B",
+     "rank": 1,
+     "release": "rel-B",
+     "size": 200
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 0,
+    "size": 200,
+    "file": null,
+    "addons": [
+     "A",
+     "B"
+    ]
+   }
+  ],
+  "nota": "tamaño: completa el que falta"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A",
+     "file": "a.mkv"
+    },
+    {
+     "h": 1,
+     "addon": "B",
+     "rank": 1,
+     "release": "rel-B"
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 0,
+    "size": null,
+    "file": "a.mkv",
+    "addons": [
+     "A",
+     "B"
+    ]
+   }
+  ],
+  "nota": "archivo: el único que hay"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A"
+    },
+    {
+     "h": 1,
+     "addon": "B",
+     "rank": 1,
+     "release": "rel-B",
+     "file": "b.mkv"
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 0,
+    "size": null,
+    "file": "b.mkv",
+    "addons": [
+     "A",
+     "B"
+    ]
+   }
+  ],
+  "nota": "archivo: completa el que falta"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A",
+     "seeds": 1
+    },
+    {
+     "h": 2,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A",
+     "seeds": 2
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 1,
+    "size": null,
+    "file": null,
+    "addons": [
+     "A"
+    ]
+   },
+   {
+    "h": 2,
+    "seeds": 2,
+    "size": null,
+    "file": null,
+    "addons": [
+     "A"
+    ]
+   }
+  ],
+  "nota": "dos hashes, dos filas"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A"
+    },
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A"
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 0,
+    "size": null,
+    "file": null,
+    "addons": [
+     "A"
+    ]
+   }
+  ],
+  "nota": "el mismo addon dos veces no se repite"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A",
+     "cam": true
+    }
+   ],
+   "want": null
+  },
+  "out": [],
+  "nota": "cámara: se descarta"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "Movie.2007.720p"
+    },
+    {
+     "h": 2,
+     "addon": "A",
+     "rank": 0,
+     "release": "Movie.2026.1080p"
+    }
+   ],
+   "want": {
+    "titles": [
+     "Movie"
+    ],
+    "year": 2026
+   }
+  },
+  "out": [
+   {
+    "h": 2,
+    "seeds": 0,
+    "size": null,
+    "file": null,
+    "addons": [
+     "A"
+    ]
+   }
+  ],
+  "nota": "otra película: se descarta por año"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A",
+     "size": 100
+    },
+    {
+     "h": 1,
+     "addon": "B",
+     "rank": 1,
+     "release": "rel-B",
+     "size": 200,
+     "exact": true
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 0,
+    "size": 200,
+    "file": null,
+    "addons": [
+     "A",
+     "B"
+    ]
+   }
+  ],
+  "nota": "tamaño exacto (videoSize) gana",
+  "diverge": "web: se queda con el primer tamaño; Rust prefiere el exacto (videoSize)"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 1,
+     "release": "rel-A",
+     "file": "a.mkv"
+    },
+    {
+     "h": 1,
+     "addon": "B",
+     "rank": 0,
+     "release": "rel-B",
+     "file": "b.mkv"
+    }
+   ],
+   "want": null
+  },
+  "out": [
+   {
+    "h": 1,
+    "seeds": 0,
+    "size": null,
+    "file": "b.mkv",
+    "addons": [
+     "A",
+     "B"
+    ]
+   }
+  ],
+  "nota": "archivo: gana el addon de mayor prioridad",
+  "diverge": "web: se queda con el primero que llegó; Rust, con el del addon de menor rank"
+ },
+ {
+  "in": {
+   "items": [
+    {
+     "h": 1,
+     "addon": "A",
+     "rank": 0,
+     "release": "rel-A",
+     "cam": true
+    },
+    {
+     "h": 1,
+     "addon": "B",
+     "rank": 1,
+     "release": "rel-B"
+    }
+   ],
+   "want": null
+  },
+  "out": [],
+  "nota": "cámara en un addon: cae el hash entero",
+  "diverge": "web: descarta solo la fuente que dice CAM y conserva el hash por la otra; Rust descarta el hash"
+ }
+]
