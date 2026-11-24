@@ -3,6 +3,7 @@
      limpiar) y la barra fina de progreso al pie del toolbar. Lee el estado en vivo de live.svelte.ts. -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { dismiss } from '$ui/components/dismiss.ts';
   import * as core from '../core.ts';
   import { play } from '../audio-picker.ts';
   import { cleanTemp, clearDataCache, openLog, stopAllAndClean } from '../dialog-flows.ts';
@@ -71,11 +72,6 @@
     void refreshCache();
   }
 
-  function onPointerDown(ev: PointerEvent): void {
-    const target = ev.target as Element;
-    if (open && !pop?.contains(target) && !btn.contains(target) && !target.closest('dialog')) open = false;
-  }
-
   /** El menú va en `body` (posición fija, fuera del toolbar). */
   function toBody(node: HTMLElement): () => void {
     document.body.append(node);
@@ -89,7 +85,6 @@
   });
 </script>
 
-<svelte:document onpointerdown={onPointerDown} onkeydown={(ev) => { if (ev.key === 'Escape' && open && !document.querySelector('dialog[open]')) open = false; }} />
 <svelte:window onresize={() => (open = false)} />
 
 {#snippet item(r: PlaybackRow)}
@@ -137,7 +132,7 @@
 </div>
 
 {#if open}
-  <div id="downloads-pop" class="top-pop" role="dialog" aria-label={tr('Descargas')} style:top="{pos.top}px" style:right="{pos.right}px" bind:this={pop} {@attach toBody}>
+  <div id="downloads-pop" class="top-pop" role="dialog" aria-label={tr('Descargas')} style:top="{pos.top}px" style:right="{pos.right}px" bind:this={pop} {@attach toBody} use:dismiss={{ onDismiss: () => (open = false), ignore: (target) => btn.contains(target), dialogGuard: true }}>
     <div class="pop-head">
       <div><h3>{tr('Descargas')}</h3><p class="pop-sub">{tr('{total} en disco', { total })}</p></div>
       <button id="dl-open-folder" class="btn btn-sm btn-pill pop-btn" onclick={() => core.openDownloadsFolder().catch(showError)}>{@html icon('folder', 15).outerHTML}{tr('Abrir carpeta')}</button>

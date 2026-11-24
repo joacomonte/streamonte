@@ -4,6 +4,7 @@
      Escape, tocar afuera (salvo fijado) o "Cerrar" lo cierran. Las líneas vienen de live.svelte.ts (`activityLog`). -->
 <script lang="ts">
   import { tick } from 'svelte';
+  import { dismiss } from '$ui/components/dismiss.ts';
   import * as core from '../core.ts';
   import { t as tr } from '../i18n.ts';
   import { activity, activityLog, live } from '../live.svelte.ts';
@@ -168,11 +169,10 @@
   const pinTip = $derived(pinned ? tr('Fijada: tocá para que se cierre al tocar afuera') : tr('Fijar: que no se cierre al tocar afuera'));
 </script>
 
-<svelte:document onpointerdowncapture={(ev) => { if (!detached && activityLog.open && !pinned && !root.contains(ev.target as Node)) close(false); }} />
-
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div id="act" class="act" class:detached class:is-busy={!!busy} class:warn={!busy && last?.level === 'warn'} class:error={!busy && last?.level === 'error'}
-  data-state={panel} bind:this={root} onkeydown={(ev) => { if (ev.key === 'Escape' && activityLog.open && !detached) { ev.stopPropagation(); close(true); } }}>
+  data-state={panel} bind:this={root}
+  use:dismiss={{ onDismiss: (by) => close(by === 'escape'), active: (by) => !detached && activityLog.open && (by === 'escape' || !pinned), capture: true, escapeOn: 'node', stop: true }}>
   <button type="button" id="btn-activity" class="act-line" aria-expanded={activityLog.open} aria-controls="act-panel" bind:this={line}
     aria-label={tr('Actividad: {a}{b}. {c}', { a: text || tr('nada en curso'), b: unseen ? tr(', {unseen} nuevas', { unseen }) : '', c: activityLog.open ? tr('Cerrar') : tr('Ver detalle') })}
     data-tip={activityLog.open ? tr('Cerrar la actividad') : tr('Ver todo lo que pasa de fondo')}

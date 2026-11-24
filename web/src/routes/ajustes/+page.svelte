@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Icon from '$ui/components/Icon.svelte';
+	import { confirmDialog } from '$ui/components/confirm-queue.ts';
 	import { wipe } from '#lib/saved.ts';
 	import { t } from '#lib/i18n.svelte.ts';
 	import Idioma from '$ui/settings/Idioma.svelte';
@@ -37,7 +38,10 @@
 		status: () => status ?? {},
 		set: async (service, value) => void (status = await post({ [service]: value })),
 		remove: async (service) => {
-			if (!confirm(t('¿Borrar {x}?', { x: t(NAMES[service]) }))) return;
+			if (!(await confirmDialog(t('Borrar'), t('¿Borrar {x}?', { x: t(NAMES[service]) }), [
+				{ id: 'confirm-cancel', label: t('Cancelar'), value: false },
+				{ id: 'confirm-ok', label: t('Borrar'), value: true, primary: true, danger: true },
+			]))) return;
 			status = await post({ [service]: '' });
 		}
 	});
@@ -61,7 +65,10 @@
 		}
 	}
 	async function removeLogin() {
-		if (!confirm(t('¿Borrar {x}?', { x: t(NAMES.login) }))) return;
+		if (!(await confirmDialog(t('Borrar'), t('¿Borrar {x}?', { x: t(NAMES.login) }), [
+			{ id: 'confirm-cancel', label: t('Cancelar'), value: false },
+			{ id: 'confirm-ok', label: t('Borrar'), value: true, primary: true, danger: true },
+		]))) return;
 		loginOpen = false;
 		status = await post({ opensubtitles_user: '', opensubtitles_pass: '' });
 	}
@@ -172,7 +179,10 @@
 					type="button"
 					disabled={wiping}
 					onclick={async () => {
-						if (!confirm(t('Se borra todo lo que la web guardó en este navegador: catálogo, fichas, opciones, filtros elegidos y tutoriales vistos. El código de acceso y las keys quedan. ¿Borrar?'))) return;
+						if (!(await confirmDialog(t('Borrar caché'), t('Se borra todo lo que la web guardó en este navegador: catálogo, fichas, opciones, filtros elegidos y tutoriales vistos. El código de acceso y las keys quedan. ¿Borrar?'), [
+							{ id: 'confirm-cancel', label: t('Cancelar'), value: false },
+							{ id: 'confirm-ok', label: t('Borrar'), value: true, primary: true, danger: true },
+						]))) return;
 						wiping = true;
 						await wipe();
 						location.reload();

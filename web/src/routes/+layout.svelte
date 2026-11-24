@@ -10,7 +10,9 @@
 	import { setContext } from 'svelte';
 	import { setApi } from '$ui/context.ts';
 	import { webApi } from '#lib/webApi.ts';
-	import Icon from '$ui/components/Icon.svelte';
+	import Toast from '$ui/components/Toast.svelte';
+	import UpdateBar from '$ui/components/UpdateBar.svelte';
+	import ConfirmDialog from '$ui/components/ConfirmDialog.svelte';
 	import Updating from '$ui/components/Updating.svelte';
 	import { track } from '#lib/track.ts';
 	import { langOptions } from '#lib/langs.ts';
@@ -125,11 +127,12 @@
 
 <!-- Versión nueva publicada (la app instalada en el celu queda abierta días): se ofrece recargar. -->
 {#if updated.current}
-	<div id="update-bar" class="update" role="status">
-		<span>{t('Hay una versión nueva')}</span>
-		<button id="update-now" type="button" class="update-btn" onclick={reloadNow}><Icon name="download" size={16} />{t('Actualizar')}</button>
-	</div>
+	<UpdateBar text={t('Hay una versión nueva')} actionLabel={t('Actualizar')} onaction={reloadNow} />
 {/if}
+
+<Toast />
+
+<ConfirmDialog />
 
 {#if reloading}<Updating detail={t('Cargando la versión nueva…')} />{/if}
 
@@ -142,31 +145,6 @@
 {/if}
 
 <style>
-	.update {
-		position: fixed;
-		left: 12px;
-		right: 12px;
-		bottom: calc(12px + var(--safe-bottom));
-		z-index: 60;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		max-width: 520px;
-		margin: 0 auto;
-		padding: 8px 8px 8px 16px;
-		border-radius: var(--r-card);
-		background: var(--raised);
-		box-shadow: 0 8px 28px var(--shadow-lg);
-		font-size: 14.5px;
-		font-weight: 600;
-		animation: update-in 0.4s var(--out);
-	}
-	.update-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 0; border-radius: var(--r-md); background: var(--accent); color: var(--accent-text); font-size: 14px; font-weight: 700; }
-	.update-btn:active { transform: scale(0.97); }
-	@keyframes update-in { from { transform: translateY(24px); opacity: 0; } }
-	@media (prefers-reduced-motion: reduce) { .update { animation: none; } }
-
 	/* Grilla ↔ ficha. El póster usa solo la imagen nueva (en vivo, nítida) y se levanta en el vuelo. */
 	/* Solo transform y opacity: los filtros (blur, drop-shadow) sobre capturas de pantalla entera traban en el celu. */
 	:global(::view-transition-group(poster)) { animation-duration: 0.6s; animation-timing-function: cubic-bezier(0.3, 0.9, 0.2, 1); z-index: 2; }
