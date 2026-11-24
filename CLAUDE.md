@@ -28,7 +28,7 @@ Web: página → `web/src/routes/**/+page.server.ts` o `api/**/+server.ts` → `
 
 ## Chequeos
 - `sh scripts/check.sh` (~3 s: fmt, clippy, oxlint + tsc de la UI, tsc de packages/ui) · `sh scripts/check.sh full` (~6 s: + nextest, `pnpm test` de la UI, web check+test). Sin cambios en `crates/`, `src-tauri/`, `Cargo.*` ni `packages/golden` (sin commitear o sin pushear) saltea fmt/clippy/nextest; forzar con `RUST=1`. El CI de GitHub corre en branches y PRs, no en tags (el tag lo construye `release.yml`).
-- CI local = el de GitHub (`ci.yml`) con los mismos comandos: `sh scripts/ci-local.sh` (~1,5 min). Lo corre el hook `pre-push` (`.githooks/`, activo con `git config core.hooksPath .githooks`; un push de solo tags no lo repite; urgencia: `--no-verify`). No cubre Windows. Si cambia `ci.yml`, cambiar el script.
+- CI local = el de GitHub (`ci.yml`) con los mismos comandos: `sh scripts/ci-local.sh` (~1,5 min), a mano: sin hook pre-push desde 2026-11-24 (valida el CI de GitHub). No cubre Windows. Si cambia `ci.yml`, cambiar el script.
 - Disco: `scripts/trim-target.sh` poda `target/` (sin uso 24 h y tope `TOPE_GB`=20, de lo más viejo a lo más nuevo) y una vez por semana `pnpm store prune`; lo corren check.sh, ci-local.sh y el hook de Claude tras cada `cargo`.
 - Node 24 (nvm) primero en PATH: la web usa type stripping nativo; el node de Homebrew es viejo.
 - Desktop dev: `cd ui && pnpm dev` + `cargo run -p streamonte` (sin Vite la ventana queda en blanco).

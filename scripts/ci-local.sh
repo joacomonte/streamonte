@@ -1,6 +1,6 @@
 #!/bin/sh
 # El CI de GitHub (.github/workflows/ci.yml) corrido acá, con los mismos comandos (2026-11-23): para no enterarse
-# en la nube, que tarda. Lo corre el hook `pre-push` (.githooks/pre-push). No cubre Windows (solo se ve en el CI)
+# en la nube, que tarda. A mano (sin hook pre-push desde 2026-11-24: valida el CI de GitHub). No cubre Windows (solo se ve en el CI)
 # ni las pruebas de red. Si cambia ci.yml, cambiar esto también.
 #   sh scripts/ci-local.sh
 set -e
