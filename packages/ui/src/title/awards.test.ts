@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import EN from '../i18n/en.ts';
 import { translate } from '../i18n/translate.ts';
 import type { TitleAwards } from '../types.ts';
-import { AWARD_KEYS, awardsView, cardAwards, entryLabel } from './awards.ts';
+import { AWARD_KEYS, awardsView, cardAwards, cardAwardsLabel, entryLabel } from './awards.ts';
 
 const fixture = (id: string): TitleAwards => JSON.parse(readFileSync(new URL(`../../../../ui/mock/catalog_awards__${id}.json`, import.meta.url), 'utf8')) as TitleAwards;
 const es = (s: string, v?: Record<string, string | number>) => translate('es', s, v);
@@ -53,7 +53,22 @@ test('sin eventos grandes: los totales; sin nada: null', () => {
 });
 
 test('cardAwards: Óscar ganados aparte de los totales', () => {
-	assert.deepEqual(cardAwards(inception), { oscars: 4, wins: 160, nominations: 220 });
+	const inc = cardAwards(inception)!;
+	assert.deepEqual({ oscars: inc.oscars, wins: inc.wins, nominations: inc.nominations }, { oscars: 4, wins: 160, nominations: 220 });
+	assert.ok(inc.majorWins >= inc.oscars);
 	assert.equal(cardAwards(fixture('tt0137523'))?.oscars, 0);
 	assert.equal(cardAwards({ wins: 0, nominations: 0, entries: [] }), null);
+});
+
+test('cardAwards: majorWins cuenta solo ganados en eventos grandes; el dorado depende de eso', () => {
+	const small = { wins: 107, nominations: 20, entries: [{ event: 'oscar', won: false, award: 'Oscar', category: 'Best Picture', year: 2019 }] } satisfies TitleAwards;
+	assert.equal(cardAwards(small)!.majorWins, 0);
+	assert.equal(cardAwards({ ...small, entries: [{ event: 'emmy', won: true, award: 'Emmy', category: 'Best Actor', year: 2019 }] })!.majorWins, 1);
+});
+
+test('cardAwardsLabel: óscar · premios · nominaciones, en los dos idiomas', () => {
+	assert.equal(cardAwardsLabel({ oscars: 7, wins: 370, nominations: 378, majorWins: 20 }, es), '7 Óscar · 370 premios · 378 nominaciones');
+	assert.equal(cardAwardsLabel({ oscars: 7, wins: 370, nominations: 378, majorWins: 20 }, en), '7 Oscars · 370 awards · 378 nominations');
+	assert.equal(cardAwardsLabel({ oscars: 1, wins: 1, nominations: 0, majorWins: 1 }, en), '1 Oscar · 1 award');
+	assert.equal(cardAwardsLabel({ oscars: 0, wins: 0, nominations: 1, majorWins: 0 }, es), '1 nominación');
 });

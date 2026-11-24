@@ -142,8 +142,20 @@ export function awardsView(a: TitleAwards | null | undefined, t: T): AwardsView 
 	return { won, nominated, showYears: years.size > 1, line: parts.join(' · '), wins: a.wins, nominations: a.nominations };
 }
 
-/** Lo que va en la tarjeta del catálogo: Óscar ganados (ícono propio), premios ganados y nominaciones; null si nada. */
-export function cardAwards(a: TitleAwards | null | undefined): { oscars: number; wins: number; nominations: number } | null {
+export type CardAwards = { oscars: number; wins: number; nominations: number; majorWins: number };
+
+/** Lo que va en la tarjeta del catálogo: Óscar ganados (ícono propio), premios ganados y nominaciones; null si nada.
+ *  `majorWins` = ganados en los eventos grandes (los que nombra la ficha): sin ninguno, los `wins` de IMDb (incluye premios chicos) no van en dorado. */
+export function cardAwards(a: TitleAwards | null | undefined): CardAwards | null {
 	if (!a || (!a.wins && !a.nominations)) return null;
-	return { oscars: a.entries.filter((e) => e.event === 'oscar' && e.won).length, wins: a.wins, nominations: a.nominations };
+	return { oscars: a.entries.filter((e) => e.event === 'oscar' && e.won).length, wins: a.wins, nominations: a.nominations, majorWins: a.entries.filter((e) => e.won).length };
+}
+
+/** Texto del grupo de premios de la tarjeta (tooltip y lector de pantalla): "7 Óscar · 370 premios · 378 nominaciones". */
+export function cardAwardsLabel(c: CardAwards, t: T): string {
+	const parts: string[] = [];
+	if (c.oscars) parts.push(c.oscars === 1 ? `1 ${t('Óscar')}` : t('{n} Óscar', { n: c.oscars }));
+	if (c.wins) parts.push(t(c.wins === 1 ? '{n} premio' : '{n} premios', { n: c.wins }));
+	if (c.nominations) parts.push(t(c.nominations === 1 ? '{n} nominación' : '{n} nominaciones', { n: c.nominations }));
+	return parts.join(' · ');
 }

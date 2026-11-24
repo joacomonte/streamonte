@@ -1412,5 +1412,7 @@ const EN: Record<string, string> = {
 	"{t}: marcado como visto": "{t}: marked as watched",
 	"Sacaste {t}": "Removed {t}",
 	"Deshacer": "Undo",
+	"Anteriores": "Previous",
+	"Siguientes": "Next",
 };
 export default EN;
