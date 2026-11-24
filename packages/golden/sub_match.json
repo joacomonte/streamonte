@@ -177,6 +177,48 @@
   "out": 0
  },
  {
+  "nota": "fuente con grupo pegado: mismo grupo y fuente",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.WEB-DL-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X.2010.720p.WEB-DL-NTb"
+   }
+  },
+  "out": 2
+ },
+ {
+  "nota": "fuente con grupo pegado: otra fuente",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.WEB-DL-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X.2010.BluRay-NTb"
+   }
+  },
+  "out": 0
+ },
+ {
+  "nota": "WEBRip con grupo pegado no es WEB-DL",
+  "in": {
+   "video": {
+    "file": "X.2010.1080p.WEB-DL-NTb.mkv",
+    "fps": null,
+    "duration": null
+   },
+   "sub": {
+    "release": "X.2010.WEBRip-NTb"
+   }
+  },
+  "out": 0
+ },
+ {
   "nota": "orden: nativos, calce, latino, OpenSubtitles.com, descargas",
   "in": {
    "video": {

@@ -650,11 +650,11 @@
     }
   },
   {
-    "in": "📄 Peli.2023.720p.BluRay.x264-X\n👤 3",
+    "in": "📄 Peli.2023.720p.BluRay-X\n👤 3",
     "out": {
       "res": "720p",
       "hdr": [],
-      "codec": "H.264",
+      "codec": null,
       "source": "BluRay",
       "atmos": false,
       "hint": null,
@@ -662,7 +662,7 @@
       "spa": false,
       "cam": false,
       "size": null,
-      "release": "Peli.2023.720p.BluRay.x264-X",
+      "release": "Peli.2023.720p.BluRay-X",
       "seeds": 3
     }
   },
@@ -680,6 +680,40 @@
       "cam": false,
       "size": null,
       "release": "Peli.2023.1080p.WEB-DL",
+      "seeds": 0
+    }
+  },
+  {
+    "in": "Movie.2023.1080p.WEB-DL-NTb",
+    "out": {
+      "res": "1080p",
+      "hdr": [],
+      "codec": null,
+      "source": "WEB-DL",
+      "atmos": false,
+      "hint": null,
+      "multi": false,
+      "spa": false,
+      "cam": false,
+      "size": null,
+      "release": "Movie.2023.1080p.WEB-DL-NTb",
+      "seeds": 0
+    }
+  },
+  {
+    "in": "Movie.2023.WEBRip-GRP",
+    "out": {
+      "res": null,
+      "hdr": [],
+      "codec": null,
+      "source": "WEBRip",
+      "atmos": false,
+      "hint": null,
+      "multi": false,
+      "spa": false,
+      "cam": false,
+      "size": null,
+      "release": "Movie.2023.WEBRip-GRP",
       "seeds": 0
     }
   }

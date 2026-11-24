@@ -27,7 +27,9 @@ const tokensOf = (stem: string): string[] => stem.split(/[._ [\](){}]/).filter(B
 /** Fuente del release (`WEB-DL`, `BluRay`, `CAM`…): la primera palabra del nombre que lo diga. */
 export const sourceOf = (x: string): string | null => {
 	for (const token of tokensOf(stemOf(x))) {
-		const s = SOURCES[token.toLowerCase()];
+		// La palabra entera (`web-dl` lleva guion propio) y, si no, sin el último `-GRUPO` pegado (`web-dl-ntb`).
+		const t = token.toLowerCase();
+		const s = SOURCES[t] ?? SOURCES[t.slice(0, Math.max(t.lastIndexOf('-'), 0))];
 		if (s) return s;
 	}
 	return null;
