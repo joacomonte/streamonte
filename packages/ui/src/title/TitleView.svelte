@@ -464,7 +464,7 @@
 		.who:hover .who-face, .who:focus-visible .who-face { opacity: 1; translate: -50% 0; }
 	}
 	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
-	/* Premios: el dorado se arma con el amarillo del tema (oscuro en claro, brillante en oscuro). */
+	/* Premios: el dorado se arma con el amarillo del tema. */
 	.title-view { --gold: color-mix(in srgb, var(--yellow) 65%, #e0a800); }
 	/* Premios compactos: píldora como la de IMDb, con la flecha que despliega la lista. Llegan después (otro pedido): entran suaves. */
 	.aw-pill { gap: 4px; padding-right: 4px; border: 0; font-family: inherit; cursor: pointer; animation: aw-in 0.5s var(--out) backwards; }

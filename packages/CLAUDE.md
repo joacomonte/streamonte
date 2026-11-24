@@ -2,7 +2,7 @@
 CSS compartido, TS compartido (`ui/src/`) y vectores de prueba, sin build propio. Raíz: `/Users/monti/Documents/Dev/streamonte/packages/`; `.vercelignore` los sube a Vercel junto con `web/`.
 
 ## Mapa
-- `ui/css/tokens.css` — `:3 :root` variables (claro) · `:85 @media (prefers-color-scheme: dark)`. Unión de `ui/styles.css` y `web/src/app.css`; si un nombre tenía dos valores, ganó el de la web (ej. `--display`).
+- `ui/css/tokens.css` — `:3 :root` variables (solo tema oscuro). Unión de `ui/styles.css` y `web/src/app.css`; si un nombre tenía dos valores, ganó el de la web (ej. `--display`).
 - `ui/css/base.css` — reset, `:13 prefers-reduced-motion`.
 - `ui/css/components.css` — `:4 .btn` · `:46 .chip` · `:69 .pill` · `:84 .badge` · `:99 .surface` · `:102 .list` · `:108 .skel` · `:118 .spin` · `:130 .bar` · `:134 .switch` · `:142 .sheet` · `:166 .menu`.
 - `ui/css/settings.css` — Ajustes web y desktop: `.st` secciones, `.st-h`, `.st-list`/`.st-row` (nombre izq., control der.), `.st-chip` (estado), `.st-toggle`, `.st-btn`, `.st-link`, `.st-more` (desplegable).

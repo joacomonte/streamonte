@@ -1,5 +1,5 @@
 // Capturas + posiciones de elementos con id en 1 comando.
-// Uso: node scripts/shot.mjs <url> [--out DIR] [--sel CSS] [--only mobile|desktop] [--theme light|dark] [--click CSS]...
+// Uso: node scripts/shot.mjs <url> [--out DIR] [--sel CSS] [--only mobile|desktop] [--click CSS]...
 // Contrato de pantalla: node scripts/shot.mjs --contract tests/contracts/X.json --base http://host:puerto [--all]
 //   Contrato = {app, url, viewport?, cookies?, storage?, setup:[{click|type+text|hover|contextmenu|wait, after?, timeout?, optional? (click: se saltea si no aparece)}],
 //   must:[{sel, text?(regex), count?(>=), hover?(selector a pasar el mouse antes), status?:'regressed', note?}]}.
@@ -13,7 +13,7 @@ const argv = process.argv.slice(2);
 const url = argv.find((a, i) => !a.startsWith('--') && !argv[i - 1]?.startsWith('--'));
 const opt = (k) => argv.flatMap((a, i) => (a === `--${k}` ? [argv[i + 1]] : []));
 const contractFile = opt('contract')[0];
-if (!url && !contractFile) { console.error('uso: node scripts/shot.mjs <url> [--out DIR] [--sel CSS] [--only mobile|desktop] [--theme light|dark] [--click CSS]...'); process.exit(2); }
+if (!url && !contractFile) { console.error('uso: node scripts/shot.mjs <url> [--out DIR] [--sel CSS] [--only mobile|desktop] [--click CSS]...'); process.exit(2); }
 const slug = (url ?? '').replace(/^https?:\/\//, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
 const out = opt('out')[0] ?? `/tmp/shots/${slug}`;
 const sel = opt('sel')[0] ?? 'main, body';
@@ -26,14 +26,12 @@ const viewports = {
 };
 if (contractFile) process.exit(await runContract(contractFile, opt('base')[0], argv.includes('--all')));
 const only = opt('only')[0];
-const themeOpt = opt('theme')[0];
 const names = Object.keys(viewports).filter((v) => !only || v === only);
-const themes = themeOpt ? [themeOpt] : ['light', 'dark'];
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 let fail = false;
-for (const vp of names) for (const theme of themes) {
-  const ctx = await browser.newContext({ ...viewports[vp], colorScheme: theme, reducedMotion: 'reduce' });
+for (const vp of names) {
+  const ctx = await browser.newContext({ ...viewports[vp], colorScheme: 'dark', reducedMotion: 'reduce' });
   const page = await ctx.newPage();
   const consoleErrors = [];
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -54,13 +52,13 @@ for (const vp of names) for (const theme of themes) {
   });
   // las animaciones infinitas tiran al terminar: se ignoran
   await page.evaluate(() => document.getAnimations().forEach((a) => { try { a.finish(); } catch {} }));
-  const file = `${out}/${vp}-${theme}.png`;
+  const file = `${out}/${vp}.png`;
   await page.screenshot({ path: file, fullPage: true });
   const els = await page.evaluate((s) => [...document.querySelectorAll(s)].flatMap((root) => [...root.querySelectorAll('[id]')])
     .map((e) => ({ e, r: e.getBoundingClientRect() }))
     .filter(({ e, r }) => r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden')
     .map(({ e, r }) => ({ id: e.id, x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), text: (e.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 40) })), sel);
-  console.log(JSON.stringify({ file, viewport: vp, theme, status, imgFailed, consoleErrors, els }));
+  console.log(JSON.stringify({ file, viewport: vp, status, imgFailed, consoleErrors, els }));
   await ctx.close();
 }
 await browser.close();

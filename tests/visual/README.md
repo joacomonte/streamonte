@@ -1,5 +1,5 @@
 # Regresión visual
-`node scripts/visual.mjs` captura 7 pantallas × claro/oscuro (14 PNG, solo viewport) y las compara con `baseline/`; `--update` las regraba. Falla si más del 0,1 % de los píxeles cambia (`--threshold`, `--tol` = diferencia por canal que se ignora, 16). Los diffs (rojo = cambió) quedan en `$TMPDIR/streamonte-visual` (o `--out`). `--only TEXTO` filtra pantallas. Tarda ~35 s (levanta Vite de `ui` y `web` solo).
+`node scripts/visual.mjs` captura 7 pantallas en oscuro (7 PNG `*-dark.png`, solo viewport) y las compara con `baseline/`; `--update` las regraba. Falla si más del 0,1 % de los píxeles cambia (`--threshold`, `--tol` = diferencia por canal que se ignora, 16). Los diffs (rojo = cambió) quedan en `$TMPDIR/streamonte-visual` (o `--out`). `--only TEXTO` filtra pantallas. Tarda ~35 s (levanta Vite de `ui` y `web` solo).
 
 - Desktop (`app-*`, 1280×800): `ui` con `mock-tauri` (`ui/mock/*.json`). Web (`web-*`, 375×812): `/api/*` sale de `fixtures/web/` (sin keys ni red); regrabar: levantar `web` con `TMDB_KEY` y correr `node scripts/visual.mjs --record --only web --web-url http://127.0.0.1:PUERTO`.
 - Imágenes remotas (pósters, caras) → un gris fijo; fuentes/scripts externos se abortan. Animaciones, caret y transiciones apagados.
