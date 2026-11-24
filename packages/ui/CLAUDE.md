@@ -6,8 +6,8 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
 - `types.ts` `:4 Kind` `:11 CatalogItem` `:65 TitleDetails` `:99 TorrentOption` `:134 OptionsUpdate` `:150 SubtitleOption` `:172 Capabilities` `:184 ApiEvent` · ← todo.
 - `api.ts` `:11 Api` → `types.ts` · ← `webApi.ts` (web), `tauriApi.ts` (desktop), `context.ts`.
 - `context.ts` `:7 setApi` `:9 getApi` → `api.ts`, `svelte` · ← raíz de cada app (T2).
-- `format.ts` `:5 humanBytes` `:12 mbps` `:19 mb` `:25 clock` `:34 ago` `:47 onlyCinema` → `i18n/runtime.ts` · ← desktop (`ui/src/*.js`), web (`routes/+page.svelte`, `routes/t/[kind]/[id]/+page.svelte`).
-- `season.ts` `:14 seasonTone` `:17 seasonTrend` `:29 barHeight` `:38 seasonOutlook` → `types.ts` · ← `title/title-state.ts`, `ui/src/catalog-side.js`.
+- `format.ts` `:5 humanBytes` `:12 mbps` `:19 mb` `:25 clock` `:34 ago` `:47 onlyCinema` → `i18n/runtime.ts` · ← desktop (`ui/src/*.ts`), web (`routes/+page.svelte`, `routes/t/[kind]/[id]/+page.svelte`).
+- `season.ts` `:14 seasonTone` `:17 seasonTrend` `:29 barHeight` `:38 seasonOutlook` → `types.ts` · ← `title/title-state.ts`, `ui/src/catalog-side.ts`.
 - `title/TitleView.svelte` (ficha única) → `context.ts` (`getApi().title.*`), `SeasonChart.svelte`, `title-state.ts`, `components/Icon.svelte` · ← `web/src/routes/t/[kind]/[id]/+page.svelte`, `ui/src/SidePanel.svelte`. Props: `details?` `season` `episode` `onSeason` `onEpisode` `onPerson` `onOpenTitle` `onOpenImdb` `options` (snippet torrents) `between` `teaser` `ids`.
 - `title/awards.ts` `awardsView` (línea + lista agrupada de la ficha) `cardAwards` (premios compactos de tarjeta y ficha) `entryLabel` `AWARD_KEYS` (categorías/premios de IMDb → clave en español de `en.ts`) → `types.ts` `TitleAwards` · ← `TitleView.svelte`, `catalog/Grid.svelte` · test `title/awards.test.ts` (fixtures `ui/mock/catalog_awards__*`).
 - `title/SeasonChart.svelte` → `title-state.ts:43 chartModel` · ← `TitleView.svelte`.
@@ -17,23 +17,23 @@ Imports internos relativos con `.ts`. Los `.ts` que prueba `node --test` se impo
   - `OptionsList.svelte` (`rows` por hash) → `OptionRow.svelte` (`row`) → `since.ts` `:6 since`, `components/Icon.svelte` · ← `web/src/lib/Torrents.svelte`, `ui/src/StreamsPanel.svelte`, `ui/src/FlowScreen.svelte`.
   - `row.ts` `:58 OptionRowView` (`Mid`/`Action` desktop-only = `capabilities.speedTests`) `:83 RES_ORDER` `:101 qualityOf` `:117 TipBook` `:174 langTags` `:196 sizeText` → `audio.ts`, `rank.ts` · ← `ui/src/catalog-options.ts`, `Torrents.svelte`.
   - `options-load.ts` `:20 applyUpdate` `:32 loadOptions` → `getApi().options.load` · ← `Torrents.svelte`.
-  - `health.ts` (salud estimada, puro) `:131 rawPrediction` `:154 learnBias` `:201 predict` `:210 shownLevel` `:219 fidelity` `:268 calibration` `:305 healthOf` · ← `ui/src/health-store.ts`, `ui/src/catalog-options.ts`; tipos re-exportados en `ui/src/types.d.ts`.
+  - `health.ts` (salud estimada, puro) `:131 rawPrediction` `:154 learnBias` `:201 predict` `:210 shownLevel` `:219 fidelity` `:268 calibration` `:305 healthOf` · ← `ui/src/health-store.ts`, `ui/src/catalog-options.ts`; tipos re-exportados en `ui/src/types.ts`.
   - tests `options/options.test.ts` (fixture `ui/mock/events__catalog_streams__*`), `options/health.test.ts`.
 - `sub-match.ts` `:9 sourceOf` `:13 groupOf` `:16 level` `:28 rank` · ← `web/src/lib/Torrents.svelte`.
 - `audio.ts` `:13 audioOf` `:23 latStatus` `:30 LAT_BADGE` → `types.ts` · ← `web/src/lib/Torrents.svelte`.
-- `magnet-hash.ts` `:4 magnetHash` · ← `ui/src/catalog-magnet.js`.
+- `magnet-hash.ts` `:4 magnetHash` · ← `ui/src/catalog-magnet.ts`.
 - `context.ts` `:16 apiContext` (mount desde JS) · ← `ui/src/mount-shared.ts`.
 - `subs/` — `SubsPicker.svelte` (`ref` `option` `file` `match` `lead` `actions` `onUse`) → `subs-flow.ts` `:25 SubsFlow` · `subs-logic.ts` `:11 rankSubs` `srcOf` `timingOf` `noFitText` `keyOf` · `SubRow.svelte` → `components/Icon.svelte`, `getApi().subs/.premium` · ← `web/src/lib/Torrents.svelte`, `ui/src/SubsStep.svelte` · test `subs/subs.test.ts`.
-- `magnet/` — `MagnetView.svelte` (`hash` `name` `titleHref`|`onTitle` `ready`) → `magnet-flow.ts` `:9 MagnetFlow` · `magnet-logic.ts` `:15 magnetTitle` `getApi().magnet` · ← `web/src/routes/m/[hash]/+page.svelte`, `ui/src/catalog-magnet.js` (vía `mount-shared.ts`) · test `magnet/magnet.test.ts`.
+- `magnet/` — `MagnetView.svelte` (`hash` `name` `titleHref`|`onTitle` `ready`) → `magnet-flow.ts` `:9 MagnetFlow` · `magnet-logic.ts` `:15 magnetTitle` `getApi().magnet` · ← `web/src/routes/m/[hash]/+page.svelte`, `ui/src/catalog-magnet.ts` (vía `mount-shared.ts`) · test `magnet/magnet.test.ts`.
 - `i18n/en.ts` (diccionario único es→en) · ← `i18n/translate.ts`.
-- `i18n/translate.ts` `:8 translate` `:14 locale` → `en.ts` · ← `web/src/lib/i18n/translate.ts`, `ui/src/i18n.js`.
-- `i18n/runtime.ts` `:9 setTranslator` `:10 t` → `translate.ts` · ← `format.ts`; fijado por `web/src/lib/i18n.svelte.ts`, `ui/src/i18n.js`.
+- `i18n/translate.ts` `:8 translate` `:14 locale` → `en.ts` · ← `web/src/lib/i18n/translate.ts`, `ui/src/i18n.ts`.
+- `i18n/runtime.ts` `:9 setTranslator` `:10 t` → `translate.ts` · ← `format.ts`; fijado por `i18n/store.svelte.ts` (`createLangStore`: idioma reactivo + `t` + `loc`; recibe de cada app solo `{ load, save }`) ← `web/src/lib/i18n.svelte.ts`, `ui/src/i18n.ts`.
 - `components/` (compartidos web ↔ desktop; sin `$app`/Tauri):
-  - `icons.ts` `:3 ICONS` `IconName` · ← `Icon.svelte`, `ui/src/dom.js:icon`.
+  - `icons.ts` `:3 ICONS` `IconName` · ← `Icon.svelte`, `ui/src/dom.ts:icon`.
   - `Icon.svelte` · `Sheet.svelte` (`<dialog>`; props `footer` `titleId` `closeId` `maxWidth` `closable`; ← desktop `ui/src/components/{Settings,LogDialog,ConfirmDialog}.svelte`) · `LangPicker.svelte` (Ajustes: filas `.st-list` con banderas para la app y segmentado para títulos; `onpick`) → `LangFlag.svelte` (bandera circular SVG), `LangSwitch.svelte` (segmentado Español/English con knob), `lang-data.ts` (`LANGS`, `SAMPLE_TITLE`, `SAMPLE_POSTER`: La Odisea).
   - `Tour.svelte` (`index` bindable, `onnick`, `langs`, snippet `extra`, `confetti`; paso `nick` con fondo de vidrio y "Hola, …") → `tour-state.ts` (`guardStep` `resumeIndex` `Step` `LangOptions`), `TourLang.svelte` · ← `web/src/routes/+layout.svelte`, `web/src/lib/Torrents.svelte`, `ui/src/Welcome.svelte`.
   - `TourLang.svelte` (`only` app|titles: tarjetas con `LangFlag` / póster + `LangSwitch`) · ← `Tour.svelte`.
-  - `type-fx.ts` `installTypeFx` (letras que entran desenfocadas en todo input de texto; espejo encima; sin contraseñas ni `data-typefx="off"`) · ← `web/src/routes/+layout.svelte`, `ui/src/main.ts`.
+  - `type-fx.ts` `installTypeFx` (letras que entran desenfocadas en todo input de texto; espejo encima; sin contraseñas ni `data-typefx="off"`) · ← `web/src/routes/+layout.svelte`, `ui/src/boot.ts`.
   - `tours.ts` `welcomeSteps` `castSteps` `casterFor` `device` `seen` `markSeen` → `tour-state.ts` · ← web (`castSteps`: ayuda de subs en `Torrents.svelte`; `casterFor`/`device`: `web/src/lib/CastVideo.svelte`).
 - `catalog/` (catálogo compartido):
   - `filters.ts` `:46 toBrowse` `:62 parseSaved` (`KINDS` `SORTS` `LANGS` `VOTES` `BACK` `backLabel` `changedCount`) → `types.ts` · ← `store.ts`, `Since.svelte`, `Catalog.svelte`.

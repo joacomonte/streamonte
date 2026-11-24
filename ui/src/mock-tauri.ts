@@ -20,11 +20,11 @@ const defaults: Record<string, unknown> = {
   speed_test: { mbps: 240, measured_at: new Date().toISOString(), network: 'mock' },
 };
 
-// Eventos `core://event` (solo `catalog-streams`, grabados): se reenvían a los listeners al invocar el comando.
+// Eventos `core://event`: `catalog-streams` (grabados) se reenvían al invocar el comando; `?scenario=` reproduce secuencias a mano.
 type Listener = (e: { payload: unknown }) => void;
 const listeners: Listener[] = [];
-function replay(events: unknown) {
-  (events as unknown[]).forEach((payload, i) => setTimeout(() => listeners.forEach((cb) => cb({ payload })), 500 * (i + 1)));
+function replay(events: unknown, stepMs = 500, startMs = stepMs) {
+  (events as unknown[]).forEach((payload, i) => setTimeout(() => listeners.forEach((cb) => cb({ payload })), startMs + stepMs * i));
 }
 
 function invoke(cmd: string, args?: Record<string, unknown>): Promise<unknown> {
@@ -58,4 +58,11 @@ if (new URLSearchParams(location.search).has('live')) {
   const entry = { key: 'abc:0', info_hash: 'abc', name: 'Fight.Club.1999.1080p.mkv', torrent_name: null, live: null, release: { title: 'Fight Club' }, video_size: 2e9 };
   const row = { id: 1, key: 'abc:0', info_hash: 'abc', name: 'Fight Club', state: { kind: 'background' }, progress: 0.42, speed_bps: 3e6, peers: 12 };
   setTimeout(() => replay([{ type: 'library-entry-updated', entry }, { type: 'playback-updated', row }]), 1500);
+}
+// `?scenario=<nombre>`: reproduce `ui/mock/events__<nombre>.json` (o la primera `events__<nombre>__*`; hechos a mano: `analyze__basic`,
+// `speed__basic`, `downloads__basic`, `subs__basic`) con 300 ms entre eventos, para ver análisis, velocidad, descargas y subtítulos sin el núcleo.
+const scenario = new URLSearchParams(location.search).get('scenario');
+if (scenario) {
+  const key = fixtures.has(`events__${scenario}`) ? `events__${scenario}` : [...fixtures.keys()].find((k) => k.startsWith(`events__${scenario}__`));
+  if (key) replay(fixtures.get(key), 300, 1500); else console.warn('[mock] sin escenario', scenario);
 }

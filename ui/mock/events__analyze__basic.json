@@ -1,0 +1,262 @@
+[
+ {
+  "type": "library-entry-updated",
+  "entry": {
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "magnet": "magnet:?xt=urn:btih:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight.Club.1999.1080p.BluRay.x264.mkv",
+   "torrent_name": "Fight.Club.1999.1080p.BluRay.x264.mkv",
+   "video_size": 2000000000,
+   "group": "pasted-now",
+   "status": {
+    "kind": "new"
+   },
+   "scrape": null,
+   "live": null,
+   "added_at": "2026-11-24T12:00:00Z",
+   "last_copied_at": "2026-11-24T12:00:00Z",
+   "score": {
+    "duration": null,
+    "needed_bps": null,
+    "effective_speed_bps": null,
+    "speed_factor": 1,
+    "margin": null,
+    "light": "unknown",
+    "capped_by_estimate": false,
+    "green_margin": 1.5,
+    "yellow_margin": 1
+   },
+   "languages": [],
+   "audio_options": [],
+   "release": {
+    "title": "Fight Club",
+    "year": 1999,
+    "season": null,
+    "episode": null,
+    "quality": [
+     "1080p"
+    ]
+   },
+   "native_subs": null,
+   "downloaded_bytes": null,
+   "sort_key": [
+    0,
+    0,
+    0,
+    0
+   ]
+  }
+ },
+ {
+  "type": "library-entry-updated",
+  "entry": {
+   "key": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:0",
+   "info_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "magnet": "magnet:?xt=urn:btih:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "name": "Fight.Club.1999.2160p.UHD.HDR.mkv",
+   "torrent_name": "Fight.Club.1999.2160p.UHD.HDR.mkv",
+   "video_size": 2000000000,
+   "group": "pasted-now",
+   "status": {
+    "kind": "new"
+   },
+   "scrape": null,
+   "live": null,
+   "added_at": "2026-11-24T12:00:00Z",
+   "last_copied_at": "2026-11-24T12:00:00Z",
+   "score": {
+    "duration": null,
+    "needed_bps": null,
+    "effective_speed_bps": null,
+    "speed_factor": 1,
+    "margin": null,
+    "light": "unknown",
+    "capped_by_estimate": false,
+    "green_margin": 1.5,
+    "yellow_margin": 1
+   },
+   "languages": [],
+   "audio_options": [],
+   "release": {
+    "title": "Fight Club",
+    "year": 1999,
+    "season": null,
+    "episode": null,
+    "quality": [
+     "1080p"
+    ]
+   },
+   "native_subs": null,
+   "downloaded_bytes": null,
+   "sort_key": [
+    0,
+    0,
+    0,
+    0
+   ]
+  }
+ },
+ {
+  "type": "analyzer-queue",
+  "queued": [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "held": []
+ },
+ {
+  "type": "analyzer-progress",
+  "state": {
+   "kind": "scraping",
+   "total": 2
+  }
+ },
+ {
+  "type": "analyzer-progress",
+  "state": {
+   "kind": "quick-scan",
+   "total": 2
+  }
+ },
+ {
+  "type": "activity",
+  "level": "info",
+  "area": "analisis",
+  "message": "Midiendo 2 torrents…",
+  "at": "2026-11-24T12:00:00Z"
+ },
+ {
+  "type": "analyzer-progress",
+  "state": {
+   "kind": "measuring",
+   "done": 0,
+   "total": 2,
+   "current": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "live": null,
+   "provisional": []
+  }
+ },
+ {
+  "type": "library-entry-updated",
+  "entry": {
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "magnet": "magnet:?xt=urn:btih:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight.Club.1999.1080p.BluRay.x264.mkv",
+   "torrent_name": "Fight.Club.1999.1080p.BluRay.x264.mkv",
+   "video_size": 2000000000,
+   "group": "pasted-now",
+   "status": {
+    "kind": "measured"
+   },
+   "scrape": null,
+   "live": null,
+   "added_at": "2026-11-24T12:00:00Z",
+   "last_copied_at": "2026-11-24T12:00:00Z",
+   "score": {
+    "duration": null,
+    "needed_bps": null,
+    "effective_speed_bps": null,
+    "speed_factor": 1,
+    "margin": null,
+    "light": "unknown",
+    "capped_by_estimate": false,
+    "green_margin": 1.5,
+    "yellow_margin": 1
+   },
+   "languages": [],
+   "audio_options": [],
+   "release": {
+    "title": "Fight Club",
+    "year": 1999,
+    "season": null,
+    "episode": null,
+    "quality": [
+     "1080p"
+    ]
+   },
+   "native_subs": null,
+   "downloaded_bytes": null,
+   "sort_key": [
+    0,
+    0,
+    0,
+    0
+   ]
+  }
+ },
+ {
+  "type": "analyzer-progress",
+  "state": {
+   "kind": "measuring",
+   "done": 1,
+   "total": 2,
+   "current": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "live": null,
+   "provisional": []
+  }
+ },
+ {
+  "type": "library-entry-updated",
+  "entry": {
+   "key": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:0",
+   "info_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "magnet": "magnet:?xt=urn:btih:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "name": "Fight.Club.1999.2160p.UHD.HDR.mkv",
+   "torrent_name": "Fight.Club.1999.2160p.UHD.HDR.mkv",
+   "video_size": 2000000000,
+   "group": "pasted-now",
+   "status": {
+    "kind": "measured"
+   },
+   "scrape": null,
+   "live": null,
+   "added_at": "2026-11-24T12:00:00Z",
+   "last_copied_at": "2026-11-24T12:00:00Z",
+   "score": {
+    "duration": null,
+    "needed_bps": null,
+    "effective_speed_bps": null,
+    "speed_factor": 1,
+    "margin": null,
+    "light": "unknown",
+    "capped_by_estimate": false,
+    "green_margin": 1.5,
+    "yellow_margin": 1
+   },
+   "languages": [],
+   "audio_options": [],
+   "release": {
+    "title": "Fight Club",
+    "year": 1999,
+    "season": null,
+    "episode": null,
+    "quality": [
+     "1080p"
+    ]
+   },
+   "native_subs": null,
+   "downloaded_bytes": null,
+   "sort_key": [
+    0,
+    0,
+    0,
+    0
+   ]
+  }
+ },
+ {
+  "type": "analyzer-progress",
+  "state": {
+   "kind": "idle"
+  }
+ },
+ {
+  "type": "activity",
+  "level": "info",
+  "area": "analisis",
+  "message": "Análisis terminado.",
+  "at": "2026-11-24T12:00:00Z"
+ }
+]

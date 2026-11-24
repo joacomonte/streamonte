@@ -1,0 +1,219 @@
+[
+ {
+  "type": "library-entry-updated",
+  "entry": {
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "magnet": "magnet:?xt=urn:btih:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight.Club.1999.1080p.BluRay.x264.mkv",
+   "torrent_name": "Fight.Club.1999.1080p.BluRay.x264.mkv",
+   "video_size": 2000000000,
+   "group": "pasted-now",
+   "status": {
+    "kind": "measured"
+   },
+   "scrape": null,
+   "live": null,
+   "added_at": "2026-11-24T12:00:00Z",
+   "last_copied_at": "2026-11-24T12:00:00Z",
+   "score": {
+    "duration": null,
+    "needed_bps": null,
+    "effective_speed_bps": null,
+    "speed_factor": 1,
+    "margin": null,
+    "light": "unknown",
+    "capped_by_estimate": false,
+    "green_margin": 1.5,
+    "yellow_margin": 1
+   },
+   "languages": [],
+   "audio_options": [],
+   "release": {
+    "title": "Fight Club",
+    "year": 1999,
+    "season": null,
+    "episode": null,
+    "quality": [
+     "1080p"
+    ]
+   },
+   "native_subs": null,
+   "downloaded_bytes": null,
+   "sort_key": [
+    0,
+    0,
+    0,
+    0
+   ]
+  }
+ },
+ {
+  "type": "playback-updated",
+  "row": {
+   "id": 1,
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight Club",
+   "state": {
+    "kind": "fetching-metadata"
+   },
+   "player": "mpv",
+   "progress": 0,
+   "speed_bps": 0,
+   "peers": 0,
+   "seeds": 0,
+   "incoming_peers": 0,
+   "started_at": "2026-11-24T12:00:00Z",
+   "metadata_secs": null,
+   "preload_secs": null,
+   "time_to_first_frame_secs": null,
+   "stream": true
+  }
+ },
+ {
+  "type": "playback-updated",
+  "row": {
+   "id": 1,
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight Club",
+   "state": {
+    "kind": "preparing",
+    "fraction": 0.3
+   },
+   "player": "mpv",
+   "progress": 0.02,
+   "speed_bps": 2500000,
+   "peers": 8,
+   "seeds": 4,
+   "incoming_peers": 0,
+   "started_at": "2026-11-24T12:00:00Z",
+   "metadata_secs": null,
+   "preload_secs": null,
+   "time_to_first_frame_secs": null,
+   "stream": true
+  }
+ },
+ {
+  "type": "playback-updated",
+  "row": {
+   "id": 1,
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight Club",
+   "state": {
+    "kind": "preparing",
+    "fraction": 0.9
+   },
+   "player": "mpv",
+   "progress": 0.04,
+   "speed_bps": 4200000,
+   "peers": 14,
+   "seeds": 7,
+   "incoming_peers": 0,
+   "started_at": "2026-11-24T12:00:00Z",
+   "metadata_secs": null,
+   "preload_secs": null,
+   "time_to_first_frame_secs": null,
+   "stream": true
+  }
+ },
+ {
+  "type": "playback-updated",
+  "row": {
+   "id": 1,
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight Club",
+   "state": {
+    "kind": "playing",
+    "position_secs": 12
+   },
+   "player": "mpv",
+   "progress": 0.08,
+   "speed_bps": 5000000,
+   "peers": 16,
+   "seeds": 8,
+   "incoming_peers": 0,
+   "started_at": "2026-11-24T12:00:00Z",
+   "metadata_secs": null,
+   "preload_secs": null,
+   "time_to_first_frame_secs": null,
+   "stream": true
+  }
+ },
+ {
+  "type": "playback-updated",
+  "row": {
+   "id": 1,
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight Club",
+   "state": {
+    "kind": "background"
+   },
+   "player": "mpv",
+   "progress": 0.35,
+   "speed_bps": 3000000,
+   "peers": 12,
+   "seeds": 6,
+   "incoming_peers": 0,
+   "started_at": "2026-11-24T12:00:00Z",
+   "metadata_secs": null,
+   "preload_secs": null,
+   "time_to_first_frame_secs": null,
+   "stream": true
+  }
+ },
+ {
+  "type": "playback-updated",
+  "row": {
+   "id": 1,
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight Club",
+   "state": {
+    "kind": "background"
+   },
+   "player": "mpv",
+   "progress": 0.7,
+   "speed_bps": 3500000,
+   "peers": 12,
+   "seeds": 6,
+   "incoming_peers": 0,
+   "started_at": "2026-11-24T12:00:00Z",
+   "metadata_secs": null,
+   "preload_secs": null,
+   "time_to_first_frame_secs": null,
+   "stream": true
+  }
+ },
+ {
+  "type": "playback-updated",
+  "row": {
+   "id": 1,
+   "key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:0",
+   "info_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Fight Club",
+   "state": {
+    "kind": "paused"
+   },
+   "player": "mpv",
+   "progress": 0.7,
+   "speed_bps": 0,
+   "peers": 0,
+   "seeds": 0,
+   "incoming_peers": 0,
+   "started_at": "2026-11-24T12:00:00Z",
+   "metadata_secs": null,
+   "preload_secs": null,
+   "time_to_first_frame_secs": null,
+   "stream": true
+  }
+ },
+ {
+  "type": "playback-removed",
+  "id": 1
+ }
+]

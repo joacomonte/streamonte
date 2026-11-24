@@ -1,0 +1,37 @@
+[
+ {
+  "type": "catalog-subtitles-progress",
+  "video_id": "tt0137523",
+  "downloading": false,
+  "done": 0,
+  "total": 5
+ },
+ {
+  "type": "catalog-subtitles-progress",
+  "video_id": "tt0137523",
+  "downloading": true,
+  "done": 2,
+  "total": 5
+ },
+ {
+  "type": "catalog-subtitles-progress",
+  "video_id": "tt0137523",
+  "downloading": true,
+  "done": 4,
+  "total": 5
+ },
+ {
+  "type": "catalog-subtitles-progress",
+  "video_id": "tt0137523",
+  "downloading": false,
+  "done": 5,
+  "total": 5
+ },
+ {
+  "type": "activity",
+  "level": "info",
+  "area": "subtitulos",
+  "message": "Subtítulos listos (5).",
+  "at": "2026-11-24T12:00:00Z"
+ }
+]

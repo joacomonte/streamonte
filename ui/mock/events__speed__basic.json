@@ -1,0 +1,34 @@
+[
+ {
+  "type": "speed-test",
+  "state": {
+   "kind": "measuring",
+   "mbps": 35
+  }
+ },
+ {
+  "type": "speed-test",
+  "state": {
+   "kind": "measuring",
+   "mbps": 120
+  }
+ },
+ {
+  "type": "speed-test",
+  "state": {
+   "kind": "measuring",
+   "mbps": 210
+  }
+ },
+ {
+  "type": "speed-test",
+  "state": {
+   "kind": "done",
+   "result": {
+    "mbps": 230,
+    "measured_at": "2026-11-24T12:00:00Z",
+    "network": "mock"
+   }
+  }
+ }
+]
