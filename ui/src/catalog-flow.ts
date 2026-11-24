@@ -8,17 +8,18 @@
 import * as core from './core.ts';
 import { t as tr } from './i18n.ts';
 import { state, view } from './catalog-state.ts';
-import { failedBefore, flatSorted, hasSpanishSubs, inTorbox, knownSeeds, latOf, latPotential, latToCheck, mbpsOf, openGroup, renderStreamsOnly, rowView, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.ts';
+import { failedBefore, flatSorted, inTorbox, knownSeeds, factsOf, latOf, latPotential, mbpsOf, openGroup, renderStreamsOnly, rowView, resKey, resLabel, RES_ORDER, rowsOf } from './catalog-options.ts';
 import { readTracks } from './catalog-subs.ts';
 import { quickAnalyze, side, sideOf, startAnalysis, stopTests, unlikely } from './catalog-tests.ts';
 import { scanSecs, SWARM_PARALLEL, SWARM_SECS } from './options-logic.ts';
-import { latRank } from '$ui/audio.ts';
+import { NET as NET_LEVELS, fitsNet as fitsNetLevel, type NetChoice } from '$ui/flow/net.ts';
+import { isMatch as matchRule, latFirst as latFirstRule, needsReading } from '$ui/flow/match-rules.ts';
 import type { TileSpec } from '$ui/flow/types.ts';
 import { latChips } from '$ui/flow/lat-chips.ts';
 import type { ChoiceView, CrumbsView, FlowButton, FlowView, MoreRowView } from './streams-view.ts';
 import type { StreamCandidate as Candidate, StreamsUpdate } from './types.ts';
 
-export type NetChoice = { key: string; label: string; range: string; mbps: number; tone: string };
+export type { NetChoice };
 /** Búsqueda de pistas en curso (`runScan`). */
 export type Scan = { total: number; batch: string[]; done: number; running: boolean; stopped: boolean };
 type Step = 'mode' | 'net' | 'lat' | 'res' | 'list';
@@ -45,15 +46,10 @@ const update = (): StreamsUpdate => state.update as StreamsUpdate;
 
 /** Conexión donde se va a ver por TorBox: la elige el usuario en cada video y pone el tope de bitrate del buen match; "¿Se
  *  cortó?" baja un nivel. `mbps`: lo más que se le pide al video. */
-const NET: NetChoice[] = [
-	{ key: 'terrible', label: tr('Muy baja'), range: tr('Menos de 8 Mbps o señal que se corta: busco una muy liviana'), mbps: 4, tone: 'red' },
-	{ key: 'low', label: tr('Baja'), range: tr('8 a 25 Mbps, o la tele en wifi 2.4 GHz'), mbps: 10, tone: 'amber' },
-	{ key: 'normal', label: tr('Normal'), range: tr('25 a 100 Mbps'), mbps: 25, tone: 'accent-fg' },
-	{ key: 'high', label: tr('Alta'), range: tr('Más de 100 Mbps, en wifi 5 GHz o por cable'), mbps: Infinity, tone: 'green' },
-];
+const NET: NetChoice[] = NET_LEVELS.map((n) => ({ ...n, label: tr(n.label), range: tr(n.range) }));
 const net = (): NetChoice | null => flow()?.net ?? null;
 /** ¿Entra en la conexión elegida? Sin peso no se sabe cuánto pide: no entra (no puede ser el buen match). */
-export const fitsNet = (c: Candidate): boolean => c.size_bytes != null && mbpsOf(c) <= (net()?.mbps ?? Infinity);
+export const fitsNet = (c: Candidate): boolean => fitsNetLevel(c.size_bytes, mbpsOf(c), net());
 function setNet(n: NetChoice): void {
 	const f = flowNow();
 	Object.assign(f, { net: n, found: [], all: false });
@@ -79,8 +75,7 @@ const scope = (): Candidate[] => pool().filter((c) => !hasResStep() || !view.ope
 const hasPotential = (c: Candidate): boolean => latPotential(c);
 /** Única regla de "buen match" en TorBox: pidiendo latino, latino confirmado en sus pistas; con audio original, subtítulos en
  *  español nativos. De cine, nunca. */
-export const isMatch = (c: Candidate): boolean =>
-	c.source !== 'CAM' && !failedBefore.has(c.info_hash) && (flow()?.lat ? latOf(c) === 'lat' : hasSpanishSubs(c.info_hash) === true);
+export const isMatch = (c: Candidate): boolean => matchRule(!!flow()?.lat, factsOf(c), c.source === 'CAM' || failedBefore.has(c.info_hash));
 /** Filtro de la lista por el flujo (lo usa `passesFilters`): modo y, si pidió latino, solo las con potencial. */
 export function flowFilter(c: Candidate): boolean {
 	const f = flow();
@@ -99,7 +94,7 @@ const latTier = (c: Candidate): number => (latOf(c) === 'likely' ? 0 : 1);
 function toConfirm(cands: Candidate[], lat: boolean | null = flowNow().lat): Candidate[] {
 	const f = flowNow();
 	const pending = cands.filter(
-		(c) => !f.scanned.has(c.info_hash) && !tracksRead(c.info_hash) && healthy(c) && (lat ? latToCheck(c) : hasSpanishSubs(c.info_hash) == null),
+		(c) => !f.scanned.has(c.info_hash) && !tracksRead(c.info_hash) && healthy(c) && needsReading(!!lat, factsOf(c)),
 	);
 	if (f.mode === 'torbox') return latFirst(flatSorted(pending.filter(fitsNet)));
 	return pending.sort(byPotential).sort((a, b) => latTier(a) - latTier(b) || RES_ORDER.indexOf(resKey(a)) - RES_ORDER.indexOf(resKey(b)));
@@ -108,7 +103,7 @@ function toConfirm(cands: Candidate[], lat: boolean | null = flowNow().lat): Can
 const ranked = (): Candidate[] => latFirst(flatSorted(pool().filter((c) => flowFilter(c) && fitsNet(c))));
 /** TorBox pidiendo latino: por señal de latino (regla `latRank`) y, dentro de cada grupo, el orden de calidad que trae. */
 function latFirst(cands: Candidate[]): Candidate[] {
-	return flowNow().lat ? [...cands].sort((a, b) => latRank(latOf(a)) - latRank(latOf(b))) : cands;
+	return latFirstRule(cands, !!flowNow().lat, latOf);
 }
 /** TorBox: el próximo buen match no mostrado, si viene antes (en calidad) que la próxima candidata sin leer; si no, null. */
 function nextMatch(): Candidate | null {

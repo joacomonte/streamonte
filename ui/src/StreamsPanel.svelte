@@ -7,7 +7,7 @@
 	import OptionsList from '$ui/options/OptionsList.svelte';
 	import FlowScreen from './FlowScreen.svelte';
 	import GroupPanel from './GroupPanel.svelte';
-	import MoreRow from './MoreRow.svelte';
+	import MoreRow from '$ui/flow/MoreRow.svelte';
 	import type { SortView, StreamsView } from './streams-view.ts';
 
 	let { view }: { view: StreamsView | null } = $props();
@@ -48,7 +48,7 @@
 			{/if}
 			{#if view.moreRows}<button id="cat-more-rows" class="cat-more-rows" onclick={view.moreRows.onclick}>{view.moreRows.text}</button>{/if}
 			{#if view.probing}<p class="cat-probing" role="status"><span class="cat-res-spin" aria-hidden="true"></span>{view.probing}</p>{/if}
-			{#if view.more}<MoreRow more={view.more} />{/if}
+			{#if view.more}<MoreRow more={view.more} look="cat" />{/if}
 			{#if view.lower}
 				<div class="cat-lower" role="status"><span class="cat-radar" aria-hidden="true"></span><span class="cat-lower-text"><b>{view.lower.title}</b><span>{view.lower.sub}</span></span><button id="cat-deep-lower" onclick={view.lower.onclick}>{view.lower.go}</button></div>
 			{/if}

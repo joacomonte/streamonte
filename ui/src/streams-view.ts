@@ -1,19 +1,15 @@
 // Modelo de vista del panel de opciones del desktop (`#cat-streams`): lo arman `catalog-options.ts` (lista, análisis, filtros)
 // y `catalog-flow.ts` (pasos); lo dibujan `StreamsPanel.svelte`, `FlowScreen.svelte` y sus partes. Textos ya traducidos.
 import type { IconName } from '$ui/components/icons.ts';
-import type { FlowChip, FlowCrumb, TileSpec } from '$ui/flow/types.ts';
+import type { FlowChip, FlowCrumb, MoreRowView, TileSpec } from '$ui/flow/types.ts';
+
+export type { MoreRowView };
 import type { OptionRowView } from '$ui/options/row.ts';
 
 export type Click = (ev: MouseEvent & { currentTarget: HTMLButtonElement }) => void;
 
 /** Migas: lo elegido hasta ahora; las que tienen `onclick` vuelven a ese paso. */
 export type CrumbsView = { aria: string; items: FlowCrumb[] };
-
-/** Al pie de lo que se ve: búsqueda de pistas en curso, ya no hay más, o "Seguir buscando". */
-export type MoreRowView =
-	| { kind: 'running'; text: string; stop: string; onstop: () => void }
-	| { kind: 'done'; found: boolean; text: string }
-	| { kind: 'more'; title: string; small: string | null; onclick: () => void };
 
 /** Tarjeta de un paso (la dibuja `$ui/flow/FlowChoice.svelte`): ícono (`tile`), su color CSS (`tone`) y la posición en la pantalla
  *  (`i`, entrada escalonada). */
