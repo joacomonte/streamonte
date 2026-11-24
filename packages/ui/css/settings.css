@@ -117,3 +117,9 @@ label.st-row:has(.st-toggle:disabled) .st-lbl { opacity: 0.55; }
 .st-msg.ok { color: var(--green); }
 
 @media (prefers-reduced-motion: reduce) { .st-toggle, .st-toggle::after, .st-more > summary .st-chev, .st-btn { transition: none; } }
+
+/* ⓘ con tooltip al lado del nombre de una fila. */
+.tip-i { display: inline-flex; padding: 0; border: 0; background: none; color: var(--muted); cursor: help; border-radius: 50%; }
+.tip-i:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+
+.st-name label { cursor: inherit; }

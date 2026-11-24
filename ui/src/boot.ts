@@ -1,6 +1,6 @@
 // Arranque de la ventana principal. Imports estáticos: `main.ts` lo carga recién después del mock del navegador.
 // El orden de abajo importa: los diálogos y el botón de velocidad se montan ANTES de `initApp` / `initCatalog`, que buscan
-// elementos al arrancar (#dlg-log, #btn-sources, #set-lang-picker…). Ningún módulo hace trabajo al cargarse.
+// elementos al arrancar (#dlg-log, #btn-sources, …). Ningún módulo hace trabajo al cargarse.
 import { mount, unmount } from 'svelte';
 import { apiContext } from '$ui/context.ts';
 import { installTypeFx } from '$ui/components/type-fx.ts';
@@ -17,7 +17,6 @@ import SpeedPanel from './components/SpeedPanel.svelte';
 import { showError } from './dom.ts';
 import { langs, locale } from './i18n.ts';
 import { provideApi } from './mount-shared.ts';
-import SettingsLang from './SettingsLang.svelte';
 import SidePanel from './SidePanel.svelte';
 import { createDesktopApi } from './tauriApi.ts';
 import { host as uiHost } from './ui-host.ts';
@@ -53,7 +52,6 @@ export function startMain(): void {
   const host = document.createElement('div');
   host.id = 'svelte-root';
   document.body.append(host);
-  mount(SettingsLang, { target: document.getElementById('set-lang-picker') ?? host });
   mount(Welcome, { target: host });
   mount(CopiedMagnet, { target: document.getElementById('top-copied-host') ?? host });
   mount(Downloads, { target: document.getElementById('top-downloads-host') ?? host });
