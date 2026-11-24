@@ -13,7 +13,7 @@
   import { closePop } from '../top-menus.ts';
   import { live } from '../live.svelte.ts';
   import { titleOf } from '../live.ts';
-  import type { PlaybackAction, PlaybackRow, TempUsage } from '../types.js';
+  import type { PlaybackAction, PlaybackRow, TempUsage } from '../types.ts';
 
   const ACTIVE = (r: PlaybackRow): boolean => r.state.kind !== 'paused' && r.state.kind !== 'failed';
   /** Estados en que de verdad baja datos (pausada o "solo reproduciendo lo bajado" no). */

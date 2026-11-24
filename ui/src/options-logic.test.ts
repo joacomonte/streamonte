@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { bgTone, etaSecs, fileBytesOf, isUnlikely, leechersFrom, learned, pickLine, pinActive, playbackFor, quickGroupOf, scanSecs, seedsOf, topFinalists, trackersWin, type Count } from './options-logic.ts';
-import type { CoreEvent, PlaybackRow, StreamCandidate, StreamsUpdate } from './types.js';
+import type { CoreEvent, PlaybackRow, StreamCandidate, StreamsUpdate } from './types.ts';
 
 const lastUpdate = (slug: string): StreamsUpdate => {
 	const events = JSON.parse(readFileSync(new URL(`../mock/events__catalog_streams__${slug}.json`, import.meta.url), 'utf8')) as CoreEvent[];

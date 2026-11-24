@@ -7,7 +7,7 @@ import { speedStore } from './speed-instance.ts';
 import { popFor, togglePop } from './top-menus.ts';
 import { host } from './ui-host.ts';
 
-/** @param {import('./types.js').SpeedState} s  evento `speed-test` del núcleo */
+/** @param {import('./types.ts').SpeedState} s  evento `speed-test` del núcleo */
 export const onSpeedEvent = (s) => speedStore.onEvent(s);
 
 function renderPop() {

@@ -10,7 +10,7 @@
 	import type { SubsCtx } from '../../packages/ui/src/subs/subs-flow.ts';
 	import type { SubtitleFile } from '../../packages/ui/src/api.ts';
 	import type { OptionRef, SubtitleOption } from '../../packages/ui/src/types.ts';
-	import type { NativeSpanish } from './types.js';
+	import type { NativeSpanish } from './types.ts';
 
 	export type StepState = {
 		reading: 'reading' | 'done' | 'failed' | 'skipped' | null;

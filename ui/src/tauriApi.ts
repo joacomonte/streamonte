@@ -4,7 +4,7 @@ import type { Api } from '../../packages/ui/src/api.ts';
 import type { Lang } from '../../packages/ui/src/i18n/translate.ts';
 import type { ApiEvent, OptionsUpdate, TitleDetails } from '../../packages/ui/src/types.ts';
 import * as adapt from './tauri-adapt.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 /** Lo que usa el adaptador de `api.js`. */
 export type CoreApi = Pick<typeof import('./api.js').api,

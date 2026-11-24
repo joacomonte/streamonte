@@ -6,7 +6,7 @@ import { setStatus, showError } from './dom.js';
 import { t } from './i18n.js';
 import { state, titleOf } from './state.js';
 import { host } from './ui-host.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 /** Se cerró mpv sin terminar de bajar: detener y borrar (por defecto), pausar guardando lo bajado, o seguir bajando de fondo. */
 export async function askAfterClose(row: Raw.PlaybackRow): Promise<void> {

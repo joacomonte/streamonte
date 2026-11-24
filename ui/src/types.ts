@@ -1,5 +1,5 @@
-// Tipos del núcleo (serde, snake_case; enums kebab-case; fechas ISO 8601; Option<T> = T|null). Generado de los @typedef de types.js (2026-11-22);
-// ahora se edita acá. Uso: `import type { Meta } from './types.js'` o `import('./types.js').Meta` (resuelve a este archivo).
+// Tipos del núcleo (serde, snake_case; enums kebab-case; fechas ISO 8601; Option<T> = T|null). Se editan acá.
+// Uso: `import type { Meta } from './types.ts'` o `import('./types.ts').Meta`.
 /**
  * 40 hex en minúsculas
  */

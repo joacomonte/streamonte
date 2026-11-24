@@ -8,7 +8,7 @@
   import { api } from './api.js';
   import { safeGet, safeSet } from './catalog-state.js';
   import { langs, setLangs, t } from './i18n.js';
-  import type { PlayersStatus } from './types.d.ts';
+  import type { PlayersStatus } from './types.ts';
   import { setTouring, STORE } from './welcome-state.js';
 
   const saved = safeGet(STORE);

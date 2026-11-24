@@ -6,7 +6,7 @@ import type {
 	ApiEvent, CatalogItem, CatalogPage, Episode, Identified, Kind, MagnetStatus, MagnetView, OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings,
 	ShowStatus, SimilarItem, SourceStatus, SubtitleOption, TitleDetails, TorrentOption, TorrentTracks
 } from '../../packages/ui/src/types.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 export const kindOf = (k: Raw.MediaKind): Kind => (k === 'series' ? 'tv' : 'movie');
 export const rawKind = (k: Kind): Raw.MediaKind => (k === 'tv' ? 'series' : 'movie');

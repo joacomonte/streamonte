@@ -18,7 +18,7 @@ import { closeSide, renderSide } from './catalog-side.js';
 import { showError, state, view } from './catalog-state.js';
 import { onSwarmEvent } from './catalog-tests.ts';
 
-/** @typedef {import('./types.js').LibraryRow} LibraryRow */
+/** @typedef {import('./types.ts').LibraryRow} LibraryRow */
 /** @typedef {import('./catalog-state.js').PickedPerson} PickedPerson */
 /** @typedef {import('../../packages/ui/src/catalog/store.ts').CatalogStore} CatalogStore */
 
@@ -154,7 +154,7 @@ async function init() {
   // no está garantizado.
   window.addEventListener('playback-changed', (ev) => {
     // app.js lo manda con el evento del núcleo ya guardado en `detail`.
-    const event = /** @type {CustomEvent<Extract<import('./types.js').CoreEvent, {type: 'playback-updated' | 'playback-removed'}>>} */ (ev).detail;
+    const event = /** @type {CustomEvent<Extract<import('./types.ts').CoreEvent, {type: 'playback-updated' | 'playback-removed'}>>} */ (ev).detail;
     if (event.type === 'playback-removed') { if (state.update) renderStreamsOnly(); return; }
     const n = starting.size;
     onPlaybackRow(event.row);

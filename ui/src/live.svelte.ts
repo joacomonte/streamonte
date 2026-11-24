@@ -5,7 +5,7 @@
 import { api, onCoreEvent } from './api.js';
 import { emptyLive, loaded, reduce, type Live } from './live.ts';
 import { eventLines, mergeLine, type FeedLine, type Line } from './activity-feed.ts';
-import type { CoreEvent } from './types.js';
+import type { CoreEvent } from './types.ts';
 
 class LiveStore {
 	v = $state.raw<Live>(emptyLive());

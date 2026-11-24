@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { angle, failedView, fmtMbps, gaugeArc, viewAfterEvent } from './speed-model.ts';
 import { createSpeedStore } from './speed-store.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 const result: Raw.SpeedResult = { mbps: 312.4, measured_at: '2026-11-22T10:00:00Z', network: 'net-1' };
 

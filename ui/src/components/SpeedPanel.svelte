@@ -11,7 +11,7 @@
   import { fmtMbps } from '../speed-model.ts';
   import { speedStore } from '../speed-instance.ts';
   import { state as appState } from '../state.js';
-  import type * as Raw from '../types.js';
+  import type * as Raw from '../types.ts';
   import Gauge from './Gauge.svelte';
 
   let snap = $state(speedStore.snapshot());

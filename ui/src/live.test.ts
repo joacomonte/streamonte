@@ -3,7 +3,7 @@ import './test-stub.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { emptyLive, loaded, reduce, titleOf } from './live.ts';
-import type { CoreEvent, LibraryRow, PlaybackRow } from './types.js';
+import type { CoreEvent, LibraryRow, PlaybackRow } from './types.ts';
 
 const entry = (key: string, more: Partial<LibraryRow> = {}): LibraryRow =>
 	({ key, info_hash: key.split(':')[0], name: 'dn.mkv', torrent_name: null, live: null, release: null, ...more }) as LibraryRow;

@@ -27,7 +27,7 @@ import type { LatState } from '$ui/types.ts';
 import { BG_GREEN, BG_YELLOW, bgTone, fileBytesOf, leechersFrom, pickLine, pinActive, playbackFor, PB_LIVE, PB_STARTING, seedsOf, trackersWin } from './options-logic.ts';
 import { flushStreams, mountCtxMenu, openCtxMenu, showStreams } from './streams-panel.svelte.ts';
 import type { CtxItem, ListView, MoreRowView, PanelView, SortView, StreamsView } from './streams-view.ts';
-import type { LibraryRow, NativeSpanish, PlaybackRow, PlayerKind, StreamCandidate as Candidate, StreamsUpdate } from './types.js';
+import type { LibraryRow, NativeSpanish, PlaybackRow, PlayerKind, StreamCandidate as Candidate, StreamsUpdate } from './types.ts';
 
 export { BG_GREEN, BG_YELLOW, PB_LIVE, PB_STARTING, seedsOf, trackersWin };
 

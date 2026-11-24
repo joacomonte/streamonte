@@ -14,7 +14,7 @@ import { pickPerson, reduceMotion } from './catalog.js';
 import { actions, panel } from './side-panel.svelte.ts';
 /** @typedef {import('./catalog-state.js').Side} Side */
 
-/** @param {import('./types.js').MediaKind} kind @param {string} id @param {string} name */
+/** @param {import('./types.ts').MediaKind} kind @param {string} id @param {string} name */
 export async function openSide(kind, id, name) {
   await leaveTests();
   const seq = ++view.sideSeq;

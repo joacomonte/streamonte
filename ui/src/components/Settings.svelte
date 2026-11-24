@@ -12,7 +12,7 @@
     saveOsLogin, toggleLatTeam, type KeyService, type Net, type PlayersView
   } from '../settings-model.ts';
   import { host } from '../ui-host.ts';
-  import type * as Raw from '../types.js';
+  import type * as Raw from '../types.ts';
 
   /** `tip`: lo que antes era párrafo, ahora en el tooltip del ⓘ. */
   type Row = { service: KeyService; label: string; hint: string; tip?: string; placeholder: string; primary?: boolean };

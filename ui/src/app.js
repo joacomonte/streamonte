@@ -29,7 +29,7 @@ function onShortcut(ev) {
 
 // ---------- eventos del núcleo ----------
 /** Ya con `live.v` al día; `prev` es el estado anterior al evento.
- *  @param {import('./types.js').CoreEvent} event @param {import('./live.ts').Live} prev */
+ *  @param {import('./types.ts').CoreEvent} event @param {import('./live.ts').Live} prev */
 function onEvent(event, prev) {
   switch (event.type) {
     case 'status':

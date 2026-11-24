@@ -59,7 +59,6 @@ async function startMain(): Promise<void> {
   if (sideHost) {
     mount(SidePanel, { target: sideHost, context: apiContext(api), props: { locale: locale(), genreLabel: genreName } });
   }
-  const { default: Island } = await import('./Island.svelte'); // mismo orden de evaluación que antes (evita ciclos)
   const { default: Welcome } = await import('./Welcome.svelte');
   const { default: SettingsLang } = await import('./SettingsLang.svelte');
   const { default: CopiedMagnet } = await import('./components/CopiedMagnet.svelte');
@@ -69,7 +68,6 @@ async function startMain(): Promise<void> {
   const host = document.createElement('div');
   host.id = 'svelte-root';
   document.body.append(host);
-  mount(Island, { target: host });
   mount(SettingsLang, { target: document.getElementById('set-lang-picker') ?? host });
   mount(Welcome, { target: host });
   mount(CopiedMagnet, { target: document.getElementById('top-copied-host') ?? host });

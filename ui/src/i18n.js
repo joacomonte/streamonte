@@ -13,7 +13,7 @@ import { translate } from '../../packages/ui/src/i18n/translate.ts';
 /** Los elegidos, guardados en la config del núcleo. Se leen una vez al cargar (todo módulo que importa este espera):
  *  cambiarlos recarga la ventana, así cada texto ya armado sale en el idioma nuevo. */
 const saved = await api.config().then((c) => c.language, () => null);
-/** @type {import('./types.js').LanguageConfig} */
+/** @type {import('./types.ts').LanguageConfig} */
 export const langs = { app: saved?.app === 'en' ? 'en' : 'es', titles: saved?.titles === 'en' ? 'en' : 'es' };
 document.documentElement.lang = langs.app;
 
@@ -27,7 +27,7 @@ console.assert(t('{n} de {d}', { n: 1, d: 3 }) === (langs.app === 'en' ? '1 of 3
 export const locale = () => (langs.app === 'en' ? 'en-US' : 'es-AR');
 
 /** Cambia uno o los dos idiomas y recarga la ventana (el núcleo sigue corriendo: descargas y reproducciones quedan). */
-/** @param {Partial<import('./types.js').LanguageConfig>} next */
+/** @param {Partial<import('./types.ts').LanguageConfig>} next */
 export async function setLangs(next) {
   await api.setLanguage({ ...langs, ...next });
   location.reload();

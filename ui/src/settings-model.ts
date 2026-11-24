@@ -2,7 +2,7 @@
 // Las funciones tiran lo que tire el núcleo (la UI lo muestra con `showError`); devuelven el mensaje para la barra de estado.
 import { t } from '../../packages/ui/src/i18n/runtime.ts';
 import type { DesktopApi } from './desktopApi.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 export type KeyService = 'tmdb' | 'torbox' | 'wyzie' | 'opensubtitles';
 export type KeyEvent = 'streamonte:tmdb-key' | 'streamonte:torbox-key';

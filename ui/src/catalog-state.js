@@ -15,19 +15,19 @@ export const showError = (/** @type {unknown} */ e) => reportError(e, { activity
 export const safeGet = (/** @type {string} */ k) => { try { return localStorage.getItem(k); } catch { return null; } };
 export const safeSet = (/** @type {string} */ k, /** @type {string} */ v) => { try { localStorage.setItem(k, v); } catch { /* sin almacenamiento */ } };
 
-/** @typedef {import('./types.js').Meta} Meta */
-/** @typedef {import('./types.js').DetailsView} DetailsView */
-/** @typedef {import('./types.js').Similar} Similar */
-/** @typedef {import('./types.js').EpisodeText} EpisodeText */
-/** @typedef {import('./types.js').SeasonRatings} SeasonRatings */
-/** @typedef {import('./types.js').StreamsUpdate} StreamsUpdate */
-/** @typedef {import('./types.js').LibraryRow} LibraryRow */
+/** @typedef {import('./types.ts').Meta} Meta */
+/** @typedef {import('./types.ts').DetailsView} DetailsView */
+/** @typedef {import('./types.ts').Similar} Similar */
+/** @typedef {import('./types.ts').EpisodeText} EpisodeText */
+/** @typedef {import('./types.ts').SeasonRatings} SeasonRatings */
+/** @typedef {import('./types.ts').StreamsUpdate} StreamsUpdate */
+/** @typedef {import('./types.ts').LibraryRow} LibraryRow */
 /** @typedef {import('./catalog-tests.ts').VideoTests} VideoTests */
 /** @typedef {import('./catalog-tests.ts').Deep} Deep */
 /** @typedef {import('./catalog-flow.ts').Flow} Flow */
 /** Lo que se eligió en el panel lateral. Los campos opcionales se van llenando al abrir la ficha, las temporadas, etc.
  *  `similar`: undefined = sin pedir, null = cargando.
- *  @typedef {{kind: import('./types.js').MediaKind, id: string, name: string, meta: Meta|null, season: number|null, episode: number|null,
+ *  @typedef {{kind: import('./types.ts').MediaKind, id: string, name: string, meta: Meta|null, season: number|null, episode: number|null,
  *   videoId: string|null, details?: DetailsView, runtime?: number|null, seasonRatings?: SeasonRatings|null,
  *   epTexts?: Record<number, Map<number, EpisodeText>>, similar?: Similar[]|null, similarOpen?: boolean, aboutOpen?: boolean,
  *   providersOpen?: boolean,

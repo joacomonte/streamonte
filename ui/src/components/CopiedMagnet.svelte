@@ -5,7 +5,7 @@
   import { api } from '../api.js';
   import { play } from '../audio-picker.js';
   import { icon, showError } from '../dom.js';
-  import type { CopiedMagnet } from '../types.js';
+  import type { CopiedMagnet } from '../types.ts';
 
   let copied = $state.raw<CopiedMagnet | null>(null);
   let busy = $state(false);

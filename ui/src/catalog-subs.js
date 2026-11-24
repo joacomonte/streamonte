@@ -70,7 +70,7 @@ export async function readTracks(hash, torbox) {
   s.error = null;
   let wait = READ_WAIT_MS;
   if (torbox) {
-    try { await api.catalogTorboxTracks(side().kind, side().videoId, hash); wait = ROW_WAIT_MS; } catch (e) { s.error = /** @type {Partial<import('./types.js').UiError>|null} */ (e)?.message ?? String(e); wait = 0; }
+    try { await api.catalogTorboxTracks(side().kind, side().videoId, hash); wait = ROW_WAIT_MS; } catch (e) { s.error = /** @type {Partial<import('./types.ts').UiError>|null} */ (e)?.message ?? String(e); wait = 0; }
   } else quickAnalyze([hash]);
   for (const end = Date.now() + wait; natives(hash) == null && Date.now() < end && s.read === 'reading';) await sleep(250);
   // Sin leer (falló, se pasó el tiempo o "No esperar"): no se reintenta solo; el botón de la fila dice por qué.

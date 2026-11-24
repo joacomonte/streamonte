@@ -9,7 +9,7 @@ import { bgLoads, groupsOf, health, inScope, isSafeBest, knownSeeds, lowerRes, o
 import { cancelFlowWork, type Flow } from './catalog-flow.ts';
 import { safeGet, safeSet, showError, state, type Side } from './catalog-state.js';
 import { etaSecs, isUnlikely, learned, quickGroupOf, seedsOf, topFinalists, type Count } from './options-logic.ts';
-import type { CoreEvent, StreamCandidate as Candidate } from './types.js';
+import type { CoreEvent, StreamCandidate as Candidate } from './types.ts';
 
 export { QUICK_ENOUGH } from './options-logic.ts';
 export type { Count } from './options-logic.ts';

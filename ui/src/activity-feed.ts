@@ -3,7 +3,7 @@
 import { t as tr } from './i18n.js';
 import { clock, humanBytes, mb, nf } from '../../packages/ui/src/format.ts';
 import { fullName, titleOf, type Live } from './live.ts';
-import type { CoreEvent } from './types.js';
+import type { CoreEvent } from './types.ts';
 
 export type Level = 'info' | 'warn' | 'error';
 /** Lo que se anota. `key`: misma clave = mismo trabajo (p. ej. la velocidad en vivo): se actualiza en su lugar. */

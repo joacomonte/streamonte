@@ -7,9 +7,9 @@ import { $, el, icon, setStatus, showError } from './dom.js';
 import { state, titleOf } from './state.js';
 import { blockTips, wantTip } from './tooltip.js';
 
-/** @typedef {import('./types.js').AudioOption} AudioOption */
-/** @typedef {import('./types.js').LibraryRow} LibraryRow */
-/** @typedef {import('./types.js').PlayerKind} PlayerKind */
+/** @typedef {import('./types.ts').AudioOption} AudioOption */
+/** @typedef {import('./types.ts').LibraryRow} LibraryRow */
+/** @typedef {import('./types.ts').PlayerKind} PlayerKind */
 /** Una opción de un paso con botones. @typedef {{label: string, sub?: string|null, art?: HTMLElement, tip?: string|null, value?: string}} WizardOpt */
 /** Resultados por `id` de paso: índice elegido (paso con `opts`) o lo que pase `next(valor)` un paso propio.
  *  @typedef {Record<string, any>} WizardResults  borde: cada paso propio devuelve lo suyo */

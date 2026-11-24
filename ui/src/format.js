@@ -4,7 +4,7 @@
 import { t } from './i18n.js';
 
 /** Estado de una reproducción en palabras. */
-/** @param {import('./types.js').PlaybackRow} pb @returns {string} */
+/** @param {import('./types.ts').PlaybackRow} pb @returns {string} */
 export function playbackText(pb) {
   const k = pb.state.kind;
   if (k === 'fetching-metadata') return t('cargando…');

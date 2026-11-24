@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as adapt from './tauri-adapt.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 /** La fixture ya tiene la forma de `Raw.*` (la grabó el núcleo): se lee como tal. */
 const fixture = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../mock/${name}.json`, import.meta.url), 'utf8')) as T;

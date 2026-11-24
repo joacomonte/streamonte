@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as adapt from '../../../../ui/src/tauri-adapt.ts';
-import type * as Raw from '../../../../ui/src/types.js';
+import type * as Raw from '../../../../ui/src/types.ts';
 import { applyUpdate, emptyLoad, loadOptions, type OptionsLoad } from './options-load.ts';
 import { langTags, qualityOf, resKey, resLabel, sizeText, TipBook, type LangInput } from './row.ts';
 import type { OptionsUpdate } from '../types.ts';

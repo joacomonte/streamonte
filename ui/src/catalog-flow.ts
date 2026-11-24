@@ -16,7 +16,7 @@ import { latRank } from '$ui/audio.ts';
 import type { TileSpec } from '$ui/flow/types.ts';
 import { latChips } from '$ui/flow/lat-chips.ts';
 import type { ChoiceView, CrumbsView, FlowButton, FlowView, MoreRowView } from './streams-view.ts';
-import type { StreamCandidate as Candidate, StreamsUpdate } from './types.js';
+import type { StreamCandidate as Candidate, StreamsUpdate } from './types.ts';
 
 export type NetChoice = { key: string; label: string; range: string; mbps: number; tone: string };
 /** Búsqueda de pistas en curso (`runScan`). */

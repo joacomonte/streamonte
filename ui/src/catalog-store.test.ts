@@ -7,7 +7,7 @@ import { DEFAULTS, parseSaved, toBrowse } from '../../packages/ui/src/catalog/fi
 import { createCatalog, initialState, type CatalogOptions } from '../../packages/ui/src/catalog/store.ts';
 import type { ApiEvent, BrowseFilters, CatalogItem, CatalogPage, Kind, PersonRole } from '../../packages/ui/src/types.ts';
 import * as adapt from './tauri-adapt.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 const fixture = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../mock/${name}.json`, import.meta.url), 'utf8')) as T;
 const trending = adapt.catalogPage(fixture<Raw.BrowsePage>('catalog_trending__movie_0'));
