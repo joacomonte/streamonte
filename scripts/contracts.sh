@@ -63,7 +63,7 @@ while read -r f app; do
   run "$f" "$app" & jobs="$jobs $!"; n=$((n + 1))
   [ $((n % ${JOBS:-2})) = 0 ] && { wait $jobs; jobs=""; }
 done <"$tmp/chosen"
-wait $jobs # solo los contratos: un `wait` pelado esperaría también a los servidores
+[ -n "$jobs" ] && wait $jobs # solo los contratos (con un número par de contratos queda vacío): un `wait` pelado esperaría también a los servidores
 
 # Salida compacta: una línea por contrato OK; el JSON y stderr completos solo de los que fallan o recuperan algo.
 rc=0; total=0

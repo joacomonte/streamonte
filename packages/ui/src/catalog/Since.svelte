@@ -248,7 +248,7 @@
 
 <style>
 	/* Estrenos desde: una tira de película con todo adentro (título, año en el cabezal, "hoy"). */
-	.since { margin-top: 14px; }
+	.since { margin-top: 10px; }
 	.reel-label { position: absolute; left: 12px; top: 17px; z-index: 1; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; pointer-events: none; }
 	/* El año, pegado al cabezal; pasa a su izquierda cuando el cabezal queda cerca de la derecha. */
 	.tag {

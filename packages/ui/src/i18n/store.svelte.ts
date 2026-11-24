@@ -13,6 +13,8 @@ export type LangStore = {
 	readonly lang: Lang;
 	/** Cambia el idioma de la app y lo guarda. */
 	setLang(lang: Lang): Promise<void>;
+	/** Fija el idioma sin guardarlo (la web, con el que decidió el servidor antes del primer render). */
+	sync(lang: Lang): void;
 	/** Texto en el idioma de la app; la clave es el texto en español. Fija también el traductor de la lógica compartida (format.ts…). */
 	t(s: string, vars?: Vars): string;
 	/** Locale para fechas y números. */
@@ -30,6 +32,9 @@ export function createLangStore(storage: LangStorage): LangStore {
 		async setLang(next) {
 			lang = next;
 			await storage.save(next);
+		},
+		sync(next) {
+			lang = next;
 		},
 		t,
 		loc: () => locale(lang)

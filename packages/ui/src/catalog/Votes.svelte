@@ -93,8 +93,8 @@
 </div>
 
 <style>
-	/* Abajo queda lugar para la nota, así aparecer no corre la grilla. */
-	.votes { position: relative; margin-top: 18px; padding-bottom: 16px; user-select: none; -webkit-user-select: none; }
+	/* La nota se superpone bajo la pista (absoluta, con fondo), así aparecer no corre nada. */
+	.votes { position: relative; margin-top: 12px; user-select: none; -webkit-user-select: none; }
 	/* Pista: 12 px de margen a cada lado para que la perilla no se corte. */
 	.track { position: relative; height: 36px; touch-action: none; cursor: pointer; outline-offset: 2px; border-radius: var(--r-sm); }
 	.track::before { content: ''; position: absolute; left: 12px; right: 12px; top: 16px; height: 4px; border-radius: 4px; background: var(--surface-3); }
@@ -140,7 +140,11 @@
 	/* Nota sutil bajo la perilla: pegada a la izquierda en "De nicho", centrada en el medio y a la derecha al final. */
 	.hint {
 		position: absolute;
-		bottom: 0;
+		top: calc(100% - 4px);
+		z-index: 1;
+		padding: 0 6px;
+		border-radius: 6px;
+		background: var(--bg);
 		left: calc(100% * var(--p) / 2);
 		translate: calc(-50% * var(--p)) 4px;
 		font-size: 11.5px;

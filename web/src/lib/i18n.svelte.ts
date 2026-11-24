@@ -47,6 +47,12 @@ export const loc = () => store.loc();
 /** Idiomas en que llega lo de TMDB (títulos y sinopsis): la caché de esas respuestas va por esta clave. */
 export const contentKey = () => `${i18n.titles}.${i18n.lang}`;
 
+/** Los idiomas que decidió el servidor (cookie o navegador), sin guardarlos: el layout lo llama antes del primer render. */
+export function syncLangs(langs: { lang: Lang; titles: Lang }): void {
+	store.sync(langs.lang);
+	titlesState.titles = langs.titles;
+}
+
 /** Idioma de la app. */
 export function setLang(lang: Lang): void {
 	// Sin idioma de títulos elegido, queda fijo el que había: el toggle de la app no cambia los títulos.

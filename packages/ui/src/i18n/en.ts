@@ -1142,6 +1142,7 @@ const EN: Record<string, string> = {
 	"{n} de {m} elegidos": "{n} of {m} picked",
 	"Ninguno elegido": "None picked",
 	"Ej.:": "E.g.:",
+	"Todos los géneros": "All genres",
 	"Todos los subgéneros": "All subgenres",
 	"Elegí al menos uno": "Pick at least one",
 	"Volver a los géneros": "Back to genres",

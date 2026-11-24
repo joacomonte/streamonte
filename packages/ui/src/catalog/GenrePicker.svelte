@@ -1,6 +1,6 @@
 <script lang="ts">
-	// Géneros del catálogo (2026-11-23, variante B3 de docs/mockups/generos-anidados): un botón que abre una hoja de vidrio
-	// abajo (celu) o un desplegable grande (PC). Nivel 1: baldosas de género con collage de pósters. Nivel 2: los subgéneros
+	// Géneros del catálogo (variante S1 v3 + B3 de docs/mockups/generos-fade, 2026-11-24; panel negro sólido, sin vidrio): un
+	// botón con collage de pósters que abre una hoja negra abajo (celu) o un desplegable grande (PC). Nivel 1: baldosas de género con collage de pósters. Nivel 2: los subgéneros
 	// del elegido, con explicación y dos ejemplos populares; "Todos" es una baldosa más. Se elige un género por vez y dentro
 	// uno, varios o todos los subgéneros; "Listo" aplica. En PC: géneros a la izquierda y subgéneros a la derecha.
 	// Ejemplos (títulos y pósters de IMDb): `store.loadExamples`. Géneros y subgéneros: `subgenres.ts`.
@@ -8,7 +8,7 @@
 	import Icon from '../components/Icon.svelte';
 	import { t } from '../i18n/runtime.ts';
 	import type { InterestExample } from '../types.ts';
-	import { ALL_ART, genreArt } from './genre-art.ts';
+	import { genreArt } from './genre-art.ts';
 	import { categoriesFor, categoryOf, type Category } from './subgenres.ts';
 	import type { CatalogStore } from './store.ts';
 
@@ -22,12 +22,13 @@
 
 	const applied = $derived(categoryOf(st.f.genre));
 	const appliedSubs = $derived(applied ? applied.subs.filter((x) => st.f.subs.includes(x.id)).map((x) => x.label) : []);
-	/** Hasta 2 subgéneros con nombre; con más, el primero y el resto en un círculo ("Terror · Psicológico (+8)"). */
-	const SHOWN = 2;
-	const shownSubs = $derived(appliedSubs.length > SHOWN ? appliedSubs.slice(0, 1) : appliedSubs);
-	const moreSubs = $derived(appliedSubs.length - shownSubs.length);
-	/** Texto del botón: "Terror" o "Terror · Folk, Slasher". */
-	const appliedText = $derived(applied ? [applied.label, shownSubs.join(', ')].filter(Boolean).join(' · ') : '');
+	/** Segundo renglón del botón: "Todos los géneros", "Todos los subgéneros", "Folk, Slasher" o "Folk y 3 más". */
+	const subText = $derived.by(() => {
+		if (!applied) return t('Todos los géneros');
+		if (!appliedSubs.length || appliedSubs.length === applied.subs.length) return t('Todos los subgéneros');
+		if (appliedSubs.length <= 2) return appliedSubs.join(', ');
+		return `${appliedSubs[0]} ${t('y {n} más', { n: appliedSubs.length - 1 })}`;
+	});
 
 	let open = $state(false);
 	/** Género que se está mirando (el aplicado al abrir) y sus subgéneros marcados (borrador hasta "Listo"). */
@@ -62,11 +63,17 @@
 	}
 	const level1 = $derived(deal(cats.map((x) => x.all[0])));
 	const level2 = $derived(c ? deal([c.all[0], ...c.subs.map((x) => x.id)]) : []);
+	/** Pósters del botón: los del género aplicado o el primero de cada una de las 3 primeras categorías (vacío hasta que carguen). */
+	const stack = $derived(
+		(applied ? (ex(applied.all[0]) ?? []).slice(0, 3) : level1.slice(0, 3).map((l) => l?.[0]))
+			.map((x) => x?.poster)
+			.filter((x): x is string => !!x),
+	);
 
 	function place() {
 		if (!btn) return;
 		const r = btn.getBoundingClientRect();
-		const width = Math.min(860, innerWidth - 32);
+		const width = Math.min(940, innerWidth - 32);
 		const height = Math.min(600, innerHeight - 32);
 		// Bajo el botón; si no entra, sube lo justo para que quede entero en pantalla.
 		const top = Math.max(16, Math.min(r.bottom + 8, innerHeight - height - 16));
@@ -144,13 +151,16 @@
 
 <div class="pick-row">
 	<button bind:this={btn} id="cat-genre" type="button" class="trigger" class:on={!!applied} aria-haspopup="dialog" aria-expanded={open} onclick={show}>
-		{#if applied}
-			<span class="art" style:--h={genreArt(applied.art).hue} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{@html genreArt(applied.art).svg}</svg></span>
-			<span class="t-text">{appliedText}</span>
-			{#if moreSubs}<span id="cat-genre-more" class="more" aria-label={t('{n} más', { n: moreSubs })}>+{moreSubs}</span>{/if}
-		{:else}
-			<Icon name="tag" size={16} /><span class="t-text">{t('Géneros')}</span>
-		{/if}
+		<span class="stack" aria-hidden="true">
+			{#each stack as src (src)}
+				<span class="mini" style:background-image="url('{src}')"></span>
+			{:else}
+				<span class="mini art" style:--h={applied ? genreArt(applied.art).hue : null}>
+					{#if applied}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{@html genreArt(applied.art).svg}</svg>{:else}<Icon name="tag" size={16} />{/if}
+				</span>
+			{/each}
+		</span>
+		<span class="lbl">{applied?.label ?? t('Géneros')}<em>{subText}</em></span>
 		<Icon name="chev" size={14} />
 	</button>
 	{#if applied}
@@ -171,7 +181,7 @@
 {/snippet}
 
 {#snippet genreTile(g: Category, k: number)}
-	<button id="genre-{g.key}" type="button" class="tile g-tile fade-dark" style:--h={genreArt(g.art).hue} style:--k={k} onclick={() => enter(g.key)}>
+	<button id="genre-{g.key}" type="button" class="tile g-tile" style:--h={genreArt(g.art).hue} style:--k={k} onclick={() => enter(g.key)}>
 		{@render posters(level1[k] ?? null)}
 		<span class="ic">{@render glyph(genreArt(g.art).svg)}</span>
 		<b>{g.label}</b>
@@ -181,26 +191,25 @@
 {#snippet subs(g: Category)}
 	{@const all = level2[0] ?? null}
 	<div class="grid sub">
-		<button bind:this={tiles.all} id="sub-all" type="button" class="tile s-tile fade-dark" class:part={mark === 'part'} class:off={mark === 'none'} aria-pressed={mark === 'all'} style:--k={0} onclick={toggleAll}>
+		<button bind:this={tiles.all} id="sub-all" type="button" class="tile s-tile" class:part={mark === 'part'} class:off={mark === 'none'} aria-pressed={mark === 'all'} style:--k={0} onclick={toggleAll}>
 			<span class="chk" aria-hidden="true"><Icon name="check" size={14} /><i class="dash"></i></span>
 			{@render posters(all)}
-			<span class="ic">{@render glyph(ALL_ART.svg, 16)}</span>
 			<span class="fr">
 				<b>{t('Todos')}</b>
 				<span class="d">{mark === 'all' ? t('Todo {g}, sin filtrar', { g: g.label }) : mark === 'part' ? t('{n} de {m} elegidos', { n: sel.length, m: g.subs.length }) : t('Ninguno elegido')}</span>
-				{#if all?.length}<span class="ej"><i>{t('Ej.:')}</i> {all.slice(0, 2).map((x) => x.title).join(' · ')}</span>{/if}
+				{#if all?.length}<span class="exs">{#each all.slice(0, 2) as x (x.title)}<span class="ex">{x.title}</span>{/each}</span>{/if}
 			</span>
 		</button>
 		{#each g.subs as s, k (s.id)}
 			{@const on = sel.includes(s.id)}
 			{@const list = level2[k + 1] ?? null}
-			<button bind:this={tiles[s.id]} id="sub-{s.id}" type="button" class="tile s-tile fade-dark" class:off={!on} aria-pressed={on} style:--k={k + 1} onclick={() => toggle(s.id)}>
+			<button bind:this={tiles[s.id]} id="sub-{s.id}" type="button" class="tile s-tile" class:off={!on} aria-pressed={on} style:--k={k + 1} onclick={() => toggle(s.id)}>
 				<span class="chk" aria-hidden="true"><Icon name="check" size={14} /></span>
 				{@render posters(list)}
 				<span class="fr">
 					<b>{s.label}</b>
 					<span class="d">{s.desc}</span>
-					{#if list?.length}<span class="ej"><i>{t('Ej.:')}</i> {list.slice(0, 2).map((x) => x.title).join(' · ')}</span>{/if}
+					{#if list?.length}<span class="exs">{#each list.slice(0, 2) as x (x.title)}<span class="ex">{x.title}</span>{/each}</span>{/if}
 				</span>
 			</button>
 		{/each}
@@ -209,8 +218,12 @@
 
 {#snippet foot(g: Category)}
 	<div class="foot">
-		<button id="genre-done" type="button" class="done" disabled={mark === 'none'} onclick={done}>{t('Listo')}</button>
-		<small>{mark === 'all' ? t('Todos los subgéneros') : mark === 'part' ? g.subs.filter((x) => sel.includes(x.id)).map((x) => x.label).join(', ') : t('Elegí al menos uno')}</small>
+		<div class="bar">
+			<span id="genre-sum" class="sum">
+				{#if mark === 'all'}{t('Todos los subgéneros')}{:else if mark === 'part'}<b>{t('{n} de {m} elegidos', { n: sel.length, m: g.subs.length })}</b> · {g.subs.filter((x) => sel.includes(x.id)).map((x) => x.label).join(', ')}{:else}{t('Elegí al menos uno')}{/if}
+			</span>
+			<button id="genre-done" type="button" class="done" disabled={mark === 'none'} onclick={done}>{t('Listo')}<Icon name="arrow" size={16} /></button>
+		</div>
 	</div>
 {/snippet}
 
@@ -260,16 +273,19 @@
 
 <style>
 	/* ── Botón ── */
-	.pick-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
-	.trigger { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 38px; padding: 0 12px 0 13px; border: 0; border-radius: var(--r-pill); background: var(--surface-2); color: var(--muted); font-size: 14px; font-weight: 650; -webkit-tap-highlight-color: transparent; transition: background 0.25s var(--out), color 0.25s var(--out), scale 0.2s var(--out); }
+	.pick-row { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; }
+	.trigger { display: inline-flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; height: 44px; padding: 0 14px 0 8px; border: 0; border-radius: 14px; background: linear-gradient(180deg, #1a1e26, #12151b); color: #e7eaee; font-size: 14px; font-weight: 650; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.35); -webkit-tap-highlight-color: transparent; transition: box-shadow 0.25s var(--out), color 0.25s var(--out), scale 0.2s var(--out); }
 	.trigger:active { scale: 0.96; }
-	.trigger.on { color: var(--text); background: color-mix(in srgb, var(--accent) 16%, var(--surface-2)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent-fg) 60%, transparent); }
-	.t-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.more { flex: none; display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 750; font-variant-numeric: tabular-nums; animation: more-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-	@keyframes more-pop { from { transform: scale(0); } }
-	.art { display: inline-flex; color: oklch(0.74 0.14 var(--h)); }
-	@media (prefers-color-scheme: light) { .art { color: oklch(0.52 0.15 var(--h)); } }
-	.clear { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--muted); }
+	.trigger.on { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), inset 0 0 0 1px rgb(96 165 250 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35); }
+	.stack { display: flex; flex: none; }
+	.mini { flex: none; width: 26px; height: 26px; margin-left: -8px; border-radius: 8px; background: #1a1f27 center / cover; box-shadow: 0 0 0 2px #161a21; }
+	.mini:first-child { margin-left: 0; }
+	.mini.art { display: grid; place-items: center; }
+	.lbl { display: flex; flex-direction: column; min-width: 0; overflow: hidden; line-height: 1.1; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+	.lbl em { overflow: hidden; font-style: normal; font-size: 11px; font-weight: 500; color: #8a939e; text-overflow: ellipsis; }
+	.art { color: oklch(0.74 0.14 var(--h, 250)); }
+
+	.clear { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--muted); }
 	.trigger:focus-visible, .clear:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	@media (hover: hover) { .trigger:hover, .clear:hover { color: var(--text); } }
 
@@ -277,33 +293,35 @@
 	.layer { position: fixed; inset: 0; z-index: 60; }
 	.scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgb(0 0 0 / 0.35); cursor: default; animation: fade 0.3s var(--out); }
 	.wide .scrim { background: rgb(0 0 0 / 0.25); }
-	/* Vidrio esmerilado (oscuro también en tema claro: las baldosas son pósters). */
-	.glass { --acc: #2563eb; --acc-fg: #7ab0ff; color: #e7eaee; background: rgb(22 26 32 / 0.66); backdrop-filter: blur(28px) saturate(1.6); -webkit-backdrop-filter: blur(28px) saturate(1.6); box-shadow: 0 -20px 60px rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.1); }
-	.sheet { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 92dvh; border-radius: 26px 26px 0 0; padding-bottom: var(--safe-bottom, 0px); animation: sheet-in 0.55s var(--out); }
+	/* Panel negro sólido (también en tema claro: las baldosas son pósters). */
+	.glass { --acc: #2563eb; --acc-fg: #7ab0ff; color: #e7eaee; background: #0b0d11; }
+	.sheet { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 92dvh; border-radius: 26px 26px 0 0; padding-bottom: var(--safe-bottom, 0px); box-shadow: 0 -30px 80px rgb(0 0 0 / 0.6), inset 0 0 0 1px rgb(255 255 255 / 0.07); animation: sheet-in 0.55s var(--out); }
 	.grab { flex: none; width: 38px; height: 5px; margin: 8px auto 4px; border-radius: 3px; background: rgb(255 255 255 / 0.3); }
 	.hd { display: flex; align-items: center; gap: 10px; padding: 4px 16px 12px; }
 	.hd h3 { flex: 1; margin: 0; font-size: 20px; font-weight: 750; letter-spacing: -0.02em; }
 	.round { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border: 0; border-radius: 50%; background: rgb(255 255 255 / 0.1); color: inherit; }
 	.pane { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 2px 16px 20px; }
 	.pane::-webkit-scrollbar { display: none; }
-	.pane.has-foot { padding-bottom: 104px; }
+	.pane.has-foot { padding-bottom: 96px; }
 	.pane.enter { animation: push-in 0.5s var(--out); }
 	.pane.back { animation: pop-in 0.5s var(--out); }
 
 	/* PC: géneros a la izquierda, subgéneros a la derecha. */
-	.menu { position: absolute; display: grid; grid-template-columns: 220px 1fr; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 80px rgb(0 0 0 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.1); animation: menu-in 0.4s var(--out); transform-origin: 40px 0; }
+	.menu { position: absolute; display: grid; grid-template-columns: 220px 1fr; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 80px rgb(0 0 0 / 0.6), inset 0 0 0 1px rgb(255 255 255 / 0.07); animation: menu-in 0.4s var(--out); transform-origin: 40px 0; }
 	.col1 { overflow-y: auto; padding: 10px; border-right: 1px solid rgb(255 255 255 / 0.08); scrollbar-width: thin; }
 	.g1 { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border: 0; border-radius: 12px; background: none; color: rgb(231 234 238 / 0.7); font-size: 14px; font-weight: 600; text-align: left; transition: background 0.2s, color 0.2s; }
 	.g1 .ic { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 9px; background: color-mix(in oklch, oklch(0.7 0.14 var(--h)) 18%, rgb(255 255 255 / 0.04)); color: oklch(0.78 0.13 var(--h)); }
 	.g1.on { background: rgb(255 255 255 / 0.09); color: #fff; }
 	@media (hover: hover) { .g1:hover { color: #fff; } }
 	.col2 { position: relative; display: flex; flex-direction: column; min-height: 0; }
-	.col2 .pane { flex: 1; padding: 14px 18px 104px; animation: fade 0.35s var(--out); }
-	.wide .s-tile { height: 160px; }
+	.col2 .pane { flex: 1; padding: 14px 18px 96px; animation: fade 0.35s var(--out); }
+	.wide .s-tile { height: 214px; }
 
 	/* ── Baldosas ── */
 	.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 	.wide .grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+	.grid.sub { grid-template-columns: 1fr; }
+	.wide .grid.sub { grid-template-columns: repeat(2, 1fr); gap: 16px; }
 	.tile { position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; padding: 12px; border: 0; border-radius: 20px; background: #11151a; color: #fff; text-align: left; -webkit-tap-highlight-color: transparent; }
 	.tile:focus-visible { outline: 2px solid var(--acc-fg); outline-offset: 2px; }
 	.col { position: absolute; inset: 0; z-index: -2; display: flex; justify-content: flex-end; gap: 6px; padding: 10px; transform: rotate(-8deg) translate(20px, -26px) scale(1.15); }
@@ -314,45 +332,52 @@
 	.ic { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: auto; border-radius: 10px; background: rgb(255 255 255 / 0.12); backdrop-filter: blur(8px); color: #fff; }
 	.g-tile .ic { color: oklch(0.8 0.14 var(--h)); background: color-mix(in oklch, oklch(0.7 0.14 var(--h)) 22%, rgb(255 255 255 / 0.06)); }
 	.tile b { font-size: 16px; font-weight: 750; }
+	.g-tile::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, #000 0%, rgb(0 0 0 / 0.85) 35%, rgb(0 0 0 / 0.2) 75%, transparent); }
 
-	/* Nivel 1: fade a oscuro (.fade-dark); el color del género queda en el ícono. */
+	/* Nivel 1: fade a negro (::before); el color del género queda en el ícono. */
 	.g-tile { height: 120px; animation: pop 0.55s var(--out) both; animation-delay: calc(var(--k) * 40ms); }
 	.g-tile:active { scale: 0.97; }
 
-	/* Nivel 2: subgéneros con fade a oscuro (sin panel de vidrio: el fade ya da el contraste); elegido = borde azul, sacado = gris y hundido. */
-	.s-tile { height: 178px; padding: 8px; box-shadow: inset 0 0 0 2px var(--acc), 0 6px 22px rgb(37 99 235 / 0.22); animation: tile-in 0.7s var(--out) both; animation-delay: calc(var(--k) * 60ms + 80ms); transition: filter 0.5s var(--w, 0ms), opacity 0.5s var(--w, 0ms), scale 0.5s var(--out) var(--w, 0ms), box-shadow 0.35s; }
-	.s-tile .col { transform: rotate(-6deg) translate(6px, -18px) scale(1.2); }
-	.s-tile .p { width: 70px; animation: deal 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both, drift 9s ease-in-out 1s infinite alternate; animation-delay: calc(var(--k) * 60ms + 240ms), 0s; }
-	.s-tile .ic { position: absolute; top: 9px; left: 9px; background: rgb(14 17 22 / 0.45); backdrop-filter: blur(10px); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.2); }
-	.s-tile.off { filter: grayscale(1) brightness(0.6); opacity: 0.7; scale: 0.96; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08); }
-	.fr { display: block; padding: 4px 6px 6px; text-shadow: 0 1px 6px rgb(0 0 0 / 0.8); animation: frost-in 0.6s var(--out) both; animation-delay: calc(var(--k) * 60ms + 300ms); }
-	.fr b { display: block; font-size: 15px; }
-	.fr .d { display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.3; color: rgb(255 255 255 / 0.8); }
-	.fr .ej { display: -webkit-box; margin-top: 6px; overflow: hidden; font-size: 11px; font-weight: 600; color: #9cc4ff; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
-	.fr .ej i { font-style: normal; font-weight: 500; color: rgb(255 255 255 / 0.55); }
-	.chk { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--acc); color: #fff; box-shadow: 0 2px 8px rgb(37 99 235 / 0.5); transition: background 0.3s; }
+	/* Nivel 2 (S1 v3): fade a negro de izquierda a derecha sobre los pósters; elegido = borde azul con tinte, sacado = negro con pósters grises. */
+	.s-tile { height: 184px; justify-content: flex-start; padding: 20px 22px 18px; border-radius: 20px; box-shadow: inset 0 0 0 1.5px rgb(96 165 250 / 0.85), 0 8px 28px rgb(37 99 235 / 0.22); animation: tile-in 0.7s var(--out) both; animation-delay: calc(var(--k) * 60ms + 80ms); transition: scale 0.5s var(--out) var(--w, 0ms), box-shadow 0.35s; }
+	.s-tile::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to right, #08142c 0%, #060e20 45%, rgb(6 14 32 / 0.7) 62%, rgb(6 14 32 / 0.05) 100%); }
+	.s-tile .col { top: -14px; bottom: -14px; right: 10px; align-items: center; padding: 0; transform: rotate(-5deg); transition: filter 0.4s; }
+	.s-tile .p { width: 74px; animation: deal 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both, drift 9s ease-in-out 1s infinite alternate; animation-delay: calc(var(--k) * 60ms + 240ms), 0s; }
+	.s-tile .p:nth-child(2) { margin-top: 30px; }
+	.s-tile.off { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07); }
+	.s-tile.off::before { background: linear-gradient(to right, #000 0%, #000 42%, rgb(0 0 0 / 0.85) 60%, rgb(0 0 0 / 0.5) 100%); }
+	.s-tile.off .col { filter: grayscale(1) brightness(0.6); }
+	.fr { display: flex; flex-direction: column; height: 100%; max-width: 68%; }
+	.fr b { display: block; font-size: 27px; font-weight: 830; letter-spacing: -0.025em; line-height: 1.1; transition: color 0.3s; }
+	.fr .d { display: block; margin-top: 6px; font-size: 13.5px; font-weight: 400; line-height: 1.3; color: rgb(255 255 255 / 0.6); transition: color 0.3s; }
+	.fr .exs { display: block; margin-top: auto; }
+	.fr .ex { display: block; overflow: hidden; font-size: 13px; font-weight: 600; line-height: 1.4; color: rgb(195 219 255 / 0.9); white-space: nowrap; text-overflow: ellipsis; transition: color 0.3s; }
+	.off .fr b { color: rgb(255 255 255 / 0.5); }
+	.off .fr .d { color: rgb(255 255 255 / 0.3); }
+	.off .fr .ex { color: rgb(255 255 255 / 0.42); }
+	.chk { position: absolute; top: 16px; right: 16px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--acc); color: #fff; transition: background 0.3s, box-shadow 0.3s; }
 	.chk :global(svg) { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
 	.chk .dash { position: absolute; width: 11px; height: 2.5px; border-radius: 2px; background: #fff; transform: scale(0); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 	.part .chk :global(svg), .off .chk :global(svg) { transform: scale(0); }
 	.part .chk .dash { transform: none; }
-	.off .chk { background: rgb(14 17 22 / 0.5); box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.45); }
+	.off .chk { background: transparent; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.3); }
 	/* Tocar: rebota y el tilde salta con un anillo azul; sacar: se hunde con un temblor. `--w`: la ola de "Todos". */
 	.s-tile:global(.pick) { animation: pick 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) var(--w, 0ms) both; }
 	.s-tile:global(.pick) .chk { animation: chk-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) var(--w, 0ms) both; }
 	.s-tile:global(.pick)::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 2px var(--acc); animation: ring 0.7s var(--out) var(--w, 0ms) both; pointer-events: none; }
 	.s-tile:global(.drop) { animation: sink 0.5s var(--out) var(--w, 0ms) both; }
-	.s-tile:global(.pick) .fr, .s-tile:global(.drop) .fr, .s-tile:global(.pick) .p, .s-tile:global(.drop) .p { animation-delay: 0s; }
+	.s-tile:global(.pick) .p, .s-tile:global(.drop) .p { animation-delay: 0s; }
 
-	/* ── "Listo": pastilla de vidrio flotante con un brillo que pasa ── */
-	.foot { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 26px 16px calc(16px + var(--safe-bottom, 0px)); background: linear-gradient(to top, rgb(14 17 22 / 0.85) 45%, transparent); pointer-events: none; }
+	/* ── Pie: resumen a la izquierda y "Listo" blanco a la derecha ── */
+	.foot { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 26px 16px calc(16px + var(--safe-bottom, 0px)); background: linear-gradient(to top, #0b0d11 55%, transparent); pointer-events: none; }
 	.wide .foot { padding-bottom: 16px; }
-	.done { position: relative; overflow: hidden; display: block; width: 100%; height: 50px; border: 0; border-radius: 999px; pointer-events: auto; background: linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.07)), rgb(122 176 255 / 0.18); backdrop-filter: blur(18px) saturate(1.8); -webkit-backdrop-filter: blur(18px) saturate(1.8); color: #fff; font-size: 16px; font-weight: 750; letter-spacing: 0.01em; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 0 0 1px rgb(255 255 255 / 0.16), 0 10px 30px rgb(37 99 235 / 0.28); transition: opacity 0.25s, scale 0.2s var(--out); }
-	.done::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / 0.22) 50%, transparent 65%); transform: translateX(-120%); animation: shine 3.2s ease-in-out 1s infinite; }
-	.done:active { scale: 0.97; }
-	.done:disabled { opacity: 0.4; }
-	.done:disabled::after { animation: none; }
+	.bar { display: flex; align-items: center; gap: 16px; padding: 10px 10px 10px 18px; border-radius: 999px; background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07); pointer-events: auto; }
+	.sum { flex: 1; min-width: 0; overflow: hidden; font-size: 13.5px; color: rgb(255 255 255 / 0.55); white-space: nowrap; text-overflow: ellipsis; }
+	.sum b { color: #fff; font-weight: 700; }
+	.done { display: inline-flex; align-items: center; gap: 8px; flex: none; height: 44px; padding: 0 20px 0 22px; border: 0; border-radius: 999px; background: #fff; color: #0b0d11; font-size: 15px; font-weight: 750; box-shadow: 0 6px 20px rgb(255 255 255 / 0.12); transition: opacity 0.25s, scale 0.2s var(--out); }
+	.done:active { scale: 0.96; }
+	.done:disabled { opacity: 0.35; }
 	.done:focus-visible { outline: 2px solid var(--acc-fg); outline-offset: 2px; }
-	.foot small { display: block; margin-top: 6px; overflow: hidden; font-size: 12px; color: rgb(231 234 238 / 0.75); text-align: center; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 8px rgb(0 0 0 / 0.8); }
 
 	@keyframes fade { from { opacity: 0; } }
 	@keyframes sheet-in { from { transform: translateY(100%); } }
@@ -363,10 +388,8 @@
 	@keyframes deal { from { transform: translateY(30px) rotate(8deg) scale(0.8); opacity: 0; } }
 	@keyframes drift { to { transform: translateY(-14px); } }
 	@keyframes tile-in { from { opacity: 0; transform: translateY(22px) scale(0.9) rotate(-2deg); filter: blur(8px); } }
-	@keyframes frost-in { from { opacity: 0; transform: translateY(10px); } }
 	@keyframes pick { 0% { transform: scale(0.96); } 40% { transform: scale(1.04); } 100% { transform: none; } }
 	@keyframes chk-pop { 0% { transform: scale(0) rotate(-90deg); } 60% { transform: scale(1.3) rotate(10deg); } 100% { transform: none; } }
 	@keyframes ring { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(1.08); } }
 	@keyframes sink { 0% { transform: none; } 25% { transform: scale(0.95) rotate(-1.5deg); } 50% { transform: scale(0.95) rotate(1deg); } 100% { transform: none; } }
-	@keyframes shine { 40%, 100% { transform: translateX(120%); } }
 </style>

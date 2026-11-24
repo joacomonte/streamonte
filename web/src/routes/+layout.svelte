@@ -4,7 +4,7 @@
 	import favicon from '$ui/assets/logo.svg';
 	import Tour from '$ui/components/Tour.svelte';
 	import { markSeen, nickStep, seen, welcomeSteps } from '$ui/components/tours.ts';
-	import { i18n, t } from '#lib/i18n.svelte.ts';
+	import { i18n, syncLangs, t } from '#lib/i18n.svelte.ts';
 	import { updated } from '$app/state';
 	import { beforeNavigate, invalidateAll, onNavigate } from '$app/navigation';
 	import { setContext } from 'svelte';
@@ -28,7 +28,7 @@
 	});
 	// El idioma que decidió el servidor (cookie o navegador), antes del primer render (también en el servidor, donde
 	// no corren los efectos); después lo cambia el toggle.
-	(() => Object.assign(i18n, { lang: data.langs.ui, titles: data.langs.titles }))();
+	(() => syncLangs({ lang: data.langs.ui, titles: data.langs.titles }))();
 
 	// Bienvenida: una sola vez, al entrar por primera vez (después del código de acceso). Vista o salteada, no vuelve.
 	let welcomeOpen = $state(false);
