@@ -9,6 +9,7 @@ pub mod aggregate;
 pub mod awards;
 pub mod cinemeta;
 pub mod elitetorrent;
+pub mod episode_ratings;
 pub mod http;
 pub mod interests;
 pub mod latteam;
@@ -355,7 +356,8 @@ impl Catalog {
         if !is_imdb_id(imdb_id) {
             return Ok(awards::TitleAwards::default());
         }
-        let file = format!("imdb-premios-v1-{imdb_id}.json");
+        // v2 (2026-11-24): trae el puntaje de IMDb (respaldo de la ficha).
+        let file = format!("imdb-premios-v2-{imdb_id}.json");
         let saved = self.data.get::<awards::TitleAwards>(&file);
         if let Some((a, age)) = &saved {
             if *age < TTL {
@@ -368,6 +370,47 @@ impl Catalog {
                 Ok(a)
             }
             Err(e) => saved.map(|(a, _)| a).ok_or(e),
+        }
+    }
+
+    /// Los bytes de un póster, para que la UI lea su color (el webview no puede leer los píxeles de metahub: no manda
+    /// CORS). Solo de los hosts de pósters que usa la app.
+    pub async fn image(&self, url: &str, timeout: Duration) -> Result<Vec<u8>> {
+        const HOSTS: [&str; 2] = ["https://images.metahub.space/", "https://image.tmdb.org/"];
+        if !HOSTS.iter().any(|h| url.starts_with(h)) {
+            return Err(CoreError::NotFound("imagen de un host desconocido".into()));
+        }
+        self.http
+            .get_image(url, timeout)
+            .await
+            .map_err(|e| fetch_error("traer el póster", &e))
+    }
+
+    /// Puntaje de IMDb de cada capítulo de una temporada. Guardado un día; si IMDb falla, sirve lo guardado aunque esté
+    /// vencido.
+    pub async fn episode_ratings(
+        &self,
+        imdb_id: &str,
+        season: u32,
+        timeout: Duration,
+    ) -> Result<Vec<episode_ratings::EpisodeScore>> {
+        const TTL: Duration = Duration::from_secs(24 * 3600);
+        if !is_imdb_id(imdb_id) {
+            return Ok(Vec::new());
+        }
+        let file = format!("imdb-capitulos-v1-{imdb_id}-{season}.json");
+        let saved = self.data.get::<Vec<episode_ratings::EpisodeScore>>(&file);
+        if let Some((s, age)) = &saved {
+            if *age < TTL {
+                return Ok(s.clone());
+            }
+        }
+        match episode_ratings::fetch(&self.http, imdb_id, season, timeout).await {
+            Ok(s) => {
+                self.data.put(&file, &s);
+                Ok(s)
+            }
+            Err(e) => saved.map(|(s, _)| s).ok_or(e),
         }
     }
 

@@ -72,8 +72,11 @@
 		return subs.length ? `${c.label}: ${subs.join(', ')}` : c.label;
 	};
 	/** Orden elegido y el otro (un solo botón que alterna). */
-	const sortNow = $derived(SORTS.find((s) => s.v === st.f.sort) ?? SORTS[0]);
-	const sortNext = $derived(SORTS.find((s) => s.v !== sortNow.v) ?? SORTS[1]);
+	/** Orden como segmentado: nombre corto ("Puntaje" / "Populares") con su ícono. */
+	const SORT_ITEMS = SORTS.map((s) => ({ v: s.v, label: s.short, icon: s.icon }));
+	let sortPopped = $state<Filters['sort'] | ''>('');
+	/** Desplegable del buscador abierto. */
+	let searchOpen = $state(false);
 	/** Con filtros a la vista (no buscando ni sin key): al scrollear se compactan en una línea (2026-11-23, variante 1A). */
 	const compactable = $derived(!searching && !trendingOnly);
 	/** Ya se scrolleó más allá de los filtros: se ve la barra de una línea. */
@@ -192,18 +195,11 @@
 		<div class="inner">
 			<div class="head-top" bind:clientHeight={topH}>
 				{@render header?.()}
-				<Search {store} onclear={clear} {onquery} onpick={pick} />
+				<Search {store} onclear={clear} {onquery} onpick={pick} {onopen} {href} bind:open={searchOpen} />
 				{#if !searching}
-					<!-- Tipo y orden en una sola cápsula (2026-11-23, variantes 1C y A): el orden es un botón con el elegido que gira al otro. -->
+					<!-- Tipo (2026-11-24: el orden pasó a la fila de géneros, como segmentado). -->
 					<div class="ks">
 						<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} onpick={(v) => ((popped = v), setF({ kind: v }))} />
-						{#if !trendingOnly}
-							<span class="ks-div" aria-hidden="true"></span>
-							<button id="cat-sort" type="button" class="sort" class:hot={sortNow.v === 'popular'} aria-label={t('Orden: {o}. Cambiar a {n}', { o: t(sortNow.label), n: t(sortNext.label) })} onclick={() => setF({ sort: sortNext.v })}>
-								{#key sortNow.v}<span class="face"><Icon name={sortNow.icon} size={15} /><span class="s-long">{t(sortNow.label)}</span><span class="s-short">{t(sortNow.short)}</span></span>{/key}
-								<span class="swap" aria-hidden="true"><Icon name="swap" size={12} /></span>
-							</button>
-						{/if}
 					</div>
 					{#if trendingOnly}
 						<span id="cat-trending" class="trending">{t('En tendencia ahora')}</span>
@@ -215,7 +211,13 @@
 					{:else}
 						<Since {store} onset={setF} />
 						<Votes {store} onset={setF} />
-						<GenrePicker {store} onpick={(genre, subs) => (store.setGenre(genre, subs), afterFilter())} />
+						<!-- Orden (segmentado, primero) y géneros en la misma fila. -->
+						<div class="sort-row">
+							<div class="ks ks-sort">
+								<Segmented id="cat-sort" label={t('Orden')} items={SORT_ITEMS} value={st.f.sort} popped={sortPopped} onpick={(v) => ((sortPopped = v), setF({ sort: v }))} />
+							</div>
+							<GenrePicker {store} onpick={(genre, subs) => (store.setGenre(genre, subs), afterFilter())} />
+						</div>
 					{/if}
 				{/if}
 			</div>
@@ -232,7 +234,9 @@
 	<div class="body inner">
 		{@render top?.(searching)}
 		{#if onresume && !searching}<RecentRow {onresume} />{/if}
-		<Grid {store} {onopen} {href} {onsettings} {fade} bind:sentinel />
+		<!-- Buscando por texto los resultados van en el desplegable del buscador (2026-11-24): la grilla queda solo de fondo,
+		     desenfocada detrás del desplegable abierto; con el desplegable cerrado no se muestra. -->
+		{#if mode !== 'search' || searchOpen}<Grid {store} {onopen} {href} {onsettings} {fade} bind:sentinel />{/if}
 	</div>
 </div>
 
@@ -275,43 +279,11 @@
 	.intro .head-top > :nth-child(6) { animation-delay: 300ms; }
 	@keyframes rise { from { opacity: 0; transform: translateY(24px); } }
 
-	/* Cápsula tipo | orden: un solo fondo, el tipo a la izquierda con su pulgar y el orden a la derecha tras una rayita. */
+	/* Cápsula del tipo (ancho completo, 2026-11-24) y la del orden en la fila de géneros: fondo propio y el pulgar que se desliza. */
 	.ks { display: flex; align-items: stretch; gap: 2px; margin-top: 12px; padding: 4px; border-radius: var(--r-pill); background: var(--surface-2); }
-	.ks-div { flex: none; width: 1px; margin: 10px 4px; background: var(--border-strong, var(--border)); }
-	@media (min-width: 640px) { .ks { max-width: 680px; } }
-	/* Orden: el elegido con su color (dorado puntaje, fuego populares); al tocarlo gira hacia el otro. Nunca se achica: el
-	   que cede ancho es el tipo. */
-	.sort {
-		--sort-c: var(--yellow);
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		min-height: 42px;
-		padding: 0 14px 0 12px;
-		border: 0;
-		border-radius: var(--r-pill);
-		background: linear-gradient(135deg, color-mix(in srgb, var(--sort-c) 30%, var(--surface-3)), color-mix(in srgb, var(--sort-c) 12%, var(--surface-2)));
-		box-shadow: 0 4px 14px color-mix(in srgb, var(--sort-c) 28%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--sort-c) var(--tint-3), transparent);
-		color: var(--text);
-		font-size: 14px;
-		font-weight: 650;
-		white-space: nowrap;
-		perspective: 400px;
-		transition: --sort-c 0.4s var(--out);
-	}
-	.sort.hot { --sort-c: var(--red); }
-	.sort:active { scale: 0.96; }
-	.face { display: inline-flex; align-items: center; gap: 6px; animation: flip 0.45s var(--out); }
-	.face :global(svg) { color: var(--sort-c); }
-	.swap { display: inline-flex; opacity: 0.5; }
-	.s-short { display: none; }
-	@media (max-width: 479px) {
-		.s-long { display: none; }
-		.s-short { display: inline; }
-	}
-	@property --sort-c { syntax: '<color>'; inherits: true; initial-value: transparent; }
-	@keyframes flip { from { transform: rotateX(90deg); opacity: 0; } }
+	/* Orden primero y géneros al lado; el orden no se achica por debajo de lo que entra en celu. */
+	.sort-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+	.ks-sort { flex: 0 1 280px; min-width: 168px; margin: 6px 0 10px; padding: 3px; }
 
 
 	.body { padding: 14px 16px calc(24px + var(--safe-bottom)); }

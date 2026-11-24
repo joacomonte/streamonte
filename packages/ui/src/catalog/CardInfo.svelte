@@ -17,8 +17,9 @@
 </script>
 
 <script lang="ts">
-	// Detalles sobre el póster al pasar el mouse: géneros, año · puntaje · duración y, en series, barras por temporada.
-	// Los premios no van acá: se ven siempre debajo del póster (Grid.svelte).
+	// Detalles sobre el póster al pasar el mouse: géneros, subgéneros de IMDb (los que conocemos) y, en series, barras por
+	// temporada. Año, puntaje, duración y premios no van acá: ya se ven debajo del póster (Grid.svelte). Los subgéneros vienen con los
+	// premios (misma consulta y caché que Grid: no pide nada extra).
 	// Se monta recién cuando el mouse se detiene un momento encima (Grid.svelte); la ficha queda en caché.
 	import { onMount } from 'svelte';
 	import Icon from '../components/Icon.svelte';
@@ -28,16 +29,19 @@
 	import type { Chart } from '../title/title-state.ts';
 	import type { CatalogItem } from '../types.ts';
 	import { cardSeasons } from './card-info.ts';
+	import { subgenreLabels } from './subgenres.ts';
 
 	let { item }: { item: CatalogItem } = $props();
 	const api = getApi();
 	/** undefined = cargando, null = no hay ficha. */
 	let d = $state<TitleDetails | null | undefined>(undefined);
+	let subs = $state<string[]>([]);
 	let seasons = $state<{ chart: Chart | null; outlook: Outlook | null } | null | undefined>(undefined);
 	const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).replace('.', '');
 
 	onMount(async () => {
 		d = await loadDetails(api, item.kind, item.id);
+		if (d?.imdb) void loadAwards(api, d.imdb).then((a) => (subs = subgenreLabels(a?.interests ?? []).slice(0, 3)));
 		if (!d || item.kind !== 'tv' || !d.imdb) return void (seasons = null);
 		const r = await loadRatings(api, d.imdb);
 		seasons = r && cardSeasons(d, r);
@@ -52,8 +56,7 @@
 				<span class="skel line"></span><span class="skel line short"></span>
 			{:else}
 				{#if d.genres.length}<span class="genres">{d.genres.slice(0, 3).join(' · ')}</span>{/if}
-				<!-- La duración solo en películas: en series depende del capítulo. -->
-				<span class="meta"><span class="facts">{#if d.year}<span>{d.year}</span>{/if}{#if d.rating}<span class="star">★ {d.rating}</span>{/if}{#if d.kind === 'movie' && d.runtimeMin}<span class="dim">{d.runtimeMin} min</span>{/if}</span></span>
+				{#if subs.length}<span class="subs">{#each subs as s (s)}<span class="sub">{s}</span>{/each}</span>{/if}
 				{#if item.kind === 'tv'}
 					<span class="seasons">
 						{#if seasons === undefined}
@@ -92,7 +95,8 @@
 	 * por su cuenta (antes subía 6 px y no acompañaba el "apretar" del póster: quedaba una caja corrida).
 	 * `width: 100%` y no `left: 0; right: 0`: con aspect-ratio, WebKit (desktop y Safari) achicaba el velo (2026-11-23). */
 	.info { position: absolute; top: 0; left: 0; width: 100%; aspect-ratio: 2 / 3; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px 11px; border-radius: var(--r-md); pointer-events: none; color: #fff;
-		background: linear-gradient(to top, rgb(6 8 12 / 0.94) 0%, rgb(6 8 12 / 0.8) 38%, rgb(6 8 12 / 0.4) 70%, rgb(6 8 12 / 0.22) 100%);
+		/* Fade mínimo: solo el tercio de abajo, donde va el texto; el póster queda a la vista (2026-11-24). */
+		background: linear-gradient(to top, rgb(6 8 12 / 0.88) 0%, rgb(6 8 12 / 0.55) 18%, rgb(6 8 12 / 0) 38%);
 		opacity: 0; transition: opacity 0.22s ease-out, transform 0.15s var(--ease); }
 	.body { display: flex; flex-direction: column; gap: 5px; transform: translateY(6px); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 	/* Solo con mouse: en el celu un toque no tiene que "hacer hover" (en iOS el primer toque se gastaría ahí). */
@@ -104,12 +108,10 @@
 	:global(.card:active) .info { transform: scale(0.97); }
 	.line { height: 9px; border-radius: 4px; opacity: 0.5; }
 	.short { width: 60%; }
-	.genres { font-size: 11.5px; font-weight: 600; line-height: 1.3; color: rgb(255 255 255 / 0.82); }
-	.meta { display: flex; flex-wrap: wrap; align-items: center; row-gap: 3px; white-space: nowrap; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
-	.facts { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-	.facts > span + span::before { content: ' · '; color: rgb(255 255 255 / 0.5); font-weight: 600; }
-	.star { color: #f2c94c; }
-	.dim { color: rgb(255 255 255 / 0.6); font-weight: 600; }
+	.genres { font-size: 11.5px; font-weight: 600; line-height: 1.3; color: rgb(255 255 255 / 0.9); text-shadow: 0 1px 3px rgb(0 0 0 / 0.6); }
+	.subs { display: flex; flex-wrap: wrap; gap: 4px; }
+	.sub { padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.35; color: #fff; background: rgb(255 255 255 / 0.16); backdrop-filter: blur(6px); animation: sub-in 0.25s ease-out both; }
+	@keyframes sub-in { from { opacity: 0; transform: translateY(3px); } }
 	.seasons { display: grid; gap: 5px; margin-top: 2px; }
 	.seasons:empty { display: none; }
 	.sbars { display: flex; align-items: stretch; gap: 3px; height: 24px; }
@@ -124,5 +126,5 @@
 	.dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: rgb(255 255 255 / 0.5); }
 	.wait .dot { background: var(--yellow); }
 	.stop .dot { background: var(--red); }
-	@media (prefers-reduced-motion: reduce) { .info { transition: opacity 0.15s; } .body { transition: none; transform: none; } }
+	@media (prefers-reduced-motion: reduce) { .info { transition: opacity 0.15s; } .body { transition: none; transform: none; } .sub { animation: none; } }
 </style>

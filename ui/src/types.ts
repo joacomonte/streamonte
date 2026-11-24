@@ -441,6 +441,8 @@ export type SeasonRatings = {
 };
 /** Premios (`catalog_awards`): el núcleo ya los manda en camelCase, con la forma compartida. */
 export type { TitleAwards } from '../../packages/ui/src/types.ts';
+/** Puntaje por capítulo (`catalog_episode_ratings`): misma forma que la vista compartida. */
+export type { EpisodeScore } from '../../packages/ui/src/types.ts';
 export type AddonView = {
     id: string;
     name: string;

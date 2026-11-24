@@ -53,7 +53,8 @@ export function createTauriApi(core: Core): Api {
 			people: async (q) => adapt.personHits(await api.catalogPeople(q)),
 			personTitles: async (id, role) => adapt.catalogItems(await api.catalogPersonTitles(id, role)),
 			examples: (kind, ids) => api.catalogInterestExamples(adapt.rawKind(kind), ids),
-			poster: async (id) => (await api.catalogPoster(id).catch(() => null)) ?? null
+			poster: async (id) => (await api.catalogPoster(id).catch(() => null)) ?? null,
+			readableImage: async (url) => URL.createObjectURL(new Blob([await api.catalogImage(url)]))
 		},
 		title: {
 			async details(kind, id): Promise<TitleDetails> {
@@ -68,6 +69,7 @@ export function createTauriApi(core: Core): Api {
 				return adapt.episodes(m.episodes, texts, season);
 			},
 			seasonRatings: async (imdb, quick) => adapt.seasonRatings(await api.catalogSeasonRatings(imdb, quick)),
+			episodeRatings: (imdb, season) => api.catalogEpisodeRatings(imdb, season),
 			awards: (imdb) => api.catalogAwards(imdb)
 		},
 		options: {

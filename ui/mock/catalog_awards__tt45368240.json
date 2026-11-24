@@ -1,5 +1,11 @@
 {
   "wins": 5,
   "nominations": 14,
-  "entries": []
+  "entries": [],
+  "interests": [
+    "in0000059",
+    "in0000069",
+    "in0000058",
+    "in0000060"
+  ]
 }
