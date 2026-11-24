@@ -1,0 +1,12 @@
+{
+ "app": "web",
+ "url": "/",
+ "shot": {
+  "viewport": "mobile"
+ },
+ "setup": [
+  {
+   "waitFor": "a[href^=\"/t/\"] img"
+  }
+ ]
+}

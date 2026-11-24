@@ -21,41 +21,41 @@
    "sel": "#cat-side-close"
   },
   {
-   "sel": "#cat-poster"
+   "sel": "#poster"
   },
   {
-   "sel": "#cat-open-imdb"
+   "sel": "#imdb-link"
   },
   {
-   "sel": "#cat-providers"
+   "sel": "#providers-toggle"
   },
   {
-   "sel": "#cat-provider-0"
+   "sel": "#provider-0"
   },
   {
-   "sel": "#cat-who-director-7467",
+   "sel": "#person-7467",
    "text": "Fincher"
   },
   {
-   "sel": "#cat-who-cast-287",
+   "sel": "#person-287",
    "text": "Brad Pitt"
   },
   {
-   "sel": "#cat-cast",
+   "sel": "#cast-toggle",
    "text": "más",
    "note": "reparto: 6 a la vista y \"y N más\""
   },
   {
-   "sel": "#cat-awards-toggle",
+   "sel": "#awards-toggle",
    "text": "\\d",
    "note": "premios compactos junto al puntaje (ganados/nominaciones); despliega la lista"
   },
   {
-   "sel": "#cat-about-toggle",
+   "sel": "#about-toggle",
    "text": "Sinopsis"
   },
   {
-   "sel": "#cat-similar-toggle",
+   "sel": "#similar-toggle",
    "text": "Similares"
   },
   {

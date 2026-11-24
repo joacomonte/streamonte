@@ -1,0 +1,19 @@
+{
+ "app": "web",
+ "url": "/",
+ "shot": {
+  "viewport": "mobile"
+ },
+ "setup": [
+  {
+   "click": "a[href^=\"/t/movie/\"]",
+   "after": 0
+  },
+  {
+   "waitUrl": "/t/movie/"
+  },
+  {
+   "wait": 1500
+  }
+ ]
+}

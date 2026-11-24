@@ -1,0 +1,28 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "shot": {
+  "viewport": "desktop"
+ },
+ "setup": [
+  {
+   "type": "#cat-q",
+   "text": "fight club",
+   "after": 0
+  },
+  {
+   "click": "#cat-card-tt0137523",
+   "after": 0
+  },
+  {
+   "waitFor": "#about-toggle"
+  },
+  {
+   "waitText": "Analizá o reproducí una.",
+   "timeout": 30000
+  },
+  {
+   "wait": 1500
+  }
+ ]
+}

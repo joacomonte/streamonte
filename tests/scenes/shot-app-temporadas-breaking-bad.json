@@ -1,0 +1,23 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "shot": {
+  "viewport": "desktop"
+ },
+ "setup": [
+  {
+   "click": "#cat-kind-tv",
+   "after": 0
+  },
+  {
+   "click": "#cat-card-tt0903747",
+   "after": 0
+  },
+  {
+   "scroll": "#season-1"
+  },
+  {
+   "wait": 1000
+  }
+ ]
+}

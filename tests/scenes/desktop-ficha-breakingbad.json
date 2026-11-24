@@ -17,32 +17,32 @@
    "text": "Breaking Bad"
   },
   {
-   "sel": "#cat-open-imdb"
+   "sel": "#imdb-link"
   },
   {
-   "sel": "#cat-who-cast-17419",
+   "sel": "#person-17419",
    "text": "Cranston"
   },
   {
-   "sel": "#cat-about-toggle"
+   "sel": "#about-toggle"
   },
   {
-   "sel": "#cat-similar-toggle"
+   "sel": "#similar-toggle"
   },
   {
-   "sel": "[id^=cat-season-]:not(#cat-season-next)",
+   "sel": "[id^=season-]:not(#season-next)",
    "count": 5
   },
   {
-   "sel": "#cat-season-1",
+   "sel": "#season-1",
    "text": "Temporada 1"
   },
   {
-   "sel": "#cat-season-next",
+   "sel": "#season-next",
    "text": "Serie terminada"
   },
   {
-   "sel": "[id^=cat-season-bar-]",
+   "sel": "[id^=score-s]",
    "count": 5
   }
  ]
