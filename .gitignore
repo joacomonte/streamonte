@@ -21,3 +21,6 @@ mem2.db*
 
 # Worktrees de agentes en paralelo
 .claude/worktrees/
+
+# Config local de cargo (target-dir compartido entre worktrees): la crea el integrador, no va al repo
+/.cargo/
