@@ -33,11 +33,21 @@ const toCand = (c: Candidate): FlowCand<Candidate> => ({
 	readable: flow()?.mode === 'torbox' || (!unlikely(c) && (knownSeeds(c) ?? 0) > 0),
 	seeds: knownSeeds(c), inTorbox: inTorbox.has(c.info_hash), src: c,
 });
+/** Las candidatas convertidas, una vez por tanda de código sincrónico (un redibujo): la vista las pide varias veces y cada
+ *  conversión lee pistas y salud. Se vacía en la próxima microtarea, antes de que llegue cualquier evento que las cambie. */
+let candsNow: FlowCand<Candidate>[] | null = null;
+function cands(): FlowCand<Candidate>[] {
+	if (!candsNow) {
+		candsNow = (state.update?.candidates ?? []).map(toCand);
+		queueMicrotask(() => (candsNow = null));
+	}
+	return candsNow;
+}
 const tracksRead = (h: string): boolean => !!state.update?.candidates.find((c) => c.info_hash === h && factsOf(c).audioRead);
 
 const model = createFlow<Candidate>({
 	state: flow,
-	cands: () => (state.update?.candidates ?? []).map(toCand),
+	cands,
 	sort: (cands) => {
 		const byHash = new Map(cands.map((c) => [c.hash, c]));
 		return flatSorted(cands.map((c) => c.src)).map((c) => byHash.get(c.info_hash) as FlowCand<Candidate>);

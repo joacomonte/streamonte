@@ -343,8 +343,9 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 		const found = f.found.map((h) => list.find((c) => c.hash === h)).filter((c): c is FlowCand<T> => !!c);
 		const searched = !toConfirm(pool()).length;
 		const spanish = pool().filter(spanishNotLat);
-		// Ninguna entra en la conexión elegida: las 3 mejores igual (marcadas "Puede cortarse"), con el aviso.
-		const fitsNone = !list.length;
+		// Ninguna entra en la conexión elegida: las 3 mejores igual (marcadas "Puede cortarse"), con el aviso. Se mira el pool
+		// entero: pidiendo latino, `list` también queda vacía si se leyeron todas y ninguna era latina (eso es "sin latino", #82).
+		const fitsNone = !pool().some(fits);
 		const none = fitsNone ? t('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión') : t('Ninguna trae sub ES nativo: los subs se buscan afuera');
 		// Sin latino: sin lista ni título; cómo seguir, en tarjetas iguales a las del paso de audio.
 		if (f.lat && !found.length && !fitsNone) {

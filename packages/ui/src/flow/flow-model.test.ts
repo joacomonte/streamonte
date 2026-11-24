@@ -178,3 +178,19 @@ test('por torrent (desktop): sin TorBox salta el modo; con latino, calidad y bú
 	assert.equal(model.view(), null);
 	assert.deepEqual(model.crumbs()?.items.map((i) => i.label), ['Torrent', 'Audio latino', '1080p']);
 });
+
+test('latino: leídas todas y ninguna latina (ya sin potencial) → sin latino con 3 tarjetas, no "ninguna entra" (#82)', async () => {
+	const opts = [
+		opt('a', 3, { f: { latState: 'likely' }, reads: { latState: 'none' } }),
+		opt('b', 2, { f: { latState: 'check', saysSpanish: true }, reads: { latState: 'none' } }),
+		opt('c', 1),
+	];
+	const { model, reads } = setup(opts);
+	click(model.view(), 'net-high');
+	click(model.view(), 'lat-yes');
+	await flush();
+	assert.deepEqual(reads, ['a', 'b']);
+	const v = model.view();
+	assert.equal(v?.kind, 'nolat');
+	assert.deepEqual(choices(v).map((c) => c.id), ['nolat-original', 'nolat-spain', 'nolat-all']);
+});

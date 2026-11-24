@@ -113,7 +113,7 @@ export const HDR_TIP: Record<string, string> = {
 type Tr = (s: string, p?: Record<string, string | number>) => string;
 /** Tooltip del badge HDR de una fila (`hdr` del torrent); sin HDR, null. Un tipo sin tooltip propio dice "HDR". */
 export const hdrText = (hdr: string[], tr: Tr): string | null =>
-	hdr.length ? hdr.map((x) => HDR_TIP[x]).filter((x): x is string => !!x).map((x) => tr(x)).join('\n') || 'HDR' : null;
+	hdr.length ? hdr.map((x) => HDR_TIP[x]).filter((x): x is string => !!x).map((x) => tr(x)).join('\n') || tr('HDR') : null;
 /** Etiqueta de la opción destacada. */
 export const bestText = (tr: Tr): string => tr('Mejor opción');
 /** Aviso de la fila que pide más de lo que da la conexión elegida. */
