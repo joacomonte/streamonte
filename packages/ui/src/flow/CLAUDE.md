@@ -10,7 +10,7 @@ Máquina de pasos compartida de elegir un video y las tarjetas/animaciones que l
 - Tabla de conexión y `fitsNet` → `net.ts` (sus textos se traducen al mostrarlos: `net.test.ts` mira que estén en `en.ts`). Reglas de match (`isMatch`, `needsReading`, `latPotential`, `latFirst`) → `match-rules.ts` (test: `match-rules.test.ts`). Fila "Seguir buscando" / Detener → `MoreRow.svelte` (`look` 'row' web, 'cat' desktop).
 
 ## Relación
-Queda en cada app: la pantalla "buscando torrents", cómo lee pistas, la lista de "Ver todas" y el dibujo (web: tarjetas y `.row-btn` en `Torrents.svelte`; desktop: `ui/src/FlowScreen.svelte`). Ids por app en `FlowIds`.
+Por TorBox la búsqueda de torrents corre de fondo mientras se elige (`FlowDeps.list`; el radar espera la lista entera). Queda en cada app: la pantalla "buscando torrents" (solo desktop por torrent), cómo lee pistas, la lista de "Ver todas" y el dibujo (web: tarjetas y `.row-btn` en `Torrents.svelte`; desktop: `ui/src/FlowScreen.svelte`). Ids por app en `FlowIds`.
 
 ## Trampas
 - Un cambio visual o de la máquina acá afecta las dos apps.

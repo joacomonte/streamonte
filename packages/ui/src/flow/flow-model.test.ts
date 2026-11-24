@@ -6,8 +6,8 @@ import type { OptionRowView } from '../options/row.ts';
 import type { ChoiceView, FlowView } from './types.ts';
 
 const IDS: FlowIds = {
-	net: 'net-', latNo: 'lat-no', latYes: 'lat-yes', stop: 'stop', nolatOriginal: 'nolat-original', nolatSpain: 'nolat-spain',
-	nolatAll: 'nolat-all', matchAll: 'match-all', spainOriginal: 'spain-original', spainAll: 'spain-all', lighter: 'lighter', crumb: 'crumb-',
+	net: 'net-', latNo: 'lat-no', latYes: 'lat-yes', stop: 'stop', latAll: 'lat-all', noticeAll: 'notice-all',
+	toTorrent: 'to-torrent', matchAll: 'match-all', spainOriginal: 'spain-original', spainAll: 'spain-all', lighter: 'lighter', crumb: 'crumb-',
 };
 const GB = 1024 ** 3;
 /** Una opción de prueba: `q` = calidad (más alto, mejor); lo que se "lee" al probarla, en `reads`. */
@@ -23,6 +23,8 @@ function setup(opts: Opt[], over: Partial<FlowDeps<Opt>> = {}, auto = true) {
 	const pending: (() => void)[] = [];
 	const deps: FlowDeps<Opt> = {
 		state: () => st,
+		list: () => ({ kind: 'ready' }),
+		episode: () => false,
 		cands: () => opts.map((o): FlowCand<Opt> => ({ hash: o.hash, bytes: o.bytes, mbps: o.mbps, res: '1080p', facts: o.facts, excluded: false, failed: false, readable: true, seeds: null, inTorbox: true, src: o })),
 		sort: (cs) => [...cs].sort((a, b) => b.src.q - a.src.q),
 		row: (c) => ({ hash: c.hash }) as OptionRowView,
@@ -99,18 +101,14 @@ test('cambiar de video corta la búsqueda (estado nuevo)', async () => {
 	assert.equal(model.view()?.kind, 'choices');
 });
 
-test('latino sin ninguno: tarjetas para seguir, España y ver todas', async () => {
+test('latino sin ninguno pero con España: muestra las de España', async () => {
 	const opts = [opt('a', 3, { f: { latState: 'likely' } }), opt('b', 2, { f: { latState: 'spain' } }), opt('c', 1)];
 	const { model, state } = setup(opts);
 	click(model.view(), 'net-high');
 	const lat = choices(model.view()).find((c) => c.id === 'lat-yes');
-	assert.ok(lat && !lat.disabled);
+	assert.ok(lat && !lat.disabled && !lat.chips);
 	click(model.view(), 'lat-yes');
 	await flush();
-	const v = model.view();
-	assert.equal(v?.kind, 'nolat');
-	assert.deepEqual(choices(v).map((c) => [c.id, c.disabled]), [['nolat-original', false], ['nolat-spain', false], ['nolat-all', false]]);
-	click(v, 'nolat-spain');
 	const spain = model.view();
 	assert.ok(spain?.kind === 'spain' && spain.rows.map((r) => r.hash).join() === 'b');
 	if (spain?.kind === 'spain') spain.all.onclick();
@@ -119,18 +117,19 @@ test('latino sin ninguno: tarjetas para seguir, España y ver todas', async () =
 	assert.equal(state().latOff, false);
 });
 
-test('ninguna entra en la conexión: las 3 mejores igual, con el aviso', async () => {
+test('ninguna entra en la conexión elegida: aviso con "Ver todas"', async () => {
 	const opts = [1, 2, 3, 4].map((q) => opt(`h${q}`, q, { mbps: 50 }));
-	const { model } = setup(opts);
+	const { model, state } = setup(opts);
 	click(model.view(), 'net-low');
 	click(model.view(), 'lat-no');
 	await flush();
+	assert.equal(state().net?.key, 'low');
 	const v = model.view();
-	if (v?.kind !== 'match') throw new Error(`pantalla ${v?.kind}`);
-	assert.equal(v.title, 'Ninguna entra en tu conexión');
-	assert.deepEqual(v.rows.map((r) => r.hash), ['h4', 'h3', 'h2']);
-	// "¿Se cortó?" baja de Baja a Muy baja.
-	assert.equal(v.lighter?.id, 'lighter');
+	if (v?.kind !== 'notice') throw new Error(`pantalla ${v?.kind}`);
+	assert.equal(v.text, 'Todas piden más de lo que da tu conexión');
+	assert.equal(v.all?.id, 'notice-all');
+	v.all?.onclick();
+	assert.equal(model.view(), null);
 });
 
 test('migas: vuelven al paso y limpian lo elegido después', async () => {
@@ -179,7 +178,7 @@ test('por torrent (desktop): sin TorBox salta el modo; con latino, calidad y bú
 	assert.deepEqual(model.crumbs()?.items.map((i) => i.label), ['Torrent', 'Audio latino', '1080p']);
 });
 
-test('latino: leídas todas y ninguna latina (ya sin potencial) → sin latino con 3 tarjetas, no "ninguna entra" (#82)', async () => {
+test('latino: leídas todas y ninguna latina ni de España → vuelve al audio con el aviso y "Ver todas" (#82)', async () => {
 	const opts = [
 		opt('a', 3, { f: { latState: 'likely' }, reads: { latState: 'none' } }),
 		opt('b', 2, { f: { latState: 'check', saysSpanish: true }, reads: { latState: 'none' } }),
@@ -191,6 +190,9 @@ test('latino: leídas todas y ninguna latina (ya sin potencial) → sin latino c
 	await flush();
 	assert.deepEqual(reads, ['a', 'b']);
 	const v = model.view();
-	assert.equal(v?.kind, 'nolat');
-	assert.deepEqual(choices(v).map((c) => c.id), ['nolat-original', 'nolat-spain', 'nolat-all']);
+	if (v?.kind !== 'choices') throw new Error(`pantalla ${v?.kind}`);
+	assert.equal(v.step, 'lat');
+	assert.equal(v.note, 'No encontré torrents con audio latino');
+	assert.deepEqual(choices(v).map((c) => [c.id, c.disabled]), [['lat-no', false], ['lat-yes', true]]);
+	assert.equal(v.all?.id, 'lat-all');
 });

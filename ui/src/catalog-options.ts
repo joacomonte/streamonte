@@ -939,7 +939,8 @@ export function isSafeBest(c: Candidate): boolean {
 /** El panel entero: sin opciones, un paso del flujo, o la lista del grupo abierto. */
 function streamsView(): StreamsView | null {
 	const u = state.update;
-	if (u?.done && !u.candidates.length) {
+	// Elegido TorBox, el aviso es el de los pasos ("No hay torrents para esta película", 2026-11-24).
+	if (u?.done && !u.candidates.length && side().flow?.mode !== 'torbox') {
 		const anyOk = u.addons.some((a) => a.state === 'ok');
 		return { kind: 'empty', text: anyOk ? tr('Ninguna fuente tiene torrents para esto.') : tr('Ninguna fuente respondió. Cerrá y volvé a abrirlo para reintentar.') };
 	}

@@ -65,8 +65,9 @@ type Screen = { crumbs: CrumbsView | null; title: string | null };
 /** Una pantalla de los pasos, con textos ya traducidos. `search` lo arma cada app (cómo carga sus fuentes es suyo). */
 export type FlowView =
 	| { kind: 'search'; title: string; sub: string; frac: number | null }
-	| (Screen & { kind: 'choices'; step: FlowStep; choices: ChoiceView[] })
+	| (Screen & { kind: 'choices'; step: FlowStep; choices: ChoiceView[]; /** Aviso arriba de las tarjetas y "Ver todas" al pie (TorBox sin latino). */ note: string | null; all: FlowButton | null })
 	| (Screen & { kind: 'scan'; text: string; /** Avance 0..1. */ frac: number; count: string; stop: FlowButton })
-	| (Screen & { kind: 'nolat'; none: string; choices: ChoiceView[]; more: MoreRowView | null })
+	/** TorBox sin nada para elegir (2026-11-24): el aviso, "Ver por torrent" (desktop) y "Ver todas" si hay lista. */
+	| (Screen & { kind: 'notice'; text: string; action: FlowButton | null; all: FlowButton | null })
 	| (Screen & { kind: 'match'; note: string | null; rows: OptionRowView[]; lighter: FlowButton | null; more: MoreRowView | null; all: FlowButton })
 	| (Screen & { kind: 'spain'; note: string; rows: OptionRowView[]; original: FlowButton; all: FlowButton });

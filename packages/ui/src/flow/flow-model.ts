@@ -35,10 +35,15 @@ export type FlowCand<T> = {
 	src: T;
 };
 
+/** La lista de torrents, que por TorBox se busca de fondo mientras elige (2026-11-24): buscando (fuentes que respondieron de
+ *  `total`; `checking`: viendo cuáles tiene TorBox), lista o falló (`error`: el de la app; null = no se pudo consultar TorBox). */
+export type FlowList = { kind: 'loading'; done: number; total: number; checking: boolean } | { kind: 'ready' } | { kind: 'failed'; error: string | null };
+
 /** Búsqueda de pistas en curso. `batch`: lo que se está leyendo. */
 export type Scan = { total: number; batch: string[]; done: number; running: boolean; stopped: boolean };
 /** `lat`: null = no se preguntó; `latOff`: sacó el filtro de latino; `scanned`: hashes cuyas pistas ya se intentaron leer;
- *  `found`: los buenos matches mostrados (en orden); `all`: pidió "Ver todas las opciones"; `spain`: vio las de España. */
+ *  `found`: los buenos matches mostrados (en orden); `all`: pidió "Ver todas las opciones"; `spain`: vio las de España;
+ *  `noLat`: buscó latino y no había (TorBox). */
 export type FlowState = {
 	step: FlowStep;
 	mode: 'torbox' | 'torrent' | null;
@@ -50,10 +55,11 @@ export type FlowState = {
 	found: string[];
 	all: boolean;
 	spain: boolean;
+	noLat: boolean;
 };
 /** Estado nuevo (uno por video). La web arranca en la conexión por TorBox; el desktop pregunta el modo. */
 export const newFlowState = (step: FlowStep = 'mode', mode: FlowState['mode'] = null): FlowState => ({
-	step, mode, net: null, lat: null, latOff: false, scan: null, scanned: [], found: [], all: false, spain: false,
+	step, mode, net: null, lat: null, latOff: false, scan: null, scanned: [], found: [], all: false, spain: false, noLat: false,
 });
 
 /** Ids de cada app (los usan sus escenas y scripts). `net` y `crumb` son prefijos (+ clave del nivel / del paso). */
@@ -62,9 +68,11 @@ export type FlowIds = {
 	latNo: string;
 	latYes: string;
 	stop: string;
-	nolatOriginal: string;
-	nolatSpain: string;
-	nolatAll: string;
+	/** "Ver todas" del paso de audio (sin latino) y del aviso (ninguna entra en la conexión). */
+	latAll: string;
+	noticeAll: string;
+	/** "Ver por torrent" (solo desktop) cuando TorBox no tiene ninguno o no respondió. */
+	toTorrent: string;
 	matchAll: string;
 	spainOriginal: string;
 	spainAll: string;
@@ -74,7 +82,7 @@ export type FlowIds = {
 
 /** Modo "por torrent" (solo desktop): paso de modo y de calidad, lectura de a `parallel`. */
 export type TorrentMode = {
-	/** Hay key de TorBox y respondió: se pregunta TorBox o torrent. */
+	/** Hay key de TorBox (y no falló): se pregunta TorBox o torrent, sin esperar la búsqueda. */
 	hasTorbox(): boolean;
 	parallel: number;
 	/** Segundos para leer `n` por el enjambre. */
@@ -94,6 +102,10 @@ export type FlowDeps<T> = {
 	/** El estado del video abierto (undefined: ninguno). Cambiar de video = otro objeto. */
 	state(): FlowState | undefined;
 	cands(): FlowCand<T>[];
+	/** Cómo va la búsqueda de torrents (por TorBox se elige mientras tanto). */
+	list(): FlowList;
+	/** Es un capítulo (los avisos dicen "este capítulo" en vez de "esta película"). */
+	episode(): boolean;
 	/** De mejor a peor calidad (el orden de la lista de cada app). */
 	sort(cands: FlowCand<T>[]): FlowCand<T>[];
 	row(c: FlowCand<T>, best: boolean): OptionRowView;
@@ -114,7 +126,6 @@ export type FlowModel<T> = ReturnType<typeof createFlow<T>>;
 
 const ACCENT = 'var(--accent-fg)';
 const GREEN = 'var(--green)';
-const AMBER = 'var(--amber, #f5a524)';
 const MUTED = 'var(--muted)';
 const WAVE: TileSpec = { kind: 'wave' };
 const choice = (id: string, tile: TileSpec, tone: string, i: number, title: string, sub: string, onclick: () => void, more: Partial<ChoiceView> = {}): ChoiceView => ({
@@ -186,8 +197,31 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 	async function runScan(): Promise<void> {
 		const f = now();
 		const tb = f.mode === 'torbox';
+		// 2026-11-24: por TorBox se elige mientras busca; si la lista no llegó, el radar muestra la búsqueda y espera a la lista
+		// entera (leer pistas antes daría un resultado falso).
+		if (tb && deps.list().kind === 'loading') {
+			f.scan = { total: 0, batch: [], done: 0, running: true, stopped: false };
+			const wait = f.scan;
+			changed();
+			let seen = '';
+			while (flow() === f && f.scan === wait && !wait.stopped && deps.list().kind === 'loading') {
+				const l = JSON.stringify(deps.list());
+				if (l !== seen) changed();
+				seen = l;
+				await new Promise((r) => setTimeout(r, 250));
+			}
+			if (flow() !== f || f.scan !== wait || wait.stopped) return;
+			wait.running = false;
+			if (deps.list().kind === 'failed') return changed();
+		}
+		// Ninguna entra en la conexión elegida: el aviso (`noticeScreen`). Bajar de nivel no sirve: cada nivel pide menos que el
+		// anterior (2026-11-24).
+		if (tb && !pool().some(fits)) return changed();
 		const total = toConfirm(scope()).length;
-		if (!total && !(tb && nextMatch())) return changed();
+		if (!total && !(tb && nextMatch())) {
+			if (tb) settleLat(f);
+			return changed();
+		}
 		f.scan = { total, batch: [], done: 0, running: true, stopped: false };
 		// Releído: en la web `f` es un proxy de `$state` y guarda su propia copia.
 		const scan = f.scan;
@@ -209,7 +243,15 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 			if (!tb && deps.cands().some((c) => scan.batch.includes(c.hash) && isLat(c))) break;
 		}
 		if (f.scan === scan) scan.running = false;
+		if (tb && flow() === f && f.scan === scan && !scan.stopped) settleLat(f);
 		if (flow() === f) changed();
+	}
+	/** 2026-11-24 (TorBox): pidió latino, se leyó todo y no hubo: las de España si hay; si no, vuelve al paso de audio con el aviso
+	 *  (reemplaza la pantalla "sin latino"). */
+	function settleLat(f: FlowState): void {
+		if (!f.lat || f.found.length) return;
+		if (pool().some(spanishNotLat)) f.spain = true;
+		else Object.assign(f, { step: 'lat', lat: null, noLat: true, scan: null });
 	}
 	/** Pidiendo latino, al llegar a la lista (por torrent): busca salvo que ya haya una confirmada. */
 	function autoScan(): void {
@@ -237,6 +279,7 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 		cancelWork();
 		if (step === 'mode') Object.assign(f, { mode: null, lat: null });
 		if (step === 'mode' || step === 'lat' || step === 'net') Object.assign(f, { lat: null, scan: null, found: [], all: false });
+		if (step === 'mode' || step === 'net') f.noLat = false;
 		f.latOff = false;
 		f.spain = false;
 		f.step = step;
@@ -244,7 +287,7 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 		changed();
 	}
 	function setNet(n: NetChoice): void {
-		Object.assign(now(), { net: n, found: [], all: false, scanned: [] });
+		Object.assign(now(), { net: n, found: [], all: false, scanned: [], noLat: false });
 	}
 	function pickNet(n: NetChoice): void {
 		deps.track?.('conexión', n.label);
@@ -277,7 +320,15 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 	}
 	/** "Ver todas las opciones"; `clearLat`: sin el filtro de latino (si la app lo aplica a la lista). */
 	function showAll(clearLat: boolean): void {
-		Object.assign(now(), { all: true, spain: false }, clearLat && !deps.allIgnoresLat ? { latOff: true } : {});
+		// `step`: también desde el paso de audio (sin latino, 2026-11-24).
+		Object.assign(now(), { all: true, spain: false, step: 'list' }, clearLat && !deps.allIgnoresLat ? { latOff: true } : {});
+		changed();
+	}
+	/** TorBox no tiene ninguno o no respondió (solo desktop): sigue por torrent desde el audio. */
+	function toTorrentMode(): void {
+		cancelWork();
+		Object.assign(now(), { mode: 'torrent', step: 'lat', lat: null, latOff: false, scan: null, scanned: [], found: [], all: false, spain: false, noLat: false });
+		torrent?.setOpenRes('');
 		changed();
 	}
 	function stopAndShow(): void {
@@ -292,7 +343,7 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 		if (!f?.mode) return null;
 		const n = f.net;
 		const items: [FlowStep | null, string][] = [];
-		if (torrent) items.push(torrent.hasTorbox() ? ['mode', f.mode === 'torbox' ? 'TorBox' : 'Torrent'] : [null, 'Torrent']);
+		if (torrent) items.push(torrent.hasTorbox() || f.mode === 'torbox' ? ['mode', f.mode === 'torbox' ? 'TorBox' : 'Torrent'] : [null, 'Torrent']);
 		if (f.mode === 'torbox' && n && f.step !== 'net') items.push(['net', t('Conexión {a}', { a: netLabel(n).toLowerCase() })]);
 		if (f.lat != null) items.push(['lat', f.lat ? t('Audio latino') : t('Audio original')]);
 		if (f.step === 'list' && openRes()) items.push(['res', resLabel(openRes(), t('Otras'))]);
@@ -311,6 +362,10 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 		// Sin TorBox (sin key o no respondió) no se pregunta: torrent.
 		if (f.step === 'mode' && !torrent?.hasTorbox()) Object.assign(f, { mode: 'torrent', step: 'lat' });
 		if (f.step === 'mode') return modeScreen();
+		if (f.mode === 'torbox' && !f.all) {
+			const notice = noticeScreen();
+			if (notice) return notice;
+		}
 		if (f.step === 'net') return netScreen();
 		if (f.step === 'lat') return latScreen();
 		if (f.step === 'res') return resScreen();
@@ -323,6 +378,16 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 	/** TorBox: mientras no aparezca el primer buen match, solo la búsqueda (radar). */
 	function scanScreen(): FlowView {
 		const s = now().scan as Scan;
+		const l = deps.list();
+		// Todavía sin la lista (2026-11-24): el avance de la búsqueda; Detener vuelve al audio.
+		if (l.kind === 'loading') {
+			return {
+				kind: 'scan', ...screenOf(null), text: t('Buscando el mejor torrent para vos'),
+				frac: l.checking ? 1 : l.total ? (l.done / l.total) * 0.9 : 0,
+				count: l.checking ? t('Viendo cuáles tiene TorBox') : l.total ? t('Buscando torrents · {a} de {n} fuentes', { a: l.done, n: l.total }) : t('Buscando torrents…'),
+				stop: button(ids.stop, 'stop', t('Detener'), () => goTo('lat')),
+			};
+		}
 		return {
 			kind: 'scan', ...screenOf(null),
 			text: t('Buscando el mejor torrent para vos'),
@@ -332,42 +397,37 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 		};
 	}
 
-	const allCount = (): number => (deps.allIgnoresLat ? pool().length : pool().filter(flowFilter).length);
-	const allButton = (id: string, clearLat: boolean): FlowButton => button(id, 'list', t('Ver todas las opciones'), () => showAll(clearLat), { count: String(allCount()) });
+	const allCount = (clearLat: boolean): number => (deps.allIgnoresLat || clearLat ? pool().length : pool().filter(flowFilter).length);
+	const allButton = (id: string, clearLat: boolean): FlowButton => button(id, 'list', t('Ver todas las opciones'), () => showAll(clearLat), { count: String(allCount(clearLat)) });
 	const spanishNotLat = (c: FlowCand<T>): boolean => c.facts.latState === 'spain';
+	/** 2026-11-24 (TorBox): sin nada para elegir, un aviso en vez del paso: no respondió TorBox, no hay ninguno o ninguno entra en la
+	 *  conexión elegida (ahí con "Ver todas"). Por torrent (desktop) se puede seguir con "Ver por torrent". null: hay. */
+	function noticeScreen(): FlowView | null {
+		const f = now();
+		const l = deps.list();
+		if (l.kind === 'loading') return null;
+		const ep = deps.episode();
+		const byTorrent = torrent && deps.cands().length ? button(ids.toTorrent, 'peers', t('Ver por torrent'), toTorrentMode) : null;
+		const notice = (text: string, action: FlowButton | null, all: FlowButton | null): FlowView => ({ kind: 'notice', ...screenOf(null), text, action, all });
+		if (l.kind === 'failed') return notice(l.error ?? t('No pude consultar TorBox'), byTorrent, null);
+		const none = ep ? t('No hay torrents para este capítulo') : t('No hay torrents para esta película');
+		if (!pool().length) return byTorrent ? notice(ep ? t('TorBox no tiene torrents para este capítulo') : t('TorBox no tiene torrents para esta película'), byTorrent, null) : notice(none, null, null);
+		if (f.step === 'list' && !f.scan?.running && f.net && !pool().some(fits)) return notice(t('Todas piden más de lo que da tu conexión'), null, allButton(ids.noticeAll, true));
+		return null;
+	}
 
-	/** TorBox, el resultado: solo los buenos matches encontrados. Sin ninguno, las 3 de mejor calidad con el aviso. */
+	/** TorBox, el resultado: solo los buenos matches encontrados. Sin ninguno, las 3 de mejor calidad con el aviso. (Sin latino y
+	 *  sin conexión que alcance ya no llegan acá: `settleLat` y `noticeScreen`, 2026-11-24.) */
 	function matchScreen(): FlowView {
 		const f = now();
 		const list = ranked();
 		const found = f.found.map((h) => list.find((c) => c.hash === h)).filter((c): c is FlowCand<T> => !!c);
 		const searched = !toConfirm(pool()).length;
-		const spanish = pool().filter(spanishNotLat);
-		// Ninguna entra en la conexión elegida: las 3 mejores igual (marcadas "Puede cortarse"), con el aviso. Se mira el pool
-		// entero: pidiendo latino, `list` también queda vacía si se leyeron todas y ninguna era latina (eso es "sin latino", #82).
-		const fitsNone = !pool().some(fits);
-		const none = fitsNone ? t('Todas piden más de lo que da tu conexión: mirá "Ver todas" o cambiá la conexión') : t('Ninguna trae sub ES nativo: los subs se buscan afuera');
-		// Sin latino: sin lista ni título; cómo seguir, en tarjetas iguales a las del paso de audio.
-		if (f.lat && !found.length && !fitsNone) {
-			return {
-				kind: 'nolat', ...screenOf(null),
-				none: t('No se encontraron opciones con audio latino'),
-				choices: [
-					choice(ids.nolatOriginal, WAVE, ACCENT, 0, t('Buscar con audio original'), t('No encontré latino · busco una con subtítulos en español'), toOriginal),
-					choice(ids.nolatSpain, { kind: 'bubble', text: 'ES' }, AMBER, 1, t('Español de España'), spanish.length
-						? t(spanish.length === 1 ? '1 opción con español que casi seguro no es latino' : '{n} opciones con español que casi seguro no es latino', { n: spanish.length })
-						: t('Ninguna con español de España'), () => { f.spain = true; changed(); }, { disabled: !spanish.length }),
-					choice(ids.nolatAll, { kind: 'list' }, MUTED, 2, t('Ver todas las opciones'), t('{n} opciones, sin filtros · de mejor a peor calidad', { n: pool().length }), () => showAll(true)),
-				],
-				more: moreRow(),
-			};
-		}
-		const title = found.length ? null : fitsNone ? t('Ninguna entra en tu conexión') : t('Sin subtítulos en español adentro');
-		const rows = found.length ? found.map((c) => deps.row(c, true)) : (fitsNone ? deps.sort(pool().filter(flowFilter)) : list).slice(0, 3).map((c) => deps.row(c, false));
+		const title = found.length || f.lat ? null : t('Sin subtítulos en español adentro');
 		return {
 			kind: 'match', ...screenOf(title),
-			note: found.length ? null : searched || fitsNone ? none : t('Búsqueda detenida: estas son las de mejor calidad'),
-			rows,
+			note: found.length ? null : searched ? t('Ninguna trae sub ES nativo: los subs se buscan afuera') : t('Búsqueda detenida: estas son las de mejor calidad'),
+			rows: (found.length ? found : list.slice(0, 3)).map((c) => deps.row(c, !!found.length)),
 			lighter: lighterButton(),
 			more: moreRow(),
 			all: allButton(ids.matchAll, false),
@@ -398,7 +458,7 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 	function netScreen(): FlowView {
 		const cur = flow()?.net;
 		return {
-			kind: 'choices', step: 'net', ...screenOf(t('¿Cómo es tu internet donde lo vas a ver?')),
+			kind: 'choices', step: 'net', ...screenOf(t('¿Cómo es tu internet donde lo vas a ver?')), note: null, all: null,
 			choices: [...NET].reverse().map((n, i) => choice(`${ids.net}${n.key}`, { kind: 'net', level: (NET.indexOf(n) + 1) as 1 | 2 | 3 | 4 }, `var(--${n.tone})`, i, netLabel(n), t(n.range), () => pickNet(n), { primary: cur?.key === n.key })),
 		};
 	}
@@ -408,14 +468,18 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 		const f = now();
 		const cands = deps.cands();
 		const all = cands.length;
-		const tb = cands.filter((c) => c.inTorbox).length;
+		// Buscando todavía (2026-11-24): se elige sin esperar, con textos sin conteo.
+		const loading = deps.list().kind === 'loading';
+		const tb = loading ? 1 : cands.filter((c) => c.inTorbox).length;
 		const go = (mode: 'torbox' | 'torrent') => (): void => { Object.assign(f, { mode, step: mode === 'torbox' ? 'net' : 'lat' }); changed(); };
+		const tbSub = loading ? t('Los que tiene en sus servidores arrancan al instante y no dependen de los seeds')
+			: tb ? t('{tb} {a} en sus servidores: arranca al instante y no depende de los seeds', { tb, a: tb === 1 ? t('lista') : t('listas') }) : t('No hay torrents en TorBox para esto');
+		const allSub = loading ? t('Torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten') : t('{all} torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten', { all });
 		return {
-			kind: 'choices', step: 'mode', ...screenOf(t('¿Cómo lo querés ver?')),
+			kind: 'choices', step: 'mode', ...screenOf(t('¿Cómo lo querés ver?')), note: null, all: null,
 			choices: [
-				choice('cat-flow-torbox', { kind: 'icon', icon: 'play' }, ACCENT, 0, t('Por TorBox'), tb ? t('{tb} {a} en sus servidores: arranca al instante y no depende de los seeds', { tb, a: tb === 1 ? t('lista') : t('listas') }) : t('No hay torrents en TorBox para esto'),
-					go('torbox'), { badge: tb ? t('Al instante') : null, disabled: !tb, primary: !!tb }),
-				choice('cat-flow-torrent', { kind: 'icon', icon: 'peers' }, MUTED, 1, t('Por torrent'), t('{all} torrents de otras personas (P2P): la velocidad depende de cuántos lo comparten', { all }), go('torrent')),
+				choice('cat-flow-torbox', { kind: 'icon', icon: 'play' }, ACCENT, 0, t('Por TorBox'), tbSub, go('torbox'), { badge: tb ? t('Al instante') : null, disabled: !tb, primary: !!tb }),
+				choice('cat-flow-torrent', { kind: 'icon', icon: 'peers' }, MUTED, 1, t('Por torrent'), allSub, go('torrent')),
 			],
 		};
 	}
@@ -427,16 +491,30 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 		const none = !potential.length;
 		const named = potential.filter(isLat).length;
 		const doubtful = potential.length - named;
+		const origSub = f.mode === 'torbox' ? t('Con subtítulos en español') : t('El idioma en que se filmó');
+		const orig = choice(ids.latNo, WAVE, ACCENT, 0, t('Audio original'), origSub, () => pickLat(false));
+		const ask = screenOf(t('¿Necesitás audio latino?'));
+		// TorBox (2026-11-24, igual en las dos apps): sin chips, se puede pedir mientras busca; si ya se buscó y no hubo, deshabilitada
+		// con el aviso y "Ver todas".
+		if (f.mode === 'torbox' || !torrent) {
+			const off = f.noLat || (none && deps.list().kind === 'ready');
+			const yesSub = off ? t('No hay torrents con audio latino') : t('Hay menos con latino: puede tardar más en encontrar uno');
+			return {
+				kind: 'choices', step: 'lat', ...ask,
+				note: f.noLat ? t('No encontré torrents con audio latino') : null,
+				all: f.noLat && p.length ? allButton(ids.latAll, true) : null,
+				choices: [orig, choice(ids.latYes, { kind: 'bubble', text: 'LAT' }, GREEN, 1, t('Audio latino'), yesSub, () => pickLat(true), { disabled: off })],
+			};
+		}
 		const left = toConfirm(p, true).length;
 		// Variante A (docs/mockups/audio-latino): chips en vez de texto; el detalle queda en el `title` de cada uno.
-		const how = f.mode === 'torbox' || !torrent ? t('de a una, de mejor a peor calidad') : t('de a {SWARM_PARALLEL}, en la calidad que elijas', { SWARM_PARALLEL: torrent.parallel });
+		const how = t('de a {SWARM_PARALLEL}, en la calidad que elijas', { SWARM_PARALLEL: torrent.parallel });
 		const yesChips = latChips(named, doubtful, left > 0, t('Las reviso {how} hasta encontrar latino', { how }));
 		const yesSub = none ? t('No hay torrents con audio latino') : yesChips.map((c) => c.title ?? c.text).join(' · ');
-		const origSub = f.mode === 'torbox' ? t('Con subtítulos en español') : t('El idioma en que se filmó');
 		return {
-			kind: 'choices', step: 'lat', ...screenOf(t('¿Necesitás audio latino?')),
+			kind: 'choices', step: 'lat', ...ask, note: null, all: null,
 			choices: [
-				choice(ids.latNo, WAVE, ACCENT, 0, t('Audio original'), origSub, () => pickLat(false)),
+				orig,
 				// El latino suele venir en releases más livianos: que no sorprenda no encontrarlo en 4K.
 				choice(ids.latYes, { kind: 'bubble', text: 'LAT' }, GREEN, 1, t('Audio latino'), yesSub, () => pickLat(true), { chips: none ? null : yesChips, disabled: none }),
 			],
@@ -498,7 +576,7 @@ export function createFlow<T>(deps: FlowDeps<T>) {
 			// Pidiendo latino, la calidad sin ninguno va en gris.
 			choices.push(choice(`cat-flow-res-${r}`, { kind: 'icon', icon: 'monitor' }, f.lat && !lat ? MUTED : ACCENT, choices.length, resLabel(r, t('Otras')), sub, () => pickRes(r)));
 		}
-		return { kind: 'choices', step: 'res', ...screenOf(t('Elegí la calidad')), choices };
+		return { kind: 'choices', step: 'res', ...screenOf(t('Elegí la calidad')), note: null, all: null, choices };
 	}
 
 	return { view, crumbs, moreRow, isMatch, flowFilter, fits, hasResStep, cancelWork, runScan, nextMatch, toConfirm };

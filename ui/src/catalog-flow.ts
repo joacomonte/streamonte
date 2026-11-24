@@ -11,7 +11,7 @@ import { readTracks } from './catalog-subs.ts';
 import { quickAnalyze, side, sideOf, startAnalysis, stopTests, unlikely } from './catalog-tests.ts';
 import { scanSecs, SWARM_PARALLEL, SWARM_SECS } from './options-logic.ts';
 import { fitsNet as fitsNetLevel, type NetChoice } from '$ui/flow/net.ts';
-import { createFlow, newFlowState, type FlowCand, type FlowIds, type FlowState } from '$ui/flow/flow-model.ts';
+import { createFlow, newFlowState, type FlowCand, type FlowIds, type FlowList, type FlowState } from '$ui/flow/flow-model.ts';
 import type { CrumbsView, FlowView, MoreRowView } from '$ui/flow/types.ts';
 import type { StreamCandidate as Candidate } from './types.ts';
 
@@ -22,7 +22,7 @@ const flow = (): Flow | undefined => sideOf()?.flow;
 
 const IDS: FlowIds = {
 	net: 'cat-flow-net-', latNo: 'cat-flow-lat-no', latYes: 'cat-flow-lat-yes', stop: 'cat-flow-stop',
-	nolatOriginal: 'cat-match-original', nolatSpain: 'cat-match-spain', nolatAll: 'cat-match-all', matchAll: 'cat-match-all',
+	latAll: 'cat-lat-all', noticeAll: 'cat-notice-all', toTorrent: 'cat-to-torrent', matchAll: 'cat-match-all',
 	spainOriginal: 'cat-spain-original', spainAll: 'cat-spain-all', lighter: 'cat-lighter', crumb: 'cat-crumb-',
 };
 
@@ -45,9 +45,22 @@ function cands(): FlowCand<Candidate>[] {
 }
 const tracksRead = (h: string): boolean => !!state.update?.candidates.find((c) => c.info_hash === h && factsOf(c).audioRead);
 
+/** Cómo va la búsqueda (2026-11-24: por TorBox se elige mientras tanto): las fuentes y, con key, el chequeo de TorBox. */
+function list(): FlowList {
+	const u = state.update;
+	const ok = u ? u.addons.filter((a) => a.state !== 'pending').length : 0;
+	if (!u?.done) return { kind: 'loading', done: ok, total: u?.addons.length ?? 0, checking: false };
+	// Sin torrents no se consulta TorBox (`onStreams`).
+	if (!u.candidates.length || !view.torboxKey) return { kind: 'ready' };
+	if (side().torbox === 'error') return { kind: 'failed', error: null };
+	return side().torbox === 'done' ? { kind: 'ready' } : { kind: 'loading', done: ok, total: u.addons.length, checking: true };
+}
+
 const model = createFlow<Candidate>({
 	state: flow,
 	cands,
+	list,
+	episode: () => side().kind === 'series',
 	sort: (cands) => {
 		const byHash = new Map(cands.map((c) => [c.hash, c]));
 		return flatSorted(cands.map((c) => c.src)).map((c) => byHash.get(c.info_hash) as FlowCand<Candidate>);
@@ -72,7 +85,8 @@ const model = createFlow<Candidate>({
 	ids: IDS,
 	allIgnoresLat: false,
 	torrent: {
-		hasTorbox: () => !!view.torboxKey && side().torbox === 'done',
+		// Con key se pregunta sin esperar la búsqueda (2026-11-24); si TorBox ya falló, directo a torrent como antes.
+		hasTorbox: () => !!view.torboxKey && side().torbox !== 'error',
 		parallel: SWARM_PARALLEL,
 		scanSecs: (n) => scanSecs(n, false),
 		openRes: () => view.openRes ?? '',
@@ -111,8 +125,11 @@ function ready(): boolean {
 
 /** El paso actual, o null en la lista (la arma `renderStreamsOnly`). */
 export function flowStep(): FlowView | null {
-	if (!flow()) return null;
-	if (!ready()) return searchScreen();
+	const f = flow();
+	if (!f) return null;
+	// Con key de TorBox, el modo y los pasos de TorBox no esperan la búsqueda (sigue de fondo, 2026-11-24); por torrent, como antes.
+	const background = !!view.torboxKey && (f.step === 'mode' || f.mode === 'torbox');
+	if (!ready() && !background) return searchScreen();
 	return model.view();
 }
 

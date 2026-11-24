@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Torrents de un video que TorBox tiene en caché, en pasos (la máquina compartida con el desktop, `$ui/flow/flow-model.ts`):
-	// buscando (fuente por fuente) → conexión → ¿audio latino? → el PRIMER BUEN MATCH, leyendo pistas de a una de mejor a peor
+	// conexión → ¿audio latino? (mientras busca de fondo, fuente por fuente; 2026-11-24) → el PRIMER BUEN MATCH, leyendo pistas de a una de mejor a peor
 	// calidad, con "Seguir buscando" y "Ver todas las opciones"; migas para volver. Por fila: peso, calidad de
 	// imagen, audio y subs en español, y copiar el link https de TorBox. Los subtítulos son de cada torrent: aparecen
 	// al copiar su link (nativos primero; si no trae, se buscan afuera; Premium plegado al final).
@@ -13,12 +13,11 @@
 	import FlowChoices from '$ui/flow/FlowChoices.svelte';
 	import FlowCrumbs from '$ui/flow/FlowCrumbs.svelte';
 	import FlowRadar from '$ui/flow/FlowRadar.svelte';
-	import FlowSearching from '$ui/flow/FlowSearching.svelte';
 	import { stepIn } from '$ui/flow/step-in.ts';
 	import MoreRow from '$ui/flow/MoreRow.svelte';
 	import { fitsNet } from '$ui/flow/net.ts';
 	import type { MatchFacts } from '$ui/flow/match-rules.ts';
-	import { createFlow, newFlowState, type FlowCand, type FlowIds } from '$ui/flow/flow-model.ts';
+	import { createFlow, newFlowState, type FlowCand, type FlowIds, type FlowList } from '$ui/flow/flow-model.ts';
 	import type { ChoiceView, FlowButton, FlowStep, MoreRowView } from '$ui/flow/types.ts';
 	import { humanBytes, sxe } from '$ui/format.ts';
 	import { casterFor, castSteps, device } from '$ui/components/tours.ts';
@@ -182,7 +181,7 @@
 	/** Ids estables (escenas y `scripts/bench-options.mjs`). */
 	const IDS: FlowIds = {
 		net: 'net-', latNo: 'audio-any', latYes: 'audio-lat', stop: 'search-stop',
-		nolatOriginal: 'fallback-original', nolatSpain: 'see-spain', nolatAll: 'see-all', matchAll: 'see-all-rest',
+		latAll: 'see-all', noticeAll: 'see-all-fit', toTorrent: 'see-torrent', matchAll: 'see-all-rest',
 		spainOriginal: 'fallback-original-spain', spainAll: 'see-all-spain', lighter: 'lighter', crumb: 'crumb-'
 	};
 	/** Lo que mira el ranking compartido de una opción. */
@@ -217,6 +216,9 @@
 	const model = createFlow<Torrent>({
 		state: () => flow,
 		cands: () => all.map(toCand),
+		// La lista llega entera al final (después del chequeo de TorBox); mientras tanto, solo el avance de las fuentes.
+		list: (): FlowList => load.options ? { kind: 'ready' } : error ? { kind: 'failed', error } : { kind: 'loading', done: load.progress?.done ?? 0, total: load.progress?.total ?? 0, checking: load.checking },
+		episode: () => !!(s && e),
 		sort: (cands) => [...cands].sort((a, b) => byQuality(a.src, b.src)),
 		row: (c, best) => rowOf(c.src, best),
 		read: async ([c]) => {
@@ -250,7 +252,7 @@
 		onlyEs = false;
 	}
 	/** Qué pantalla se ve (para la entrada animada): cambia al cambiar de paso, no al redibujar la misma. */
-	const screen = $derived(!view ? 'all' : view.kind === 'choices' ? view.step : view.kind === 'nolat' ? 'match' : view.kind);
+	const screen = $derived(!view ? 'all' : view.kind === 'choices' ? view.step : view.kind);
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 	/** El video que copiaste: los subtítulos se ordenan por cuánto calzan con él. */
 	let match = $state<{ hash: string; release: string; natives?: Native[]; file?: FileId; video?: Video } | null>(null);
@@ -471,66 +473,61 @@
 </script>
 
 <section class="torrents" aria-label={tr('Torrents en TorBox')} aria-busy={!load.options && !error}>
-	{#if !load.options && !error}
-		<!-- Paso 1: hasta que terminan TODAS las fuentes y el chequeo de TorBox. -->
-		<FlowSearching title={tr('Buscando torrents…')} sub={load.checking ? tr('Viendo cuáles tiene TorBox') : load.progress?.total ? tr('{n} de {d} fuentes', { n: load.progress.done, d: load.progress.total }) : ''} frac={load.progress?.total ? (load.checking ? 1 : (load.progress.done / load.progress.total) * 0.9) : null} />
-	{:else if error && !load.options}
-		<p class="status error" role="alert">{error}</p>
-	{:else if load.options && !all.length}
-		<p class="status muted">{tr('No hay torrents en TorBox para esto.')}</p>
-	{:else if load.options}
-		{#if crumbs}<FlowCrumbs aria={crumbs.aria} items={crumbs.items} />{/if}
+	<!-- 2026-11-24: sin pantalla de "buscando torrents": los pasos se ven enseguida y la búsqueda sigue de fondo (el radar la muestra). -->
+	{#if crumbs}<FlowCrumbs aria={crumbs.aria} items={crumbs.items} />{/if}
 
-		{#key screen}
-			<div class="step" in:stepIn>
-				{#if view?.kind === 'choices'}
-					<h3 class="ask">{view.title}</h3>
-					{@render choices(view.choices, view.step)}
-				{:else if view?.kind === 'scan'}
-					<!-- Buscando: un radar barre las opciones (puntos que se encienden al pasar); al primero que sirve, aparece el resultado. -->
-					<FlowRadar title={view.text} frac={view.frac} count={view.count} stopId={view.stop.id} stopText={view.stop.text} onstop={view.stop.onclick} />
-				{:else if view?.kind === 'nolat'}
-					<!-- Sin latino: cómo seguir, con las mismas tarjetas que el paso de audio (sin lista, los botones ya lo dicen). -->
-					{#if error}<p class="status error" role="alert">{error}</p>{/if}
-					<p class="none" role="status">{view.none}</p>
-					{@render choices(view.choices, 'list')}
-					{#if view.more && view.more.kind !== 'done'}<div class="row-actions"><MoreRow more={view.more} look="row" /></div>{/if}
-				{:else if view?.kind === 'match'}
-					<!-- El resultado: solo los buenos matches; sin ninguno, las 3 de mejor calidad con el aviso. -->
-					{#if error}<p class="status error" role="alert">{error}</p>{/if}
-					{#if view.title}<h3 class="ask">{view.title}</h3>{/if}
-					{#if view.note}<p class="muted latsum" role="status">{view.note}</p>{/if}
-					<OptionsList rows={view.rows} />
-					<div class="row-actions">
-						{@render moreRow(view.more)}
-						{@render rowBtn(view.all)}
+	{#key screen}
+		<div class="step" in:stepIn>
+			{#if view?.kind === 'choices'}
+				<!-- Si una fuente falla con el usuario en un paso, que se vea. -->
+				{#if error}<p class="status error" role="alert">{error}</p>{/if}
+				<h3 class="ask">{view.title}</h3>
+				{#if view.note}<p class="none" role="status">{view.note}</p>{/if}
+				{@render choices(view.choices, view.step)}
+				{#if view.all}<div class="row-actions">{@render rowBtn(view.all)}</div>{/if}
+			{:else if view?.kind === 'scan'}
+				<!-- Buscando: un radar barre las opciones (puntos que se encienden al pasar); al primero que sirve, aparece el resultado. -->
+				{#if error}<p class="status error" role="alert">{error}</p>{/if}
+				<FlowRadar title={view.text} frac={view.frac} count={view.count} stopId={view.stop.id} stopText={view.stop.text} onstop={view.stop.onclick} />
+			{:else if view?.kind === 'notice'}
+				<!-- Sin nada para elegir (sin torrents, falló la búsqueda o ninguno entra en la conexión). -->
+				<p class="none" role="status">{view.text}</p>
+				{#if view.action || view.all}<div class="row-actions">{#if view.action}{@render rowBtn(view.action)}{/if}{#if view.all}{@render rowBtn(view.all)}{/if}</div>{/if}
+			{:else if view?.kind === 'match'}
+				<!-- El resultado: solo los buenos matches; sin ninguno, las 3 de mejor calidad con el aviso. -->
+				{#if error}<p class="status error" role="alert">{error}</p>{/if}
+				{#if view.title}<h3 class="ask">{view.title}</h3>{/if}
+				{#if view.note}<p class="muted latsum" role="status">{view.note}</p>{/if}
+				<OptionsList rows={view.rows} />
+				<div class="row-actions">
+					{@render moreRow(view.more)}
+					{@render rowBtn(view.all)}
+				</div>
+			{:else if view?.kind === 'spain'}
+				<h3 class="ask">{view.title}</h3>
+				<p class="muted latsum">{view.note}</p>
+				{#if error}<p class="status error" role="alert">{error}</p>{/if}
+				<OptionsList rows={view.rows} />
+				<div class="row-actions">{@render rowBtn(view.original)}{@render rowBtn(view.all)}</div>
+			{:else}
+				<div class="filters-bar">
+					<div class="chips toggles" role="toolbar" aria-label={tr('Filtros de torrents')}>
+						<button id="only-hdr" type="button" class="chip toggle" class:on={onlyHdr} aria-pressed={onlyHdr} onclick={() => (onlyHdr = !onlyHdr)}>HDR</button>
+						<button id="only-es" type="button" class="chip toggle" class:on={onlyEs} aria-pressed={onlyEs} title={tr('Solo las verificadas que traen subtítulos en español')} onclick={() => (onlyEs = !onlyEs)}><Icon name="subs" size={14} />{tr('Subs ES')}</button>
 					</div>
-				{:else if view?.kind === 'spain'}
-					<h3 class="ask">{view.title}</h3>
-					<p class="muted latsum">{view.note}</p>
-					{#if error}<p class="status error" role="alert">{error}</p>{/if}
-					<OptionsList rows={view.rows} />
-					<div class="row-actions">{@render rowBtn(view.original)}{@render rowBtn(view.all)}</div>
-				{:else}
-					<div class="filters-bar">
-						<div class="chips toggles" role="toolbar" aria-label={tr('Filtros de torrents')}>
-							<button id="only-hdr" type="button" class="chip toggle" class:on={onlyHdr} aria-pressed={onlyHdr} onclick={() => (onlyHdr = !onlyHdr)}>HDR</button>
-							<button id="only-es" type="button" class="chip toggle" class:on={onlyEs} aria-pressed={onlyEs} title={tr('Solo las verificadas que traen subtítulos en español')} onclick={() => (onlyEs = !onlyEs)}><Icon name="subs" size={14} />{tr('Subs ES')}</button>
-						</div>
-						<p class="summary" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>{tr('{n} de {f} en TorBox · de mejor a peor calidad', { n: list.length, f: all.length })}</p>
-					</div>
-					{#if error}<p class="status error" role="alert">{error}</p>{/if}
-					{#if !list.length}
-						<!-- Mismo vacío que el desktop: qué pasó y "Quitar filtros". -->
-						{@const empty = noMatches(all.length > 0, clearFilters, tr)}
-						<p class="status muted" role="status">{empty.text}{#if empty.clear}<button id="filters-off" type="button" class="filters-off" onclick={empty.clear.onclick}>{empty.clear.text}</button>{/if}</p>
-					{/if}
-					<OptionsList rows={list.map((t) => rowOf(t, false))} />
-					{@render moreRow(more)}
+					<p class="summary" title={tr('TorBox es un servicio pago que baja torrents a sus servidores y te los pasa como video en línea. Estas opciones ya las tiene bajadas: el link se ve al instante en la tele, sin depender de los seeds.')}>{tr('{n} de {f} en TorBox · de mejor a peor calidad', { n: list.length, f: all.length })}</p>
+				</div>
+				{#if error}<p class="status error" role="alert">{error}</p>{/if}
+				{#if !list.length}
+					<!-- Mismo vacío que el desktop: qué pasó y "Quitar filtros". -->
+					{@const empty = noMatches(all.length > 0, clearFilters, tr)}
+					<p class="status muted" role="status">{empty.text}{#if empty.clear}<button id="filters-off" type="button" class="filters-off" onclick={empty.clear.onclick}>{empty.clear.text}</button>{/if}</p>
 				{/if}
-			</div>
-		{/key}
-	{/if}
+				<OptionsList rows={list.map((t) => rowOf(t, false))} />
+				{@render moreRow(more)}
+			{/if}
+		</div>
+	{/key}
 </section>
 
 <!-- Al pie del resultado y de "todas": la búsqueda en curso (Detener), "Seguir buscando" o que no quedan más (si hubo match). -->

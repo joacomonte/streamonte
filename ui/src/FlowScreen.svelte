@@ -42,13 +42,14 @@
 			{#if flow.crumbs}<FlowCrumbs aria={flow.crumbs.aria} items={flow.crumbs.items} />{/if}
 			{#if flow.title}<h3 class="ask">{flow.title}</h3>{/if}
 			{#if flow.kind === 'choices'}
+				{#if flow.note}<p class="none" role="status">{flow.note}</p>{/if}
 				{@render choices(flow.choices)}
+				{#if flow.all}<div class="cat-flow-actions rows">{@render flowBtn(flow.all)}</div>{/if}
 			{:else if flow.kind === 'scan'}
 				<FlowRadar title={flow.text} frac={flow.frac} count={flow.count} stopId={flow.stop.id} stopText={flow.stop.text} onstop={flow.stop.onclick} />
-			{:else if flow.kind === 'nolat'}
-				<p class="none" role="status">{flow.none}</p>
-				{@render choices(flow.choices)}
-				<div class="cat-flow-actions rows">{#if flow.more}<MoreRow more={flow.more} look="cat" />{/if}</div>
+			{:else if flow.kind === 'notice'}
+				<p class="none" role="status">{flow.text}</p>
+				{#if flow.action || flow.all}<div class="cat-flow-actions rows">{#if flow.action}{@render flowBtn(flow.action)}{/if}{#if flow.all}{@render flowBtn(flow.all)}{/if}</div>{/if}
 			{:else if flow.kind === 'match'}
 				{#if flow.note}<p class="cat-flow-note" role="status">{flow.note}</p>{/if}
 				<OptionsList rows={flow.rows} />
