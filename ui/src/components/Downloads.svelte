@@ -103,11 +103,11 @@
       {#if !still}<span class="pop-bar"><i style:width="{pct}%"></i></span>{/if}
     </div>
     <div class="pop-actions">
-      {#if paused}<button id="dl-resume-{r.id}" class="btn btn-sm btn-pill pop-btn" onclick={() => play(r.key, null)}>Retomar</button>{/if}
-      {#if ACTIVE(r)}<button id="dl-stop-{r.id}" class="btn btn-sm btn-pill pop-btn" title="Cierra mpv y el motor; lo bajado queda guardado" onclick={act(r, 'stop')}>Detener</button>{/if}
-      <button id="dl-folder-{r.id}" class="btn btn-sm btn-pill pop-btn icon" title="Abrir carpeta" aria-label="Abrir carpeta" onclick={act(r, 'open-folder')}>📂</button>
-      <button id="dl-log-{r.id}" class="btn btn-sm btn-pill pop-btn icon" title="Ver log" aria-label="Ver log" onclick={() => openLog(r)}>≡</button>
-      <button id="dl-delete-{r.id}" class="btn btn-sm btn-pill pop-btn danger" title="Detener y borrar lo descargado" onclick={act(r, 'stop-and-delete')}>Borrar</button>
+      {#if paused}<button id="dl-resume-{r.id}" class="btn btn-sm btn-pill pop-btn" onclick={() => play(r.key, null)}>{tr('Retomar')}</button>{/if}
+      {#if ACTIVE(r)}<button id="dl-stop-{r.id}" class="btn btn-sm btn-pill pop-btn" title={tr('Cierra mpv y el motor; lo bajado queda guardado')} onclick={act(r, 'stop')}>{tr('Detener')}</button>{/if}
+      <button id="dl-folder-{r.id}" class="btn btn-sm btn-pill pop-btn icon" title={tr('Abrir carpeta')} aria-label={tr('Abrir carpeta')} onclick={act(r, 'open-folder')}>📂</button>
+      <button id="dl-log-{r.id}" class="btn btn-sm btn-pill pop-btn icon" title={tr('Ver log')} aria-label={tr('Ver log')} onclick={() => openLog(r)}>≡</button>
+      <button id="dl-delete-{r.id}" class="btn btn-sm btn-pill pop-btn danger" title={tr('Detener y borrar lo descargado')} onclick={act(r, 'stop-and-delete')}>{tr('Borrar')}</button>
     </div>
   </li>
 {/snippet}

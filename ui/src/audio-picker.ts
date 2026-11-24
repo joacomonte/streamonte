@@ -6,6 +6,7 @@ import { titleOf } from './live.ts';
 import { $, el, icon, setStatus, showError, type ElChild } from './dom.ts';
 import type { AudioOption, LibraryRow, PlayerKind } from './types.ts';
 import { blockTips, wantTip } from './tooltip.ts';
+import { t } from './i18n.ts';
 
 /** Una opción de un paso con botones. */
 type WizardOpt = { label: string; sub?: string | null; art?: HTMLElement; tip?: string | null; value?: string };
@@ -20,7 +21,7 @@ export type PlayStart = (player: PlayerKind | null, audio: { code: string; aid: 
 // ---------- Reproducir: un solo panel con pasos, anclado al ▶ (2026-11-18) ----------
 // Reproductor → audio → subtítulos (los que no aplican se saltean). Cada paso entra deslizándose; "‹" vuelve al
 // anterior. Elegir en el último cierra el panel y resuelve con lo elegido; cerrar (Esc, clic afuera) cancela.
-const pkBack = el('button', { id: 'pk-back', type: 'button', class: 'pk-back', 'aria-label': 'Paso anterior', hidden: true }, icon('arrow', 14));
+const pkBack = el('button', { id: 'pk-back', type: 'button', class: 'pk-back', 'aria-label': t('Paso anterior'), hidden: true }, icon('arrow', 14));
 const pkDots = el('span', { class: 'pk-dots', 'aria-hidden': 'true' });
 const pkBody = el('div', { class: 'pk-l' });
 const pk = el('div', { id: 'pk', class: 'pk', role: 'dialog', 'aria-labelledby': 'pkh' },
@@ -172,8 +173,8 @@ async function playerOptions(): Promise<(WizardOpt & { value: PlayerKind })[] | 
   const p = await core.playersStatus().catch(() => null);
   if (!p?.vlc || !p.mpv) return null;
   return [
-    { value: 'mpv', label: 'mpv', sub: 'Recomendado: más liviano, subtítulos combinados y ecualizador', art: playerArt('mpv') },
-    { value: 'vlc', label: 'VLC', sub: 'El clásico: sin subtítulos combinados ni ecualizador', art: playerArt('vlc') },
+    { value: 'mpv', label: 'mpv', sub: t('Recomendado: más liviano, subtítulos combinados y ecualizador'), art: playerArt('mpv') },
+    { value: 'vlc', label: 'VLC', sub: t('El clásico: sin subtítulos combinados ni ecualizador'), art: playerArt('vlc') },
   ];
 }
 /** Dibujito de cada reproductor (inline, sin archivos): mpv, un disco con ▶; VLC, el cono naranja. */
@@ -214,11 +215,11 @@ export async function play(key: string, anchor: HTMLElement | null | undefined, 
     const decided = audios ? preferredAudio(audios, prefer, original) : -1;
     const audioOf = (r: WizardResults): AudioOption | null => audios?.[r.audio ?? decided] ?? null;
     const stepsRaw: (WizardStep | null | false)[] = [
-      players && { id: 'player', title: '¿Con qué lo abrimos?', big: true, opts: players },
+      players && { id: 'player', title: t('¿Con qué lo abrimos?'), big: true, opts: players },
       // Solo se aclara lo confirmado por el análisis (2026-11-17: "adivinado por el nombre" era ruido).
-      audios && decided < 0 && { id: 'audio', title: 'Elegí el audio', opts: audios.map((o) => ({ label: o.label, sub: o.confirmed ? 'Pista confirmada' : null,
-        tip: SPANISH.has(o.code) ? 'En español: va sin subtítulos (S los muestra).' : null })) },
-      !resuming && subsStep && { id: 'subs', title: 'Subtítulos', render: subsStep, skip: (r) => SPANISH.has(audioOf(r)?.code ?? '') },
+      audios && decided < 0 && { id: 'audio', title: t('Elegí el audio'), opts: audios.map((o) => ({ label: o.label, sub: o.confirmed ? t('Pista confirmada') : null,
+        tip: SPANISH.has(o.code) ? t('En español: va sin subtítulos (S los muestra).') : null })) },
+      !resuming && subsStep && { id: 'subs', title: t('Subtítulos'), render: subsStep, skip: (r) => SPANISH.has(audioOf(r)?.code ?? '') },
     ];
     const steps = stepsRaw.filter(Boolean) as WizardStep[];
     const shown = steps.filter((s) => !s.skip?.({}));
@@ -228,7 +229,7 @@ export async function play(key: string, anchor: HTMLElement | null | undefined, 
     const a = audioOf(got);
     const audio = a ? { code: a.code, aid: a.aid } : null;
     anchor?.classList.add('busy');
-    activity.push({ area: 'reproduccion', text: `${resuming ? 'Retomando' : 'Abriendo'} ${titleOf(live.v, key)}${audio?.code ? ` con audio ${audio.code === 'lat' ? 'latino' : audio.code === 'en' ? 'en inglés' : audio.code}` : ''}…` });
+    activity.push({ area: 'reproduccion', text: t(resuming ? 'Retomando {a}{b}…' : 'Abriendo {a}{b}…', { a: titleOf(live.v, key), b: audio?.code ? audio.code === 'lat' ? t(' con audio latino') : audio.code === 'en' ? t(' con audio en inglés') : t(' con audio {a}', { a: audio.code }) : '' }) });
     if (start) return await start(player, audio);
     await core.play(key, player, null, audio);
     setStatus('Cargando…');
