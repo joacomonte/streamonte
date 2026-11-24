@@ -1,8 +1,9 @@
 // `Api` de la web: `fetch` a /api/* (rutas en src/routes/api/) y adaptadores puros de `web-adapt.ts`.
 import type { Api } from '../../../packages/ui/src/api.ts';
-import type { ApiEvent, BrowseFilters, Kind, OptionRef, SubtitleOption, TorrentOption } from '../../../packages/ui/src/types.ts';
+import type { RecentItem } from '../../../packages/ui/src/catalog/recent.ts';
+import type { ApiEvent, BrowseFilters, Kind, OptionRef, SubtitleOption, TitleAwards, TorrentOption } from '../../../packages/ui/src/types.ts';
 import * as adapt from './web-adapt.ts';
-import type { ApiError, CatalogPageRaw, Episodes, Examples, LinkRaw, MagnetRaw, PeopleRaw, PremiumRaw, QuotaRaw, SeasonScore, Sub, Title, TracksRaw } from './types.ts';
+import type { ApiError, CatalogPageRaw, Episodes, Examples, LinkRaw, MagnetRaw, PeopleRaw, PremiumRaw, QuotaRaw, SeasonScore, Seen, Sub, Title, TracksRaw } from './types.ts';
 
 type Fetch = typeof fetch;
 
@@ -22,6 +23,8 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 		if (!r.ok) throw new Error((body as ApiError | null)?.message ?? `${r.status}`);
 		return body as T;
 	}
+	const post = async (body: unknown) => void (await json<{ ok: true }>('/api/vistos', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }));
+	const seenOf = ({ id, ...item }: Omit<RecentItem, 'at'> & { at?: string }) => ({ ...item, tmdb: Number(id) });
 	const browseQuery = (f: BrowseFilters, page: number) =>
 		new URLSearchParams({ kind: f.kind, sort: f.sort, from: f.from, to: f.to, votes: String(f.minVotes), lang: f.languages.join(','), interests: f.interests.join(','), page: String(page) });
 
@@ -41,7 +44,8 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			// La web no tiene "similares".
 			similar: async () => [],
 			episodes: async (id, season) => adapt.episodes(await json<Episodes>(`/api/season/${id}/${season}`), season),
-			seasonRatings: async (imdb) => adapt.seasonRatings(await json<SeasonScore[]>(`/api/scores/${imdb}`))
+			seasonRatings: async (imdb) => adapt.seasonRatings(await json<SeasonScore[]>(`/api/scores/${imdb}`)),
+			awards: async (imdb) => await json<TitleAwards>(`/api/awards/${imdb}`)
 		},
 		options: {
 			async *load(ref: OptionRef) {
@@ -77,6 +81,13 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			status: async (hash, name, who) => adapt.magnetView(await json<MagnetRaw>(`/api/magnet?${new URLSearchParams({ hash, dn: name, ...(who ? { who: '1' } : {}) })}`)),
 			download: async (hash, name) =>
 				adapt.magnetStatus(await json<MagnetRaw>('/api/magnet', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ hash, dn: name }) }))
+		},
+		// Vistos: del servidor por apodo (cookie `nick`), siempre frescos. `id` de la web = el de TMDB; el servidor lo guarda como `tmdb`.
+		recent: {
+			list: async () => (await json<Seen[]>('/api/vistos')).filter((v) => v.tmdb).map(({ tmdb, ...v }): RecentItem => ({ ...v, id: String(tmdb) })),
+			mark: (item) => post({ action: 'mark', item: seenOf(item) }),
+			restore: (item) => post({ action: 'restore', item: seenOf(item) }),
+			dismiss: (kind, imdb, how) => post({ action: how, kind, imdb })
 		},
 		// La web no recibe eventos en vivo.
 		events: { subscribe: (_handler: (event: ApiEvent) => void) => () => {} }

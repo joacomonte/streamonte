@@ -1,0 +1,160 @@
+{
+  "wins": 160,
+  "nominations": 220,
+  "entries": [
+    {
+      "event": "oscar",
+      "won": false,
+      "award": "Oscar",
+      "category": "Best Motion Picture of the Year",
+      "year": 2011
+    },
+    {
+      "event": "oscar",
+      "won": false,
+      "award": "Oscar",
+      "category": "Best Writing, Original Screenplay",
+      "year": 2011
+    },
+    {
+      "event": "oscar",
+      "won": true,
+      "award": "Oscar",
+      "category": "Best Achievement in Cinematography",
+      "year": 2011
+    },
+    {
+      "event": "oscar",
+      "won": false,
+      "award": "Oscar",
+      "category": "Best Achievement in Music Written for Motion Pictures, Original Score",
+      "year": 2011
+    },
+    {
+      "event": "oscar",
+      "won": true,
+      "award": "Oscar",
+      "category": "Best Achievement in Sound Mixing",
+      "year": 2011
+    },
+    {
+      "event": "oscar",
+      "won": true,
+      "award": "Oscar",
+      "category": "Best Achievement in Sound Editing",
+      "year": 2011
+    },
+    {
+      "event": "oscar",
+      "won": true,
+      "award": "Oscar",
+      "category": "Best Achievement in Visual Effects",
+      "year": 2011
+    },
+    {
+      "event": "oscar",
+      "won": false,
+      "award": "Oscar",
+      "category": "Best Achievement in Art Direction",
+      "year": 2011
+    },
+    {
+      "event": "bafta",
+      "won": false,
+      "award": "David Lean Award for Direction",
+      "category": "Best Director",
+      "year": 2011
+    },
+    {
+      "event": "bafta",
+      "won": false,
+      "award": "BAFTA Film Award",
+      "category": "Best Screenplay (Original)",
+      "year": 2011
+    },
+    {
+      "event": "bafta",
+      "won": false,
+      "award": "BAFTA Film Award",
+      "category": "Best Cinematography",
+      "year": 2011
+    },
+    {
+      "event": "bafta",
+      "won": false,
+      "award": "BAFTA Film Award",
+      "category": "Best Editing",
+      "year": 2011
+    },
+    {
+      "event": "bafta",
+      "won": true,
+      "award": "BAFTA Film Award",
+      "category": "Best Production Design",
+      "year": 2011
+    },
+    {
+      "event": "bafta",
+      "won": false,
+      "award": "Anthony Asquith Award for Film Music",
+      "category": null,
+      "year": 2011
+    },
+    {
+      "event": "bafta",
+      "won": true,
+      "award": "BAFTA Film Award",
+      "category": "Best Sound",
+      "year": 2011
+    },
+    {
+      "event": "bafta",
+      "won": true,
+      "award": "BAFTA Film Award",
+      "category": "Best Special Visual Effects",
+      "year": 2011
+    },
+    {
+      "event": "bafta",
+      "won": false,
+      "award": "BAFTA Film Award",
+      "category": "Best Film",
+      "year": 2011
+    },
+    {
+      "event": "globe",
+      "won": false,
+      "award": "Golden Globe",
+      "category": "Best Director - Motion Picture",
+      "year": 2011
+    },
+    {
+      "event": "globe",
+      "won": false,
+      "award": "Golden Globe",
+      "category": "Best Screenplay - Motion Picture",
+      "year": 2011
+    },
+    {
+      "event": "globe",
+      "won": false,
+      "award": "Golden Globe",
+      "category": "Best Original Score - Motion Picture",
+      "year": 2011
+    },
+    {
+      "event": "globe",
+      "won": false,
+      "award": "Golden Globe",
+      "category": "Best Motion Picture - Drama",
+      "year": 2011
+    },
+    {
+      "event": "sag",
+      "won": true,
+      "award": "Actor",
+      "category": "Outstanding Performance by a Stunt Ensemble in a Motion Picture",
+      "year": 2011
+    }
+  ]
+}

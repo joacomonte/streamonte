@@ -39,6 +39,41 @@
         "photo": "https://image.tmdb.org/t/p/w185/adppyeu1a4REN3khtgmXusrapFi.jpg",
         "role": "cast",
         "note": "Skyler White"
+      },
+      {
+        "id": 209674,
+        "name": "RJ Mitte",
+        "photo": "https://image.tmdb.org/t/p/w185/sNPA92ZrssYhlaB1UA2pWcLD9db.jpg",
+        "role": "cast",
+        "note": "Walter White Jr."
+      },
+      {
+        "id": 14329,
+        "name": "Dean Norris",
+        "photo": "https://image.tmdb.org/t/p/w185/mKRrEbsxAX3ro700HsViFArRM7l.jpg",
+        "role": "cast",
+        "note": "Hank Schrader"
+      },
+      {
+        "id": 1217934,
+        "name": "Betsy Brandt",
+        "photo": "https://image.tmdb.org/t/p/w185/xAnuzyjdMbQq9L1c4JNwXL52Wm4.jpg",
+        "role": "cast",
+        "note": "Marie Schrader"
+      },
+      {
+        "id": 59410,
+        "name": "Bob Odenkirk",
+        "photo": "https://image.tmdb.org/t/p/w185/rF0Lb6SBhGSTvjRffmlKRSeI3jE.jpg",
+        "role": "cast",
+        "note": "Saul Goodman"
+      },
+      {
+        "id": 783,
+        "name": "Jonathan Banks",
+        "photo": "https://image.tmdb.org/t/p/w185/lIZZPQLEstz7DkETN4Q9fHp7jjV.jpg",
+        "role": "cast",
+        "note": "Mike Ehrmantraut"
       }
     ],
     "companies": [

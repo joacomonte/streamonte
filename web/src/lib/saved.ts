@@ -8,7 +8,7 @@ const KEEP = 'keep:';
 export const HOUR = 60 * 60 * 1000;
 export const DAY = 24 * HOUR;
 /** Versión del formato de cada respuesta, por ruta de la API. */
-const V: Record<string, number> = { catalog: 1, genres: 1, title: 3, season: 1, scores: 1, torrents: 1 };
+const V: Record<string, number> = { catalog: 1, genres: 1, title: 4, season: 1, scores: 1, torrents: 1 };
 
 /** Clave de una URL de la API, con su versión y los idiomas de TMDB (títulos.app):
  * `/api/catalog?…` → `catalog@1:es.es/api/catalog?…`. */

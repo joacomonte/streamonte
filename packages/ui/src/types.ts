@@ -91,10 +91,17 @@ export type TitleDetails = {
 	trailer: string | null;
 	imdb: string | null;
 	status: ShowStatus | null;
-	awards: string | null;
 	seasons: Season[];
 	excluded: boolean;
 };
+
+/** Evento de premios que se detalla (IMDb): la UI lo nombra y ordena (`title/awards.ts`). */
+export type AwardEvent = 'oscar' | 'globe' | 'bafta' | 'emmy' | 'sag' | 'goya' | 'cannes' | 'venice' | 'berlin';
+/** Un premio o nominación de un evento grande, con los textos de IMDb (en inglés). */
+export type AwardEntry = { event: AwardEvent; won: boolean; award: string; category: string | null; year: number | null };
+/** Premios de un título (IMDb). `nominations`: las que no ganó. La misma forma sale del desktop (`catalog/awards.rs`) y
+ * de la web (`server/awards.ts`). */
+export type TitleAwards = { wins: number; nominations: number; entries: AwardEntry[] };
 
 export type SimilarItem = { id: string; title: string; year: string | null; poster: string | null; rating: number | null };
 

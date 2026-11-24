@@ -221,6 +221,7 @@ async fn main() {
             &[k, id],
             Ok::<_, ()>(core.catalog_similar(kind, id).await),
         );
+        save("catalog_awards", &[id], core.catalog_awards(id).await);
     }
     for quick in ["true", "false"] {
         save(

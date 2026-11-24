@@ -6,6 +6,7 @@ TMDB, IMDb, addons de torrents, TorBox, OpenSubtitles y Neon. Los endpoints de `
 - `keys.ts` — `:15 ENV` · `:17 keys` · `:24 setKeys`.
 - `tmdb.ts` — `:42 tmdb` · `:72 keep` · `:80 DIR` · `:90 VOTES` · `:104 detail` · `:119 fillDetails` · `:141 candidates` · `:166 build` · `:185 discover` · `:198 search` · `:216 people` · `:239 personTitles` · `:269 providersAr` · `:279 peopleOf` · `:287 showStatus` · `:294 firstTrailer` · `:303 title` · `:347 namesOf` · `:362 season`.
 - `interests.ts` — subgéneros de IMDb (GraphQL `caching.graphql.imdb.com`, header `x-imdb-client-name`): `interestList` (lista ordenada hasta 250) · `examples` (ejemplos por subgénero); `tmdb.ts imdbPage` pasa una página de tt a tarjetas vía `/find`. Desktop: `crates/core/src/catalog/interests.rs`.
+- `awards.ts` — premios de IMDb (GraphQL, como `interests.ts`): `awards(tt)` (memoria 1 día) · `normalize` (golden `awards.json` = `crates/core/src/catalog/awards.rs`) ← `routes/api/awards/[imdb]`.
 - `imdb.ts` — `:59 ratings` · `:74 imdbOf` · `:88 buildIndex` · `:132 seasonScores`.
 - `torrents.ts` — `:7 ADDONS` · `:33 parse` · `:96 otherFilm` · `:107 fileTorrent` · `:116 merge` · `:140 torrents`.
 - `torbox.ts` — `:13 isSpanishSub` · `:52 cached` · `:85 link` · `:101 tracks` · `:122 spanishSubs` · `:136 checkFiles` · `:143 mine` · `:158 addMagnet` · `:166 added` · `:199 hls` · `:252 latinoByName` · `:262 download` · `:271 pick`.

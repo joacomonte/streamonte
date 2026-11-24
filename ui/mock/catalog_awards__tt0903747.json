@@ -1,0 +1,545 @@
+{
+  "wins": 172,
+  "nominations": 269,
+  "entries": [
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Lead Actor in a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actor in a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actress in a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Directing for a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Writing for a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Writing for a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Casting for a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single-Camera Picture Editing for a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single-Camera Picture Editing for a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single-Camera Picture Editing for a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Sound Mixing for a Comedy or Drama Series (One Hour)",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Sound Editing for a Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Makeup for a Single-Camera Series (Non-Prosthetic)",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Prosthetic Makeup for a Series, Miniseries, Movie or a Special",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Cinematography for a Single-Camera Series",
+      "year": 2014
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Cinematography for a Single-Camera Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Directing for a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Sound Mixing for a Comedy or Drama Series (One Hour)",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single-Camera Picture Editing for a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single-Camera Picture Editing for a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Lead Actor in a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actor in a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actor in a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actress in a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Writing for a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Writing for a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Sound Editing for a Series",
+      "year": 2013
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Lead Actor in a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actress in a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actor in a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actor in a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Guest Actor in a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Directing for a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Cinematography for a Single-Camera Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single-Camera Picture Editing for a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single-Camera Picture Editing for a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Sound Editing for a Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Sound Mixing for a Comedy or Drama Series (One-Hour)",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Special Visual Effects in a Supporting Role",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Cinematography for a One Hour Series",
+      "year": 2010
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Directing for a Drama Series",
+      "year": 2010
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single Camera Picture Editing for a Drama Series",
+      "year": 2010
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Lead Actor in a Drama Series",
+      "year": 2010
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actor in a Drama Series",
+      "year": 2010
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Drama Series",
+      "year": 2010
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Sound Editing for a Series",
+      "year": 2010
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Cinematography for a One Hour Series",
+      "year": 2009
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single Camera Picture Editing for a Drama Series",
+      "year": 2009
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Lead Actor in a Drama Series",
+      "year": 2009
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Supporting Actor in a Drama Series",
+      "year": 2009
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Drama Series",
+      "year": 2009
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Cinematography for a One-Hour Series",
+      "year": 2008
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Directing for a Drama Series",
+      "year": 2008
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Single-Camera Picture Editing for a Drama Series",
+      "year": 2008
+    },
+    {
+      "event": "emmy",
+      "won": true,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Lead Actor in a Drama Series",
+      "year": 2008
+    },
+    {
+      "event": "bafta",
+      "won": true,
+      "award": "BAFTA TV Award",
+      "category": "Best International",
+      "year": 2014
+    },
+    {
+      "event": "sag",
+      "won": true,
+      "award": "Actor",
+      "category": "Outstanding Performance by a Male Actor in a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "sag",
+      "won": false,
+      "award": "Actor",
+      "category": "Outstanding Performance by a Female Actor in a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "globe",
+      "won": true,
+      "award": "Golden Globe",
+      "category": "Best Television Series - Drama",
+      "year": 2014
+    },
+    {
+      "event": "globe",
+      "won": true,
+      "award": "Golden Globe",
+      "category": "Best Performance by an Actor in a Television Series - Drama",
+      "year": 2014
+    },
+    {
+      "event": "globe",
+      "won": false,
+      "award": "Golden Globe",
+      "category": "Best Performance by an Actor in a Supporting Role in a Series, Miniseries or Motion Picture Made for Television",
+      "year": 2014
+    },
+    {
+      "event": "sag",
+      "won": true,
+      "award": "Actor",
+      "category": "Outstanding Performance by an Ensemble in a Drama Series",
+      "year": 2014
+    },
+    {
+      "event": "sag",
+      "won": false,
+      "award": "Actor",
+      "category": "Outstanding Action Performance by a Stunt Ensemble in a Television Series",
+      "year": 2014
+    },
+    {
+      "event": "sag",
+      "won": true,
+      "award": "Actor",
+      "category": "Outstanding Performance by a Male Actor in a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "sag",
+      "won": false,
+      "award": "Actor",
+      "category": "Outstanding Performance by an Ensemble in a Drama Series",
+      "year": 2013
+    },
+    {
+      "event": "globe",
+      "won": false,
+      "award": "Golden Globe",
+      "category": "Best Television Series - Drama",
+      "year": 2013
+    },
+    {
+      "event": "globe",
+      "won": false,
+      "award": "Golden Globe",
+      "category": "Best Performance by an Actor in a Television Series - Drama",
+      "year": 2013
+    },
+    {
+      "event": "sag",
+      "won": false,
+      "award": "Actor",
+      "category": "Outstanding Action Performance by a Stunt Ensemble in a Television Series",
+      "year": 2013
+    },
+    {
+      "event": "globe",
+      "won": false,
+      "award": "Golden Globe",
+      "category": "Best Performance by an Actor in a Television Series - Drama",
+      "year": 2012
+    },
+    {
+      "event": "sag",
+      "won": false,
+      "award": "Actor",
+      "category": "Outstanding Performance by a Male Actor in a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "sag",
+      "won": false,
+      "award": "Actor",
+      "category": "Outstanding Performance by an Ensemble in a Drama Series",
+      "year": 2012
+    },
+    {
+      "event": "globe",
+      "won": false,
+      "award": "Golden Globe",
+      "category": "Best Performance by an Actor in a Television Series - Drama",
+      "year": 2011
+    },
+    {
+      "event": "sag",
+      "won": false,
+      "award": "Actor",
+      "category": "Outstanding Performance by a Male Actor in a Drama Series",
+      "year": 2011
+    },
+    {
+      "event": "sag",
+      "won": false,
+      "award": "Actor",
+      "category": "Outstanding Performance by a Male Actor in a Drama Series",
+      "year": 2010
+    }
+  ]
+}

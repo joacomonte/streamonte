@@ -12,13 +12,13 @@ const fight = adapt.titleDetails(fixture<Raw.Meta>('catalog_meta__movie_tt013752
 const bad = adapt.titleDetails(fixture<Raw.Meta>('catalog_meta__series_tt0903747'), fixture<Raw.DetailsView>('catalog_details__series_tt0903747'), 'es');
 const bare = adapt.titleDetails(fixture<Raw.Meta>('catalog_meta__movie_tt45368240'), fixture<Raw.DetailsView>('catalog_details__movie_tt45368240'), 'es');
 
-test('pickPeople: director primero y a lo sumo 3 actores', () => {
+test('pickPeople: director primero y a lo sumo 6 actores', () => {
 	const people = pickPeople(fight.people);
-	assert.ok(people.length <= 4);
+	assert.ok(people.length <= 7);
 	assert.equal(people.filter((p) => p.role === 'director').length <= 1, true);
 	if (fight.people.some((p) => p.role === 'director')) assert.equal(people[0]?.role, 'director');
-	const many = Array.from({ length: 6 }, (_, i) => ({ id: i, name: `a${i}`, photo: null, role: 'cast' as const, note: null }));
-	assert.deepEqual(pickPeople([...many, { id: 99, name: 'd', photo: null, role: 'director', note: null }]).map((p) => p.id), [99, 0, 1, 2]);
+	const many = Array.from({ length: 9 }, (_, i) => ({ id: i, name: `a${i}`, photo: null, role: 'cast' as const, note: null }));
+	assert.deepEqual(pickPeople([...many, { id: 99, name: 'd', photo: null, role: 'director', note: null }]).map((p) => p.id), [99, 0, 1, 2, 3, 4, 5]);
 });
 
 test('providerView: 3 apiladas + "+n"; abierta, todas', () => {

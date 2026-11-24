@@ -2,8 +2,9 @@
 // desktop con `invoke` de Tauri (`ui/src/tauriApi.ts`). Métodos de dominio: devuelven el modelo de `types.ts`.
 import type {
 	ApiEvent, BrowseFilters, Capabilities, CatalogItem, CatalogPage, Episode, InterestExample, Kind, MagnetStatus, MagnetView, OptionLink, OptionRef,
-	OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings, SimilarItem, SubtitleOption, TitleDetails, TorboxIds, TorrentOption, TorrentTracks, Unsubscribe
+	OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings, SimilarItem, SubtitleOption, TitleAwards, TitleDetails, TorboxIds, TorrentOption, TorrentTracks, Unsubscribe
 } from './types.ts';
+import type { RecentItem } from './catalog/recent.ts';
 
 /** `url`: de dónde bajar el subtítulo (web); null si la app ya lo aplicó (desktop). */
 export type SubtitleFile = { url: string | null; /** Desktop: archivo bajado (Premium) para cargarlo en el reproductor. */ path?: string | null };
@@ -30,6 +31,8 @@ export interface Api {
 		episodes(id: string, season: number): Promise<Episode[]>;
 		/** `quick`: sin ir a IMDb (rápido; para los detalles de la tarjeta). La web lo ignora. */
 		seasonRatings(imdb: string, quick?: boolean): Promise<SeasonRatings>;
+		/** Premios (IMDb): totales y el detalle de los grandes. */
+		awards(imdb: string): Promise<TitleAwards>;
 	};
 	options: {
 		/** La web emite una actualización final con `done: true` (más las de progreso); el desktop, una por tanda de fuentes. */
@@ -51,6 +54,15 @@ export interface Api {
 	magnet: {
 		status(hash: string, name: string, identify: boolean): Promise<MagnetView>;
 		download(hash: string, name: string): Promise<MagnetStatus>;
+	};
+	/** "Vistos recientemente" (fila del catálogo), guardado en la web por apodo. */
+	recent: {
+		list(): Promise<RecentItem[]>;
+		/** Lo vio ahora (web: copió el link; desktop: lo reprodujo). */
+		mark(item: Omit<RecentItem, 'at'>): Promise<void>;
+		/** "Deshacer" de la X: vuelve con su fecha. */
+		restore(item: RecentItem): Promise<void>;
+		dismiss(kind: Kind, imdb: string, how: 'visto' | 'olvidar'): Promise<void>;
 	};
 	events: { subscribe(handler: (event: ApiEvent) => void): Unsubscribe };
 }

@@ -1437,6 +1437,15 @@ impl AppCore {
         self.catalog.season_ratings(imdb_id, quick, timeout).await
     }
 
+    /// Premios de un título (IMDb): totales y el detalle de los grandes.
+    pub async fn catalog_awards(
+        &self,
+        imdb_id: &str,
+    ) -> Result<crate::catalog::awards::TitleAwards> {
+        let timeout = self.catalog_timeout().await;
+        self.catalog.awards(imdb_id, timeout).await
+    }
+
     /// Explorar sin key de TMDB: en tendencia ahora.
     pub async fn catalog_trending(&self, kind: MediaKind, skip: u32) -> Result<BrowsePage> {
         let timeout = self.catalog_timeout().await;

@@ -25,10 +25,10 @@
    "note": "hover: estado de la serie (la fixture quick no trae puntajes: sin barras)"
   },
   {
-   "sel": "#cat-card-tt0903747",
-   "text": "Emmy",
+   "sel": "#cat-info-tt0903747 [class*=aw-win]",
+   "text": "\\d",
    "hover": "#cat-card-tt0903747",
-   "note": "hover: premios"
+   "note": "hover: premios ganados (copa + número) en la línea del puntaje"
   }
  ]
 }

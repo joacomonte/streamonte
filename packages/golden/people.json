@@ -86,6 +86,20 @@
     "photo": "https://image.tmdb.org/t/p/w185/a2.jpg",
     "role": "cast",
     "note": "Rol2"
+   },
+   {
+    "id": 13,
+    "name": "Actor3",
+    "photo": "https://image.tmdb.org/t/p/w185/a3.jpg",
+    "role": "cast",
+    "note": "Rol3"
+   },
+   {
+    "id": 14,
+    "name": "Actor4",
+    "photo": "https://image.tmdb.org/t/p/w185/a4.jpg",
+    "role": "cast",
+    "note": "Rol4"
    }
   ]
  },
@@ -162,6 +176,20 @@
     "photo": "https://image.tmdb.org/t/p/w185/a2.jpg",
     "role": "cast",
     "note": "Rol2"
+   },
+   {
+    "id": 13,
+    "name": "Actor3",
+    "photo": "https://image.tmdb.org/t/p/w185/a3.jpg",
+    "role": "cast",
+    "note": "Rol3"
+   },
+   {
+    "id": 14,
+    "name": "Actor4",
+    "photo": "https://image.tmdb.org/t/p/w185/a4.jpg",
+    "role": "cast",
+    "note": "Rol4"
    }
   ],
   "nota": "series: sin director"
@@ -246,6 +274,20 @@
     "photo": "https://image.tmdb.org/t/p/w185/a2.jpg",
     "role": "cast",
     "note": "Rol2"
+   },
+   {
+    "id": 13,
+    "name": "Actor3",
+    "photo": "https://image.tmdb.org/t/p/w185/a3.jpg",
+    "role": "cast",
+    "note": "Rol3"
+   },
+   {
+    "id": 14,
+    "name": "Actor4",
+    "photo": "https://image.tmdb.org/t/p/w185/a4.jpg",
+    "role": "cast",
+    "note": "Rol4"
    }
   ],
   "nota": "un solo director: el primero"
@@ -476,5 +518,243 @@
   ],
   "nota": "personaje solo espacios",
   "diverge": "web: note '   ' (no vacía los espacios)"
+ },
+ {
+  "in": {
+   "kind": "tv",
+   "credits": {
+    "cast": [
+     {
+      "id": 100,
+      "name": "Actor0",
+      "character": "Rol0"
+     },
+     {
+      "id": 101,
+      "name": "Actor1",
+      "character": "Rol1"
+     },
+     {
+      "id": 102,
+      "name": "Actor2",
+      "character": "Rol2"
+     },
+     {
+      "id": 103,
+      "name": "Actor3",
+      "character": "Rol3"
+     },
+     {
+      "id": 104,
+      "name": "Actor4",
+      "character": "Rol4"
+     },
+     {
+      "id": 105,
+      "name": "Actor5",
+      "character": "Rol5"
+     },
+     {
+      "id": 106,
+      "name": "Actor6",
+      "character": "Rol6"
+     },
+     {
+      "id": 107,
+      "name": "Actor7",
+      "character": "Rol7"
+     },
+     {
+      "id": 108,
+      "name": "Actor8",
+      "character": "Rol8"
+     },
+     {
+      "id": 109,
+      "name": "Actor9",
+      "character": "Rol9"
+     },
+     {
+      "id": 110,
+      "name": "Actor10",
+      "character": "Rol10"
+     },
+     {
+      "id": 111,
+      "name": "Actor11",
+      "character": "Rol11"
+     },
+     {
+      "id": 112,
+      "name": "Actor12",
+      "character": "Rol12"
+     },
+     {
+      "id": 113,
+      "name": "Actor13",
+      "character": "Rol13"
+     },
+     {
+      "id": 114,
+      "name": "Actor14",
+      "character": "Rol14"
+     },
+     {
+      "id": 115,
+      "name": "Actor15",
+      "character": "Rol15"
+     },
+     {
+      "id": 116,
+      "name": "Actor16",
+      "character": "Rol16"
+     },
+     {
+      "id": 117,
+      "name": "Actor17",
+      "character": "Rol17"
+     },
+     {
+      "id": 118,
+      "name": "Actor18",
+      "character": "Rol18"
+     },
+     {
+      "id": 119,
+      "name": "Actor19",
+      "character": "Rol19"
+     }
+    ]
+   }
+  },
+  "out": [
+   {
+    "id": 100,
+    "name": "Actor0",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol0"
+   },
+   {
+    "id": 101,
+    "name": "Actor1",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol1"
+   },
+   {
+    "id": 102,
+    "name": "Actor2",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol2"
+   },
+   {
+    "id": 103,
+    "name": "Actor3",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol3"
+   },
+   {
+    "id": 104,
+    "name": "Actor4",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol4"
+   },
+   {
+    "id": 105,
+    "name": "Actor5",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol5"
+   },
+   {
+    "id": 106,
+    "name": "Actor6",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol6"
+   },
+   {
+    "id": 107,
+    "name": "Actor7",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol7"
+   },
+   {
+    "id": 108,
+    "name": "Actor8",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol8"
+   },
+   {
+    "id": 109,
+    "name": "Actor9",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol9"
+   },
+   {
+    "id": 110,
+    "name": "Actor10",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol10"
+   },
+   {
+    "id": 111,
+    "name": "Actor11",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol11"
+   },
+   {
+    "id": 112,
+    "name": "Actor12",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol12"
+   },
+   {
+    "id": 113,
+    "name": "Actor13",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol13"
+   },
+   {
+    "id": 114,
+    "name": "Actor14",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol14"
+   },
+   {
+    "id": 115,
+    "name": "Actor15",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol15"
+   },
+   {
+    "id": 116,
+    "name": "Actor16",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol16"
+   },
+   {
+    "id": 117,
+    "name": "Actor17",
+    "photo": null,
+    "role": "cast",
+    "note": "Rol17"
+   }
+  ],
+  "nota": "hasta 18 actores"
  }
 ]

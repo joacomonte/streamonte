@@ -32,10 +32,10 @@
    "note": "hover: categoría por puntaje (RATING_TIERS)"
   },
   {
-   "sel": "#cat-card-tt0137523",
-   "text": "premios",
+   "sel": "#cat-info-tt0137523 [class*=aw-win]",
+   "text": "\\d",
    "hover": "#cat-card-tt0137523",
-   "note": "hover: premios"
+   "note": "hover: premios ganados (copa + número) en la línea del puntaje"
   }
  ]
 }

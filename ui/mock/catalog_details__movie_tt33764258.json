@@ -40,6 +40,111 @@
         "photo": "https://image.tmdb.org/t/p/w185/s6tflSD20MGz04ZR2R1lZvhmC4Y.jpg",
         "role": "cast",
         "note": "Penelope"
+      },
+      {
+        "id": 11288,
+        "name": "Robert Pattinson",
+        "photo": "https://image.tmdb.org/t/p/w185/3qZ09UE7lN6AtorfXFRYpEtSY93.jpg",
+        "role": "cast",
+        "note": "Antinous"
+      },
+      {
+        "id": 1227717,
+        "name": "Himesh Patel",
+        "photo": "https://image.tmdb.org/t/p/w185/icqsXLmU0FxBGTv63kkA0GcrecO.jpg",
+        "role": "cast",
+        "note": "Eurylochus"
+      },
+      {
+        "id": 6885,
+        "name": "Charlize Theron",
+        "photo": "https://image.tmdb.org/t/p/w185/gd7ShD0yt4bsR2STeQ19KQ6hvXL.jpg",
+        "role": "cast",
+        "note": "Calypso"
+      },
+      {
+        "id": 5723,
+        "name": "John Leguizamo",
+        "photo": "https://image.tmdb.org/t/p/w185/kwYCdxTlDh9zauUCg4mp2XTCQTw.jpg",
+        "role": "cast",
+        "note": "Eumaeus"
+      },
+      {
+        "id": 1978406,
+        "name": "Travis Scott",
+        "photo": "https://image.tmdb.org/t/p/w185/eBdm7HQS6lLGg4BocgfoJ5qB9yp.jpg",
+        "role": "cast",
+        "note": "Bard"
+      },
+      {
+        "id": 1154054,
+        "name": "Corey Hawkins",
+        "photo": "https://image.tmdb.org/t/p/w185/habqxQgt2ouTrrrjpbTfL6YVH7C.jpg",
+        "role": "cast",
+        "note": "Polybus"
+      },
+      {
+        "id": 84706,
+        "name": "Jarreth J. Merz",
+        "photo": "https://image.tmdb.org/t/p/w185/ze8WDEujZmTXdCLcUy0IaymwlcS.jpg",
+        "role": "cast",
+        "note": "Leodes"
+      },
+      {
+        "id": 1008750,
+        "name": "Niko Nicotera",
+        "photo": "https://image.tmdb.org/t/p/w185/ffSAiwXMmvQP1vJuPguLznNpPOI.jpg",
+        "role": "cast",
+        "note": "Peisander"
+      },
+      {
+        "id": 27578,
+        "name": "Elliot Page",
+        "photo": "https://image.tmdb.org/t/p/w185/eCeFgzS8dYHnMfWQT0oQitCrsSz.jpg",
+        "role": "cast",
+        "note": "Sinon"
+      },
+      {
+        "id": 79795,
+        "name": "Shiloh Fernandez",
+        "photo": "https://image.tmdb.org/t/p/w185/ug0p4QtE1Am7JySNClm7u8iISOB.jpg",
+        "role": "cast",
+        "note": "First Trojan"
+      },
+      {
+        "id": 21660,
+        "name": "Rafi Gavron",
+        "photo": "https://image.tmdb.org/t/p/w185/avCWoO9fLwEhbT6cvu0TJcSj49g.jpg",
+        "role": "cast",
+        "note": "Second Trojan"
+      },
+      {
+        "id": 78050,
+        "name": "Elyes Gabel",
+        "photo": "https://image.tmdb.org/t/p/w185/z9IqYTYxhVR9ADxaksbPQwiYQns.jpg",
+        "role": "cast",
+        "note": "Elatus"
+      },
+      {
+        "id": 94958,
+        "name": "Iddo Goldberg",
+        "photo": "https://image.tmdb.org/t/p/w185/dJGHbLmYKxLy87jduKGm5jDtBnR.jpg",
+        "role": "cast",
+        "note": "Amphimedon"
+      },
+      {
+        "id": 111195,
+        "name": "Jamie Harris",
+        "photo": "https://image.tmdb.org/t/p/w185/iqc9RropHWLe2wLCgUHtZZDJ7w.jpg",
+        "role": "cast",
+        "note": "Agelus"
+      },
+      {
+        "id": 64343,
+        "name": "John Ales",
+        "photo": "https://image.tmdb.org/t/p/w185/rASQsyvYk1VD8hvo2Pi1Tq3Wwlm.jpg",
+        "role": "cast",
+        "note": "Beggar in Ithaca"
       }
     ],
     "companies": [

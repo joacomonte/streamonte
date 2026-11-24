@@ -305,10 +305,13 @@ export function providersAr(wp: TmdbTitle['watch/providers']) {
 }
 
 /** Director (solo películas) y 3 actores (`people` del desktop). */
+/** Hasta cuántos actores trae la ficha (`MAX_CAST` del desktop): la UI muestra los primeros y despliega el resto. */
+const MAX_CAST = 18;
+
 export function peopleOf(kind: Kind, credits: TmdbTitle['credits']) {
 	return [
 		...(kind === 'movie' ? (credits?.crew ?? []).filter((c) => c.job === 'Director').slice(0, 1) : []).map((c) => person(c, 'director', null)),
-		...(credits?.cast ?? []).slice(0, 3).map((c) => person(c, 'cast', c.character || null))
+		...(credits?.cast ?? []).slice(0, MAX_CAST).map((c) => person(c, 'cast', c.character || null))
 	];
 }
 
@@ -353,7 +356,7 @@ export async function title(kind: Kind, id: string | number) {
 		// Los de series que juntan dos (y TMDB devuelve en inglés) se parten como en el desktop.
 		genres: [...new Set((about.genres ?? []).flatMap((g) => TV_GENRES[g.id]?.map((x) => translate(lang(), x)) ?? [g.name]))],
 		providers,
-		// Quién la hizo: en películas el director primero; después los 3 actores principales con su personaje.
+		// Quién la hizo: en películas el director primero; después el reparto (hasta 18) con su personaje.
 		people: peopleOf(kind, r.credits),
 		companies: (r.production_companies ?? []).slice(0, 2).map((c) => c.name),
 		lang: langName ? langName[0].toUpperCase() + langName.slice(1) : null,
@@ -388,6 +391,13 @@ export function namesOf(imdb: string): Promise<Names | null> {
 		capped(names, imdb, p, MAX_NAMES);
 	}
 	return names.get(imdb) as Promise<Names | null>;
+}
+
+/** El id de TMDB (el de la ruta `/t/[kind]/[id]`) de un IMDb id, para los vistos que marcó el desktop (solo guarda el tt).
+ * null si TMDB no lo conoce. */
+export async function tmdbOf(imdb: string, kind: Kind): Promise<number | null> {
+	const r = (await tmdb(`/find/${imdb}`, { external_source: 'imdb_id' })) as { movie_results?: { id: number }[]; tv_results?: { id: number }[] };
+	return (kind === 'tv' ? r.tv_results : r.movie_results)?.[0]?.id ?? null;
 }
 
 export async function season(id: string, n: string) {

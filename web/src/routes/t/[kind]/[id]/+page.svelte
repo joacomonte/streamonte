@@ -78,7 +78,7 @@
 	locale={loc()}
 >
 	{#snippet options()}
-		<Torrents imdb={t.imdb ?? ''} name={t.title ?? ''} orig={t.origLang} runtime={t.runtime} />
+		<Torrents imdb={t.imdb ?? ''} name={t.title ?? ''} orig={t.origLang} runtime={t.runtime} seen={{ kind: t.kind, id: String(t.id), poster: t.poster, backdrop: t.backdrop }} />
 	{/snippet}
 </TitleView>
 

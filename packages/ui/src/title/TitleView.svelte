@@ -6,7 +6,8 @@
 	import Icon from '../components/Icon.svelte';
 	import { getApi } from '../context.ts';
 	import { t } from '../i18n/runtime.ts';
-	import type { Episode, Kind, Person, SeasonRatings, SimilarItem, TitleDetails } from '../types.ts';
+	import type { Episode, Kind, Person, SeasonRatings, SimilarItem, TitleAwards, TitleDetails } from '../types.ts';
+	import { awardsView } from './awards.ts';
 	import SeasonChart from './SeasonChart.svelte';
 	import { episodeRows, MAX_ACTORS, outlookOf, pickPeople, providerView, seasonTiles, showCineNote, WEB_IDS } from './title-state.ts';
 	import type { SeasonTile, TitleIds } from './title-state.ts';
@@ -79,10 +80,12 @@
 	let castOpen = $state(false);
 	let similarOpen = $state(false);
 	let similarList = $state<SimilarItem[] | null | undefined>(undefined);
+	let awards = $state<TitleAwards | null>(null);
+	let awardsOpen = $state(false);
 
 	$effect(() => {
 		const [k, i] = [kind, id];
-		more = providersOpen = castOpen = similarOpen = false;
+		more = providersOpen = castOpen = similarOpen = awardsOpen = false;
 		similarList = undefined;
 		if (details) return;
 		fetched = null;
@@ -98,6 +101,15 @@
 		if (!imdb) return;
 		let alive = true;
 		api.title.seasonRatings(imdb).then((r) => alive && (ratings = r)).catch(() => alive && (ratings = null));
+		return () => (alive = false);
+	});
+	// Premios (IMDb): si fallan, la ficha se ve igual, sin la línea.
+	$effect(() => {
+		const imdb = d?.imdb ?? null;
+		awards = null;
+		if (!imdb) return;
+		let alive = true;
+		api.title.awards(imdb).then((a) => alive && (awards = a)).catch(() => alive && (awards = null));
 		return () => (alive = false);
 	});
 	$effect(() => {
@@ -138,6 +150,14 @@
 	const genres = $derived((d?.genres ?? []).map(genreLabel));
 	const seasonName = (n: number, name: string | null) => name || (n === 0 ? t('Especiales') : t('Temporada {n}', { n }));
 	const aboutTitle = $derived(d?.overview ? t('Sinopsis') : t('Idioma original'));
+	const aw = $derived(awardsView(awards, t));
+	/** Hay detalle para desplegar (si no, la línea son solo los totales). */
+	const awDetail = $derived(!!aw && (aw.won.length > 0 || aw.nominated.length > 0));
+	const awSections = $derived(aw ? [{ won: true, title: t('Ganó'), groups: aw.won }, { won: false, title: t('Nominaciones'), groups: aw.nominated }].filter((x) => x.groups.length) : []);
+	const awTotal = $derived(aw ? t('En IMDb, {a} y {b} en total.', {
+		a: t(aw.wins === 1 ? '{n} premio' : '{n} premios', { n: aw.wins.toLocaleString(locale) }),
+		b: t(aw.nominations === 1 ? '{n} nominación' : '{n} nominaciones', { n: aw.nominations.toLocaleString(locale) })
+	}) : '');
 
 	const still = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 	/** Entra desde el lado hacia donde se avanza (a una temporada: 1; a la lista: -1). */
@@ -206,10 +226,41 @@
 									<a id={ids.trailer} class="ext" href="https://www.youtube.com/watch?v={yt}" target="_blank" rel="noopener noreferrer" title={t('Ver el tráiler en YouTube')} onclick={(e) => { if (onOpenTrailer) { e.preventDefault(); onOpenTrailer(yt); } }}><Icon name="play" size={11} />{t('Tráiler')}</a>
 								{/if}
 							</p>
+							<!-- Premios: una línea con elipsis; si hay detalle, la línea despliega la lista completa debajo de la cabecera. -->
+							{#if aw}
+								{#if awDetail}
+									<button id={ids.awards} type="button" class="aw-line" class:won={aw.won.length > 0} class:open={awardsOpen} aria-expanded={awardsOpen} aria-controls={ids.awardsBody} title={awardsOpen ? t('Ocultar premios') : t('Ver todos los premios')} onclick={() => (awardsOpen = !awardsOpen)}>
+										<Icon name={aw.won.length ? 'trophy' : 'award'} size={14} /><span class="aw-text">{aw.line}</span><span class="aw-chev" aria-hidden="true"><Icon name="chev" size={14} /></span>
+									</button>
+								{:else}
+									<p class="aw-line" class:won={aw.wins > 0}><Icon name={aw.wins ? 'trophy' : 'award'} size={14} /><span class="aw-text">{aw.line}</span></p>
+								{/if}
+							{/if}
 							{#if d.companies.length}<p class="companies">{d.companies.join(' · ')}</p>{/if}
 						</div>
 					</div>
 				</div>
+
+				{#if aw && awDetail}
+					<div id={ids.awardsBody} class="inner aw-body" class:open={awardsOpen} inert={!awardsOpen}>
+						<div class="aw-in">
+							<div class="aw-panel">
+								{#each awSections as sec (sec.won)}
+									<section class="aw-sec" class:won={sec.won}>
+										<h3><Icon name={sec.won ? 'trophy' : 'award'} size={14} />{sec.title}</h3>
+										<dl>
+											{#each sec.groups as g (g.event)}
+												<dt>{g.name}{#if g.count > 1}<span class="aw-n">{g.count}</span>{/if}</dt>
+												<dd>{#each g.items as it, i (it.label)}{#if i}{' · '}{/if}<span class="aw-item">{it.label}{#if it.count > Math.max(1, aw.showYears ? it.years.length : 1)}<span class="aw-x">×{it.count}</span>{/if}{#if aw.showYears && it.years.length}<span class="aw-years">{it.years.join(', ')}</span>{/if}</span>{/each}</dd>
+											{/each}
+										</dl>
+									</section>
+								{/each}
+								<p class="aw-total">{awTotal}</p>
+							</div>
+						</div>
+					</div>
+				{/if}
 
 				<!-- Debajo del póster, en texto tenue con un ícono chico por dato (2026-11-23, variante C): géneros, reparto
 				     (con mouse, la cara de cada uno aparece en un globito) y dónde verla. -->
@@ -220,7 +271,7 @@
 							<p class="meta-row">
 								<Icon name="user" size={14} />
 								<span>
-									{#each castShown as p, i (p.id)}{#if i}{i === castShown.length - 1 && (castOpen || cast.length <= MAX_ACTORS) ? ` ${t('y')} ` : ', '}{/if}<button id={ids.person(p)} type="button" class="who" title={p.note ? `${p.name} · ${p.note}` : t('Ver lo que actuó')} onclick={() => onPerson(p)}>{p.name}{#if p.photo}<img class="who-face" src={p.photo} alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer" onerror={hide} />{/if}</button>{/each}
+									{#each castShown as p, i (p.id)}{@const and = i === castShown.length - 2 && (castOpen || cast.length <= MAX_ACTORS)}<span class="who-item"><button id={ids.person(p)} type="button" class="who" title={p.note ? `${p.name} · ${p.note}` : t('Ver lo que actuó')} onclick={() => onPerson(p)}>{p.name}{#if p.photo}<img class="who-face" src={p.photo} alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer" onerror={hide} />{/if}</button>{#if i < castShown.length - 1 && !and},{/if}</span>{#if i < castShown.length - 1}{and ? ` ${t('y')} ` : ' '}{/if}{/each}
 									{#if cast.length > MAX_ACTORS}
 										<button id={ids.cast} type="button" class="who-more" aria-expanded={castOpen} onclick={() => (castOpen = !castOpen)}>{castOpen ? t('ver menos') : t('y {n} más', { n: cast.length - MAX_ACTORS })}</button>
 									{/if}
@@ -401,6 +452,8 @@
 	.meta-row > :global(svg) { margin-top: 3px; color: color-mix(in srgb, var(--muted) 70%, transparent); }
 	.prov { display: inline-flex; align-items: center; gap: 5px; vertical-align: top; }
 	.prov img { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; }
+	/* La coma va pegada al nombre: ninguna línea empieza con ", ". */
+	.who-item { white-space: nowrap; }
 	.who { position: relative; padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
 	.who-more { padding: 0; border: 0; background: none; color: var(--accent-fg, var(--accent)); font: inherit; font-weight: 600; cursor: pointer; }
 	/* La cara: solo con mouse (en táctil no hay globito). */
@@ -411,6 +464,36 @@
 		.who:hover .who-face, .who:focus-visible .who-face { opacity: 1; translate: -50% 0; }
 	}
 	.companies { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+	/* Premios: el dorado se arma con el amarillo del tema (oscuro en claro, brillante en oscuro). */
+	.title-view { --gold: color-mix(in srgb, var(--yellow) 65%, #e0a800); }
+	.aw-line { display: flex; align-items: center; gap: 6px; max-width: 100%; min-height: 28px; margin: 6px 0 0; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; text-align: left; }
+	button.aw-line { cursor: pointer; }
+	/* Llega después que el resto (otro pedido): entra suave en su lugar. */
+	.aw-line { animation: aw-in 0.5s var(--out) backwards; }
+	@keyframes aw-in { from { opacity: 0; transform: translateY(6px); } }
+	.aw-line > :global(svg) { flex: none; }
+	.aw-line.won > :global(svg) { color: var(--gold); }
+	.aw-text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+	.aw-chev { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: var(--r-pill, 999px); background: var(--surface-2); transition: transform 0.35s var(--out), background 0.2s var(--ease); }
+	.aw-line.open .aw-chev { transform: rotate(180deg); }
+	@media (hover: hover) { button.aw-line:hover { color: var(--text); } button.aw-line:hover .aw-chev { background: var(--surface-3, var(--border)); } }
+	button.aw-line:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+	/* Lista completa: crece con grid-template-rows (como la sinopsis) y el contenido entra subiendo y enfocándose. */
+	.aw-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.42s var(--out); }
+	.aw-body.open { grid-template-rows: 1fr; }
+	.aw-in { min-height: 0; overflow: hidden; }
+	.aw-panel { display: grid; gap: 14px; margin-top: 12px; padding: 14px 16px 12px; border: 1px solid var(--border); border-radius: var(--r-card, 14px); background: var(--surface); opacity: 0; transform: translateY(-6px); filter: blur(3px); transition: opacity 0.3s var(--ease), transform 0.42s var(--out), filter 0.3s var(--ease); }
+	.aw-body.open .aw-panel { opacity: 1; transform: none; filter: none; transition-delay: 0.06s; }
+	.aw-sec h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 14px; font-weight: 650; color: var(--text); }
+	.aw-sec h3 :global(svg) { color: var(--muted); }
+	.aw-sec.won h3 :global(svg) { color: var(--gold); }
+	.aw-sec dl { display: grid; grid-template-columns: 8.4em minmax(0, 1fr); gap: 7px 16px; margin: 0; font-size: 13.5px; line-height: 1.45; }
+	.aw-sec dt { display: flex; align-items: baseline; gap: 6px; font-weight: 650; color: var(--text); }
+	.aw-n { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
+	.aw-sec dd { margin: 0; color: var(--muted); }
+	.aw-sec.won dd { color: var(--text); }
+	.aw-x, .aw-years { margin-left: 5px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
+	.aw-total { margin: 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--muted); }
 	.cine-wrap { padding-top: 12px; }
 	.cine-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: var(--r-card, 14px); background: color-mix(in srgb, var(--amber, #f5a524) 16%, transparent); color: var(--text); font-size: 13px; line-height: 1.35; }
 	.cine-note :global(svg) { flex: none; margin-top: 1px; color: var(--amber, #f5a524); }
@@ -505,7 +588,7 @@
 	@keyframes backdrop-in { from { opacity: 0; transform: scale(1.18); } }
 	@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
 	@media (prefers-reduced-motion: reduce) {
-		.hero::before, .name, .by, .line, .companies, .meta, .body { animation: none; }
-		.ext, .who-face, .about-body, .about-chev, .intro { transition: none; }
+		.hero::before, .name, .by, .line, .companies, .meta, .body, .aw-line { animation: none; }
+		.ext, .who-face, .about-body, .about-chev, .intro, .aw-body, .aw-panel, .aw-chev { transition: none; }
 	}
 </style>

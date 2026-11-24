@@ -1,0 +1,13 @@
+{
+  "wins": 12,
+  "nominations": 38,
+  "entries": [
+    {
+      "event": "oscar",
+      "won": false,
+      "award": "Oscar",
+      "category": "Best Effects, Sound Effects Editing",
+      "year": 2000
+    }
+  ]
+}

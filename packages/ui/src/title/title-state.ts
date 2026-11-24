@@ -5,10 +5,11 @@ import type { Outlook, SeasonTone, Trend } from '../season.ts';
 import { onlyCinema } from '../format.ts';
 import type { Episode, Person, Provider, Season, SeasonRatings, TitleDetails } from '../types.ts';
 
-export const MAX_ACTORS = 3;
+/** Actores a la vista en la ficha; el resto (hasta 18, `MAX_CAST` de web y desktop) con "y N más". */
+export const MAX_ACTORS = 6;
 export const MAX_PROVIDERS = 3;
 
-/** Director primero y los 3 actores principales. */
+/** Director primero y los actores principales (`MAX_ACTORS`). */
 export function pickPeople(people: Person[]): Person[] {
 	const director = people.find((p) => p.role === 'director');
 	const cast = people.filter((p) => p.role === 'cast').slice(0, MAX_ACTORS);
@@ -73,6 +74,8 @@ export type TitleIds = {
 	person: (p: Person) => string;
 	about: string;
 	aboutBody: string;
+	awards: string;
+	awardsBody: string;
 	cine: string;
 	similarToggle: string;
 	similar: (id: string) => string;
@@ -84,12 +87,12 @@ export type TitleIds = {
 };
 export const WEB_IDS: TitleIds = {
 	poster: 'poster', imdb: 'imdb-link', trailer: 'trailer-link', providers: 'providers-toggle', cast: 'cast-toggle', genres: 'genres-toggle', provider: (i) => `provider-${i}`,
-	person: (p) => `person-${p.id}`, about: 'about-toggle', aboutBody: 'about-body', cine: 'cine-note', similarToggle: 'similar-toggle', similar: (id) => `similar-${id}`,
+	person: (p) => `person-${p.id}`, about: 'about-toggle', aboutBody: 'about-body', awards: 'awards-toggle', awardsBody: 'awards-body', cine: 'cine-note', similarToggle: 'similar-toggle', similar: (id) => `similar-${id}`,
 	crumbSeasons: 'crumb-seasons', season: (n) => `season-${n}`, bar: (n) => `score-s${n}`, nextSeason: 'season-next', episode: (_s, e) => `ep-${e}`
 };
 export const DESKTOP_IDS: TitleIds = {
 	poster: 'cat-poster', imdb: 'cat-open-imdb', trailer: 'cat-open-trailer', providers: 'cat-providers', cast: 'cat-cast', genres: 'cat-genres', provider: (i) => `cat-provider-${i}`,
-	person: (p) => `cat-who-${p.role}-${p.id}`, about: 'cat-about-toggle', aboutBody: 'cat-about-body', cine: 'cat-cine-note', similarToggle: 'cat-similar-toggle',
+	person: (p) => `cat-who-${p.role}-${p.id}`, about: 'cat-about-toggle', aboutBody: 'cat-about-body', awards: 'cat-awards-toggle', awardsBody: 'cat-awards-body', cine: 'cat-cine-note', similarToggle: 'cat-similar-toggle',
 	similar: (id) => `cat-similar-${id}`, crumbSeasons: 'cat-crumb-seasons', season: (n) => `cat-season-${n}`, bar: (n) => `cat-season-bar-${n}`,
 	nextSeason: 'cat-season-next', episode: (s, e) => `cat-ep-${s}-${e}`
 };

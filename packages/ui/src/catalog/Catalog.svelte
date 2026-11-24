@@ -9,6 +9,8 @@
 	import { KINDS, SORTS, backLabel, votesLabel, type Filters } from './filters.ts';
 	import GenrePicker from './GenrePicker.svelte';
 	import Grid from './Grid.svelte';
+	import RecentRow from './RecentRow.svelte';
+	import type { EpisodeRef, RecentItem } from './recent.ts';
 	import Search from './Search.svelte';
 	import Segmented from './Segmented.svelte';
 	import Since from './Since.svelte';
@@ -37,8 +39,10 @@
 		cardMin?: number;
 		/** Degradado al pie de la ventana (la web). */
 		fade?: boolean;
+		/** Abre un título de "Vistos recientemente" (`ep`: capítulo a abrir; null = la ficha). Sin esto no se muestra la fila. */
+		onresume?: (item: RecentItem, ep: EpisodeRef | null) => void;
 	}
-	let { store, onopen, href, header, top, onmagnet, onlog, onsettings, onneedskey, pinned = false, cardMin, fade = false }: Props = $props();
+	let { store, onopen, href, header, top, onmagnet, onlog, onsettings, onneedskey, pinned = false, cardMin, fade = false, onresume }: Props = $props();
 	const st = $derived(store.st);
 
 	/** Alto de lo que se va al scrollear (marca, buscador, tipo): la barra de chips queda pegada arriba. */
@@ -228,6 +232,7 @@
 
 	<div class="body inner">
 		{@render top?.(searching)}
+		{#if onresume && !searching}<RecentRow {onresume} />{/if}
 		<Grid {store} {onopen} {href} {onsettings} {cardMin} {fade} bind:sentinel />
 	</div>
 </div>

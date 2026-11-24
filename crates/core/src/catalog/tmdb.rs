@@ -220,7 +220,10 @@ struct Credit {
 
 const PHOTO_BASE: &str = "https://image.tmdb.org/t/p/w185";
 
-/// Director (solo películas) y los 3 primeros del reparto, en ese orden.
+/// Hasta cuántos actores trae la ficha (la UI muestra los primeros y despliega el resto).
+const MAX_CAST: usize = 18;
+
+/// Director (solo películas) y los primeros del reparto (hasta [`MAX_CAST`]), en ese orden.
 fn people(c: Credits, kind: MediaKind) -> Vec<Person> {
     let person = |x: Credit, role: &str, note: Option<String>| Person {
         id: x.id,
@@ -237,7 +240,7 @@ fn people(c: Credits, kind: MediaKind) -> Vec<Person> {
         .filter(|x| kind == MediaKind::Movie && x.job.as_deref() == Some("Director"))
         .take(1)
         .map(|x| person(x, "director", None));
-    let cast = c.cast.into_iter().take(3).map(|x| {
+    let cast = c.cast.into_iter().take(MAX_CAST).map(|x| {
         let note = x.character.clone();
         person(x, "cast", note)
     });
@@ -365,9 +368,9 @@ pub async fn details(
             details: None,
         };
     };
-    // v5: con reparto y productoras (v4: dónde verla y los textos en los idiomas elegidos, uno por combinación).
+    // v6: hasta 18 actores (v5: con reparto y productoras (v4: dónde verla y los textos en los idiomas elegidos, uno por combinación)).
     let file = format!(
-        "tmdb-detalle-v5-{}-{imdb_id}-{}-{}.json",
+        "tmdb-detalle-v6-{}-{imdb_id}-{}-{}.json",
         kind.as_str(),
         langs.titles.tmdb(),
         langs.app.tmdb()
@@ -932,7 +935,7 @@ mod tests {
     }
 
     #[test]
-    fn director_primero_y_tres_actores() {
+    fn director_primero_y_el_reparto() {
         let c: Credits = serde_json::from_str(
             r#"{"cast":[{"id":1,"name":"Edward Norton","character":"Narrator","profile_path":"/e.jpg"},
               {"id":2,"name":"Brad Pitt","character":""},{"id":3,"name":"Helena"},{"id":4,"name":"Meat Loaf"}],
@@ -950,7 +953,8 @@ mod tests {
                 ("David Fincher", "director", None),
                 ("Edward Norton", "cast", Some("Narrator")),
                 ("Brad Pitt", "cast", None),
-                ("Helena", "cast", None)
+                ("Helena", "cast", None),
+                ("Meat Loaf", "cast", None)
             ]
         );
         assert_eq!(

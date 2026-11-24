@@ -6,6 +6,7 @@
 
 pub mod addons;
 pub mod aggregate;
+pub mod awards;
 pub mod cinemeta;
 pub mod elitetorrent;
 pub mod http;
@@ -346,6 +347,28 @@ impl Catalog {
             return Vec::new();
         }
         tmdb::episodes(&self.http, &self.data, imdb_id, season, langs, timeout).await
+    }
+
+    /// Premios de un título (IMDb GraphQL). Guardados una semana; si IMDb falla, sirve lo guardado aunque esté vencido.
+    pub async fn awards(&self, imdb_id: &str, timeout: Duration) -> Result<awards::TitleAwards> {
+        const TTL: Duration = Duration::from_secs(7 * 24 * 3600);
+        if !is_imdb_id(imdb_id) {
+            return Ok(awards::TitleAwards::default());
+        }
+        let file = format!("imdb-premios-v1-{imdb_id}.json");
+        let saved = self.data.get::<awards::TitleAwards>(&file);
+        if let Some((a, age)) = &saved {
+            if *age < TTL {
+                return Ok(a.clone());
+            }
+        }
+        match awards::fetch(&self.http, imdb_id, timeout).await {
+            Ok(a) => {
+                self.data.put(&file, &a);
+                Ok(a)
+            }
+            Err(e) => saved.map(|(a, _)| a).ok_or(e),
+        }
     }
 
     /// Ejemplos populares de cada subgénero de IMDb (tarjetas del filtro de géneros). Guardados una semana por tipo y

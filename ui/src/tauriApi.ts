@@ -9,7 +9,7 @@ import type * as Raw from './types.js';
 /** Lo que usa el adaptador de `api.js`. */
 export type CoreApi = Pick<typeof import('./api.js').api,
 	| 'apiKeys' | 'catalogBrowseTop' | 'catalogTrending' | 'catalogSearch' | 'catalogPeople' | 'catalogPersonTitles' | 'catalogInterestExamples' | 'catalogBrowseInterests' | 'catalogMeta' | 'catalogDetails' | 'catalogPoster'
-	| 'catalogSimilar' | 'catalogEpisodes' | 'catalogSeasonRatings' | 'catalogStreams' | 'catalogLink' | 'catalogTorboxTracks' | 'library' | 'catalogSubtitles'
+	| 'catalogSimilar' | 'catalogEpisodes' | 'catalogSeasonRatings' | 'catalogAwards' | 'catalogStreams' | 'catalogLink' | 'catalogTorboxTracks' | 'library' | 'catalogSubtitles'
 	| 'catalogSubtitleUse' | 'catalogPremiumUse' | 'catalogPremiumSearch' | 'premiumQuota' | 'torboxMagnet' | 'torboxMagnetDownload'>;
 export type Core = { api: CoreApi; listen: (handler: (e: Raw.CoreEvent) => void) => Promise<() => void>; lang: () => Lang };
 
@@ -71,7 +71,8 @@ export function createTauriApi(core: Core): Api {
 				const [m, texts] = await Promise.all([meta('series', id), api.catalogEpisodes(id, season).catch((): Raw.EpisodeText[] => [])]);
 				return adapt.episodes(m.episodes, texts, season);
 			},
-			seasonRatings: async (imdb, quick) => adapt.seasonRatings(await api.catalogSeasonRatings(imdb, quick))
+			seasonRatings: async (imdb, quick) => adapt.seasonRatings(await api.catalogSeasonRatings(imdb, quick)),
+			awards: (imdb) => api.catalogAwards(imdb)
 		},
 		options: {
 			async *load(ref): AsyncGenerator<OptionsUpdate> {
@@ -128,6 +129,8 @@ export function createTauriApi(core: Core): Api {
 			status: async (hash, name, who) => adapt.magnetView(await api.torboxMagnet(hash, name, who), hash),
 			download: async (hash, name) => adapt.magnetStatus(await api.torboxMagnetDownload(hash, name), hash)
 		},
+		// TODO vistos desktop (otro agente)
+		recent: { list: () => Promise.resolve([]), mark: () => Promise.resolve(), restore: () => Promise.resolve(), dismiss: () => Promise.resolve() },
 		events: {
 			subscribe(handler: (event: ApiEvent) => void) {
 				void listen();

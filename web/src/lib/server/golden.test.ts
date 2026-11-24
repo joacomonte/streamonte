@@ -16,6 +16,7 @@ delete process.env.VERCEL;
 const { detail, firstTrailer, peopleOf, providersAr, showStatus } = await import('./tmdb.ts');
 const { parse } = await import('./torrents.ts');
 const { isSpanishSub } = await import('./torbox.ts');
+const { normalize: awardsOf } = await import('./awards.ts');
 after(() => {
 	process.chdir(cwd);
 	rmSync(work, { recursive: true, force: true });
@@ -44,6 +45,7 @@ golden('show_status', (r) => {
 });
 golden('excluded', ({ countries, animation }) => detail({ origin_country: countries, genres: animation ? [{ id: 16, name: 'Animation' }] : [] }).excluded);
 golden('sub_lang', (path) => isSpanishSub(path));
+golden('awards', (data) => awardsOf(data));
 golden('release', (name) => {
 	const t = parse({ infoHash: 'a'.repeat(40), title: name }, 'golden')!;
 	return { res: t.res, hdr: t.hdr, codec: t.codec, source: t.source, atmos: t.atmos };

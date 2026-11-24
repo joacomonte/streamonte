@@ -5,6 +5,7 @@
 	import logo from '$ui/assets/logo-mark.svg';
 	import Catalog from '$ui/catalog/Catalog.svelte';
 	import Icon from '$ui/components/Icon.svelte';
+	import type { EpisodeRef, RecentItem } from '$ui/catalog/recent.ts';
 	import type { CatalogItem } from '$ui/types.ts';
 	import { webCatalog } from '#lib/catalog.svelte.ts';
 	import { i18n, setLang, t } from '#lib/i18n.svelte.ts';
@@ -27,6 +28,8 @@
 		invalidateAll();
 	}
 	const href = (it: CatalogItem) => `/t/${it.kind}/${it.id}`;
+	/** "Vistos recientemente": el capítulo (o la ficha) que eligió. */
+	const resume = (it: RecentItem, ep: EpisodeRef | null) => goto(ep ? `/t/tv/${it.id}/${ep.season}/${ep.episode}` : `/t/${it.kind}/${it.id}`);
 	/** "Pegar magnet": un magnet pegado en el buscador va a su pantalla en vez de buscarse como texto. */
 	function openMagnet(magnet: string) {
 		const hash = magnetHash(magnet);
@@ -36,7 +39,7 @@
 	}
 </script>
 
-<Catalog {store} {href} onopen={(it) => goto(href(it))} onmagnet={openMagnet} onlog={track} onsettings={() => goto('/ajustes')} fade {header} {top} />
+<Catalog {store} {href} onopen={(it) => goto(href(it))} onmagnet={openMagnet} onlog={track} onsettings={() => goto('/ajustes')} onresume={resume} fade {header} {top} />
 
 {#snippet header()}
 	<div class="row">

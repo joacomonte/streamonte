@@ -153,6 +153,8 @@ export const api = {
   /** Puntaje promedio por temporada y estado de la serie. quick: no espera al índice de IMDb si se está armando (solo el estado).
    *  @param {string} imdbId @param {boolean=} quick @returns {Promise<import('./types.js').SeasonRatings>} */
   catalogSeasonRatings: (imdbId, quick = false) => invoke('catalog_season_ratings', { imdbId, quick }),
+  /** Premios de IMDb: totales y el detalle de los grandes. @param {string} imdbId @returns {Promise<import('./types.js').TitleAwards>} */
+  catalogAwards: (imdbId) => invoke('catalog_awards', { imdbId }),
   /** Explorar con filtros de IMDb (necesita key de TMDB): {items, has_more:false}. sort: 'popular' | 'rating'.
    *  languages: ['en','es'] = idioma original inglés o español; [] = cualquiera.
    *  @param {MediaKind} kind @param {'popular'|'rating'} sort @param {string} from @param {string|null} to @param {number} minVotes

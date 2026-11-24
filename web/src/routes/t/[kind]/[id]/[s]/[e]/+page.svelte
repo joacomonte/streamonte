@@ -38,7 +38,7 @@
 	{#if !t.imdb}
 		<p class="error">{tr('TMDB no tiene el IMDb id de esta serie: no puedo buscar torrents.')}</p>
 	{:else}
-		<Torrents imdb={t.imdb ?? ''} s={data.s} e={data.e} name={t.title ?? ''} orig={t.origLang} runtime={t.runtime} />
+		<Torrents imdb={t.imdb ?? ''} s={data.s} e={data.e} name={t.title ?? ''} orig={t.origLang} runtime={t.runtime} seen={{ kind: t.kind, id: String(t.id), poster: t.poster, backdrop: t.backdrop }} />
 	{/if}
 </main>
 

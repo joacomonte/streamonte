@@ -54,6 +54,9 @@ export type Examples = Awaited<ReturnType<typeof import('./server/interests.ts')
 /** IMDb de cada temporada (`/api/scores/:imdb`). */
 export type SeasonScore = { season: number; rating: number; episodes: number };
 
+/** Un visto (`/api/vistos`). */
+export type Seen = import('./server/vistos.ts').Seen;
+
 /** Cuerpo de error de la API. */
 export type ApiError = { message: string };
 

@@ -44,6 +44,16 @@
    "text": "Brad Pitt"
   },
   {
+   "sel": "#cat-cast",
+   "text": "más",
+   "note": "reparto: 6 a la vista y \"y N más\""
+  },
+  {
+   "sel": "#cat-awards-toggle",
+   "text": "Ganó|Nominada",
+   "note": "premios de IMDb (mock catalog_awards) en una línea"
+  },
+  {
    "sel": "#cat-about-toggle",
    "text": "Sinopsis"
   },

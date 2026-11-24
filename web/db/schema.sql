@@ -32,3 +32,11 @@ CREATE TABLE IF NOT EXISTS intentos (
 	hasta timestamptz,
 	ultimo text
 );
+
+-- "Vistos recientemente" por apodo (web: al copiar el link; desktop: al reproducir). La escribe src/lib/server/vistos.ts,
+-- que también la crea sola si falta. Una fila por título: una serie guarda el último capítulo; `estado` 'viendo' | 'visto'.
+CREATE TABLE IF NOT EXISTS vistos (
+	apodo text NOT NULL, kind text NOT NULL, imdb text NOT NULL, tmdb integer, titulo text NOT NULL, poster text, fondo text,
+	temporada integer, episodio integer, estado text NOT NULL DEFAULT 'viendo', fecha timestamptz NOT NULL DEFAULT now(),
+	PRIMARY KEY (apodo, kind, imdb)
+);

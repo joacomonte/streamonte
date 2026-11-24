@@ -49,7 +49,6 @@ export const titleDetails = (raw: Title): TitleDetails => ({
 	trailer: raw.trailer,
 	imdb: raw.imdb,
 	status: showStatus(raw.status, raw.next),
-	awards: null,
 	seasons: raw.seasons.map((s) => ({ number: s.n, name: s.name || null, episodeCount: s.count, year: s.year })),
 	excluded: false
 });

@@ -1,0 +1,69 @@
+{
+  "wins": 23,
+  "nominations": 69,
+  "entries": [
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Special Visual Effects in a Season or a Movie",
+      "year": 2025
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Fantasy/Sci-Fi Costumes",
+      "year": 2023
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Original Main Title Theme Music",
+      "year": 2023
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Main Title Design",
+      "year": 2023
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Prosthetic Makeup",
+      "year": 2023
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Sound Editing for a Comedy or Drama Series (One Hour)",
+      "year": 2023
+    },
+    {
+      "event": "emmy",
+      "won": false,
+      "award": "Primetime Emmy",
+      "category": "Outstanding Special Visual Effects in a Season or a Movie",
+      "year": 2023
+    },
+    {
+      "event": "bafta",
+      "won": true,
+      "award": "BAFTA TV Award",
+      "category": "Special, Visual & Graphic Effects",
+      "year": 2025
+    },
+    {
+      "event": "sag",
+      "won": false,
+      "award": "Actor",
+      "category": "Outstanding Action Performance by a Stunt Ensemble in a Television Series",
+      "year": 2023
+    }
+  ]
+}

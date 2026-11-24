@@ -562,6 +562,13 @@ pub async fn catalog_season_ratings(
     Ok(core.catalog_season_ratings(&imdb_id, quick).await?)
 }
 #[tauri::command]
+pub async fn catalog_awards(
+    core: Core<'_>,
+    imdb_id: String,
+) -> CmdResult<streamonte_core::catalog::awards::TitleAwards> {
+    Ok(core.catalog_awards(&imdb_id).await?)
+}
+#[tauri::command]
 pub async fn catalog_trending(core: Core<'_>, kind: MediaKind, skip: u32) -> CmdResult<BrowsePage> {
     Ok(core.catalog_trending(kind, skip).await?)
 }

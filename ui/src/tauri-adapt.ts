@@ -71,7 +71,6 @@ export function titleDetails(meta: Raw.Meta, view: Raw.DetailsView | null, lang:
 		trailer: d?.trailer ?? meta.trailer,
 		imdb: meta.id,
 		status: state ? { state, next: null } : null,
-		awards: meta.awards,
 		seasons: seasonsOf(meta.episodes),
 		excluded: meta.excluded
 	};

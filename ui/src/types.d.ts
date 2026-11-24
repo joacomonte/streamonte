@@ -462,6 +462,8 @@ export type SeasonRatings = {
     seasons: SeasonScore[];
     status: ShowStatus | null;
 };
+/** Premios (`catalog_awards`): el núcleo ya los manda en camelCase, con la forma compartida. */
+export type { TitleAwards } from '../../packages/ui/src/types.ts';
 export type AddonView = {
     id: string;
     name: string;

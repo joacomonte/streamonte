@@ -38,6 +38,62 @@
         "photo": "https://image.tmdb.org/t/p/w185/tLOCcMkylvIES7ZKFv6Dks6XmD.jpg",
         "role": "cast",
         "note": "Self"
+      },
+      {
+        "id": 71070,
+        "name": "Amanda Seyfried",
+        "photo": "https://image.tmdb.org/t/p/w185/gtBUIpZ3dvLpOMIVORxE6sHSyZj.jpg",
+        "role": "cast",
+        "note": "Self / Elizabeth Holmes"
+      },
+      {
+        "id": 984629,
+        "name": "Christopher Abbott",
+        "photo": "https://image.tmdb.org/t/p/w185/bE7zzh60RXydH3p632ZZSmsTlcn.jpg",
+        "role": "cast",
+        "note": "Billy Evans"
+      },
+      {
+        "id": 1405665,
+        "name": "Lance Oppenheim",
+        "photo": "https://image.tmdb.org/t/p/w185/h12zgCaZ24imkZlw0nry9T9mjGD.jpg",
+        "role": "cast",
+        "note": "Self"
+      },
+      {
+        "id": 6552342,
+        "name": "Christian Rasmus Holmes IV",
+        "photo": "https://image.tmdb.org/t/p/w185/m27JLpdojcJXaRM9gGUaomSUz0a.jpg",
+        "role": "cast",
+        "note": "Self"
+      },
+      {
+        "id": 6552346,
+        "name": "Noel Anne Holmes",
+        "photo": "https://image.tmdb.org/t/p/w185/ja5uFBObNtfDTCq8ETefkoxoV47.jpg",
+        "role": "cast",
+        "note": "Self"
+      },
+      {
+        "id": 78404,
+        "name": "Gary Wilmes",
+        "photo": "https://image.tmdb.org/t/p/w185/6HdPMSnldhYWdJiH3yvWDUNDFGs.jpg",
+        "role": "cast",
+        "note": "A24 Executive"
+      },
+      {
+        "id": 1386927,
+        "name": "Phillip Andre Botello",
+        "photo": "https://image.tmdb.org/t/p/w185/wzLtwcPc8VGYwBqeHl9d7gMVixL.jpg",
+        "role": "cast",
+        "note": "A24 Executive"
+      },
+      {
+        "id": 1693304,
+        "name": "Nick Choksi",
+        "photo": "https://image.tmdb.org/t/p/w185/vL3esAIG5zAghhSkBgGIBqqNqrw.jpg",
+        "role": "cast",
+        "note": "Friend"
       }
     ],
     "companies": [

@@ -31,7 +31,7 @@
 	import SubsPicker from '$ui/subs/SubsPicker.svelte';
 	import type { SubsCtx } from '$ui/subs/subs-flow.ts';
 	import { keyOf } from '$ui/subs/subs-logic.ts';
-	import type { NativeSub, OptionRef, SubtitleOption, TorboxIds, TorrentOption } from '$ui/types.ts';
+	import type { Kind, NativeSub, OptionRef, SubtitleOption, TorboxIds, TorrentOption } from '$ui/types.ts';
 
 	interface Props {
 		imdb: string;
@@ -44,8 +44,10 @@
 		runtime?: number | null;
 		/** Las opciones ya armadas ("Pegar magnet": los videos de ese torrent); sin pasos ni búsqueda, directo a la lista. */
 		given?: TorrentOption[] | null;
+		/** De qué título es (ruta de la web + imágenes): al copiar un link entra en "Vistos recientemente". Sin esto no se marca. */
+		seen?: { kind: Kind; id: string; poster: string | null; backdrop: string | null } | null;
 	}
-	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null }: Props = $props();
+	let { imdb, s = null, e = null, name, orig = null, runtime = null, given = null, seen = null }: Props = $props();
 	const api = getApi();
 
 	type Torrent = TorrentOption;
@@ -417,6 +419,8 @@
 	async function copyUrl(t: Torrent, url: string) {
 		// Título · calidad · audio elegido · dónde (el panel lo separa por ` · `).
 		track('copiar link', `${name}${s ? ` T${s}E${e}` : ''} · ${t.resolution ?? ''} · ${wantLat ? 'Latino' : 'Original'} · ${/play\.html/.test(url) ? 'TV' : 'Celu'}`);
+		// "Vistos recientemente": se marca al copiar; si falla, no se entera nadie.
+		if (seen && imdb) void api.recent.mark({ ...seen, imdb, title: name, season: s, episode: e }).catch(() => {});
 		if (copyNow(url)) return done(t, 'ok');
 		try {
 			await navigator.clipboard.writeText(url);

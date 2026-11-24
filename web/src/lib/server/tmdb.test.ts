@@ -114,10 +114,10 @@ test('title (película): tráiler, providers AR, people, companies', async () =>
 		{ name: 'B', logo: 'https://image.tmdb.org/t/p/w92/b.png' },
 		{ name: 'C', logo: null }
 	]);
-	// Director (solo el primero) y 3 actores con personaje (vacío -> null).
+	// Director (solo el primero) y el reparto (hasta 18) con personaje (vacío -> null).
 	assert.deepEqual(
 		t.people.map((p) => [p.role, p.name, p.note]),
-		[['director', 'Director Uno', null], ['cast', 'Actor 1', 'Personaje 1'], ['cast', 'Actor 2', null], ['cast', 'Actor 3', 'Personaje 3']]
+		[['director', 'Director Uno', null], ['cast', 'Actor 1', 'Personaje 1'], ['cast', 'Actor 2', null], ['cast', 'Actor 3', 'Personaje 3'], ['cast', 'Actor 4', 'Personaje 4']]
 	);
 	assert.equal(t.people[0].photo, 'https://image.tmdb.org/t/p/w185/p21.jpg');
 	assert.deepEqual(t.companies, ['Uno', 'Dos']);

@@ -1,10 +1,11 @@
 <script lang="ts" module>
 	import type { Api } from '../api.ts';
-	import type { SeasonRatings, TitleDetails } from '../types.ts';
+	import type { SeasonRatings, TitleAwards, TitleDetails } from '../types.ts';
 
 	// Las fichas ya pedidas se reusan: volver a pasar el mouse no pide nada.
 	const details = new Map<string, Promise<TitleDetails | null>>();
 	const ratings = new Map<string, Promise<SeasonRatings | null>>();
+	const awards = new Map<string, Promise<TitleAwards | null>>();
 	const load = <T,>(cache: Map<string, Promise<T | null>>, key: string, get: () => Promise<T>) => {
 		let hit = cache.get(key);
 		if (!hit) cache.set(key, (hit = get().catch(() => null)));
@@ -12,10 +13,12 @@
 	};
 	export const loadDetails = (api: Api, kind: TitleDetails['kind'], id: string) => load(details, `${kind}${id}`, () => api.title.details(kind, id));
 	export const loadRatings = (api: Api, imdb: string) => load(ratings, imdb, () => api.title.seasonRatings(imdb, true));
+	export const loadAwards = (api: Api, imdb: string) => load(awards, imdb, () => api.title.awards(imdb));
 </script>
 
 <script lang="ts">
-	// Detalles sobre el póster al pasar el mouse: géneros, duración, categoría por puntaje, premios y, en series, barras por temporada.
+	// Detalles sobre el póster al pasar el mouse: géneros, año · puntaje · duración · premios (íconos con número), categoría por
+	// puntaje y, en series, barras por temporada.
 	// Se monta recién cuando el mouse se detiene un momento encima (Grid.svelte); la ficha queda en caché.
 	import { onMount } from 'svelte';
 	import Icon from '../components/Icon.svelte';
@@ -24,18 +27,22 @@
 	import type { Outlook } from '../season.ts';
 	import type { Chart } from '../title/title-state.ts';
 	import type { CatalogItem } from '../types.ts';
-	import { awardsText, cardSeasons, ratingTier } from './card-info.ts';
+	import { cardAwards } from '../title/awards.ts';
+	import { cardSeasons, ratingTier } from './card-info.ts';
 
 	let { item }: { item: CatalogItem } = $props();
 	const api = getApi();
 	/** undefined = cargando, null = no hay ficha. */
 	let d = $state<TitleDetails | null | undefined>(undefined);
 	let seasons = $state<{ chart: Chart | null; outlook: Outlook | null } | null | undefined>(undefined);
+	let aw = $state<ReturnType<typeof cardAwards>>(null);
 	const tier = $derived(d ? ratingTier(d.kind, d.rating) : null);
 	const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }).replace('.', '');
 
 	onMount(async () => {
 		d = await loadDetails(api, item.kind, item.id);
+		// Los premios llegan aparte (IMDb): si tardan o fallan, el resto ya se ve.
+		if (d?.imdb) void loadAwards(api, d.imdb).then((a) => (aw = cardAwards(a)));
 		if (!d || item.kind !== 'tv' || !d.imdb) return void (seasons = null);
 		const r = await loadRatings(api, d.imdb);
 		seasons = r && cardSeasons(d, r);
@@ -51,8 +58,9 @@
 			{:else}
 				{#if d.genres.length}<span class="genres">{d.genres.slice(0, 3).join(' · ')}</span>{/if}
 				<!-- La duración solo en películas: en series depende del capítulo. -->
-				<span class="meta">{#if d.year}<span>{d.year}</span>{/if}{#if d.rating}<span class="star">★ {d.rating}</span>{/if}{#if d.kind === 'movie' && d.runtimeMin}<span class="dim">{d.runtimeMin} min</span>{/if}</span>
-				{#if d.awards}<span class="awards"><Icon name="award" size={13} />{awardsText(d.awards, t)}</span>{/if}
+				<!-- Premios en la misma línea, solo ícono + número: Óscar ganados (estatuilla), premios ganados (copa, amarillo) y
+				     nominaciones (escarapela, gris). Van al borde derecho; si no entran, bajan juntos a la línea de abajo (también a la derecha). -->
+				<span class="meta"><span class="facts">{#if d.year}<span>{d.year}</span>{/if}{#if d.rating}<span class="star">★ {d.rating}</span>{/if}{#if d.kind === 'movie' && d.runtimeMin}<span class="dim">{d.runtimeMin} min</span>{/if}</span>{#if aw}<span class="aw">{#if aw.oscars}<span class="aw-oscar"><Icon name="oscar" size={13} />{aw.oscars}</span>{/if}{#if aw.wins}<span class="aw-win"><Icon name="trophy" size={11} />{aw.wins}</span>{/if}{#if aw.nominations}<span class="aw-nom"><Icon name="award" size={11} />{aw.nominations}</span>{/if}</span>{/if}</span>
 				{#if tier}<span class="tier">{tier.emoji} {t(tier.name)}</span>{/if}
 				{#if item.kind === 'tv'}
 					<span class="seasons">
@@ -105,13 +113,19 @@
 	.line { height: 9px; border-radius: 4px; opacity: 0.5; }
 	.short { width: 60%; }
 	.genres { font-size: 11.5px; font-weight: 600; line-height: 1.3; color: rgb(255 255 255 / 0.82); }
-	.meta { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
-	.meta > span + span::before { content: ' · '; color: rgb(255 255 255 / 0.5); font-weight: 600; }
+	.meta { display: flex; flex-wrap: wrap; align-items: center; row-gap: 3px; white-space: nowrap; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.facts { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+	.facts > span + span::before { content: ' · '; color: rgb(255 255 255 / 0.5); font-weight: 600; }
+	.aw { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding-left: 8px; animation: aw-in 0.3s var(--out, ease-out); }
+	.aw > span { display: inline-flex; align-items: center; gap: 1px; }
+	.aw :global(svg) { flex: none; }
+	.aw-oscar { color: #ffd66b; }
+	.aw-win { color: #f2c94c; }
+	.aw-nom { color: rgb(255 255 255 / 0.6); font-weight: 600; }
+	@keyframes aw-in { from { opacity: 0; } }
 	.star { color: #f2c94c; }
 	.dim { color: rgb(255 255 255 / 0.6); font-weight: 600; }
 	.tier { font-size: 12px; font-weight: 700; }
-	.awards { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; color: #f2c94c; }
-	.awards :global(svg) { flex: none; }
 	.seasons { display: grid; gap: 5px; margin-top: 2px; }
 	.seasons:empty { display: none; }
 	.sbars { display: flex; align-items: stretch; gap: 3px; height: 24px; }

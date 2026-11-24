@@ -43,6 +43,41 @@
         "photo": "https://image.tmdb.org/t/p/w185/1wqSZVvB018H2mZbemMSn6gH4zq.jpg",
         "role": "cast",
         "note": "Elrond"
+      },
+      {
+        "id": 1274938,
+        "name": "Owain Arthur",
+        "photo": "https://image.tmdb.org/t/p/w185/ljqVjVzp9pgcfTTU3oJbKtnd6im.jpg",
+        "role": "cast",
+        "note": "Durin IV"
+      },
+      {
+        "id": 2056333,
+        "name": "Sophia Nomvete",
+        "photo": "https://image.tmdb.org/t/p/w185/fRglwdtHHjLGAMIoCkqXwQ9bIfd.jpg",
+        "role": "cast",
+        "note": "Disa"
+      },
+      {
+        "id": 1100144,
+        "name": "Ismael Cruz Cordova",
+        "photo": "https://image.tmdb.org/t/p/w185/oXcrsQGndk60iFkNB8qFnMHlNzL.jpg",
+        "role": "cast",
+        "note": "Arondir"
+      },
+      {
+        "id": 2510411,
+        "name": "Tyroe Muhafidin",
+        "photo": "https://image.tmdb.org/t/p/w185/sPDE7yH0TwbwEp12BU1g2ikS2IH.jpg",
+        "role": "cast",
+        "note": "Theo"
+      },
+      {
+        "id": 1220087,
+        "name": "Daniel Weyman",
+        "photo": "https://image.tmdb.org/t/p/w185/6DjebVe6uHAt5RpZOQGt67Eryeb.jpg",
+        "role": "cast",
+        "note": "Gandalf"
       }
     ],
     "companies": [

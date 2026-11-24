@@ -1,0 +1,403 @@
+[
+ {
+  "in": {
+   "title": null
+  },
+  "out": {
+   "wins": 0,
+   "nominations": 0,
+   "entries": []
+  },
+  "nota": "título que IMDb no conoce"
+ },
+ {
+  "in": {
+   "title": {
+    "all": {
+     "total": 193
+    },
+    "won": {
+     "total": 45
+    },
+    "top": {
+     "edges": [
+      {
+       "node": {
+        "isWinner": true,
+        "award": {
+         "text": "Oscar",
+         "year": 2015,
+         "event": {
+          "id": "ev0000003"
+         }
+        },
+        "category": {
+         "text": "Best Achievement in Visual Effects"
+        }
+       }
+      },
+      {
+       "node": {
+        "isWinner": false,
+        "award": {
+         "text": "Oscar",
+         "year": 2015,
+         "event": {
+          "id": "ev0000003"
+         }
+        },
+        "category": {
+         "text": "Best Achievement in Sound Mixing"
+        }
+       }
+      },
+      {
+       "node": {
+        "isWinner": false,
+        "award": {
+         "text": "BAFTA Film Award",
+         "year": 2015,
+         "event": {
+          "id": "ev0000123"
+         }
+        },
+        "category": {
+         "text": "Best Cinematography"
+        }
+       }
+      },
+      {
+       "node": {
+        "isWinner": true,
+        "award": {
+         "text": "OFTA Film Hall of Fame",
+         "year": 2025,
+         "event": {
+          "id": "ev0002704"
+         }
+        },
+        "category": {
+         "text": "Score"
+        }
+       }
+      },
+      {
+       "node": {
+        "isWinner": false,
+        "award": {
+         "text": "  Golden Globe ",
+         "year": 2015,
+         "event": {
+          "id": "ev0000292"
+         }
+        },
+        "category": {
+         "text": "  Best Original Score - Motion Picture  "
+        }
+       }
+      }
+     ]
+    }
+   }
+  },
+  "out": {
+   "wins": 45,
+   "nominations": 148,
+   "entries": [
+    {
+     "event": "oscar",
+     "won": true,
+     "award": "Oscar",
+     "category": "Best Achievement in Visual Effects",
+     "year": 2015
+    },
+    {
+     "event": "oscar",
+     "won": false,
+     "award": "Oscar",
+     "category": "Best Achievement in Sound Mixing",
+     "year": 2015
+    },
+    {
+     "event": "bafta",
+     "won": false,
+     "award": "BAFTA Film Award",
+     "category": "Best Cinematography",
+     "year": 2015
+    },
+    {
+     "event": "globe",
+     "won": false,
+     "award": "Golden Globe",
+     "category": "Best Original Score - Motion Picture",
+     "year": 2015
+    }
+   ]
+  },
+  "nota": "evento chico afuera; textos recortados; nominaciones = todas − ganadas"
+ },
+ {
+  "in": {
+   "title": {
+    "all": {
+     "total": 20
+    },
+    "won": {
+     "total": 12
+    },
+    "top": {
+     "edges": [
+      {
+       "node": {
+        "isWinner": true,
+        "award": {
+         "text": "Golden Berlin Bear",
+         "year": 2011,
+         "event": {
+          "id": "ev0000091"
+         }
+        },
+        "category": null
+       }
+      },
+      {
+       "node": {
+        "isWinner": true,
+        "award": {
+         "text": "Reader Jury of the \"Berliner Morgenpost\"",
+         "year": 2011,
+         "event": {
+          "id": "ev0000091"
+         }
+        },
+        "category": null
+       }
+      },
+      {
+       "node": {
+        "isWinner": true,
+        "award": {
+         "text": "Prize of the Ecumenical Jury",
+         "year": 2011,
+         "event": {
+          "id": "ev0000091"
+         }
+        },
+        "category": {
+         "text": "Competition"
+        }
+       }
+      },
+      {
+       "node": {
+        "isWinner": true,
+        "award": {
+         "text": "Silver Berlin Bear",
+         "year": 2011,
+         "event": {
+          "id": "ev0000091"
+         }
+        },
+        "category": {
+         "text": "Best Actress"
+        }
+       }
+      },
+      {
+       "node": {
+        "isWinner": false,
+        "award": {
+         "text": "Palme d'Or",
+         "year": 2011,
+         "event": {
+          "id": "ev0000147"
+         }
+        },
+        "category": null
+       }
+      },
+      {
+       "node": {
+        "isWinner": true,
+        "award": {
+         "text": "Best Director",
+         "year": 2011,
+         "event": {
+          "id": "ev0000147"
+         }
+        },
+        "category": null
+       }
+      },
+      {
+       "node": {
+        "isWinner": true,
+        "award": {
+         "text": "Soundtrack Stars Award",
+         "year": 2019,
+         "event": {
+          "id": "ev0000681"
+         }
+        },
+        "category": {
+         "text": "Best Soundtrack"
+        }
+       }
+      },
+      {
+       "node": {
+        "isWinner": true,
+        "award": {
+         "text": "Golden Lion",
+         "year": 2019,
+         "event": {
+          "id": "ev0000681"
+         }
+        },
+        "category": {
+         "text": "Best Film"
+        }
+       }
+      }
+     ]
+    }
+   }
+  },
+  "out": {
+   "wins": 12,
+   "nominations": 8,
+   "entries": [
+    {
+     "event": "berlin",
+     "won": true,
+     "award": "Golden Berlin Bear",
+     "category": null,
+     "year": 2011
+    },
+    {
+     "event": "berlin",
+     "won": true,
+     "award": "Silver Berlin Bear",
+     "category": "Best Actress",
+     "year": 2011
+    },
+    {
+     "event": "cannes",
+     "won": false,
+     "award": "Palme d'Or",
+     "category": null,
+     "year": 2011
+    },
+    {
+     "event": "cannes",
+     "won": true,
+     "award": "Best Director",
+     "category": null,
+     "year": 2011
+    },
+    {
+     "event": "venice",
+     "won": true,
+     "award": "Golden Lion",
+     "category": "Best Film",
+     "year": 2019
+    }
+   ]
+  },
+  "nota": "festivales: solo los premios principales"
+ },
+ {
+  "in": {
+   "title": {
+    "all": {
+     "total": 3
+    },
+    "won": {
+     "total": 5
+    },
+    "top": {
+     "edges": [
+      {
+       "node": {
+        "isWinner": true,
+        "award": null,
+        "category": null
+       }
+      },
+      {
+       "node": {
+        "isWinner": false,
+        "award": {
+         "text": "",
+         "year": 2020,
+         "event": {
+          "id": "ev0000223"
+         }
+        },
+        "category": null
+       }
+      },
+      {
+       "node": {
+        "isWinner": false,
+        "award": {
+         "text": "Primetime Emmy",
+         "year": null,
+         "event": {
+          "id": "ev0000223"
+         }
+        },
+        "category": {
+         "text": "   "
+        }
+       }
+      },
+      {
+       "node": {
+        "award": {
+         "text": "Goya",
+         "year": 2010,
+         "event": {
+          "id": "ev0000299"
+         }
+        }
+       }
+      }
+     ]
+    }
+   }
+  },
+  "out": {
+   "wins": 5,
+   "nominations": 0,
+   "entries": [
+    {
+     "event": "emmy",
+     "won": false,
+     "award": "Primetime Emmy",
+     "category": null,
+     "year": null
+    },
+    {
+     "event": "goya",
+     "won": false,
+     "award": "Goya",
+     "category": null,
+     "year": 2010
+    }
+   ]
+  },
+  "nota": "sin premio o con nombre vacío se descarta; categoría en blanco = null; sin isWinner = no ganó; nunca nominaciones negativas"
+ },
+ {
+  "in": {
+   "title": {}
+  },
+  "out": {
+   "wins": 0,
+   "nominations": 0,
+   "entries": []
+  },
+  "nota": "sin campos"
+ }
+]
