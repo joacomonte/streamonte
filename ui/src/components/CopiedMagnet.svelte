@@ -5,6 +5,7 @@
   import * as core from '../core.ts';
   import { play } from '../audio-picker.ts';
   import { icon, showError } from '../dom.ts';
+  import { t } from '../i18n.ts';
   import type { CopiedMagnet } from '../types.ts';
 
   let copied = $state.raw<CopiedMagnet | null>(null);
@@ -36,6 +37,6 @@
 <svelte:window onfocus={refresh} />
 
 <button id="btn-clipboard" class="top-btn play-copied" hidden={!copied} disabled={busy} onclick={playCopied}
-  title={`Reproducir ${copied?.name ?? 'el magnet copiado'} (Ctrl+V)`}>
-  {@html icon('play', 15).outerHTML}<span>Reproducir magnet copiado</span>{#if copied?.name}<span class="top-size play-copied-name">· {copied.name}</span>{/if}
+  title={t('Reproducir {a} (Ctrl+V)', { a: copied?.name ?? t('el magnet copiado') })}>
+  {@html icon('play', 15).outerHTML}<span>{t('Reproducir magnet copiado')}</span>{#if copied?.name}<span class="top-size play-copied-name">· {copied.name}</span>{/if}
 </button>

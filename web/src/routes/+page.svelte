@@ -5,6 +5,7 @@
 	import logo from '$ui/assets/logo-mark.svg';
 	import Catalog from '$ui/catalog/Catalog.svelte';
 	import Icon from '$ui/components/Icon.svelte';
+	import MissingKeys from '$ui/settings/MissingKeys.svelte';
 	import LangToggle from '$ui/components/LangToggle.svelte';
 	import type { EpisodeRef, RecentItem } from '$ui/catalog/recent.ts';
 	import type { CatalogItem } from '$ui/types.ts';
@@ -57,12 +58,7 @@
 {/snippet}
 
 {#snippet top()}
-	{#if keys && (!keys.tmdb || !keys.torbox)}
-		<a id="keys-cta" class="cta" href="/ajustes">
-			<strong>{t('Faltan keys')}</strong>
-			<span>{!keys.tmdb ? t('TMDB (catálogo)') : ''}{!keys.tmdb && !keys.torbox ? t(' y ') : ''}{!keys.torbox ? t('TorBox (torrents)') : ''}{t(': cargalas en Ajustes.')}</span>
-		</a>
-	{/if}
+	<MissingKeys status={keys} href="/ajustes" />
 {/snippet}
 
 <style>
@@ -84,16 +80,4 @@
 	@keyframes hello-in { from { opacity: 0; transform: translateX(-8px); } }
 	@keyframes wave { 15% { transform: rotate(14deg); } 30% { transform: rotate(-8deg); } 45% { transform: rotate(12deg); } 60% { transform: rotate(-4deg); } 75% { transform: rotate(8deg); } 100% { transform: rotate(0); } }
 	@media (prefers-reduced-motion: reduce) { .hello, .wave { animation: none; } }
-	.cta {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		padding: 12px 14px;
-		margin-bottom: 12px;
-		border-radius: var(--r-card);
-		background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-		border: 1px solid color-mix(in srgb, var(--accent) var(--tint-3), transparent);
-		text-decoration: none;
-		font-size: 14px;
-	}
 </style>

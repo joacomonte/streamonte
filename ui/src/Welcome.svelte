@@ -5,6 +5,7 @@
   import Icon from '$ui/components/Icon.svelte';
   import Tour from '$ui/components/Tour.svelte';
   import { resumeIndex, type LangCode, type Step } from '$ui/components/tour-state.ts';
+  import { langSteps } from '$ui/components/tours.ts';
   import * as core from './core.ts';
   import { safeGet, safeSet } from './catalog-state.ts';
   import { langs, setLangs, t } from './i18n.ts';
@@ -13,8 +14,7 @@
 
   const saved = safeGet(STORE);
   const steps: Step[] = [
-    { icon: 'globe', title: t('Idioma de la app'), body: '', picker: 'app' },
-    { icon: 'film', title: t('Títulos'), body: '', picker: 'titles' },
+    ...langSteps(),
     { icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio y lo mirás al instante en esta compu: por torrent o desde TorBox, con audio latino o el original y subtítulos en español.') },
     { icon: 'key', title: t('Dos keys para sacarle todo'), body: t('Se pegan en Ajustes y quedan en el almacén seguro del sistema.'), extra: 'keys' },
     { icon: 'monitor', title: t('Se ve en mpv o VLC'), body: t('Los videos se abren en un reproductor de esta compu. mpv viene recomendado: anda mejor, gasta menos y combina subtítulos.'), extra: 'players' },
