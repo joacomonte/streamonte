@@ -27,5 +27,5 @@ Nivel 4: `app.rs:192 AppCore` (`:218 start`) — cada `pub fn` = 1 comando Tauri
 - Largo = tarea tokio + `CoreEvent`; nada bloquea. src-tauri: `commands.rs` = 1 `#[tauri::command]` por método de `AppCore`.
 
 ## Tests
-- Unit en cada `src/**.rs`; integración en `tests/it/main.rs` (un binario; nueva prueba = agregar `mod`). Red: `#[ignore = "network"]` → `cargo test -- --ignored network`. `examples/` con red real (`analyze`, `play`, `bench`, `keep_test`, `announce_probe`, `subs_merge`, `subtitle_key`).
+- Unit en cada `src/**.rs`; integración en `tests/it/main.rs` (un binario; nueva prueba = agregar `mod`). Red: `#[ignore = "network"]` → `cargo test -- --ignored network`. `examples/` con red real (`analyze`, `play`, `bench`, `keep_test`, `announce_probe`).
 - Correr: `cargo nextest run -p streamonte-core <filtro>` · todo: `sh scripts/check.sh full`.

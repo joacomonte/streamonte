@@ -574,6 +574,7 @@ async fn prefetch_subtitles(
         cache_dir,
         remembered: None, // la completa `prefetch` desde la memoria (FR-28)
         log: subtitles_log(shared, slot),
+        progress: None,
     };
     subtitles::session::prefetch(fetch, &key, &paths.subtitles_memory_file())
 }

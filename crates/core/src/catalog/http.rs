@@ -74,9 +74,7 @@ pub struct Http {
 
 impl Http {
     pub fn new(connect_timeout: Duration) -> Self {
-        let client = reqwest::Client::builder()
-            // NFR-22: User-Agent genérico, sin datos del usuario.
-            .user_agent(concat!("Streamonte/", env!("CARGO_PKG_VERSION")))
+        let client = crate::http::client(crate::http::Kind::Api)
             .connect_timeout(connect_timeout)
             .build()
             .unwrap_or_default();

@@ -379,7 +379,7 @@ pub async fn shared_list(file: &std::path::Path) -> Vec<String> {
 }
 
 async fn fetch_shared_list() -> Result<String, reqwest::Error> {
-    reqwest::Client::builder()
+    crate::http::client(crate::http::Kind::Api)
         .timeout(Duration::from_secs(10))
         .build()?
         .get(SHARED_LIST_URL)

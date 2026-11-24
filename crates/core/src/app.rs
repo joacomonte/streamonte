@@ -31,7 +31,7 @@ use crate::config::{Config, ConfigStore};
 use crate::events::{CoreEvent, EventSink, StatusLevel};
 use crate::intake::Intake;
 pub use crate::intake::{ClipboardReadReport, CopiedMagnet};
-use crate::library::{Group, Library, LibraryRowView, LiveMeasurement};
+use crate::library::{Group, Library, LibraryRowView};
 use crate::logger::LoggerGuard;
 use crate::magnet::InfoHash;
 use crate::paths::AppPaths;
@@ -209,6 +209,8 @@ pub struct AppCore {
     adding_addon: Mutex<()>,
     /// Conteos de enjambre en curso (catálogo): cerrar o cambiar de video los corta.
     swarm_cancel: std::sync::Mutex<CancellationToken>,
+    /// `tests-conexion.json`: leer-modificar-escribir sin que dos conteos a la vez se pisen.
+    tests_file: Mutex<()>,
     _clipboard_watch: Option<WatchGuard>,
     _logger: LoggerGuard,
 }
@@ -234,6 +236,7 @@ impl AppCore {
         let logger = crate::logger::init(&paths, &config.logging)?;
         crate::activity::set_sink(events.clone());
         // Antes de limpiar y de recuperar las pausadas: que estén donde se las busca.
+        // retirar después de v2.2.0
         paths.migrate_downloads_from_temp();
         let mut library = Library::load(paths.library_file())?;
         // FR-20 / T-05: restos de una ejecución anterior (app cerrada a la fuerza, corte de luz).
@@ -246,6 +249,7 @@ impl AppCore {
             // Todavía no hay reproducciones de esta sesión.
             let keep = HashSet::new();
             // Los subtítulos ahora van con cada video: la caché aparte de antes ya no se usa.
+            // retirar después de v2.2.0
             let legacy_subs = paths.legacy_subtitle_cache_dir();
             tokio::task::spawn_blocking(move || {
                 let _ = std::fs::remove_dir_all(&legacy_subs);
@@ -340,6 +344,7 @@ impl AppCore {
             config_store,
             adding_addon: Mutex::new(()),
             swarm_cancel: std::sync::Mutex::default(),
+            tests_file: Mutex::new(()),
             library,
             analyzer,
             playback,
@@ -407,7 +412,9 @@ impl AppCore {
         };
         self.events.emit(CoreEvent::LibraryEntryRemoved { key });
         if last_of_torrent {
-            let _ = self.analyzer.cancel_one(key.info_hash).await;
+            if let Err(e) = self.analyzer.cancel_one(key.info_hash).await {
+                tracing::warn!("cancelar análisis al quitar: {e}");
+            }
             self.delete_analysis(&[key.info_hash], ANALYSIS_RELEASE_WAIT)
                 .await;
         }
@@ -465,7 +472,9 @@ impl AppCore {
     /// pistas al volver atrás o cambiar de video (2026-11-18).
     pub async fn analyzer_cancel(&self, hashes: &[InfoHash]) {
         for hash in hashes {
-            let _ = self.analyzer.cancel_one(*hash).await;
+            if let Err(e) = self.analyzer.cancel_one(*hash).await {
+                tracing::warn!("cancelar análisis: {e}");
+            }
         }
     }
     /// "Reiniciar análisis": desde cero aunque ya esté en cola, pausado o midiéndose.
@@ -490,7 +499,9 @@ impl AppCore {
     /// bajado al analizar, FR-06d) y limpia restos huérfanos. La lista no se toca.
     pub async fn stop_all_and_clean(&self) -> Result<CleanupReport> {
         // Sin esto se borraría la carpeta de la medición en curso con el motor escribiendo.
-        let _ = self.analyzer.cancel().await;
+        if let Err(e) = self.analyzer.cancel().await {
+            tracing::warn!("cancelar análisis al limpiar: {e}");
+        }
         self.playback.stop_all(true).await?;
         let hashes = self.library.lock().await.hashes();
         self.delete_analysis(&hashes, ANALYSIS_RELEASE_WAIT).await;
@@ -505,7 +516,9 @@ impl AppCore {
     }
     /// Al cerrar la app: corta el análisis, guarda la biblioteca y aplica la elección (FR-17).
     pub async fn on_close(&self, choice: OnAppClose) -> Result<()> {
-        let _ = self.analyzer.cancel().await;
+        if let Err(e) = self.analyzer.cancel().await {
+            tracing::warn!("cancelar análisis al cerrar: {e}");
+        }
         if let Err(e) = save_library(&self.library).await {
             tracing::warn!("guardar library.json al cerrar: {e}");
         }
@@ -822,8 +835,9 @@ impl AppCore {
             let log: crate::subtitles::session::LogFn =
                 Arc::new(|line| tracing::info!(target: "streamonte_core::subtitles", "{line}"));
             let got = self
-                .subtitle_files(video_id, &hash, cfg.subtitles.language, log)
+                .subtitle_files(video_id, &hash, cfg.subtitles.language, log, None)
                 .await
+                .inspect_err(|e| tracing::warn!("subtítulos de la reproducción: {e}"))
                 .unwrap_or_default();
             match got.iter().find(|(c, _)| Some(c.key()) == chosen) {
                 Some((_, path)) => vec![path.clone()],
@@ -939,7 +953,7 @@ impl AppCore {
             started.elapsed().as_secs_f32()
         );
         let probe = match (header, url) {
-            (Some(tracks), _) => mkv_probe(&tracks),
+            (Some(tracks), _) => crate::catalog::mkv::probe_of(&tracks),
             (None, Some(url)) => {
                 let mpv_path = self.config.read().await.player.mpv_path.clone();
                 let mpv = crate::paths::find_executable(
@@ -966,37 +980,9 @@ impl AppCore {
             self.catalog_add(kind, video_id, &[hash]).await?;
         }
         let video = VideoId::parse(video_id)?;
-        let c = self.catalog.candidate(&video, &hash);
+        let candidate = self.catalog.candidate(&video, &hash);
         let mut library = self.library.lock().await;
-        let keys = library.update_torrent(&hash, |e| {
-            let live = e.live.get_or_insert_with(|| LiveMeasurement {
-                measured_at: chrono::Utc::now(),
-                torrent_name: Some(title.clone()),
-                file_index: c.as_ref().and_then(|c| c.file_idx).unwrap_or(0),
-                file_name: c
-                    .as_ref()
-                    .and_then(|c| c.file_name.clone())
-                    .unwrap_or_else(|| title.clone()),
-                file_size: c.as_ref().and_then(|c| c.size_bytes).unwrap_or(0),
-                peers: 0,
-                seeds: 0,
-                partial: false,
-                measured_secs: 0.0,
-                avg_speed_bps: 0.0, // sin velocidad: no se midió el enjambre
-                max_speed_bps: 0.0,
-                duration_secs: None,
-                audio: None,
-                subs: None,
-                fps: None,
-            });
-            let (duration, audio, subs, fps) = &probe;
-            if duration.is_some() {
-                live.duration_secs = *duration;
-            }
-            live.audio = Some(audio.clone());
-            live.subs = Some(subs.clone());
-            live.fps = fps.or(live.fps);
-        });
+        let keys = library.record_probe(&hash, &probe, &title, candidate.as_ref());
         library.emit_rows(&keys, self.events.as_ref());
         Ok(())
     }
@@ -1066,7 +1052,7 @@ impl AppCore {
         // Cortado por el usuario: lo que no llegó no es "nadie respondió" y no se guarda. La prueba
         // rápida no se guarda: es barata y se repite al volver a abrir.
         if deep && !cancel.is_cancelled() {
-            self.save_tests(hashes, &found);
+            self.save_tests(hashes, &found).await;
         }
         found
     }
@@ -1092,11 +1078,12 @@ impl AppCore {
     }
 
     /// Guarda el resultado de cada torrent pedido; sin resultado = nadie respondió.
-    fn save_tests(
+    async fn save_tests(
         &self,
         hashes: &[InfoHash],
         found: &HashMap<InfoHash, crate::analyzer::swarm::SwarmCount>,
     ) {
+        let _guard = self.tests_file.lock().await;
         let at = chrono::Utc::now();
         let mut map = self.saved_tests();
         for h in hashes {
@@ -1164,27 +1151,25 @@ impl AppCore {
             }
         };
         emit();
-        let log: crate::subtitles::session::LogFn = Arc::new(move |line| {
-            tracing::info!(target: "streamonte_core::subtitles", "{line}");
-            let mut changed = false;
-            if let Some(n) = line
-                .strip_prefix("subtítulos: bajando ")
-                .and_then(|n| n.trim().parse::<usize>().ok())
+        let log: crate::subtitles::session::LogFn =
+            Arc::new(|line| tracing::info!(target: "streamonte_core::subtitles", "{line}"));
+        let on_progress: crate::subtitles::session::ProgressFn = Arc::new(move |step| {
             {
                 let mut p = progress.lock().expect("progreso");
-                p.0 = true;
-                p.2 += n;
-                changed = true;
-            } else if line.starts_with("subtítulos: bajado ") {
-                progress.lock().expect("progreso").1 += 1;
-                changed = true;
+                match step {
+                    crate::subtitles::session::Progress::Downloading(n) => {
+                        p.0 = true;
+                        p.2 += n;
+                    }
+                    crate::subtitles::session::Progress::Done => p.1 += 1,
+                }
             }
-            if changed {
-                emit();
-            }
+            emit();
         });
         let (identity, _, key) = self.subtitle_identity(video_id, hash).await?;
-        let got = self.subtitle_files(video_id, hash, language, log).await?;
+        let got = self
+            .subtitle_files(video_id, hash, language, log, Some(on_progress))
+            .await?;
         Ok(CatalogSubtitles {
             found: got
                 .iter()
@@ -1294,7 +1279,7 @@ impl AppCore {
         // Lo guardado ya lo incluye: se relee sin buscar.
         let log: crate::subtitles::session::LogFn =
             Arc::new(|line| tracing::info!(target: "streamonte_core::subtitles", "{line}"));
-        let got = self.subtitle_files(video_id, hash, es, log).await?;
+        let got = self.subtitle_files(video_id, hash, es, log, None).await?;
         Ok(CatalogSubtitles {
             found: got
                 .iter()
@@ -1375,6 +1360,7 @@ impl AppCore {
         hash: &InfoHash,
         language: crate::config::SubtitleLanguage,
         log: crate::subtitles::session::LogFn,
+        progress: Option<crate::subtitles::session::ProgressFn>,
     ) -> Result<Vec<(crate::subtitles::SubtitleCandidate, std::path::PathBuf)>> {
         let (identity, cache_dir, _) = self.subtitle_identity(video_id, hash).await?;
         Ok(
@@ -1386,6 +1372,7 @@ impl AppCore {
                 cache_dir,
                 remembered: None,
                 log,
+                progress,
             })
             .await,
         )
@@ -1805,43 +1792,4 @@ fn newest_log(dir: &std::path::Path) -> Option<std::path::PathBuf> {
         .filter(|e| e.file_name().to_string_lossy().starts_with("streamonte."))
         .max_by_key(|e| e.metadata().and_then(|m| m.modified()).ok())
         .map(|e| e.path())
-}
-
-/// Pistas del encabezado MKV con la forma de `player::probe_media` (duración, audios, subs, fps; sin duración ni fps).
-/// Los subs se numeran como los `sid` de mpv: en orden, desde 1.
-fn mkv_probe(
-    tracks: &[crate::catalog::mkv::Track],
-) -> (
-    Option<f64>,
-    Vec<crate::audio::AudioTrack>,
-    Vec<crate::subtitles::NativeSub>,
-    Option<f64>,
-) {
-    use crate::catalog::mkv::{mpv_sub_codec, AUDIO, SUBTITLE};
-    let named = |s: &str| (!s.is_empty()).then(|| s.to_string());
-    let audio = tracks
-        .iter()
-        .filter(|t| t.kind == AUDIO)
-        .map(|t| crate::audio::AudioTrack {
-            lang: named(&t.lang),
-            title: named(&t.name),
-            codec: named(&t.codec),
-            channels: None,
-            default: false,
-        })
-        .collect();
-    let subs = tracks
-        .iter()
-        .filter(|t| t.kind == SUBTITLE)
-        .enumerate()
-        .map(|(i, t)| crate::subtitles::NativeSub {
-            sid: Some(i as i64 + 1),
-            file: None,
-            lang: named(&t.lang),
-            title: named(&t.name),
-            codec: named(mpv_sub_codec(&t.codec)),
-            forced: t.forced,
-        })
-        .collect();
-    (None, audio, subs, None)
 }

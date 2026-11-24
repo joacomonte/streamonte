@@ -58,28 +58,13 @@ pub async fn library_remove(core: Core<'_>, key: VideoKey) -> CmdResult<()> {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum ScopeArg {
-    All,
-    OnlyUnmeasured,
-    One {
-        hash: InfoHash,
-    },
-    /// Los marcados en la lista.
-    Selected {
-        hashes: Vec<InfoHash>,
-    },
-    /// "Análisis rápido" de una fila: sin medir velocidad.
-    Quick {
-        hash: InfoHash,
-    },
+    /// "Análisis rápido" de una fila: sin medir velocidad (lo único que pide la UI).
+    Quick { hash: InfoHash },
 }
 
 #[tauri::command]
 pub async fn analyze(core: Core<'_>, scope: ScopeArg) -> CmdResult<()> {
     let scope = match scope {
-        ScopeArg::All => AnalyzeScope::All,
-        ScopeArg::OnlyUnmeasured => AnalyzeScope::OnlyUnmeasured,
-        ScopeArg::One { hash } => AnalyzeScope::One(hash),
-        ScopeArg::Selected { hashes } => AnalyzeScope::Selected(hashes),
         ScopeArg::Quick { hash } => AnalyzeScope::QuickOnly(hash),
     };
     Ok(core.analyze(scope).await?)

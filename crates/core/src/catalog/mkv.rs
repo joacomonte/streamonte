@@ -143,6 +143,45 @@ pub fn mpv_sub_codec(codec: &str) -> &str {
     }
 }
 
+/// Duración, audios, subtítulos y fps, con la forma de `player::probe_media`.
+pub type Probe = (
+    Option<f64>,
+    Vec<crate::audio::AudioTrack>,
+    Vec<crate::subtitles::NativeSub>,
+    Option<f64>,
+);
+
+/// Pistas del encabezado MKV con la forma de `player::probe_media` (duración, audios, subs, fps; sin duración ni fps).
+/// Los subs se numeran como los `sid` de mpv: en orden, desde 1.
+pub fn probe_of(tracks: &[Track]) -> Probe {
+    let named = |s: &str| (!s.is_empty()).then(|| s.to_string());
+    let audio = tracks
+        .iter()
+        .filter(|t| t.kind == AUDIO)
+        .map(|t| crate::audio::AudioTrack {
+            lang: named(&t.lang),
+            title: named(&t.name),
+            codec: named(&t.codec),
+            channels: None,
+            default: false,
+        })
+        .collect();
+    let subs = tracks
+        .iter()
+        .filter(|t| t.kind == SUBTITLE)
+        .enumerate()
+        .map(|(i, t)| crate::subtitles::NativeSub {
+            sid: Some(i as i64 + 1),
+            file: None,
+            lang: named(&t.lang),
+            title: named(&t.name),
+            codec: named(mpv_sub_codec(&t.codec)),
+            forced: t.forced,
+        })
+        .collect();
+    (None, audio, subs, None)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

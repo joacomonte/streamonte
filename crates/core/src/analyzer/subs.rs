@@ -88,6 +88,7 @@ impl SubsCtx {
                     cache_dir: AppPaths::video_subtitles_dir(&dir, &id),
                     remembered: None,
                     log,
+                    progress: None,
                 })
                 .await
             })

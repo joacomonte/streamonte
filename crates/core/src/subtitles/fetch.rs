@@ -29,6 +29,17 @@ const HASH_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub type LogFn = Arc<dyn Fn(String) + Send + Sync>;
 
+/// Avance de la bajada (lo que antes se leía parseando el texto del log).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Progress {
+    /// Empieza una tanda de tantos subtítulos.
+    Downloading(usize),
+    /// Se bajó uno.
+    Done,
+}
+
+pub type ProgressFn = Arc<dyn Fn(Progress) + Send + Sync>;
+
 /// Qué buscar y dónde dejarlo, sin mpv: lo usa la sesión al reproducir y el analizador al
 /// analizar (2026-11-14: "buscar y descargar 5 subtítulos en español al analizar").
 pub struct Fetch {
@@ -42,6 +53,8 @@ pub struct Fetch {
     pub cache_dir: PathBuf,
     pub remembered: Option<SubtitleChoice>,
     pub log: LogFn,
+    /// Avance estructurado (barra del catálogo); `None` si nadie lo muestra.
+    pub progress: Option<ProgressFn>,
 }
 
 /// Busca en todas las fuentes y baja hasta [`MAX_SUBTITLES`] (a `cache_dir`, que funciona de
@@ -140,7 +153,15 @@ pub async fn fetch(req: Fetch) -> Vec<(SubtitleCandidate, PathBuf)> {
             ranked.insert(0, c);
         }
     }
-    let mut loaded = download_best(ranked, MAX_SUBTITLES, &free, &req.cache_dir, &log).await;
+    let mut loaded = download_best(
+        ranked,
+        MAX_SUBTITLES,
+        &free,
+        &req.cache_dir,
+        &log,
+        req.progress.as_ref(),
+    )
+    .await;
 
     // 3. El recordado, aunque hoy no haya salido entre los 5: desde la caché (FR-28).
     if let Some(choice) = &remembered {
@@ -371,6 +392,7 @@ async fn download_best(
     providers: &[Arc<dyn SubtitleProvider>],
     cache_dir: &std::path::Path,
     log: &LogFn,
+    progress: Option<&ProgressFn>,
 ) -> Vec<(SubtitleCandidate, PathBuf)> {
     let mut out = Vec::new();
     let mut rest = candidates.into_iter();
@@ -380,6 +402,9 @@ async fn download_best(
             break;
         }
         log(format!("subtítulos: bajando {}", batch.len()));
+        if let Some(progress) = progress {
+            progress(Progress::Downloading(batch.len()));
+        }
         let mut set = tokio::task::JoinSet::new();
         for (i, cand) in batch.into_iter().enumerate() {
             let Some(p) = providers.iter().find(|p| p.id() == cand.provider).cloned() else {
@@ -400,6 +425,9 @@ async fn download_best(
             match r {
                 Ok(Ok(path)) => {
                     log(format!("subtítulos: bajado {}", cand.key()));
+                    if let Some(progress) = progress {
+                        progress(Progress::Done);
+                    }
                     out.push((cand, path));
                 }
                 Ok(Err(e)) => log(format!("subtítulos: no se pudo bajar {}: {e}", cand.key())),

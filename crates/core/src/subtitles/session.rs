@@ -27,7 +27,9 @@ use crate::player::{MpvControl, MpvEvent};
 use crate::video_key::VideoKey;
 
 // La búsqueda vive en `fetch`; se re-exporta acá porque el analizador la llama por este camino.
-pub use super::fetch::{add_saved, fetch, merge_saved, save_copy, Fetch, LogFn};
+pub use super::fetch::{
+    add_saved, fetch, merge_saved, save_copy, Fetch, LogFn, Progress, ProgressFn,
+};
 
 /// Teclas de la app (FR-25, FR-26). `Z`/`X` en mayúscula = Shift.
 const KEY_SECTION: &str = "streamonte-subtitulos";
