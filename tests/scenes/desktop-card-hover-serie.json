@@ -14,12 +14,6 @@
   },
   {
    "sel": "#cat-card-tt0903747",
-   "text": "Crimen|Crime",
-   "hover": "#cat-card-tt0903747",
-   "note": "hover: géneros"
-  },
-  {
-   "sel": "#cat-card-tt0903747",
    "text": "Serie terminada|Series ended",
    "hover": "#cat-card-tt0903747",
    "note": "hover: estado de la serie (la fixture quick no trae puntajes: sin barras)"
