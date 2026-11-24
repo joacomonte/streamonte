@@ -330,6 +330,7 @@ mod tests {
         PlaybackManager::new(PlaybackDeps {
             paths: paths.clone(),
             config: Arc::default(),
+            trackers: Default::default(),
             library: Arc::new(tokio::sync::Mutex::new(
                 Library::load(paths.library_file()).unwrap(),
             )),
@@ -401,6 +402,7 @@ mod tests {
         let manager = PlaybackManager::new(PlaybackDeps {
             paths: paths.clone(),
             config: Arc::default(),
+            trackers: Default::default(),
             library: Arc::new(tokio::sync::Mutex::new(
                 Library::load(paths.library_file()).unwrap(),
             )),

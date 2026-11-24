@@ -25,14 +25,16 @@ use crate::{CoreError, Result};
 pub struct LiveMeasurer {
     paths: AppPaths,
     cleanup: Cleanup,
+    trackers: crate::trackers::Shared,
     next_id: std::sync::atomic::AtomicU64,
 }
 
 impl LiveMeasurer {
-    pub fn new(paths: AppPaths) -> Self {
+    pub fn new(paths: AppPaths, trackers: crate::trackers::Shared) -> Self {
         Self {
             cleanup: Cleanup::new(paths.clone()),
             paths,
+            trackers,
             next_id: std::sync::atomic::AtomicU64::new(1),
         }
     }
@@ -44,7 +46,7 @@ impl Measurer for LiveMeasurer {
         let t0 = Instant::now();
         let r = crate::trackers::scrape_batch(
             hashes,
-            &cfg.all_trackers(),
+            &cfg.all_trackers(&self.trackers.get()),
             Duration::from_secs(cfg.analyzer.scrape_timeout_secs),
         )
         .await;
@@ -78,10 +80,11 @@ impl Measurer for LiveMeasurer {
             &magnet.info_hash,
             format!("a{id}"),
         );
+        let shared_trackers = self.trackers.get();
         let started = std::time::Instant::now();
         let partial: PartialRef = Arc::default();
         let result = tokio::select! {
-            r = measure_with(&self.paths, &self.cleanup, engine.as_ref(), &dir, magnet, pick, cfg, &ctl, &partial) => r,
+            r = measure_with(&self.paths, &self.cleanup, engine.as_ref(), &dir, magnet, pick, cfg, &shared_trackers, &ctl, &partial) => r,
             _ = cancel.cancelled() => Err(CoreError::Cancelled),
         };
         // Pausa/cancelación a mitad de medición: lo medido no se tira (pedido del usuario,
@@ -130,10 +133,11 @@ impl Measurer for LiveMeasurer {
             let id = self
                 .next_id
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-            let (engine, sem, cfg, paths, cancel, on_result) = (
+            let (engine, sem, cfg, shared_trackers, paths, cancel, on_result) = (
                 engine.clone(),
                 sem.clone(),
                 cfg.clone(),
+                self.trackers.get(),
                 self.paths.clone(),
                 cancel.clone(),
                 on_result.clone(),
@@ -151,7 +155,7 @@ impl Measurer for LiveMeasurer {
                 let (dir, keep) =
                     reserve_dir(&paths, &cleanup, &magnet.info_hash, format!("q{id}"));
                 let ok = tokio::select! {
-                    r = quick_one(engine.as_ref(), &paths, &cleanup, &dir, &magnet, pick, &cfg) => match r {
+                    r = quick_one(engine.as_ref(), &paths, &cleanup, &dir, &magnet, pick, &cfg, &shared_trackers) => match r {
                         Ok(info) => {
                             on_result(magnet.info_hash, info);
                             Some(true)

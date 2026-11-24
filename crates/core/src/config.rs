@@ -13,11 +13,8 @@ use crate::Result;
 #[serde(default)]
 pub struct Config {
     /// Se agregan a TODO magnet y como announce (FR-10, ADR-08, lección 4). Usar
-    /// [`Config::all_trackers`], que suma la lista compartida.
+    /// [`Config::all_trackers`], que suma la lista compartida (`trackers::Shared`).
     pub trackers: Vec<String>,
-    /// Lista mantenida públicamente (`trackers::shared_list`), al día una vez por día. No se guarda.
-    #[serde(skip)]
-    pub shared_trackers: Vec<String>,
     pub engine: EngineConfig,
     pub preload: PreloadConfig,
     pub analyzer: AnalyzerConfig,
@@ -33,11 +30,11 @@ pub struct Config {
 }
 
 impl Config {
-    /// Todos los trackers para un torrent: los de la config más la lista compartida, sin repetir.
-    /// Sin los WebRTC (`wss://`): el motor (rqbit) no los usa.
-    pub fn all_trackers(&self) -> Vec<String> {
+    /// Todos los trackers para un torrent: los de la config más la lista compartida (`shared`,
+    /// de `trackers::Shared`), sin repetir. Sin los WebRTC (`wss://`): el motor (rqbit) no los usa.
+    pub fn all_trackers(&self, shared: &[String]) -> Vec<String> {
         let mut out: Vec<String> = Vec::new();
-        for t in self.trackers.iter().chain(&self.shared_trackers) {
+        for t in self.trackers.iter().chain(shared) {
             if !t.starts_with("wss://") && !out.contains(t) {
                 out.push(t.clone());
             }
@@ -61,7 +58,6 @@ impl Default for Config {
             ]
             .map(String::from)
             .to_vec(),
-            shared_trackers: Vec::new(),
             engine: EngineConfig::default(),
             preload: PreloadConfig::default(),
             analyzer: AnalyzerConfig::default(),
@@ -808,10 +804,26 @@ mod tests {
     fn all_trackers_suma_la_lista_compartida_sin_repetir_ni_webrtc() {
         let c = Config {
             trackers: vec!["udp://a/announce".into(), "wss://w".into()],
-            shared_trackers: vec!["udp://a/announce".into(), "http://b/announce".into()],
             ..Default::default()
         };
-        assert_eq!(c.all_trackers(), ["udp://a/announce", "http://b/announce"]);
+        let shared = [
+            "udp://a/announce".to_string(),
+            "http://b/announce".to_string(),
+        ];
+        assert_eq!(
+            c.all_trackers(&shared),
+            ["udp://a/announce", "http://b/announce"]
+        );
+    }
+
+    #[test]
+    fn config_vieja_con_shared_trackers_carga_sin_error() {
+        let c: Config = serde_json::from_str(
+            r#"{"shared_trackers":["udp://a/announce"],"trackers":["udp://b/announce"]}"#,
+        )
+        .unwrap();
+        assert_eq!(c.trackers, ["udp://b/announce"]);
+        assert_eq!(c.all_trackers(&[]), ["udp://b/announce"]);
     }
 
     #[test]

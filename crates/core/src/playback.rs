@@ -174,6 +174,7 @@ pub enum OnAppClose {
 pub struct PlaybackDeps {
     pub paths: AppPaths,
     pub config: Arc<tokio::sync::RwLock<Config>>,
+    pub trackers: crate::trackers::Shared,
     pub library: Arc<tokio::sync::Mutex<Library>>,
     pub events: Arc<dyn EventSink>,
     /// Única dueña de `calibration.json` (el factor del semáforo).

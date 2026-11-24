@@ -97,6 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let analyzer = AnalyzerHandle::spawn(AnalyzerDeps {
         paths: paths.clone(),
         config: Arc::new(tokio::sync::RwLock::new(config.clone())),
+        trackers: Default::default(),
         library: library.clone(),
         events: Arc::new(ConsoleSink {
             t0,

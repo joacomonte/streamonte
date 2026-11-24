@@ -49,6 +49,7 @@ fn measure_preload_fallback_secs(cfg: &Config) -> u64 {
 
 /// Registra la carpeta y suma el torrent sin bajar nada (lección 3): `.torrent` en caché si ya
 /// lo vimos (FR-13), si no magnet + trackers (FR-10).
+#[allow(clippy::too_many_arguments)]
 pub(super) async fn add_deselected(
     engine: &dyn TorrentEngine,
     paths: &AppPaths,
@@ -56,6 +57,7 @@ pub(super) async fn add_deselected(
     dir: &Path,
     magnet: &Magnet,
     cfg: &Config,
+    shared_trackers: &[String],
     download_bps: Option<u32>,
 ) -> Result<TorrentHandle> {
     // Dueño: esta app y su motor (T-05, sin reproductor).
@@ -63,9 +65,9 @@ pub(super) async fn add_deselected(
     crate::engine::add_cached_or_magnet(
         engine,
         &paths.torrent_cache_file(&magnet.info_hash),
-        magnet.with_trackers(&cfg.all_trackers()),
+        magnet.with_trackers(&cfg.all_trackers(shared_trackers)),
         AddOptions {
-            trackers: cfg.all_trackers(),
+            trackers: cfg.all_trackers(shared_trackers),
             download_dir: dir.to_path_buf(),
             initial_peers: Vec::new(),
             download_bps,
@@ -158,6 +160,7 @@ async fn probe(
 
 /// Fase rápida de un torrent: metadatos → precarga inicio(+final MP4) mientras se cuentan
 /// seeds/peers conectados (`quick_secs`) → duración real con mpv. Casi no usa ancho de banda.
+#[allow(clippy::too_many_arguments)]
 pub(super) async fn quick_one(
     engine: &dyn TorrentEngine,
     paths: &AppPaths,
@@ -166,8 +169,19 @@ pub(super) async fn quick_one(
     magnet: &Magnet,
     pick: FilePick,
     cfg: &Config,
+    shared_trackers: &[String],
 ) -> Result<QuickInfo> {
-    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg, None).await?;
+    let handle = add_deselected(
+        engine,
+        paths,
+        cleanup,
+        dir,
+        magnet,
+        cfg,
+        shared_trackers,
+        None,
+    )
+    .await?;
     let result = async {
         let (metadata, file) = metadata_and_file(
             engine,
@@ -238,11 +252,22 @@ pub(super) async fn measure_with(
     magnet: &Magnet,
     pick: FilePick,
     cfg: &Config,
+    shared_trackers: &[String],
     ctl: &MeasureCtl,
     partial: &PartialRef,
 ) -> Result<LiveMeasurement> {
     // 1. Torrent sin bajar nada.
-    let handle = add_deselected(engine, paths, cleanup, dir, magnet, cfg, None).await?;
+    let handle = add_deselected(
+        engine,
+        paths,
+        cleanup,
+        dir,
+        magnet,
+        cfg,
+        shared_trackers,
+        None,
+    )
+    .await?;
 
     // 2. Metadatos y archivo a medir.
     (ctl.progress)(SpeedProgress::phase(MeasurePhase::Metadata));

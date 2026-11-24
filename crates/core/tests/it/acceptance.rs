@@ -354,7 +354,7 @@ mod f2 {
         let root = TempRoot::new("fr06");
         let paths = root.app_paths();
         let cfg = streamonte_core::config::Config::default();
-        let measurer = LiveMeasurer::new(paths.clone());
+        let measurer = LiveMeasurer::new(paths.clone(), Default::default());
         let m = Magnet::parse(SINTEL).unwrap();
         let ctl = streamonte_core::analyzer::MeasureCtl {
             cancel: tokio_util::sync::CancellationToken::new(),

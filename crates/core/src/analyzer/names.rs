@@ -22,6 +22,7 @@ use crate::paths::AppPaths;
 pub async fn fetch_names(
     paths: &AppPaths,
     cfg: &Config,
+    shared_trackers: &[String],
     magnets: Vec<Magnet>,
     on_found: impl Fn(InfoHash, String, Option<u64>) + Send + Sync + 'static,
 ) {
@@ -60,7 +61,7 @@ pub async fn fetch_names(
         let engine = engine.clone();
         let on_found = on_found.clone();
         let cache = paths.torrent_cache_file(&magnet.info_hash);
-        let trackers = cfg.all_trackers();
+        let trackers = cfg.all_trackers(shared_trackers);
         tasks.spawn(async move {
             let hash = magnet.info_hash;
             let handle = engine

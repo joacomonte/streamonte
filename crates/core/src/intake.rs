@@ -52,12 +52,20 @@ impl Intake {
     pub(crate) fn spawn(
         paths: AppPaths,
         config: Arc<RwLock<Config>>,
+        trackers: crate::trackers::Shared,
         library: Arc<Mutex<Library>>,
         events: Arc<dyn EventSink>,
         analyzer: AnalyzerHandle,
         clipboard: Arc<dyn ClipboardSource>,
     ) -> Self {
-        let fresh = spawn_batches(paths, config, library.clone(), events.clone(), analyzer);
+        let fresh = spawn_batches(
+            paths,
+            config,
+            trackers,
+            library.clone(),
+            events.clone(),
+            analyzer,
+        );
         Self {
             library,
             events,
@@ -167,6 +175,7 @@ impl Intake {
 fn spawn_batches(
     paths: AppPaths,
     config: Arc<RwLock<Config>>,
+    trackers: crate::trackers::Shared,
     library: Arc<Mutex<Library>>,
     events: Arc<dyn EventSink>,
     analyzer: AnalyzerHandle,
@@ -198,6 +207,7 @@ fn spawn_batches(
                     level: StatusLevel::Info,
                     message: format!("Buscando el nombre de {} magnet(s)…", need_name.len()),
                 });
+                let shared_trackers = trackers.get();
                 let (paths, cfg2, library, events) =
                     (paths.clone(), cfg.clone(), library.clone(), events.clone());
                 let handle = tokio::runtime::Handle::current();
@@ -205,6 +215,7 @@ fn spawn_batches(
                     crate::analyzer::fetch_names(
                         &paths,
                         &cfg2,
+                        &shared_trackers,
                         need_name,
                         move |hash, name, video_size| {
                             let (library, events) = (library.clone(), events.clone());
