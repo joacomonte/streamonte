@@ -32,6 +32,9 @@ export const smallPoster = (url: string | undefined | null, w = 342): string | n
 export type InterestFilters = { kind: Kind; sort: string; from: string; to: string; votes: number; lang: string; interests: string[] };
 export type Hit = { tt: string; rating: string | null };
 
+/** Terror: "Todos" y sus subgéneros (`packages/ui/src/catalog/subgenres.ts`). Con solo estos elegidos no entran las comedias. */
+const HORROR = ['in0000112', 'in0000114', 'in0000117', 'in0000109', 'in0000110', 'in0000115', 'in0000113', 'in0000122', 'in0000111', 'in0000119', 'in0000121'];
+
 /** Constraints de la búsqueda: subgéneros (alcanza con uno), tipo, fechas, votos e idioma original. */
 export function constraints(f: InterestFilters): string {
 	const c = [
@@ -39,6 +42,7 @@ export function constraints(f: InterestFilters): string {
 		`titleTypeConstraint: { anyTitleTypeIds: ${ids([...TYPES[f.kind]])} }`
 	];
 	if (f.from || f.to) c.push(`releaseDateConstraint: { releaseDateRange: { ${f.from ? `start: "${f.from}"` : ''} ${f.to ? `end: "${f.to}"` : ''} } }`);
+	if (f.interests.length && f.interests.every((i) => HORROR.includes(i))) c.push(`genreConstraint: { excludeGenreIds: ["Comedy"] }`);
 	if (f.votes) c.push(`userRatingsConstraint: { ratingsCountRange: { min: ${Math.trunc(f.votes)} } }`);
 	const langs = f.lang.split(',').filter((l) => /^[a-z]{2}$/.test(l));
 	if (langs.length) c.push(`languageConstraint: { anyPrimaryLanguages: ${ids(langs)} }`);

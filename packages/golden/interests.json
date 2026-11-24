@@ -10,7 +10,7 @@
     "in0000114"
    ]
   },
-  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}",
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}genreConstraint:{excludeGenreIds:[\"Comedy\"]}",
   "nota": "mínimo: sin votos ni idioma"
  },
  {
@@ -25,7 +25,7 @@
     "in0000115"
    ]
   },
-  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"\"in0000115\"]}titleTypeConstraint:{anyTitleTypeIds:[\"tvSeries\"\"tvMiniSeries\"]}releaseDateConstraint:{releaseDateRange:{start:\"2000-01-01\"end:\"2024-12-31\"}}",
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"\"in0000115\"]}titleTypeConstraint:{anyTitleTypeIds:[\"tvSeries\"\"tvMiniSeries\"]}releaseDateConstraint:{releaseDateRange:{start:\"2000-01-01\"end:\"2024-12-31\"}}genreConstraint:{excludeGenreIds:[\"Comedy\"]}",
   "nota": "series = tvSeries + tvMiniSeries"
  },
  {
@@ -41,7 +41,7 @@
     "in0000114"
    ]
   },
-  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}userRatingsConstraint:{ratingsCountRange:{min:5000}}languageConstraint:{anyPrimaryLanguages:[\"en\"]}",
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}genreConstraint:{excludeGenreIds:[\"Comedy\"]}userRatingsConstraint:{ratingsCountRange:{min:5000}}languageConstraint:{anyPrimaryLanguages:[\"en\"]}",
   "nota": "votos e idioma"
  },
  {
@@ -58,7 +58,7 @@
     "in0000114"
    ]
   },
-  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}userRatingsConstraint:{ratingsCountRange:{min:1000}}languageConstraint:{anyPrimaryLanguages:[\"en\"\"es\"]}",
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}genreConstraint:{excludeGenreIds:[\"Comedy\"]}userRatingsConstraint:{ratingsCountRange:{min:1000}}languageConstraint:{anyPrimaryLanguages:[\"en\"\"es\"]}",
   "nota": "varios idiomas"
  },
  {
@@ -76,7 +76,7 @@
     "in0000114"
    ]
   },
-  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}languageConstraint:{anyPrimaryLanguages:[\"es\"]}",
+  "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}genreConstraint:{excludeGenreIds:[\"Comedy\"]}languageConstraint:{anyPrimaryLanguages:[\"es\"]}",
   "nota": "idiomas que no son ISO 639-1 en minúscula se descartan"
  },
  {
@@ -95,5 +95,62 @@
   "out": "interestConstraint:{anyInterestIds:[\"in0000114\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}",
   "nota": "ids inválidos no entran",
   "diverge": "web: no filtra los ids (los arma la UI desde su lista cerrada); Rust solo deja ids in + 7 dígitos"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "from": "2020-01-01",
+   "to": "2024-12-31",
+   "votes": 0,
+   "langs": [],
+   "interests": [
+    "in0000112"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000112\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}genreConstraint:{excludeGenreIds:[\"Comedy\"]}",
+  "nota": "Terror (Todos): sin comedias"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "from": "2020-01-01",
+   "to": "2024-12-31",
+   "votes": 0,
+   "langs": [],
+   "interests": [
+    "in0000122"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000122\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}genreConstraint:{excludeGenreIds:[\"Comedy\"]}",
+  "nota": "Terror > Zombis: sin comedias (Shaun of the Dead queda afuera)"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "from": "2020-01-01",
+   "to": "2024-12-31",
+   "votes": 0,
+   "langs": [],
+   "interests": [
+    "in0000034"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000034\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}",
+  "nota": "Comedia: sin exclusión (entran las de terror)"
+ },
+ {
+  "in": {
+   "kind": "movie",
+   "from": "2020-01-01",
+   "to": "2024-12-31",
+   "votes": 0,
+   "langs": [],
+   "interests": [
+    "in0000122",
+    "in0000034"
+   ]
+  },
+  "out": "interestConstraint:{anyInterestIds:[\"in0000122\"\"in0000034\"]}titleTypeConstraint:{anyTitleTypeIds:[\"movie\"]}releaseDateConstraint:{releaseDateRange:{start:\"2020-01-01\"end:\"2024-12-31\"}}",
+  "nota": "Terror + Comedia a la vez: sin exclusión"
  }
 ]
