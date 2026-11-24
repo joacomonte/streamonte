@@ -45,6 +45,25 @@ export async function sendCode(code: string[]): Promise<CodeResult> {
 	}
 }
 
+/** Cierra la sesión del apodo (borra la cookie en el servidor). */
+export async function logoutNick(): Promise<boolean> {
+	try {
+		return (await fetch('/api/nick', { method: 'DELETE' })).ok;
+	} catch {
+		return false;
+	}
+}
+
+/** Los 2 animales (ids, en orden) del dueño con sesión; `null` si todavía no se guardaron o no se pudo pedir. */
+export async function myAnimals(): Promise<string[] | null> {
+	try {
+		const r = await fetch('/api/nick/animales', { cache: 'no-store' });
+		return r.ok ? ((await r.json()).animals ?? null) : null;
+	} catch {
+		return null;
+	}
+}
+
 export function closeCode(r: { nick?: string; error?: string }) {
 	const cur = codeAsk.current;
 	codeAsk.current = null;

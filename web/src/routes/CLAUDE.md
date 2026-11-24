@@ -5,7 +5,7 @@ Páginas `+page.svelte` que pegan a `/api/*`; los `+server.ts` son delgados: val
 - Endpoint nuevo → `api/<x>/+server.ts` con `route()` (receta: `docs/recetas/comando-nuevo.md`). Lista: `rg --files web/src/routes/api`.
 - Home → `+page.svelte` (monta el catálogo compartido). Ficha → `t/[kind]/[id]/`; episodio → `.../[s]/[e]/`. Magnet pegado → `m/[hash]/`.
 - Ajustes (perfil, idioma, keys, datos) → `ajustes/+page.svelte`. Panel de uso → `admin/`.
-- Apodo + código de animales → `api/nick/` (GET pregunta el modo, POST crea o prueba y pone la cookie `apodo`). Alertas y reset del código → `admin/`.
+- Apodo + código de animales → `api/nick/` (GET pregunta el modo, POST crea o prueba y pone la cookie `apodo`, DELETE la borra; `api/nick/animales` GET: los 2 animales solo al dueño). Alertas y reset del código → `admin/`.
 - Layout, `setApi`, tour de bienvenida, aviso de versión → `+layout.svelte`, `+layout.server.ts`.
 - Stub del TorBox del desktop ≤ v2.1.4 → `api/desktop/torbox/[...path]/` (responde 401 con `{error}`).
 

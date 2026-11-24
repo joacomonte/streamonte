@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ask, checkCode, enter, hashCode, isAlert, loginOrder, memoryStore, parseCode, pickHelp } from './apodos.ts';
-import { canSign, sign, unsign, verifiedNick } from './apodo-session.ts';
+import { openCode, sealCode } from './apodo-cifrado.ts';
+import { canSign, ownAnimals, sign, unsign, verifiedNick } from './apodo-session.ts';
 import { ANIMAL_IDS, HELP_SIZE } from '../../../../packages/ui/src/animals/animals.ts';
 
 test('parseCode: 2 ids distintos y conocidos, en orden', () => {
@@ -155,4 +156,45 @@ test('sin APODO_SECRET en Vercel no se puede firmar (y /api/nick no crea el cód
 		if (prev.s === undefined) delete process.env.APODO_SECRET;
 		else process.env.APODO_SECRET = prev.s;
 	}
+});
+
+test('cifrado: vuelve al par; otro APODO_SECRET no lo abre; IV al azar', () => {
+	const a = sealCode([3, 17], 'secreto-a');
+	assert.deepEqual(openCode(a, 'secreto-a'), [3, 17]);
+	assert.equal(openCode(a, 'secreto-b'), null);
+	assert.notEqual(a, sealCode([3, 17], 'secreto-a'));
+	assert.equal(openCode('basura', 'secreto-a'), null);
+});
+
+test('cifrado: se guarda al crear; acertar completa un código viejo; resetear lo borra', async () => {
+	const s = memoryStore();
+	await enter(s, 'Gus', [4, 9], 'nuevo');
+	assert.deepEqual(openCode((await s.get('Gus'))!.cifrado!), [4, 9]);
+	// Código viejo: fila sin cifrado.
+	const { hash, sal } = await hashCode([2, 5]);
+	await s.create('Vieja', hash, sal, pickHelp([2, 5]), '');
+	assert.ok(!(await s.get('Vieja'))!.cifrado);
+	assert.ok((await enter(s, 'Vieja', [2, 5], 'login')).ok);
+	assert.deepEqual(openCode((await s.get('Vieja'))!.cifrado!), [2, 5]);
+	await s.reset('Vieja');
+	assert.equal(await s.get('Vieja'), null);
+});
+
+test('ownAnimals: solo el dueño con sesión; sin sesión o con la de otro apodo, nada', async () => {
+	const s = memoryStore();
+	const a = await enter(s, 'Hugo', [0, 12], 'nuevo');
+	const b = await enter(s, 'Ines', [1, 2], 'nuevo');
+	assert.ok(a.ok && b.ok);
+	const hugo = sign('Hugo', a.version);
+	assert.deepEqual(await ownAnimals((n) => (n === 'apodo' ? hugo : undefined), s), { nick: 'Hugo', animals: [ANIMAL_IDS[0], ANIMAL_IDS[12]] });
+	assert.equal(await ownAnimals(() => undefined, s), null);
+	// Cookie de Hugo con la versión de Ines, o sin firma: nada.
+	assert.equal(await ownAnimals((n) => (n === 'apodo' ? sign('Hugo', b.version + 1) : undefined), s), null);
+	assert.equal(await ownAnimals((n) => (n === 'apodo' ? 'Ines' : undefined), s), null);
+	// Código viejo sin cifrado: sesión válida, animales null.
+	const { hash, sal } = await hashCode([2, 5]);
+	const v = (await s.create('Vieja', hash, sal, pickHelp([2, 5]), ''))!;
+	assert.deepEqual(await ownAnimals((n) => (n === 'apodo' ? sign('Vieja', v.getTime()) : undefined), s), { nick: 'Vieja', animals: null });
+	await s.reset('Hugo');
+	assert.equal(await ownAnimals((n) => (n === 'apodo' ? hugo : undefined), s), null);
 });

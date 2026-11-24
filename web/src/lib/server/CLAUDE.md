@@ -6,7 +6,7 @@ TMDB, IMDb, addons de torrents, TorBox, OpenSubtitles y Neon. Los `api/*/+server
 - TMDB: ficha, listas, personas → `tmdb.ts` (fachada de `tmdb/`: `client` `cache` `lists` `title`). IMDb: puntajes → `imdb.ts`; subgéneros → `interests.ts`; premios → `awards.ts`.
 - Torrents de addons → `torrents.ts`. TorBox → `torbox.ts` (`torbox/`: `client` `link` `tracks`). MKV → `mkv.ts`. Magnet pegado → `magnet.ts`.
 - Subtítulos (OS.org y premium) → `subs.ts`. Keys → `keys.ts`; carpeta de datos → `config.ts`. Tracking/intentos → `track.ts`, `intentos.ts`. Vistos → `vistos.ts`.
-- Código de animales del apodo (hash, ayuda, espera de 15 s, alertas) → `apodos.ts`; cookie firmada y apodo verificado → `apodo-session.ts`.
+- Código de animales del apodo (hash, ayuda, espera de 15 s, alertas) → `apodos.ts`; cookie firmada, apodo verificado y `ownAnimals` → `apodo-session.ts`; par cifrado (AES-GCM, HKDF de `APODO_SECRET`) → `apodo-cifrado.ts`.
 
 ## Relación
 Muchas reglas tienen golden contra Rust (`packages/golden/CLAUDE.md`). La de latino se importa de `packages/ui/src/latino.ts` por ruta relativa (`node --test` no resuelve `$ui`).

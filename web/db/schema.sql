@@ -50,5 +50,8 @@ CREATE TABLE IF NOT EXISTS vistos (
 CREATE TABLE IF NOT EXISTS apodos (
 	apodo text PRIMARY KEY, hash text NOT NULL, sal text NOT NULL, ayuda smallint[] NOT NULL,
 	creado timestamptz NOT NULL DEFAULT now(), fallos integer NOT NULL DEFAULT 0, ultimo_fallo timestamptz,
-	espera_hasta timestamptz, vista_fallos integer NOT NULL DEFAULT 0
+	espera_hasta timestamptz, vista_fallos integer NOT NULL DEFAULT 0, codigo_cifrado text
 );
+-- `codigo_cifrado`: el par de animales en AES-256-GCM (clave HKDF de APODO_SECRET, src/lib/server/apodo-cifrado.ts) para
+-- que Ajustes se lo muestre a su dueño. Null en los códigos anteriores: se completa la próxima vez que el dueño acierta.
+ALTER TABLE apodos ADD COLUMN IF NOT EXISTS codigo_cifrado text;

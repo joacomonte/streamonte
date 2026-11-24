@@ -12,8 +12,9 @@
 	import { COMMON_KEYS } from '$ui/settings/keys.ts';
 	import { langOptions } from '#lib/langs.ts';
 	import AdminCode from '#lib/AdminCode.svelte';
-	import { enterNick } from '#lib/apodo.svelte.ts';
-	import { goto } from '$app/navigation';
+	import { logoutNick, myAnimals } from '#lib/apodo.svelte.ts';
+	import { ANIMALS, type Animal } from '$ui/animals/animals.ts';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 
 	type Status = { tmdb: boolean; torbox: boolean; opensubtitles: boolean; opensubtitles_user: boolean; opensubtitles_pass: boolean };
@@ -78,20 +79,33 @@
 		}
 	}
 
-	// Apodo: mismo flujo que la bienvenida (apodo + código de animales, lib/apodo.svelte.ts).
-	let nick = $state((() => page.data.nick ?? '')());
+	// Apodo: se cierra la sesión y se abre el mismo paso de la bienvenida (apodo + animales, lib/apodo.svelte.ts: el
+	// layout lo abre solo al quedar sin apodo). Debajo, los 2 animales del dueño (/api/nick/animales).
 	let nickMsg = $state('');
-	let nickBad = $state(false);
-	let nickSaving = $state(false);
-	async function onNick(e: SubmitEvent) {
-		e.preventDefault();
-		nickSaving = true;
-		const r = await enterNick(nick);
-		nickSaving = false;
-		nickBad = !r.nick && !!r.error;
-		nickMsg = r.nick ? t('Guardado.') : t(r.error ?? '');
-		if (r.nick) nick = r.nick;
+	let switching = $state(false);
+	let animals = $state<Animal[] | null>(null);
+	let animalsLoaded = $state(false);
+	async function onSwitch() {
+		switching = true;
+		nickMsg = '';
+		if (await logoutNick()) await invalidateAll();
+		else nickMsg = t('No se pudo guardar. Probá de nuevo.');
+		switching = false;
 	}
+	/** Cada vez que cambia el apodo (entrar con otro, o salir) se vuelven a pedir. */
+	$effect(() => {
+		animalsLoaded = false;
+		animals = null;
+		if (!page.data.nick) return;
+		let live = true;
+		myAnimals().then((ids) => {
+			if (!live) return;
+			animals = ids?.map((id) => ANIMALS.find((a) => a.id === id)).filter((a): a is Animal => !!a) ?? null;
+			if (animals?.length !== 2) animals = null;
+			animalsLoaded = true;
+		});
+		return () => (live = false);
+	});
 
 	/** Panel de uso: si este equipo ya entró, va directo; si no, pide el código acá mismo. */
 	let adminOpen = $state(false);
@@ -123,18 +137,34 @@
 
 <main class="wrap st">
 	<Section id="set-profile" headId="h-profile" title={t('Perfil')}>
-		<form id="nick-form" class="st-list" novalidate onsubmit={onNick}>
+		<div class="st-list">
 			<div class="st-row">
-				<label class="st-name" for="nick-input">{t('Apodo')}</label>
+				<span class="st-name">{t('Apodo')}</span>
 				<div class="st-inline grow">
-					<input id="nick-input" class="st-input" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" aria-invalid={nickBad} aria-describedby="nick-msg" bind:value={nick} oninput={() => (nickMsg = '')} />
-					<button id="nick-save" class="st-btn go" type="submit" disabled={nickSaving || nick.trim() === (page.data.nick ?? '')}>
-						{#if nickSaving}<span class="spin light"></span>{/if}{t('Guardar')}
+					<b id="nick-current" class="nick-now">{page.data.nick ?? ''}</b>
+					<button id="nick-switch" class="st-btn" type="button" disabled={switching} onclick={onSwitch}>
+						{#if switching}<span class="spin light"></span>{/if}{t('Cambiar de usuario')}
 					</button>
 				</div>
 			</div>
-		</form>
-		<p id="nick-msg" class="st-msg st-foot" class:bad={nickBad} role="status">{nickMsg}</p>
+		</div>
+		<p id="nick-msg" class="st-msg st-foot bad" role="status">{nickMsg}</p>
+		{#if animals}
+			<section id="my-animals" class="mine" aria-label={t('Tu clave: estos 2, en este orden')}>
+				<p class="mine-lead">🔑 {t('Tu clave: estos 2, en este orden')}</p>
+				<div class="mine-cards">
+					{#each animals as a, i (a.id)}
+						<div id="my-animal-{i + 1}" class="mine-card" style="--i:{i}">
+							<img src={a.img} alt="" style:object-position={a.pos} />
+							<span class="mine-n">{i + 1}</span>
+							<b>{t(a.name)}</b>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{:else if animalsLoaded && page.data.nick}
+			<p id="my-animals" class="st-msg st-foot">{t('Entrá de nuevo con tus animales para verlos acá')}</p>
+		{/if}
 	</Section>
 
 	<Idioma id="set-lang" headId="h-lang" pickerId="settings-lang" {...langOptions()} />
@@ -225,7 +255,19 @@
 	h1 { margin: 0; font-size: 18px; }
 	main { padding: 20px 16px 40px; max-width: 560px; }
 	.grow { flex: 1; min-width: 0; justify-content: flex-end; }
-	#nick-input { max-width: 260px; }
+	.nick-now { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; margin-right: 10px; }
+	.mine { margin: 4px 14px 16px; }
+	.mine-lead { margin: 0 0 10px; font-size: 13px; color: var(--muted); text-align: center; }
+	.mine-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 320px; margin: 0 auto; perspective: 700px; }
+	.mine-card { position: relative; aspect-ratio: 4 / 5; border-radius: 18px; overflow: hidden; background: var(--surface-2); border: 1.5px solid var(--amber, var(--accent)); animation: deal 0.7s var(--out) both; animation-delay: calc(var(--i) * 160ms + 150ms); }
+	.mine-card:nth-child(1) { --tilt: -3deg; }
+	.mine-card:nth-child(2) { --tilt: 3deg; }
+	.mine-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+	.mine-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgb(0 0 0 / 0.85), transparent 55%); }
+	.mine-card b { position: absolute; left: 10px; right: 8px; bottom: 9px; z-index: 1; font-size: 15px; line-height: 1.15; color: #fff; }
+	.mine-n { position: absolute; top: 8px; left: 8px; z-index: 1; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; background: var(--accent); color: var(--accent-text); }
+	@keyframes deal { from { opacity: 0; transform: translateY(26px) rotateY(80deg) rotate(var(--tilt, 0deg)) scale(0.8); } 70% { transform: translateY(-4px) rotateY(0) scale(1.02); } }
+	@media (prefers-reduced-motion: reduce) { .mine-card { animation: none; } }
 	.foot { display: inline-flex; align-items: center; gap: 5px; }
 	.end { justify-content: flex-end; }
 	.panel { transform-origin: top; animation: reveal 0.18s var(--out); }

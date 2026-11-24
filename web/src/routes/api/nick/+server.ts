@@ -45,3 +45,9 @@ export const POST = route(async (event) => {
 	if (q && dev) await q`UPDATE eventos SET apodo = ${nick} WHERE dispositivo = ${dev} AND apodo IS NULL`;
 	return { nick, created: r.created };
 });
+
+// Cerrar la sesión del apodo (Ajustes → Cambiar de usuario): borra la cookie. El código sigue guardado.
+export const DELETE = route(async ({ cookies }) => {
+	cookies.delete(COOKIE, { path: '/' });
+	return { ok: true };
+});
