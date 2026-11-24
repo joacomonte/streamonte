@@ -20,7 +20,7 @@ Busca en 6 fuentes gratis en paralelo, rankea, baja hasta 5 (`MAX_SUBTITLES`), l
 - OpenSubtitles.com: cuota global `QuotaGate` (`:31`), se chequea ANTES de cada descarga; sesión 23 h (`opensubtitles.rs:165`). `.org`: `LIMIT_REACHED` (`opensubtitles_org.rs:30`).
 - `subs.json` se invalida si cambia el idioma o faltan archivos (`SAVED_VERSION=2`, `fetch.rs:175`).
 - Elección recordada de otro idioma no aplica (`session.rs:86`). Subdivx: no se evaden bloqueos (R-09). Teclas por `define-section` (no pisa `input.conf`).
-- Premium solo a pedido (`app.rs:1216`, `:1235`), nunca en lote. Keys en debug → `dev-secrets.json` (`secrets.rs:100`).
+- Premium solo a pedido (`app/subtitles.rs:289`, `:308`), nunca en lote. Keys en debug → `dev-secrets.json` (`secrets.rs:100`).
 
 ## Tests
 - Unit por archivo; fixtures `/Users/monti/Documents/Dev/streamonte/crates/core/tests/fixtures/subtitles/`. `cargo nextest run -p streamonte-core subtitles`.

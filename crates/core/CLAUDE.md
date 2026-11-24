@@ -17,7 +17,7 @@ Nivel 2 (E/S):
 - `http.rs:47 send` · `secrets.rs:35 set_secret` · `:66 secret` · `library.rs:83 LibraryEntry` · `trackers.rs:54 scrape_batch`
 - `player.rs:191 MpvControl` · `:157 LaunchRequest` · `:235 PlayerSession` · `mpv_ipc.rs:43 MpvIpc` · `cleanup.rs:77 Cleanup` · `clipboard.rs:58 ClipboardSource` · `incoming.rs:38 check` · `preload.rs:95 plan` · `:140 run`
 
-Nivel 4: `app.rs:192 AppCore` (`:218 start`) — cada `pub fn` = 1 comando Tauri · `intake.rs:44 Intake` (entrada de magnets).
+Nivel 4: `app/mod.rs:81 AppCore` (`:109 start`; métodos por tema en `app/{catalog,torbox,subtitles,settings}.rs`) — cada `pub fn` = 1 comando Tauri · `intake.rs:44 Intake` (entrada de magnets).
 
 ## Trampas
 - Un módulo solo depende de su nivel o inferior (`src/lib.rs:1-19`; excepciones listadas ahí).
