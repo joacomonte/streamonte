@@ -53,7 +53,7 @@ golden('awards', (data) => awardsOf(data));
 golden('episode_ratings', ({ data, season }) => episodeRatingsOf(data, season));
 golden('release', (name) => {
 	const t = parse({ infoHash: 'a'.repeat(40), title: name }, 'golden')!;
-	return { res: t.res, hdr: t.hdr, codec: t.codec, source: t.source, atmos: t.atmos, hint: t.hint === 'likely' ? 'likely' : t.hint, multi: t.multi, spa: t.spa, cam: t.cam, size: t.size };
+	return { res: t.res, hdr: t.hdr, codec: t.codec, source: t.source, atmos: t.atmos, hint: t.hint === 'likely' ? 'likely' : t.hint, multi: t.multi, spa: t.spa, cam: t.cam, size: t.size, release: t.release, seeds: t.seeds };
 });
 
 // La regla de "latino" es una sola (`latino.ts`): el golden la prueba directa y por cada camino que la usa.

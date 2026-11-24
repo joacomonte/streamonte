@@ -21,6 +21,8 @@ use crate::video_key::VideoKey;
 use crate::Result;
 
 mod fetch;
+#[cfg(test)]
+mod golden;
 mod merge;
 pub mod providers;
 pub mod secrets;

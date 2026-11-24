@@ -33,7 +33,7 @@ test('rankSubs: sin match respeta level; con match calcula (mismo grupo = 2)', (
 test('textos de fila, claves, cuota y episodio', () => {
 	assert.equal(headOf(sub('a')), 'GRP');
 	assert.equal(headOf(sub('a', { release: 'x', premium: true })), 'OpenSubtitles');
-	assert.equal(specOf(sub('a')), 'WEB 1080p');
+	assert.equal(specOf(sub('a')), 'WEB-DL 1080p');
 	assert.equal(keyOf(sub('7', { premium: true })), 'p7');
 	assert.equal(episodeLabel('tt1:1:2'), 'S01E02');
 	assert.equal(episodeLabel('tt1'), null);
