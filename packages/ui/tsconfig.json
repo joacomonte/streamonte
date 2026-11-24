@@ -14,5 +14,5 @@
     "types": ["./src/globals.d.ts"],
     "paths": { "svelte": ["../../ui/node_modules/svelte"], "svelte/*": ["../../ui/node_modules/svelte/*"] }
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }
