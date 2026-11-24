@@ -523,7 +523,7 @@ async fn prefetch_subtitles(
     // puede no estar todavía: lo acota `HASH_TIMEOUT` y se busca igual sin hash.
     let video_url = engine.stream_url(handle, file.index).await.ok();
     // Los .srt/.ass del torrent se leen por el stream del motor: el stream pide solo esas
-    // piezas (con rqbit y webtorrent), sin cambiar la selección del video.
+    // piezas (con rqbit), sin cambiar la selección del video.
     let mut torrent_files = Vec::new();
     for f in subtitles::subtitle_files_for(metadata, file) {
         if let Ok(url) = engine.stream_url(handle, f.index).await {

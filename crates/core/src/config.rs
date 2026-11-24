@@ -34,7 +34,7 @@ pub struct Config {
 
 impl Config {
     /// Todos los trackers para un torrent: los de la config más la lista compartida, sin repetir.
-    /// Sin los WebRTC (`wss://`): solo los entiende el motor webtorrent, que suma los suyos.
+    /// Sin los WebRTC (`wss://`): el motor (rqbit) no los usa.
     pub fn all_trackers(&self) -> Vec<String> {
         let mut out: Vec<String> = Vec::new();
         for t in self.trackers.iter().chain(&self.shared_trackers) {
@@ -107,11 +107,10 @@ pub struct LanguageConfig {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum EngineKind {
-    /// Sidecar Node con almacenamiento pieza-por-archivo (probado en v1). Queda como alternativa:
-    /// es el único que usa web seeds (BEP 19), p. ej. torrents de Internet Archive.
-    Webtorrent,
-    /// librqbit embebido (ADR-15). Motor por defecto desde el benchmark de F1 (ADR-04, 2026-11-13).
+    /// librqbit embebido (ADR-15). Único motor. El alias deja cargar un `config.json` viejo con
+    /// `"webtorrent"` (motor retirado): cae a rqbit.
     #[default]
+    #[serde(alias = "webtorrent")]
     Rqbit,
 }
 
@@ -124,10 +123,6 @@ pub struct EngineConfig {
     pub max_connections: u32,
     /// NFR-08: metadatos < 10 s; el timeout es más largo para no cortar swarms lentos.
     pub metadata_timeout_secs: u64,
-    /// Node.js para el sidecar webtorrent. `None` = buscar en PATH (NFR-03).
-    pub node_path: Option<PathBuf>,
-    /// `main.mjs` del sidecar. `None` = junto al ejecutable (o el del repo en builds de desarrollo).
-    pub webtorrent_sidecar: Option<PathBuf>,
     /// Conexiones entrantes de peers (rqbit). Solo el motor de una reproducción escucha; los
     /// del analizador no, salvo el conteo profundo con `announce_early` (ADR-30). Apagarlo sirve
     /// para comparar antes/después.
@@ -152,8 +147,6 @@ impl Default for EngineConfig {
             kind: EngineKind::default(),
             max_connections: 100,
             metadata_timeout_secs: 60,
-            node_path: None,
-            webtorrent_sidecar: None,
             incoming: true,
             // Fuera del rango efímero de Windows (49152+) y de 6881-6889, que algunos ISP limitan.
             listen_ports: [41850, 41859],
@@ -707,6 +700,13 @@ mod tests {
         assert_eq!(store.load().unwrap(), loaded);
         loaded.engine.listen_ports = EngineConfig::default().listen_ports;
         assert_eq!(loaded, Config::default());
+    }
+
+    #[test]
+    fn config_viejo_con_webtorrent_carga_como_rqbit() {
+        let json = r#"{"engine":{"kind":"webtorrent","webtorrent_sidecar":"/x/main.mjs","node_path":"/usr/bin/node"}}"#;
+        let c: Config = serde_json::from_str(json).unwrap();
+        assert_eq!(c.engine.kind, EngineKind::Rqbit);
     }
 
     #[test]

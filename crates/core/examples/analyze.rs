@@ -2,7 +2,7 @@
 //! vivo con velocidad y duración real (FR-06) → semáforo y orden por defecto (FR-07).
 //!
 //! ```text
-//! cargo run -p streamonte-core --example analyze -- "<magnet>" ["<magnet>" ...] [--engine webtorrent|rqbit] [--pause-at 1]
+//! cargo run -p streamonte-core --example analyze -- "<magnet>" ["<magnet>" ...] [--pause-at 1]
 //! ```
 //! Usa una biblioteca TEMPORAL (no toca tu `library.json`) y la config real (ruta de mpv, trackers).
 //! `--pause-at N`: pausa después del N-ésimo medido, espera 5 s y reanuda (demostración de FR-08).
@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use streamonte_core::analyzer::{AnalyzeScope, AnalyzerDeps, AnalyzerHandle, AnalyzerState};
-use streamonte_core::config::{ConfigStore, EngineKind};
+use streamonte_core::config::ConfigStore;
 use streamonte_core::events::{CoreEvent, EventSink};
 use streamonte_core::library::{EntryStatus, Group, Library};
 use streamonte_core::magnet;
@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let text = args.join("\n");
     let magnets = magnet::extract_all_with_raw(&text);
     if magnets.is_empty() {
-        eprintln!("uso: analyze \"<magnet>\" [\"<magnet>\" ...] [--engine webtorrent|rqbit] [--pause-at N]");
+        eprintln!("uso: analyze \"<magnet>\" [\"<magnet>\" ...] [--pause-at N]");
         std::process::exit(2);
     }
     let arg_after = |flag: &str| {
@@ -70,12 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Config real (mpv, trackers, motor) pero datos en una carpeta temporal.
     let real = AppPaths::resolve()?;
-    let mut config = ConfigStore::new(&real).load()?;
-    match arg_after("--engine").as_deref() {
-        Some("rqbit") => config.engine.kind = EngineKind::Rqbit,
-        Some("webtorrent") => config.engine.kind = EngineKind::Webtorrent,
-        _ => {}
-    }
+    let config = ConfigStore::new(&real).load()?;
     let root = std::env::temp_dir().join(format!("streamonte-analyze-{}", std::process::id()));
     let paths = AppPaths::under(&root);
     paths.ensure_dirs()?;

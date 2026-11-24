@@ -1,7 +1,7 @@
 //! Reproducir un magnet desde la línea de comandos (F1, sin UI). Base del benchmark (06-D).
 //!
 //! ```text
-//! cargo run -p streamonte-core --example play -- "<magnet>" [--vlc] [--diag] [--engine webtorrent|rqbit]
+//! cargo run -p streamonte-core --example play -- "<magnet>" [--vlc] [--diag]
 //! ```
 //! Imprime el log en vivo y, al cerrar el reproductor, un resumen con las métricas:
 //! metadatos (NFR-08), precarga (FR-11), primera imagen (O1/NFR-07) y cierre+borrado (FR-12/T-04).
@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use streamonte_core::app::AppCore;
-use streamonte_core::config::{EngineKind, PlayerKind};
+use streamonte_core::config::PlayerKind;
 use streamonte_core::events::{CoreEvent, EventSink};
 use streamonte_core::magnet::Magnet;
 use streamonte_core::playback::{PlaybackRow, PlaybackState, StartRequest};
@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .find(|a| a.to_ascii_lowercase().starts_with("magnet:"))
     else {
-        eprintln!("uso: play \"<magnet>\" [--vlc] [--diag] [--engine webtorrent|rqbit]");
+        eprintln!("uso: play \"<magnet>\" [--vlc] [--diag]");
         std::process::exit(2);
     };
     let magnet = Magnet::parse(uri)?;
@@ -72,12 +72,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let engine = core
         .update_config(|config| {
             config.logging.diagnostics = args.iter().any(|a| a == "--diag");
-            if let Some(i) = args.iter().position(|a| a == "--engine") {
-                config.engine.kind = match args.get(i + 1).map(String::as_str) {
-                    Some("rqbit") => EngineKind::Rqbit,
-                    _ => EngineKind::Webtorrent,
-                };
-            }
             Ok(config.engine.kind)
         })
         .await?;

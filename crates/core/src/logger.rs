@@ -5,7 +5,7 @@
 //!   Misma rotación que el general (`<nombre>.<fecha>.log`, últimos 7).
 //!   - target [`DIAG_PRELOAD`] → `diag-preload`: piezas por rango, peers que las tienen, bloqueos (lección 9).
 //!   - target [`DIAG_MPV`]     → `diag-mpv-ipc`: eventos IPC de mpv (su `--log-file` va a la misma carpeta).
-//!   - target [`DIAG_ENGINE`]  → `diag-engine`: stderr del sidecar.
+//!   - target [`DIAG_ENGINE`]  → `diag-engine`: stderr del motor.
 //!
 //! Uso desde otros módulos: `tracing::debug!(target: logger::DIAG_PRELOAD, piece = 12, peers = 7, "pedida")`.
 //! Siempre a archivo, nunca a la pantalla (lección 8: `\r` no se ve desde afuera).

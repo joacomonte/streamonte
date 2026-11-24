@@ -91,7 +91,6 @@ streamonte/
 ├─ crates/core/     núcleo en Rust (sin Tauri): catálogo, análisis, reproducción, subtítulos, limpieza
 ├─ src-tauri/       cáscara Tauri: ventana, comandos 1:1 con el núcleo, eventos
 ├─ ui/              HTML/CSS/JS sin bundler; ui/src/api.js espeja los comandos
-├─ engines/         sidecar webtorrent (Node, opcional; no va en el instalador)
 └─ .github/         CI (fmt, clippy, tests) y release (Mac + Windows)
 ```
 

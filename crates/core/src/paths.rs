@@ -308,32 +308,6 @@ impl Executable {
     }
 }
 
-/// `main.mjs` del sidecar webtorrent: 1) ruta configurada, 2) `engines/webtorrent-sidecar/`
-/// junto al ejecutable (app instalada), 3) solo en builds de desarrollo, el del repositorio.
-/// El empaquetado definitivo del sidecar se decide tras el benchmark (R-03, R-07).
-pub fn webtorrent_sidecar_script(configured: Option<&Path>) -> Option<PathBuf> {
-    const REL: &str = "engines/webtorrent-sidecar/src/main.mjs";
-    if let Some(path) = configured {
-        return path.is_file().then(|| path.to_path_buf());
-    }
-    let beside_exe = std::env::current_exe()
-        .ok()
-        .and_then(|exe| exe.parent().map(|d| d.join(REL)));
-    if let Some(p) = beside_exe.filter(|p| p.is_file()) {
-        return Some(p);
-    }
-    #[cfg(debug_assertions)]
-    {
-        let repo = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .join(REL);
-        if repo.is_file() {
-            return Some(repo);
-        }
-    }
-    None
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

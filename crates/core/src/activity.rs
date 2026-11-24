@@ -261,7 +261,7 @@ fn area(target: &str) -> &'static str {
         "catalogo"
     } else if has("playback") || has("player") || has("preload") || has("mpv") {
         "reproduccion"
-    } else if has("librqbit") || has("engine") || has("webtorrent") {
+    } else if has("librqbit") || has("engine") {
         "motor"
     } else if has("cleanup") || has("storage") {
         "limpieza"

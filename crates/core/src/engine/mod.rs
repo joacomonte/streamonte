@@ -1,8 +1,7 @@
 //! `engine` — interfaz [`TorrentEngine`] + implementaciones (NFR-02, ADR-03, ADR-04).
 //!
 //! Nadie fuera de este módulo sabe qué motor corre: `playback`, `preload` y `analyzer`
-//! reciben un `Arc<dyn TorrentEngine>` creado por [`create`]. Cambiar webtorrent ↔ rqbit
-//! es cambiar `EngineConfig::kind`.
+//! reciben un `Arc<dyn TorrentEngine>` creado por [`create`]. El único motor es rqbit.
 //!
 //! ## Requisitos que TODA implementación debe cumplir (spec 06, lecciones 1–6)
 //! 1. Sin relleno de ceros (NFR-09): pieza-por-archivo o sparse. Probado con > 10 GB escribiendo el final primero.
@@ -12,11 +11,9 @@
 //! 4. Acepta trackers extra (lección 4) y `max_connections` (lección 5).
 //! 5. Servidor HTTP con Range solo en 127.0.0.1 (NFR-16).
 //! 6. `remove(delete_data)` detiene TODO tráfico y borra la carpeta (FR-12, lección 6).
-//! 7. Si el proceso sidecar muere, el motor emite `Error` + `Exited` y `cleanup` recupera (T-05).
+//! 7. Si el motor muere, emite `Error` + `Exited` y `cleanup` recupera (T-05).
 
-#[cfg(feature = "rqbit")]
 mod rqbit;
-mod webtorrent;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -26,7 +23,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
-use crate::config::{EngineConfig, EngineKind};
+use crate::config::EngineConfig;
 use crate::magnet::{InfoHash, Magnet};
 use crate::paths::AppPaths;
 use crate::{CoreError, Result};
@@ -221,7 +218,7 @@ pub struct Stats {
     #[serde(default)]
     pub incoming_peers: u32,
     /// Direcciones únicas conocidas del enjambre (DHT + trackers + PEX + caché), conectadas o no.
-    /// `None` si el motor no lo informa (webtorrent).
+    /// `None` si el motor no lo informa.
     #[serde(default)]
     pub known_peers: Option<u32>,
     /// 0.0–1.0 del archivo seleccionado.
@@ -297,7 +294,7 @@ pub trait TorrentEngine: Send + Sync {
     }
 
     /// Censo sin conectarse: direcciones únicas que da la DHT (`get_peers` sin anunciarse) para cada
-    /// hash durante `secs`. `None` si el motor no tiene DHT propia (webtorrent).
+    /// hash durante `secs`. `None` si el motor no tiene DHT propia.
     async fn dht_census(
         &self,
         _hashes: &[InfoHash],
@@ -432,7 +429,7 @@ fn load_peers(file: &std::path::Path) -> Vec<std::net::SocketAddr> {
 }
 
 /// Fábrica: la ÚNICA función que conoce las implementaciones concretas.
-/// Cada llamada crea un motor independiente (proceso sidecar propio).
+/// Cada llamada crea un motor independiente (sesión propia).
 /// Sin conexiones entrantes ni DHT persistente: para el análisis rápido y herramientas (ADR-30;
 /// el conteo profundo con `announce_early` usa [`create_for_playback`]).
 pub async fn create(config: &EngineConfig, paths: &AppPaths) -> Result<Arc<dyn TorrentEngine>> {
@@ -440,7 +437,7 @@ pub async fn create(config: &EngineConfig, paths: &AppPaths) -> Result<Arc<dyn T
 }
 
 /// Motor de una reproducción (y del conteo profundo con `announce_early`): además escucha conexiones entrantes (si `incoming`) y guarda la
-/// tabla del DHT en [`AppPaths::dht_file`] (ADR-30). webtorrent lo ignora.
+/// tabla del DHT en [`AppPaths::dht_file`] (ADR-30).
 pub async fn create_for_playback(
     config: &EngineConfig,
     paths: &AppPaths,
@@ -449,22 +446,18 @@ pub async fn create_for_playback(
 }
 
 /// "Verificar puerto": abre `port` como una reproducción (escucha + UPnP si está prendido) hasta
-/// que se suelta lo devuelto. `None` = el motor no es rqbit o no pudo escuchar.
-#[cfg_attr(not(feature = "rqbit"), allow(unused_variables))]
+/// que se suelta lo devuelto. `None` = no pudo escuchar.
 pub async fn hold_port(config: &EngineConfig, paths: &AppPaths, port: u16) -> Option<PortHold> {
-    #[cfg(feature = "rqbit")]
-    if config.kind == EngineKind::Rqbit {
-        match rqbit::hold_port(config, paths.rqbit_temp_dir(), port).await {
-            Ok(session) => {
-                return Some(PortHold {
-                    stop: session.cancellation_token().clone(),
-                    _session: Box::new(session),
-                })
-            }
-            Err(e) => tracing::warn!("verificar puerto: {e}"),
+    match rqbit::hold_port(config, paths.rqbit_temp_dir(), port).await {
+        Ok(session) => Some(PortHold {
+            stop: session.cancellation_token().clone(),
+            _session: Box::new(session),
+        }),
+        Err(e) => {
+            tracing::warn!("verificar puerto: {e}");
+            None
         }
     }
-    None
 }
 
 /// Mientras vive, el puerto queda abierto; al soltarlo se cierra la sesión.
@@ -479,25 +472,14 @@ impl Drop for PortHold {
     }
 }
 
-#[cfg_attr(not(feature = "rqbit"), allow(unused_variables))]
 async fn create_with(
     config: &EngineConfig,
     paths: &AppPaths,
     dht_file: Option<PathBuf>,
 ) -> Result<Arc<dyn TorrentEngine>> {
-    match config.kind {
-        EngineKind::Webtorrent => Ok(Arc::new(
-            webtorrent::WebtorrentSidecar::spawn(config).await?,
-        )),
-        #[cfg(feature = "rqbit")]
-        EngineKind::Rqbit => Ok(Arc::new(
-            rqbit::RqbitEmbedded::spawn(config, paths.rqbit_temp_dir(), dht_file).await?,
-        )),
-        #[cfg(not(feature = "rqbit"))]
-        EngineKind::Rqbit => Err(crate::CoreError::Unsupported(
-            "motor rqbit (compilar con la feature `rqbit`)",
-        )),
-    }
+    Ok(Arc::new(
+        rqbit::RqbitEmbedded::spawn(config, paths.rqbit_temp_dir(), dht_file).await?,
+    ))
 }
 
 #[cfg(test)]

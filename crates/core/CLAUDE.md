@@ -1,9 +1,9 @@
 # streamonte-core — núcleo de Streamonte (sin Tauri)
 
-Biblioteca Rust (magnets, análisis de swarms, catálogo/addons, mpv/VLC, limpieza, subtítulos). La UI (`/Users/monti/Documents/Dev/streamonte/src-tauri/` + `ui/`) solo habla con `app::AppCore` y recibe `events::CoreEvent`. Capas y dependencias: `src/lib.rs:1-19`. Feature `rqbit` (default) = motor embebido.
+Biblioteca Rust (magnets, análisis de swarms, catálogo/addons, mpv/VLC, limpieza, subtítulos). La UI (`/Users/monti/Documents/Dev/streamonte/src-tauri/` + `ui/`) solo habla con `app::AppCore` y recibe `events::CoreEvent`. Capas y dependencias: `src/lib.rs:1-19`. Motor: rqbit embebido.
 
 ## Mapa de `src/` (base `/Users/monti/Documents/Dev/streamonte/crates/core/src/`)
-Con carpeta (ver su `CLAUDE.md`): `analyzer.rs`+`analyzer/` (cola de medición) · `catalog/` · `engine/` (rqbit / webtorrent) · `playback.rs`+`playback/` · `subtitles.rs`+`subtitles/`.
+Con carpeta (ver su `CLAUDE.md`): `analyzer.rs`+`analyzer/` (cola de medición) · `catalog/` · `engine/` (rqbit) · `playback.rs`+`playback/` · `subtitles.rs`+`subtitles/`.
 
 Nivel 0:
 - `error.rs:9 CoreError` · `:71 user_message` (lo muestra la UI) · `events.rs:14 CoreEvent` · `:137 EventSink` · `:142 NullSink`
