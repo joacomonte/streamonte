@@ -1,7 +1,7 @@
 // Qué se cuenta en la burbuja de actividad (components/Activity.svelte es el widget): eventos del núcleo → líneas del
 // log, el resumen de lo que corre de fondo para su píldora y cómo se agrupan las líneas. Puro: lo prueba activity-feed.test.ts.
 import { t as tr } from '../../packages/ui/src/i18n/runtime.ts';
-import { clock, humanBytes, mb, nf } from '../../packages/ui/src/format.ts';
+import { clock, humanBytes, mb } from '../../packages/ui/src/format.ts';
 import { fullName, titleOf, type Live } from './live.ts';
 import type { CoreEvent } from './types.ts';
 
@@ -114,7 +114,7 @@ export function eventLines(prev: Live, ev: CoreEvent): FeedLine[] {
 				A('analisis', tr('Datos leídos de {t}: {a}{b}{c}', { t, a: size ? humanBytes(size) : '', b: e.live.duration_secs ? ` · ${clock(e.live.duration_secs)}` : '', c: e.languages?.length ? ` · ${e.languages.map((l) => l.short).join('/')}` : '' }));
 			}
 			if (e.live && e.live.avg_speed_bps > 0 && e.live.avg_speed_bps !== old.live?.avg_speed_bps) {
-				A('analisis', tr('{t}: {a} Mbps reales{b}', { t, a: mb(e.live.avg_speed_bps), b: e.score?.margin != null ? ` (${nf(e.score.margin)}×)` : '' }), { announce: true });
+				A('analisis', tr('{t}: {a} Mbps reales', { t, a: mb(e.live.avg_speed_bps) }), { announce: true });
 			}
 			if (e.status?.kind === 'failed' && old.status?.kind !== 'failed') A('analisis', tr('Falló el análisis de {t}: {a}', { t, a: e.status.reason ?? tr('sin detalle') }), { level: 'error' });
 			break;

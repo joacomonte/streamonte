@@ -65,7 +65,7 @@ export function pinActive<T extends { info_hash: string }>(list: T[], rows: Iter
 	return [...list.filter((c) => active.has(c.info_hash)), ...list.filter((c) => !active.has(c.info_hash))];
 }
 
-/** Bajar de fondo: promedio ÷ lo que pide el video. Mismos márgenes que el ranking (`green_margin` / `yellow_margin`). */
+/** Bajar de fondo: promedio ÷ lo que pide el video. */
 export const BG_GREEN = 1.5;
 export const BG_YELLOW = 1;
 export const bgTone = (x: number): 'green' | 'yellow' | 'red' => (x >= BG_GREEN ? 'green' : x >= BG_YELLOW ? 'yellow' : 'red');

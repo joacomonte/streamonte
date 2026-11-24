@@ -71,10 +71,6 @@ impl AppPaths {
     pub fn config_file(&self) -> PathBuf {
         self.data_dir.join("config.json")
     }
-    /// Calibración del semáforo (reproducciones reales vs. análisis): la escribe solo `playback`.
-    pub fn calibration_file(&self) -> PathBuf {
-        self.data_dir.join("calibration.json")
-    }
     /// Velocidad de internet medida, una por red (`speedtest`).
     pub fn speed_file(&self) -> PathBuf {
         self.data_dir.join("velocidad.json")

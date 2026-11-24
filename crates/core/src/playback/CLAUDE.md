@@ -1,10 +1,10 @@
-# playback/ — reproducciones: motor + precarga + mpv, pausadas guardadas, calibración
+# playback/ — reproducciones: motor + precarga + mpv, pausadas guardadas
 Un motor propio por reproducción; al cerrar mpv / cambiar de video / cerrar la app la descarga queda pausada y guardada, y se retoma.
 
 ## Para X → andá a Y
 - Estados, `start`, `stop_all`, `teardown` → `../playback.rs`.
 - Pasos de una reproducción (motor → metadata → precarga → mpv → cierre) → `flow.rs`.
-- Pausadas guardadas / retomar → `kept.rs`. Calibración de velocidad prevista → `calibration.rs`.
+- Pausadas guardadas / retomar → `kept.rs`.
 
 ## Relación
 Usa `engine`, `preload`, `player`, `subtitles`. Lo llama `AppCore::play`; avisa con `playback-updated`.

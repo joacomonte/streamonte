@@ -440,13 +440,12 @@ impl Queue {
             let Some(hash) = self.order.remove(pos) else {
                 return;
             };
-            let (magnet, pick, scorer) = {
+            let (magnet, pick) = {
                 let library = self.deps.library.lock().await;
                 let e = library.any_of(&hash);
                 (
                     e.map(|e| Magnet::parse(&e.magnet)),
                     e.map(|e| e.file_pick()).unwrap_or_default(),
-                    library.live_scorer(&hash),
                 )
             };
             let magnet = match magnet {
@@ -466,9 +465,7 @@ impl Queue {
             let cancel = CancellationToken::new();
             let finish = CancellationToken::new();
             let measurer = self.measurer.clone();
-            // Velocidad en vivo para la tarjeta (≈ X / Y Mbps · N s), su × provisorio y el
-            // botón "Listo". shortcut: el × usa tamaño/duración de las filas al arrancar; si la
-            // medición los cambia, el puntaje final (al terminar) ya los tiene.
+            // Velocidad en vivo para la tarjeta (≈ X / Y Mbps · N s) y el botón "Listo".
             let (done, total) = self.counters();
             let events = self.deps.events.clone();
             let progress: ProgressSink = Arc::new(move |live: SpeedProgress| {
@@ -478,7 +475,6 @@ impl Queue {
                         total,
                         current: Some(hash),
                         live: Some(live),
-                        provisional: scorer.score(live.speed_bps),
                     },
                 });
             });
@@ -654,7 +650,6 @@ impl Queue {
                 total,
                 current: Some(current),
                 live: None,
-                provisional: Vec::new(),
             }
         } else {
             AnalyzerState::Idle

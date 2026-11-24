@@ -1,5 +1,5 @@
 //! Analizar magnets desde la línea de comandos (F2, sin UI): scrape en lote (FR-05) → medición en
-//! vivo con velocidad y duración real (FR-06) → semáforo y orden por defecto (FR-07).
+//! vivo con velocidad y duración real (FR-06) → margen y orden por defecto (FR-07).
 //!
 //! ```text
 //! cargo run -p streamonte-core --example analyze -- "<magnet>" ["<magnet>" ...] [--pause-at 1]
@@ -83,11 +83,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut library = Library::load(paths.library_file())?;
     library.set_ranking(config.ranking.clone());
-    library.set_speed_factor(
-        streamonte_core::playback::Calibration::load(&real)
-            .factor()
-            .0,
-    );
     for (m, raw) in &magnets {
         library.add_or_touch(m, raw);
     }
@@ -141,7 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         t0.elapsed().as_secs_f32()
     );
     println!(
-        "{:<28} {:>5} {:>5} {:>6} {:>10} {:>9} {:>9} {:>7}  semáforo",
+        "{:<28} {:>5} {:>5} {:>6} {:>10} {:>9} {:>9} {:>7}",
         "nombre", "seed", "leech", "peers", "duración", "vel MB/s", "nec MB/s", "margen"
     );
     let lib = library.lock().await;
@@ -159,7 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
         let mbps = |v: Option<f64>| v.map_or("-".into(), |v| format!("{:.2}", v / 1e6));
         println!(
-            "{:<28} {:>5} {:>5} {:>6} {:>10} {:>9} {:>9} {:>7}  {:?}{}",
+            "{:<28} {:>5} {:>5} {:>6} {:>10} {:>9} {:>9} {:>7}{}",
             e.name.chars().take(28).collect::<String>(),
             e.scrape
                 .as_ref()
@@ -172,7 +167,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             mbps(e.live.as_ref().map(|l| l.avg_speed_bps)),
             mbps(score.needed_bps),
             score.margin.map_or("-".into(), |m| format!("{m:.2}")),
-            score.light,
             match &e.status {
                 EntryStatus::Failed { reason } => format!(" (falló: {reason})"),
                 _ => String::new(),

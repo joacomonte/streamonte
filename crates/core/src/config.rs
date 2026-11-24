@@ -218,12 +218,8 @@ pub struct RankingConfig {
     /// Duración estimada si no hay real (se muestra con "~") (FR-07).
     pub movie_minutes: u32,
     pub episode_minutes: u32,
-    /// Margen ≥ verde → verde; ≥ amarillo → amarillo; si no, rojo.
-    pub green_margin: f64,
-    pub yellow_margin: f64,
-    // El factor de calibración (real ÷ análisis) NO es config del usuario: es dato derivado de
-    // `calibration.json` (`playback::Calibration`). Un `config.json` viejo con `speed_factor` /
-    // `speed_factor_samples` igual carga (serde ignora campos desconocidos) y siembra la calibración.
+    // Un `config.json` viejo con `green_margin` / `yellow_margin` / `speed_factor` igual carga
+    // (serde ignora campos desconocidos); esos valores ya no se usan.
 }
 
 impl Default for RankingConfig {
@@ -231,15 +227,13 @@ impl Default for RankingConfig {
         Self {
             movie_minutes: 120,
             episode_minutes: 45,
-            green_margin: 1.5,
-            yellow_margin: 1.0,
         }
     }
 }
 
 impl RankingConfig {
     /// Valores imposibles (editado a mano, versión vieja) → su default, con aviso: un 0 o un
-    /// NaN acá rompería el cálculo del margen de todo el semáforo (FR-07).
+    /// NaN acá rompería el cálculo del margen (FR-07).
     fn fix_invalid(&mut self) {
         let d = Self::default();
         if self.movie_minutes == 0 {
@@ -763,14 +757,9 @@ mod tests {
         let r = store.load().unwrap().ranking;
         let d = RankingConfig::default();
         assert_eq!((r.movie_minutes, r.episode_minutes), (d.movie_minutes, 30));
-        // `speed_factor` ya no es campo de config (serde lo ignora): los márgenes quedan en default.
-        assert_eq!(
-            (r.green_margin, r.yellow_margin),
-            (d.green_margin, d.yellow_margin)
-        );
     }
 
-    /// `config.json` de antes de mover la calibración a `calibration.json`: sigue cargando igual.
+    /// `config.json` con los campos del semáforo que ya no existen: sigue cargando igual.
     #[test]
     fn config_viejo_con_speed_factor_carga() {
         let (store, dir) = temp_store("legacy-factor");
@@ -780,7 +769,10 @@ mod tests {
         )
         .unwrap();
         let c = store.load().unwrap();
-        assert_eq!(c.ranking.green_margin, 2.0);
+        assert_eq!(
+            c.ranking.movie_minutes,
+            RankingConfig::default().movie_minutes
+        );
         assert_eq!(c.trackers, Config::default().trackers);
     }
 
@@ -838,9 +830,5 @@ mod tests {
         );
         assert_eq!(c.engine.max_connections, 100);
         assert_eq!(c.preload.fallback_open_secs, 45);
-        assert_eq!(
-            (c.ranking.green_margin, c.ranking.yellow_margin),
-            (1.5, 1.0)
-        );
     }
 }

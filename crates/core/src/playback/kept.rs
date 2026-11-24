@@ -335,7 +335,6 @@ mod tests {
                 Library::load(paths.library_file()).unwrap(),
             )),
             events: Arc::new(crate::events::NullSink),
-            calibration: Arc::new(crate::playback::Calibration::load(&paths)),
         })
     }
 
@@ -407,7 +406,6 @@ mod tests {
                 Library::load(paths.library_file()).unwrap(),
             )),
             events: Arc::new(crate::events::NullSink),
-            calibration: Arc::new(crate::playback::Calibration::load(&paths)),
         });
         let shared = &manager.shared;
         let hash = InfoHash::from_bytes([7; 20]);

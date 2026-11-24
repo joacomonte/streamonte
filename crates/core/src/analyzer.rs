@@ -78,9 +78,6 @@ pub enum AnalyzerState {
         current: Option<InfoHash>,
         /// Velocidad en vivo mientras se mide (la UI la muestra con "≈" y el botón "Listo").
         live: Option<SpeedProgress>,
-        /// Margen y semáforo provisorios de cada fila del torrent para `live.speed_bps` (misma
-        /// regla que el puntaje final: calibración + umbrales). Vacío sin velocidad todavía.
-        provisional: Vec<crate::library::ProvisionalScore>,
     },
     Paused {
         done: usize,

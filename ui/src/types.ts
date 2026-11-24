@@ -11,7 +11,6 @@ export type VideoKey = string;
 export type PlaybackId = number;
 export type IsoDate = string;
 export type PlayerKind = "mpv" | "vlc";
-export type Light = "green" | "yellow" | "red" | "unknown";
 export type MediaKind = "movie" | "series";
 export type Lang = "es" | "en";
 export type SubtitleLanguage = "es" | "en" | "none";
@@ -111,13 +110,7 @@ export type DurationInfo = {
 export type RankScore = {
     duration: DurationInfo | null;
     needed_bps: number | null;
-    effective_speed_bps: number | null;
-    speed_factor: number;
     margin: number | null;
-    light: Light;
-    capped_by_estimate: boolean;
-    green_margin: number;
-    yellow_margin: number;
 };
 export type ReleaseInfo = {
     title: string;
@@ -253,8 +246,6 @@ export type AnalyzerConfig = {
 export type RankingConfig = {
     movie_minutes: number;
     episode_minutes: number;
-    green_margin: number;
-    yellow_margin: number;
 };
 export type PlayerConfig = {
     mpv_path: string | null;
@@ -605,10 +596,6 @@ export type AnalyzerState = {
     total: number;
     current: InfoHash | null;
     live: SpeedProgress | null;
-    provisional: {
-        key: VideoKey;
-        score: RankScore;
-    }[];
 } | {
     kind: "paused";
     done: number;

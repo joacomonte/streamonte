@@ -19,13 +19,7 @@
    "score": {
     "duration": null,
     "needed_bps": null,
-    "effective_speed_bps": null,
-    "speed_factor": 1,
-    "margin": null,
-    "light": "unknown",
-    "capped_by_estimate": false,
-    "green_margin": 1.5,
-    "yellow_margin": 1
+    "margin": null
    },
    "languages": [],
    "audio_options": [],
@@ -68,13 +62,7 @@
    "score": {
     "duration": null,
     "needed_bps": null,
-    "effective_speed_bps": null,
-    "speed_factor": 1,
-    "margin": null,
-    "light": "unknown",
-    "capped_by_estimate": false,
-    "green_margin": 1.5,
-    "yellow_margin": 1
+    "margin": null
    },
    "languages": [],
    "audio_options": [],
@@ -133,8 +121,7 @@
    "done": 0,
    "total": 2,
    "current": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-   "live": null,
-   "provisional": []
+   "live": null
   }
  },
  {
@@ -157,13 +144,7 @@
    "score": {
     "duration": null,
     "needed_bps": null,
-    "effective_speed_bps": null,
-    "speed_factor": 1,
-    "margin": null,
-    "light": "unknown",
-    "capped_by_estimate": false,
-    "green_margin": 1.5,
-    "yellow_margin": 1
+    "margin": null
    },
    "languages": [],
    "audio_options": [],
@@ -193,8 +174,7 @@
    "done": 1,
    "total": 2,
    "current": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-   "live": null,
-   "provisional": []
+   "live": null
   }
  },
  {
@@ -217,13 +197,7 @@
    "score": {
     "duration": null,
     "needed_bps": null,
-    "effective_speed_bps": null,
-    "speed_factor": 1,
-    "margin": null,
-    "light": "unknown",
-    "capped_by_estimate": false,
-    "green_margin": 1.5,
-    "yellow_margin": 1
+    "margin": null
    },
    "languages": [],
    "audio_options": [],

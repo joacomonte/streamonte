@@ -147,45 +147,6 @@ pub struct LibraryRowView {
     pub sort_key: SortKey,
 }
 
-/// Lo que se va a medir mientras se mide (FR-08): el margen y semáforo provisorios de cada fila
-/// del torrent para una velocidad en vivo, con la misma regla que el puntaje final.
-#[derive(Debug, Clone)]
-pub struct LiveScorer {
-    rows: Vec<(VideoKey, RankInput)>,
-    ranking: RankingConfig,
-    speed_factor: f64,
-}
-
-/// Puntaje provisorio de una fila durante la medición (viaja en `AnalyzerState::Measuring`).
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct ProvisionalScore {
-    pub key: VideoKey,
-    pub score: RankScore,
-}
-
-impl LiveScorer {
-    /// Sin velocidad todavía (preparando): sin puntaje.
-    pub fn score(&self, speed_bps: f64) -> Vec<ProvisionalScore> {
-        if speed_bps.is_nan() || speed_bps <= 0.0 {
-            return Vec::new();
-        }
-        self.rows
-            .iter()
-            .map(|(key, input)| ProvisionalScore {
-                key: *key,
-                score: crate::ranking::score(
-                    &RankInput {
-                        measured_speed_bps: Some(speed_bps),
-                        ..input.clone()
-                    },
-                    &self.ranking,
-                    self.speed_factor,
-                ),
-            })
-            .collect()
-    }
-}
-
 impl LibraryEntry {
     /// Qué archivo medir / reproducir: el del catálogo si lo hay (FR-48, FR-49).
     pub fn file_pick(&self) -> crate::engine::FilePick {
@@ -231,8 +192,6 @@ pub struct Library {
     entries: BTreeMap<VideoKey, LibraryEntry>,
     /// Umbrales y duraciones estimadas para el puntaje y el orden (FR-07). Lo fija `AppCore` desde la config.
     ranking: RankingConfig,
-    /// Calibración automática del semáforo (`playback::Calibration`); 1,0 = sin datos.
-    speed_factor: f64,
     /// Carpeta de descargas, para los bytes en disco de cada fila. `None` (pruebas) = sin dato.
     downloads: Option<PathBuf>,
     /// Hay cambios sin guardar. `AppCore` guarda con debounce (~500 ms) mirando este flag.
@@ -267,7 +226,6 @@ impl Library {
             path,
             entries,
             ranking: RankingConfig::default(),
-            speed_factor: 1.0,
             downloads: None,
             dirty: false,
         };
@@ -309,14 +267,9 @@ impl Library {
         }
     }
 
-    /// Cambia umbrales del semáforo / duraciones estimadas (FR-07); vale desde la próxima vista.
+    /// Cambia las duraciones estimadas (FR-07); vale desde la próxima vista.
     pub fn set_ranking(&mut self, cfg: RankingConfig) {
         self.ranking = cfg;
-    }
-
-    /// Nuevo factor de calibración (al abrir y tras cada reproducción calibrada).
-    pub fn set_speed_factor(&mut self, factor: f64) {
-        self.speed_factor = factor;
     }
 
     /// Dónde buscar lo bajado de cada fila (`AppCore` al arrancar).
@@ -328,7 +281,7 @@ impl Library {
     /// audio, título limpio, bytes en disco y orden).
     pub fn view(&self, e: &LibraryEntry) -> LibraryRowView {
         let input = rank_input(e);
-        let score = crate::ranking::score(&input, &self.ranking, self.speed_factor);
+        let score = crate::ranking::score(&input, &self.ranking);
         let languages = languages_of(e);
         LibraryRowView {
             key: e.key,
@@ -357,18 +310,6 @@ impl Library {
             events.emit(CoreEvent::LibraryEntryUpdated {
                 entry: Box::new(self.view(e)),
             });
-        }
-    }
-
-    /// Para el margen provisorio mientras se mide `hash` (con lo que se sabe al arrancar).
-    pub fn live_scorer(&self, hash: &InfoHash) -> LiveScorer {
-        LiveScorer {
-            rows: self
-                .of_torrent(*hash)
-                .map(|e| (e.key, rank_input(e)))
-                .collect(),
-            ranking: self.ranking.clone(),
-            speed_factor: self.speed_factor,
         }
     }
 
@@ -840,7 +781,7 @@ mod tests {
             .collect();
         assert_eq!(names, ["rapido", "lento", "sin medir"]);
         let rapido = lib.view(lib.any_of(&h(2)).unwrap()).score;
-        assert_eq!(rapido.light, crate::ranking::Light::Green);
+        assert!(rapido.margin.is_some());
 
         lib.save().unwrap();
         let lib = Library::load(path.clone()).unwrap();
@@ -1031,12 +972,5 @@ mod tests {
             assert!(json.get(field).is_some(), "falta {field} en la vista");
         }
         assert_eq!(json["key"], e1.to_string());
-
-        // Margen provisorio mientras se mide: la misma regla que el puntaje final.
-        let live = lib.live_scorer(&hash);
-        assert!(live.score(0.0).is_empty(), "sin velocidad todavía");
-        let prov = live.score(3e6);
-        assert_eq!(prov.len(), 2, "una por fila del torrent");
-        assert_eq!(prov[0].score, v1.score);
     }
 }

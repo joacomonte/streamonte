@@ -15,12 +15,9 @@
 //! `kept`) y su ciclo de vida (`start` / `act` / `stop_all` / `teardown`). El resto:
 //! - [`flow`]: el flujo de una reproducción (metadatos → precarga → reproductor → al cerrar).
 //! - [`kept`]: pausadas guardadas en disco, migración y reuso de lo bajado al analizar (FR-06d).
-//! - [`calibration`]: velocidad real mientras se mira → factor del semáforo.
 //!
 //! Cada reproducción usa su propio motor (aislamiento: si uno cae, no tumba a los demás).
 
-mod calibration;
-pub use calibration::Calibration;
 mod flow;
 mod kept;
 
@@ -177,8 +174,6 @@ pub struct PlaybackDeps {
     pub trackers: crate::trackers::Shared,
     pub library: Arc<tokio::sync::Mutex<Library>>,
     pub events: Arc<dyn EventSink>,
-    /// Única dueña de `calibration.json` (el factor del semáforo).
-    pub calibration: Arc<Calibration>,
 }
 
 /// Estado vivo de una reproducción.
