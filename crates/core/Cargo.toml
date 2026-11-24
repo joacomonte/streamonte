@@ -22,12 +22,11 @@ chrono.workspace = true
 data-encoding.workspace = true
 # Sin regex: los patrones de F2 (SxxExx) se resuelven a mano (NFR-14).
 
-# Motor rqbit embebido (ADR-15). Opcional: si el benchmark de F1 elige webtorrent, se puede apagar
-# y la app queda más liviana (NFR-14).
-librqbit = { version = "9.1", optional = true, default-features = false, features = ["default-tls"] }
-anyhow = { version = "1", optional = true }
+# Motor rqbit embebido (ADR-15), el único.
+librqbit = { version = "9.1", default-features = false, features = ["default-tls"] }
+anyhow = "1"
 # Ya lo trae librqbit (no suma peso): contar peers del DHT mientras se esperan metadatos.
-futures-util = { version = "0.3", optional = true, default-features = false }
+futures-util = { version = "0.3", default-features = false }
 
 # Subtítulos (FR-22–28): HTTP a proveedores (misma versión que ya trae librqbit → no suma peso),
 # decodificar subtítulos viejos en Latin-1/Windows-1252, y API keys en el almacén seguro del SO (NFR-16).
@@ -61,10 +60,6 @@ windows = { version = "0.62", features = [
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString"] }
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPasteboard"] }
-
-[features]
-default = ["rqbit"]
-rqbit = ["dep:librqbit", "dep:anyhow", "dep:futures-util"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "signal"] }

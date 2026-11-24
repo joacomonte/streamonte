@@ -1,12 +1,11 @@
-//! Benchmark de motores (spec 06-D): webtorrent (sidecar) vs rqbit (embebido).
+//! Benchmark del motor rqbit (spec 06-D; la comparación A/B con webtorrent se retiró).
 //!
 //! ```text
 //! cargo run -p streamonte-core --release --example bench -- \
 //!     --case "Sintel=magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10" \
-//!     [--case "Nombre=<magnet>" ...] [--runs 3] [--watch-secs 300] [--engines webtorrent,rqbit]
+//!     [--case "Nombre=<magnet>" ...] [--runs 3] [--watch-secs 300]
 //! ```
-//! Justicia (06-D): mismos trackers y conexiones (de la config) · motores alternados A/B, nunca en
-//! paralelo · `.torrent` en caché borrado antes de cada corrida (mide metadatos de verdad).
+//! Mismos trackers y conexiones (de la config) · `.torrent` en caché borrado antes de cada corrida (mide metadatos de verdad).
 //! Por corrida: metadatos · precarga · primera imagen · cortes por buffer durante `watch-secs` ·
 //! tiempo de salto al 25/50/90 % · velocidad prom./máx. · peers máx. · cierre + borrado.
 //! Escribe `benchmarks/bench-<fecha>.md`. Correr en la sesión real (lección 7), contenido legal.
@@ -18,7 +17,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::json;
 use streamonte_core::cleanup::Cleanup;
-use streamonte_core::config::{ConfigStore, EngineKind, PlayerKind};
+use streamonte_core::config::{ConfigStore, PlayerKind};
 use streamonte_core::engine::{self, AddOptions, FileInfo, RemoveOptions, TorrentSource};
 use streamonte_core::magnet::Magnet;
 use streamonte_core::paths::AppPaths;
@@ -31,7 +30,6 @@ const SEEKS: [f64; 3] = [25.0, 50.0, 90.0];
 #[derive(Default, Clone)]
 struct RunResult {
     case: String,
-    engine: String,
     run: u32,
     metadata_s: Option<f32>,
     preload_s: Option<f32>,
@@ -62,17 +60,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .and_then(|v| v.parse().ok())
             .unwrap_or(300),
     );
-    let engines: Vec<EngineKind> = value("--engines")
-        .unwrap_or_else(|| "webtorrent,rqbit".into())
-        .split(',')
-        .map(|e| {
-            if e.trim() == "rqbit" {
-                EngineKind::Rqbit
-            } else {
-                EngineKind::Webtorrent
-            }
-        })
-        .collect();
     let cases: Vec<(String, Magnet)> = args
         .iter()
         .enumerate()
@@ -87,7 +74,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
     if cases.is_empty() {
-        eprintln!("uso: bench --case \"Nombre=<magnet>\" [--case ...] [--runs 3] [--watch-secs 300] [--engines webtorrent,rqbit]");
+        eprintln!(
+            "uso: bench --case \"Nombre=<magnet>\" [--case ...] [--runs 3] [--watch-secs 300]"
+        );
         std::process::exit(2);
     }
 
@@ -101,30 +90,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for (case_name, magnet) in &cases {
         for run in 1..=runs {
-            // Alternar quién va primero en cada corrida (A/B, B/A, ...).
-            let mut order = engines.clone();
-            if run % 2 == 0 {
-                order.reverse();
+            println!("\n=== {case_name} · corrida {run}/{runs} ===");
+            let r = run_once(
+                &paths,
+                &config,
+                case_name,
+                magnet,
+                torrent_file.as_ref(),
+                run,
+                watch,
+            )
+            .await;
+            if let Some(e) = &r.error {
+                println!("  ERROR: {e}");
             }
-            for kind in order {
-                println!("\n=== {case_name} · {kind:?} · corrida {run}/{runs} ===");
-                let r = run_once(
-                    &paths,
-                    &config,
-                    case_name,
-                    magnet,
-                    torrent_file.as_ref(),
-                    kind,
-                    run,
-                    watch,
-                )
-                .await;
-                if let Some(e) = &r.error {
-                    println!("  ERROR: {e}");
-                }
-                results.push(r);
-                tokio::time::sleep(Duration::from_secs(3)).await;
-            }
+            results.push(r);
+            tokio::time::sleep(Duration::from_secs(3)).await;
         }
     }
 
@@ -149,31 +130,19 @@ async fn run_once(
     case: &str,
     magnet: &Magnet,
     torrent_file: Option<&PathBuf>,
-    kind: EngineKind,
     run: u32,
     watch: Duration,
 ) -> RunResult {
     let mut r = RunResult {
         case: case.into(),
-        engine: format!("{kind:?}"),
         run,
         seek_s: vec![None; SEEKS.len()],
         ..Default::default()
     };
-    let mut cfg = base.clone();
-    cfg.engine.kind = kind;
-    // El benchmark corre en release: apuntar al sidecar del repo (en debug lo encuentra solo).
-    if cfg.engine.webtorrent_sidecar.is_none() {
-        cfg.engine.webtorrent_sidecar = Some(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../engines/webtorrent-sidecar/src/main.mjs"),
-        );
-    }
+    let cfg = base.clone();
     let hash = magnet.info_hash.to_hex();
     let _ = std::fs::remove_file(paths.torrent_cache_file(&magnet.info_hash));
-    let dir = paths
-        .downloads_dir()
-        .join(format!("bench-{hash}-{kind:?}-{run}"));
+    let dir = paths.downloads_dir().join(format!("bench-{hash}-{run}"));
     let _ = std::fs::remove_dir_all(&dir);
     let cleanup = Cleanup::new(paths.clone());
 
@@ -219,7 +188,7 @@ async fn run_once(
             .launch(LaunchRequest {
                 kind: PlayerKind::Mpv,
                 url,
-                title: format!("bench {case} {kind:?} #{run}"),
+                title: format!("bench {case} #{run}"),
                 subtitle_files: Vec::new(),
                 log_file: None,
                 extra_args: vec!["--mute=yes".into()],
@@ -339,7 +308,7 @@ fn render(results: &[RunResult], watch: Duration) -> String {
     let mut out = String::new();
     let _ = writeln!(
         out,
-        "# Benchmark de motores — {}\n",
+        "# Benchmark del motor — {}\n",
         chrono::Local::now().format("%Y-%m-%d %H:%M")
     );
     let _ = writeln!(
@@ -349,19 +318,15 @@ fn render(results: &[RunResult], watch: Duration) -> String {
     );
     let _ = writeln!(
         out,
-        "| Caso | Motor | # | Metadatos | Precarga | 1ª imagen | Cortes | Corte total | Salto 25/50/90 % | Mbps prom/máx | Peers máx | Cierre | Carpeta borrada | Error |"
+        "| Caso | # | Metadatos | Precarga | 1ª imagen | Cortes | Corte total | Salto 25/50/90 % | Mbps prom/máx | Peers máx | Cierre | Carpeta borrada | Error |"
     );
-    let _ = writeln!(
-        out,
-        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
-    );
+    let _ = writeln!(out, "|---|---|---|---|---|---|---|---|---|---|---|---|---|");
     for r in results {
         let seeks: Vec<String> = r.seek_s.iter().map(|s| f(*s)).collect();
         let _ = writeln!(
             out,
-            "| {} | {} | {} | {} | {} | {} | {} | {:.1} | {} | {:.1}/{:.1} | {} | {} | {} | {} |",
+            "| {} | {} | {} | {} | {} | {} | {:.1} | {} | {:.1}/{:.1} | {} | {} | {} | {} |",
             r.case,
-            r.engine,
             r.run,
             f(r.metadata_s),
             f(r.preload_s),
@@ -378,20 +343,13 @@ fn render(results: &[RunResult], watch: Duration) -> String {
         );
     }
 
-    // Medianas por caso y motor (criterio 06-D: menor 1ª imagen y menos cortes).
-    let _ = writeln!(out, "\n## Medianas\n\n| Caso | Motor | Metadatos | 1ª imagen | Cortes | Fallas |\n|---|---|---|---|---|---|");
-    let mut keys: Vec<(String, String)> = results
-        .iter()
-        .map(|r| (r.case.clone(), r.engine.clone()))
-        .collect();
-    keys.dedup();
+    // Medianas por caso (menor 1ª imagen y menos cortes).
+    let _ = writeln!(out, "\n## Medianas\n\n| Caso | Metadatos | 1ª imagen | Cortes | Fallas |\n|---|---|---|---|---|");
+    let mut keys: Vec<String> = results.iter().map(|r| r.case.clone()).collect();
     keys.sort();
     keys.dedup();
-    for (case, engine) in keys {
-        let rs: Vec<&RunResult> = results
-            .iter()
-            .filter(|r| r.case == case && r.engine == engine)
-            .collect();
+    for case in keys {
+        let rs: Vec<&RunResult> = results.iter().filter(|r| r.case == case).collect();
         let med = |mut v: Vec<f32>| {
             v.sort_by(|a, b| a.total_cmp(b));
             v.get(v.len() / 2).copied()
@@ -399,7 +357,7 @@ fn render(results: &[RunResult], watch: Duration) -> String {
         let ok: Vec<&&RunResult> = rs.iter().filter(|r| r.error.is_none()).collect();
         let _ = writeln!(
             out,
-            "| {case} | {engine} | {} | {} | {} | {}/{} |",
+            "| {case} | {} | {} | {} | {}/{} |",
             f(med(ok.iter().filter_map(|r| r.metadata_s).collect())),
             f(med(ok.iter().filter_map(|r| r.first_frame_s).collect())),
             med(ok.iter().map(|r| r.stalls as f32).collect())

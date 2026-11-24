@@ -29,8 +29,6 @@ pub const KEPT_FILE: &str = ".streamonte-kept.json";
 const UNCLAIMED_GRACE: Duration = Duration::from_secs(120);
 /// Tolerancia entre la hora de inicio que informa el SO y `started_at`.
 const START_TIME_SLACK_SECS: u64 = 5;
-/// Marca de los procesos sidecar nuestros (para matarlos si quedaron sin app).
-const SIDECAR_MARK: &str = "webtorrent-sidecar";
 
 /// Carpetas que este proceso está usando ahora (reproducciones y mediciones). Compartido por
 /// todas las instancias de `Cleanup`: `claim` agrega, `release`/`remove_dir` sacan.
@@ -63,14 +61,13 @@ impl OwnerRecord {
 pub struct CleanupReport {
     pub dirs_removed: u32,
     pub bytes_freed: u64,
-    pub processes_killed: u32,
     /// Lo que no se pudo borrar (archivo en uso, permisos) — se reintenta en el próximo inicio.
     pub failures: Vec<String>,
 }
 
 impl CleanupReport {
     pub fn is_empty(&self) -> bool {
-        self.dirs_removed == 0 && self.processes_killed == 0 && self.failures.is_empty()
+        self.dirs_removed == 0 && self.failures.is_empty()
     }
 }
 
@@ -113,13 +110,12 @@ impl Cleanup {
     }
 
     /// "Limpiar temporales" (FR-19): borra TODAS las carpetas que no están en uso (huérfanas o
-    /// detenidas sin borrar) y mata sidecars sin app. Nunca toca las activas ni el historial.
+    /// detenidas sin borrar). Nunca toca las activas ni el historial.
     pub fn clean(&self, active: &HashSet<PathBuf>) -> Result<CleanupReport> {
         let mut report = CleanupReport::default();
         for dir in self.candidate_dirs(active)? {
             self.remove_if_free(&dir, &mut report);
         }
-        kill_orphan_sidecars(&ProcessTable::load(), &mut report);
         Ok(report)
     }
 
@@ -132,7 +128,6 @@ impl Cleanup {
                 self.remove_if_free(&dir, &mut report);
             }
         }
-        kill_orphan_sidecars(&procs, &mut report);
         Ok(report)
     }
 
@@ -252,36 +247,6 @@ impl ProcessTable {
         let Some(sys) = &self.sys else { return true };
         sys.process(Pid::from_u32(pid))
             .is_some_and(|p| p.start_time() <= since + START_TIME_SLACK_SECS)
-    }
-
-    /// Sidecars `node … webtorrent-sidecar …` cuyo proceso padre ya no existe.
-    fn orphan_sidecars(&self) -> Vec<(u32, String)> {
-        let Some(sys) = &self.sys else {
-            return Vec::new();
-        };
-        sys.processes()
-            .values()
-            .filter(|p| {
-                p.cmd()
-                    .iter()
-                    .any(|a| a.to_string_lossy().contains(SIDECAR_MARK))
-            })
-            .filter(|p| {
-                p.parent()
-                    .map_or(true, |parent| sys.process(parent).is_none())
-            })
-            .map(|p| (p.pid().as_u32(), p.name().to_string_lossy().into_owned()))
-            .collect()
-    }
-}
-
-fn kill_orphan_sidecars(procs: &ProcessTable, report: &mut CleanupReport) {
-    let Some(sys) = &procs.sys else { return };
-    for (pid, name) in procs.orphan_sidecars() {
-        if sys.process(Pid::from_u32(pid)).is_some_and(|p| p.kill()) {
-            tracing::info!(pid, name, "sidecar huérfano terminado");
-            report.processes_killed += 1;
-        }
     }
 }
 

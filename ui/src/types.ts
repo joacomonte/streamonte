@@ -195,7 +195,6 @@ export type PlaybackAction = "pause-download" | "resume-download" | "stop" | "st
 export type CleanupReport = {
     dirs_removed: number;
     bytes_freed: number;
-    processes_killed: number;
     failures: string[];
 };
 export type TempUsage = {
@@ -227,11 +226,9 @@ export type CatalogConfig = {
     connect_timeout_ms: number;
 };
 export type EngineConfig = {
-    kind: "webtorrent" | "rqbit";
+    kind: "rqbit";
     max_connections: number;
     metadata_timeout_secs: number;
-    node_path: string | null;
-    webtorrent_sidecar: string | null;
     incoming: boolean;
     listen_ports: [number, number];
     upnp: boolean;
