@@ -13,12 +13,28 @@
 	import { i18n, setLang, t } from '#lib/i18n.svelte.ts';
 	import { track } from '#lib/track.ts';
 	import { magnetHash } from '$ui/magnet-hash.ts';
+	import { ANIMALS, type Animal } from '$ui/animals/animals.ts';
+	import { myAnimals } from '#lib/apodo.svelte.ts';
 
 	const store = webCatalog();
 	let keys = $state<{ tmdb: boolean; torbox: boolean } | null>(null);
 	/** La bienvenida está tapando la portada (la pone el layout). */
 	const touring = getContext<() => boolean>('touring');
 	$effect(() => void (store.st.covered = touring()));
+	/** Los 2 animales del apodo, al lado del saludo para que no se olvide. Se piden en el cliente (/api/nick/animales es solo
+	 * del dueño y no se cachea): la home sigue igual para todos. Código anterior sin cifrado: nada. */
+	let mine = $state<Animal[]>([]);
+	$effect(() => {
+		const nick = page.data.nick;
+		mine = [];
+		if (!nick) return;
+		let live = true;
+		myAnimals().then((ids) => {
+			const found = (ids ?? []).map((id) => ANIMALS.find((a) => a.id === id)).filter((a): a is Animal => !!a);
+			if (live && found.length === 2) mine = found;
+		});
+		return () => (live = false);
+	});
 	onMount(() => void fetch('/api/keys').then((r) => r.json()).then((k) => (keys = k)));
 
 	/** ES / EN de la app (los títulos tienen su propio idioma, en Ajustes): sinopsis y géneros siguen a la app. */
@@ -47,7 +63,7 @@
 		<div class="brand-row">
 			<h1 class="brand"><img src={logo} alt="Streamonte" width="24" height="27" /></h1>
 			{#if page.data.nick}
-				<p class="hello"><span class="hi">{t('Hola')}</span><b>{page.data.nick}</b><span>!</span><span class="wave" aria-hidden="true">👋</span></p>
+				<p class="hello"><span class="hi">{t('Hola')}</span><b>{page.data.nick}</b><span>!</span><span class="wave" aria-hidden="true">👋</span>{#if mine.length === 2}<a id="nick-animals" class="pair" href="/ajustes" aria-label={t('Tu clave: estos 2')}>{#each mine as a, i (a.id)}<img id="nick-animal-{i + 1}" src={a.img} alt="" style:object-position={a.pos} />{/each}</a>{/if}</p>
 			{/if}
 		</div>
 		<div class="top-actions">
@@ -73,6 +89,10 @@
 	/* Solo el apodo se recorta (con …): "Hola", el signo y la mano quedan siempre. */
 	.hello { display: flex; align-items: baseline; min-width: 0; margin: 0; font-size: 14.5px; color: var(--muted); white-space: nowrap; animation: hello-in 0.6s var(--out) 0.25s both; }
 	.hello > * { flex: none; }
+	/* Las 2 miniaturas del apodo: redondas, chicas y superpuestas; no empujan nada (flex: none, 38 px). */
+	.pair { display: flex; align-self: center; margin-left: 0.55em; }
+	.pair img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 2px solid var(--surface); background: var(--surface); box-sizing: content-box; }
+	.pair img + img { margin-left: -8px; }
 	.hi { margin-right: 0.3em; }
 	.hello b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 650; }
 	/* La mano saluda una vez, desde la muñeca. */

@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Código de 2 animales del apodo (diseño: docs/mockups/animales/variantes.html, con 2 en vez de 3 y en orden).
+	// Código de 2 animales del apodo (diseño: docs/mockups/animales/variantes.html, con 2 en vez de 3, en cualquier orden).
 	// "nuevo": aviso → elegir → "Acordate de estos 2" (recién ahí se guarda). "login": la grilla con las 12 de la ayuda
 	// primero (el orden lo da el servidor) y un error deja esperar 15 s (cuenta regresiva; la espera la controla el
 	// servidor). `<dialog>` modal: queda encima de la bienvenida. La app manda el código con `submit`.
@@ -150,14 +150,14 @@
 				{@render trio(shuffle, 'shuffle')}
 				<h1 class="big">{t('Elegí 2')}</h1>
 				<p class="pill">🔒 {t('Son tu llave · no te los olvides')}</p>
-				<p class="sub">{t('Con tu apodo y estos 2, en orden, entrás desde cualquier celu o compu')}</p>
+				<p class="sub">{t('Con tu apodo y estos 2 entrás desde cualquier celu o compu')}</p>
 				<button id="animal-warn-ok" class="cta" type="button" onclick={pickAgain}>{t('Elegir')}</button>
 			</section>
 		{:else if phase === 'done'}
 			<section class="warn">
 				{@render trio(picks, 'big')}
 				<h1 class="big remember">🧠 {t('Acordate de estos 2')}</h1>
-				<p class="sub">{t('Los vas a necesitar para entrar, en este orden')}</p>
+				<p class="sub">{t('Los vas a necesitar para entrar')}</p>
 				<p class="pill">📸 {t('Sacale una captura')}</p>
 				<button id="animal-done-ok" class="cta" class:ok={status === 'ok'} type="button" disabled={busy || status === 'ok'} onclick={send}>{t('Listo')}</button>
 				<button id="animal-redo" class="ghost" type="button" disabled={busy || status === 'ok'} onclick={pickAgain}>{t('Elegir otros')}</button>
@@ -168,14 +168,14 @@
 				<h1>{t('Elegí 2')}</h1>
 			{:else}
 				<h1>{t('Hola, {nick}', { nick })} 👋</h1>
-				<p class="lead">{t('Tus 2 animales, en orden')}</p>
+				<p class="lead">{t('Tus 2 animales')}</p>
 			{/if}
 			<div id="animal-grid" class="grid" class:full>
 				{#each cards as a, i (a.id)}
 					{@const at = picks.indexOf(a.id)}
 					<button id="animal-{a.id}" type="button" class="card" class:sel={at >= 0} style="--i:{i}" aria-pressed={at >= 0} aria-label={t(a.name)} onclick={() => toggle(a.id)}>
 						<img src={a.img} alt="" loading="lazy" style:object-position={a.pos} />
-						<span class="badge">{at >= 0 ? at + 1 : ''}</span>
+						<span class="badge">{at >= 0 ? '✓' : ''}</span>
 						<span class="fact"><span class="tag">💡 {t('¿Sabías?')}</span><span class="bubble">{#each a.facts as f, j (j)}<span class="ft" style="--j:{j}">{t(f)}</span>{/each}</span></span>
 						<b>{t(a.name)}</b>
 					</button>

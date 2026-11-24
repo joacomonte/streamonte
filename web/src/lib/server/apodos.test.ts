@@ -1,11 +1,12 @@
 import { test } from 'node:test';
+import { randomBytes, scryptSync } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { ask, checkCode, enter, hashCode, isAlert, loginOrder, memoryStore, parseCode, pickHelp } from './apodos.ts';
 import { openCode, sealCode } from './apodo-cifrado.ts';
 import { canSign, ownAnimals, sign, unsign, verifiedNick } from './apodo-session.ts';
 import { ANIMAL_IDS, HELP_SIZE } from '../../../../packages/ui/src/animals/animals.ts';
 
-test('parseCode: 2 ids distintos y conocidos, en orden', () => {
+test('parseCode: 2 ids distintos y conocidos', () => {
 	assert.deepEqual(parseCode(['okapi', 'yaguarete']), [12, 0]);
 	assert.equal(parseCode(['okapi', 'okapi']), null);
 	assert.equal(parseCode(['okapi']), null);
@@ -13,14 +14,54 @@ test('parseCode: 2 ids distintos y conocidos, en orden', () => {
 	assert.equal(parseCode('okapi,yaguarete'), null);
 });
 
-test('hash: acierta el mismo código, en el mismo orden; sal distinta cada vez', async () => {
-	const a = await hashCode([3, 7]);
+test('hash: acierta el mismo código en cualquier orden; sal distinta cada vez', async () => {
+	const a = await hashCode([7, 3]);
 	const b = await hashCode([3, 7]);
 	assert.notEqual(a.hash, b.hash);
-	assert.ok(await checkCode([3, 7], a.hash, a.sal));
-	assert.ok(!(await checkCode([7, 3], a.hash, a.sal)));
-	assert.ok(!(await checkCode([3, 8], a.hash, a.sal)));
-	assert.ok(!(await checkCode([3, 7], b.hash, a.sal)));
+	assert.deepEqual(await checkCode([3, 7], a.hash, a.sal), { ok: true, legacy: false });
+	assert.deepEqual(await checkCode([7, 3], a.hash, a.sal), { ok: true, legacy: false });
+	assert.equal((await checkCode([3, 8], a.hash, a.sal)).ok, false);
+	assert.equal((await checkCode([3, 7], b.hash, a.sal)).ok, false);
+});
+
+test('entrar sin orden: el par invertido entra; uno equivocado no', async () => {
+	let now = 0;
+	const s = memoryStore(() => now);
+	await enter(s, 'Zoe', [9, 4], 'nuevo');
+	assert.ok((await enter(s, 'Zoe', [4, 9], 'login')).ok);
+	now += 15_000;
+	assert.ok((await enter(s, 'Zoe', [9, 4], 'login')).ok);
+	now += 15_000;
+	assert.deepEqual(await enter(s, 'Zoe', [4, 8], 'login'), { ok: false, reason: 'wrong', wait: 15 });
+});
+
+test('código viejo hasheado en orden: entra con cualquiera de los 2 órdenes y queda re-hasheado canónico', async () => {
+	// Hash viejo: scrypt sobre el par en el orden elegido (mismo formato que antes).
+	const old = (code: number[]) => {
+		const sal = randomBytes(16);
+		return { hash: scryptSync(code.join('.'), sal, 32, { N: 2 ** 14 }).toString('base64'), sal: sal.toString('base64') };
+	};
+	for (const [apodo, elegido, intento] of [['V1', [9, 4], [9, 4]], ['V2', [9, 4], [4, 9]], ['V3', [4, 9], [9, 4]], ['V4', [4, 9], [4, 9]]] as [string, number[], number[]][]) {
+		const s = memoryStore();
+		const { hash, sal } = old(elegido);
+		await s.create(apodo, hash, sal, pickHelp(elegido), sealCode(elegido));
+		const antes = (await s.get(apodo))!;
+		assert.ok((await enter(s, apodo, intento, 'login')).ok, apodo);
+		const row = (await s.get(apodo))!;
+		assert.equal(row.creado.getTime(), antes.creado.getTime());
+		assert.deepEqual(openCode(row.cifrado!), [4, 9]);
+		if (elegido[0] === 9) {
+			// El hash viejo invertido ya no vale: ahora es el canónico (con sal nueva).
+			assert.notEqual(row.hash, hash);
+			assert.ok((await checkCode([4, 9], row.hash, row.sal)).ok && !(await checkCode([4, 9], row.hash, row.sal)).legacy);
+		}
+	}
+	// Un par equivocado no entra ni cambia nada.
+	const s = memoryStore();
+	const { hash, sal } = old([9, 4]);
+	await s.create('V5', hash, sal, pickHelp([9, 4]), '');
+	assert.equal((await enter(s, 'V5', [4, 8], 'login')).ok, false);
+	assert.equal((await s.get('V5'))!.hash, hash);
 });
 
 test('ayuda: 12 cartas distintas con los 2 del código adentro', () => {
@@ -65,7 +106,7 @@ test('espera: después de un error se rechaza todo intento por 15 s (también el
 	let now = 1_000_000;
 	const s = memoryStore(() => now);
 	await enter(s, 'Bea', [5, 6], 'nuevo');
-	assert.deepEqual(await enter(s, 'Bea', [6, 5], 'login'), { ok: false, reason: 'wrong', wait: 15 });
+	assert.deepEqual(await enter(s, 'Bea', [5, 7], 'login'), { ok: false, reason: 'wrong', wait: 15 });
 	now += 5_000;
 	assert.deepEqual(await enter(s, 'Bea', [5, 6], 'login'), { ok: false, reason: 'wait', wait: 10 });
 	assert.equal((await ask(s, 'Bea', now)).wait, 10);
@@ -87,7 +128,7 @@ test('alerta: con más de 3 fallos; vista se va hasta un fallo nuevo; acertar no
 	const s = memoryStore(() => now);
 	await enter(s, 'Cata', [0, 1], 'nuevo');
 	const fail = async () => {
-		await enter(s, 'Cata', [1, 0], 'login');
+		await enter(s, 'Cata', [2, 3], 'login');
 		now += 15_000;
 	};
 	for (let n = 0; n < 3; n++) await fail();
@@ -111,7 +152,7 @@ test('alerta: 4 fallos y después un acierto, la alerta sigue (y el acierto no e
 	const s = memoryStore(() => now);
 	await enter(s, 'Fede', [0, 1], 'nuevo');
 	for (let n = 0; n < 4; n++) {
-		await enter(s, 'Fede', [1, 0], 'login');
+		await enter(s, 'Fede', [2, 3], 'login');
 		now += 15_000;
 	}
 	assert.ok((await enter(s, 'Fede', [0, 1], 'login')).ok);
