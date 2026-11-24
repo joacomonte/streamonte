@@ -19,12 +19,6 @@
    "hover": "[id^=cat-card-]",
    "timeout": 6000,
    "note": "hover: géneros"
-  },
-  {
-   "sel": "[id^=cat-info-] [class*=meta]",
-   "text": "\\d",
-   "hover": "[id^=cat-card-]",
-   "note": "hover: año · puntaje · duración"
   }
  ]
 }
