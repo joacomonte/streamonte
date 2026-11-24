@@ -12,7 +12,9 @@ export function spanishVariant(text: string): SpanishVariant {
 	const word = (ws: string[]) => words.some((w) => ws.includes(w));
 	const prefix = (ps: string[]) => words.some((w) => ps.some((p) => w.startsWith(p)));
 	const pair = (a: string, b: string) => words.some((w, i) => w === a && words[i + 1] === b);
-	if (word(['lat', 'latam', 'latino', '419', 'méxico']) || prefix(['latinoam', 'mex', 'argentin']) || pair('latin', 'america') || pair('es', 'mx') || pair('es', 'ar')) return 'lat';
+	// "Latin America", "Latin American", "Latin América"
+	const latinAmerica = words.some((w, i) => w === 'latin' && /^am[eé]rica/.test(words[i + 1] ?? ''));
+	if (word(['lat', 'latam', 'latino', '419', 'méxico']) || prefix(['latinoam', 'mex', 'argentin']) || latinAmerica || pair('es', 'mx') || pair('es', 'ar')) return 'lat';
 	if (word(['castellano', 'castilian', 'españa', 'espana', 'spain', 'europe', 'european']) || pair('es', 'es') || lower.includes('(eu)')) return 'spain';
 	return 'unknown';
 }

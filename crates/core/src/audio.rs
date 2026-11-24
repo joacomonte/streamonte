@@ -108,9 +108,13 @@ pub fn spanish_variant(text: &str) -> SpanishVariant {
     let word = |ws: &[&str]| words.iter().any(|w| ws.contains(w));
     let prefix = |ps: &[&str]| words.iter().any(|w| ps.iter().any(|p| w.starts_with(p)));
     let pair = |a: &str, b: &str| words.windows(2).any(|w| w[0] == a && w[1] == b);
+    // "Latin America", "Latin American", "Latin América"
+    let latin_america = words
+        .windows(2)
+        .any(|w| w[0] == "latin" && (w[1].starts_with("america") || w[1].starts_with("américa")));
     let latino = word(&["lat", "latam", "latino", "419", "méxico"])
         || prefix(&["latinoam", "mex", "argentin"])
-        || pair("latin", "america")
+        || latin_america
         || pair("es", "mx")
         || pair("es", "ar");
     let spain = word(&[

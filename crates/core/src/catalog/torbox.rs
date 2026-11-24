@@ -504,7 +504,7 @@ pub fn iso3(iso1: &str) -> Option<&'static str> {
         _ => return None,
     })
 }
-/// Posición del audio a poner: latino (español con "lat"/"419"/"mex" en el título) si se pidió y está; si no, el
+/// Posición del audio a poner: latino (español cuyo título dice latino según `audio::spanish_variant`) si se pidió y está; si no, el
 /// idioma original; si no, inglés; si no, el primero.
 fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool) -> usize {
     let find = |f: &dyn Fn(&StreamAudio) -> bool| audios.iter().position(f);
@@ -512,8 +512,7 @@ fn pick_audio(audios: &[StreamAudio], orig: Option<&str>, latino: bool) -> usize
         find(&|a| {
             a.language == "spa"
                 && a.title.as_deref().is_some_and(|t| {
-                    let t = t.to_ascii_lowercase();
-                    t.contains("lat") || t.contains("419") || t.contains("mex")
+                    crate::audio::spanish_variant(t) == crate::audio::SpanishVariant::Latino
                 })
         })
     };

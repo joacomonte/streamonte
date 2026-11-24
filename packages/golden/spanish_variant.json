@@ -137,5 +137,13 @@
   "in": "Format",
   "out": "unknown",
   "nota": "'mat' no es palabra"
+ },
+ {
+  "in": "Spanish (Latin American)",
+  "out": "latino"
+ },
+ {
+  "in": "Latin American Spanish",
+  "out": "latino"
  }
 ]
