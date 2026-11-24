@@ -5,16 +5,16 @@ import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
 import { createGunzip, gunzipSync } from 'node:zlib';
 import { Fail, get } from './http.ts';
+import { dataDir } from './config.ts';
 
 const URL_RATINGS = 'https://datasets.imdbws.com/title.ratings.tsv.gz';
 // TODO optimizar: en Vercel /tmp se borra en cada cold start y se re-bajan ~60 MB de IMDb.
-const DIR = process.env.VERCEL ? '/tmp/.data' : '.data';
-const FILE = `${DIR}/title.ratings.tsv.gz`;
+const ratingsFile = () => `${dataDir()}/title.ratings.tsv.gz`;
 /** Qué episodios tiene cada serie (~55 MB): para el puntaje por temporada. */
 const URL_EPISODES = 'https://datasets.imdbws.com/title.episode.tsv.gz';
-const EPISODES_FILE = `${DIR}/title.episode.tsv.gz`;
+const episodesFile = () => `${dataDir()}/title.episode.tsv.gz`;
 /** Índice ya armado (serie → temporadas), para no recorrer el dataset en cada arranque. */
-const INDEX_FILE = `${DIR}/imdb-temporadas.tsv`;
+const indexFile = () => `${dataDir()}/imdb-temporadas.tsv`;
 const DAY = 24 * 3600 * 1000;
 /** Menos votos que esto no se guarda (el piso más bajo de la UI es 1.000). */
 const KEEP_MIN_VOTES = 10;
@@ -34,7 +34,7 @@ async function dataset(url: string, file: string, what: string): Promise<string>
 		const r = await get(url, {}, 300_000);
 		if (!r.ok) throw new Error(`IMDb respondió ${r.status}`);
 		const gz = Buffer.from(await r.arrayBuffer());
-		await mkdir(DIR, { recursive: true });
+		await mkdir(dataDir(), { recursive: true });
 		await writeFile(file, gz);
 		return file;
 	} catch (e) {
@@ -58,7 +58,7 @@ function parse(gz: Buffer): Map<number, number> {
 /** Tabla de puntajes, leída una vez por día. */
 export async function ratings(): Promise<Map<number, number>> {
 	if (table && Date.now() - loadedAt < DAY) return table;
-	loading ??= dataset(URL_RATINGS, FILE, 'los puntajes')
+	loading ??= dataset(URL_RATINGS, ratingsFile(), 'los puntajes')
 		.then((f) => readFile(f))
 		.then(parse)
 		.then((m) => {
@@ -86,7 +86,7 @@ let indexing: Promise<Index> | null = null;
 /** Recorre `title.episode` (`tconst\tparentTconst\tseason\tepisode`) y promedia, por serie y temporada, los
  * episodios con puntaje (sin especiales ni episodios sin temporada), como `build_index` del desktop. */
 async function buildIndex(): Promise<Index> {
-	const [table, file] = await Promise.all([ratings(), dataset(URL_EPISODES, EPISODES_FILE, 'los episodios')]);
+	const [table, file] = await Promise.all([ratings(), dataset(URL_EPISODES, episodesFile(), 'los episodios')]);
 	/** "serie:temporada" → [suma, cantidad] */
 	const sums = new Map<string, [number, number]>();
 	const lines = createInterface({ input: createReadStream(file).pipe(createGunzip()), crlfDelay: Infinity });
@@ -110,15 +110,15 @@ async function buildIndex(): Promise<Index> {
 		out.set(series, list);
 	}
 	for (const list of out.values()) list.sort((a, b) => a[0] - b[0]);
-	await writeFile(INDEX_FILE, [...out].flatMap(([series, l]) => l.map((x) => [series, ...x].join('\t'))).join('\n'));
+	await writeFile(indexFile(), [...out].flatMap(([series, l]) => l.map((x) => [series, ...x].join('\t'))).join('\n'));
 	return out;
 }
 
 /** El índice guardado, si es de hoy. */
 async function savedIndex(): Promise<Index | null> {
-	if ((await ageOf(INDEX_FILE)) >= DAY) return null;
+	if ((await ageOf(indexFile())) >= DAY) return null;
 	const out: Index = new Map();
-	for (const line of (await readFile(INDEX_FILE, 'utf8')).split('\n')) {
+	for (const line of (await readFile(indexFile(), 'utf8')).split('\n')) {
 		const [series, season, rating, n] = line.split('\t').map(Number);
 		if (!series) continue;
 		const list = out.get(series) ?? [];

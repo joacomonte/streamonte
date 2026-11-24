@@ -1,13 +1,12 @@
 import { torrents } from '#lib/server/torrents.ts';
 import { Fail, route } from '#lib/server/http.ts';
-import { episode } from '#lib/server/params.ts';
+import { imdbOrFail } from '#lib/server/params.ts';
 import { tx } from '#lib/server/lang.ts';
 
 /** La respuesta va en líneas JSON a medida que avanza: `{stage, done, total}` por fuente, `{stage: 'torbox'}` y al
  * final `{result}` (o `{error}`), para mostrar "Buscando torrents… 2 de 4 fuentes". */
 export const GET = route(async ({ url }) => {
-	const { imdb, s, e } = episode(url);
-	if (!imdb) throw new Fail(400, 'Falta el IMDb id.');
+	const { imdb, s, e } = imdbOrFail(url);
 	const enc = new TextEncoder();
 	const body = new ReadableStream({
 		async start(c) {
