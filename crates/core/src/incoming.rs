@@ -91,7 +91,7 @@ pub async fn check(config: &EngineConfig, paths: &AppPaths) -> IncomingCheck {
 
 async fn probe(port: u16) -> std::result::Result<bool, String> {
     let offline = |_| "No se pudo probar: sin conexión con el servicio de chequeo.".to_string();
-    let client = crate::http::client(crate::http::Kind::Api)
+    let client = crate::http::client(crate::http::Kind::Download)
         .timeout(TIMEOUT)
         .build()
         .map_err(offline)?;
