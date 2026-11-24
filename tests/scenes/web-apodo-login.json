@@ -1,6 +1,7 @@
 {
  "app": "web",
  "apodo": false,
+ "viewport": "mobile",
  "storage": {
   "tour:welcome": "1"
  },

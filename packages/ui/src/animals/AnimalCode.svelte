@@ -34,6 +34,8 @@
 	let waitLeft = $state((() => wait)());
 	/** El dock (elegidas + botón) aparece recién al scrollear hasta el final. */
 	let away = $state(true);
+	/** En el login, con error o espera el dock se ve siempre (el mensaje y la cuenta regresiva viven ahí). */
+	const hideDock = $derived(away && status === '' && !waitLeft && !msg);
 	const full = $derived(picks.length === CODE_LEN);
 	const timers: ReturnType<typeof setTimeout>[] = [];
 	const later = (fn: () => void, ms: number) => timers.push(setTimeout(fn, ms));
@@ -52,7 +54,9 @@
 
 	function checkAway() {
 		if (!dlg) return;
-		away = dlg.scrollTop + dlg.clientHeight < dlg.scrollHeight - 24;
+		// Al final = ya se ve la línea de las fotos (el dock sticky ocupa lugar debajo de ella).
+		const credit = dlg.querySelector('#animal-credit');
+		away = !!credit && credit.getBoundingClientRect().top >= dlg.getBoundingClientRect().bottom;
 	}
 	$effect(() => {
 		void phase;
@@ -157,7 +161,7 @@
 				<p class="pill">📸 {t('Sacale una captura')}</p>
 				<button id="animal-done-ok" class="cta" class:ok={status === 'ok'} type="button" disabled={busy || status === 'ok'} onclick={send}>{t('Listo')}</button>
 				<button id="animal-redo" class="ghost" type="button" disabled={busy || status === 'ok'} onclick={pickAgain}>{t('Elegir otros')}</button>
-				<p id="animal-msg" class="msg err" role="alert">{msg}</p>
+				<p id="animal-done-msg" class="msg err" role="alert">{msg}</p>
 			</section>
 		{:else}
 			{#if mode === 'nuevo'}
@@ -181,7 +185,7 @@
 		{/if}
 	</div>
 	{#if phase === 'pick'}
-		<div class="dock" class:away>
+		<div class="dock" class:away={hideDock}>
 			<div class="dock-in {status}" class:shake={status === 'err'}>
 				<div class="row">
 					{#each Array.from({ length: CODE_LEN }, (_, i) => i) as i (i)}
@@ -199,7 +203,7 @@
 </dialog>
 
 <style>
-	.code { --out: cubic-bezier(0.16, 1, 0.3, 1); --spring: cubic-bezier(0.34, 1.56, 0.64, 1); position: fixed; inset: 0; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: env(safe-area-inset-top) 10px 0; border: 0; background: var(--bg); color: var(--text); overflow-y: auto; font-size: 15px; line-height: 1.4; }
+	.code { --out: cubic-bezier(0.16, 1, 0.3, 1); --spring: cubic-bezier(0.34, 1.56, 0.64, 1); position: fixed; inset: 0; width: auto; height: auto; max-width: none; max-height: none; margin: 0; padding: env(safe-area-inset-top) 10px 0; border: 0; background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: auto; font-size: 15px; line-height: 1.4; }
 	.code, .code * { box-sizing: border-box; }
 	.code::backdrop { background: var(--bg); }
 	.code:not([open]) { display: none; }
@@ -209,7 +213,7 @@
 	h1 { margin: 4px 0 2px; font-size: 22px; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; }
 	.lead { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
 
-	.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding-bottom: 150px; }
+	.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 	.card { position: relative; aspect-ratio: 4 / 5; border: 0; padding: 0; border-radius: 12px; overflow: hidden; background: var(--surface-2); color: #fff; text-align: left; cursor: pointer; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.09); transition: transform 0.3s var(--out), box-shadow 0.3s, filter 0.3s; animation: deal 0.6s var(--out) both; animation-delay: calc(var(--i) * 25ms); }
 	@keyframes deal { from { opacity: 0; transform: translateY(12px) scale(0.96); } }
 	.card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s var(--out); }
@@ -233,8 +237,9 @@
 	@keyframes fact { 0% { opacity: 0; transform: translateY(5px); } 4%, 30% { opacity: 1; transform: none; } 34%, 100% { opacity: 0; transform: translateY(-5px); } }
 	.card.sel::after { background: linear-gradient(to top, rgb(0 0 0 / 0.85) 0%, rgb(0 0 0 / 0.2) 45%, rgb(0 0 0 / 0.15) 100%); }
 
-	/* Las 2 elegidas + el botón, fijos abajo; ocultos hasta scrollear del todo (suben desde abajo al llegar). */
-	.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; padding: 12px 10px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 70%, rgb(13 16 20 / 0)); transition: transform 0.45s var(--out), opacity 0.3s; }
+	/* Las 2 elegidas + el botón, pegados abajo del diálogo (sticky: dependen solo del diálogo, no del layout de la página de
+	   atrás); ocultos hasta scrollear del todo (suben desde abajo al llegar), salvo con error o espera. */
+	.dock { position: sticky; bottom: 0; z-index: 5; margin: 16px -10px 0; display: flex; justify-content: center; padding: 12px 10px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 70%, rgb(13 16 20 / 0)); transition: transform 0.45s var(--out), opacity 0.3s; }
 	.dock.away { transform: translateY(110%); opacity: 0; pointer-events: none; }
 	.dock-in { width: 100%; max-width: 460px; display: grid; gap: 10px; padding: 10px; border-radius: 26px; background: rgb(255 255 255 / 0.05); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); box-shadow: 0 -8px 30px rgb(0 0 0 / 0.4); }
 	.dock-in.shake { animation: shake 0.42s; }

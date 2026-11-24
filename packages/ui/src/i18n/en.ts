@@ -1458,6 +1458,7 @@ const EN: Record<string, string> = {
 	"No son esos": "Those aren't the ones",
 	"Elegí 2 animales": "Pick 2 animals",
 	"Ese apodo cambió. Probá de nuevo.": "That nickname changed. Try again.",
+	"No se puede entrar con apodo ahora: falta configurar el servidor.": "Signing in with a nickname is not available right now: the server is not configured.",
 	"Yaguareté": "Jaguar",
 	"El felino más grande de América": "The largest cat in the Americas",
 	"Muerde hasta caparazones": "It bites through shells",

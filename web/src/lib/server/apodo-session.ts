@@ -18,6 +18,15 @@ function secret(): string {
 	return (devSecret ??= randomBytes(32).toString('base64'));
 }
 
+/** ¿Se puede firmar la sesión? Se mira ANTES de crear o probar un código: si no, quedaría un código creado sin sesión. */
+export function canSign(): boolean {
+	try {
+		return !!secret();
+	} catch {
+		return false;
+	}
+}
+
 const mac = (nick: string, version: number, key: string) => createHmac('sha256', key).update(`apodo\n${nick}\n${version}`).digest();
 
 /** Valor de la cookie: `<apodo en base64url>.<versión>.<firma>`. */

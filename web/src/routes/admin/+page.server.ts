@@ -2,6 +2,7 @@
 // shortcut: contraseña fija en env guardada tal cual en una cookie; si hay datos sensibles, pasar a login real.
 // Con el mismo límite de intentos que el código de acceso (lib/server/intentos.js), aparte por IP.
 import { fail, redirect } from '@sveltejs/kit';
+import type { Cookies } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { sql } from '#lib/server/track.ts';
 import { attempt } from '#lib/server/intentos.ts';
@@ -18,8 +19,13 @@ async function codigos(nick: string | null) {
 		codigo: nick ? (row ? { tiene: true, creado: row.creado.toISOString(), fallos: row.fallos, ultimo: row.ultimoFallo?.toISOString() ?? null } : { tiene: false, creado: null, fallos: 0, ultimo: null }) : null
 	};
 }
-/** Las acciones del panel piden la misma cookie que la lectura. */
-const isAdmin = (admin: string | undefined) => !!process.env.ADMIN_PASSWORD && admin === process.env.ADMIN_PASSWORD;
+/** Las acciones del panel piden la misma cookie que la lectura, con el mismo límite de intentos por IP y comparación en
+ * tiempo constante (`attempt`, lib/server/intentos.ts). */
+async function isAdmin(cookies: Cookies, ip: string): Promise<boolean> {
+	const pass = process.env.ADMIN_PASSWORD;
+	const admin = cookies.get('admin');
+	return !!pass && !!admin && (await attempt(`admin:${ip}`, admin, pass)).ok;
+}
 
 export const load: PageServerLoad = async ({ cookies, url, getClientAddress }) => {
 	const pass = process.env.ADMIN_PASSWORD;
@@ -107,9 +113,8 @@ export const actions: Actions = {
 	},
 	/** Borra todo lo registrado de un usuario (por apodo, o por dispositivo si nunca puso apodo): usuarios de prueba
 	 * o que entraron sin nombre. Si ese equipo vuelve a usar la app, aparece de nuevo con lo nuevo. */
-	borrar: async ({ request, cookies }) => {
-		const pass = process.env.ADMIN_PASSWORD;
-		if (!pass || cookies.get('admin') !== pass) return fail(401, { wrong: true });
+	borrar: async ({ request, cookies, getClientAddress }) => {
+		if (!(await isAdmin(cookies, getClientAddress()))) return fail(401, { wrong: true });
 		const q = sql();
 		if (!q) return fail(503, { noDb: true });
 		const f = await request.formData();
@@ -121,15 +126,15 @@ export const actions: Actions = {
 	},
 	/** Borra el código de animales del apodo (y su ayuda y fallos): el próximo que entre con ese apodo crea uno nuevo, y
 	 * las sesiones abiertas con el código viejo dejan de valer. */
-	resetear: async ({ request, cookies }) => {
-		if (!isAdmin(cookies.get('admin'))) return fail(401, { wrong: true });
+	resetear: async ({ request, cookies, getClientAddress }) => {
+		if (!(await isAdmin(cookies, getClientAddress()))) return fail(401, { wrong: true });
 		const nick = cleanNick((await request.formData()).get('u')).nick;
 		if (nick) await store().reset(nick);
 		redirect(303, nick ? `/admin?u=${encodeURIComponent(nick)}` : '/admin');
 	},
 	/** Marca la alerta de fallos como vista: vuelve si hay fallos nuevos. */
-	vista: async ({ request, cookies }) => {
-		if (!isAdmin(cookies.get('admin'))) return fail(401, { wrong: true });
+	vista: async ({ request, cookies, getClientAddress }) => {
+		if (!(await isAdmin(cookies, getClientAddress()))) return fail(401, { wrong: true });
 		const nick = cleanNick((await request.formData()).get('u')).nick;
 		if (nick) await store().markSeen(nick);
 		return { ok: true };

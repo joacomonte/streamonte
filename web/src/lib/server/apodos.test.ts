@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ask, checkCode, enter, hashCode, isAlert, loginOrder, memoryStore, parseCode, pickHelp } from './apodos.ts';
-import { sign, unsign, verifiedNick } from './apodo-session.ts';
+import { canSign, sign, unsign, verifiedNick } from './apodo-session.ts';
 import { ANIMAL_IDS, HELP_SIZE } from '../../../../packages/ui/src/animals/animals.ts';
 
 test('parseCode: 2 ids distintos y conocidos, en orden', () => {
@@ -125,4 +125,20 @@ test('sesión: firma que no se puede forjar y que vence al resetear el código',
 	assert.equal(await verifiedNick(() => undefined, s), null);
 	await s.reset('Dani');
 	assert.equal(await verifiedNick(() => cookie, s), null);
+});
+
+test('sin APODO_SECRET en Vercel no se puede firmar (y /api/nick no crea el código)', () => {
+	const prev = { v: process.env.VERCEL, s: process.env.APODO_SECRET };
+	try {
+		process.env.VERCEL = '1';
+		delete process.env.APODO_SECRET;
+		assert.equal(canSign(), false);
+		process.env.APODO_SECRET = 'algo';
+		assert.equal(canSign(), true);
+	} finally {
+		if (prev.v === undefined) delete process.env.VERCEL;
+		else process.env.VERCEL = prev.v;
+		if (prev.s === undefined) delete process.env.APODO_SECRET;
+		else process.env.APODO_SECRET = prev.s;
+	}
 });

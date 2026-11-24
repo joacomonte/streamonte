@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { Fail, route } from '#lib/server/http.ts';
 import { sql, track } from '#lib/server/track.ts';
 import { ask, enter, parseCode, store } from '#lib/server/apodos.ts';
-import { COOKIE, MAX_AGE, sign } from '#lib/server/apodo-session.ts';
+import { canSign, COOKIE, MAX_AGE, sign } from '#lib/server/apodo-session.ts';
 import { tx } from '#lib/server/lang.ts';
 import { cleanNick } from '#lib/nick.ts';
 
@@ -28,6 +28,8 @@ export const POST = route(async (event) => {
 	const nick = nickOf(body?.nick);
 	const code = parseCode(body?.code);
 	if (!code) throw new Fail(400, 'Elegí 2 animales');
+	// Sin secreto no hay sesión: no se crea ni se prueba nada (si no, el código quedaría creado sin poder entrar).
+	if (!canSign()) throw new Fail(503, 'No se puede entrar con apodo ahora: falta configurar el servidor.');
 	const r = await enter(store(), nick, code, body?.mode === 'nuevo' ? 'nuevo' : 'login');
 	if (!r.ok) {
 		if (r.reason === 'taken') return json({ message: tx('Ese apodo cambió. Probá de nuevo.') }, { status: 409 });
