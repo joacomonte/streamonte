@@ -15,7 +15,7 @@ mod f2 {
     use streamonte_core::events::ClipboardUnavailable;
     use streamonte_core::library::{AddOutcome, Group, Library};
     use streamonte_core::magnet::{self, InfoHash, Magnet};
-    use streamonte_core::ranking::{self, Light, RankInput};
+    use streamonte_core::ranking::{self, RankInput};
     use tokio::sync::mpsc;
 
     use crate::common::{TempRoot, BBB, SINTEL, TOS};
@@ -248,7 +248,7 @@ mod f2 {
     }
 
     #[test]
-    fn fr_07_semaforo_y_orden_por_defecto() {
+    fn fr_07_orden_por_defecto_y_margen() {
         let cfg = RankingConfig::default();
         let gb = 1_000_000_000;
         // 1 GB en 1 000 s → necesita 1 MB/s.
@@ -278,7 +278,7 @@ mod f2 {
                 ..Default::default()
             },
         ];
-        let order: Vec<&str> = ranking::default_order(&inputs, &cfg, 1.0)
+        let order: Vec<&str> = ranking::default_order(&inputs, &cfg)
             .into_iter()
             .map(|i| inputs[i].name.as_str())
             .collect();
@@ -294,14 +294,8 @@ mod f2 {
                 "sin datos"
             ]
         );
-        let light = |i: &RankInput| ranking::score(i, &cfg, 1.0).light;
-        assert_eq!(light(&measured("v", 1.5)), Light::Green);
-        assert_eq!(light(&measured("a", 1.0)), Light::Yellow);
-        assert_eq!(light(&measured("r", 0.99)), Light::Red);
-        assert_eq!(light(&unmeasured("x", 3, 3)), Light::Unknown);
-        let margin = ranking::score(&measured("v", 2.0), &cfg, 1.0)
-            .margin
-            .unwrap();
+        assert_eq!(ranking::score(&unmeasured("x", 3, 3), &cfg).margin, None);
+        let margin = ranking::score(&measured("v", 2.0), &cfg).margin.unwrap();
         assert!((margin - 2.0).abs() < 1e-9, "margen = velocidad ÷ necesita");
     }
 
@@ -322,7 +316,6 @@ mod f2 {
                 ..Default::default()
             },
             &cfg,
-            1.0,
         );
         assert_eq!(s.needed_bps, Some(750_000.0));
         assert!(s.duration.unwrap().estimated);

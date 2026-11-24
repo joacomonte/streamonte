@@ -163,9 +163,6 @@ impl AppCore {
 
         library.set_ranking(config.ranking.clone());
         library.set_downloads_dir(paths.downloads_dir());
-        // Antes de cualquier escritura de `config.json`: siembra desde un factor viejo (migración).
-        let calibration = Arc::new(crate::playback::Calibration::load(&paths));
-        library.set_speed_factor(calibration.factor().0);
         let read_history_on_start = config.clipboard.read_history_on_start;
         let config = Arc::new(tokio::sync::RwLock::new(config));
         let library = Arc::new(Mutex::new(library));
@@ -185,7 +182,6 @@ impl AppCore {
             trackers: trackers.clone(),
             library: library.clone(),
             events: events.clone(),
-            calibration,
         });
         // FR-12: las descargas pausadas de sesiones anteriores vuelven al panel.
         playback.load_kept().await;

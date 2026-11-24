@@ -56,7 +56,7 @@ const EN: Record<string, string> = {
 	"Agregado: {t}": "Added: {t}",
 	"Metadatos de {t}: {torrent_name}": "Metadata for {t}: {torrent_name}",
 	"Datos leídos de {t}: {a}{b}{c}": "Data read from {t}: {a}{b}{c}",
-	"{t}: {a} Mbps reales{b}": "{t}: {a} Mbps real{b}",
+	"{t}: {a} Mbps reales": "{t}: {a} Mbps real",
 	"Falló el análisis de {t}: {a}": "Analysis of {t} failed: {a}",
 	"sin detalle": "no details",
 	"Quitado de la lista: {a}": "Removed from the list: {a}",

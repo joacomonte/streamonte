@@ -19,13 +19,7 @@
    "score": {
     "duration": null,
     "needed_bps": null,
-    "effective_speed_bps": null,
-    "speed_factor": 1,
-    "margin": null,
-    "light": "unknown",
-    "capped_by_estimate": false,
-    "green_margin": 1.5,
-    "yellow_margin": 1
+    "margin": null
    },
    "languages": [],
    "audio_options": [],

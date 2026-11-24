@@ -4,7 +4,7 @@
 
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use tokio_util::sync::CancellationToken;
 
@@ -18,7 +18,6 @@ use crate::preload::{self, PreloadOutcome};
 use crate::subtitles;
 use crate::{CoreError, Result};
 
-use super::calibration::CalibrationSampler;
 use super::{PlaybackState, Shared, Slot, StartRequest};
 
 /// Retomar un poco antes de donde se dejó (para no perder la frase).
@@ -361,10 +360,8 @@ pub(super) async fn run(
         _ => None,
     };
 
-    // 6. Mientras se ve: stats al panel cada 1 s, posición para retomar y muestras de calibración.
+    // 6. Mientras se ve: stats al panel cada 1 s y posición para retomar.
     //    Termina cuando se cierra el reproductor o se detiene.
-    let playing_since = Instant::now();
-    let mut calibration = CalibrationSampler::default();
     let mut tick = tokio::time::interval(Duration::from_secs(1));
     let exit = loop {
         tokio::select! {
@@ -373,16 +370,14 @@ pub(super) async fn run(
             _ = tick.tick() => {
                 // Con límite: un motor trabado no debe tapar el cierre del reproductor ni "Detener".
                 if let Ok(Ok(stats)) = tokio::time::timeout(STATS_TIMEOUT, engine.stats(handle)).await {
-                    let download_paused = {
+                    {
                         let mut row = slot.row.lock().expect("row");
                         row.progress = stats.progress;
                         row.speed_bps = stats.download_speed_bps;
                         row.peers = stats.peers;
                         row.seeds = stats.seeds;
                         row.incoming_peers = stats.incoming_peers;
-                        row.state == PlaybackState::DownloadPaused
-                    };
-                    calibration.push(playing_since.elapsed(), &stats, download_paused);
+                    }
                     shared.emit_row(slot);
                 }
                 if let Some(mpv) = &player.mpv {
@@ -411,11 +406,6 @@ pub(super) async fn run(
             shared.log(slot, "detenido desde la app".into());
             let _ = player.kill().await;
         }
-    }
-    if let Some(actual_bps) = calibration.sustained() {
-        shared
-            .record_calibration(slot, req.key.info_hash, actual_bps)
-            .await;
     }
     // 7. Reproductor cerrado sin terminar de bajar: ¿seguir bajando de fondo o pausar? (2026-11-14)
     if closed_by_user && slot.row.lock().expect("row").progress < 0.999 {
