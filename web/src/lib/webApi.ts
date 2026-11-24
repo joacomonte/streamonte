@@ -1,7 +1,7 @@
 // `Api` de la web: `fetch` a /api/* (rutas en src/routes/api/) y adaptadores puros de `web-adapt.ts`.
 import type { Api } from '../../../packages/ui/src/api.ts';
 import type { RecentItem } from '../../../packages/ui/src/catalog/recent.ts';
-import type { ApiEvent, BrowseFilters, Kind, OptionRef, SubtitleOption, TitleAwards, TorrentOption } from '../../../packages/ui/src/types.ts';
+import type { ApiEvent, BrowseFilters, Kind, OptionRef, EpisodeScore, SubtitleOption, TitleAwards, TorrentOption } from '../../../packages/ui/src/types.ts';
 import * as adapt from './web-adapt.ts';
 import type { ApiError, CatalogPageRaw, Episodes, Examples, LinkRaw, MagnetRaw, PeopleRaw, PremiumRaw, QuotaRaw, SeasonScore, Seen, Sub, Title, TracksRaw } from './types.ts';
 
@@ -37,7 +37,8 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			personTitles: async (id, role) => adapt.catalogPage(await json<CatalogPageRaw>(`/api/catalog?${new URLSearchParams({ person: String(id), role })}`)).items,
 			examples: async (kind: Kind, ids: string[]) => await json<Examples>(`/api/examples?${new URLSearchParams({ kind, ids: ids.join(',') })}`),
 			// Los pósters de la web ya son de TMDB: no hay otro para reintentar.
-			poster: async () => null
+			poster: async () => null,
+			readableImage: async (url) => url
 		},
 		title: {
 			details: async (kind, id) => adapt.titleDetails(await json<Title>(`/api/title/${kind}/${id}`)),
@@ -45,6 +46,7 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			similar: async () => [],
 			episodes: async (id, season) => adapt.episodes(await json<Episodes>(`/api/season/${id}/${season}`), season),
 			seasonRatings: async (imdb) => adapt.seasonRatings(await json<SeasonScore[]>(`/api/scores/${imdb}`)),
+			episodeRatings: async (imdb, season) => await json<EpisodeScore[]>(`/api/epscores/${imdb}/${season}`),
 			awards: async (imdb) => await json<TitleAwards>(`/api/awards/${imdb}`)
 		},
 		options: {

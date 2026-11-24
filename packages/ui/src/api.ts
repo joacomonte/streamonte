@@ -1,7 +1,7 @@
 // Interfaz de datos que consume la UI compartida. La web la implementa con `fetch` a /api/* (`web/src/lib/webApi.ts`) y el
 // desktop con `invoke` de Tauri (`ui/src/tauriApi.ts`). Métodos de dominio: devuelven el modelo de `types.ts`.
 import type {
-	ApiEvent, BrowseFilters, Capabilities, CatalogItem, CatalogPage, Episode, InterestExample, Kind, MagnetStatus, MagnetView, OptionLink, OptionRef,
+	ApiEvent, BrowseFilters, Capabilities, CatalogItem, CatalogPage, Episode, EpisodeScore, InterestExample, Kind, MagnetStatus, MagnetView, OptionLink, OptionRef,
 	OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings, SimilarItem, SubtitleOption, TitleAwards, TitleDetails, TorboxIds, TorrentOption, TorrentTracks, Unsubscribe
 } from './types.ts';
 import type { RecentItem } from './catalog/recent.ts';
@@ -24,6 +24,9 @@ export interface Api {
 		examples(kind: Kind, ids: string[]): Promise<Record<string, InterestExample[]>>;
 		/** Póster alternativo cuando el de la tarjeta no carga (desktop: TMDB); null si no hay otro. */
 		poster(id: string): Promise<string | null>;
+		/** Una URL de la imagen cuyos píxeles se pueden leer en un canvas (color del póster). Web: la misma (TMDB manda
+		 * CORS); desktop: la baja el núcleo (metahub no manda CORS) y devuelve un blob. */
+		readableImage(url: string): Promise<string>;
 	};
 	title: {
 		details(kind: Kind, id: string): Promise<TitleDetails>;
@@ -31,6 +34,8 @@ export interface Api {
 		episodes(id: string, season: number): Promise<Episode[]>;
 		/** `quick`: sin ir a IMDb (rápido; para los detalles de la tarjeta). La web lo ignora. */
 		seasonRatings(imdb: string, quick?: boolean): Promise<SeasonRatings>;
+		/** Puntaje de IMDb de cada capítulo de la temporada (los sin puntaje no vienen). */
+		episodeRatings(imdb: string, season: number): Promise<EpisodeScore[]>;
 		/** Premios (IMDb): totales y el detalle de los grandes. */
 		awards(imdb: string): Promise<TitleAwards>;
 	};

@@ -236,6 +236,11 @@ async fn main() {
             &[SERIES, &season.to_string()],
             Ok::<_, ()>(core.catalog_episodes(SERIES, season).await),
         );
+        save(
+            "catalog_episode_ratings",
+            &[SERIES, &season.to_string()],
+            core.catalog_episode_ratings(SERIES, season).await,
+        );
     }
     record_streams(&core, &rec, MediaKind::Movie, "movie", MOVIE_PLATFORMS).await;
     record_streams(&core, &rec, MediaKind::Movie, "movie", MOVIE_SPANISH).await;

@@ -40,14 +40,12 @@
 			teaser={panel.hasKey === false ? teaser : undefined}
 			collapsed={panel.season != null}
 			crumbs={false}
-			stills={false}
-			lockUnaired
 			{genreLabel}
 			{locale}
 		>
 			{#snippet between()}
-				<!-- Migas solo en series: en una película quedaba una franja vacía. -->
-				{#if panel.kind === 'tv'}
+				<!-- Migas solo en series con una temporada abierta: sin eso solo repetían el título (2026-11-24). -->
+				{#if panel.kind === 'tv' && steps.length > 1}
 					<div class="side-head">
 						<nav class="crumbs" aria-label={t('Serie')}>
 							{#if up}<button id="cat-crumb-up" type="button" class="crumb-up" title={t('Volver')} aria-label={t('Volver')} onclick={up}>←</button>{/if}

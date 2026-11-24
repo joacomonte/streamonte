@@ -188,7 +188,7 @@
 	/** Texto de un valor: meses sueltos ("hace 3 meses") o el año. */
 	const valueText = (m: number) => (m < 12 ? backLabel(m) : String(YEAR - m / 12));
 	/** La etiqueta del año pasa al lado izquierdo del cabezal cuando este queda cerca de la derecha. */
-	const flip = $derived(at(shownM) > 70);
+	const flip = $derived(at(shownM) < 16);
 
 </script>
 
@@ -250,29 +250,28 @@
 	/* Estrenos desde: una tira de película con todo adentro (título, año en el cabezal, "hoy"). */
 	.since { margin-top: 10px; }
 	.reel-label { position: absolute; left: 12px; top: 17px; z-index: 1; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; pointer-events: none; }
-	/* El año, pegado al cabezal; pasa a su izquierda cuando el cabezal queda cerca de la derecha. */
+	/* El año, pegado al cabezal por la izquierda (2026-11-24); pasa a su derecha cuando el cabezal queda cerca del borde izquierdo. */
 	.tag {
 		position: absolute;
 		top: 50%;
 		left: var(--at);
 		z-index: 2;
-		translate: 10px -50%;
-		padding: 2px 7px;
+		translate: calc(-100% - 10px) -50%;
+		padding: 3px 9px;
 		border-radius: var(--r-xs);
-		/* Sutil (2026-11-23): vidrio ámbar tenue en vez de la placa llena. */
-		background: color-mix(in srgb, var(--amber) 14%, transparent);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amber) 35%, transparent);
-		backdrop-filter: blur(6px);
-		color: var(--amber);
-		font-size: 14px;
-		font-weight: 700;
+		/* Placa ámbar llena (2026-11-24: la de vidrio tenue no se veía). */
+		background: var(--amber);
+		box-shadow: 0 4px 14px color-mix(in srgb, var(--amber) 40%, transparent), 0 0 0 1px rgb(0 0 0 / 0.25);
+		color: #1a1204;
+		font-size: 15px;
+		font-weight: 800;
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 		pointer-events: none;
 		transition: left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 		animation: tick-in 0.25s var(--out);
 	}
-	.reel.flip .tag { translate: calc(-100% - 10px) -50%; }
+	.reel.flip .tag { translate: 10px -50%; }
 	.reel.live .tag { transition: none; }
 	.since-to {
 		position: absolute;

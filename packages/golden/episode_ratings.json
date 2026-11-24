@@ -1,0 +1,157 @@
+[
+ {
+  "in": {
+   "season": 1,
+   "data": {
+    "title": null
+   }
+  },
+  "out": [],
+  "nota": "serie que IMDb no conoce"
+ },
+ {
+  "in": {
+   "season": 2,
+   "data": {
+    "title": {
+     "episodes": {
+      "episodes": {
+       "edges": [
+        {
+         "node": {
+          "series": {
+           "displayableEpisodeNumber": {
+            "episodeNumber": {
+             "text": "2"
+            },
+            "displayableSeason": {
+             "text": "2"
+            }
+           }
+          },
+          "ratingsSummary": {
+           "aggregateRating": 9.3
+          }
+         }
+        },
+        {
+         "node": {
+          "series": {
+           "displayableEpisodeNumber": {
+            "episodeNumber": {
+             "text": "1"
+            },
+            "displayableSeason": {
+             "text": "2"
+            }
+           }
+          },
+          "ratingsSummary": {
+           "aggregateRating": 8.6
+          }
+         }
+        },
+        {
+         "node": {
+          "series": {
+           "displayableEpisodeNumber": {
+            "episodeNumber": {
+             "text": "3"
+            },
+            "displayableSeason": {
+             "text": "2"
+            }
+           }
+          },
+          "ratingsSummary": {
+           "aggregateRating": null
+          }
+         }
+        },
+        {
+         "node": {
+          "series": {
+           "displayableEpisodeNumber": {
+            "episodeNumber": {
+             "text": "4"
+            },
+            "displayableSeason": {
+             "text": "1"
+            }
+           }
+          },
+          "ratingsSummary": {
+           "aggregateRating": 7.0
+          }
+         }
+        },
+        {
+         "node": {
+          "series": {
+           "displayableEpisodeNumber": {
+            "episodeNumber": {
+             "text": "unknown"
+            },
+            "displayableSeason": {
+             "text": "2"
+            }
+           }
+          },
+          "ratingsSummary": {
+           "aggregateRating": 8.0
+          }
+         }
+        },
+        {
+         "node": {
+          "series": {
+           "displayableEpisodeNumber": {
+            "episodeNumber": {
+             "text": "4"
+            },
+            "displayableSeason": {
+             "text": "2"
+            }
+           }
+          },
+          "ratingsSummary": {
+           "aggregateRating": 0
+          }
+         }
+        },
+        {
+         "node": {
+          "series": {
+           "displayableEpisodeNumber": {
+            "episodeNumber": {
+             "text": "1"
+            },
+            "displayableSeason": {
+             "text": "2"
+            }
+           }
+          },
+          "ratingsSummary": {
+           "aggregateRating": 8.6
+          }
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  },
+  "out": [
+   {
+    "episode": 1,
+    "rating": 8.6
+   },
+   {
+    "episode": 2,
+    "rating": 9.3
+   }
+  ],
+  "nota": "ordenados por capítulo; fuera los sin puntaje, de otra temporada, sin número o repetidos"
+ }
+]

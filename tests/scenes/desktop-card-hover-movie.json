@@ -4,14 +4,18 @@
  "setup": [
   {
    "type": "#cat-q",
-   "text": "fight club",
+   "text": "brad",
+   "after": 1500
+  },
+  {
+   "click": "#q-person-287",
    "after": 1500
   }
  ],
  "must": [
   {
    "sel": "#cat-card-tt0137523",
-   "text": "Fight Club"
+   "text": "club de la pelea|Fight Club"
   },
   {
    "sel": "#cat-card-tt0137523",
@@ -21,9 +25,9 @@
   },
   {
    "sel": "#cat-card-tt0137523",
-   "text": "139 min",
+   "text": "Comedia negra",
    "hover": "#cat-card-tt0137523",
-   "note": "hover: duración"
+   "note": "hover: subgéneros de IMDb (año, puntaje y duración ya no: están bajo el póster)"
   },
   {
    "sel": "#cat-awards-tt0137523",

@@ -30,8 +30,8 @@ export function fakeApi(script: FakeScript = {}): { api: Api; calls: string[] } 
 	};
 	const api: Api = {
 		capabilities: { speedTests: false, premiumSubs: true, library: false, localPlayer: false },
-		catalog: { browse: unused, search: unused, people: async () => [], personTitles: async () => [], examples: async () => ({}), poster: async () => null },
-		title: { details: unused, similar: async () => [], episodes: async () => [], seasonRatings: unused, awards: unused },
+		catalog: { browse: unused, search: unused, people: async () => [], personTitles: async () => [], examples: async () => ({}), poster: async () => null, readableImage: async (url) => url },
+		title: { details: unused, similar: async () => [], episodes: async () => [], seasonRatings: unused, episodeRatings: async () => [], awards: unused },
 		options: {
 			async *load() {
 				await hit('options.load');

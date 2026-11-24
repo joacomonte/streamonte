@@ -5,7 +5,7 @@ import type {
   AddonView, AnalyzeScope, ApiKeyStatus, BrowsePage, CatalogItem, CatalogSubtitles, CleanupReport, Config, CopiedMagnet, CoreEvent,
   DetailsView, EpisodeText, Equalizer, IncomingCheck, InfoHash, InterestExample, LanguageConfig, LibraryRow, LibraryView, MagnetStatus,
   MediaKind, Meta, PlaybackAction, PlaybackId, PlaybackRow, PlayerKind, PlayersStatus, PremiumPick, PremiumQuota, SavedTest, SearchPerson,
-  SeasonRatings, Similar, SpeedResult, SubtitleFound, SubtitleLanguage, SubtitlePicks, SwarmCount, TempUsage, TitleAwards, TorboxCached,
+  SeasonRatings, Similar, SpeedResult, SubtitleFound, SubtitleLanguage, SubtitlePicks, SwarmCount, TempUsage, TitleAwards, EpisodeScore, TorboxCached,
   TorboxMagnetView, VideoKey,
 } from './types.ts';
 
@@ -109,6 +109,10 @@ export const catalogDetails = (kind: MediaKind, imdbId: string) => once<DetailsV
 export const catalogSimilar = (kind: MediaKind, imdbId: string) => invoke<Similar[]>('catalog_similar', { kind, imdbId });
 /** Puntaje promedio por temporada y estado de la serie. quick: no espera al índice de IMDb si se está armando (solo el estado). */
 export const catalogSeasonRatings = (imdbId: string, quick = false) => invoke<SeasonRatings>('catalog_season_ratings', { imdbId, quick });
+/** Bytes de un póster (ArrayBuffer): la UI lee su color. */
+export const catalogImage = (url: string) => invoke<ArrayBuffer>('catalog_image', { url });
+/** Puntaje de IMDb de cada capítulo de una temporada. */
+export const catalogEpisodeRatings = (imdbId: string, season: number) => invoke<EpisodeScore[]>('catalog_episode_ratings', { imdbId, season });
 /** Premios de IMDb: totales y el detalle de los grandes. */
 export const catalogAwards = (imdbId: string) => invoke<TitleAwards>('catalog_awards', { imdbId });
 /** Explorar con filtros de IMDb (necesita key de TMDB): {items, has_more:false}. sort: 'popular' | 'rating'. languages: ['en','es'] = idioma original inglés o español; [] = cualquiera. */

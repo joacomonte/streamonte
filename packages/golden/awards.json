@@ -6,7 +6,9 @@
   "out": {
    "wins": 0,
    "nominations": 0,
-   "entries": []
+   "entries": [],
+   "interests": [],
+   "rating": null
   },
   "nota": "título que IMDb no conoce"
  },
@@ -132,7 +134,9 @@
      "category": "Best Original Score - Motion Picture",
      "year": 2015
     }
-   ]
+   ],
+   "interests": [],
+   "rating": null
   },
   "nota": "evento chico afuera; textos recortados; nominaciones = todas − ganadas"
  },
@@ -302,7 +306,9 @@
      "category": "Best Film",
      "year": 2019
     }
-   ]
+   ],
+   "interests": [],
+   "rating": null
   },
   "nota": "festivales: solo los premios principales"
  },
@@ -385,7 +391,9 @@
      "category": null,
      "year": 2010
     }
-   ]
+   ],
+   "interests": [],
+   "rating": null
   },
   "nota": "sin premio o con nombre vacío se descarta; categoría en blanco = null; sin isWinner = no ganó; nunca nominaciones negativas"
  },
@@ -396,8 +404,107 @@
   "out": {
    "wins": 0,
    "nominations": 0,
-   "entries": []
+   "entries": [],
+   "interests": [],
+   "rating": null
   },
   "nota": "sin campos"
+ },
+ {
+  "in": {
+   "title": {
+    "all": {
+     "total": 0
+    },
+    "won": {
+     "total": 0
+    },
+    "top": {
+     "edges": []
+    },
+    "interests": {
+     "edges": [
+      {
+       "node": {
+        "id": "in0000110"
+       }
+      },
+      {
+       "node": {
+        "id": "in0000114"
+       }
+      },
+      {
+       "node": {
+        "id": "xx1"
+       }
+      }
+     ]
+    }
+   }
+  },
+  "out": {
+   "wins": 0,
+   "nominations": 0,
+   "entries": [],
+   "interests": [
+    "in0000110",
+    "in0000114"
+   ],
+   "rating": null
+  },
+  "nota": "subgéneros: solo ids in…, en el orden de IMDb"
+ },
+ {
+  "in": {
+   "title": {
+    "all": {
+     "total": 0
+    },
+    "won": {
+     "total": 0
+    },
+    "top": {
+     "edges": []
+    },
+    "ratingsSummary": {
+     "aggregateRating": 6.5
+    }
+   }
+  },
+  "out": {
+   "wins": 0,
+   "nominations": 0,
+   "entries": [],
+   "interests": [],
+   "rating": 6.5
+  },
+  "nota": "puntaje de IMDb (respaldo de la ficha)"
+ },
+ {
+  "in": {
+   "title": {
+    "all": {
+     "total": 0
+    },
+    "won": {
+     "total": 0
+    },
+    "top": {
+     "edges": []
+    },
+    "ratingsSummary": {
+     "aggregateRating": 0
+    }
+   }
+  },
+  "out": {
+   "wins": 0,
+   "nominations": 0,
+   "entries": [],
+   "interests": [],
+   "rating": null
+  },
+  "nota": "puntaje 0 = sin puntaje"
  }
 ]
