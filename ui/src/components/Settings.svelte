@@ -4,15 +4,15 @@
   import { onMount, tick } from 'svelte';
   import Icon from '$ui/components/Icon.svelte';
   import Sheet from '$ui/components/Sheet.svelte';
-  import { desktop } from '../desktopApi.ts';
-  import { setStatus, showError } from '../dom.js';
-  import { t } from '../i18n.js';
+  import * as core from '../core.ts';
+  import { setStatus, showError } from '../dom.ts';
+  import { t } from '../i18n.ts';
   import {
     installMpv, loadSettings, netCheckView, osLoginText, playersView, saveEqualizer, saveKey, saveLatTeamToken, saveNetwork,
     saveOsLogin, toggleLatTeam, type KeyService, type Net, type PlayersView
   } from '../settings-model.ts';
   import { host } from '../ui-host.ts';
-  import type * as Raw from '../types.js';
+  import type * as Raw from '../types.ts';
 
   /** `tip`: lo que antes era párrafo, ahora en el tooltip del ⓘ. */
   type Row = { service: KeyService; label: string; hint: string; tip?: string; placeholder: string; primary?: boolean };
@@ -58,7 +58,7 @@
   }
 
   async function showOsLogin(): Promise<void> {
-    osState = osLoginText(await desktop.premiumQuota().catch(() => null));
+    osState = osLoginText(await core.premiumQuota().catch(() => null));
   }
 
   async function open(): Promise<void> {
@@ -67,7 +67,7 @@
     latteamEdit = false;
     try {
       showOsLogin();
-      const s = await loadSettings(desktop);
+      const s = await loadSettings(core);
       keys = s.keys;
       eq = s.eq;
       eqIntensity = s.eqIntensity;
@@ -82,7 +82,7 @@
 
   async function onSaveKey(service: KeyService): Promise<void> {
     try {
-      const r = await saveKey(desktop, service, inputs[service]);
+      const r = await saveKey(core, service, inputs[service]);
       inputs[service] = '';
       if (r.event) document.dispatchEvent(new CustomEvent(r.event));
       if (r.cleared) {
@@ -108,7 +108,7 @@
 
   async function onLatTeamToggle(e: Event & { currentTarget: HTMLInputElement }): Promise<void> {
     try {
-      await toggleLatTeam(desktop, e.currentTarget.checked);
+      await toggleLatTeam(core, e.currentTarget.checked);
       latteamOn = e.currentTarget.checked;
     } catch (err) {
       showError(err);
@@ -116,10 +116,10 @@
   }
   async function onSaveLatTeam(): Promise<void> {
     try {
-      const msg = await saveLatTeamToken(desktop, latteamToken);
+      const msg = await saveLatTeamToken(core, latteamToken);
       latteamToken = '';
       latteamEdit = false;
-      keys = await desktop.apiKeys();
+      keys = await core.apiKeys();
       setStatus(msg);
     } catch (e) {
       showError(e);
@@ -127,7 +127,7 @@
   }
   async function onSaveOs(): Promise<void> {
     try {
-      await saveOsLogin(desktop, osUser, osPass);
+      await saveOsLogin(core, osUser, osPass);
       osPass = '';
       await showOsLogin();
     } catch (e) {
@@ -139,7 +139,7 @@
     try {
       eq = value;
       eqIntensity = intensity;
-      setStatus(await saveEqualizer(desktop, value, intensity));
+      setStatus(await saveEqualizer(core, value, intensity));
     } catch (e) {
       showError(e);
     }
@@ -147,7 +147,7 @@
   async function onNet(field: keyof Net, value: boolean): Promise<void> {
     net = { ...net, [field]: value };
     try {
-      setStatus(await saveNetwork(desktop, net));
+      setStatus(await saveNetwork(core, net));
     } catch (e) {
       showError(e);
     }
@@ -156,12 +156,12 @@
   async function onInstallMpv(): Promise<void> {
     mpvBusy = true;
     try {
-      setStatus(await installMpv(desktop));
+      setStatus(await installMpv(core));
     } catch (e) {
       showError(e);
     } finally {
       mpvBusy = false;
-      desktop.playersStatus().then((p) => (players = playersView(p)), () => {});
+      core.playersStatus().then((p) => (players = playersView(p)), () => {});
     }
   }
 
@@ -169,7 +169,7 @@
     netBusy = true;
     netCheck = { cls: '', text: t('Abriendo el puerto en el router y probando desde internet (hasta 30 s)…') };
     try {
-      netCheck = netCheckView(await desktop.checkIncoming());
+      netCheck = netCheckView(await core.checkIncoming());
     } catch (e) {
       showError(e);
       netCheck = { cls: '', text: '' };
@@ -205,7 +205,7 @@
       {#if ok}
         <button id="key-{row.service}-change" class="st-link" type="button" onclick={() => toggleEdit(row.service)}>{editing.includes(row.service) ? t('Cancelar') : t('Cambiar')}</button>
       {:else}
-        <button id="key-{row.service}-page" class="st-link" type="button" onclick={() => desktop.openKeyPage(row.service).catch(showError)}>{t('Conseguir')}<Icon name="external" size={13} /></button>
+        <button id="key-{row.service}-page" class="st-link" type="button" onclick={() => core.openKeyPage(row.service).catch(showError)}>{t('Conseguir')}<Icon name="external" size={13} /></button>
       {/if}
     </div>
     {#if saved?.service === row.service}
@@ -350,7 +350,7 @@
             {#if latteamHas}
               <button id="key-latteam-change" class="st-link" type="button" onclick={() => (latteamEdit = !latteamEdit)}>{latteamEdit ? t('Cancelar') : t('Cambiar')}</button>
             {:else}
-              <button id="key-latteam-page" class="st-link" type="button" onclick={() => desktop.openKeyPage('latteam').catch(showError)}>{t('Conseguir')}<Icon name="external" size={13} /></button>
+              <button id="key-latteam-page" class="st-link" type="button" onclick={() => core.openKeyPage('latteam').catch(showError)}>{t('Conseguir')}<Icon name="external" size={13} /></button>
             {/if}
             <input id="set-latteam-on" class="st-toggle" type="checkbox" role="switch" aria-label={t('Buscar también en Lat-Team')} checked={latteamOn} onchange={onLatTeamToggle}>
           </div>

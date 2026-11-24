@@ -1,7 +1,7 @@
 // Estado en vivo del núcleo (biblioteca, reproducciones, análisis) como valor inmutable: cada evento da un `Live` nuevo
 // (o el mismo si no cambia nada), para guardarlo en `$state.raw` (live.svelte.ts). Puro: lo prueba live.test.ts.
-import { t } from './i18n.js';
-import type { AnalyzerState, CoreEvent, InfoHash, LibraryRow, LibraryView, PlaybackId, PlaybackRow, VideoKey } from './types.js';
+import { t } from '../../packages/ui/src/i18n/runtime.ts';
+import type { AnalyzerState, CoreEvent, InfoHash, LibraryRow, LibraryView, PlaybackId, PlaybackRow, VideoKey } from './types.ts';
 
 export type Live = {
 	/** Clave de video (`key` del núcleo: hash + episodio) → fila. Un pack de temporada tiene una fila por episodio con el

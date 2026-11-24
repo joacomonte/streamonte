@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as adapt from '../../../../ui/src/tauri-adapt.ts';
-import type * as Raw from '../../../../ui/src/types.js';
+import type * as Raw from '../../../../ui/src/types.ts';
 import { cardSeasons } from './card-info.ts';
 
 const fixture = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../../../../ui/mock/${name}.json`, import.meta.url), 'utf8')) as T;

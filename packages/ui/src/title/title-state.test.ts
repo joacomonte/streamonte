@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as adapt from '../../../../ui/src/tauri-adapt.ts';
-import type * as Raw from '../../../../ui/src/types.js';
+import type * as Raw from '../../../../ui/src/types.ts';
 import { chartModel, episodeRows, outlookOf, pickPeople, providerView, seasonTiles, showCineNote } from './title-state.ts';
 import type { SeasonRatings } from '../types.ts';
 

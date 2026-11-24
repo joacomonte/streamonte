@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installMpv, loadSettings, netCheckView, osLoginText, playersView, saveEqualizer, saveKey, saveLatTeamToken, saveNetwork, saveOsLogin, toggleLatTeam } from './settings-model.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 /** Registra cada comando como "nombre(args)"; el resto de la API no se toca. */
 function fake() {

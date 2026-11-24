@@ -5,11 +5,11 @@
   import Icon from '$ui/components/Icon.svelte';
   import Tour from '$ui/components/Tour.svelte';
   import { resumeIndex, type LangCode, type Step } from '$ui/components/tour-state.ts';
-  import { api } from './api.js';
-  import { safeGet, safeSet } from './catalog-state.js';
-  import { langs, setLangs, t } from './i18n.js';
-  import type { PlayersStatus } from './types.d.ts';
-  import { setTouring, STORE } from './welcome-state.js';
+  import * as core from './core.ts';
+  import { safeGet, safeSet } from './catalog-state.ts';
+  import { langs, setLangs, t } from './i18n.ts';
+  import type { PlayersStatus } from './types.ts';
+  import { setTouring, STORE } from './welcome-state.ts';
 
   const saved = safeGet(STORE);
   const steps: Step[] = [
@@ -26,8 +26,8 @@
 
   onMount(() => {
     if (!open) return;
-    api.apiKeys().then((ks: { service: string; configured: boolean }[]) => (configured = ks.filter((k) => k.configured).map((k) => k.service))).catch(() => {});
-    api.playersStatus().then((p: PlayersStatus) => (players = p)).catch(() => {});
+    core.apiKeys().then((ks: { service: string; configured: boolean }[]) => (configured = ks.filter((k) => k.configured).map((k) => k.service))).catch(() => {});
+    core.playersStatus().then((p: PlayersStatus) => (players = p)).catch(() => {});
   });
   $effect(() => {
     if (open) safeSet(STORE, String(index));
@@ -52,7 +52,7 @@
         <li class="tour-item">
           <span class="tour-item-text"><b>{name}{#if configured.includes(service)}{@render ok()}{/if}</b><small>{what}</small></span>
           {#if !configured.includes(service)}
-            <button id="welcome-key-{service}" type="button" onclick={() => api.openKeyPage(service).catch(() => {})}><Icon name="external" size={14} />{t('Pedirla')}</button>
+            <button id="welcome-key-{service}" type="button" onclick={() => core.openKeyPage(service).catch(() => {})}><Icon name="external" size={14} />{t('Pedirla')}</button>
           {/if}
         </li>
       {/each}

@@ -39,7 +39,7 @@ function sources(dir: URL): URL[] {
 	return readdirSync(dir, { withFileTypes: true }).flatMap((f) => {
 		const url = new URL(f.isDirectory() ? `${f.name}/` : f.name, dir);
 		if (f.isDirectory()) return ['node_modules', 'dist', 'build', '.svelte-kit', '.data', 'mock'].includes(f.name) ? [] : sources(url);
-		return /\.(js|ts|svelte)$/.test(f.name) && !/\.test\.(js|ts)$/.test(f.name) && !/(^|\/)(en\.ts|i18n\.js|test-stub\.js)$/.test(f.name) ? [url] : [];
+		return /\.(js|ts|svelte)$/.test(f.name) && !/\.test\.(js|ts)$/.test(f.name) && !/(^|\/)(en\.ts|i18n\.ts|test-stub\.ts)$/.test(f.name) ? [url] : [];
 	});
 }
 

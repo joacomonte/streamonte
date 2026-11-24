@@ -2,17 +2,17 @@
 // de fondo. Arma el modelo de vista (`streams-view.ts`) que dibuja `StreamsPanel.svelte` en `#cat-streams`
 // (`streams-panel.svelte.ts`); las filas son `$ui/options/OptionRow.svelte`. Las pruebas: `catalog-tests.ts`; los pasos:
 // `catalog-flow.ts`; reglas puras: `options-logic.ts`.
-import { api } from './api.js';
-import { closeWizard, originalAudio, play } from './audio-picker.js';
-import { setStatus } from './dom.js';
-import { t as tr } from './i18n.js';
+import * as core from './core.ts';
+import { closeWizard, originalAudio, play } from './audio-picker.ts';
+import { setStatus } from './dom.ts';
+import { t as tr } from './i18n.ts';
 import { ago, humanBytes, mbps, nf, nf1 } from '$ui/format.ts';
-import { playbackText } from './format.js';
+import { playbackText } from './format.ts';
 import { healthCalibration, notePrediction, speedOf, TRACKER_MIN, trackPlayback } from './health-store.ts';
-import { state as lib } from './state.js';
-import { renderSide } from './catalog-side.js';
-import { safeGet, safeSet, showError, state, view } from './catalog-state.js';
-import { isReading, openSubs, readError, readSubsNow, readTracks, readUntil, stopReading, subsScan, subsStep, toggleSubsScan } from './catalog-subs.js';
+import { live } from './live.svelte.ts';
+import { renderSide } from './catalog-side.ts';
+import { safeGet, safeSet, showError, state, view } from './catalog-state.ts';
+import { isReading, openSubs, readError, readSubsNow, readTracks, readUntil, stopReading, subsScan, subsStep, toggleSubsScan } from './catalog-subs.ts';
 import {
 	analysisEta, census, counted, counting, deepDone, liveCount, loadSavedTests, newVideoTests, once, phaseAt, quick, QUICK_ENOUGH, QUICK_LATE_MS, quickGroup, quickLive,
 	quickPending, quickRunning, reanalyze, runCensus, runDeep, side, sideOf, skipped, startAnalysis, stopTests, testedAt, toggleBest, TOP, unlikely,
@@ -27,7 +27,7 @@ import type { LatState } from '$ui/types.ts';
 import { BG_GREEN, BG_YELLOW, bgTone, fileBytesOf, leechersFrom, pickLine, pinActive, playbackFor, PB_LIVE, PB_STARTING, seedsOf, trackersWin } from './options-logic.ts';
 import { flushStreams, mountCtxMenu, openCtxMenu, showStreams } from './streams-panel.svelte.ts';
 import type { CtxItem, ListView, MoreRowView, PanelView, SortView, StreamsView } from './streams-view.ts';
-import type { LibraryRow, NativeSpanish, PlaybackRow, PlayerKind, StreamCandidate as Candidate, StreamsUpdate } from './types.js';
+import type { LibraryRow, NativeSpanish, PlaybackRow, PlayerKind, StreamCandidate as Candidate, StreamsUpdate } from './types.ts';
 
 export { BG_GREEN, BG_YELLOW, PB_LIVE, PB_STARTING, seedsOf, trackersWin };
 
@@ -142,12 +142,12 @@ export async function loadStreams(videoId: string): Promise<void> {
 	view.onlyHdr = false;
 	view.onlyEs = false;
 	tips.reset();
-	api.downloadsFreeBytes().then((b) => { view.freeBytes = b; renderStreamsOnly(); }).catch(() => {});
+	core.downloadsFreeBytes().then((b) => { view.freeBytes = b; renderStreamsOnly(); }).catch(() => {});
 	state.update = null;
 	renderSide();
 	setStatus(tr('Pidiendo torrents a todas las fuentes…'));
 	try {
-		await api.catalogStreams(side().kind, videoId);
+		await core.catalogStreams(side().kind, videoId);
 	} catch (e) {
 		showError(e);
 	}
@@ -191,7 +191,7 @@ export function sortOptions(cands: Candidate[]): { list: Candidate[]; best: Cand
 		torbox: sideOf()?.flow?.mode === 'torbox',
 		mode: deepTested() ? view.optSort : 'fast',
 		health, fits, tierOf, knownSeeds, leechersOf, quickGroup, mbpsOf, isMatch,
-		pinPlaying: (list) => pinActive(list, lib.playbacks.values()),
+		pinPlaying: (list) => pinActive(list, live.v.playbacks.values()),
 		sizeOf: (c) => c.size_bytes,
 		sourceOf: (c) => c.source,
 		reached: (c) => counted.get(c.info_hash)?.reached,
@@ -246,7 +246,7 @@ export function markFailed(hash: string): void {
 export async function loadTorbox(video: string, cands: Candidate[]): Promise<void> {
 	if (!view.torboxKey) return;
 	side().torbox = 'checking';
-	const found = await api.catalogTorbox(video, cands.map((c) => c.info_hash)).catch(() => null);
+	const found = await core.catalogTorbox(video, cands.map((c) => c.info_hash)).catch(() => null);
 	if (sideOf()?.videoId !== video) return;
 	// null = TorBox no respondió (la key ya se sabe que está).
 	side().torbox = found ? 'done' : 'error';
@@ -261,13 +261,13 @@ export async function loadTorbox(video: string, cands: Candidate[]): Promise<voi
 	}
 	renderStreamsOnly();
 }
-api.apiKeys().then((ks) => {
+core.apiKeys().then((ks) => {
 	view.torboxKey = ks.some((k) => k.service === 'torbox' && k.configured);
 	renderStreamsOnly();
 }).catch(() => {});
 // Key de TorBox recién cargada en Ajustes: se marca enseguida lo del video abierto.
 document.addEventListener('streamonte:torbox-key', async () => {
-	const ks = await api.apiKeys().catch(() => []);
+	const ks = await core.apiKeys().catch(() => []);
 	view.torboxKey = ks.some((k) => k.service === 'torbox' && k.configured);
 	if (view.torboxKey && state.update?.done) void loadTorbox(side().videoId, state.update.candidates);
 	else renderStreamsOnly();
@@ -278,7 +278,7 @@ mountCtxMenu();
  *  esperar al núcleo (WebKit lo pierde con un `await` antes de copiar). */
 function copyLink(hash: string, torbox: boolean): void {
 	const f = sideOf()?.flow;
-	const link = api.catalogLink(hash, torbox, sideOf()?.details?.details?.original_language ?? null, !!(f?.lat && !f.latOff));
+	const link = core.catalogLink(hash, torbox, sideOf()?.details?.details?.original_language ?? null, !!(f?.lat && !f.latOff));
 	const done = typeof ClipboardItem === 'function'
 		? navigator.clipboard.write([new ClipboardItem({ 'text/plain': link.then((t) => new Blob([t], { type: 'text/plain' })) })])
 		: link.then((t) => navigator.clipboard.writeText(t));
@@ -628,11 +628,11 @@ export function bgText(c: Candidate): { cls: string; text: string; tip: string }
 /** Deja bajando de fondo esa opción del video abierto (botón de la fila y "Elegí la mejor"). false si no se pudo agregar. */
 export async function startBg(hash: string): Promise<boolean> {
 	notePrediction(hash, evidenceOf(hash));
-	const [row] = await api.catalogAdd(side().kind, side().videoId, [hash]);
+	const [row] = await core.catalogAdd(side().kind, side().videoId, [hash]);
 	if (!row) return false;
 	bgLoads.set(hash, { key: row.key, row: null });
 	try {
-		await api.playBackground(row.key);
+		await core.playBackground(row.key);
 	} catch (e) {
 		bgLoads.delete(hash);
 		throw e;
@@ -647,7 +647,7 @@ export async function toggleBg(hash: string, btn: HTMLButtonElement): Promise<vo
 		if (b) {
 			bgLoads.delete(hash);
 			// Si ya se está viendo (Reproducir la retomó), cancelar no cierra el reproductor.
-			if (b.row && ['fetching-metadata', 'preparing', 'background'].includes(b.row.state.kind)) await api.playbackAction(b.row.id, 'stop');
+			if (b.row && ['fetching-metadata', 'preparing', 'background'].includes(b.row.state.kind)) await core.playbackAction(b.row.id, 'stop');
 			setStatus(tr('Carga en background cancelada: lo bajado queda guardado.'));
 		} else if (await startBg(hash)) {
 			setStatus(tr('Cargando en background: la velocidad promedio aparece en la opción.'));
@@ -662,7 +662,7 @@ export async function toggleBg(hash: string, btn: HTMLButtonElement): Promise<vo
 }
 
 /** La reproducción de ese torrent que importa ahora (regla en `options-logic.ts`). */
-export const playbackOf = (hash: string): PlaybackRow | undefined => playbackFor(lib.playbacks.values(), hash);
+export const playbackOf = (hash: string): PlaybackRow | undefined => playbackFor(live.v.playbacks.values(), hash);
 
 /** ¿Entra en el disco de descargas? Sin dato del espacio libre, sí. */
 export const fits = (c: Candidate): boolean => view.freeBytes == null || !((fileBytes(c) ?? 0) > view.freeBytes);
@@ -774,7 +774,7 @@ export function playButtons(c: Candidate, acts: DockButton[] = []): Action {
 		return {
 			kind: 'stop', id: `cat-stop-${hash}`, text: tr('Detener'),
 			title: pb.stream ? tr('Detener: cierra el reproductor') : tr('Detener: cierra el reproductor y la descarga queda pausada y guardada'),
-			onclick: (ev) => { ev.currentTarget.disabled = true; api.playbackAction(pb.id, 'stop').catch(showError); },
+			onclick: (ev) => { ev.currentTarget.disabled = true; core.playbackAction(pb.id, 'stop').catch(showError); },
 			// Mientras se ve: otro subtítulo, cargado en el mpv abierto (VLC no se puede manejar desde acá).
 			subchange: pb.player === 'mpv' && pb.state.kind !== 'ask-after-close'
 				? { id: `cat-subchange-${hash}`, title: tr('Cambiar subtítulo: elegí otro y se carga en el reproductor sin cortar'), onclick: (ev) => openSubs(hash, pb.stream, ev.currentTarget, pb.id) }
@@ -801,7 +801,7 @@ export function playButtons(c: Candidate, acts: DockButton[] = []): Action {
 function cancelPlay(hash: string, pb: PlaybackRow | undefined): void {
 	starting.delete(hash);
 	closeWizard();
-	if (pb && PB_STARTING.has(pb.state.kind)) api.playbackAction(pb.id, 'stop').catch(showError);
+	if (pb && PB_STARTING.has(pb.state.kind)) core.playbackAction(pb.id, 'stop').catch(showError);
 	setStatus('Cancelado.');
 	renderStreamsOnly();
 }
@@ -1032,7 +1032,7 @@ export async function playOption(hash: string, btn: HTMLButtonElement, torbox = 
 	let started: boolean | undefined = false;
 	try {
 		notePrediction(hash, evidenceOf(hash));
-		const [row] = await api.catalogAdd(side().kind, side().videoId, [hash]);
+		const [row] = await core.catalogAdd(side().kind, side().videoId, [hash]);
 		if (row && starting.has(hash)) {
 			starting.set(hash, row.key);
 			// TorBox: video en línea, sin motor ni fila de reproducción. Sus pistas se leen de TorBox antes de preguntar el audio.
@@ -1046,8 +1046,8 @@ export async function playOption(hash: string, btn: HTMLButtonElement, torbox = 
 				if (!starting.has(hash)) return false;
 				if (torbox) {
 					setStatus('Pidiéndole el video a TorBox…');
-					await api.playTorbox(side().videoId, hash, player, audio);
-				} else await api.play(row.key, player, null, audio);
+					await core.playTorbox(side().videoId, hash, player, audio);
+				} else await core.play(row.key, player, null, audio);
 				setStatus('Cargando…');
 				return true;
 			};
@@ -1062,7 +1062,7 @@ export async function playOption(hash: string, btn: HTMLButtonElement, torbox = 
 		showError(e);
 	}
 	// Cancelado, error, o ya se estaba viendo (el núcleo no manda evento): se suelta ya.
-	const pb = started && [...lib.playbacks.values()].find((r) => r.key === starting.get(hash) && r.state.kind !== 'paused');
+	const pb = started && [...live.v.playbacks.values()].find((r) => r.key === starting.get(hash) && r.state.kind !== 'paused');
 	if (!started || (pb && !PB_STARTING.has(pb.state.kind))) starting.delete(hash);
 	btn.disabled = false;
 	if (state.update) renderStreamsOnly();

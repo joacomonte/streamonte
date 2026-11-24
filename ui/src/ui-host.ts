@@ -1,4 +1,4 @@
-// Puente entre los wrappers JS (dialogs.js, speed.js) y los componentes Svelte: `main.ts` monta los componentes, que se registran acá.
+// Puente entre los módulos TS (dialog-flows.ts, speed.ts) y los componentes Svelte: `main.ts` monta los componentes, que se registran acá.
 export const host: {
 	openSettings?: () => Promise<void>;
 	openLog?: (title: string, lines: string[]) => void;

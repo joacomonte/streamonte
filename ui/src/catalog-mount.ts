@@ -5,13 +5,13 @@ import type { Api } from '../../packages/ui/src/api.ts';
 import Catalog from '../../packages/ui/src/catalog/Catalog.svelte';
 import { createCatalogStore } from '../../packages/ui/src/catalog/catalog.svelte.ts';
 import { apiContext } from '../../packages/ui/src/context.ts';
-import { askTmdbKey, attachStore, pasteMagnet, setPastedHost } from './catalog.js';
-import { hooks } from './catalog-state.js';
-import { openSide } from './catalog-side.js';
-import { openSettings } from './dialogs.js';
-import { setStatus } from './dom.js';
+import { askTmdbKey, attachStore, pasteMagnet, setPastedHost } from './catalog.ts';
+import { hooks } from './catalog-state.ts';
+import { openSide } from './catalog-side.ts';
+import { openSettings } from './dialog-flows.ts';
+import { setStatus } from './dom.ts';
 import { rawKind } from './tauri-adapt.ts';
-import { isTouring } from './welcome-state.js';
+import { isTouring } from './welcome-state.ts';
 
 export function mountCatalog(api: Api): void {
 	const store = createCatalogStore(api, { storageKey: 'streamonte.catalog.filters.v3', searchWait: 900, minQuery: 2, filterWait: 400, onstatus: setStatus });

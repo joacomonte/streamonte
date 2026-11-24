@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createTauriApi, type Core } from './tauriApi.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 const events = JSON.parse(readFileSync(new URL('../mock/events__catalog_streams__movie_tt0137523.json', import.meta.url), 'utf8')) as Raw.CoreEvent[];
 

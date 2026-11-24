@@ -1,6 +1,6 @@
 // Estado del medidor de velocidad (botón + panel). Sin runes: los componentes se suscriben y copian `snapshot()`.
 import { failedView, viewAfterEvent, type SpeedView } from './speed-model.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 export type SpeedSnapshot = { view: SpeedView; editing: boolean };
 export type SpeedDeps = { speedTest: (force: boolean) => Promise<Raw.SpeedResult>; setLinkMbps: (mbps: number, network: string) => void };

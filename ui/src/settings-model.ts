@@ -1,8 +1,8 @@
 // Ajustes sin DOM: qué comando llama cada guardado, validaciones y textos de estado. `Settings.svelte` solo pinta.
 // Las funciones tiran lo que tire el núcleo (la UI lo muestra con `showError`); devuelven el mensaje para la barra de estado.
 import { t } from '../../packages/ui/src/i18n/runtime.ts';
-import type { DesktopApi } from './desktopApi.ts';
-import type * as Raw from './types.js';
+import type * as core from './core.ts';
+import type * as Raw from './types.ts';
 
 export type KeyService = 'tmdb' | 'torbox' | 'wyzie' | 'opensubtitles';
 export type KeyEvent = 'streamonte:tmdb-key' | 'streamonte:torbox-key';
@@ -11,7 +11,7 @@ export type Net = { incoming: boolean; upnp: boolean; announce: boolean };
 const SERVICE_NAMES: Record<string, string> = { wyzie: 'Wyzie', opensubtitles: 'OpenSubtitles', tmdb: 'TMDB', torbox: 'TorBox' };
 export type KeySaved = { cleared: boolean; event: KeyEvent | null; status: string; done: string };
 /** Guarda la key (vacía = la borra). TMDB y TorBox avisan al resto de la app con un evento del documento. */
-export async function saveKey(api: Pick<DesktopApi, 'setApiKey'>, service: string, raw: string): Promise<KeySaved> {
+export async function saveKey(api: Pick<typeof core, 'setApiKey'>, service: string, raw: string): Promise<KeySaved> {
 	const value = raw.trim();
 	await api.setApiKey(service, value);
 	const name = SERVICE_NAMES[service] ?? service;
@@ -25,22 +25,22 @@ export async function saveKey(api: Pick<DesktopApi, 'setApiKey'>, service: strin
 	};
 }
 
-export async function saveLatTeamToken(api: Pick<DesktopApi, 'setApiKey'>, raw: string): Promise<string> {
+export async function saveLatTeamToken(api: Pick<typeof core, 'setApiKey'>, raw: string): Promise<string> {
 	await api.setApiKey('latteam', raw.trim());
 	return t('Token de Lat-Team guardado en el almacén seguro.');
 }
-export const toggleLatTeam = (api: Pick<DesktopApi, 'catalogSetAddonEnabled'>, on: boolean): Promise<void> => api.catalogSetAddonEnabled('latteam', on);
+export const toggleLatTeam = (api: Pick<typeof core, 'catalogSetAddonEnabled'>, on: boolean): Promise<void> => api.catalogSetAddonEnabled('latteam', on);
 
 /** Usuario y contraseña de OpenSubtitles.com (vacíos = borrar). */
-export const saveOsLogin = (api: Pick<DesktopApi, 'setOpensubtitlesLogin'>, user: string, pass: string): Promise<void> => api.setOpensubtitlesLogin(user.trim(), pass);
+export const saveOsLogin = (api: Pick<typeof core, 'setOpensubtitlesLogin'>, user: string, pass: string): Promise<void> => api.setOpensubtitlesLogin(user.trim(), pass);
 
-export async function saveEqualizer(api: Pick<DesktopApi, 'setEqualizer'>, eq: Raw.Equalizer, intensity: number): Promise<string> {
+export async function saveEqualizer(api: Pick<typeof core, 'setEqualizer'>, eq: Raw.Equalizer, intensity: number): Promise<string> {
 	await api.setEqualizer(eq, intensity);
 	return t('Sonido guardado: rige desde la próxima reproducción.');
 }
 
 /** ADR-30: entrantes / UPnP. El motor se crea por reproducción, así que aplica en la próxima. */
-export async function saveNetwork(api: Pick<DesktopApi, 'setNetwork'>, n: Net): Promise<string> {
+export async function saveNetwork(api: Pick<typeof core, 'setNetwork'>, n: Net): Promise<string> {
 	await api.setNetwork(n.incoming, n.upnp, n.announce);
 	return t('Red guardada: aplica desde la próxima reproducción.');
 }
@@ -70,7 +70,7 @@ export function playersView(p: Raw.PlayersStatus): PlayersView {
 }
 
 /** Con Homebrew instala mpv (minutos); si no, abre la guía. Devuelve el mensaje de estado. */
-export async function installMpv(api: Pick<DesktopApi, 'installMpv'>): Promise<string> {
+export async function installMpv(api: Pick<typeof core, 'installMpv'>): Promise<string> {
 	return (await api.installMpv()) ? t('mpv instalado: se usa desde la próxima reproducción.') : t('Abrí la guía de instalación de mpv.');
 }
 
@@ -88,7 +88,7 @@ export function netCheckView(r: Raw.IncomingCheck): { cls: 'ok' | 'bad' | ''; te
 
 export type SettingsSnapshot = { keys: Raw.ApiKeyStatus[]; eq: Raw.Equalizer; eqIntensity: number; net: Net; latteamOn: boolean; players: Raw.PlayersStatus };
 /** Todo lo que muestra Ajustes al abrirse. */
-export async function loadSettings(api: Pick<DesktopApi, 'apiKeys' | 'config' | 'catalogAddons' | 'playersStatus'>): Promise<SettingsSnapshot> {
+export async function loadSettings(api: Pick<typeof core, 'apiKeys' | 'config' | 'catalogAddons' | 'playersStatus'>): Promise<SettingsSnapshot> {
 	const keys = await api.apiKeys();
 	const { engine, player } = await api.config();
 	const addons = await api.catalogAddons();

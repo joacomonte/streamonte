@@ -81,10 +81,10 @@ if [ "$RUST" = 1 ]; then
   [ "$TAURI" = 1 ] && clippy_cmd="$clippy_cmd && cargo clippy -p streamonte $CLIPPY_TARGETS -q -- -D warnings"
   run clippy env CARGO_TARGET_DIR="$CLIPPY_TARGET" sh -c "$clippy_cmd"
 fi
-# oxlint (ui/.oxlintrc.json: globales del navegador, no-undef) y tsc con checkJs estricto (svelte-check + ui/tsconfig.js.json).
+# oxlint (ui/.oxlintrc.json: globales del navegador, no-undef) y tipos estrictos (svelte-check + ui/tsconfig.json).
 # Directo a node_modules/.bin: `corepack pnpm` suma ~0,3 s por llamada.
 if [ "$UI" = 1 ] || [ "$PKG" = 1 ]; then
-  run js sh -c 'cd ui && node_modules/.bin/oxlint src >/dev/null && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json >/dev/null && node_modules/.bin/tsc -p tsconfig.js.json >/dev/null'
+  run js sh -c 'cd ui && node_modules/.bin/oxlint src >/dev/null && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json >/dev/null'
 fi
 if [ "$WEB" = 1 ] || [ "$PKG" = 1 ]; then
   run web sh -c 'cd web && node_modules/.bin/svelte-kit sync >/dev/null && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json >/dev/null'

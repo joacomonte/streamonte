@@ -2,16 +2,16 @@
      sin análisis ni preguntas (la app usada como reproductor de magnets). Ctrl+V lo toca (app.js `onShortcut`). -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { api } from '../api.js';
-  import { play } from '../audio-picker.js';
-  import { icon, showError } from '../dom.js';
-  import type { CopiedMagnet } from '../types.js';
+  import * as core from '../core.ts';
+  import { play } from '../audio-picker.ts';
+  import { icon, showError } from '../dom.ts';
+  import type { CopiedMagnet } from '../types.ts';
 
   let copied = $state.raw<CopiedMagnet | null>(null);
   let busy = $state(false);
 
   async function refresh(): Promise<void> {
-    copied = await api.copiedMagnet().catch(() => null);
+    copied = await core.copiedMagnet().catch(() => null);
   }
 
   async function playCopied(ev: MouseEvent): Promise<void> {
@@ -19,7 +19,7 @@
     const btn = ev.currentTarget as HTMLButtonElement;
     busy = true;
     try {
-      await api.addSelected([copied.raw]);
+      await core.addSelected([copied.raw]);
       // Como cualquier ▶: pregunta con qué reproductor (y audio, si se sabe) antes de abrir.
       await play(copied.info_hash, btn);
     } catch (e) { showError(e); } finally { busy = false; }

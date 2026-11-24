@@ -3,24 +3,24 @@
      limpiar) y la barra fina de progreso al pie del toolbar. Lee el estado en vivo de live.svelte.ts. -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { api } from '../api.js';
-  import { play } from '../audio-picker.js';
-  import { cleanTemp, clearDataCache, openLog, stopAllAndClean } from '../dialogs.js';
-  import { icon, showError } from '../dom.js';
-  import { t as tr } from '../i18n.js';
+  import * as core from '../core.ts';
+  import { play } from '../audio-picker.ts';
+  import { cleanTemp, clearDataCache, openLog, stopAllAndClean } from '../dialog-flows.ts';
+  import { icon, showError } from '../dom.ts';
+  import { t as tr } from '../i18n.ts';
   import { humanBytes, mbps } from '$ui/format.ts';
-  import { playbackText } from '../format.js';
+  import { playbackText } from '../format.ts';
   import { closePop } from '../top-menus.ts';
   import { live } from '../live.svelte.ts';
   import { titleOf } from '../live.ts';
-  import type { PlaybackAction, PlaybackRow, TempUsage } from '../types.js';
+  import type { PlaybackAction, PlaybackRow, TempUsage } from '../types.ts';
 
   const ACTIVE = (r: PlaybackRow): boolean => r.state.kind !== 'paused' && r.state.kind !== 'failed';
   /** Estados en que de verdad baja datos (pausada o "solo reproduciendo lo bajado" no). */
   const TRANSFER = new Set(['fetching-metadata', 'preparing', 'playing', 'background']);
   const MB = 1024 ** 2;
   const title = (k: string): string => titleOf(live.v, k);
-  const act = (r: PlaybackRow, action: PlaybackAction) => () => api.playbackAction(r.id, action).catch(showError);
+  const act = (r: PlaybackRow, action: PlaybackAction) => () => core.playbackAction(r.id, action).catch(showError);
 
   let btn: HTMLButtonElement;
   let pop = $state<HTMLElement>();
@@ -53,7 +53,7 @@
   const total = $derived(usage && dataBytes != null ? humanBytes(usage.bytes + dataBytes) : '…');
 
   async function refreshCache(): Promise<void> {
-    cache = await api.tempUsage().catch(() => null);
+    cache = await core.tempUsage().catch(() => null);
   }
 
   async function toggle(): Promise<void> {
@@ -62,12 +62,12 @@
     const r = btn.getBoundingClientRect();
     pos = { top: r.bottom + 8, right: Math.max(12, window.innerWidth - r.right) };
     open = true;
-    [usage, dataBytes] = await Promise.all([api.tempUsage().catch(() => null), api.dataCacheSize().catch(() => null)]);
+    [usage, dataBytes] = await Promise.all([core.tempUsage().catch(() => null), core.dataCacheSize().catch(() => null)]);
   }
 
   async function afterClean(fn: () => Promise<unknown>): Promise<void> {
     await fn();
-    [usage, dataBytes] = await Promise.all([api.tempUsage().catch(() => usage), api.dataCacheSize().catch(() => dataBytes)]);
+    [usage, dataBytes] = await Promise.all([core.tempUsage().catch(() => usage), core.dataCacheSize().catch(() => dataBytes)]);
     void refreshCache();
   }
 
@@ -140,7 +140,7 @@
   <div id="downloads-pop" class="top-pop" role="dialog" aria-label={tr('Descargas')} style:top="{pos.top}px" style:right="{pos.right}px" bind:this={pop} {@attach toBody}>
     <div class="pop-head">
       <div><h3>{tr('Descargas')}</h3><p class="pop-sub">{tr('{total} en disco', { total })}</p></div>
-      <button id="dl-open-folder" class="btn btn-sm btn-pill pop-btn" onclick={() => api.openDownloadsFolder().catch(showError)}>{@html icon('folder', 15).outerHTML}{tr('Abrir carpeta')}</button>
+      <button id="dl-open-folder" class="btn btn-sm btn-pill pop-btn" onclick={() => core.openDownloadsFolder().catch(showError)}>{@html icon('folder', 15).outerHTML}{tr('Abrir carpeta')}</button>
     </div>
     <ul class="disk-list">
       <li class="disk-row">
@@ -174,9 +174,9 @@
           </div>
           <div class="pop-actions">
             {#if analyzer.kind === 'paused'}
-              <button id="dl-analyzer-resume" class="btn btn-sm btn-pill pop-btn" onclick={() => api.analyzerResume().catch(showError)}>{tr('Reanudar')}</button>
+              <button id="dl-analyzer-resume" class="btn btn-sm btn-pill pop-btn" onclick={() => core.analyzerResume().catch(showError)}>{tr('Reanudar')}</button>
             {:else}
-              <button id="dl-analyzer-pause" class="btn btn-sm btn-pill pop-btn" title={tr('Corta lo que se está midiendo y pausa la cola')} onclick={() => api.analyzerPause().catch(showError)}>{tr('Pausar')}</button>
+              <button id="dl-analyzer-pause" class="btn btn-sm btn-pill pop-btn" title={tr('Corta lo que se está midiendo y pausa la cola')} onclick={() => core.analyzerPause().catch(showError)}>{tr('Pausar')}</button>
             {/if}
           </div>
         </div>

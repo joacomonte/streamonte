@@ -3,15 +3,15 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { ago, mbps, nf1 } from '$ui/format.ts';
-  import { setStatus } from '../dom.js';
-  import { t } from '../i18n.js';
+  import { setStatus } from '../dom.ts';
+  import { t } from '../i18n.ts';
   import {
     DEFAULT_SEED_MBPS, MIN_SAMPLES, TRACKER_MIN, fidelity, healthCalibration, incomingStatus, measuringNow, predict, recalibrate, resetCalibration, setSeedMbps
   } from '../health-store.ts';
   import { fmtMbps } from '../speed-model.ts';
   import { speedStore } from '../speed-instance.ts';
-  import { state as appState } from '../state.js';
-  import type * as Raw from '../types.js';
+  import { live } from '../live.svelte.ts';
+  import type * as Raw from '../types.ts';
   import Gauge from './Gauge.svelte';
 
   let snap = $state(speedStore.snapshot());
@@ -27,7 +27,7 @@
 
   const view = $derived(snap.view);
   const measuring = $derived(view.kind === 'measuring');
-  const cal = $derived.by(() => { void version; return healthCalibration(appState.entries.values()); });
+  const cal = $derived.by(() => { void version; return healthCalibration(live.v.entries.values()); });
   const now = $derived.by(() => { void version; return measuringNow(); });
   const inc = $derived.by(() => { void version; return incomingStatus(); });
   const fid = $derived(fidelity(cal.learnable, cal.capFrom === 'test' ? cal.capMbps : null));
@@ -48,7 +48,7 @@
 
   /** Nombre de una medición: el del torrent en la biblioteca (las viejas guardaban el hash). */
   function nameOf(l: Raw.HealthMeasurement): string {
-    const e = [...appState.entries.values()].find((x) => x.info_hash === l.hash);
+    const e = [...live.v.entries.values()].find((x) => x.info_hash === l.hash);
     const name = e?.torrent_name || e?.name || l.name;
     return !name || /^[0-9a-f]{40}$/i.test(name) ? t('Torrent sin nombre') : name;
   }

@@ -1,6 +1,6 @@
 // "Tu conexión" sin DOM: estados del medidor y geometría de la aguja.
 import { nf1 } from '../../packages/ui/src/format.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
 
 export type SpeedView =
 	| { kind: 'idle'; mbps?: number }

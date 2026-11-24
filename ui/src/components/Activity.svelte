@@ -4,8 +4,8 @@
      Escape, tocar afuera (salvo fijado) o "Cerrar" lo cierran. Las líneas vienen de live.svelte.ts (`activityLog`). -->
 <script lang="ts">
   import { tick } from 'svelte';
-  import { api } from '../api.js';
-  import { t as tr } from '../i18n.js';
+  import * as core from '../core.ts';
+  import { t as tr } from '../i18n.ts';
   import { activity, activityLog, live } from '../live.svelte.ts';
   import { AREA, busyText } from '../activity-feed.ts';
 
@@ -95,7 +95,7 @@
 
   /** Trae el log del núcleo; las líneas seguidas con el mismo mensaje se agrupan en una con ×N. */
   async function loadDetail(): Promise<void> {
-    const all: string[] = await api.logsTail(2000).catch(() => []);
+    const all: string[] = await core.logsTail(2000).catch(() => []);
     // Las líneas sin fecha (continuación de un mensaje largo) siguen a la anterior.
     let keep = !detailSince;
     const raw = all.filter((l) => { const at = /^\d{4}-\d\d-\d\dT\S+/.exec(l)?.[0]; if (at) keep = !detailSince || at >= detailSince; return keep; });
@@ -114,7 +114,7 @@
   async function exportLogs(): Promise<void> {
     const friendly = lines.map((x) => `${hhmmss(x.at)} [${AREA[x.area][0]}] ${x.text}${x.n > 1 ? ` ×${x.n}` : ''}`).join('\n');
     try {
-      const dir = await api.exportLogs(friendly);
+      const dir = await core.exportLogs(friendly);
       activity.push({ area: 'general', text: tr('Logs guardados en {dir}', { dir }) });
     } catch (e) {
       activity.push({ area: 'general', level: 'error', text: (e as { message?: string } | null)?.message ?? String(e) });
@@ -145,7 +145,7 @@
   /** Ventana aparte con solo la Actividad (si ya está abierta, la trae al frente). */
   async function detach(): Promise<void> {
     try {
-      await api.openLogsWindow();
+      await core.openLogsWindow();
       close(false);
     } catch (e) {
       activity.push({ area: 'general', level: 'error', text: (e as { message?: string } | null)?.message ?? String(e) });

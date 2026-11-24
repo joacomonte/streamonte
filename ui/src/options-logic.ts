@@ -1,6 +1,6 @@
 // Reglas puras de la lista de opciones del desktop (sin DOM, sin i18n, sin estado de módulo): las usan `catalog-options.ts`,
 // `catalog-tests.ts` y `catalog-flow.ts` pasándoles su estado. Con test (`options-logic.test.ts`, fixtures `ui/mock/`).
-import type { PlaybackRow, StreamCandidate as Candidate } from './types.js';
+import type { PlaybackRow, StreamCandidate as Candidate } from './types.ts';
 
 /** Conteo de un enjambre (`SwarmCount` del núcleo; `known`/`incoming` faltan en el que arma la UI cuando nadie respondió). */
 export type Count = { seeds: number; peers: number; reached: boolean; known?: number; incoming?: number };

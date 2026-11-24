@@ -1,11 +1,10 @@
-// @ts-check
 // Texto de estado de una reproducción (menú Descargas y la card del catálogo). El resto de los formatos (bytes, Mbps,
 // relojes, "hace…", estreno en cine) vive en packages/ui/src/format.ts.
-import { t } from './i18n.js';
+import { t } from './i18n.ts';
+import type { PlaybackRow } from './types.ts';
 
 /** Estado de una reproducción en palabras. */
-/** @param {import('./types.js').PlaybackRow} pb @returns {string} */
-export function playbackText(pb) {
+export function playbackText(pb: PlaybackRow): string {
   const k = pb.state.kind;
   if (k === 'fetching-metadata') return t('cargando…');
   if (k === 'preparing') return t('cargando {a} %', { a: Math.round((pb.state.fraction ?? 0) * 100) });

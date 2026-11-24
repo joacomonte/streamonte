@@ -1,32 +1,25 @@
-// @ts-check
 // ---------- tooltip propio: burbuja animada en hover y foco de teclado (2026-11-14) ----------
 // Reemplaza también los `title` nativos de toda la app (los pasa a `data-tip` al pasar por
 // encima, antes de que el sistema muestre el suyo). Formato: "Título: explicación" → título en
 // negrita + texto; "\n" separa párrafos; atajos "(Ctrl+V)", "(F5)", "(Enter)" van como teclas.
 // Va en la capa superior (popover) para verse también sobre los diálogos.
-import { el } from './dom.js';
+import { el } from './dom.ts';
 
 const tip = el('div', { id: 'tip', class: 'tip', role: 'tooltip' });
 const canPopover = typeof tip.showPopover === 'function';
 if (canPopover) tip.setAttribute('popover', 'manual'); else tip.hidden = true;
-document.body.append(tip);
-/** @type {ReturnType<typeof setTimeout>|undefined} */
-let tipT;
-/** @type {ReturnType<typeof setTimeout>|undefined} */
-let tipOffT;
-/** @type {HTMLElement|null} */
-let tipEl = null;
-/** @type {HTMLElement|null} */
-let tipFor = null;
-/** Con el selector de audio abierto no se muestran tooltips (lo maneja `audio-picker.js`). */
+let tipT: ReturnType<typeof setTimeout> | undefined;
+let tipOffT: ReturnType<typeof setTimeout> | undefined;
+let tipEl: HTMLElement | null = null;
+let tipFor: HTMLElement | null = null;
+/** Con el selector de audio abierto no se muestran tooltips (lo maneja `audio-picker.ts`). */
 let blocked = false;
-/** @param {boolean} on */
-export function blockTips(on) { blocked = on; }
+export function blockTips(on: boolean): void { blocked = on; }
 
 const tipOpen = () => (canPopover ? tip.matches(':popover-open') : !tip.hidden);
-function showTipLayer() { if (canPopover) { if (!tipOpen()) tip.showPopover(); } else tip.hidden = false; }
-function hideTipLayer() { if (canPopover) { if (tipOpen()) tip.hidePopover(); } else tip.hidden = true; }
-function hideTip() {
+function showTipLayer(): void { if (canPopover) { if (!tipOpen()) tip.showPopover(); } else tip.hidden = false; }
+function hideTipLayer(): void { if (canPopover) { if (tipOpen()) tip.hidePopover(); } else tip.hidden = true; }
+function hideTip(): void {
   clearTimeout(tipT);
   tip.classList.remove('on');
   clearTimeout(tipOffT);
@@ -37,10 +30,8 @@ function hideTip() {
 
 const KEY_RE = /\((Ctrl\+[^)]{1,12}|Shift\+[^)]{1,12}|Alt\+[^)]{1,12}|F\d{1,2}|Enter|Esc|Supr|Espacio)\)/g;
 /** Texto con atajos de teclado como <kbd> (siempre como texto: puede traer nombres de torrents). */
-/** @param {string} text @returns {(string|HTMLElement)[]} */
-function withKeys(text) {
-  /** @type {(string|HTMLElement)[]} */
-  const out = [];
+function withKeys(text: string): (string | HTMLElement)[] {
+  const out: (string | HTMLElement)[] = [];
   let last = 0;
   for (const m of text.matchAll(KEY_RE)) {
     out.push(text.slice(last, m.index), el('kbd', {}, m[1]));
@@ -49,12 +40,10 @@ function withKeys(text) {
   out.push(text.slice(last));
   return out.filter((x) => x !== '');
 }
-/** @param {string} text */
-function fillTip(text) {
+function fillTip(text: string): void {
   const paras = text.split('\n').map((p) => p.trim()).filter(Boolean);
   const m = paras[0]?.match(/^([^:\n]{2,42}):\s+(.+)$/);
-  /** @type {HTMLElement[]} */
-  const parts = [];
+  const parts: HTMLElement[] = [];
   if (m && !/https?$/.test(m[1])) {
     parts.push(el('strong', { class: 'tip-h' }, ...withKeys(m[1])));
     paras[0] = m[2].charAt(0).toUpperCase() + m[2].slice(1);
@@ -65,8 +54,7 @@ function fillTip(text) {
 }
 
 /** `title` nativo → `data-tip` (y nombre accesible si el botón es solo un ícono). */
-/** @param {HTMLElement} n */
-function adoptTitle(n) {
+function adoptTitle(n: HTMLElement): void {
   const t = n.getAttribute('title');
   if (t == null) return;
   n.removeAttribute('title');
@@ -76,8 +64,7 @@ function adoptTitle(n) {
 }
 
 /** Muestra el tooltip de `target` tras una pausa (o lo oculta con `null`). */
-/** @param {HTMLElement|null} target */
-export function wantTip(target) {
+export function wantTip(target: HTMLElement | null): void {
   if (target === tipEl) return;
   tipEl = target;
   clearTimeout(tipT);
@@ -105,15 +92,18 @@ export function wantTip(target) {
     requestAnimationFrame(() => tip.classList.add('on'));
   }, Number(target.dataset.tipDelay) || (tip.classList.contains('on') ? 60 : 380)); // `data-tip-delay`: espera propia (fila de opción: 2 s)
 }
-/** @param {EventTarget|null} t @returns {HTMLElement|null} */
-function tipScope(t) {
-  const n = /** @type {HTMLElement|null} */ ((/** @type {Element} */ (t)).closest?.('[data-tip], [title]'));
+function tipScope(t: EventTarget | null): HTMLElement | null {
+  const n = (t as Element).closest?.('[data-tip], [title]') as HTMLElement | null;
   if (n?.hasAttribute('title')) adoptTitle(n);
   return n?.dataset.tip ? n : null;
 }
-document.addEventListener('pointerover', (ev) => wantTip(tipScope(ev.target)));
-document.addEventListener('pointerout', (ev) => { if (!ev.relatedTarget) wantTip(null); });
-document.addEventListener('pointerdown', () => wantTip(null), true);
-document.addEventListener('focusin', (ev) => { const t = tipScope(ev.target); wantTip(t && t.matches(':focus-visible') ? t : null); });
-document.addEventListener('focusout', () => wantTip(null));
-document.addEventListener('scroll', () => wantTip(null), { capture: true, passive: true });
+/** Pone la burbuja en la página y engancha los eventos (una vez, al arrancar `initApp`). */
+export function installTooltips(): void {
+  document.body.append(tip);
+  document.addEventListener('pointerover', (ev) => wantTip(tipScope(ev.target)));
+  document.addEventListener('pointerout', (ev) => { if (!ev.relatedTarget) wantTip(null); });
+  document.addEventListener('pointerdown', () => wantTip(null), true);
+  document.addEventListener('focusin', (ev) => { const t = tipScope(ev.target); wantTip(t && t.matches(':focus-visible') ? t : null); });
+  document.addEventListener('focusout', () => wantTip(null));
+  document.addEventListener('scroll', () => wantTip(null), { capture: true, passive: true });
+}

@@ -1,35 +1,42 @@
-// Flujos con diálogos que llama el resto de la app (por `dialogs.js`): cierre de mpv, limpieza, cierre de la ventana, log.
+// Flujos con diálogos que llama el resto de la app: Ajustes, cierre de mpv, limpieza, cierre de la ventana, log.
 import { humanBytes } from '$ui/format.ts';
 import { confirmDialog } from './confirm-queue.ts';
-import { desktop } from './desktopApi.ts';
-import { setStatus, showError } from './dom.js';
-import { t } from './i18n.js';
-import { state, titleOf } from './state.js';
+import * as core from './core.ts';
+import { setStatus, showError } from './dom.ts';
+import { t } from './i18n.ts';
+import { live } from './live.svelte.ts';
+import { titleOf } from './live.ts';
 import { host } from './ui-host.ts';
-import type * as Raw from './types.js';
+import type * as Raw from './types.ts';
+
+/** Log de reproducción abierto: líneas recibidas en vivo por id (tope del núcleo) y la reproducción cuyo diálogo está abierto (o null). */
+export const playbackLogs = { lines: new Map<number, string[]>(), openFor: null as number | null };
+
+/** Abre Ajustes (carga lo guardado y muestra el diálogo). */
+export const openSettings = (): Promise<void> => host.openSettings?.() ?? Promise.resolve();
 
 /** Se cerró mpv sin terminar de bajar: detener y borrar (por defecto), pausar guardando lo bajado, o seguir bajando de fondo. */
 export async function askAfterClose(row: Raw.PlaybackRow): Promise<void> {
 	const pct = Math.floor((row.progress ?? 0) * 100);
-	const choice = await confirmDialog<Raw.PlaybackAction>(t('Cerraste el reproductor'), { name: titleOf(row.key), pct }, [
+	const choice = await confirmDialog<Raw.PlaybackAction>(t('Cerraste el reproductor'), { name: titleOf(live.v, row.key), pct }, [
 		{ id: 'close-keep', label: t('Seguir bajando'), value: 'keep-downloading' },
 		{ id: 'close-pause', label: t('Pausar'), value: 'stop' },
 		{ id: 'close-delete', label: t('Detener y borrar'), value: 'stop-and-delete', primary: true }
 	]);
 	// Cerrar el diálogo sin elegir (Esc) = pausar: nunca se borra sin un clic. Si ya se resolvió solo, no importa.
-	desktop.playbackAction(row.id, choice ?? 'stop').catch(() => {});
+	core.playbackAction(row.id, choice ?? 'stop').catch(() => {});
 }
 
 export async function openLog(row: Raw.PlaybackRow): Promise<void> {
-	state.logOpenFor = row.id;
-	const lines = await desktop.playbackLog(row.id).catch(() => state.logs.get(row.id) ?? []);
-	state.logs.set(row.id, lines);
+	playbackLogs.openFor = row.id;
+	const lines = await core.playbackLog(row.id).catch(() => playbackLogs.lines.get(row.id) ?? []);
+	playbackLogs.lines.set(row.id, lines);
 	host.openLog?.(t('Detalle — {name}', { name: row.name }), lines);
 }
 
 export async function cleanTemp(): Promise<void> {
 	try {
-		const usage = await desktop.tempUsage();
+		const usage = await core.tempUsage();
 		if (usage.bytes === 0) {
 			setStatus(t('La caché está vacía.'));
 			return;
@@ -40,7 +47,7 @@ export async function cleanTemp(): Promise<void> {
 			[{ label: t('Cancelar'), value: false }, { label: t('Borrar {a}', { a: humanBytes(usage.bytes) }), value: true, primary: true }]
 		);
 		if (!ok) return;
-		const r = await desktop.cleanTemp();
+		const r = await core.cleanTemp();
 		setStatus(t('Caché borrada: {dirs_removed} carpeta(s), {a} liberados{b}.', { dirs_removed: r.dirs_removed, a: humanBytes(r.bytes_freed), b: r.failures.length ? t(' · {n} no se pudieron borrar (se reintenta al abrir)', { n: r.failures.length }) : '' }));
 	} catch (e) {
 		showError(e);
@@ -50,7 +57,7 @@ export async function cleanTemp(): Promise<void> {
 /** "Borrar datos guardados": la caché de datos es útil, así que se explica antes. */
 export async function clearDataCache(): Promise<void> {
 	try {
-		const bytes = await desktop.dataCacheSize();
+		const bytes = await core.dataCacheSize();
 		if (!bytes) { setStatus(t('No hay datos guardados.')); return; }
 		const ok = await confirmDialog(
 			t('Borrar datos guardados'),
@@ -58,7 +65,7 @@ export async function clearDataCache(): Promise<void> {
 			[{ id: 'data-clear-cancel', label: t('Cancelar'), value: false }, { id: 'data-clear-ok', label: t('Borrar {a}', { a: humanBytes(bytes) }), value: true, primary: true }]
 		);
 		if (!ok) return;
-		setStatus(t('Datos guardados borrados: {a} liberados.', { a: humanBytes(await desktop.clearDataCache()) }));
+		setStatus(t('Datos guardados borrados: {a} liberados.', { a: humanBytes(await core.clearDataCache()) }));
 	} catch (e) {
 		showError(e);
 	}
@@ -72,7 +79,7 @@ export async function stopAllAndClean(): Promise<void> {
 	);
 	if (!ok) return;
 	try {
-		const r = await desktop.stopAllAndClean();
+		const r = await core.stopAllAndClean();
 		setStatus(t('Todo borrado.{a}', { a: r.dirs_removed ? t(' Restos limpiados: {a}.', { a: humanBytes(r.bytes_freed) }) : '' }));
 	} catch (e) {
 		showError(e);
@@ -96,6 +103,6 @@ export async function onConfirmClose(count: number): Promise<void> {
 	closeAsking = false;
 	if (choice) {
 		setStatus(t('Cerrando…'));
-		await desktop.onClose(choice).catch(showError);
+		await core.onClose(choice).catch(showError);
 	}
 }
