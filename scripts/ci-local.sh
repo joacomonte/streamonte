@@ -6,6 +6,9 @@
 set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH" # node 24 como el CI
+# target/ único para todos los worktrees y 4 jobs por cargo, como check.sh (2026-11-23).
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$(cd "$(git rev-parse --git-common-dir)/.." && pwd)/target}"
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}"
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -17,7 +20,7 @@ for d in web ui; do (cd "$d" && corepack pnpm -s install --frozen-lockfile >/dev
 # job core: fmt, clippy y `cargo test` (no nextest: el CI corre los tests en hilos del mismo proceso).
 # clippy en su carpeta (la de check.sh) para no esperar el lock de la de tests.
 run fmt cargo fmt --all --check
-run clippy env CARGO_TARGET_DIR=target/clippy cargo clippy -p streamonte-core --all-targets -q -- -D warnings
+run clippy env CARGO_TARGET_DIR="$CARGO_TARGET_DIR/clippy" cargo clippy -p streamonte-core --all-targets -q -- -D warnings
 run core-test cargo test -q -p streamonte-core
 # job web
 run web sh -c 'cd web && corepack pnpm -s check && corepack pnpm -s test'

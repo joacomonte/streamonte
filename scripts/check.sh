@@ -8,8 +8,14 @@
 set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH" # node 24 primero (la web usa su type stripping; el de Homebrew es viejo); cargo-nextest
+# target/ único para el checkout principal y todos sus worktrees (2026-11-23): las dependencias se compilan una
+# vez, y el lock de cargo pone en fila los builds de distintos worktrees en vez de correrlos juntos (exit 137).
+SHARED_TARGET="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)/target"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$SHARED_TARGET}"
+# Clippy y nextest corren a la vez: 4 jobs cada uno para no pasar los 8 núcleos.
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}"
 # clippy con su propia carpeta: si comparte la de nextest, cargo los serializa con su lock.
-CLIPPY_TARGET="target/clippy"
+CLIPPY_TARGET="$CARGO_TARGET_DIR/clippy"
 [ "$1" = "full" ] && CLIPPY_TARGETS="--all-targets" || CLIPPY_TARGETS="--lib --bins --tests"
 
 # Rust solo si cambió algo que lo afecta (2026-11-23): sin cambios, un cambio de UI no recompila ni corre los tests
@@ -19,8 +25,8 @@ RUST_PATHS="crates src-tauri Cargo.toml Cargo.lock packages/golden"
 if [ -z "$RUST" ]; then
   RUST=0
   [ -n "$(git status --porcelain -- $RUST_PATHS)" ] && RUST=1
-  [ "$RUST" = 0 ] && ! git rev-parse -q --verify '@{u}' >/dev/null && RUST=1 # sin upstream no se sabe qué falta pushear
-  [ "$RUST" = 0 ] && [ -n "$(git diff --name-only '@{u}' HEAD -- $RUST_PATHS)" ] && RUST=1
+  # Commits que no están en ninguna rama de origin: funciona también sin upstream (worktrees, detached).
+  [ "$RUST" = 0 ] && [ -n "$(git log --format= --name-only HEAD --not --remotes=origin -- $RUST_PATHS)" ] && RUST=1
 fi
 
 tmp=$(mktemp -d)
