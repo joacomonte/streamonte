@@ -5,6 +5,7 @@
 // Sin DATABASE_URL (dev local, escenas): los mismos datos en memoria del proceso; se pierden al reiniciar.
 import { randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
 import { sql } from './track.ts';
+import { sealCode } from './apodo-cifrado.ts';
 import { ALERT_FAILS, ANIMAL_IDS, CODE_LEN, HELP_SIZE, WAIT_SECONDS } from '../../../../packages/ui/src/animals/animals.ts';
 
 /** Posiciones (en `ANIMAL_IDS`) de los animales elegidos, en orden. */
@@ -24,13 +25,17 @@ export type Row = {
 	esperaHasta: Date | null;
 	/** `fallos` cuando el admin marcó la alerta como vista: la alerta vuelve si hay fallos nuevos. */
 	vistaFallos: number;
+	/** El código cifrado (`apodo-cifrado.ts`) para mostrárselo a su dueño en Ajustes; null en los códigos anteriores. */
+	cifrado: string | null;
 };
 
 /** Dónde se guarda: Neon o memoria. `claim` reserva el intento (pone la espera) si no hay una en curso. */
 export type Store = {
 	get(apodo: string): Promise<Row | null>;
 	/** Crea el código si el apodo no tiene; `null` si otro lo creó antes. Devuelve `creado`. */
-	create(apodo: string, hash: string, sal: string, ayuda: number[]): Promise<Date | null>;
+	create(apodo: string, hash: string, sal: string, ayuda: number[], cifrado: string): Promise<Date | null>;
+	/** Guarda el código cifrado de un código creado antes del cifrado (solo si falta). */
+	seal(apodo: string, cifrado: string): Promise<void>;
 	/** `{ row }`: el intento quedó reservado (la espera ya corre); `{ wait }`: segundos que faltan; `null`: sin código. */
 	claim(apodo: string): Promise<{ row: Row } | { wait: number } | null>;
 	success(apodo: string): Promise<void>;
@@ -102,7 +107,7 @@ export type Outcome =
 export async function enter(store: Store, apodo: string, code: Code, mode: 'nuevo' | 'login'): Promise<Outcome> {
 	if (mode === 'nuevo') {
 		const { hash, sal } = await hashCode(code);
-		const creado = await store.create(apodo, hash, sal, pickHelp(code));
+		const creado = await store.create(apodo, hash, sal, pickHelp(code), sealCode(code));
 		return creado ? { ok: true, version: creado.getTime(), created: true } : { ok: false, reason: 'taken' };
 	}
 	const c = await store.claim(apodo);
@@ -110,6 +115,8 @@ export async function enter(store: Store, apodo: string, code: Code, mode: 'nuev
 	if ('wait' in c) return { ok: false, reason: 'wait', wait: c.wait };
 	if (await checkCode(code, c.row.hash, c.row.sal)) {
 		await store.success(apodo);
+		// Código de antes del cifrado: acá el server conoce el par, se completa.
+		if (!c.row.cifrado) await store.seal(apodo, sealCode(code));
 		return { ok: true, version: c.row.creado.getTime(), created: false };
 	}
 	await store.failure(apodo);
@@ -131,11 +138,15 @@ export function memoryStore(now: () => number = Date.now): Store {
 	const rows = new Map<string, Row>();
 	return {
 		get: async (a) => (rows.has(a) ? { ...rows.get(a)! } : null),
-		async create(a, hash, sal, ayuda) {
+		async create(a, hash, sal, ayuda, cifrado) {
 			if (rows.has(a)) return null;
 			const creado = new Date(now());
-			rows.set(a, { apodo: a, hash, sal, ayuda, creado, fallos: 0, ultimoFallo: null, esperaHasta: null, vistaFallos: 0 });
+			rows.set(a, { apodo: a, hash, sal, ayuda, creado, fallos: 0, ultimoFallo: null, esperaHasta: null, vistaFallos: 0, cifrado });
 			return creado;
+		},
+		async seal(a, cifrado) {
+			const r = rows.get(a);
+			if (r && !r.cifrado) r.cifrado = cifrado;
 		},
 		async claim(a) {
 			const r = rows.get(a);
@@ -164,11 +175,11 @@ export function memoryStore(now: () => number = Date.now): Store {
 
 // ── Neon
 
-type DbRow = { apodo: string; hash: string; sal: string; ayuda: number[]; creado: string | Date; fallos: number; ultimo_fallo: string | Date | null; espera_hasta: string | Date | null; vista_fallos: number };
+type DbRow = { apodo: string; hash: string; sal: string; ayuda: number[]; creado: string | Date; fallos: number; ultimo_fallo: string | Date | null; espera_hasta: string | Date | null; vista_fallos: number; codigo_cifrado: string | null };
 const toRow = (r: DbRow): Row => ({
 	apodo: r.apodo, hash: r.hash, sal: r.sal, ayuda: r.ayuda.map(Number), creado: new Date(r.creado), fallos: r.fallos,
 	ultimoFallo: r.ultimo_fallo ? new Date(r.ultimo_fallo) : null, esperaHasta: r.espera_hasta ? new Date(r.espera_hasta) : null,
-	vistaFallos: r.vista_fallos
+	vistaFallos: r.vista_fallos, cifrado: r.codigo_cifrado
 });
 
 function neonStore(q: NonNullable<ReturnType<typeof sql>>): Store {
@@ -177,18 +188,21 @@ function neonStore(q: NonNullable<ReturnType<typeof sql>>): Store {
 		ready ??= q`CREATE TABLE IF NOT EXISTS apodos (
 			apodo text PRIMARY KEY, hash text NOT NULL, sal text NOT NULL, ayuda smallint[] NOT NULL,
 			creado timestamptz NOT NULL DEFAULT now(), fallos integer NOT NULL DEFAULT 0, ultimo_fallo timestamptz,
-			espera_hasta timestamptz, vista_fallos integer NOT NULL DEFAULT 0)`.catch((e) => ((ready = null), Promise.reject(e)));
+			espera_hasta timestamptz, vista_fallos integer NOT NULL DEFAULT 0, codigo_cifrado text)`
+			.then(() => q`ALTER TABLE apodos ADD COLUMN IF NOT EXISTS codigo_cifrado text`)
+			.catch((e) => ((ready = null), Promise.reject(e)));
 		await ready;
 		return q;
 	};
 	const one = async (p: Promise<unknown>) => ((await p) as DbRow[]).map(toRow)[0] ?? null;
 	return {
 		get: async (a) => one((await db())`SELECT * FROM apodos WHERE apodo = ${a}`),
-		async create(a, hash, sal, ayuda) {
-			const r = await one((await db())`INSERT INTO apodos (apodo, hash, sal, ayuda) VALUES (${a}, ${hash}, ${sal}, ${ayuda})
+		async create(a, hash, sal, ayuda, cifrado) {
+			const r = await one((await db())`INSERT INTO apodos (apodo, hash, sal, ayuda, codigo_cifrado) VALUES (${a}, ${hash}, ${sal}, ${ayuda}, ${cifrado})
 				ON CONFLICT (apodo) DO NOTHING RETURNING *`);
 			return r?.creado ?? null;
 		},
+		seal: async (a, cifrado) => void (await (await db())`UPDATE apodos SET codigo_cifrado = ${cifrado} WHERE apodo = ${a} AND codigo_cifrado IS NULL`),
 		async claim(a) {
 			const d = await db();
 			// Atómico: dos intentos a la vez no pasan los dos.

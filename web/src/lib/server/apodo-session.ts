@@ -2,21 +2,15 @@
 // navegador creó o acertó el código del apodo. Lleva la versión del código (`creado` en ms): si el admin lo resetea,
 // la cookie deja de valer. /api/nick la pone; vistos, track y el layout confían solo en esto (nunca en un apodo que
 // llegue del cliente). Sin APODO_SECRET: en Vercel falla (no hay sesión sin secreto); en local, uno al azar por proceso.
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { current, store, type Store } from './apodos.ts';
+import { openCode, secret } from './apodo-cifrado.ts';
+import { ANIMAL_IDS } from '../../../../packages/ui/src/animals/animals.ts';
 import { cleanNick } from '../nick.ts';
 
 export const COOKIE = 'apodo';
 /** 5 años, como `dev`: se corta reseteando el código. */
 export const MAX_AGE = 60 * 60 * 24 * 365 * 5;
-
-let devSecret: string | null = null;
-function secret(): string {
-	const s = process.env.APODO_SECRET;
-	if (s) return s;
-	if (process.env.VERCEL) throw new Error('Falta APODO_SECRET');
-	return (devSecret ??= randomBytes(32).toString('base64'));
-}
 
 /** ¿Se puede firmar la sesión? Se mira ANTES de crear o probar un código: si no, quedaría un código creado sin sesión. */
 export function canSign(): boolean {
@@ -54,4 +48,14 @@ export async function verifiedNick(get: (name: string) => string | undefined, s:
 		console.error('apodo', e);
 		return null;
 	}
+}
+
+/** Los 2 animales (ids, en orden) del dueño con sesión verificada; `null` si no hay sesión. `animals` es null si el código
+ * se creó antes del cifrado y todavía no se completó (se completa al acertarlo). Nunca de otro apodo que el de la cookie. */
+export async function ownAnimals(get: (name: string) => string | undefined, s: Store = store()): Promise<{ nick: string; animals: string[] | null } | null> {
+	const nick = await verifiedNick(get, s);
+	if (!nick) return null;
+	const row = await s.get(nick);
+	const code = row?.cifrado ? openCode(row.cifrado) : null;
+	return { nick, animals: code ? code.map((i) => ANIMAL_IDS[i]) : null };
 }
