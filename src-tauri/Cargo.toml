@@ -8,7 +8,8 @@ license.workspace = true
 
 [lib]
 name = "streamonte_app"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# Solo desktop (sin móvil): staticlib/cdylib eran 2 enlaces extra en cada build.
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
