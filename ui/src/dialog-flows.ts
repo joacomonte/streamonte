@@ -13,7 +13,8 @@ import type * as Raw from './types.ts';
 export const playbackLogs = { lines: new Map<number, string[]>(), openFor: null as number | null };
 
 /** Abre Ajustes (carga lo guardado y muestra el diálogo). */
-export const openSettings = (): Promise<void> => host.openSettings?.() ?? Promise.resolve();
+/** `tile`: abre Ajustes con esa ficha del tablero ya abierta (ej. 'keys'). */
+export const openSettings = (tile?: string): Promise<void> => host.openSettings?.(tile) ?? Promise.resolve();
 
 /** Se cerró mpv sin terminar de bajar: detener y borrar (por defecto), pausar guardando lo bajado, o seguir bajando de fondo. */
 export async function askAfterClose(row: Raw.PlaybackRow): Promise<void> {

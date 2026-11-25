@@ -3,7 +3,7 @@
 	import Icon from '$ui/components/Icon.svelte';
 	import { confirmDialog } from '$ui/components/confirm-queue.ts';
 	import { wipe } from '#lib/saved.ts';
-	import { t } from '#lib/i18n.svelte.ts';
+	import { i18n, t } from '#lib/i18n.svelte.ts';
 	import Idioma from '$ui/settings/Idioma.svelte';
 	import KeyField from '$ui/settings/KeyField.svelte';
 	import KeyRow from '$ui/settings/KeyRow.svelte';
@@ -17,6 +17,12 @@
 	import MyAnimals from '$ui/animals/MyAnimals.svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
+	import Board, { type BoardTile } from '$ui/settings/board/Board.svelte';
+	import KeysArt from '$ui/settings/board/art/KeysArt.svelte';
+	import LangArt from '$ui/settings/board/art/LangArt.svelte';
+	import Plate from '$ui/settings/board/art/Plate.svelte';
+	import CacheArt from '$ui/settings/board/art/CacheArt.svelte';
+	import AnimalFan from '$ui/settings/board/art/AnimalFan.svelte';
 
 	type Status = { tmdb: boolean; torbox: boolean; opensubtitles: boolean; opensubtitles_user: boolean; opensubtitles_pass: boolean };
 	let status = $state<Status | null>(null);
@@ -121,6 +127,19 @@
 		else adminOpen = !adminOpen;
 	}
 
+	// Tablero: cada ficha muestra el estado de un vistazo y su panel lleva las filas de siempre.
+	const keyChips = $derived([
+		...COMMON_KEYS.map((k) => ({ name: k.name, on: !!status?.[k.service] })),
+		{ name: t('Cuenta de OpenSubtitles.com'), on: loginSaved }
+	]);
+	const keysSaved = $derived(keyChips.filter((c) => c.on).length);
+	const tiles = $derived<BoardTile[]>([
+		{ id: 'keys', label: t('Llaves'), title: t('Llaves y cuentas'), icon: 'key', summary: keysSummary, art: keysHeroArt, hero: t('Ninguna es obligatoria: cada una suma algo.'), panel: keysPanel },
+		{ id: 'profile', label: t('Perfil'), icon: 'user', summary: profileSummary, art: profileHeroArt, hero: t('Tu clave para entrar son estos 2 animales.'), panel: profilePanel },
+		{ id: 'lang', label: t('Idioma'), icon: 'globe', summary: langSummary, art: langHeroArt, hero: t('La app y los títulos van por separado.'), panel: langPanel },
+		{ id: 'data', label: t('Datos'), icon: 'folder', summary: dataSummary, art: dataHeroArt, hero: t('Caché, privacidad y panel de uso.'), panel: dataPanel }
+	]);
+
 	onMount(async () => {
 		status = await (await fetch('/api/keys')).json();
 	});
@@ -136,29 +155,19 @@
 	</div>
 </header>
 
-<main class="wrap st">
-	<Section id="set-profile" headId="h-profile" title={t('Perfil')}>
-		<div class="st-list">
-			<div class="st-row">
-				<span class="st-name">{t('Apodo')}</span>
-				<div class="st-inline grow">
-					<b id="nick-current" class="nick-now">{page.data.nick ?? ''}</b>
-					<button id="nick-switch" class="st-btn" type="button" disabled={switching} onclick={onSwitch}>
-						{#if switching}<span class="spin light"></span>{/if}{t('Cambiar de usuario')}
-					</button>
-				</div>
-			</div>
-		</div>
-		<p id="nick-msg" class="st-msg st-foot bad" role="status">{nickMsg}</p>
-		{#if animals}
-			<MyAnimals {animals} />
-		{:else if animalsLoaded && page.data.nick}
-			<p id="my-animals" class="st-msg st-foot">{t('Entrá de nuevo con tus animales para verlos acá')}</p>
-		{/if}
-	</Section>
-
-	<Idioma id="set-lang" headId="h-lang" pickerId="settings-lang" {...langOptions()} />
-
+{#snippet keysSummary()}
+	<span class="board-b row">
+		<span class="w-keys"><KeysArt on={keyChips.map((c) => c.on)} /></span>
+		<span class="b-i">
+			{#if status}<span class="b-big">{t('{n} de {m} guardadas', { n: keysSaved, m: keyChips.length })}</span>{/if}
+			<span class="b-chips">
+				{#each keyChips as c (c.name)}<span class="b-chip" class:on={c.on}><i></i>{c.name}</span>{/each}
+			</span>
+		</span>
+	</span>
+{/snippet}
+{#snippet keysHeroArt()}<KeysArt on={keyChips.map((c) => c.on)} />{/snippet}
+{#snippet keysPanel()}
 	<!-- Una sola lista: cada key se guarda sola (Enter o su botón); las que faltan muestran su campo, las guardadas "Cambiar". Mientras carga status no se muestra para no saltar. -->
 	<section id="keys-form" class="st-sec" aria-labelledby="h-keys">
 		<h2 class="st-h" id="h-keys">{t('Cuentas y keys')}</h2>
@@ -190,7 +199,56 @@
 			<p class="st-msg st-foot" role="status">{loginMsg}</p>
 		{/if}
 	</section>
+{/snippet}
 
+{#snippet profileSummary()}
+	<span class="board-b">
+		<span class="b-i"><span class="b-big nick-big">{page.data.nick ?? ''}</span><span class="b-sub">{t('Tu clave: estos 2')}</span></span>
+		{#if animals}<AnimalFan {animals} />{/if}
+	</span>
+{/snippet}
+{#snippet profileHeroArt()}<span class="hero-user"><Icon name="user" size={48} /></span>{/snippet}
+{#snippet profilePanel()}
+	<Section id="set-profile" headId="h-profile" title={t('Perfil')}>
+		<div class="nick-card">
+			<span class="nick-ava" aria-hidden="true">{(page.data.nick ?? '?').slice(0, 1).toUpperCase()}</span>
+			<span class="nick-txt"><span class="nick-lbl">{t('Apodo')}</span><b id="nick-current">{page.data.nick ?? ''}</b></span>
+			<button id="nick-switch" class="st-btn" type="button" disabled={switching} onclick={onSwitch}>
+				{#if switching}<span class="spin light"></span>{/if}{t('Cambiar de usuario')}
+			</button>
+		</div>
+		<p id="nick-msg" class="st-msg st-foot bad" role="status">{nickMsg}</p>
+		{#if animals}
+			<MyAnimals {animals} />
+		{:else if animalsLoaded && page.data.nick}
+			<p id="my-animals" class="st-msg st-foot">{t('Entrá de nuevo con tus animales para verlos acá')}</p>
+		{/if}
+	</Section>
+{/snippet}
+
+{#snippet langSummary()}
+	<span class="board-b row stack">
+		<span class="w-lang"><LangArt /></span>
+		<span class="b-i">
+			<Plate titles={i18n.titles} />
+			<span class="b-sub">{t('Así se ven los títulos')}</span>
+			<span class="b-row"><span class="b-stt">{t('App')}: {i18n.lang === 'es' ? 'Español' : 'English'}</span></span>
+		</span>
+	</span>
+{/snippet}
+{#snippet langHeroArt()}<LangArt />{/snippet}
+{#snippet langPanel()}
+	<Idioma id="set-lang" headId="h-lang" pickerId="settings-lang" {...langOptions()} />
+{/snippet}
+
+{#snippet dataSummary()}
+	<span class="board-b row">
+		<span class="w-data"><CacheArt fill={0.35} /></span>
+		<span class="b-i"><span class="b-big">{t('Caché')}</span><span class="b-sub">{t('de este navegador')}</span><span class="b-sub">{t('Se vuelve a llenar sola')}</span></span>
+	</span>
+{/snippet}
+{#snippet dataHeroArt()}<CacheArt fill={0.35} />{/snippet}
+{#snippet dataPanel()}
 	<Section id="set-data" headId="h-data" title={t('Datos')}>
 		<div class="st-list">
 			<div class="st-row">
@@ -233,6 +291,12 @@
 			</div>
 		</div>
 	</Section>
+{/snippet}
+
+<main class="wrap st">
+	<div class="frost-page">
+		<Board {tiles} areas="'keys keys profile' 'lang data profile'" areasNarrow="'keys keys' 'profile profile' 'lang data'" />
+	</div>
 
 	<p id="credits" class="credits">
 		{t('Fichas, pósters y géneros:')} <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">TMDB</a>. {t('Este producto usa la API de TMDB, pero TMDB no lo respalda ni lo certifica.')}
@@ -243,9 +307,16 @@
 <style>
 	.row { display: flex; align-items: center; gap: 4px; margin-left: -10px; }
 	h1 { margin: 0; font-size: 18px; }
-	main { padding: 20px 16px 40px; max-width: 560px; }
-	.grow { flex: 1; min-width: 0; justify-content: flex-end; }
-	.nick-now { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; margin-right: 10px; }
+	main { padding: 20px 16px 40px; max-width: 780px; }
+	.frost-page { position: relative; padding: 12px; border-radius: 30px; background: rgb(17 21 28 / 0.6); border: 1px solid rgb(255 255 255 / 0.08); box-shadow: 0 40px 90px -30px rgb(0 0 0 / 0.85), inset 0 1px 0 rgb(255 255 255 / 0.08); backdrop-filter: blur(34px) saturate(1.5); -webkit-backdrop-filter: blur(34px) saturate(1.5); margin-bottom: 18px; }
+	.frost-page :global(.board:has(.board-panel)) { min-height: 620px; }
+	.frost-page :global(.b-chip) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+	.w-keys { flex: none; width: 36%; max-width: 200px; }
+	.w-keys :global(svg), .w-lang :global(svg), .w-data :global(svg) { display: block; width: 100%; height: auto; }
+	.hero-user { display: grid; place-items: center; width: 100%; height: 100%; color: var(--muted); }
+	.w-lang { flex: none; width: 42%; max-width: 120px; }
+	.w-data { flex: none; width: 56px; }
+	.nick-big { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.foot { display: inline-flex; align-items: center; gap: 5px; }
 	.end { justify-content: flex-end; }
 	.panel { transform-origin: top; animation: reveal 0.18s var(--out); }

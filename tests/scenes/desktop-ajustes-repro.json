@@ -1,0 +1,39 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "click": "#btn-settings",
+   "after": 1000
+  },
+  {
+   "click": "#board-tile-repro",
+   "after": 700
+  }
+ ],
+ "must": [
+  {
+   "sel": "#dlg-settings"
+  },
+  {
+   "sel": "#set-title",
+   "text": "Ajustes"
+  },
+  {
+   "sel": "#board-back"
+  },
+  {
+   "sel": "#board-panel-title",
+  "text": "Reproducción"
+  },
+  {
+   "sel": "#set-mpv-note"
+  },
+  {
+   "sel": "#eq-intensity"
+  },
+  {
+   "sel": "#btn-settings-x"
+  }
+ ]
+}

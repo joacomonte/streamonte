@@ -1,0 +1,38 @@
+{
+ "app": "desktop",
+ "url": "/",
+ "setup": [
+  {
+   "click": "#btn-settings",
+   "after": 1000
+  },
+  {
+   "click": "#board-tile-net",
+   "after": 700
+  }
+ ],
+ "must": [
+  {
+   "sel": "#dlg-settings"
+  },
+  {
+   "sel": "#set-title",
+   "text": "Ajustes"
+  },
+  {
+   "sel": "#board-back"
+  },
+  {
+   "sel": "#btn-sources"
+  },
+  {
+   "sel": "#set-incoming"
+  },
+  {
+   "sel": "#btn-net-check"
+  },
+  {
+   "sel": "#btn-settings-x"
+  }
+ ]
+}

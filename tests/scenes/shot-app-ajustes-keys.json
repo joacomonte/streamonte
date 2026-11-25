@@ -19,7 +19,8 @@
    "wait": 800
   },
   {
-   "scroll": "#set-accounts"
+   "click": "#board-tile-keys",
+   "after": 700
   },
   {
    "wait": 300

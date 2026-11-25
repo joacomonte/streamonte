@@ -20,8 +20,10 @@
 		maxWidth?: string;
 		/** false: sin ✕ ni cierre al tocar el fondo (confirmaciones); Esc sigue cerrando. */
 		closable?: boolean;
+		/** Clase extra del `<dialog>` (Ajustes del desktop: `frost`, vidrio de css/board.css). */
+		class?: string;
 	}
-	let { id, title, open, onclose, children, footer, titleId = `${id}-title`, closeId = `${id}-close`, maxWidth, closable = true }: Props = $props();
+	let { id, title, open, onclose, children, footer, titleId = `${id}-title`, closeId = `${id}-close`, maxWidth, closable = true, class: cls = '' }: Props = $props();
 	let dlg = $state<HTMLDialogElement>();
 
 	$effect(() => {
@@ -33,7 +35,7 @@
 <dialog
 	{id}
 	bind:this={dlg}
-	class="sheet"
+	class="sheet {cls}"
 	aria-labelledby={titleId}
 	style:max-width={maxWidth}
 	onclose={onclose}

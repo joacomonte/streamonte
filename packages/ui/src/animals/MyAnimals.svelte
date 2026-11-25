@@ -23,7 +23,7 @@
 	.mine { margin: 4px 14px 16px; }
 	.mine-lead { margin: 0 0 10px; font-size: 13px; color: var(--muted); text-align: center; }
 	.mine-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 320px; margin: 0 auto; perspective: 700px; }
-	.mine-card { position: relative; aspect-ratio: 4 / 5; border-radius: 18px; overflow: hidden; background: var(--surface-2); border: 1.5px solid var(--amber, var(--accent)); animation: deal 0.7s var(--out) both; animation-delay: calc(var(--i) * 160ms + 150ms); }
+	.mine-card { position: relative; aspect-ratio: 4 / 5; border-radius: 18px; overflow: hidden; background: var(--surface-2); box-shadow: 0 10px 22px -10px rgb(0 0 0 / 0.8); animation: deal 0.7s var(--out) both; animation-delay: calc(var(--i) * 160ms + 150ms); }
 	.mine-card:nth-child(1) { --tilt: -3deg; }
 	.mine-card:nth-child(2) { --tilt: 3deg; }
 	.mine-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

@@ -42,7 +42,7 @@ export async function pasteMagnet(raw: string): Promise<void> {
 
 /** Abre Ajustes en la key de TMDB. */
 export async function askTmdbKey(): Promise<void> {
-  await openSettings();
+  await openSettings('keys');
   const input = $('#key-tmdb');
   input?.scrollIntoView({ block: 'center' });
   input?.focus();
@@ -129,7 +129,8 @@ export async function initCatalog(): Promise<void> {
     el('div', { class: 'cat-main' }, el('div', { id: 'cat-root' })),
     el('aside', { id: 'cat-side', class: 'cat-side', 'aria-label': t('Opciones') }));
   document.addEventListener('streamonte:tmdb-key', onTmdbKey);
-  $('#btn-sources').addEventListener('click', openSources); // en Ajustes (2026-11-15)
+  // En Ajustes › Conexión (2026-11-15); el botón existe solo con ese panel abierto: delegado.
+  document.addEventListener('click', (ev) => { if ((ev.target as Element | null)?.closest('#btn-sources')) openSources(); });
   document.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey && ev.key.toLowerCase() === 'f') { ev.preventDefault(); $('#cat-q').focus(); }
     // Esc cierra el panel, salvo que esté abierto un diálogo o el selector de audio (cierran ellos).

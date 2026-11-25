@@ -1,7 +1,7 @@
-<!-- Ajustes del desktop: Perfil (apodo) · Idioma · Reproducción · Conexión · Cuentas y keys (con las de subtítulos).
-     Filas de lista de packages/ui/css/settings.css; cada key muestra su estado y su campo mientras falta. Lógica en settings-model.ts. -->
+<!-- Ajustes del desktop como tablero ($ui/settings/board/Board.svelte): fichas Llaves · Perfil · Reproducción · Conexión · Idioma;
+     cada una abre en su lugar un panel con las filas de siempre (packages/ui/css/settings.css + board.css). Lógica en settings-model.ts. -->
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import Icon from '$ui/components/Icon.svelte';
   import Sheet from '$ui/components/Sheet.svelte';
   import { confirmDialog } from '$ui/components/confirm-queue.ts';
@@ -10,6 +10,13 @@
   import KeyField from '$ui/settings/KeyField.svelte';
   import { createKeysForm } from '$ui/settings/keys-form.svelte.ts';
   import Section from '$ui/settings/Section.svelte';
+  import Board, { type BoardTile } from '$ui/settings/board/Board.svelte';
+  import AnimalFan from '$ui/settings/board/art/AnimalFan.svelte';
+  import EqArt from '$ui/settings/board/art/EqArt.svelte';
+  import KeysArt from '$ui/settings/board/art/KeysArt.svelte';
+  import LangArt from '$ui/settings/board/art/LangArt.svelte';
+  import NetArt, { type NetState } from '$ui/settings/board/art/NetArt.svelte';
+  import Plate from '$ui/settings/board/art/Plate.svelte';
   import { COMMON_KEYS } from '$ui/settings/keys.ts';
   import * as core from '../core.ts';
   import { setStatus, showError } from '../dom.ts';
@@ -55,10 +62,37 @@
   let osPass = $state('');
   let switching = $state(false);
   let nickMsg = $state('');
+  let osLogged = $state(false);
 
   const configured = (service: string): boolean => keys.some((k) => k.service === service && k.configured);
   const latteamHas = $derived(configured('latteam'));
   const eqNote = $derived(EQ.find((o) => o.id === eq)?.note ?? '');
+  const eqLabel = $derived(EQ.find((o) => o.id === eq)?.label ?? '');
+
+  /** Llaves del tablero, en el orden del panel; la cuenta de OpenSubtitles cuenta como una más. */
+  const KEY_CHIPS: { id: string; short: string }[] = [
+    { id: 'tmdb', short: 'TMDB' }, { id: 'torbox', short: 'TorBox' }, { id: 'opensubtitles', short: 'OpenSubs' },
+    { id: 'os-login', short: 'Cuenta OS' }, { id: 'latteam', short: 'Lat-Team' }, { id: 'wyzie', short: 'Wyzie' }
+  ];
+  const keysOn = $derived(KEY_CHIPS.map((k) => (k.id === 'os-login' ? osLogged : configured(k.id))));
+  const keysCount = $derived(keysOn.filter(Boolean).length);
+  const netState = $derived<NetState>(netBusy ? 'busy' : netCheck.cls === 'ok' || netCheck.cls === 'bad' ? netCheck.cls : net.incoming ? 'idle' : 'off');
+  const netChip = $derived(netBusy ? { cls: '', text: t('Verificando…') } : netCheck.cls === 'ok' ? { cls: 'ok', text: t('Abierto') } : netCheck.cls === 'bad' ? { cls: 'bad', text: t('Cerrado') } : { cls: '', text: t('Sin verificar') });
+
+  // Los summary/art/panel son snippets del template (abajo): oxlint no los ve.
+  /* oxlint-disable no-undef */
+  const tiles: BoardTile[] = $derived([
+    { id: 'keys', label: t('Llaves'), title: t('Llaves y cuentas'), icon: 'key', summary: keysSum, art: keysArt, panel: keysPanel,
+      hero: t('{n} de {m} guardadas. Ninguna es obligatoria: cada una suma algo.', { n: keysCount, m: KEY_CHIPS.length }) },
+    { id: 'profile', label: t('Perfil'), icon: 'user', summary: profileSum, art: profileArt, panel: profilePanel,
+      hero: t('{nick}. Tu clave para entrar son estos 2 animales.', { nick: nickState.nick ?? '' }) },
+    { id: 'repro', label: t('Reproducción'), icon: 'speaker', summary: reproSum, art: reproArt, panel: reproPanel,
+      hero: `${t(eqLabel)}${eq === 'flat' ? '' : ` · ${eqIntensity}%`}. ${t('Al reproducir te preguntamos con cuál abrirlo.')}` },
+    { id: 'net', label: t('Conexión'), icon: 'wifi', summary: netSum, art: netArt, panel: netPanel,
+      hero: netCheck.text || t('Puerto 41850. Probá si alguien de afuera llega a esta PC.') },
+    { id: 'lang', label: t('Idioma'), icon: 'globe', summary: langSum, art: langArt, panel: langPanel, hero: t('La app y los títulos van por separado.') }
+  ]);
+  /* oxlint-enable no-undef */
 
   function setConfigured(service: string, on: boolean): void {
     keys = keys.some((k) => k.service === service) ? keys.map((k) => (k.service === service ? { ...k, configured: on } : k)) : [...keys, { service, configured: on }];
@@ -88,7 +122,9 @@
   });
 
   async function showOsLogin(): Promise<void> {
-    osState = osLoginText(await core.premiumQuota().catch(() => null));
+    const q = await core.premiumQuota().catch(() => null);
+    osLogged = !!q?.has_login && !q.login_error;
+    osState = osLoginText(q);
   }
 
   /** Cambiar de usuario: cierra la sesión del apodo; la bienvenida (`Welcome.svelte`) vuelve a pedirlo sola al quedar sin apodo. */
@@ -105,7 +141,9 @@
     }
   }
 
-  async function open(): Promise<void> {
+  let board = $state<Board>();
+
+  async function open(tile?: string): Promise<void> {
     keysForm.reset();
     void refreshNick();
     latteamEdit = false;
@@ -122,6 +160,10 @@
       showError(e);
     }
     isOpen = true;
+    if (tile) {
+      await tick();
+      await board?.open(tile);
+    }
   }
 
   async function onLatTeamToggle(e: Event & { currentTarget: HTMLInputElement }): Promise<void> {
@@ -214,18 +256,76 @@
   <KeyField form={keysForm} service={row.service} name={t(row.label)} hint={t(row.hint)} tip={row.tip && t(row.tip)} placeholder={row.placeholder} primary={row.primary} onget={() => core.openKeyPage(row.service).catch(showError)} />
 {/snippet}
 
-<Sheet id="dlg-settings" title={t('Ajustes')} titleId="set-title" closeId="btn-settings-x" open={isOpen} onclose={() => (isOpen = false)} maxWidth="min(600px, 92vw)">
-  <div class="st">
-    <Section id="set-profile" headId="set-h-profile" level={3} title={t('Perfil')}>
+<!-- Fichas del tablero: estado de un vistazo (summary), ilustración del panel (art) y las filas de siempre (panel). -->
+{#snippet keysSum()}
+  <span class="board-b row stack">
+    <span class="keys-art"><KeysArt on={keysOn} /></span>
+    <span class="b-i"><span class="b-big">{keysCount}<small>{' ' + t('de {m} guardadas', { m: KEY_CHIPS.length })}</small></span>
+      <span class="b-chips">{#each KEY_CHIPS as k, i (k.id)}<span id="board-key-{k.id}" class="b-chip" class:on={keysOn[i]}><i></i>{k.id === 'os-login' ? t('Cuenta OS') : k.short}</span>{/each}</span></span>
+  </span>
+{/snippet}
+{#snippet keysArt()}<KeysArt on={keysOn} />{/snippet}
+{#snippet keysPanel()}
+    <Section id="set-accounts" headId="set-h-accounts" level={3} title={t('Cuentas y keys')}>
       <ul class="st-list">
-        <li class="st-row">
-          <span class="st-name">{t('Apodo')}</span>
-          <div class="st-inline grow">
-            <b id="nick-current" class="nick-now">{nickState.nick ?? ''}</b>
-            <button id="nick-change-user" class="st-btn" type="button" disabled={switching || !nickState.nick} onclick={onSwitchUser}>{t('Cambiar de usuario')}</button>
+        {#each COMMON as row (row.service)}{@render keyRow(row)}{/each}
+        <li id="os-login">
+          <div class="st-row">
+            <span class="st-lbl">
+              <span class="st-name">{t('Cuenta de OpenSubtitles.com')}{@render tipIcon('os-login-tip', t('Opcional: con tu cuenta de OpenSubtitles.com se ve cuántas descargas te quedan desde que abrís la app y se baja con la cuota de tu cuenta. Se guarda en el almacén seguro.'))}</span>
+              <span id="os-login-state" class="st-sub" role="status">{osState}</span>
+            </span>
+          </div>
+          <div class="st-block">
+            <div class="st-inline">
+              <input id="os-user" class="st-input" type="text" placeholder={t('Usuario')} autocomplete="username" aria-label={t('Usuario de OpenSubtitles.com')} bind:value={osUser}>
+              <input id="os-pass" class="st-input" type="password" placeholder={t('Contraseña')} autocomplete="current-password" aria-label={t('Contraseña de OpenSubtitles.com')} bind:value={osPass}>
+              <button id="os-login-save" class="st-btn" type="button" onclick={onSaveOs}>{t('Guardar')}</button>
+            </div>
           </div>
         </li>
+        <li id="set-latteam">
+          <div class="st-row">
+            <span class="st-lbl">
+              <span class="st-name"><label for="set-latteam-on">Lat-Team</label>{@render tipIcon('latteam-tip', t('Tracker privado con audio latino. El API token está en tu perfil de Lat-Team → Ajustes → Seguridad. Tiene reglas de ratio: reproducir desde ahí con el motor de la app puede no estar permitido. Con TorBox no hace ratio.'))}</span>
+              <span class="st-sub">{t('Tracker privado con audio latino')}</span>
+            </span>
+            {@render chip('latteam-state', latteamHas, t('Guardado'), t('Falta'))}
+            {#if latteamHas}
+              <button id="key-latteam-change" class="st-link" type="button" onclick={() => (latteamEdit = !latteamEdit)}>{latteamEdit ? t('Cancelar') : t('Cambiar')}</button>
+            {:else}
+              <button id="key-latteam-page" class="st-link" type="button" onclick={() => core.openKeyPage('latteam').catch(showError)}>{t('Conseguir')}<Icon name="external" size={13} /></button>
+            {/if}
+            <input id="set-latteam-on" class="st-toggle" type="checkbox" role="switch" aria-label={t('Buscar también en Lat-Team')} checked={latteamOn} onchange={onLatTeamToggle}>
+          </div>
+          {#if !latteamHas || latteamEdit}
+            <div class="st-block">
+              <div class="st-inline">
+                <input id="key-latteam" class="st-input" type="password" placeholder={t('Pegá tu API token de Lat-Team')} autocomplete="off" aria-label={t('Pegá tu API token de Lat-Team')} bind:value={latteamToken}
+                  onkeydown={(e) => { if (e.key === 'Enter') onSaveLatTeam(); }}>
+                <button id="key-latteam-save" class="st-btn" type="button" onclick={onSaveLatTeam}>{t('Guardar')}</button>
+              </div>
+            </div>
+          {/if}
+        </li>
+        {@render keyRow(WYZIE)}
       </ul>
+      <p class="st-foot lock"><Icon name="lock" size={12} />{t('En el almacén seguro del sistema; nunca se muestran')}</p>
+    </Section>
+{/snippet}
+
+{#snippet profileSum()}
+  <span class="board-b"><span class="b-i"><span class="b-big nick-big">{nickState.nick ?? ''}</span><span class="b-sub">{t('Tu clave: estos 2')}</span></span>
+    {#if nickState.animals}<AnimalFan animals={nickState.animals} />{/if}</span>
+{/snippet}
+{#snippet profileArt()}{#if nickState.animals}<AnimalFan animals={nickState.animals} />{:else}<Icon name="user" size={56} />{/if}{/snippet}
+{#snippet profilePanel()}
+    <Section id="set-profile" headId="set-h-profile" level={3} title={t('Perfil')}>
+      <div class="nick-card">
+        <span class="nick-ava" aria-hidden="true">{(nickState.nick ?? '?').slice(0, 1).toUpperCase()}</span>
+        <span class="nick-txt"><span class="nick-lbl">{t('Apodo')}</span><b id="nick-current">{nickState.nick ?? ''}</b></span>
+        <button id="nick-change-user" class="st-btn" type="button" disabled={switching || !nickState.nick} onclick={onSwitchUser}>{t('Cambiar de usuario')}</button>
+      </div>
       <p id="nick-msg" class="st-msg st-foot bad" role="status">{nickMsg}</p>
       {#if nickState.animals}
         <MyAnimals animals={nickState.animals} />
@@ -233,9 +333,17 @@
         <p id="my-animals" class="st-msg st-foot">{t('Entrá de nuevo con tus animales para verlos acá')}</p>
       {/if}
     </Section>
+{/snippet}
 
-    <Idioma id="set-lang" headId="set-h-lang" pickerId="set-lang" level={3} app={langs.app} titles={langs.titles} onpick={(key, value) => langs[key] !== value && setLangs({ [key]: value })} />
-
+{#snippet reproSum()}
+  <span class="board-b">
+    <span class="b-i"><span class="b-big">{t(eqLabel)}</span><span class="b-sub">{eq === 'flat' ? t('Tal cual viene el video.') : t('Intensidad {n}%', { n: eqIntensity })}</span></span>
+    <span class="b-well"><EqArt {eq} intensity={eqIntensity} /><span class="eq-bands"><span>{t('graves')}</span><span>{t('voces')}</span><span>{t('agudos')}</span></span></span>
+    <span class="b-row">{#if players?.mpvMissing}<span class="b-stt warn">{t('Falta mpv')}</span>{:else}<span class="b-stt ok"><Icon name="check" size={12} />mpv</span>{/if}<span class="b-sub">{t('VLC de alternativa')}</span></span>
+  </span>
+{/snippet}
+{#snippet reproArt()}<EqArt {eq} intensity={eqIntensity} />{/snippet}
+{#snippet reproPanel()}
     <Section id="set-player" headId="set-h-player" level={3} title={t('Reproducción')}>
       <ul class="st-list">
         <li class="st-row">
@@ -286,7 +394,17 @@
       </ul>
       <p id="set-player-ask" class="st-foot">{t('Al reproducir te preguntamos con cuál abrirlo.')}</p>
     </Section>
+{/snippet}
 
+{#snippet netSum()}
+  <span class="board-b">
+    <span class="b-i"><span class="b-row"><span class="b-big mono">41850</span><span class="b-stt {netChip.cls}">{netChip.text}</span></span>
+      <span class="b-sub">{net.incoming ? (net.upnp ? t('Entrantes · UPnP abre el puerto solo') : t('Entrantes')) : t('Solo salientes')}</span></span>
+    <NetArt state={netState} />
+  </span>
+{/snippet}
+{#snippet netArt()}<NetArt state={netState} />{/snippet}
+{#snippet netPanel()}
     <Section id="set-catalog" headId="set-h-net" level={3} title={t('Conexión')}>
       <ul class="st-list">
         <li class="st-row">
@@ -337,54 +455,22 @@
         </li>
       </ul>
     </Section>
+{/snippet}
 
-    <Section id="set-accounts" headId="set-h-accounts" level={3} title={t('Cuentas y keys')}>
-      <ul class="st-list">
-        {#each COMMON as row (row.service)}{@render keyRow(row)}{/each}
-        <li id="os-login">
-          <div class="st-row">
-            <span class="st-lbl">
-              <span class="st-name">{t('Cuenta de OpenSubtitles.com')}{@render tipIcon('os-login-tip', t('Opcional: con tu cuenta de OpenSubtitles.com se ve cuántas descargas te quedan desde que abrís la app y se baja con la cuota de tu cuenta. Se guarda en el almacén seguro.'))}</span>
-              <span id="os-login-state" class="st-sub" role="status">{osState}</span>
-            </span>
-          </div>
-          <div class="st-block">
-            <div class="st-inline">
-              <input id="os-user" class="st-input" type="text" placeholder={t('Usuario')} autocomplete="username" aria-label={t('Usuario de OpenSubtitles.com')} bind:value={osUser}>
-              <input id="os-pass" class="st-input" type="password" placeholder={t('Contraseña')} autocomplete="current-password" aria-label={t('Contraseña de OpenSubtitles.com')} bind:value={osPass}>
-              <button id="os-login-save" class="st-btn" type="button" onclick={onSaveOs}>{t('Guardar')}</button>
-            </div>
-          </div>
-        </li>
-        <li id="set-latteam">
-          <div class="st-row">
-            <span class="st-lbl">
-              <span class="st-name"><label for="set-latteam-on">Lat-Team</label>{@render tipIcon('latteam-tip', t('Tracker privado con audio latino. El API token está en tu perfil de Lat-Team → Ajustes → Seguridad. Tiene reglas de ratio: reproducir desde ahí con el motor de la app puede no estar permitido. Con TorBox no hace ratio.'))}</span>
-              <span class="st-sub">{t('Tracker privado con audio latino')}</span>
-            </span>
-            {@render chip('latteam-state', latteamHas, t('Guardado'), t('Falta'))}
-            {#if latteamHas}
-              <button id="key-latteam-change" class="st-link" type="button" onclick={() => (latteamEdit = !latteamEdit)}>{latteamEdit ? t('Cancelar') : t('Cambiar')}</button>
-            {:else}
-              <button id="key-latteam-page" class="st-link" type="button" onclick={() => core.openKeyPage('latteam').catch(showError)}>{t('Conseguir')}<Icon name="external" size={13} /></button>
-            {/if}
-            <input id="set-latteam-on" class="st-toggle" type="checkbox" role="switch" aria-label={t('Buscar también en Lat-Team')} checked={latteamOn} onchange={onLatTeamToggle}>
-          </div>
-          {#if !latteamHas || latteamEdit}
-            <div class="st-block">
-              <div class="st-inline">
-                <input id="key-latteam" class="st-input" type="password" placeholder={t('Pegá tu API token de Lat-Team')} autocomplete="off" aria-label={t('Pegá tu API token de Lat-Team')} bind:value={latteamToken}
-                  onkeydown={(e) => { if (e.key === 'Enter') onSaveLatTeam(); }}>
-                <button id="key-latteam-save" class="st-btn" type="button" onclick={onSaveLatTeam}>{t('Guardar')}</button>
-              </div>
-            </div>
-          {/if}
-        </li>
-        {@render keyRow(WYZIE)}
-      </ul>
-      <p class="st-foot lock"><Icon name="lock" size={12} />{t('En el almacén seguro del sistema; nunca se muestran')}</p>
-    </Section>
-  </div>
+{#snippet langSum()}
+  <span class="board-b row stack">
+    <span class="lang-art"><LangArt /></span>
+    <span class="b-i"><Plate titles={langs.titles} /><span class="b-sub">{t('Así se ven los títulos')}</span>
+      <span class="b-row"><span class="b-stt">{t('App: {x}', { x: langs.app === 'en' ? 'English' : 'Español' })}</span></span></span>
+  </span>
+{/snippet}
+{#snippet langArt()}<LangArt />{/snippet}
+{#snippet langPanel()}
+    <Idioma id="set-lang" headId="set-h-lang" pickerId="set-lang" level={3} app={langs.app} titles={langs.titles} onpick={(key, value) => langs[key] !== value && setLangs({ [key]: value })} />
+{/snippet}
+
+<Sheet id="dlg-settings" class="frost" title={t('Ajustes')} titleId="set-title" closeId="btn-settings-x" open={isOpen} onclose={() => (isOpen = false)} maxWidth="min(800px, 94vw)">
+  <Board bind:this={board} {tiles} areas="'keys keys profile' 'repro net profile' 'repro lang lang'" areasNarrow="'keys keys' 'profile profile' 'repro repro' 'net net' 'lang lang'" />
   {#snippet footer()}
     <footer class="set-foot">
       <button id="btn-settings-close" class="st-btn" type="button" onclick={() => (isOpen = false)}>{t('Cerrar')}</button>
@@ -393,9 +479,10 @@
 </Sheet>
 
 <style>
-  .st { padding: 6px 4px 8px; }
-  .grow { flex: 1; min-width: 0; justify-content: flex-end; }
-  .nick-now { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; margin-right: 10px; }
+  .keys-art { flex: none; width: 36%; max-width: 200px; }
+  .lang-art { flex: none; width: 42%; max-width: 120px; }
+  .nick-big { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @container board (max-width: 560px) { .keys-art { width: 60%; align-self: center; } .lang-art { width: 100%; max-width: none; height: 64px; } }
   .lock { display: inline-flex; align-items: center; gap: 5px; }
   .warn { background: color-mix(in srgb, var(--yellow) 10%, transparent); }
   .warn .st-sub { color: var(--text); }

@@ -174,7 +174,7 @@ function stepOf(hash: string, playing: boolean): HTMLElement {
     onUseNative: (k: string) => useNative(hash, k),
     onUse: usedFound,
     onSave: (sub: SubtitleOption) => void saveSub(sub),
-    onSettings: async () => { closeWizard(); await openSettings(); document.getElementById('key-opensubtitles')?.scrollIntoView({ block: 'center' }); }
+    onSettings: async () => { closeWizard(); await openSettings('keys'); document.getElementById('key-opensubtitles')?.scrollIntoView({ block: 'center' }); }
   });
   steps.set(key, { host, unmount });
   return host;

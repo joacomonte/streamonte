@@ -30,7 +30,7 @@ export function mountCatalog(api: Api): void {
 		target,
 		context: apiContext(api),
 		props: {
-			store, top, pinned: true, onsettings: openSettings, onneedskey: askTmdbKey, onmagnet: pasteMagnet,
+			store, top, pinned: true, onsettings: () => openSettings(), onneedskey: askTmdbKey, onmagnet: pasteMagnet,
 			onopen: (it) => openSide(rawKind(it.kind), it.id, it.title),
 			// "Vistos recientemente": `it.id` es el tt; en series abre la temporada y el capítulo que corresponde.
 			onresume: (it, ep) => (ep && it.kind === 'tv' ? openEpisode(it.id, it.title, ep.season, ep.episode) : openSide(rawKind(it.kind), it.id, it.title))

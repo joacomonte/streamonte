@@ -5,6 +5,10 @@
   {
    "click": "#btn-settings",
    "after": 1000
+  },
+  {
+   "click": "#board-tile-keys",
+   "after": 700
   }
  ],
  "must": [
@@ -16,13 +20,19 @@
    "text": "Ajustes"
   },
   {
-   "sel": "#set-lang"
+   "sel": "#board-tile-profile"
   },
   {
-   "sel": "#set-lang-app-es"
+   "sel": "#board-tile-repro"
   },
   {
-   "sel": "#set-lang-titles-en"
+   "sel": "#board-tile-net"
+  },
+  {
+   "sel": "#board-tile-lang"
+  },
+  {
+   "sel": "#board-back"
   },
   {
    "sel": "#key-tmdb"
@@ -32,9 +42,6 @@
   },
   {
    "sel": "#key-torbox"
-  },
-  {
-   "sel": "#btn-sources"
   },
   {
    "sel": "#key-latteam"
@@ -50,15 +57,6 @@
   },
   {
    "sel": "#os-pass"
-  },
-  {
-   "sel": "#set-h-player"
-  },
-  {
-   "sel": "#set-mpv-note"
-  },
-  {
-   "sel": "#eq-intensity"
   },
   {
    "sel": "#btn-settings-x"

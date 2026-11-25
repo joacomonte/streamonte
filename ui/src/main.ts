@@ -8,6 +8,7 @@ import '../styles.css';
 import '../catalog.css';
 import '../../packages/ui/css/options.css';
 import '../../packages/ui/css/settings.css';
+import '../../packages/ui/css/board.css';
 
 // El mock (solo sin Tauri) tiene que estar antes que cualquier módulo que llame al núcleo (`i18n.ts` lee la config al cargar):
 // por eso `boot.ts` (con todos los imports estáticos) se importa después, no arriba.

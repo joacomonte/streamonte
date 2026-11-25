@@ -108,7 +108,7 @@ Object.assign(actions, {
   person: (p: PickedPerson) => { closeSide(); pickPerson(p); },
   openTitle: (kind: 'movie' | 'tv', id: string, name: string) => openSide(kind === 'tv' ? 'series' : 'movie', id, name),
   imdb: (imdb: string) => core.catalogOpenImdb(imdb).catch(showError),
-  setupTmdb: openSettings,
+  setupTmdb: () => openSettings('keys'),
   optionsMounted: renderStreamsOnly,
 });
 

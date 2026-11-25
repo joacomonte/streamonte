@@ -76,7 +76,7 @@ export async function initApp(): Promise<void> {
   translateStatic(document.body);
   mountLangToggle($('#btn-settings'));
   $('#btn-settings').append(icon('gear', 24));
-  $('#btn-settings').addEventListener('click', openSettings);
+  $('#btn-settings').addEventListener('click', () => openSettings());
   document.addEventListener('keydown', onShortcut);
   $('#dlg-log').addEventListener('close', () => (playbackLogs.openFor = null));
 

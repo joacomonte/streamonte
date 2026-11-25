@@ -5,7 +5,7 @@ Alias `$ui` → `src/` (web: `web/vite.config.ts`; desktop: `ui/vite.config.ts`)
 - Contrato con las apps: `types.ts` (tipos de vista) + `api.ts` (`Api`, incluye `nick`) + `context.ts` (`getApi`/`setApi`). Método nuevo en `Api` → `web/src/lib/webApi.ts`, `ui/src/tauriApi.ts` y `test/fake-api.ts`.
 - Latino y badges de audio → `latino.ts`, `audio.ts`; ranking/calidad (`TYPICAL_MBPS`) → `rank.ts`; match de subs → `sub-match.ts`.
 - Formatos (`humanBytes`, `mbps`) → `format.ts`; temporadas → `season.ts`; magnet → `magnet-hash.ts`.
-- Por área (cada una con CLAUDE.md, salvo `settings/`): `settings/` (Section, Idioma, KeyRow, KeyField + keys-form.svelte.ts, MissingKeys, keys.ts: lo común de Ajustes; las apps inyectan un KeysAdapter) · `catalog/` · `options/` · `flow/` · `title/` · `subs/` · `magnet/` · `components/` · `i18n/` · `animals/` (apodo y código de 2 animales).
+- Por área (cada una con CLAUDE.md, salvo `settings/`): `settings/` (Section, Idioma, KeyRow, KeyField + keys-form.svelte.ts, MissingKeys, keys.ts: lo común de Ajustes; las apps inyectan un KeysAdapter; `settings/board/`: tablero de fichas + ilustraciones SVG, estilos en `css/board.css`) · `catalog/` · `options/` · `flow/` · `title/` · `subs/` · `magnet/` · `components/` · `i18n/` · `animals/` (apodo y código de 2 animales).
 - CSS → `css/` (abajo).
 
 ## CSS compartido (`css/`)
