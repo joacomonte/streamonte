@@ -46,6 +46,14 @@ export async function openSide(kind: MediaKind, id: string, name: string): Promi
   } catch (e) { if (seq === view.sideSeq) showError(e); }
 }
 
+/** Abre una serie directo en un capítulo ("Vistos recientemente"): temporada, episodio y sus opciones. */
+export async function openEpisode(id: string, name: string, season: number, episode: number): Promise<void> {
+  await openSide('series', id, name);
+  if (state.side?.id !== id || !state.side.meta) return;
+  await goSeason(season);
+  actions.episode(season, episode);
+}
+
 export async function closeSide(): Promise<void> {
   await leaveTests();
   view.sideSeq++;

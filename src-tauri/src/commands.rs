@@ -686,3 +686,27 @@ pub async fn nick_logout(core: Core<'_>) -> CmdResult<()> {
 pub async fn nick_animals(core: Core<'_>) -> CmdResult<Option<Vec<String>>> {
     Ok(core.nick_animals().await?)
 }
+
+// ----- Vistos recientemente (en la web, por apodo) -----
+/// La fila; vacía sin sesión de apodo.
+#[tauri::command]
+pub async fn vistos_list(core: Core<'_>) -> CmdResult<Vec<streamonte_core::web::Seen>> {
+    Ok(core.vistos_list().await?)
+}
+#[tauri::command]
+pub async fn vistos_mark(core: Core<'_>, item: streamonte_core::web::Seen) -> CmdResult<()> {
+    Ok(core.vistos_mark(&item).await?)
+}
+#[tauri::command]
+pub async fn vistos_restore(core: Core<'_>, item: streamonte_core::web::Seen) -> CmdResult<()> {
+    Ok(core.vistos_restore(&item).await?)
+}
+#[tauri::command]
+pub async fn vistos_dismiss(
+    core: Core<'_>,
+    kind: streamonte_core::web::SeenKind,
+    imdb: String,
+    how: String,
+) -> CmdResult<()> {
+    Ok(core.vistos_dismiss(kind, &imdb, &how).await?)
+}

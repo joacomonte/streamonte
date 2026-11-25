@@ -127,8 +127,13 @@ export function createTauriApi(core: Core): Api {
 			status: async (hash, name, who) => adapt.magnetView(await api.torboxMagnet(hash, name, who), hash),
 			download: async (hash, name) => adapt.magnetStatus(await api.torboxMagnetDownload(hash, name), hash)
 		},
-		// TODO vistos desktop (otro agente)
-		recent: { list: () => Promise.resolve([]), mark: () => Promise.resolve(), restore: () => Promise.resolve(), dismiss: () => Promise.resolve() },
+		// Vistos: en la web por apodo (`web.rs`). En el desktop el id del título es el tt; `tmdb` lo resuelve la web.
+		recent: {
+			list: async () => (await api.vistosList()).map((s) => ({ kind: s.kind, imdb: s.imdb, id: s.imdb, title: s.title, poster: s.poster, backdrop: s.backdrop, season: s.season, episode: s.episode, at: s.at })),
+			mark: (i) => api.vistosMark({ kind: i.kind, imdb: i.imdb, tmdb: null, title: i.title, poster: i.poster, backdrop: i.backdrop, season: i.season, episode: i.episode, at: '' }),
+			restore: (i) => api.vistosRestore({ kind: i.kind, imdb: i.imdb, tmdb: null, title: i.title, poster: i.poster, backdrop: i.backdrop, season: i.season, episode: i.episode, at: i.at }),
+			dismiss: (kind, imdb, how) => api.vistosDismiss(kind, imdb, how)
+		},
 		nick: {
 			ask: (nick) => api.nickAsk(nick),
 			async enter(nick, code, mode) {

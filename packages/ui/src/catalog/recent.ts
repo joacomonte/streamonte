@@ -16,6 +16,9 @@ export type RecentItem = {
 	at: string;
 };
 
+/** Evento de `document` que pide recargar la fila (el desktop lo manda al reproducir; la web no lo usa). */
+export const RECENT_CHANGED = 'streamonte:vistos';
+
 export type EpisodeRef = { season: number; episode: number };
 
 /** El capítulo que sigue a `s`×`e`: el próximo de la temporada o el 1 de la siguiente con capítulos. null si era el

@@ -1,7 +1,7 @@
 //! El desktop habla con la web de Streamonte (2026-11-25): único dueño de esos pedidos.
 //! Guarda en el almacén seguro el código de 3 dígitos de la web (el candado de `hooks.server.ts`) y la cookie firmada
 //! `apodo` que da `POST /api/nick`; cada pedido lleva `Cookie: code=…; apodo=…` (y `Origin` en POST/DELETE: SvelteKit
-//! rechaza con 403 un POST sin `Origin` del mismo sitio). Lo usan el apodo, la key de TorBox y lo que venga (Vistos).
+//! rechaza con 403 un POST sin `Origin` del mismo sitio). Lo usan el apodo, la key de TorBox y "Vistos recientemente".
 //!
 //! Estados: `401` sin JSON = el candado rechazó el código → se borra el guardado (no es la web; el desktop vuelve a pedirlo).
 //! `401` con `{message}` = la sesión del apodo no vale → se borra la cookie y el apodo, el código queda.
@@ -311,4 +311,84 @@ async fn adopt_torbox_key() {
         }
         Err(e) => tracing::warn!("web: key de TorBox no disponible: {e}"),
     }
+}
+
+// ----- Vistos recientemente -----
+
+/// Película o serie, como lo guarda la web.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SeenKind {
+    Movie,
+    Tv,
+}
+
+/// Un título de "Vistos recientemente" (`Seen` de `web/src/lib/server/vistos.ts`). `imdb` es el id común; `tmdb` lo
+/// resuelve la web (el desktop lo manda en `null`). Series: el último capítulo visto.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Seen {
+    pub kind: SeenKind,
+    pub imdb: String,
+    #[serde(default)]
+    pub tmdb: Option<u64>,
+    pub title: String,
+    #[serde(default)]
+    pub poster: Option<String>,
+    #[serde(default)]
+    pub backdrop: Option<String>,
+    #[serde(default)]
+    pub season: Option<u32>,
+    #[serde(default)]
+    pub episode: Option<u32>,
+    /// ISO: cuándo lo vio (la web lo pone al marcar; "Deshacer" lo manda para volver a su lugar).
+    #[serde(default)]
+    pub at: String,
+}
+
+/// Hay sesión de apodo (código y cookie guardados). Sin eso Vistos no pide nada.
+fn has_session() -> bool {
+    let s = status();
+    s.code_set && s.nick.is_some()
+}
+
+/// `GET /api/vistos`: la fila del apodo. Sin sesión: vacía, sin pedir nada.
+pub async fn vistos_list() -> Result<Vec<Seen>> {
+    if !has_session() {
+        return Ok(Vec::new());
+    }
+    let reply = call(Method::GET, "/api/vistos", &[], None).await?;
+    if reply.status != 200 {
+        return Err(reply.failure());
+    }
+    serde_json::from_slice(&reply.body).map_err(|_| user_error("La web contestó algo inesperado."))
+}
+
+/// `POST /api/vistos` con una acción. Sin sesión no hace nada.
+async fn vistos_post(body: Value) -> Result<()> {
+    if !has_session() {
+        return Ok(());
+    }
+    let reply = call(Method::POST, "/api/vistos", &[], Some(body)).await?;
+    if reply.status != 200 {
+        return Err(reply.failure());
+    }
+    Ok(())
+}
+
+/// Lo reprodujo ahora: sube arriba de la fila (con este capítulo, en series).
+pub async fn vistos_mark(item: &Seen) -> Result<()> {
+    vistos_post(serde_json::json!({ "action": "mark", "item": item })).await
+}
+
+/// "Deshacer" de la X: vuelve con su fecha original.
+pub async fn vistos_restore(item: &Seen) -> Result<()> {
+    vistos_post(serde_json::json!({ "action": "restore", "item": item })).await
+}
+
+/// La X: `how` = "visto" (lo terminó) u "olvidar" (no lo vio).
+pub async fn vistos_dismiss(kind: SeenKind, imdb: &str, how: &str) -> Result<()> {
+    if !matches!(how, "visto" | "olvidar") {
+        return Err(user_error("Acción inválida."));
+    }
+    vistos_post(serde_json::json!({ "action": how, "kind": kind, "imdb": imdb })).await
 }

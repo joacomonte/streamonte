@@ -20,6 +20,7 @@ import {
 } from './catalog-tests.ts';
 import { crumbs, fitsNet, flowFilter, flowStep, hasResStep, isMatch, moreRow, newFlow } from './catalog-flow.ts';
 import { healthOf, type HealthEvidence } from '$ui/options/health.ts';
+import { RECENT_CHANGED } from '$ui/catalog/recent.ts';
 import { bestText, hdrText, heavyText, langTags as langTagsOf, noMatches as noMatchesOf, qualityOf, readButton, QUALITY_TEXT, RES_ORDER as RES, resKey as resKeyOf, resLabel as resLabelOf, TipBook } from '$ui/options/row.ts';
 import type { Action, DockButton, Mid, OptionRowView, People, Verdict } from '$ui/options/row.ts';
 import { latOf as latOfRows, mbpsOf as mbpsFor, neededBps as neededBpsFor, rankOptions, tierOf as tierOfCount, toMbps, typicalMbps } from '$ui/rank.ts';
@@ -1027,6 +1028,20 @@ function lowerSuggestion(res: string, groups: Map<string, Candidate[]>): ListVie
 export const RES_ORDER = RES;
 export const resKey = (c: Candidate): string => resKeyOf(c.resolution);
 export const resLabel = (r: string): string => resLabelOf(r, tr('Otras'));
+/** "Vistos recientemente": avisa a la web que se empezó a ver el título del panel (con el capítulo, en series) y le pide a la
+ *  fila que se recargue. Sin sesión de apodo el núcleo no hace nada; si falla no se muestra nada. */
+function markSeen(): void {
+	const s = side();
+	const tv = s.kind === 'series';
+	// El video que arrancó (`tt…:temporada:episodio` en series).
+	const [, season, episode] = (s.videoId ?? '').split(':').map(Number);
+	void core.vistosMark({
+		kind: tv ? 'tv' : 'movie', imdb: s.id, tmdb: null, title: s.details?.details?.title ?? s.meta?.name ?? s.name,
+		poster: s.meta?.poster ?? null, backdrop: s.meta?.background ?? null,
+		season: tv ? season || null : null, episode: tv ? episode || null : null, at: ''
+	}).then(() => void document.dispatchEvent(new CustomEvent(RECENT_CHANGED))).catch(() => {});
+}
+
 /** Reproducir: lo agrega a la biblioteca y lo prepara con el flujo de siempre (audio → subtítulos → reproductor). Se queda en el
  *  catálogo. `torbox`: se abre con el link de TorBox en vez del motor. */
 export async function playOption(hash: string, btn: HTMLButtonElement, torbox = false): Promise<void> {
@@ -1051,6 +1066,7 @@ export async function playOption(hash: string, btn: HTMLButtonElement, torbox = 
 					setStatus('Pidiéndole el video a TorBox…');
 					await core.playTorbox(side().videoId, hash, player, audio);
 				} else await core.play(row.key, player, null, audio);
+				markSeen();
 				setStatus('Cargando…');
 				return true;
 			};

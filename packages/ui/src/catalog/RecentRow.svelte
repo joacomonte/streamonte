@@ -8,7 +8,7 @@
 	import Icon from '../components/Icon.svelte';
 	import { getApi } from '../context.ts';
 	import { t } from '../i18n/runtime.ts';
-	import { nextEpisode, type EpisodeRef, type RecentItem } from './recent.ts';
+	import { nextEpisode, RECENT_CHANGED, type EpisodeRef, type RecentItem } from './recent.ts';
 
 	interface Props {
 		/** Abrir el título (`ep`: el capítulo a abrir en series; null = la ficha). */
@@ -32,8 +32,11 @@
 	const epText = (i: RecentItem) => (i.kind === 'tv' && i.season && i.episode ? t('T{s} · E{e}', { s: i.season, e: i.episode }) : t('Película'));
 
 	onMount(() => {
-		api.recent.list().then((l) => (items = l)).catch(() => {});
-		return () => clearTimeout(undoTimer);
+		const load = () => void api.recent.list().then((l) => (items = l)).catch(() => {});
+		load();
+		// Desktop: al reproducir algo se avisa para recargar la fila (en la web se marca al copiar y la fila se vuelve a montar).
+		document.addEventListener(RECENT_CHANGED, load);
+		return () => (clearTimeout(undoTimer), document.removeEventListener(RECENT_CHANGED, load));
 	});
 
 	function measure() {

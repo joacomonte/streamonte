@@ -7,7 +7,7 @@ import { createCatalogStore } from '../../packages/ui/src/catalog/catalog.svelte
 import { apiContext } from '../../packages/ui/src/context.ts';
 import { askTmdbKey, attachStore, pasteMagnet, setPastedHost } from './catalog.ts';
 import { hooks } from './catalog-state.ts';
-import { openSide } from './catalog-side.ts';
+import { openEpisode, openSide } from './catalog-side.ts';
 import { openSettings } from './dialog-flows.ts';
 import { setStatus } from './dom.ts';
 import { rawKind } from './tauri-adapt.ts';
@@ -31,7 +31,9 @@ export function mountCatalog(api: Api): void {
 		context: apiContext(api),
 		props: {
 			store, top, pinned: true, onsettings: openSettings, onneedskey: askTmdbKey, onmagnet: pasteMagnet,
-			onopen: (it) => openSide(rawKind(it.kind), it.id, it.title)
+			onopen: (it) => openSide(rawKind(it.kind), it.id, it.title),
+			// "Vistos recientemente": `it.id` es el tt; en series abre la temporada y el capítulo que corresponde.
+			onresume: (it, ep) => (ep && it.kind === 'tv' ? openEpisode(it.id, it.title, ep.season, ep.episode) : openSide(rawKind(it.kind), it.id, it.title))
 		}
 	});
 }

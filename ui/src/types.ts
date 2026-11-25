@@ -307,6 +307,18 @@ export type NickStatus = {
     code_set: boolean;
     nick: string | null;
 };
+/** Un título de "Vistos recientemente" (`web::Seen`). `imdb` = el tt; `tmdb` lo resuelve la web. */
+export type VistosSeen = {
+    kind: "movie" | "tv";
+    imdb: string;
+    tmdb: number | null;
+    title: string;
+    poster: string | null;
+    backdrop: string | null;
+    season: number | null;
+    episode: number | null;
+    at: string;
+};
 export type SpeedResult = {
     mbps: number;
     measured_at: IsoDate;

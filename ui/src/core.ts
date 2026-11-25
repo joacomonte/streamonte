@@ -6,7 +6,7 @@ import type {
   DetailsView, EpisodeText, Equalizer, IncomingCheck, InfoHash, InterestExample, LanguageConfig, LibraryRow, LibraryView, MagnetStatus,
   MediaKind, Meta, PlaybackAction, PlaybackId, PlaybackRow, PlayerKind, PlayersStatus, PremiumPick, PremiumQuota, SavedTest, SearchPerson,
   SeasonRatings, Similar, SpeedResult, SubtitleFound, SubtitleLanguage, SubtitlePicks, SwarmCount, TempUsage, TitleAwards, EpisodeScore, TorboxCached,
-  TorboxMagnetView, VideoKey, NickAsk, NickEnter, NickStatus,
+  TorboxMagnetView, VideoKey, NickAsk, NickEnter, NickStatus, VistosSeen,
 } from './types.ts';
 
 const invoke = <T>(cmd: string, args?: Record<string, unknown>): Promise<T> => window.__TAURI__.core.invoke<T>(cmd, args);
@@ -64,6 +64,12 @@ export const nickEnter = (nick: string, code: string[], mode: 'nuevo' | 'login')
 export const nickLogout = () => invoke<void>('nick_logout');
 /** Los 2 animales (ids) de la sesión; null si todavía no se guardaron. */
 export const nickAnimals = () => invoke<string[] | null>('nick_animals');
+/** "Vistos recientemente" del apodo (vacío sin sesión). */
+export const vistosList = () => invoke<VistosSeen[]>('vistos_list');
+/** Lo reprodujo ahora (sin sesión no hace nada). */
+export const vistosMark = (item: VistosSeen) => invoke<void>('vistos_mark', { item });
+export const vistosRestore = (item: VistosSeen) => invoke<void>('vistos_restore', { item });
+export const vistosDismiss = (kind: VistosSeen['kind'], imdb: string, how: 'visto' | 'olvidar') => invoke<void>('vistos_dismiss', { kind, imdb, how });
 export const apiKeys = () => invoke<ApiKeyStatus[]>('api_keys');
 /** Abre en el navegador la página para pedir la key. */
 export const openKeyPage = (service: string) => invoke<void>('open_key_page', { service });

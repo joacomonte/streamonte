@@ -33,6 +33,12 @@ function replay(events: unknown, stepMs = 500, startMs = stepMs) {
 // El código de 3 dígitos que vale es cualquiera menos `000`; los animales de la sesión son los dos primeros de la grilla.
 const nickMock = { codeSet: !location.search.includes('nonick'), code: '123', nick: location.search.includes('nonick') ? null : 'Joaco' as string | null };
 const reject = (msg: string) => Promise.reject(msg);
+const art = (tt: string) => ({ poster: `https://images.metahub.space/poster/small/${tt}/img`, backdrop: `https://images.metahub.space/background/medium/${tt}/img` });
+const vistosMock = [
+  { kind: 'tv', imdb: 'tt0903747', tmdb: null, title: 'Breaking Bad', ...art('tt0903747'), season: 2, episode: 3, at: '2026-11-23T10:00:00.000Z' },
+  { kind: 'movie', imdb: 'tt0137523', tmdb: null, title: 'El club de la pelea', ...art('tt0137523'), season: null, episode: null, at: '2026-11-22T10:00:00.000Z' },
+  { kind: 'movie', imdb: 'tt1375666', tmdb: null, title: 'El origen', ...art('tt1375666'), season: null, episode: null, at: '2026-11-21T10:00:00.000Z' },
+];
 function mockNick(cmd: string, args?: Record<string, unknown>): Promise<unknown> | undefined {
   const guard = () => {
     if (!nickMock.codeSet) return reject('Falta el código de la web.');
@@ -45,6 +51,9 @@ function mockNick(cmd: string, args?: Record<string, unknown>): Promise<unknown>
     case 'nick_enter': return guard() ?? (nickMock.nick = String(args?.nick), Promise.resolve({ kind: 'ok', nick: nickMock.nick, created: true }));
     case 'nick_logout': nickMock.nick = null; return Promise.resolve(null);
     case 'nick_animals': return Promise.resolve(nickMock.nick ? ANIMAL_IDS.slice(0, 2) : null);
+    // "Vistos recientemente": con sesión, 3 de ejemplo; con `?nonick`, vacía (la fila no sale). Marcar/sacar no guardan nada.
+    case 'vistos_list': return Promise.resolve(nickMock.nick ? vistosMock : []);
+    case 'vistos_mark': case 'vistos_restore': case 'vistos_dismiss': return Promise.resolve(null);
   }
 }
 
