@@ -46,7 +46,9 @@ export const HELP_SIZE = 12;
 /** Espera tras un código errado (la controla el servidor). */
 export const WAIT_SECONDS = 15;
 /** Lo que devuelve la app al mandar un código (crear o entrar). `wait`: segundos hasta poder probar de nuevo. */
-export type CodeResult = { ok: true } | { ok: false; error: string; wait?: number };
+export type CodeResult =
+	| { ok: true; /** El apodo con el que quedó la sesión. */ nick?: string }
+	| { ok: false; error: string; wait?: number; /** 409: el apodo cambió de estado; hay que volver a preguntar. */ changed?: boolean };
 
 /** Más fallos que esto (sin acertar ni resetear) levantan una alerta en /admin. */
 export const ALERT_FAILS = 3;

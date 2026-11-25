@@ -14,9 +14,11 @@ import Dialogs from './components/Dialogs.svelte';
 import Downloads from './components/Downloads.svelte';
 import SpeedButton from './components/SpeedButton.svelte';
 import SpeedPanel from './components/SpeedPanel.svelte';
+import Greeting from './Greeting.svelte';
 import { showError } from './dom.ts';
 import { langs, locale } from './i18n.ts';
 import { provideApi } from './mount-shared.ts';
+import { initNick } from './nick-state.svelte.ts';
 import SidePanel from './SidePanel.svelte';
 import { createDesktopApi } from './tauriApi.ts';
 import { host as uiHost } from './ui-host.ts';
@@ -40,6 +42,7 @@ export function startMain(): void {
   // El único `Api` del desktop: se crea acá y llega a cada montaje por contexto (`mount-shared.ts`, `catalog-mount.ts`, panel lateral).
   const api = createDesktopApi(() => langs.titles);
   provideApi(api);
+  initNick(api);
   mountCatalog(api);
   // Letras que entran desenfocadas al escribir, en todos los campos de texto.
   installTypeFx();
@@ -47,6 +50,15 @@ export function startMain(): void {
   const sideHost = document.getElementById('cat-side');
   if (sideHost) {
     mount(SidePanel, { target: sideHost, context: apiContext(api), props: { locale: locale(), genreLabel: genreName } });
+  }
+
+  // Saludo con el apodo, entre la marca y los botones de la barra de arriba.
+  const brand = document.querySelector('.topbar .brand');
+  if (brand) {
+    const helloHost = document.createElement('div');
+    helloHost.style.display = 'contents';
+    brand.after(helloHost);
+    mount(Greeting, { target: helloHost });
   }
 
   const host = document.createElement('div');

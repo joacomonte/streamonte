@@ -14,6 +14,7 @@
 	import { track } from '#lib/track.ts';
 	import { magnetHash } from '$ui/magnet-hash.ts';
 	import { ANIMALS, type Animal } from '$ui/animals/animals.ts';
+	import NickHello from '$ui/animals/NickHello.svelte';
 	import { myAnimals } from '#lib/apodo.svelte.ts';
 
 	const store = webCatalog();
@@ -63,7 +64,7 @@
 		<div class="brand-row">
 			<h1 class="brand"><img src={logo} alt="Streamonte" width="24" height="27" /></h1>
 			{#if page.data.nick}
-				<p class="hello"><span class="hi">{t('Hola')}</span><b>{page.data.nick}</b><span>!</span><span class="wave" aria-hidden="true">👋</span>{#if mine.length === 2}<a id="nick-animals" class="pair" href="/ajustes" aria-label={t('Tu clave: estos 2')}>{#each mine as a, i (a.id)}<img id="nick-animal-{i + 1}" src={a.img} alt="" style:object-position={a.pos} />{/each}</a>{/if}</p>
+				<NickHello nick={page.data.nick} animals={mine} href="/ajustes" />
 			{/if}
 		</div>
 		<div class="top-actions">
@@ -86,18 +87,4 @@
 	@media (max-width: 480px) { .brand img { width: 22px; height: 25px; } }
 	/* Marca y saludo en la misma línea; el saludo se recorta con … si el apodo no entra (375 px). */
 	.brand-row { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
-	/* Solo el apodo se recorta (con …): "Hola", el signo y la mano quedan siempre. */
-	.hello { display: flex; align-items: baseline; min-width: 0; margin: 0; font-size: 14.5px; color: var(--muted); white-space: nowrap; animation: hello-in 0.6s var(--out) 0.25s both; }
-	.hello > * { flex: none; }
-	/* Las 2 miniaturas del apodo: redondas, chicas y superpuestas; no empujan nada (flex: none, 38 px). */
-	.pair { display: flex; align-self: center; margin-left: 0.55em; }
-	.pair img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 2px solid var(--surface); background: var(--surface); box-sizing: content-box; }
-	.pair img + img { margin-left: -8px; }
-	.hi { margin-right: 0.3em; }
-	.hello b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 650; }
-	/* La mano saluda una vez, desde la muñeca. */
-	.wave { display: inline-block; margin-left: 0.3em; transform-origin: 70% 80%; animation: wave 1.4s ease-in-out 0.8s both; }
-	@keyframes hello-in { from { opacity: 0; transform: translateX(-8px); } }
-	@keyframes wave { 15% { transform: rotate(14deg); } 30% { transform: rotate(-8deg); } 45% { transform: rotate(12deg); } 60% { transform: rotate(-4deg); } 75% { transform: rotate(8deg); } 100% { transform: rotate(0); } }
-	@media (prefers-reduced-motion: reduce) { .hello, .wave { animation: none; } }
 </style>

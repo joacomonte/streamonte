@@ -8,7 +8,7 @@ Busca en 6 fuentes gratis en paralelo, rankea, baja hasta 5, los carga en mpv + 
 - Keys de OpenSubtitles → `secrets.rs`.
 
 ## Relación
-Lo llaman `session::prefetch` y `analyzer/subs.rs`; Premium solo desde `app/subtitles.rs`.
+Lo llaman `playback::flow` (`session::prefetch`) y el analizador (`session::fetch`, `analyzer/subs.rs`); Premium solo desde `app/subtitles.rs`.
 
 ## Trampas
 - Latino/España: UNA regla, `audio::spanish_variant`.

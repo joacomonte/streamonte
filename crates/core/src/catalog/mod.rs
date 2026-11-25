@@ -251,13 +251,12 @@ impl Catalog {
     }
 
     /// FR-36: películas y series en paralelo. Una búsqueda nueva cancela la anterior
-    /// (como mucho 1 pedido en vuelo por tipo). Devuelve también el token de ESTA búsqueda, para
-    /// cortar con ella el filtro de fondo ([`Self::find_excluded`]).
-    pub async fn search(
-        &self,
-        query: &str,
-        timeout: Duration,
-    ) -> Result<(Vec<MetaPreview>, CancellationToken)> {
+    /// (como mucho 1 pedido en vuelo por tipo). Menos de 2 letras = sin resultados.
+    pub async fn search(&self, query: &str, timeout: Duration) -> Result<Vec<MetaPreview>> {
+        let query = query.trim();
+        if query.chars().count() < 2 {
+            return Ok(Vec::new());
+        }
         let token = supersede(&self.search);
         let both = async {
             tokio::join!(
@@ -271,39 +270,13 @@ impl Catalog {
         };
         match (movies, series) {
             (Err(e), Err(_)) => Err(fetch_error("buscar", &e)),
-            (m, s) => Ok((
-                by_relevance(
-                    query,
-                    m.unwrap_or_default(),
-                    s.unwrap_or_default(),
-                    self.top.ratings_loaded().as_deref(),
-                ),
-                token,
+            (m, s) => Ok(by_relevance(
+                query,
+                m.unwrap_or_default(),
+                s.unwrap_or_default(),
+                self.top.ratings_loaded().as_deref(),
             )),
         }
-    }
-
-    /// FR-36 + FR-40: [`Self::search`] (menos de 2 letras = sin resultados) y, en segundo plano,
-    /// [`Self::find_excluded`] para avisar con `on_excluded` cuáles son anime / japonés.
-    pub async fn search_flagging_excluded(
-        self: &Arc<Self>,
-        query: &str,
-        timeout: Duration,
-        on_excluded: impl Fn(String) + Send + 'static,
-    ) -> Result<Vec<MetaPreview>> {
-        let query = query.trim();
-        if query.chars().count() < 2 {
-            return Ok(Vec::new());
-        }
-        let (results, token) = self.search(query, timeout).await?;
-        let previews = results.clone();
-        let catalog = self.clone();
-        tokio::spawn(async move {
-            catalog
-                .find_excluded(previews, timeout, token, on_excluded)
-                .await;
-        });
-        Ok(results)
     }
 
     /// Puntaje promedio por temporada de una serie (para ver si decayó). `quick` (tarjetas al pasar
@@ -717,29 +690,6 @@ impl Catalog {
         m
     }
 
-    /// FR-40 en búsquedas: los previews no traen país ni géneros (10 §B.3), así que se pide la
-    /// ficha de cada resultado (fail-open: si falla, se muestra). Avisa cada excluido.
-    /// De a una (deja libre el otro lugar del host para la ficha o la próxima búsqueda) y se corta
-    /// con la búsqueda siguiente (`token`: el de la búsqueda que dio estos resultados); las fichas
-    /// ya cacheadas no van a la red (`meta`).
-    pub async fn find_excluded(
-        &self,
-        previews: Vec<MetaPreview>,
-        timeout: Duration,
-        token: CancellationToken,
-        on_excluded: impl Fn(String),
-    ) {
-        for p in previews {
-            let meta = tokio::select! {
-                m = self.meta(p.kind, &p.id, timeout) => m,
-                _ = token.cancelled() => return,
-            };
-            if meta.is_ok_and(|m| m.excluded) {
-                on_excluded(p.id);
-            }
-        }
-    }
-
     /// Addons habilitados, con su URL real (del almacén seguro si es secreta). Reusa los
     /// manifests ya leídos.
     pub fn enabled_addons(&self, cfg: &CatalogConfig) -> Vec<Arc<Addon>> {
@@ -1132,7 +1082,6 @@ mod tests {
             name: name.into(),
             year: None,
             imdb_rating: None,
-            excluded: false,
             documentary: false,
             poster: None,
             released: None,

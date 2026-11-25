@@ -312,12 +312,13 @@ pub async fn play_torbox(
 }
 /// Usuario y contraseña de OpenSubtitles.com (vacíos = borrar). Nunca vuelven a la UI.
 #[tauri::command]
-pub fn opensubtitles_login_set(
+pub async fn opensubtitles_login_set(
     core: Core<'_>,
     username: String,
     password: String,
 ) -> CmdResult<()> {
-    Ok(core.set_opensubtitles_login(&username, &password)?)
+    let core = core.inner().clone();
+    blocking(move || Ok(core.set_opensubtitles_login(&username, &password)?)).await
 }
 /// Cambiar el subtítulo de lo que se está viendo (mpv), sin reiniciar.
 #[tauri::command]
@@ -341,12 +342,13 @@ pub async fn catalog_torbox_tracks(
 }
 /// Copia subtítulos ya bajados a Descargas y abre la carpeta.
 #[tauri::command]
-pub fn save_subtitles(
+pub async fn save_subtitles(
     core: Core<'_>,
     title: String,
     files: Vec<streamonte_core::app::SubtitleSave>,
 ) -> CmdResult<String> {
-    Ok(core.save_subtitles(&title, &files)?.display().to_string())
+    let core = core.inner().clone();
+    blocking(move || Ok(core.save_subtitles(&title, &files)?.display().to_string())).await
 }
 /// Magnet o link https de TorBox de una opción, para copiar (clic derecho).
 #[tauri::command]
@@ -361,16 +363,18 @@ pub async fn catalog_link(
 }
 /// Tests de conexión de la última hora (datos guardados).
 #[tauri::command]
-pub fn catalog_swarm_saved(
+pub async fn catalog_swarm_saved(
     core: Core<'_>,
     hashes: Vec<InfoHash>,
 ) -> CmdResult<std::collections::HashMap<InfoHash, streamonte_core::app::SavedTest>> {
-    Ok(core.catalog_swarm_saved(&hashes))
+    let core = core.inner().clone();
+    blocking(move || Ok(core.catalog_swarm_saved(&hashes))).await
 }
 /// Espacio libre del disco de descargas, en bytes (null si no se pudo leer).
 #[tauri::command]
-pub fn downloads_free_bytes(core: Core<'_>) -> CmdResult<Option<u64>> {
-    Ok(core.downloads_free_bytes())
+pub async fn downloads_free_bytes(core: Core<'_>) -> CmdResult<Option<u64>> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.downloads_free_bytes())).await
 }
 /// Censo DHT sin conectarse (~12 s): direcciones únicas por hash; falta = 0.
 #[tauri::command]
@@ -495,10 +499,6 @@ pub async fn catalog_reset_addons(core: Core<'_>) -> CmdResult<Vec<AddonView>> {
     Ok(core.catalog_reset_addons().await?)
 }
 #[tauri::command]
-pub async fn catalog_set_exclude_japanese(core: Core<'_>, exclude: bool) -> CmdResult<()> {
-    Ok(core.catalog_set_exclude_japanese(exclude).await?)
-}
-#[tauri::command]
 pub fn catalog_stop_swarm(core: Core<'_>) {
     core.catalog_stop_swarm();
 }
@@ -510,12 +510,14 @@ pub async fn speed_test(
     Ok(core.speed_test(force).await?)
 }
 #[tauri::command]
-pub fn data_cache_size(core: Core<'_>) -> u64 {
-    core.data_cache_size()
+pub async fn data_cache_size(core: Core<'_>) -> CmdResult<u64> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.data_cache_size())).await
 }
 #[tauri::command]
-pub fn clear_data_cache(core: Core<'_>) -> CmdResult<u64> {
-    Ok(core.clear_data_cache()?)
+pub async fn clear_data_cache(core: Core<'_>) -> CmdResult<u64> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.clear_data_cache()?)).await
 }
 #[tauri::command]
 pub async fn catalog_details(
@@ -648,4 +650,39 @@ pub async fn torbox_magnet_download(
     name: String,
 ) -> CmdResult<streamonte_core::catalog::torbox::MagnetStatus> {
     Ok(core.torbox_magnet_download(hash, &name).await?)
+}
+
+// ----- Web de Streamonte: código de acceso y apodo (módulo `web` del core) -----
+/// Código de 3 dígitos de la web, al almacén seguro. Vacío = borrarlo.
+#[tauri::command]
+pub async fn web_code_set(core: Core<'_>, code: String) -> CmdResult<()> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.web_code_set(&code)?)).await
+}
+/// Código cargado (sí/no) y apodo de la sesión, sin devolver nunca el código ni la cookie.
+#[tauri::command]
+pub async fn nick_status(core: Core<'_>) -> CmdResult<streamonte_core::web::NickStatus> {
+    let core = core.inner().clone();
+    blocking(move || Ok(core.nick_status())).await
+}
+#[tauri::command]
+pub async fn nick_ask(core: Core<'_>, nick: String) -> CmdResult<streamonte_core::web::NickAsk> {
+    Ok(core.nick_ask(&nick).await?)
+}
+#[tauri::command]
+pub async fn nick_enter(
+    core: Core<'_>,
+    nick: String,
+    code: Vec<String>,
+    mode: String,
+) -> CmdResult<streamonte_core::web::NickEnter> {
+    Ok(core.nick_enter(&nick, &code, &mode).await?)
+}
+#[tauri::command]
+pub async fn nick_logout(core: Core<'_>) -> CmdResult<()> {
+    Ok(core.nick_logout().await?)
+}
+#[tauri::command]
+pub async fn nick_animals(core: Core<'_>) -> CmdResult<Option<Vec<String>>> {
+    Ok(core.nick_animals().await?)
 }

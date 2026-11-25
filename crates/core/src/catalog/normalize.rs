@@ -1,4 +1,4 @@
-//! Stream crudo → [`StreamCandidate`] (FR-43, FR-45, FR-40 streams, NFR-24).
+//! Stream crudo → [`StreamCandidate`] (FR-43, FR-45, NFR-24).
 //! Un solo parser tolerante que entiende los formatos conocidos (spec 10 §C.1: Torrentio/TorrentsDB
 //! `👤 💾 ⚙️`, Peerflix `| 🌐`, Comet `📄 💾 🔎` + `videoSize`) y cae a lo genérico (nombre del
 //! release) con cualquier otro addon: un addon nuevo funciona sin código nuevo (NFR-25).
@@ -61,7 +61,7 @@ pub enum Parsed {
     Candidate(Box<StreamCandidate>),
     /// Aviso del tipo "configurá este addon" (FR-45).
     NeedsConfig,
-    /// No-P2P, hash inválido, anime o solo japonés: se descarta.
+    /// No-P2P o hash inválido: se descarta.
     Skip,
 }
 
@@ -73,17 +73,6 @@ pub struct ParseCtx<'a> {
     pub is_series: bool,
 }
 
-/// Sitios de anime cuyos streams nunca se muestran (FR-40, spec 09 §7.3).
-const ANIME_SITES: &[&str] = &[
-    "nyaasi",
-    "nyaa",
-    "animetosho",
-    "tokyotosho",
-    "anidex",
-    "horriblesubs",
-    "nekobt",
-    "seadex",
-];
 const MAX_TEXT: usize = 300;
 
 pub fn parse(raw: &Stream, ctx: &ParseCtx) -> Parsed {
@@ -147,12 +136,6 @@ pub fn parse(raw: &Stream, ctx: &ParseCtx) -> Parsed {
         .map(|s| clean(&s))
         .filter(|s| !s.is_empty())
         .collect();
-    if sites
-        .iter()
-        .any(|s| ANIME_SITES.contains(&s.to_lowercase().replace([' ', '-', '.'], "").as_str()))
-    {
-        return Parsed::Skip;
-    }
 
     let text = format!(
         "{name}\n{body}\n{}",
@@ -167,10 +150,6 @@ pub fn parse(raw: &Stream, ctx: &ParseCtx) -> Parsed {
         source,
     } = release_tags(&text, &release);
     let (audio, subs) = crate::audio::from_release(&text, ctx.spain_flag_is_generic);
-    // FR-40: audio solo en japonés → fuera.
-    if audio == ["ja"] {
-        return Parsed::Skip;
-    }
     if is_music(&text, file_name.as_deref(), &resolution, &codec, &source) {
         return Parsed::Skip;
     }
@@ -535,14 +514,11 @@ mod tests {
         assert!(matches!(parse(&yt, &ctx(true, false)), Parsed::Skip));
     }
 
-    /// T-30 / FR-40: hash inválido, anime y HTML hostil.
+    /// T-30: hash inválido y HTML hostil.
     #[test]
-    fn datos_hostiles_y_anime() {
+    fn datos_hostiles() {
         let bad = stream(serde_json::json!({"infoHash":"zzz","title":"x"}));
         assert!(matches!(parse(&bad, &ctx(true, false)), Parsed::Skip));
-        let nyaa =
-            stream(serde_json::json!({"infoHash":HASH,"title":"Show 01\n👤 3 💾 1 GB ⚙️ NyaaSi"}));
-        assert!(matches!(parse(&nyaa, &ctx(true, true)), Parsed::Skip));
         // Packs de música (2026-11-20): fuera; una peli con audio FLAC o MP3 se queda.
         for title in [
             "Whalefall - Discography (2015-2020)\n👤 4 💾 600 MB",
@@ -566,8 +542,6 @@ mod tests {
                 "{title}"
             );
         }
-        let ja = stream(serde_json::json!({"infoHash":HASH,"title":"Show 01 🇯🇵"}));
-        assert!(matches!(parse(&ja, &ctx(true, true)), Parsed::Skip));
         let html = cand(parse(
             &stream(
                 serde_json::json!({"infoHash":HASH,"title":"<script>alert(1)</script>\u{0007}"}),

@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use super::cinemeta::{is_excluded, BrowseSort, MetaPreview};
+use super::cinemeta::{BrowseSort, MetaPreview};
 use super::http::{FetchError, Http};
 use super::MediaKind;
 use crate::config::Lang;
@@ -77,7 +77,6 @@ pub(super) fn fill_rating(p: &mut MetaPreview, ratings: &Ratings) {
 struct Detail {
     imdb: Option<u32>,
     languages: Vec<String>,
-    excluded: bool,
 }
 
 #[derive(Deserialize)]
@@ -119,20 +118,11 @@ struct RawDetail {
     imdb_id: Option<String>,
     external_ids: Option<ExternalIds>,
     original_language: Option<String>,
-    #[serde(default)]
-    origin_country: Vec<String>,
-    #[serde(default)]
-    genres: Vec<Genre>,
 }
 
 #[derive(Deserialize)]
 struct ExternalIds {
     imdb_id: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct Genre {
-    name: String,
 }
 
 pub struct TopRated {
@@ -201,7 +191,7 @@ impl TopRated {
                 let d = details.get(&(kind, c.id))?;
                 let tt = d.imdb.filter(|tt| seen.insert(*tt))?;
                 let rating = ratings.as_ref().and_then(|r| r.get(&tt)).map(|&(r, _)| r);
-                Some(preview(kind, tt, c, rating, d.excluded))
+                Some(preview(kind, tt, c, rating))
             })
             .collect())
     }
@@ -383,14 +373,6 @@ fn discover_filters(q: &TopQuery) -> String {
 fn detail(raw: RawDetail) -> Detail {
     // Idioma original, no los hablados: una francesa con diálogos en inglés no es "en inglés" (pedido 2026-11-15).
     let languages: Vec<String> = raw.original_language.into_iter().collect();
-    // `is_excluded` (FR-40) espera nombres de país; solo le importa Japón.
-    let countries = raw
-        .origin_country
-        .iter()
-        .map(|c| if c == "JP" { "Japan" } else { c.as_str() })
-        .collect::<Vec<_>>()
-        .join(", ");
-    let genres: Vec<String> = raw.genres.into_iter().map(|g| g.name).collect();
     Detail {
         imdb: raw
             .imdb_id
@@ -398,7 +380,6 @@ fn detail(raw: RawDetail) -> Detail {
             .as_deref()
             .and_then(tt_number),
         languages,
-        excluded: is_excluded(Some(&countries), &genres),
     }
 }
 
@@ -422,13 +403,7 @@ fn parse_ratings(r: impl Read) -> Ratings {
 }
 
 /// La card de un título de TMDB ya cruzado con IMDb (`tt`, puntaje si IMDb lo tiene).
-fn preview(
-    kind: MediaKind,
-    tt: u32,
-    c: Candidate,
-    rating: Option<f32>,
-    excluded: bool,
-) -> MetaPreview {
+fn preview(kind: MediaKind, tt: u32, c: Candidate, rating: Option<f32>) -> MetaPreview {
     let released = c.release_date.filter(|d| !d.is_empty());
     MetaPreview {
         id: format!("tt{tt:07}"),
@@ -436,7 +411,6 @@ fn preview(
         name: c.title,
         year: released.as_ref().map(|d| d[..4.min(d.len())].to_string()),
         imdb_rating: rating.map(rating_label),
-        excluded,
         documentary: c.genre_ids.contains(&DOCUMENTARY),
         poster: c.poster_path.map(|p| format!("{IMAGE_BASE}{p}")),
         released,
@@ -463,11 +437,7 @@ fn rank(
             if votes < q.min_votes || !lang_ok || !seen.insert(tt) {
                 return None;
             }
-            Some((
-                rating,
-                votes,
-                preview(q.kind, tt, c, Some(rating), d.excluded),
-            ))
+            Some((rating, votes, preview(q.kind, tt, c, Some(rating))))
         })
         .collect();
     match q.sort {
@@ -536,7 +506,6 @@ mod tests {
         let d = |imdb, langs: &[&str]| Detail {
             imdb: Some(imdb),
             languages: langs.iter().map(|s| s.to_string()).collect(),
-            excluded: false,
         };
         let m = MediaKind::Movie;
         let details: HashMap<(MediaKind, u64), Detail> = [
@@ -564,14 +533,13 @@ mod tests {
     }
 
     #[test]
-    fn ficha_de_tmdb_a_idiomas_imdb_y_filtro_anime() {
+    fn ficha_de_tmdb_a_idiomas_e_imdb() {
         let raw: RawDetail = serde_json::from_str(
             r#"{"imdb_id":"tt31193180","spoken_languages":[{"iso_639_1":"ja"}],"original_language":"ja","origin_country":["JP"],"genres":[{"name":"Animation"}]}"#,
         )
         .unwrap();
         let d = detail(raw);
         assert_eq!(d.imdb, Some(31193180));
-        assert!(d.excluded);
         assert_eq!(d.languages, ["ja"]);
     }
 

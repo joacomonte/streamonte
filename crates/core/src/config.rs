@@ -538,8 +538,6 @@ pub struct CatalogConfig {
     pub audio_order: Vec<String>,
     /// Descartar CAM/TS/TC/screener (FR-47).
     pub exclude_cam: bool,
-    /// Ocultar anime / contenido japonés (FR-40, Q-12). La UI lo muestra como filtro discreto.
-    pub exclude_japanese: bool,
     /// Plazo total por pedido a un addon o a Cinemeta (NFR-19). Cada addon puede tener el suyo.
     pub timeout_ms: u64,
     pub connect_timeout_ms: u64,
@@ -553,7 +551,6 @@ impl Default for CatalogConfig {
                 .map(String::from)
                 .to_vec(),
             exclude_cam: true,
-            exclude_japanese: true,
             timeout_ms: 10_000,
             connect_timeout_ms: 4_000,
         }

@@ -2,6 +2,7 @@
 ## Para X → andá a Y
 - Layout de la ficha, sinopsis, gente, dónde verla → `TitleView.svelte` (props: `details` `season` `episode` `options` snippet…).
 - Lógica pura (gente, proveedores, temporadas, `TITLE_IDS`) → `title-state.ts`. Gráfico de temporadas → `SeasonChart.svelte`.
+- Anti spoiler de capítulos → `spoiler.ts`. Fondo teñido del póster → `tint.ts`.
 - Premios → `awards.ts` (`awardsView`, `cardAwards`, claves de categoría), `AwardsBadge.svelte`.
 - Campo nuevo en la ficha → `docs/recetas/comando-nuevo.md` (sección B); el tipo es `TitleDetails` en `../types.ts`.
 

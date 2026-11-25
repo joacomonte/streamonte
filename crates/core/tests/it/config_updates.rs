@@ -85,12 +85,9 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
             .unwrap();
         }));
     }
-    let (a, b) = (core.clone(), core.clone());
+    let a = core.clone();
     tasks.push(tokio::spawn(async move {
         a.set_network(false, true, true).await.unwrap()
-    }));
-    tasks.push(tokio::spawn(async move {
-        b.catalog_set_exclude_japanese(false).await.unwrap()
     }));
     for t in tasks {
         t.await.unwrap();
@@ -104,10 +101,9 @@ async fn cambios_de_config_a_la_vez_no_se_pisan() {
         );
     }
     assert!(!disk.engine.incoming && disk.engine.upnp);
-    assert!(!disk.catalog.exclude_japanese);
 }
 
-/// "Agregar addon" esperando el manifest + "Sin anime" y Red cambiados mientras tanto: el alta
+/// "Agregar addon" esperando el manifest + Red cambiada mientras tanto: el alta
 /// no revierte esos ajustes (antes guardaba su copia vieja de la config).
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn agregar_addon_no_revierte_ajustes_cambiados_en_vuelo() {
@@ -123,19 +119,17 @@ async fn agregar_addon_no_revierte_ajustes_cambiados_en_vuelo() {
         .await
         .expect("el alta pidió el manifest");
 
-    core.catalog_set_exclude_japanese(true).await.unwrap();
     core.set_network(true, false, true).await.unwrap();
     server.release.notify_one();
     let view = add.await.unwrap().unwrap();
 
     let disk = ConfigStore::new(&paths).load().unwrap();
-    assert!(disk.catalog.exclude_japanese, "el toggle no se revierte");
     assert!(disk.engine.incoming && !disk.engine.upnp);
     assert!(disk.catalog.addons.iter().any(|a| a.id == view.id));
     assert_eq!(disk, core.config().await, "disco = memoria");
 }
 
-/// Cambiar uno no toca otro: deshabilitar el addon deja Red y "Sin anime" como estaban; al
+/// Cambiar uno no toca otro: deshabilitar el addon deja Red como estaba; al
 /// quitarlo, ya no se puede cambiar.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn habilitar_o_quitar_un_addon_no_toca_otros_ajustes() {
@@ -144,7 +138,6 @@ async fn habilitar_o_quitar_un_addon_no_toca_otros_ajustes() {
     let server = held_manifest_server().await;
     server.release.notify_one(); // responde apenas llegue el pedido
     let view = core.catalog_add_addon(&server.url).await.unwrap();
-    core.catalog_set_exclude_japanese(true).await.unwrap();
     core.set_network(true, false, true).await.unwrap();
     let before = ConfigStore::new(&paths).load().unwrap();
 
@@ -152,10 +145,7 @@ async fn habilitar_o_quitar_un_addon_no_toca_otros_ajustes() {
         .await
         .unwrap();
     let after = ConfigStore::new(&paths).load().unwrap();
-    assert_eq!(
-        (after.engine.clone(), after.catalog.exclude_japanese),
-        (before.engine.clone(), true)
-    );
+    assert_eq!(after.engine, before.engine);
     assert!(!after
         .catalog
         .addons

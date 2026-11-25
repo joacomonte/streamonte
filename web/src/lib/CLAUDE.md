@@ -4,7 +4,7 @@ Tipos, `Api` de la web, caché de navegador, i18n y componentes propios. Lo comp
 ## Para X → andá a Y
 - Cómo la web implementa `Api` → `webApi.ts` (fetch `/api/*`) y `web-adapt.ts` (respuesta → vista, puro). Forma de las respuestas → `types.ts`.
 - Lista de opciones y pasos (buscar, link, subs) → `Torrents.svelte` (usa `$ui/options`, `$ui/subs`); tutorial de Web Video Caster → `CastVideo.svelte`.
-- Caché localStorage con TTL → `saved.ts`. Catálogo → `catalog.svelte.ts`. Idioma → `i18n.svelte.ts`, `langs.ts`. Apodo/tracking → `nick.ts` (validador), `apodo.svelte.ts` + `ApodoCode.svelte` (apodo + código de animales), `track.ts`.
+- Caché localStorage con TTL → `saved.ts`. Catálogo → `catalog.svelte.ts`. Idioma → `i18n.svelte.ts`, `langs.ts`. Apodo/tracking → `nick.ts` (solo reexporta `cleanNick` de `$ui/animals`), `apodo.svelte.ts` + `ApodoCode.svelte` (apodo + código de animales; `webApi.nick`), `track.ts`.
 - Código de admin → `AdminCode.svelte`.
 
 ## Relación

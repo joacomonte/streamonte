@@ -20,7 +20,6 @@ export const catalogItem = (c: Raw.CatalogItem): CatalogItem => ({
 	poster: c.poster,
 	rating: c.imdb_rating,
 	released: c.released,
-	excluded: c.excluded,
 	// Las fixtures de `ui/mock/` se grabaron antes de que existiera.
 	documentary: c.documentary ?? false
 });
@@ -72,8 +71,7 @@ export function titleDetails(meta: Raw.Meta, view: Raw.DetailsView | null, lang:
 		networks: d?.networks ?? [],
 		imdb: meta.id,
 		status: state ? { state, next: null } : null,
-		seasons: seasonsOf(meta.episodes),
-		excluded: meta.excluded
+		seasons: seasonsOf(meta.episodes)
 	};
 }
 
@@ -189,7 +187,6 @@ export function tracksOf(rows: Raw.LibraryRow[], hash: string): TorrentTracks {
 export function apiEvent(e: Raw.CoreEvent, spanishSubs?: ReadonlySet<string>): ApiEvent | null {
 	switch (e.type) {
 		case 'catalog-streams': return { type: 'options', videoId: e.update.video_id, update: optionsUpdate(e.update, spanishSubs) };
-		case 'catalog-excluded': return { type: 'excluded', id: e.id };
 		case 'catalog-subtitles-progress': return { type: 'subtitles-progress', videoId: e.video_id, downloading: e.downloading, done: e.done, total: e.total };
 		default: return null;
 	}

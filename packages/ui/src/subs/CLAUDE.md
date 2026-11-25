@@ -8,7 +8,7 @@ Usa `getApi().subs` y `.premium`. Lo usan `Torrents.svelte` (web) y `ui/src/Subs
 
 ## Trampas
 - `sub_lang` (golden) = idioma por nombre, igual en Rust y web.
-- Premium solo con toque del usuario (gasta cuota); buscar es gratis.
+- Bajar un subtítulo premium gasta cuota y buscar no: premium solo con toque del usuario.
 
 ## Cómo se prueba
 `subs.test.ts`, `subs.flow.test.ts`; contratos `desktop-subs-step`, `desktop-subs-nofit`, `web-subs-sheet`.

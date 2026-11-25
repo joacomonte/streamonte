@@ -1,25 +1,32 @@
 <script lang="ts">
-  // Bienvenida del desktop, una sola vez: el Tour compartido con sus pasos (idiomas → qué es → keys → reproductor).
+  // Bienvenida del desktop, una sola vez: el Tour compartido con sus pasos (apodo → idiomas → qué es → keys → reproductor).
+  // El apodo es obligatorio, como en la web (con el código de 3 dígitos de la web antes, si falta). Quien ya la vio sin
+  // tener apodo (o cambió de usuario en Ajustes) ve solo ese paso.
   // Cambiar el idioma recarga la ventana: el paso queda guardado y se retoma ahí.
   import { onMount } from 'svelte';
   import Icon from '$ui/components/Icon.svelte';
   import Tour from '$ui/components/Tour.svelte';
   import { resumeIndex, type LangCode, type Step } from '$ui/components/tour-state.ts';
-  import { langSteps } from '$ui/components/tours.ts';
+  import { langSteps, nickStep } from '$ui/components/tours.ts';
+  import NickCode from '$ui/animals/NickCode.svelte';
   import * as core from './core.ts';
   import { safeGet, safeSet } from './catalog-state.ts';
   import { langs, setLangs, t } from './i18n.ts';
+  import { nickApiOf, nickFlow, nickState, refreshNick } from './nick-state.svelte.ts';
   import type { PlayersStatus } from './types.ts';
   import { setTouring, STORE } from './welcome-state.ts';
 
   const saved = safeGet(STORE);
   const steps: Step[] = [
+    nickStep(),
     ...langSteps(),
     { icon: 'play', title: t('Bienvenido a Streamonte'), body: t('Elegís una peli o un episodio y lo mirás al instante en esta compu: por torrent o desde TorBox, con audio latino o el original y subtítulos en español.') },
     { icon: 'key', title: t('Dos keys para sacarle todo'), body: t('Se pegan en Ajustes y quedan en el almacén seguro del sistema.'), extra: 'keys' },
     { icon: 'monitor', title: t('Se ve en mpv o VLC'), body: t('Los videos se abren en un reproductor de esta compu. mpv viene recomendado: anda mejor, gasta menos y combina subtítulos.'), extra: 'players' },
   ];
   let open = $state(saved !== 'done');
+  /** Ya vio la bienvenida pero no tiene apodo: solo el paso del apodo. */
+  let nickOpen = $state(false);
   let index = $state(0);
   let configured = $state<string[]>([]);
   let players = $state<PlayersStatus | null>(null);
@@ -32,6 +39,33 @@
   $effect(() => {
     if (open) safeSet(STORE, String(index));
   });
+  $effect(() => {
+    if (!open && nickState.loaded && !nickState.nick) nickOpen = true;
+  });
+
+  /** Guarda el código de 3 dígitos de la web; devuelve el error, si hay. */
+  async function oncode(code: string): Promise<string | null> {
+    try {
+      await nickApiOf().setCode?.(code);
+      nickState.codeSet = true;
+      return null;
+    } catch (e) {
+      return typeof e === 'string' && e ? e : t('No se pudo guardar. Probá de nuevo.');
+    }
+  }
+  /** Apodo + código de animales. Si el núcleo dice que falta o es incorrecto el código de la web, vuelve a pedirlo. */
+  async function onnick(raw: string): Promise<{ nick?: string; error?: string; needCode?: boolean }> {
+    const r = await nickFlow().enterNick(raw);
+    if (r.nick) {
+      await refreshNick();
+      return r;
+    }
+    if (r.error) {
+      await refreshNick();
+      if (!nickState.codeSet) return { ...r, needCode: true };
+    }
+    return r;
+  }
 
   // Elegir idioma pasa de paso solo: si cambió, la ventana recarga y retoma en el siguiente; si no, avanza tras ver el tilde.
   function pick(key: 'app' | 'titles', value: LangCode) {
@@ -63,12 +97,16 @@
   </ul>
 {/snippet}
 
-{#if open}
+{#if nickState.loaded && open}
   <Tour
     id="welcome"
     label={t('Bienvenida')}
     open
     {steps}
+    nick={nickState.nick}
+    {onnick}
+    needCode={!nickState.codeSet}
+    {oncode}
     start={resumeIndex(saved, steps.length)}
     bind:index
     langs={{ app: langs.app, titles: langs.titles, onpick: pick }}
@@ -82,6 +120,13 @@
     onclose={() => (open = false)}
   />
 {/if}
+
+{#if nickOpen}
+  <Tour id="nick" label={t('Tu apodo')} open steps={[nickStep()]} nick={nickState.nick} {onnick} needCode={!nickState.codeSet} {oncode} onclose={() => (nickOpen = false)} />
+{/if}
+
+<!-- Encima de la bienvenida y de Ajustes: el código de animales del apodo. -->
+<NickCode flow={nickFlow()} />
 
 <style>
   .tour-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }

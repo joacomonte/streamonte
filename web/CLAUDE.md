@@ -7,11 +7,12 @@ Web de Streamonte (celu/tele): catálogo → torrents en caché de TorBox → li
 - Tablas Neon (`eventos`, `intentos`, `vistos`, `apodos`) → `db/schema.sql`. Adapter Vercel/node, alias `$ui` → `vite.config.ts`.
 
 ## Deploy
-Proyecto `streamonte-web` linkeado en la RAÍZ del monorepo (Root Directory=`web`); `vercel` se corre desde la raíz, no desde `web/`. Receta con preview + `promote`: `scripts/CLAUDE.md`. `.vercelignore` sube `web/`, `packages/` y lo mínimo del workspace (raíz + `ui/package.json`).
+Proyecto `streamonte-web` linkeado en la RAÍZ del monorepo (Root Directory=`web`); `vercel deploy --prod` se corre desde la raíz, no desde `web/` (hay un `.vercel` viejo ahí). Preview + `promote` solo si se pide: `scripts/CLAUDE.md`. `.vercelignore` sube `web/`, `packages/` y lo mínimo del workspace (raíz + `ui/package.json`).
 
 ## Env vars
-Solo nombres, nunca valores ni prefijo público: `cut -d= -f1 web/.env.local`. Sin `DATABASE_URL` no hay tracking (y los códigos de apodo quedan en memoria del proceso); sin `APP_PASSWORD` no hay candado.
-- `APODO_SECRET`: firma la cookie de sesión del apodo (`apodo`). Obligatorio en Vercel (sin él no se puede entrar con apodo); en local, uno al azar por proceso. Cambiarlo cierra todas las sesiones (los códigos siguen).
+Solo nombres, nunca valores ni prefijo público: `cut -d= -f1 web/.env.local`. `DATABASE_URL`: `src/lib/server/CLAUDE.md`. Sin `APP_PASSWORD` no hay candado.
+- `ADMIN_PASSWORD` (panel `admin/`). `TMDB_KEY`, `TORBOX_KEY` y `OPENSUBTITLES_*` pisan lo guardado en Ajustes (`server/keys.ts`).
+- `APODO_SECRET`: firma la cookie de sesión del apodo (`apodo`). Obligatorio en Vercel (sin él no se puede entrar con apodo); en local, uno al azar por proceso. Cambiarlo cierra todas las sesiones y vuelve ilegibles los pares cifrados: Ajustes no puede mostrar los 2 animales hasta que el par se rehaga (el dueño acierta el código o el admin lo resetea); los códigos siguen valiendo.
 
 ## Trampas
 - Node 24, type stripping: imports con `.ts`, sin `enum`/`namespace`/parameter properties, `import type` explícito.

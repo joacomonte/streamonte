@@ -57,6 +57,13 @@ export function fakeApi(script: FakeScript = {}): { api: Api; calls: string[] } 
 			download: async () => (await hit('magnet.download'), magnetStatus({ state: 'downloading', progress: 0.1 }))
 		},
 		recent: { list: async () => [], mark: async () => {}, restore: async () => {}, dismiss: async () => {} },
+		nick: {
+			ask: async (nick) => ({ nick, mode: 'nuevo', order: [], wait: 0 }),
+			enter: async () => ({ ok: true }),
+			logout: async () => {},
+			status: async () => ({ codeSet: true, nick: null }),
+			animals: async () => null
+		},
 		events: { subscribe: () => () => {} }
 	};
 	return { api, calls };

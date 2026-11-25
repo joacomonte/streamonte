@@ -66,6 +66,3 @@ export const card = (r: TmdbItem, kind: Kind) => ({
 
 /** Card con el puntaje de IMDb (mismo criterio en explorar y búsqueda). `r` es null si IMDb no lo tiene. */
 export const scored = (c: TmdbItem, kind: Kind, r: { rating: number } | null) => ({ ...card(c, kind), rating: r ? r.rating.toFixed(1) : null });
-
-/** Como el desktop: sin anime/japonés. */
-export const keep = (r: TmdbItem): boolean => r.original_language !== 'ja';

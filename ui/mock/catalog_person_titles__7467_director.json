@@ -5,7 +5,6 @@
     "name": "MINDHUNTER",
     "year": "2017",
     "imdb_rating": "8.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/fbKE87mojpIETWepSbD5Qt741fp.jpg",
     "released": "2017-10-13",
     "popularity": 96.24
@@ -16,7 +15,6 @@
     "name": "House of Cards",
     "year": "2013",
     "imdb_rating": "8.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/hKWxWjFwnMvkWQawbhvC0Y7ygQ8.jpg",
     "released": "2013-02-01",
     "popularity": 50.7665
@@ -27,7 +25,6 @@
     "name": "El club de la pelea",
     "year": "1999",
     "imdb_rating": "8.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/bI0BhpswEApC0B17RhLZtRVPZiQ.jpg",
     "released": "1999-10-15",
     "popularity": 35.5365
@@ -38,7 +35,6 @@
     "name": "Love, Death & Robots",
     "year": "2019",
     "imdb_rating": "8.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/vL5BQvXH96cJzmNK5n7QliQxy90.jpg",
     "released": "2019-03-15",
     "popularity": 35.2231
@@ -49,7 +45,6 @@
     "name": "Se7en: Los Siete Pecados Capitales",
     "year": "1995",
     "imdb_rating": "8.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/4dSivge4jxozWgbD6GW2NkOYGaD.jpg",
     "released": "1995-09-22",
     "popularity": 27.7464
@@ -60,7 +55,6 @@
     "name": "Perdida",
     "year": "2014",
     "imdb_rating": "8.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/bkIhygnbv9ydlDo4SEsOcqGgQD4.jpg",
     "released": "2014-10-01",
     "popularity": 22.6865
@@ -71,7 +65,6 @@
     "name": "LAS NUEVAS DESVENTURAS DE CLIFF BOOTH",
     "year": "2026",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/thX8Rs7nfgmPHfCgjoFuRovy49l.jpg",
     "released": "2026-11-24",
     "popularity": 17.2678
@@ -82,7 +75,6 @@
     "name": "El curioso caso de Benjamin Button",
     "year": "2008",
     "imdb_rating": "7.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/42r4mwFqroFVxLmlKR4rEObYyQ6.jpg",
     "released": "2008-12-25",
     "popularity": 14.1041
@@ -93,7 +85,6 @@
     "name": "Red Social",
     "year": "2010",
     "imdb_rating": "7.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/tnkqSGo8jV2JE8SwTwWmp91bag4.jpg",
     "released": "2010-10-01",
     "popularity": 13.8746
@@ -104,7 +95,6 @@
     "name": "Zodíaco",
     "year": "2007",
     "imdb_rating": "7.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/3gdnyFroJP1IxKI5ZReRZ1d4cs2.jpg",
     "released": "2007-03-02",
     "popularity": 12.4072
@@ -115,7 +105,6 @@
     "name": "El juego",
     "year": "1997",
     "imdb_rating": "7.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/us1lgJerKgrDqfGyMMwM9m9UIMj.jpg",
     "released": "1997-09-12",
     "popularity": 9.9386
@@ -126,7 +115,6 @@
     "name": "La chica del dragón tatuado",
     "year": "2011",
     "imdb_rating": "7.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/jdNVxq8Qo07T6jdyjqTPJY7UJtL.jpg",
     "released": "2011-12-14",
     "popularity": 8.565
@@ -137,7 +125,6 @@
     "name": "Alien³",
     "year": "1992",
     "imdb_rating": "6.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/oBBdeybjF1dUxE7GFxurp2TxiT3.jpg",
     "released": "1992-05-22",
     "popularity": 8.4199
@@ -148,7 +135,6 @@
     "name": "El asesino",
     "year": "2023",
     "imdb_rating": "6.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/wXbAPrZTqJzlqmmRaUh95DJ5Lv1.jpg",
     "released": "2023-10-25",
     "popularity": 6.8857
@@ -159,7 +145,6 @@
     "name": "La habitación del pánico",
     "year": "2002",
     "imdb_rating": "6.9",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/a4RVuYE53xDV8zlppZMVP2Z27gp.jpg",
     "released": "2002-03-29",
     "popularity": 5.5
@@ -170,7 +155,6 @@
     "name": "MANK",
     "year": "2020",
     "imdb_rating": "6.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/Atd7UaGgwOhcyHggqchYLqSJ6VO.jpg",
     "released": "2020-11-13",
     "popularity": 3.2717
@@ -181,7 +165,6 @@
     "name": "Madonna: The Immaculate Collection",
     "year": "1990",
     "imdb_rating": "8.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/amb5JRLn3hfAK4kRTFe1vK87LXI.jpg",
     "released": "1990-11-13",
     "popularity": 1.4448
@@ -192,7 +175,6 @@
     "name": "Michael Jackson: Dangerous - The Short Films",
     "year": "1993",
     "imdb_rating": "8.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/5wqvRs93dk8knxUbuKKOFBVwf4q.jpg",
     "released": "1993-09-28",
     "popularity": 1.1737
@@ -203,7 +185,6 @@
     "name": "Michael Jackson's Vision",
     "year": "2010",
     "imdb_rating": "9.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/c90D8qBLNkoEBYSd9YSpG8xTXHM.jpg",
     "released": "2010-11-22",
     "popularity": 0.7065
@@ -214,7 +195,6 @@
     "name": "Madonna: The Video Collection 93:99",
     "year": "1999",
     "imdb_rating": "8.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/18cCNCH2Qs0tTUpsXMu2xn6vxLr.jpg",
     "released": "1999-11-02",
     "popularity": 0.7022
@@ -225,7 +205,6 @@
     "name": "Madonna: Celebration - The Video Collection",
     "year": "2009",
     "imdb_rating": "8.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/ndUvH8h9qwwFddhw4ujpjcIA3HA.jpg",
     "released": "2009-09-27",
     "popularity": 0.6977
@@ -236,7 +215,6 @@
     "name": "Rick Springfield: The Beat of the Live Drum",
     "year": "1985",
     "imdb_rating": "5.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/rd2sK1J1UpNhlOMQyXcrmyjGykW.jpg",
     "released": "1985-01-01",
     "popularity": 0.5768
@@ -247,7 +225,6 @@
     "name": "Aerosmith: Big Ones You Can Look At",
     "year": "1994",
     "imdb_rating": "7.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/pOOE4VrULp58r4Yr6e2TU4nQ5Az.jpg",
     "released": "1994-11-23",
     "popularity": 0.4682

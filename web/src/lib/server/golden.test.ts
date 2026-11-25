@@ -47,7 +47,6 @@ golden('show_status', (r) => {
 	const { status, next } = showStatus(r);
 	return { state: status, next };
 });
-golden('excluded', ({ countries, animation }) => detail({ origin_country: countries, genres: animation ? [{ id: 16, name: 'Animation' }] : [] }).excluded);
 golden('sub_lang', (path) => isSpanishSub(path));
 golden('awards', (data) => awardsOf(data));
 golden('episode_ratings', ({ data, season }) => episodeRatingsOf(data, season));

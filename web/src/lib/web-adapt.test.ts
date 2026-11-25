@@ -42,7 +42,7 @@ test('optionsUpdates: {error} lanza con el mensaje', async () => {
 
 test('catalogPage / catalogItem', () => {
 	const page = adapt.catalogPage({ items: [{ id: 550, kind: 'movie', title: 'Fight Club', year: '1999', released: '1999-10-15', poster: 'p.jpg', rating: '8.8', documentary: false }], page: 1, pages: 3 });
-	assert.deepEqual(page, { items: [{ id: '550', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'p.jpg', rating: '8.8', released: '1999-10-15', excluded: false, documentary: false }], hasMore: true });
+	assert.deepEqual(page, { items: [{ id: '550', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'p.jpg', rating: '8.8', released: '1999-10-15', documentary: false }], hasMore: true });
 	assert.equal(adapt.catalogPage({ items: [], page: 3, pages: 3 }).hasMore, false);
 });
 

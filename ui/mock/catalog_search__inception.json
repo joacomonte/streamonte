@@ -5,7 +5,6 @@
     "name": "Inception",
     "year": "2010",
     "imdb_rating": "8.8",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt1375666/img",
     "released": null,
     "popularity": null
@@ -16,7 +15,6 @@
     "name": "Inventing Anna",
     "year": "2022",
     "imdb_rating": "6.9",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt8740976/img",
     "released": null,
     "popularity": null
@@ -27,7 +25,6 @@
     "name": "Wallace and Gromit's World of Invention",
     "year": "2010",
     "imdb_rating": "7.2",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt1789621/img",
     "released": null,
     "popularity": null
@@ -38,7 +35,6 @@
     "name": "The Crack: Inception",
     "year": "2019",
     "imdb_rating": "6.6",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt6793710/img",
     "released": null,
     "popularity": null
@@ -49,7 +45,6 @@
     "name": "Insha Allah - An inception at closure",
     "year": "2019",
     "imdb_rating": "8.0",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt11224722/img",
     "released": null,
     "popularity": null
@@ -60,7 +55,6 @@
     "name": "Invention with Brian Forbes",
     "year": "2009",
     "imdb_rating": "7.8",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt1854787/img",
     "released": null,
     "popularity": null
@@ -71,7 +65,6 @@
     "name": "The Genius of Invention",
     "year": "2013",
     "imdb_rating": "7.4",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt2614460/img",
     "released": null,
     "popularity": null
@@ -82,7 +75,6 @@
     "name": "Inception: 4Movie Premiere Special",
     "year": "2010",
     "imdb_rating": "7.9",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt1686778/img",
     "released": null,
     "popularity": null
@@ -93,7 +85,6 @@
     "name": "Pure Intention",
     "year": "2018",
     "imdb_rating": "9.0",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt10083260/img",
     "released": null,
     "popularity": null
@@ -104,7 +95,6 @@
     "name": "Did I Mention Invention?",
     "year": "2018",
     "imdb_rating": "8.5",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt8992416/img",
     "released": null,
     "popularity": null
@@ -115,7 +105,6 @@
     "name": "Bikini Inception",
     "year": "2015",
     "imdb_rating": "4.4",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt8269586/img",
     "released": null,
     "popularity": null
@@ -126,7 +115,6 @@
     "name": "Invention USA",
     "year": "2011",
     "imdb_rating": "5.6",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt2100004/img",
     "released": null,
     "popularity": null
@@ -137,7 +125,6 @@
     "name": "Pochi and Invention: Pikachin-Kit",
     "year": "2018",
     "imdb_rating": "5.4",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt12826750/img",
     "released": null,
     "popularity": null
@@ -148,7 +135,6 @@
     "name": "Invention Nation",
     "year": "2007",
     "imdb_rating": "7.4",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt1270819/img",
     "released": null,
     "popularity": null
@@ -159,7 +145,6 @@
     "name": "My Million Dollar Invention",
     "year": "2015",
     "imdb_rating": "6.9",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt4975624/img",
     "released": null,
     "popularity": null
@@ -170,7 +155,6 @@
     "name": "Dean of Invention",
     "year": "2010",
     "imdb_rating": "8.0",
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt1773144/img",
     "released": null,
     "popularity": null
@@ -181,7 +165,6 @@
     "name": "Backrooms: Inception",
     "year": "2026",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt43662578/img",
     "released": null,
     "popularity": null
@@ -192,7 +175,6 @@
     "name": "Evo Inception",
     "year": "2023",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt32827951/img",
     "released": null,
     "popularity": null
@@ -203,7 +185,6 @@
     "name": "Inception",
     "year": null,
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt5581256/img",
     "released": null,
     "popularity": null
@@ -214,7 +195,6 @@
     "name": "Inception Premiere",
     "year": "2010",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt12960252/img",
     "released": null,
     "popularity": null
@@ -225,7 +205,6 @@
     "name": "X - Inception",
     "year": "2021",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt13039892/img",
     "released": null,
     "popularity": null
@@ -236,7 +215,6 @@
     "name": "Inception of a lost Art",
     "year": "2013",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt3563778/img",
     "released": null,
     "popularity": null
@@ -247,7 +225,6 @@
     "name": "Inception 2 - Deception - The Ken Davis Documentary",
     "year": null,
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt27758177/img",
     "released": null,
     "popularity": null
@@ -258,7 +235,6 @@
     "name": "RiffTrax: Inception",
     "year": "2011",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt33464366/img",
     "released": null,
     "popularity": null
@@ -269,7 +245,6 @@
     "name": "Chestnuts Against Infection Finale",
     "year": "2026",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt41691695/img",
     "released": null,
     "popularity": null
@@ -280,7 +255,6 @@
     "name": "Fraud in the Inception: Who killed Robert Hamlin and Dorothy Grega",
     "year": "2013",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt2278951/img",
     "released": null,
     "popularity": null
@@ -291,7 +265,6 @@
     "name": "Jackass Parody - Inception",
     "year": "2011",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt15680796/img",
     "released": null,
     "popularity": null
@@ -302,7 +275,6 @@
     "name": "Parasee Before the Infection Started",
     "year": "2026",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt46671119/img",
     "released": null,
     "popularity": null
@@ -313,7 +285,6 @@
     "name": "Before the Prequel: Dawning Inception",
     "year": "2020",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt28234665/img",
     "released": null,
     "popularity": null
@@ -324,7 +295,6 @@
     "name": "Invention Story",
     "year": "2020",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt13615368/img",
     "released": null,
     "popularity": null
@@ -335,7 +305,6 @@
     "name": "Invention",
     "year": "1990",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt0189614/img",
     "released": null,
     "popularity": null
@@ -346,7 +315,6 @@
     "name": "Caffeine Injection",
     "year": "2021",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt15292554/img",
     "released": null,
     "popularity": null
@@ -357,7 +325,6 @@
     "name": "Piggy Before the Infection Started",
     "year": "2021",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt45906596/img",
     "released": null,
     "popularity": null
@@ -368,7 +335,6 @@
     "name": "Beyond Invention",
     "year": "2004",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://images.metahub.space/poster/small/tt0429315/img",
     "released": null,
     "popularity": null

@@ -5,7 +5,6 @@
     "name": "El corazón de la bestia",
     "year": "2026",
     "imdb_rating": "7.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/kVDHPDggier9ciMc8Xglinq1jWv.jpg",
     "released": "2026-09-19",
     "popularity": 385.0009
@@ -16,7 +15,6 @@
     "name": "Dallas",
     "year": "1978",
     "imdb_rating": "7.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/jmqo8bgHrhKYPc0RK5F71GHa8rm.jpg",
     "released": "1978-04-02",
     "popularity": 77.316
@@ -27,7 +25,6 @@
     "name": "El club de la pelea",
     "year": "1999",
     "imdb_rating": "8.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/bI0BhpswEApC0B17RhLZtRVPZiQ.jpg",
     "released": "1999-10-15",
     "popularity": 35.5365
@@ -38,7 +35,6 @@
     "name": "Se7en: Los Siete Pecados Capitales",
     "year": "1995",
     "imdb_rating": "8.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/4dSivge4jxozWgbD6GW2NkOYGaD.jpg",
     "released": "1995-09-22",
     "popularity": 27.7464
@@ -49,7 +45,6 @@
     "name": "F1 la película",
     "year": "2025",
     "imdb_rating": "7.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/yKIG63pXN89EfbTA7yKpwxAU1rf.jpg",
     "released": "2025-06-25",
     "popularity": 27.2128
@@ -60,7 +55,6 @@
     "name": "Troya",
     "year": "2004",
     "imdb_rating": "7.3",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/rthioP0Xgfl818DJeHcyiHxWHPN.jpg",
     "released": "2004-05-13",
     "popularity": 21.4701
@@ -71,7 +65,6 @@
     "name": "Bastardos sin gloria",
     "year": "2009",
     "imdb_rating": "8.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/zO4RPoYUv8S0na2K1Sff9wU3Sg2.jpg",
     "released": "2009-08-02",
     "popularity": 21.1886
@@ -82,7 +75,6 @@
     "name": "Había una vez en Hollywood",
     "year": "2019",
     "imdb_rating": "7.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/zLMSIALbAuX0FjA94JvDFqpspD7.jpg",
     "released": "2019-07-24",
     "popularity": 20.4733
@@ -93,7 +85,6 @@
     "name": "Corazones De Hierro",
     "year": "2014",
     "imdb_rating": "7.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/vTULyjAOOKZljr2iU8Ct63prPF7.jpg",
     "released": "2014-10-15",
     "popularity": 19.5536
@@ -104,7 +95,6 @@
     "name": "Deadpool 2",
     "year": "2018",
     "imdb_rating": "7.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/84NUrv5kuMUDDlOPqi97KGJMdLm.jpg",
     "released": "2018-05-15",
     "popularity": 17.9919
@@ -115,7 +105,6 @@
     "name": "LAS NUEVAS DESVENTURAS DE CLIFF BOOTH",
     "year": "2026",
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/thX8Rs7nfgmPHfCgjoFuRovy49l.jpg",
     "released": "2026-11-24",
     "popularity": 17.2678
@@ -126,7 +115,6 @@
     "name": "Guerra mundial Z",
     "year": "2013",
     "imdb_rating": "7.0",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/a8ogjWFd0QS6BzBkzfDMWukc26i.jpg",
     "released": "2013-06-19",
     "popularity": 15.939
@@ -137,7 +125,6 @@
     "name": "Tren bala",
     "year": "2022",
     "imdb_rating": "7.3",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/kM6iLHkDfyoMsTIm567mUFzFO9e.jpg",
     "released": "2022-08-03",
     "popularity": 15.6363
@@ -148,7 +135,6 @@
     "name": "La Gran Estafa",
     "year": "2001",
     "imdb_rating": "7.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/fxLINgpYDDRDljEn3ukKhOcvZdw.jpg",
     "released": "2001-12-07",
     "popularity": 14.3222
@@ -159,7 +145,6 @@
     "name": "El curioso caso de Benjamin Button",
     "year": "2008",
     "imdb_rating": "7.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/42r4mwFqroFVxLmlKR4rEObYyQ6.jpg",
     "released": "2008-12-25",
     "popularity": 14.1041
@@ -170,7 +155,6 @@
     "name": "Sr. y Sra. Smith",
     "year": "2005",
     "imdb_rating": "6.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/wNi7Axc8U4cI9BgryeuF5tpi0I1.jpg",
     "released": "2005-06-07",
     "popularity": 12.0847
@@ -181,7 +165,6 @@
     "name": "12 Años de Esclavitud",
     "year": "2013",
     "imdb_rating": "8.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/1OoCd3fmjPHt9iCR4QxNGGrDyI0.jpg",
     "released": "2013-10-18",
     "popularity": 11.4072
@@ -192,7 +175,6 @@
     "name": "Babylon",
     "year": "2022",
     "imdb_rating": "7.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/9bHTq4XfYpAZcgzTLoPAElMytMj.jpg",
     "released": "2022-12-22",
     "popularity": 11.3598
@@ -203,7 +185,6 @@
     "name": "Snatch: Cerdos y diamantes",
     "year": "2000",
     "imdb_rating": "8.2",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/ziWecvSRGjqeNKPx3kMqlYwssDo.jpg",
     "released": "2000-09-01",
     "popularity": 11.1136
@@ -214,7 +195,6 @@
     "name": "La Gran Apuesta",
     "year": "2015",
     "imdb_rating": "7.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/kNjz9Ezuf8tZHP2MfMbtDzDJ8wR.jpg",
     "released": "2015-12-11",
     "popularity": 10.9807
@@ -225,7 +205,6 @@
     "name": "12 monos",
     "year": "1995",
     "imdb_rating": "8.0",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/uEAH9HA3fwpGZSVxvUi8er57fJs.jpg",
     "released": "1995-12-29",
     "popularity": 10.8841
@@ -236,7 +215,6 @@
     "name": "Jackass: La última y nos vamos",
     "year": "2026",
     "imdb_rating": "6.2",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/15Hs6RG2V4zOEJKi8zRazYqQ5PQ.jpg",
     "released": "2026-06-25",
     "popularity": 10.6713
@@ -247,7 +225,6 @@
     "name": "Megamente",
     "year": "2010",
     "imdb_rating": "7.3",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/fFbi7MB0JibZ149UnlnNhly9MtE.jpg",
     "released": "2010-10-28",
     "popularity": 10.3809
@@ -258,7 +235,6 @@
     "name": "¿Conoces a Joe Black?",
     "year": "1998",
     "imdb_rating": "7.2",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/z2jzFfXTXnZ7oytCiIEieSXDb1b.jpg",
     "released": "1998-11-12",
     "popularity": 9.8886
@@ -269,7 +245,6 @@
     "name": "Entrevista con el Vampiro",
     "year": "1994",
     "imdb_rating": "7.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/921DrRqvdnX90grWPkuRnOoko5l.jpg",
     "released": "1994-11-11",
     "popularity": 9.2617
@@ -280,7 +255,6 @@
     "name": "La fuga",
     "year": "1993",
     "imdb_rating": "7.9",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/6wPdBa1Nk70zUfDA7nKbDoynZM1.jpg",
     "released": "1993-09-09",
     "popularity": 9.0741
@@ -291,7 +265,6 @@
     "name": "La Nueva Gran Estafa",
     "year": "2004",
     "imdb_rating": "6.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/hYZpuqVIpacEEWQW6q8lc1MB9V8.jpg",
     "released": "2004-12-09",
     "popularity": 8.9387
@@ -302,7 +275,6 @@
     "name": "Ahora son 13",
     "year": "2007",
     "imdb_rating": "6.9",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/yYlxvmRAQ5344ZSIxtaygCUcm0M.jpg",
     "released": "2007-06-05",
     "popularity": 8.5877
@@ -313,7 +285,6 @@
     "name": "Leyendas de Pasión",
     "year": "1994",
     "imdb_rating": "7.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/y8mnIMSTB2p1X9WRWrAsM2eemid.jpg",
     "released": "1994-12-23",
     "popularity": 8.5144
@@ -324,7 +295,6 @@
     "name": "El juego de la fortuna",
     "year": "2011",
     "imdb_rating": "7.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/zZLOUh3Kvf3pNfr6DkO2Bft0swZ.jpg",
     "released": "2011-09-23",
     "popularity": 8.2518
@@ -335,7 +305,6 @@
     "name": "Los hijos de la calle",
     "year": "1996",
     "imdb_rating": "7.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/3ZMOGc7fVRh61naFIyidzahW40H.jpg",
     "released": "1996-10-18",
     "popularity": 7.7058
@@ -346,7 +315,6 @@
     "name": "¿Quieres ser John Malkovich?",
     "year": "1999",
     "imdb_rating": "7.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/2P1TGBx9DR07En1V28NtVomhkaD.jpg",
     "released": "1999-10-29",
     "popularity": 6.5355
@@ -357,7 +325,6 @@
     "name": "Thelma y Louise",
     "year": "1991",
     "imdb_rating": "7.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/zS4vosCL144152a1hlU2vbiv8cO.jpg",
     "released": "1991-05-24",
     "popularity": 6.5246
@@ -368,7 +335,6 @@
     "name": "Lobos",
     "year": "2024",
     "imdb_rating": "6.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/xT3CLqaix8CAhiuXmptJcxwCFBj.jpg",
     "released": "2024-09-20",
     "popularity": 6.3482
@@ -379,7 +345,6 @@
     "name": "La ciudad perdida",
     "year": "2022",
     "imdb_rating": "6.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/2qZurhERKxv2YOkZGDaSxsNN89a.jpg",
     "released": "2022-03-23",
     "popularity": 6.3118
@@ -390,7 +355,6 @@
     "name": "Aliados",
     "year": "2016",
     "imdb_rating": "7.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/iMzra3eSIoSzVAzCY1jOUEAIgZ1.jpg",
     "released": "2016-11-23",
     "popularity": 5.8941
@@ -401,7 +365,6 @@
     "name": "Happy Feet: El Pingüino 2",
     "year": "2011",
     "imdb_rating": "5.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/kCGdzG0XUij3BqIsygdNEAuFM1Z.jpg",
     "released": "2011-11-17",
     "popularity": 5.7932
@@ -412,7 +375,6 @@
     "name": "Simbad: La leyenda de los siete mares",
     "year": "2003",
     "imdb_rating": "6.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/ewoNM3cDc3DG0yRhtvya2UUiXN1.jpg",
     "released": "2003-07-02",
     "popularity": 5.7735
@@ -423,7 +385,6 @@
     "name": "Babel",
     "year": "2006",
     "imdb_rating": "7.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/os6R4WX50SoOclBt0U9XjdyReaR.jpg",
     "released": "2006-10-26",
     "popularity": 5.6109
@@ -434,7 +395,6 @@
     "name": "El Árbol de la Vida",
     "year": "2011",
     "imdb_rating": "6.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/5Zc2JGtIX4CGaVFwrHX72Okuek8.jpg",
     "released": "2011-05-17",
     "popularity": 5.5442
@@ -445,7 +405,6 @@
     "name": "Nada es para siempre",
     "year": "1992",
     "imdb_rating": "7.2",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/gU5gaHXABcQBALqXOtnrkolaS1S.jpg",
     "released": "1992-10-09",
     "popularity": 5.5256
@@ -456,7 +415,6 @@
     "name": "El asesinato de Jesse James por el cobarde Robert Ford",
     "year": "2007",
     "imdb_rating": "7.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/azrNQgdyBczVjLwqYqefPf3Vg6X.jpg",
     "released": "2007-09-20",
     "popularity": 5.1468
@@ -467,7 +425,6 @@
     "name": "Había una vez un Deadpool",
     "year": "2018",
     "imdb_rating": "7.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/yNfYRHMiXwkOxhBgRtZUnKrdXpz.jpg",
     "released": "2018-12-11",
     "popularity": 5.0628
@@ -478,7 +435,6 @@
     "name": "Siete años en el Tíbet",
     "year": "1997",
     "imdb_rating": "7.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/g6XNFyyOBU1CqLRjFDeP7AfxK2X.jpg",
     "released": "1997-09-12",
     "popularity": 5.035
@@ -489,7 +445,6 @@
     "name": "Quémese después de leerse",
     "year": "2008",
     "imdb_rating": "7.0",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/lVFE09SAgu82J2XHTBFCSLhvPl5.jpg",
     "released": "2008-09-05",
     "popularity": 5.0224
@@ -500,7 +455,6 @@
     "name": "Ad Astra: Hacia las estrellas",
     "year": "2019",
     "imdb_rating": "6.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/7mVrLbm7TCVJ8clcWA6iYwUB1RZ.jpg",
     "released": "2019-09-17",
     "popularity": 4.5065
@@ -511,7 +465,6 @@
     "name": "Juego de espías",
     "year": "2001",
     "imdb_rating": "7.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/9PKZ4E3VftKgsDpO9uO0iilPFSQ.jpg",
     "released": "2001-11-18",
     "popularity": 4.2368
@@ -522,7 +475,6 @@
     "name": "Enemigo íntimo",
     "year": "1997",
     "imdb_rating": "6.2",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/rUPteX5WktQaM0I7dt5xtnIqDKy.jpg",
     "released": "1997-03-13",
     "popularity": 4.102
@@ -533,7 +485,6 @@
     "name": "Mátalos suavemente",
     "year": "2012",
     "imdb_rating": "6.2",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/3b1Gbv2N13ZaTTEsDyDXUqrsPx6.jpg",
     "released": "2012-07-30",
     "popularity": 3.5588
@@ -544,7 +495,6 @@
     "name": "Confesiones de una mente peligrosa",
     "year": "2002",
     "imdb_rating": "7.0",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/aYw84Loq93ocFxSy7UU5WQbTGsr.jpg",
     "released": "2002-12-31",
     "popularity": 3.5549
@@ -555,7 +505,6 @@
     "name": "Máquina de Guerra",
     "year": "2017",
     "imdb_rating": "6.0",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/7rbKKR9TMwvBoKCX2dfvPOnnNSd.jpg",
     "released": "2017-05-26",
     "popularity": 3.4827
@@ -566,7 +515,6 @@
     "name": "El abogado del crimen",
     "year": "2013",
     "imdb_rating": "5.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/sRWONVmcIPM2L7jelsvvDLBoq9S.jpg",
     "released": "2013-10-25",
     "popularity": 3.4595
@@ -577,7 +525,6 @@
     "name": "Kalifornia",
     "year": "1993",
     "imdb_rating": "6.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/nSKN0PeTADSFWMYzkhVuklXbtlY.jpg",
     "released": "1993-06-24",
     "popularity": 3.0804
@@ -588,7 +535,6 @@
     "name": "La tierra de nadie",
     "year": "1987",
     "imdb_rating": "6.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/hWl5MMqvr0laJ3080SqoNge4euK.jpg",
     "released": "1987-10-23",
     "popularity": 2.9692
@@ -599,7 +545,6 @@
     "name": "Glory Days",
     "year": "1990",
     "imdb_rating": "4.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/hNJ5HIkjYgZTBY7VTkjsJEfEx1H.jpg",
     "released": "1990-07-25",
     "popularity": 2.9252
@@ -610,7 +555,6 @@
     "name": "Cool World: Mundo Cool",
     "year": "1992",
     "imdb_rating": "4.9",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/u58XXr9RQWiRqbVTh814NYGJyWP.jpg",
     "released": "1992-07-10",
     "popularity": 2.8669
@@ -621,7 +565,6 @@
     "name": "La Mexicana",
     "year": "2001",
     "imdb_rating": "6.2",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/82WcH0u0qrGM8cEzBKgJ2qb1zW3.jpg",
     "released": "2001-03-01",
     "popularity": 2.8292
@@ -632,7 +575,6 @@
     "name": "Full Frontal",
     "year": "2002",
     "imdb_rating": "4.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/7FeoefSYELryi04Kz74xYTayPZk.jpg",
     "released": "2002-08-02",
     "popularity": 2.2516
@@ -643,7 +585,6 @@
     "name": "Less Than Zero",
     "year": "1987",
     "imdb_rating": "6.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/cycoCe0ydSEHCozKFb6rnrRKjLg.jpg",
     "released": "1987-11-06",
     "popularity": 2.2308
@@ -654,7 +595,6 @@
     "name": "Final Cut: Hölgyeim és uraim",
     "year": "2012",
     "imdb_rating": "7.9",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/gWosAW69lxRNQ8ksnCizUHsVeGU.jpg",
     "released": "2012-02-04",
     "popularity": 2.1248
@@ -665,7 +605,6 @@
     "name": "Exit Through the Gift Shop",
     "year": "2010",
     "imdb_rating": "7.9",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/ruM5ehUQlHC1Kx3SF18d6klfrAx.jpg",
     "released": "2010-03-05",
     "popularity": 2.0945
@@ -676,7 +615,6 @@
     "name": "Frente al Mar",
     "year": "2015",
     "imdb_rating": "5.3",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/w4bg71SeAamQXDm8gTc1ccuYUkL.jpg",
     "released": "2015-11-12",
     "popularity": 1.9563
@@ -687,7 +625,6 @@
     "name": "Al descubierto en el Reino Unido: Vinnie Jones",
     "year": "2026",
     "imdb_rating": "7.0",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/AilC78z0a3wg0mBpBpurqjWCTxZ.jpg",
     "released": "2026-05-26",
     "popularity": 1.8655
@@ -698,7 +635,6 @@
     "name": "Ocean's Fourteen",
     "year": null,
     "imdb_rating": null,
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/1jITtYNvrcdE98anIblRK3f9xnt.jpg",
     "released": null,
     "popularity": 1.7514
@@ -709,7 +645,6 @@
     "name": "Cutting Class",
     "year": "1989",
     "imdb_rating": "4.6",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/jnOkjPb75ezZckMnFCgx76W3Ns5.jpg",
     "released": "1989-04-24",
     "popularity": 1.6945
@@ -720,7 +655,6 @@
     "name": "Too Young to Die",
     "year": "1990",
     "imdb_rating": "5.9",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/p7SKnww3Hi6oDMRFdL1HrdBxYLk.jpg",
     "released": "1990-02-26",
     "popularity": 1.6566
@@ -731,7 +665,6 @@
     "name": "The Favor",
     "year": "1994",
     "imdb_rating": "5.2",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/6mQoNlnglAXfDfh39in4Dhi2ERO.jpg",
     "released": "1994-04-29",
     "popularity": 1.6033
@@ -742,7 +675,6 @@
     "name": "Hunk",
     "year": "1987",
     "imdb_rating": "4.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/mWxpNsMt9u6VSfvsS9U7AOGZeWK.jpg",
     "released": "1987-03-06",
     "popularity": 1.4463
@@ -753,7 +685,6 @@
     "name": "The Curious Birth of Benjamin Button",
     "year": "2009",
     "imdb_rating": "7.5",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/rb0tqV7FxHECv2cRW8H8DJ5RhtP.jpg",
     "released": "2009-05-05",
     "popularity": 1.3257
@@ -764,7 +695,6 @@
     "name": "Across the Tracks",
     "year": "1991",
     "imdb_rating": "5.8",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/vb5jhjMsaAVLdaplNcpFlXkdaM8.jpg",
     "released": "1991-02-15",
     "popularity": 1.321
@@ -775,7 +705,6 @@
     "name": "8",
     "year": "2012",
     "imdb_rating": "7.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/59FU0Yt9u4WuKa9bMTTzTgHGhRD.jpg",
     "released": "2012-03-03",
     "popularity": 1.2981
@@ -786,7 +715,6 @@
     "name": "Live 8",
     "year": "2005",
     "imdb_rating": "7.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/joFzIENnJHDLesiktLETN3VNutO.jpg",
     "released": "2005-11-07",
     "popularity": 1.2967
@@ -797,7 +725,6 @@
     "name": "Beyond All Boundaries",
     "year": "2009",
     "imdb_rating": "7.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/8TcXwhS8HbXLXC1hadEvesf8wwb.jpg",
     "released": "2009-11-09",
     "popularity": 1.2597
@@ -808,7 +735,6 @@
     "name": "Alcanzando el Ápex",
     "year": "2015",
     "imdb_rating": "8.1",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/lvtyQcHuUc4xh392DeoqPVyUqZk.jpg",
     "released": "2015-09-02",
     "popularity": 1.2143
@@ -819,7 +745,6 @@
     "name": "Voyage of Time: The IMAX Experience",
     "year": "2016",
     "imdb_rating": "6.9",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/2ScetO35rdhBIdYPXvhPJdXPUVm.jpg",
     "released": "2016-10-07",
     "popularity": 1.1941
@@ -830,7 +755,6 @@
     "name": "Juntos y felices",
     "year": "1989",
     "imdb_rating": "5.9",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/3ekqpIww56hYDSsVFU7GcNfoBGv.jpg",
     "released": "1989-05-04",
     "popularity": 1.1767
@@ -841,7 +765,6 @@
     "name": "Johnny Suede",
     "year": "1991",
     "imdb_rating": "5.7",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/x1ZvgHwDUFsgqWhYUEcJcyHmZQW.jpg",
     "released": "1991-08-18",
     "popularity": 1.175
@@ -852,7 +775,6 @@
     "name": "El lado oscuro del sol",
     "year": "1988",
     "imdb_rating": "5.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/yxSwmSeoEIJL5BhDEUmURGx38qQ.jpg",
     "released": "1988-12-21",
     "popularity": 1.1364
@@ -863,7 +785,6 @@
     "name": "e² design",
     "year": "2006",
     "imdb_rating": "8.4",
-    "excluded": false,
     "poster": "https://image.tmdb.org/t/p/w500/zOSnUA8OqzLFQV6QglfpbSjz1mx.jpg",
     "released": "2006-06-06",
     "popularity": 1.1241

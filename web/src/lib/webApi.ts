@@ -91,6 +91,26 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			restore: (item) => post({ action: 'restore', item: seenOf(item) }),
 			dismiss: (kind, imdb, how) => post({ action: how, kind, imdb })
 		},
+		// Apodo: el contrato de /api/nick (ver apodo.svelte.ts, que arma la pantalla de la web con los mismos pedidos). La sesión
+		// es la cookie `apodo` del navegador; el código de acceso ya pasó el candado.
+		nick: {
+			ask: (nick) => json<{ nick: string; mode: 'nuevo' | 'login'; order: string[]; wait: number }>(`/api/nick?${new URLSearchParams({ nick })}`),
+			async enter(nick, code, mode) {
+				const r = await doFetch('/api/nick', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nick, code, mode }) });
+				const body = (await r.json().catch(() => null)) as { nick?: string; message?: string; wait?: number } | null;
+				if (r.ok) return { ok: true, nick: body?.nick };
+				return { ok: false, error: body?.message ?? `${r.status}`, wait: body?.wait, changed: r.status === 409 };
+			},
+			logout: async () => void (await json<{ ok: true }>('/api/nick', { method: 'DELETE' })),
+			status: async () => {
+				const r = await doFetch('/api/nick/animales', { cache: 'no-store' });
+				return { codeSet: true, nick: r.ok ? (((await r.json().catch(() => null)) as { nick?: string } | null)?.nick ?? null) : null };
+			},
+			animals: async () => {
+				const r = await doFetch('/api/nick/animales', { cache: 'no-store' });
+				return r.ok ? (((await r.json().catch(() => null)) as { animals?: string[] | null } | null)?.animals ?? null) : null;
+			}
+		},
 		// La web no recibe eventos en vivo.
 		events: { subscribe: (_handler: (event: ApiEvent) => void) => () => {} }
 	};

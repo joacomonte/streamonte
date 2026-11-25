@@ -10,17 +10,11 @@ const cwd = process.cwd();
 process.chdir(work);
 process.env.TMDB_KEY = 'x';
 delete process.env.VERCEL;
-const { capped, detail, keep, title } = await import('./tmdb.ts');
+const { capped, detail, title } = await import('./tmdb.ts');
 
 after(() => {
 	process.chdir(cwd);
 	rmSync(work, { recursive: true, force: true });
-});
-
-test('keep: descarta lo japonés', () => {
-	assert.equal(keep({ id: 1, original_language: 'ja' }), false);
-	assert.equal(keep({ id: 1, original_language: 'en' }), true);
-	assert.equal(keep({ id: 1 }), true);
 });
 
 test('capped: borra la entrada más vieja y re-setear la refresca', () => {
@@ -32,20 +26,15 @@ test('capped: borra la entrada más vieja y re-setear la refresca', () => {
 	assert.deepEqual([...m], [['a', 3], ['c', 4]]);
 });
 
-test('detail: imdb id, idioma original y exclusión de Japón', () => {
+test('detail: imdb id, idioma original', () => {
 	const now = Date.now();
 	const d = detail({ imdb_id: 'tt0133093', original_language: 'en', origin_country: ['US'] });
 	assert.equal(d.imdb, 133093);
 	assert.equal(d.lang, 'en');
-	assert.equal(d.excluded, false);
 	assert.ok(d.at >= now);
 	assert.equal(detail({ imdb_id: 'nope' }).imdb, null);
 	assert.equal(detail({}).lang, null);
 	assert.equal(detail({ external_ids: { imdb_id: 'tt5' } }).imdb, 5); // series
-	assert.equal(detail({ origin_country: ['JP'] }).excluded, true);
-	assert.equal(detail({ production_countries: [{ iso_3166_1: 'JP' }] }).excluded, true);
-	assert.equal(detail({ origin_country: ['US', 'JP'] }).excluded, false);
-	assert.equal(detail({ origin_country: ['US', 'JP'], genres: [{ id: 16, name: 'Animation' }] }).excluded, true);
 });
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });

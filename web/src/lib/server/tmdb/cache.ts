@@ -17,20 +17,16 @@ export function capped<K, V>(map: Map<K, V>, key: K, value: V, max: number): voi
 	if (map.size > max) map.delete(map.keys().next().value as K);
 }
 
-export type Detail = { imdb: number | null; lang: string | null; excluded: boolean; at: number };
+export type Detail = { imdb: number | null; lang: string | null; at: number };
 /** "movie:123" → ficha. */
 let details: Record<string, Detail> | null = null;
 
 export function detail(raw: Partial<TmdbTitle>): Detail {
 	const tt = raw.imdb_id ?? raw.external_ids?.imdb_id ?? '';
-	const countries = raw.origin_country ?? raw.production_countries?.map((c) => c.iso_3166_1) ?? [];
-	const anim = (raw.genres ?? []).some((g) => g.id === 16);
 	return {
 		imdb: /^tt\d+$/.test(tt) ? Number(tt.slice(2)) : null,
 		// Idioma original, no los hablados.
 		lang: raw.original_language ?? null,
-		// Como `is_excluded` del desktop: de Japón, o con Japón y animación.
-		excluded: countries[0] === 'JP' || (countries.includes('JP') && anim),
 		at: Date.now()
 	};
 }

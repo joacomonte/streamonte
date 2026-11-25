@@ -82,8 +82,6 @@ struct Credit {
     #[serde(default)]
     media_type: String,
     #[serde(default)]
-    original_language: String,
-    #[serde(default)]
     genre_ids: Vec<u32>,
     episode_count: Option<u32>,
     #[serde(default)]
@@ -161,7 +159,7 @@ pub(super) async fn credits(
     }
 }
 
-/// Películas y series donde actuó (o que dirigió), sin anime/japonés (FR-40), sin programas donde
+/// Películas y series donde actuó (o que dirigió), sin programas donde
 /// aparece como sí mismo ni series de invitado; sin repetir; las más populares primero.
 fn pick(credits: Credits, role: Role) -> Vec<(MediaKind, Candidate)> {
     let list = match role {
@@ -184,9 +182,7 @@ fn pick(credits: Credits, role: Role) -> Vec<(MediaKind, Candidate)> {
             let guest = kind == MediaKind::Series
                 && role == Role::Cast
                 && c.episode_count.unwrap_or(0) < MIN_EPISODES;
-            let skip = c.original_language == "ja"
-                || c.genre_ids.iter().any(|g| NOT_ACTING.contains(g))
-                || guest;
+            let skip = c.genre_ids.iter().any(|g| NOT_ACTING.contains(g)) || guest;
             (!skip && seen.insert((kind, c.title.id))).then_some((kind, c.title))
         })
         .collect();
@@ -209,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn actor_sin_cameos_ni_programas_ni_anime_y_por_popularidad() {
+    fn actor_sin_cameos_ni_programas_y_por_popularidad() {
         let c = credits(
             r#"{"cast":[
                 {"id":1,"media_type":"movie","title":"Fight Club","original_language":"en","popularity":40.0},
@@ -222,7 +218,11 @@ mod tests {
         );
         assert_eq!(
             ids(&pick(c, Role::Cast)),
-            [(MediaKind::Series, 5), (MediaKind::Movie, 1)]
+            [
+                (MediaKind::Movie, 4),
+                (MediaKind::Series, 5),
+                (MediaKind::Movie, 1)
+            ]
         );
     }
 

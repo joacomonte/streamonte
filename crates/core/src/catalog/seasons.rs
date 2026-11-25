@@ -480,7 +480,7 @@ mod tests {
             let meta: Meta = serde_json::from_value(serde_json::json!({
                 "id": "tt0", "kind": "series", "name": "X", "year": null, "runtime_min": null,
                 "country": null, "genres": [], "imdb_rating": null, "description": null,
-                "poster": null, "background": null, "episodes": [], "excluded": false,
+                "poster": null, "background": null, "episodes": [],
                 "status": case["in"],
             }))
             .unwrap();

@@ -19,7 +19,10 @@
 		/** El apodo ya guardado; mientras no haya, el paso del apodo no deja pasar ni salir. */
 		nick?: string | null;
 		/** Valida y guarda el apodo (solo si algún paso lo pide). */
-		onnick?: (raw: string) => Promise<{ nick?: string; error?: string }>;
+		onnick?: (raw: string) => Promise<{ nick?: string; error?: string; /** Falta (o es incorrecto) el código de la web: se vuelve a pedir. */ needCode?: boolean }>;
+		/** Solo desktop: el paso del apodo pide antes el código de 3 dígitos de la web. `oncode` lo guarda y devuelve el error, si hay. */
+		needCode?: boolean;
+		oncode?: (code: string) => Promise<string | null>;
 		/** Idiomas del paso `picker`. */
 		langs?: LangOptions;
 		/** Contenido propio de la app para el paso con `extra`. */
@@ -30,7 +33,7 @@
 		/** Confeti al terminar con Listo en el último paso. */
 		confetti?: boolean;
 	}
-	let { id, label, open, steps, index = $bindable(0), start = 0, nick = null, onnick, langs, extra, onclose, onleave, confetti = false }: Props = $props();
+	let { id, label, open, steps, index = $bindable(0), start = 0, nick = null, onnick, needCode = false, oncode, langs, extra, onclose, onleave, confetti = false }: Props = $props();
 	let dlg = $state<HTMLDialogElement>();
 	let leaving = $state(false);
 	let dir = $state(1);
@@ -41,6 +44,14 @@
 	let nickError = $state('');
 	let nickSaving = $state(false);
 	let nickOk = $state((() => !!nick)());
+	// Código de la web (desktop): mientras `codeNeed`, el paso muestra su campo en vez del apodo.
+	let codeNeed = $state((() => needCode)());
+	let codeValue = $state('');
+	let codeError = $state('');
+	let codeSaving = $state(false);
+	const codeFull = $derived(/^\d{3}$/.test(codeValue));
+	/** Pone el foco en el campo que aparece al cambiar de código a apodo (y al revés). */
+	const focusNow = (el: HTMLElement) => el.focus();
 	const nickAt = $derived(steps.findIndex((s) => s.nick));
 	/** Paso más allá del apodo sin tenerlo: se queda en el del apodo. */
 	const guard = (to: number) => guardStep(to, nickAt, nickOk);
@@ -89,12 +100,32 @@
 		css: (t: number) => `transform: translateX(${(1 - t) * -dir * 32}px); opacity: ${t};`
 	});
 	/** Valida y guarda el apodo; si está bien, sigue (o cierra, si era el último paso). */
+	async function submitCode() {
+		if (codeSaving || !codeFull) return;
+		codeSaving = true;
+		const err = (await oncode?.(codeValue)) ?? null;
+		codeSaving = false;
+		if (err) {
+			codeError = t(err);
+			return;
+		}
+		codeNeed = false;
+		codeError = '';
+		codeValue = '';
+	}
 	async function submitNick() {
+		if (codeNeed) return submitCode();
 		if (nickSaving) return;
 		nickSaving = true;
 		const r = (await onnick?.(nickValue)) ?? { error: '' };
 		nickSaving = false;
 		if (!r.nick) {
+			if (r.needCode) {
+				codeNeed = true;
+				codeValue = '';
+				codeError = t(r.error ?? '');
+				return;
+			}
 			nickError = t(r.error ?? '');
 			return;
 		}
@@ -218,20 +249,34 @@
 						     (texto y caret transparentes) y el espejo dibuja cada letra que entra y un caret propio. -->
 						<form id="{id}-nick-form" class="nick" novalidate onsubmit={(e) => {
 							e.preventDefault();
-							if (nickTyped) submitNick();
+							if (codeNeed ? codeFull : nickTyped) submitNick();
 						}}>
+							{#if codeNeed}
+								<label class="hello" for="nick-web-code">{t('Código de la web')}</label>
+								<div class="typed" style="--fs: 40px">
+									<span class="field">
+									<span class="mirror" aria-hidden="true">{#each [...codeValue] as ch, n (n)}<span class="ch">{ch}</span>{/each}<span class="caret"></span>{#if !codeValue}<span class="ph">000</span>{/if}</span>
+									<input id="nick-web-code" use:focusNow data-typefx="off" type="text" inputmode="numeric" maxlength="3" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-invalid={!!codeError} aria-describedby="nick-web-code-error" bind:value={codeValue} oninput={() => ((codeError = ''), (codeValue = codeValue.replace(/\D/g, '')))} />
+									</span>
+									<button id="nick-web-code-go" type="submit" class="go" class:show={codeFull} disabled={codeSaving} tabindex={codeFull ? 0 : -1} aria-hidden={!codeFull} aria-label={t('Seguir')}>
+										<svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
+									</button>
+								</div>
+								<p id="nick-web-code-error" class="hint" class:err={!!codeError} class:gone={codeFull && !codeError} role="alert">{codeError || `${t('Los 3 números de acceso de la web')} · ${t('obligatorio')}`}</p>
+							{:else}
 							<label class="hello" for="{id}-nick">{t('Hola')},</label>
 							<div class="typed" style="--fs: {nickSize}px">
 								<span class="field">
 								<span class="mirror" aria-hidden="true">{#each [...nickValue] as ch, n (n)}<span class="ch">{ch}</span>{/each}<span class="caret"></span>{#if !nickValue}<span class="ph">{t('tu apodo')}</span>{/if}</span>
 								<!-- svelte-ignore a11y_autofocus (el paso es escribir el apodo; el <dialog> abre con foco en él) -->
-								<input id="{id}-nick" data-typefx="off" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-invalid={!!nickError} aria-describedby="{id}-nick-error" bind:value={nickValue} oninput={() => ((nickError = ''), (nickValue = nickValue.charAt(0).toUpperCase() + nickValue.slice(1)))} autofocus />
+								<input id="{id}-nick" data-typefx="off" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-invalid={!!nickError} aria-describedby="{id}-nick-error" bind:value={nickValue} oninput={() => ((nickError = ''), (nickValue = nickValue.charAt(0).toUpperCase() + nickValue.slice(1)))} use:focusNow autofocus />
 								</span>
 								<button id="{id}-nick-go" type="submit" class="go" class:show={nickTyped} disabled={nickSaving} tabindex={nickTyped ? 0 : -1} aria-hidden={!nickTyped} aria-label={t('Seguir')}>
 									<svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
 								</button>
 							</div>
 							<p id="{id}-nick-error" class="hint" class:err={!!nickError} class:gone={nickTyped && !nickError} role="alert">{nickError || `${step.title} · ${t('obligatorio')}`}</p>
+							{/if}
 						</form>
 					{:else}
 						<h2 id="{id}-title" class:center={step.picker && langs}>{step.title}</h2>
@@ -365,17 +410,23 @@
 	/* Apodo arriba (a ~12% del alto): el teclado del celu abre abajo sin tapar ni mover nada. */
 	.stage.nickstage > :first-child { margin-top: 12vh; }
 	.stage.nickstage > :last-child { margin-bottom: auto; }
-	.nick { display: flex; flex-direction: column; align-items: flex-start; }
-	.hello, .typed { font-size: 40px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.08; }
+	.nick { --k: 1; display: flex; flex-direction: column; align-items: flex-start; }
+	/* Desktop / pantallas anchas: todo el bloque del apodo más grande (--k multiplica letra, espejo y ayuda). */
+	@media (min-width: 900px) {
+		.nick { --k: 1.6; }
+		.frame:has(.nickstage) { max-width: 760px; }
+	}
+	.hello, .typed { font-size: calc(40px * var(--k)); font-weight: 600; letter-spacing: -0.035em; line-height: 1.08; }
 	.hello { color: var(--muted); }
 	.typed { position: relative; width: 100%; min-height: 1.08em; color: var(--text); }
-	.typed .mirror, .typed input { font-size: var(--fs); }
-	.mirror { display: flex; align-items: center; white-space: pre; min-height: 43px; }
+	.typed .mirror, .typed input { font-size: calc(var(--fs) * var(--k)); }
+	.mirror { display: flex; align-items: center; white-space: pre; min-height: calc(43px * var(--k)); }
 	.ch { display: inline-block; animation: letter 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
 	@keyframes letter { from { filter: blur(6px); transform: translateY(6px); opacity: 0; } }
 	.caret { flex: none; width: 3px; height: 0.95em; margin: 0 2px; border-radius: 2px; background: var(--accent-fg); animation: blink 1s steps(1) infinite; }
 	@keyframes blink { 50% { opacity: 0; } }
-	.ph { color: var(--border-strong); }
+	/* font-size: el desktop tiene un `.ph` global de 12.5px (ui/styles.css) que achicaba el placeholder. */
+	.ph { font-size: inherit; color: var(--border-strong); }
 	.typed input {
 		position: absolute;
 		inset: 0;
@@ -390,7 +441,7 @@
 		letter-spacing: inherit;
 		outline: none;
 	}
-	.hint { min-height: 1.5em; margin-top: 14px; font-size: 14.5px; color: var(--dim); transition: opacity 0.3s var(--ease); }
+	.hint { min-height: 1.5em; margin-top: calc(14px * var(--k)); font-size: calc(14.5px * (1 + var(--k)) / 2); color: var(--dim); transition: opacity 0.3s var(--ease); }
 	.hint.gone { opacity: 0; }
 	.hint.err { color: var(--red); }
 	/* Seguir: flecha pegada al apodo (lo sigue mientras se escribe); entra deslizando, empuja suave mientras espera. */

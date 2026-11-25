@@ -2,7 +2,7 @@
 El texto en español ES la clave: `t('texto en español')`.
 
 ## Para X → andá a Y
-- Traducción nueva → `en.ts` (único diccionario; neutros en `NEUTRAL`). Un texto sin traducción hace fallar `i18n.test.ts`.
+- Traducción nueva → `en.ts` (único diccionario; neutros en `NEUTRAL`, dentro de `i18n.test.ts`). Un texto sin traducción hace fallar `i18n.test.ts`.
 - `t` y `translate` → `runtime.ts`, `translate.ts`. Idioma reactivo y persistencia → `store.svelte.ts` (`createLangStore`).
 
 ## Relación

@@ -6,7 +6,6 @@
       "name": "The Odyssey",
       "year": "2026",
       "imdb_rating": "8.4",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt33764258/img",
       "released": "2026-07-17",
       "popularity": 490.2066
@@ -17,7 +16,6 @@
       "name": "The End of Oak Street",
       "year": "2026",
       "imdb_rating": "6.5",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt27165187/img",
       "released": "2026-08-14",
       "popularity": 68.312
@@ -28,7 +26,6 @@
       "name": "Heart of the Beast",
       "year": "2026",
       "imdb_rating": "7.1",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt7526136/img",
       "released": "2026-09-25",
       "popularity": 507.5043
@@ -39,7 +36,6 @@
       "name": "Resident Evil",
       "year": "2026",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt35538033/img",
       "released": "2026-09-18",
       "popularity": 359.0935
@@ -50,7 +46,6 @@
       "name": "Primetime",
       "year": "2026",
       "imdb_rating": "7.0",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt34206385/img",
       "released": "2026-09-25",
       "popularity": 51.9426
@@ -61,7 +56,6 @@
       "name": "Obsession",
       "year": "2026",
       "imdb_rating": "7.8",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt37287335/img",
       "released": "2026-05-15",
       "popularity": 73.585
@@ -72,7 +66,6 @@
       "name": "A Dog's Perfect Christmas",
       "year": "2026",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt38515310/img",
       "released": null,
       "popularity": 55.0779
@@ -83,7 +76,6 @@
       "name": "Sense and Sensibility",
       "year": "2026",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt13609648/img",
       "released": "2026-10-16",
       "popularity": 52.5894
@@ -94,7 +86,6 @@
       "name": "The Invite",
       "year": "2026",
       "imdb_rating": "7.5",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt14173636/img",
       "released": "2026-07-10",
       "popularity": 17.5388
@@ -105,7 +96,6 @@
       "name": "Spider-Man: Brand New Day",
       "year": "2026",
       "imdb_rating": "8.0",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt22084616/img",
       "released": "2026-07-31",
       "popularity": 314.3051
@@ -116,7 +106,6 @@
       "name": "Never Surrender",
       "year": "2026",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt39370926/img",
       "released": null,
       "popularity": 226.9055
@@ -127,7 +116,6 @@
       "name": "Avengers: Endgame",
       "year": "2019",
       "imdb_rating": "8.4",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt4154796/img",
       "released": "2019-04-26",
       "popularity": 77.959
@@ -138,7 +126,6 @@
       "name": "Project Hail Mary",
       "year": "2026",
       "imdb_rating": "8.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt12042730/img",
       "released": "2026-03-20",
       "popularity": 138.1684
@@ -149,7 +136,6 @@
       "name": "Verity",
       "year": "2026",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt32261958/img",
       "released": "2026-10-02",
       "popularity": 98.423
@@ -160,7 +146,6 @@
       "name": "The Muppet Show",
       "year": "2026",
       "imdb_rating": "8.0",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt37969426/img",
       "released": "2026-02-04",
       "popularity": 3.5746
@@ -171,7 +156,6 @@
       "name": "Backrooms",
       "year": "2026",
       "imdb_rating": "6.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt26657236/img",
       "released": "2026-05-29",
       "popularity": 44.5451
@@ -182,7 +166,6 @@
       "name": "Being Heumann",
       "year": "2026",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt15095848/img",
       "released": "2026-11-13",
       "popularity": 29.2559
@@ -193,7 +176,6 @@
       "name": "Godzilla Minus One",
       "year": "2023",
       "imdb_rating": "7.6",
-      "excluded": true,
       "poster": "https://images.metahub.space/poster/small/tt23289160/img",
       "released": "2023-12-01",
       "popularity": 73.1427
@@ -204,7 +186,6 @@
       "name": "The Hunger Games",
       "year": "2012",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt1392170/img",
       "released": "2012-03-23",
       "popularity": 43.5288
@@ -215,7 +196,6 @@
       "name": "L'Avocat",
       "year": "2027",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt39453578/img",
       "released": null,
       "popularity": 21.9768
@@ -226,7 +206,6 @@
       "name": "Carolina Caroline",
       "year": "2026",
       "imdb_rating": "6.6",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt33365126/img",
       "released": "2026-06-23",
       "popularity": 6.9105
@@ -237,7 +216,6 @@
       "name": "Disclosure Day",
       "year": "2026",
       "imdb_rating": "6.4",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt15047880/img",
       "released": "2026-06-12",
       "popularity": 50.7509
@@ -248,7 +226,6 @@
       "name": "The Uprising",
       "year": "2026",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt36983905/img",
       "released": "2026-09-11",
       "popularity": 22.392
@@ -259,7 +236,6 @@
       "name": "Heist",
       "year": "2001",
       "imdb_rating": "6.5",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0252503/img",
       "released": "2001-11-09",
       "popularity": 5.0217
@@ -270,7 +246,6 @@
       "name": "The Dog Stars",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt21285562/img",
       "released": "2026-08-28",
       "popularity": 59.7854
@@ -281,7 +256,6 @@
       "name": "The Hunger Games: The Ballad of Songbirds & Snakes",
       "year": "2023",
       "imdb_rating": "6.6",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt10545296/img",
       "released": "2023-11-17",
       "popularity": 53.9049
@@ -292,7 +266,6 @@
       "name": "The Shawshank Redemption",
       "year": "1994",
       "imdb_rating": "9.3",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0111161/img",
       "released": "1994-10-14",
       "popularity": 46.9497
@@ -303,7 +276,6 @@
       "name": "Hope",
       "year": "2026",
       "imdb_rating": "6.9",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt27369017/img",
       "released": "2026-09-09",
       "popularity": 223.739
@@ -314,7 +286,6 @@
       "name": "Possible Love",
       "year": "2026",
       "imdb_rating": "7.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt37803364/img",
       "released": "2026-11-06",
       "popularity": 20.9524
@@ -325,7 +296,6 @@
       "name": "Love of Your Life",
       "year": "2026",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt34384900/img",
       "released": "2026-10-14",
       "popularity": 24.9844
@@ -336,7 +306,6 @@
       "name": "The Housemaid",
       "year": "2025",
       "imdb_rating": "6.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt27543632/img",
       "released": "2025-12-19",
       "popularity": 25.9607
@@ -347,7 +316,6 @@
       "name": "Your Mother Your Mother Your Mother",
       "year": "2026",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt35856037/img",
       "released": "2026-09-25",
       "popularity": 51.0996
@@ -358,7 +326,6 @@
       "name": "The Drama",
       "year": "2026",
       "imdb_rating": "7.1",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt33071426/img",
       "released": "2026-04-03",
       "popularity": 17.4407
@@ -369,7 +336,6 @@
       "name": "Buddy",
       "year": "2026",
       "imdb_rating": "6.6",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt37281055/img",
       "released": "2026-08-28",
       "popularity": 105.5431
@@ -380,7 +346,6 @@
       "name": "Interstellar",
       "year": "2014",
       "imdb_rating": "8.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0816692/img",
       "released": "2014-11-07",
       "popularity": 64.3946
@@ -391,7 +356,6 @@
       "name": "The Lord of the Rings: The Fellowship of the Ring",
       "year": "2001",
       "imdb_rating": "8.9",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0120737/img",
       "released": "2001-12-19",
       "popularity": 37.8343
@@ -402,7 +366,6 @@
       "name": "Tony",
       "year": "2026",
       "imdb_rating": "7.6",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt33095251/img",
       "released": "2026-08-21",
       "popularity": 9.1364
@@ -413,7 +376,6 @@
       "name": "Reminders of Him",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt33714084/img",
       "released": "2026-03-13",
       "popularity": 12.9078
@@ -424,7 +386,6 @@
       "name": "Dune",
       "year": "2021",
       "imdb_rating": "8.0",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt1160419/img",
       "released": "2021-10-22",
       "popularity": 42.4065
@@ -435,7 +396,6 @@
       "name": "Runner",
       "year": "2026",
       "imdb_rating": "6.6",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt31349844/img",
       "released": "2026-09-11",
       "popularity": 52.3368
@@ -446,7 +406,6 @@
       "name": "Leave the World Behind",
       "year": "2023",
       "imdb_rating": "6.4",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt12747748/img",
       "released": "2023-12-08",
       "popularity": 20.1631
@@ -457,7 +416,6 @@
       "name": "Tenzing",
       "year": "2026",
       "imdb_rating": "7.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt6262770/img",
       "released": "2026-10-16",
       "popularity": 16.3893
@@ -468,7 +426,6 @@
       "name": "Unabomber",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt6933238/img",
       "released": "2026-09-25",
       "popularity": 14.9086
@@ -479,7 +436,6 @@
       "name": "Weapons",
       "year": "2025",
       "imdb_rating": "7.4",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt26581740/img",
       "released": "2025-08-08",
       "popularity": 18.494
@@ -490,7 +446,6 @@
       "name": "The Death of Robin Hood",
       "year": "2026",
       "imdb_rating": "6.0",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt32273171/img",
       "released": "2026-06-19",
       "popularity": 24.3389
@@ -501,7 +456,6 @@
       "name": "Nuremberg",
       "year": "2025",
       "imdb_rating": "7.3",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt29567915/img",
       "released": "2025-11-07",
       "popularity": 12.072
@@ -512,7 +466,6 @@
       "name": "In the Grey",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt27681354/img",
       "released": "2026-05-15",
       "popularity": 16.6743
@@ -523,7 +476,6 @@
       "name": "The Cycle",
       "year": "2026",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt32358390/img",
       "released": null,
       "popularity": 21.8464
@@ -534,7 +486,6 @@
       "name": "Sinners",
       "year": "2025",
       "imdb_rating": "7.5",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt31193180/img",
       "released": "2025-04-18",
       "popularity": 21.9669
@@ -545,7 +496,6 @@
       "name": "Inception",
       "year": "2010",
       "imdb_rating": "8.8",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt1375666/img",
       "released": "2010-07-16",
       "popularity": 55.6604

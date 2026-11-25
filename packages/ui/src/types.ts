@@ -18,8 +18,6 @@ export type CatalogItem = {
 	rating: string | null;
 	/** Estreno AAAA-MM-DD (solo películas; null si no se sabe). */
 	released: string | null;
-	/** Anime / Japón: lo que el filtro "Sin anime" esconde. */
-	excluded: boolean;
 	/** Género Documental: la tarjeta lo marca arriba del póster. */
 	documentary: boolean;
 };
@@ -93,7 +91,6 @@ export type TitleDetails = {
 	imdb: string | null;
 	status: ShowStatus | null;
 	seasons: Season[];
-	excluded: boolean;
 };
 
 /** Evento de premios que se detalla (IMDb): la UI lo nombra y ordena (`title/awards.ts`). */
@@ -201,6 +198,12 @@ export type Identified = { kind: Kind; id: string; imdb: string | null; title: s
 	origLang?: string | null; runtime?: number | null };
 export type MagnetView = { status: MagnetStatus; ident: Identified | null };
 
+// ---------- Apodo de la web ----------
+/** Lo que dice la web de un apodo: `login` si ya tiene código de animales, `nuevo` si el que entra lo crea. */
+export type NickAsk = { nick: string; mode: 'nuevo' | 'login'; order: string[]; wait: number };
+/** Lo guardado de la sesión: `codeSet` = código de acceso de la web cargado (en la web siempre, ya pasó el candado). */
+export type NickStatus = { codeSet: boolean; nick: string | null };
+
 // ---------- Capacidades y eventos ----------
 export type Capabilities = {
 	/** Pruebas de velocidad / swarm / calibración (motor local). */
@@ -216,6 +219,5 @@ export type Capabilities = {
 /** Eventos en vivo que consume la UI compartida (la web no emite ninguno). */
 export type ApiEvent =
 	| { type: 'options'; videoId: string; update: OptionsUpdate }
-	| { type: 'excluded'; id: string }
 	| { type: 'subtitles-progress'; videoId: string; downloading: boolean; done: number; total: number };
 export type Unsubscribe = () => void;

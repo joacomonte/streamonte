@@ -1,10 +1,11 @@
 // Interfaz de datos que consume la UI compartida. La web la implementa con `fetch` a /api/* (`web/src/lib/webApi.ts`) y el
 // desktop con `invoke` de Tauri (`ui/src/tauriApi.ts`). Métodos de dominio: devuelven el modelo de `types.ts`.
 import type {
-	ApiEvent, BrowseFilters, Capabilities, CatalogItem, CatalogPage, Episode, EpisodeScore, InterestExample, Kind, MagnetStatus, MagnetView, OptionLink, OptionRef,
+	ApiEvent, BrowseFilters, Capabilities, CatalogItem, CatalogPage, Episode, EpisodeScore, InterestExample, Kind, MagnetStatus, MagnetView, NickAsk, NickStatus, OptionLink, OptionRef,
 	OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings, SimilarItem, SubtitleOption, TitleAwards, TitleDetails, TorboxIds, TorrentOption, TorrentTracks, Unsubscribe
 } from './types.ts';
 import type { RecentItem } from './catalog/recent.ts';
+import type { CodeResult } from './animals/animals.ts';
 
 /** `url`: de dónde bajar el subtítulo (web); null si la app ya lo aplicó (desktop). */
 export type SubtitleFile = { url: string | null; /** Desktop: archivo bajado (Premium) para cargarlo en el reproductor. */ path?: string | null };
@@ -68,6 +69,21 @@ export interface Api {
 		/** "Deshacer" de la X: vuelve con su fecha. */
 		restore(item: RecentItem): Promise<void>;
 		dismiss(kind: Kind, imdb: string, how: 'visto' | 'olvidar'): Promise<void>;
+	};
+	/** Apodo de la web (contrato de `/api/nick`): la bienvenida y Ajustes son compartidas. Los errores de red o del
+	 * servidor lanzan con el mensaje; los de código de animales (no son esos, en espera, cambió) vuelven en `enter`. */
+	nick: {
+		/** ¿El apodo ya tiene código (`login`) o se crea (`nuevo`)? Con el orden de las cartas. */
+		ask(nick: string): Promise<NickAsk>;
+		/** Crea o prueba el código de 2 animales; si sale bien la sesión queda guardada. */
+		enter(nick: string, code: string[], mode: NickAsk['mode']): Promise<CodeResult>;
+		/** Cambiar de usuario. */
+		logout(): Promise<void>;
+		status(): Promise<NickStatus>;
+		/** Los 2 animales (ids) de la sesión; null si todavía no se guardaron o no hay sesión. */
+		animals(): Promise<string[] | null>;
+		/** Solo desktop: guarda el código de acceso de 3 dígitos de la web (vacío = borrarlo). */
+		setCode?(code: string): Promise<void>;
 	};
 	events: { subscribe(handler: (event: ApiEvent) => void): Unsubscribe };
 }

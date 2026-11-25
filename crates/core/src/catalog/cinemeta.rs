@@ -21,8 +21,6 @@ pub struct MetaPreview {
     pub name: String,
     pub year: Option<String>,
     pub imdb_rating: Option<String>,
-    /// FR-40, si la preview trae país y géneros (Explorar sí; la búsqueda no, ver `find_excluded`).
-    pub excluded: bool,
     /// Género Documental: la tarjeta lo marca arriba del póster.
     #[serde(default)]
     pub documentary: bool,
@@ -49,8 +47,6 @@ pub struct Meta {
     pub background: Option<String>,
     /// Ordenados: temporadas 1…n, después 0 ("Especiales"); por episodio (FR-39).
     pub episodes: Vec<Episode>,
-    /// FR-40 (regla Q-12).
-    pub excluded: bool,
     /// Series: `Continuing` o `Ended` (lo que dice Cinemeta).
     pub status: Option<String>,
     /// Reparto principal (los primeros 3).
@@ -153,7 +149,6 @@ fn preview(m: RawMeta, kind: MediaKind) -> Option<MetaPreview> {
         kind,
         name: clean(m.name.as_deref().unwrap_or("?")),
         year: year_of(&m.release_info, &m.year),
-        excluded: is_excluded(m.country.as_deref(), &m.genres.clone().unwrap_or_default()),
         documentary: m
             .genres
             .as_ref()
@@ -226,7 +221,6 @@ fn to_meta(m: RawMeta, kind: MediaKind, id: &str, now: chrono::DateTime<chrono::
             .runtime
             .as_deref()
             .and_then(|r| r.split_whitespace().next()?.parse().ok()),
-        excluded: is_excluded(country.as_deref(), &genres),
         country,
         genres,
         imdb_rating: m.imdb_rating.as_deref().map(clean),
@@ -305,21 +299,6 @@ fn awards_es(raw: &str) -> Option<String> {
     (!out.is_empty()).then(|| out.join(" · "))
 }
 
-/// Regla de exclusión (FR-40, Q-12 confirmada 2026-11-14): Japón como primer país, o Japón en
-/// cualquier posición y género Animación.
-pub fn is_excluded(country: Option<&str>, genres: &[String]) -> bool {
-    let countries: Vec<&str> = country
-        .unwrap_or("")
-        .split(',')
-        .map(str::trim)
-        .filter(|c| !c.is_empty())
-        .collect();
-    let japan = |c: &&str| c.eq_ignore_ascii_case("japan");
-    countries.first().is_some_and(japan)
-        || (countries.iter().any(japan)
-            && genres.iter().any(|g| g.eq_ignore_ascii_case("animation")))
-}
-
 fn year_of(release_info: &Option<String>, year: &Option<String>) -> Option<String> {
     release_info
         .as_deref()
@@ -359,20 +338,6 @@ mod tests {
         assert_eq!(awards_es(""), None);
     }
 
-    #[test]
-    fn exclusion_japonesa() {
-        let g = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        assert!(is_excluded(Some("Japan"), &g(&["Animation", "Action"]))); // Attack on Titan
-        assert!(is_excluded(Some("Japan"), &g(&["Adventure"]))); // One Piece
-        assert!(is_excluded(
-            Some("Japan, United States"),
-            &g(&["Animation"])
-        )); // Spirited Away
-        assert!(!is_excluded(Some("United States"), &g(&["Animation"]))); // The Simpsons
-        assert!(!is_excluded(Some("United States, Japan"), &g(&["Drama"]))); // Lost in Translation
-        assert!(!is_excluded(None, &[]));
-    }
-
     /// T-32 parcial (FR-39): temporadas ordenadas con Especiales al final, no estrenados grises.
     #[test]
     fn episodios_de_serie() {
@@ -404,6 +369,5 @@ mod tests {
         assert_eq!(m.runtime_min, Some(47));
         assert_eq!(m.poster, None);
         assert_eq!(m.year.as_deref(), Some("2008–2013"));
-        assert!(!m.excluded);
     }
 }

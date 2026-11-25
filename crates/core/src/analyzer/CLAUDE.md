@@ -13,5 +13,5 @@ Usa `engine` (`TorrentEngine`), `library`, `catalog`. Lo llama `AppCore::analyze
 - Pasted/QuickOnly NO miden velocidad (bajaban el video entero).
 - El estado de un hash vive solo en su `Job`: sin colecciones paralelas (desfasaban contadores y pausa).
 - Una medición parcial nunca pisa una completa.
-- Swarm: conexiones ≈ concurrencia × max_peers; >~300 satura routers. El motor tiene 40 permisos de E/S (`../engine/rqbit/CLAUDE.md`).
+- Swarm: conexiones ≈ concurrencia × max_peers; >~300 satura routers. Permisos de E/S del motor: `../engine/rqbit/CLAUDE.md`.
 - `fetch_names` no usa el pipeline a propósito.

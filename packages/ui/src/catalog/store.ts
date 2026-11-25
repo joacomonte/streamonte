@@ -27,8 +27,6 @@ export type CatalogState = {
 	peopleLoading: boolean;
 	/** false: la lista ignoró los filtros (desktop sin key de TMDB: solo tendencias). */
 	filtered: boolean;
-	/** Ids que el núcleo marcó como anime/japonés después de listarlos. */
-	excluded: string[];
 	/** Título abierto en un panel aparte (se resalta su tarjeta). */
 	activeId: string | null;
 	/** Una bienvenida tapa la portada: las tarjetas esperan para entrar. */
@@ -61,7 +59,7 @@ export function initialState(storage: CatalogOptions['storage'], key: string): C
 	}
 	return {
 		f: parseSaved(raw), q: '', person: null, items: [], page: 0, done: false, loading: false, pending: false, error: null,
-		examples: {}, people: [], peopleLoading: false, filtered: true, excluded: [], activeId: null, covered: false
+		examples: {}, people: [], peopleLoading: false, filtered: true, activeId: null, covered: false
 	};
 }
 
@@ -77,7 +75,7 @@ export function createCatalog(api: Api, st: CatalogState, opts: CatalogOptions) 
 	let peopleGen = 0;
 
 	const mode = (): Mode => (st.person ? 'person' : st.q.trim().length >= minQuery ? 'search' : 'browse');
-	const visible = (): CatalogItem[] => st.items.filter((i) => !i.excluded && !st.excluded.includes(i.id));
+	const visible = (): CatalogItem[] => st.items;
 
 	async function loadMore(): Promise<void> {
 		if (st.loading || st.done) return;
@@ -217,7 +215,6 @@ export function createCatalog(api: Api, st: CatalogState, opts: CatalogOptions) 
 	/** Eventos en vivo del Api; devuelve cómo soltarlos. */
 	function connect(): Unsubscribe {
 		return api.events.subscribe((e) => {
-			if (e.type === 'excluded' && !st.excluded.includes(e.id)) st.excluded.push(e.id);
 		});
 	}
 

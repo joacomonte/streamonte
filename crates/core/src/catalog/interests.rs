@@ -212,8 +212,6 @@ fn preview(t: Title, kind: MediaKind) -> MetaPreview {
             .ratings_summary
             .and_then(|r| r.aggregate_rating)
             .map(super::top::rating_label),
-        // El idioma original (en/es) ya deja afuera lo japonés.
-        excluded: false,
         documentary,
         poster: t.primary_image.map(|i| small_poster(&i.url, 342)),
         released: if kind == MediaKind::Movie {

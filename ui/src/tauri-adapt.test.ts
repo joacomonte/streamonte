@@ -10,7 +10,7 @@ const fixture = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../mock
 
 test('search: kind series → tv, name → title, imdb_rating → rating', () => {
 	const items = adapt.catalogItems(fixture<Raw.CatalogItem[]>('catalog_search__fight-club'));
-	assert.deepEqual(items[0], { id: 'tt0137523', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'https://images.metahub.space/poster/small/tt0137523/img', rating: '8.8', released: null, excluded: false, documentary: false });
+	assert.deepEqual(items[0], { id: 'tt0137523', kind: 'movie', title: 'Fight Club', year: '1999', poster: 'https://images.metahub.space/poster/small/tt0137523/img', rating: '8.8', released: null, documentary: false });
 	assert.ok(items.some((i) => i.kind === 'tv'), 'una serie sale como tv');
 });
 
@@ -111,12 +111,11 @@ test('quota / subtitle / magnet', () => {
 	assert.deepEqual([view.ident?.kind, view.ident?.season], ['tv', 1]);
 });
 
-test('apiEvent: catalog-streams / excluded / subtitles; el resto es null', () => {
+test('apiEvent: catalog-streams / subtitles; el resto es null', () => {
 	const streams = fixture<Raw.CoreEvent[]>('events__catalog_streams__movie_tt0137523')[0];
 	assert.ok(streams);
 	const e = adapt.apiEvent(streams);
 	assert.deepEqual([e?.type, e?.type === 'options' ? e.videoId : null], ['options', 'tt0137523']);
-	assert.deepEqual(adapt.apiEvent({ type: 'catalog-excluded', id: 'tt1' }), { type: 'excluded', id: 'tt1' });
 	assert.deepEqual(adapt.apiEvent({ type: 'catalog-subtitles-progress', video_id: 'tt1', downloading: true, done: 1, total: 3 }), { type: 'subtitles-progress', videoId: 'tt1', downloading: true, done: 1, total: 3 });
 	assert.equal(adapt.apiEvent({ type: 'confirm-close', active: 1 }), null);
 });

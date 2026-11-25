@@ -58,12 +58,6 @@ pub enum CoreEvent {
     CatalogStreams {
         update: crate::catalog::aggregate::StreamsUpdate,
     },
-    /// Un resultado de búsqueda resultó ser anime / japonés (FR-40): la UI lo oculta si el
-    /// filtro está activo.
-    CatalogExcluded {
-        id: String,
-    },
-
     /// Progreso de "Bajar subtítulos" de un video del catálogo (2026-11-15): buscando, o bajando
     /// `done` de `total`.
     /// "Contar seeders" (2026-11-15): un torrent ya contado (los demás siguen).

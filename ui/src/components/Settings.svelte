@@ -1,10 +1,11 @@
-<!-- Ajustes del desktop: Idioma · Reproducción · Conexión · Cuentas y keys (con las de subtítulos).
+<!-- Ajustes del desktop: Perfil (apodo) · Idioma · Reproducción · Conexión · Cuentas y keys (con las de subtítulos).
      Filas de lista de packages/ui/css/settings.css; cada key muestra su estado y su campo mientras falta. Lógica en settings-model.ts. -->
 <script lang="ts">
   import { onMount } from 'svelte';
   import Icon from '$ui/components/Icon.svelte';
   import Sheet from '$ui/components/Sheet.svelte';
   import { confirmDialog } from '$ui/components/confirm-queue.ts';
+  import MyAnimals from '$ui/animals/MyAnimals.svelte';
   import Idioma from '$ui/settings/Idioma.svelte';
   import KeyField from '$ui/settings/KeyField.svelte';
   import { createKeysForm } from '$ui/settings/keys-form.svelte.ts';
@@ -17,6 +18,7 @@
     installMpv, loadSettings, netCheckView, osLoginText, playersView, saveEqualizer, saveKey, saveLatTeamToken, saveNetwork,
     saveOsLogin, toggleLatTeam, type KeyService, type Net, type PlayersView
   } from '../settings-model.ts';
+  import { nickApiOf, nickState, refreshNick } from '../nick-state.svelte.ts';
   import { host } from '../ui-host.ts';
   import type * as Raw from '../types.ts';
 
@@ -51,6 +53,8 @@
   let latteamEdit = $state(false);
   let osUser = $state('');
   let osPass = $state('');
+  let switching = $state(false);
+  let nickMsg = $state('');
 
   const configured = (service: string): boolean => keys.some((k) => k.service === service && k.configured);
   const latteamHas = $derived(configured('latteam'));
@@ -87,8 +91,23 @@
     osState = osLoginText(await core.premiumQuota().catch(() => null));
   }
 
+  /** Cambiar de usuario: cierra la sesión del apodo; la bienvenida (`Welcome.svelte`) vuelve a pedirlo sola al quedar sin apodo. */
+  async function onSwitchUser(): Promise<void> {
+    switching = true;
+    nickMsg = '';
+    try {
+      await nickApiOf().logout();
+      await refreshNick();
+    } catch {
+      nickMsg = t('No se pudo guardar. Probá de nuevo.');
+    } finally {
+      switching = false;
+    }
+  }
+
   async function open(): Promise<void> {
     keysForm.reset();
+    void refreshNick();
     latteamEdit = false;
     try {
       showOsLogin();
@@ -197,6 +216,24 @@
 
 <Sheet id="dlg-settings" title={t('Ajustes')} titleId="set-title" closeId="btn-settings-x" open={isOpen} onclose={() => (isOpen = false)} maxWidth="min(600px, 92vw)">
   <div class="st">
+    <Section id="set-profile" headId="set-h-profile" level={3} title={t('Perfil')}>
+      <ul class="st-list">
+        <li class="st-row">
+          <span class="st-name">{t('Apodo')}</span>
+          <div class="st-inline grow">
+            <b id="nick-current" class="nick-now">{nickState.nick ?? ''}</b>
+            <button id="nick-change-user" class="st-btn" type="button" disabled={switching || !nickState.nick} onclick={onSwitchUser}>{t('Cambiar de usuario')}</button>
+          </div>
+        </li>
+      </ul>
+      <p id="nick-msg" class="st-msg st-foot bad" role="status">{nickMsg}</p>
+      {#if nickState.animals}
+        <MyAnimals animals={nickState.animals} />
+      {:else if nickState.nick}
+        <p id="my-animals" class="st-msg st-foot">{t('Entrá de nuevo con tus animales para verlos acá')}</p>
+      {/if}
+    </Section>
+
     <Idioma id="set-lang" headId="set-h-lang" pickerId="set-lang" level={3} app={langs.app} titles={langs.titles} onpick={(key, value) => langs[key] !== value && setLangs({ [key]: value })} />
 
     <Section id="set-player" headId="set-h-player" level={3} title={t('Reproducción')}>
@@ -357,6 +394,8 @@
 
 <style>
   .st { padding: 6px 4px 8px; }
+  .grow { flex: 1; min-width: 0; justify-content: flex-end; }
+  .nick-now { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; margin-right: 10px; }
   .lock { display: inline-flex; align-items: center; gap: 5px; }
   .warn { background: color-mix(in srgb, var(--yellow) 10%, transparent); }
   .warn .st-sub { color: var(--text); }

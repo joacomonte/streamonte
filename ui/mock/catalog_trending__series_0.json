@@ -6,7 +6,6 @@
       "name": "The Lord of the Rings: The Rings of Power",
       "year": "2022–",
       "imdb_rating": "6.8",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt7631058/img",
       "released": "2022-09-01",
       "popularity": 1825.2891
@@ -17,7 +16,6 @@
       "name": "The Body",
       "year": "2026–",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt8014982/img",
       "released": "2026-11-11",
       "popularity": 206.6655
@@ -28,7 +26,6 @@
       "name": "MobLand",
       "year": "2025–",
       "imdb_rating": "8.3",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt31510819/img",
       "released": "2025-03-30",
       "popularity": 465.5593
@@ -39,7 +36,6 @@
       "name": "VisionQuest",
       "year": "2026",
       "imdb_rating": "7.8",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt23112594/img",
       "released": "2026-10-13",
       "popularity": 256.4807
@@ -50,7 +46,6 @@
       "name": "Black Doves",
       "year": "2024–",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt27995113/img",
       "released": "2024-12-05",
       "popularity": 50.1508
@@ -61,7 +56,6 @@
       "name": "Dexter: Resurrection",
       "year": "2025–",
       "imdb_rating": "9.0",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt33043892/img",
       "released": "2025-07-11",
       "popularity": 102.6758
@@ -72,7 +66,6 @@
       "name": "Nocturne",
       "year": "2026–",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt26598805/img",
       "released": "2026-10-30",
       "popularity": 70.2705
@@ -83,7 +76,6 @@
       "name": "The Good Daughter",
       "year": "2026–",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt31842126/img",
       "released": "2026-11-12",
       "popularity": 44.8756
@@ -94,7 +86,6 @@
       "name": "From",
       "year": "2022–",
       "imdb_rating": "7.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt9813792/img",
       "released": "2022-02-20",
       "popularity": 142.0168
@@ -105,7 +96,6 @@
       "name": "War",
       "year": "2025–",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt37972251/img",
       "released": null,
       "popularity": 51.9167
@@ -116,7 +106,6 @@
       "name": "Black Clover",
       "year": "2017–2026",
       "imdb_rating": "8.2",
-      "excluded": true,
       "poster": "https://images.metahub.space/poster/small/tt7441658/img",
       "released": "2017-10-03",
       "popularity": 42.5227
@@ -127,7 +116,6 @@
       "name": "Rivals",
       "year": "2024–",
       "imdb_rating": "7.9",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt21906238/img",
       "released": "2024-10-18",
       "popularity": 60.0842
@@ -138,7 +126,6 @@
       "name": "Slow Horses",
       "year": "2022–",
       "imdb_rating": "8.4",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt5875444/img",
       "released": "2022-04-01",
       "popularity": 1417.1428
@@ -149,7 +136,6 @@
       "name": "Campus Drivers",
       "year": "2026–",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt39943756/img",
       "released": null,
       "popularity": 77.5711
@@ -160,7 +146,6 @@
       "name": "East of Eden",
       "year": "2026",
       "imdb_rating": "8.1",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt21097264/img",
       "released": "2026-10-01",
       "popularity": 22.3686
@@ -171,7 +156,6 @@
       "name": "The Terminal List",
       "year": "2022–",
       "imdb_rating": "7.9",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt11743610/img",
       "released": "2022-07-01",
       "popularity": 82.3128
@@ -182,7 +166,6 @@
       "name": "Carrie",
       "year": "2026–",
       "imdb_rating": "7.8",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt11540908/img",
       "released": "2026-10-07",
       "popularity": 37.6343
@@ -193,7 +176,6 @@
       "name": "The Mentalist",
       "year": "2008–2015",
       "imdb_rating": "8.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt1196946/img",
       "released": "2008-09-23",
       "popularity": 2139.2426
@@ -204,7 +186,6 @@
       "name": "Tulsa King",
       "year": "2022–",
       "imdb_rating": "7.9",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt16358384/img",
       "released": "2022-11-13",
       "popularity": 260.0282
@@ -215,7 +196,6 @@
       "name": "The Diplomat",
       "year": "2023–",
       "imdb_rating": "8.0",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt17491088/img",
       "released": "2023-04-20",
       "popularity": 41.2339
@@ -226,7 +206,6 @@
       "name": "Game of Thrones",
       "year": "2011–2019",
       "imdb_rating": "9.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0944947/img",
       "released": "2011-04-17",
       "popularity": 168.6858
@@ -237,7 +216,6 @@
       "name": "The Gilded Age",
       "year": "2022–",
       "imdb_rating": "8.1",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt4406178/img",
       "released": "2022-01-24",
       "popularity": 46.6167
@@ -248,7 +226,6 @@
       "name": "Breaking Bad",
       "year": "2008–2013",
       "imdb_rating": "9.5",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0903747/img",
       "released": "2008-01-20",
       "popularity": 130.9825
@@ -259,7 +236,6 @@
       "name": "Crystal Lake",
       "year": "2026–",
       "imdb_rating": "7.8",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt23148340/img",
       "released": "2026-10-15",
       "popularity": 39.5234
@@ -270,7 +246,6 @@
       "name": "Stick",
       "year": "2025–",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt31710249/img",
       "released": "2025-06-04",
       "popularity": 48.6893
@@ -281,7 +256,6 @@
       "name": "The Gentlemen",
       "year": "2024–",
       "imdb_rating": "8.1",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt13210838/img",
       "released": "2024-03-07",
       "popularity": 39.1813
@@ -292,7 +266,6 @@
       "name": "Ted Lasso",
       "year": "2020–",
       "imdb_rating": "8.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt10986410/img",
       "released": "2020-08-14",
       "popularity": 95.9002
@@ -303,7 +276,6 @@
       "name": "Nobody Wants This",
       "year": "2024–",
       "imdb_rating": "7.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt26933824/img",
       "released": "2024-09-26",
       "popularity": 27.4371
@@ -314,7 +286,6 @@
       "name": "Below",
       "year": "2026",
       "imdb_rating": "6.6",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt35934755/img",
       "released": "2026-10-08",
       "popularity": 19.5025
@@ -325,7 +296,6 @@
       "name": "Cupertino",
       "year": "2026–",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt33270224/img",
       "released": null,
       "popularity": 18.6285
@@ -336,7 +306,6 @@
       "name": "Law & Order: Special Victims Unit",
       "year": "1999–",
       "imdb_rating": "8.1",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0203259/img",
       "released": "1999-09-20",
       "popularity": 1475.7125
@@ -347,7 +316,6 @@
       "name": "Yaga",
       "year": "2026–",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt39980704/img",
       "released": null,
       "popularity": 20.9267
@@ -358,7 +326,6 @@
       "name": "Dexter",
       "year": "2006–2013",
       "imdb_rating": "8.6",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0773262/img",
       "released": "2006-10-01",
       "popularity": 127.027
@@ -369,7 +336,6 @@
       "name": "The Remarried Empress",
       "year": "2026–",
       "imdb_rating": "",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt39325975/img",
       "released": null,
       "popularity": 190.3462
@@ -380,7 +346,6 @@
       "name": "Silo",
       "year": "2023–",
       "imdb_rating": "8.1",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt14688458/img",
       "released": "2023-05-05",
       "popularity": 78.161
@@ -391,7 +356,6 @@
       "name": "Attack on Titan",
       "year": "2013–2023",
       "imdb_rating": "9.1",
-      "excluded": true,
       "poster": "https://images.metahub.space/poster/small/tt2560140/img",
       "released": "2013-09-28",
       "popularity": 51.1039
@@ -402,7 +366,6 @@
       "name": "Lupin",
       "year": "2021–",
       "imdb_rating": "7.5",
-      "excluded": false,
       "poster": "https://live.metahub.space/poster/small/tt2531336/img",
       "released": null,
       "popularity": null
@@ -413,7 +376,6 @@
       "name": "Grey's Anatomy",
       "year": "2005–",
       "imdb_rating": "7.6",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0413573/img",
       "released": "2005-03-27",
       "popularity": 1011.8365
@@ -424,7 +386,6 @@
       "name": "This City Is Ours: A Crime Family Saga",
       "year": "2025–",
       "imdb_rating": "7.8",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt31438328/img",
       "released": "2026-03-05",
       "popularity": 20.8994
@@ -435,7 +396,6 @@
       "name": "South Park",
       "year": "1997–",
       "imdb_rating": "8.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0121955/img",
       "released": "1997-08-13",
       "popularity": 149.5421
@@ -446,7 +406,6 @@
       "name": "The Rookie",
       "year": "2018–",
       "imdb_rating": "8.0",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt7587890/img",
       "released": "2018-10-16",
       "popularity": 169.3501
@@ -457,7 +416,6 @@
       "name": "The Sopranos",
       "year": "1999–2007",
       "imdb_rating": "9.2",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0141842/img",
       "released": "1999-01-10",
       "popularity": 98.7636
@@ -468,7 +426,6 @@
       "name": "Ghosts",
       "year": "2021–",
       "imdb_rating": "7.9",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt11379026/img",
       "released": "2021-10-07",
       "popularity": 53.2027
@@ -479,7 +436,6 @@
       "name": "The Rainmaker",
       "year": "2025–",
       "imdb_rating": "7.1",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt6151526/img",
       "released": "2025-08-15",
       "popularity": 30.2503
@@ -490,7 +446,6 @@
       "name": "Stranger Things",
       "year": "2016–2025",
       "imdb_rating": "8.6",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt4574334/img",
       "released": "2016-07-15",
       "popularity": 98.1319
@@ -501,7 +456,6 @@
       "name": "Reacher",
       "year": "2022–",
       "imdb_rating": "8.0",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt9288030/img",
       "released": "2022-02-04",
       "popularity": 175.3468
@@ -512,7 +466,6 @@
       "name": "Lioness",
       "year": "2023–",
       "imdb_rating": "7.8",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt13111078/img",
       "released": "2023-07-23",
       "popularity": 98.4566
@@ -523,7 +476,6 @@
       "name": "Will Trent",
       "year": "2023–",
       "imdb_rating": "7.7",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt17543592/img",
       "released": "2023-01-03",
       "popularity": 64.083
@@ -534,7 +486,6 @@
       "name": "Widow's Bay",
       "year": "2026–",
       "imdb_rating": "8.1",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt33332385/img",
       "released": "2026-04-29",
       "popularity": 24.568
@@ -545,7 +496,6 @@
       "name": "Supernatural",
       "year": "2005–2020",
       "imdb_rating": "8.4",
-      "excluded": false,
       "poster": "https://images.metahub.space/poster/small/tt0460681/img",
       "released": "2005-09-13",
       "popularity": 2227.5824

@@ -123,6 +123,12 @@ pub fn run() {
             commands::catalog_episodes,
             commands::torbox_magnet,
             commands::torbox_magnet_download,
+            commands::web_code_set,
+            commands::nick_status,
+            commands::nick_ask,
+            commands::nick_enter,
+            commands::nick_logout,
+            commands::nick_animals,
             commands::catalog_season_ratings,
             commands::catalog_awards,
             commands::catalog_episode_ratings,
@@ -143,7 +149,6 @@ pub fn run() {
             commands::catalog_remove_addon,
             commands::catalog_set_addon_enabled,
             commands::catalog_reset_addons,
-            commands::catalog_set_exclude_japanese,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar Streamonte");

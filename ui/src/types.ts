@@ -214,7 +214,6 @@ export type CatalogConfig = {
     addons: AddonEntry[];
     audio_order: string[];
     exclude_cam: boolean;
-    exclude_japanese: boolean;
     timeout_ms: number;
     connect_timeout_ms: number;
 };
@@ -288,6 +287,26 @@ export type ApiKeyStatus = {
     service: string;
     configured: boolean;
 };
+export type NickAsk = {
+    nick: string;
+    mode: "nuevo" | "login";
+    order: string[];
+    wait: number;
+};
+export type NickEnter = {
+    kind: "ok";
+    nick: string;
+    created: boolean;
+} | {
+    kind: "rejected";
+    message: string;
+    wait: number | null;
+    changed: boolean;
+};
+export type NickStatus = {
+    code_set: boolean;
+    nick: string | null;
+};
 export type SpeedResult = {
     mbps: number;
     measured_at: IsoDate;
@@ -320,7 +339,6 @@ export type CatalogItem = {
     name: string;
     year: string | null;
     imdb_rating: string | null;
-    excluded: boolean;
     documentary: boolean;
     poster: string | null;
     released: string | null;
@@ -356,7 +374,6 @@ export type Meta = {
     poster: string | null;
     background: string | null;
     episodes: Episode[];
-    excluded: boolean;
     status: string | null;
     cast: string[];
     awards: string | null;
@@ -641,9 +658,6 @@ export type CoreEvent = {
 } | {
     type: "catalog-streams";
     update: StreamsUpdate;
-} | {
-    type: "catalog-excluded";
-    id: string;
 } | {
     type: "catalog-swarm-counted";
     hash: InfoHash;

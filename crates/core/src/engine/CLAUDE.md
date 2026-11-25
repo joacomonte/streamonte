@@ -11,5 +11,5 @@ Lo crean `analyzer` (análisis) y `playback/flow.rs` (escucha + DHT); mpv lee `h
 ## Trampas (contrato de toda impl)
 - `add` arranca SIEMPRE sin nada seleccionado; `select_file` recién selecciona.
 - `prioritize_ranges` es EXCLUSIVO; al completar un rango emite `RangeReady` (`preload::run` lo espera).
-- HTTP solo en 127.0.0.1; `remove(delete_data)` detiene todo y borra la carpeta.
+- HTTP solo en 127.0.0.1; `remove(delete_data)` quita solo ese torrent (y borra su carpeta); detener todo es `shutdown`.
 - Un solo dueño del DHT persistente por proceso (`DhtLease`).

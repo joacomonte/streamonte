@@ -7,6 +7,7 @@ mod catalog;
 mod settings;
 mod subtitles;
 mod torbox;
+mod web;
 
 pub use catalog::SavedTest;
 pub use settings::{ApiKeyStatus, TempUsage};

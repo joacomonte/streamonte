@@ -129,6 +129,21 @@ export function createTauriApi(core: Core): Api {
 		},
 		// TODO vistos desktop (otro agente)
 		recent: { list: () => Promise.resolve([]), mark: () => Promise.resolve(), restore: () => Promise.resolve(), dismiss: () => Promise.resolve() },
+		nick: {
+			ask: (nick) => api.nickAsk(nick),
+			async enter(nick, code, mode) {
+				const r = await api.nickEnter(nick, code, mode);
+				if (r.kind === 'ok') return { ok: true, nick: r.nick };
+				return { ok: false, error: r.message, wait: r.wait ?? undefined, changed: r.changed };
+			},
+			logout: () => api.nickLogout(),
+			status: async () => {
+				const s = await api.nickStatus();
+				return { codeSet: s.code_set, nick: s.nick };
+			},
+			animals: () => api.nickAnimals(),
+			setCode: (code) => api.webCodeSet(code)
+		},
 		events: {
 			subscribe(handler: (event: ApiEvent) => void) {
 				void listen();

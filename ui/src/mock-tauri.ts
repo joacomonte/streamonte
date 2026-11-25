@@ -2,6 +2,8 @@
 const files = import.meta.glob('../mock/*.json', { eager: true, import: 'default' }) as Record<string, unknown>;
 const fixtures = new Map(Object.entries(files).map(([path, data]) => [path.split('/').pop()!.replace(/\.json$/, ''), data]));
 
+import { ANIMAL_IDS } from '../../packages/ui/src/animals/animals.ts';
+
 // Mismo slug que `record_fixtures.rs`: valores de los args en orden, unidos con `_`, fuera de [a-z0-9_-] → `-`.
 const slug = (args?: Record<string, unknown>) =>
   Object.values(args ?? {}).map(String).join('_').toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
@@ -27,7 +29,28 @@ function replay(events: unknown, stepMs = 500, startMs = stepMs) {
   (events as unknown[]).forEach((payload, i) => setTimeout(() => listeners.forEach((cb) => cb({ payload })), startMs + stepMs * i));
 }
 
+// Apodo de la web (desktop): con sesión y código cargado, salvo `?nonick` (sin código ni apodo, para ver el paso del apodo).
+// El código de 3 dígitos que vale es cualquiera menos `000`; los animales de la sesión son los dos primeros de la grilla.
+const nickMock = { codeSet: !location.search.includes('nonick'), code: '123', nick: location.search.includes('nonick') ? null : 'Joaco' as string | null };
+const reject = (msg: string) => Promise.reject(msg);
+function mockNick(cmd: string, args?: Record<string, unknown>): Promise<unknown> | undefined {
+  const guard = () => {
+    if (!nickMock.codeSet) return reject('Falta el código de la web.');
+    if (nickMock.code === '000') { nickMock.codeSet = false; return reject('El código de la web no es correcto: cargalo de nuevo.'); }
+  };
+  switch (cmd) {
+    case 'web_code_set': nickMock.code = String(args?.code ?? ''); nickMock.codeSet = nickMock.code !== ''; return Promise.resolve(null);
+    case 'nick_status': return Promise.resolve({ code_set: nickMock.codeSet, nick: nickMock.nick });
+    case 'nick_ask': return guard() ?? Promise.resolve({ nick: String(args?.nick), mode: 'nuevo', order: ANIMAL_IDS, wait: 0 });
+    case 'nick_enter': return guard() ?? (nickMock.nick = String(args?.nick), Promise.resolve({ kind: 'ok', nick: nickMock.nick, created: true }));
+    case 'nick_logout': nickMock.nick = null; return Promise.resolve(null);
+    case 'nick_animals': return Promise.resolve(nickMock.nick ? ANIMAL_IDS.slice(0, 2) : null);
+  }
+}
+
 function invoke(cmd: string, args?: Record<string, unknown>): Promise<unknown> {
+  const nick = mockNick(cmd, args);
+  if (nick) return nick;
   const exact = fixtures.get(`${cmd}__${slug(args)}`);
   if (cmd === 'catalog_streams') {
     const events = fixtures.get(`events__${cmd}__${slug(args)}`);

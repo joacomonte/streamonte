@@ -126,16 +126,10 @@ impl AppCore {
     }
 
     /// FR-36: búsqueda en Cinemeta (películas y series a la vez). Una búsqueda nueva cancela la
-    /// anterior (`Cancelled`, la UI la ignora). FR-40: en segundo plano se piden las fichas para
-    /// avisar con `CatalogExcluded` cuáles son anime / japonés.
+    /// anterior (`Cancelled`, la UI la ignora).
     pub async fn catalog_search(&self, query: &str) -> Result<Vec<MetaPreview>> {
         let timeout = self.catalog_timeout().await;
-        let events = self.events.clone();
-        self.catalog
-            .search_flagging_excluded(query, timeout, move |id| {
-                events.emit(CoreEvent::CatalogExcluded { id });
-            })
-            .await
+        self.catalog.search(query, timeout).await
     }
 
     /// Actores y directores que coinciden con lo que se escribe en el buscador (vacío sin key de TMDB).
@@ -422,15 +416,6 @@ impl AppCore {
             self.catalog.forget_addon(entry);
         }
         Ok(self.catalog_addons().await)
-    }
-
-    /// Filtro "Sin anime" de Buscar (FR-40).
-    pub async fn catalog_set_exclude_japanese(&self, exclude: bool) -> Result<()> {
-        self.update_config(|c| {
-            c.catalog.exclude_japanese = exclude;
-            Ok(())
-        })
-        .await
     }
 
     pub(super) async fn catalog_timeout(&self) -> Duration {

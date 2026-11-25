@@ -10,6 +10,7 @@
 //! nivel 3 (procesos): preload(engine) · analyzer(engine, trackers, player, library, ranking)
 //!                     playback(engine, preload, player, cleanup, library) · subtitles(player, http)
 //!                     catalog(http, trackers, audio, release)   [F4b, spec 09]
+//!                     web(http, secrets, catalog::torbox)       [apodo y key de TorBox de la web]
 //! nivel 4:            app + intake (AppCore: cablea todo; única puerta de entrada para la UI)
 //! ```
 //! Excepciones conocidas: `release` usa `engine::is_video` y `subtitles::SUBTITLE_EXTENSIONS`
@@ -53,6 +54,7 @@ pub mod catalog;
 pub mod playback;
 pub mod preload;
 pub mod subtitles;
+pub mod web;
 
 pub mod app;
 mod intake;

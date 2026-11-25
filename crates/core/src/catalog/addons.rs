@@ -168,12 +168,12 @@ pub async fn fetch_manifest(
     if !types.iter().any(|t| t == "movie" || t == "series") {
         return Err("Este addon no tiene películas ni series.".into());
     }
-    // FR-40: solo anime (sin IDs de IMDb) no sirve.
+    // Sin IDs de IMDb (`tt`) no sirve.
     if id_prefixes
         .as_ref()
         .is_some_and(|p| !p.iter().any(|p| p.starts_with("tt")))
     {
-        return Err("Addon solo de anime: no se usa (sin anime ni contenido japonés).".into());
+        return Err("Addon sin IDs de IMDb: no se usa.".into());
     }
     Ok(ManifestInfo {
         id: normalize::clean(m.id.as_deref().unwrap_or("addon")),

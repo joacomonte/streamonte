@@ -137,9 +137,6 @@ export async function initCatalog(): Promise<void> {
       && !document.querySelector('dialog[open]') && !document.querySelector('#pk.on')) closeSide();
   });
   try {
-    const cfg = await core.config();
-    // Anime siempre oculto (se sacó el toggle, 2026-11-15); si estaba apagado, se vuelve a prender.
-    if (cfg.catalog?.exclude_japanese === false) core.catalogSetExcludeJapanese(true).catch(showError);
     const lib = await core.library();
     for (const e of [...lib.pasted_now, ...lib.previous]) state.library.set(e.key, e);
   } catch (e) { showError(e); }

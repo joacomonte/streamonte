@@ -6,7 +6,6 @@
       "name": "La Odisea",
       "year": "2026",
       "imdb_rating": "8.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/sRxbUe5FB25Gde0e2FnwwSckpXb.jpg",
       "released": "2026-07-15",
       "popularity": 481.4868
@@ -17,7 +16,6 @@
       "name": "Proyecto Fin del Mundo",
       "year": "2026",
       "imdb_rating": "8.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/cWpvRQcppLnXD0Kno4OZUzkA05R.jpg",
       "released": "2026-03-15",
       "popularity": 108.993
@@ -28,7 +26,6 @@
       "name": "Spider-Man: Un nuevo día",
       "year": "2026",
       "imdb_rating": "7.9",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/fBFjaDWfNslvrs6bJjknmG27wOS.jpg",
       "released": "2026-07-29",
       "popularity": 301.1391
@@ -39,7 +36,6 @@
       "name": "Obsesión",
       "year": "2026",
       "imdb_rating": "7.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/rmCkNtzYR2xTOO3ZXmIqB5zgYdE.jpg",
       "released": "2026-05-13",
       "popularity": 78.2931
@@ -50,7 +46,6 @@
       "name": "Hamnet",
       "year": "2025",
       "imdb_rating": "7.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/qXF968t2LfHZJ8Zrq2NgMGNomnE.jpg",
       "released": "2025-11-26",
       "popularity": 9.834
@@ -61,7 +56,6 @@
       "name": "Batman: Knightfall Part 1: Knightfall",
       "year": "2026",
       "imdb_rating": "7.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/fXvnylD29aoKx4ai3wBlHRXMSVp.jpg",
       "released": "2026-08-25",
       "popularity": 26.2257
@@ -72,7 +66,6 @@
       "name": "Avatar: Aang, El último Maestro Aire",
       "year": "2026",
       "imdb_rating": "7.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/e2VzQmZufeY3BPH0zWtIyr07Z7w.jpg",
       "released": "2026-07-24",
       "popularity": 47.7068
@@ -83,7 +76,6 @@
       "name": "Criaturas luminosas",
       "year": "2026",
       "imdb_rating": "7.6",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/aNixJoh0U4kN85YM6vPyVZL6ALF.jpg",
       "released": "2026-05-07",
       "popularity": 11.2749
@@ -94,7 +86,6 @@
       "name": "Marty Supremo",
       "year": "2025",
       "imdb_rating": "7.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/guRmwb1r337m2tKBH9KcE3vOpGE.jpg",
       "released": "2025-12-19",
       "popularity": 13.1836
@@ -105,7 +96,6 @@
       "name": "Clayface",
       "year": "2026",
       "imdb_rating": "7.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/avCm6vJzdIz9SCIZJ2CuBupGWDQ.jpg",
       "released": "2026-10-19",
       "popularity": 65.1015
@@ -116,7 +106,6 @@
       "name": "Resident Evil: Noche cero",
       "year": "2026",
       "imdb_rating": "7.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/ntmaNFJ7O60n45E1E6HZlXeSV5e.jpg",
       "released": "2026-09-16",
       "popularity": 285.5997
@@ -127,7 +116,6 @@
       "name": "La invitación",
       "year": "2026",
       "imdb_rating": "7.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/dvMLCv3u989LO1tLLDYMJcK8TZo.jpg",
       "released": "2026-06-25",
       "popularity": 18.9571
@@ -138,7 +126,6 @@
       "name": "Wake Up Dead Man: Un misterio de Knives Out",
       "year": "2025",
       "imdb_rating": "7.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/vFoQEqAftUCQUlFupsWl41fanYc.jpg",
       "released": "2025-11-26",
       "popularity": 13.9328
@@ -149,7 +136,6 @@
       "name": "Michael",
       "year": "2026",
       "imdb_rating": "7.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/zm0KAbOjlt9eR5y7vDiL2dEOwMl.jpg",
       "released": "2026-04-22",
       "popularity": 34.1594
@@ -160,7 +146,6 @@
       "name": "Zootopia 2",
       "year": "2025",
       "imdb_rating": "7.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/LrMBxFwnsMgXTnaWqHYinn3vDN.jpg",
       "released": "2025-11-26",
       "popularity": 33.1885
@@ -171,7 +156,6 @@
       "name": "Las ovejas detectives",
       "year": "2026",
       "imdb_rating": "7.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/iryjE7zrVxML5UM5vCPJGtKYvWC.jpg",
       "released": "2026-04-30",
       "popularity": 16.5262
@@ -182,7 +166,6 @@
       "name": "Toy Story 5",
       "year": "2026",
       "imdb_rating": "7.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/zkQmhKTszD48vEcjIfwAlqLnGSr.jpg",
       "released": "2026-06-17",
       "popularity": 66.7572
@@ -193,7 +176,6 @@
       "name": "Coyote vs. Acme",
       "year": "2026",
       "imdb_rating": "7.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/e4P8CIoffzsyjTm9e6U87Mng2CU.jpg",
       "released": "2026-08-20",
       "popularity": 56.1695
@@ -204,7 +186,6 @@
       "name": "Avatar: Fuego y ceniza",
       "year": "2025",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/coJkkPBDeBsYecxoqMnZm8TKlBL.jpg",
       "released": "2025-12-17",
       "popularity": 45.3467
@@ -215,7 +196,6 @@
       "name": "Exterminio: El templo de huesos",
       "year": "2026",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/6yUxfwcDYR0RRfbxwGA7rhwreWU.jpg",
       "released": "2026-01-14",
       "popularity": 14.4682
@@ -226,7 +206,6 @@
       "name": "Hoppers: Operación castor",
       "year": "2026",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/7NRpCaksHX0FEsXCNITOvhq7cZ3.jpg",
       "released": "2026-03-04",
       "popularity": 28.3656
@@ -237,7 +216,6 @@
       "name": "Mensajes de voz para Isabelle",
       "year": "2026",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/3nY9BG8VjuxwLLRx5BGiiuj0M71.jpg",
       "released": "2026-06-20",
       "popularity": 12.7934
@@ -248,7 +226,6 @@
       "name": "El afinador",
       "year": "2026",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/3B6mx5mhAPYvCHhyxYC83BlWGd0.jpg",
       "released": "2026-05-21",
       "popularity": 12.8765
@@ -259,7 +236,6 @@
       "name": "Intercambiados",
       "year": "2026",
       "imdb_rating": "7.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/cFMqLI43ybVFyarJTnfV9YO9KUC.jpg",
       "released": "2026-05-01",
       "popularity": 27.712
@@ -270,7 +246,6 @@
       "name": "El Drama",
       "year": "2026",
       "imdb_rating": "7.1",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/oEdNEIO7641g6ZXJEe6zhQC4Jsj.jpg",
       "released": "2026-04-01",
       "popularity": 19.1342
@@ -281,7 +256,6 @@
       "name": "El corazón de la bestia",
       "year": "2026",
       "imdb_rating": "7.1",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/kVDHPDggier9ciMc8Xglinq1jWv.jpg",
       "released": "2026-09-19",
       "popularity": 385.0009
@@ -292,7 +266,6 @@
       "name": "Buena suerte, diviértete, no mueras",
       "year": "2026",
       "imdb_rating": "7.0",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/blfTYXDP1luoeku48pVkrZ6Zjwv.jpg",
       "released": "2026-02-13",
       "popularity": 13.0791
@@ -303,7 +276,6 @@
       "name": "The Punisher: La última muerte",
       "year": "2026",
       "imdb_rating": "7.0",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/qkyqQqQN8HAkLezR6xWTYzz6Icv.jpg",
       "released": "2026-05-12",
       "popularity": 21.5743
@@ -314,7 +286,6 @@
       "name": "Pasajero",
       "year": "2025",
       "imdb_rating": "6.9",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/42XLds5SzXyurb6zh62LCHJhgn8.jpg",
       "released": "2025-11-28",
       "popularity": 4.5384
@@ -325,7 +296,6 @@
       "name": "Caminos del crimen",
       "year": "2026",
       "imdb_rating": "6.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/2EI8HmeQgbryWw5clWYc4vYj1tU.jpg",
       "released": "2026-02-11",
       "popularity": 19.8259
@@ -336,7 +306,6 @@
       "name": "Mayday",
       "year": "2026",
       "imdb_rating": "6.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/i3bkXZa5Ut1uuhKa0f0GmtXdLD3.jpg",
       "released": "2026-09-03",
       "popularity": 12.5698
@@ -347,7 +316,6 @@
       "name": "Primetime",
       "year": "2026",
       "imdb_rating": "6.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/lmrulvLbmaejTix1YaMxo1oGhH1.jpg",
       "released": "2026-09-23",
       "popularity": 44.9267
@@ -358,7 +326,6 @@
       "name": "La hipótesis del amor",
       "year": "2026",
       "imdb_rating": "6.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/ylrSdW6fZYwaInYH6WAqvIEnSiV.jpg",
       "released": "2026-09-23",
       "popularity": 22.8067
@@ -369,7 +336,6 @@
       "name": "Buen chico",
       "year": "2026",
       "imdb_rating": "6.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/ZVlf8J0hMOvK41fVTYB5Wq8A97.jpg",
       "released": "2026-03-05",
       "popularity": 8.7779
@@ -380,7 +346,6 @@
       "name": "Backrooms: Sin salida",
       "year": "2026",
       "imdb_rating": "6.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/3YTb97zytlWRWZb7HrOiEhk4e6f.jpg",
       "released": "2026-05-27",
       "popularity": 46.9252
@@ -391,7 +356,6 @@
       "name": "La Empleada",
       "year": "2025",
       "imdb_rating": "6.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/x8ygUQ4YNd8iy0oEusS1bHI08A6.jpg",
       "released": "2025-12-18",
       "popularity": 26.9534
@@ -402,7 +366,6 @@
       "name": "¡Ayuda!",
       "year": "2026",
       "imdb_rating": "6.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/xzM7ixyJvqvW4le3SHYq8JsqGMK.jpg",
       "released": "2026-01-22",
       "popularity": 12.0632
@@ -413,7 +376,6 @@
       "name": "El botín",
       "year": "2026",
       "imdb_rating": "6.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/3dQVnkDyTq0NCbRCUZc5tdztVbd.jpg",
       "released": "2026-01-13",
       "popularity": 14.4135
@@ -424,7 +386,6 @@
       "name": "Star Wars: The Mandalorian and Grogu",
       "year": "2026",
       "imdb_rating": "6.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/qWEGudNnHfEKp18IG1Wq1Qmp00l.jpg",
       "released": "2026-05-20",
       "popularity": 25.7718
@@ -435,7 +396,6 @@
       "name": "La captura",
       "year": "2026",
       "imdb_rating": "6.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/my8euQR37XeJ8lfLz3XgBR03R45.jpg",
       "released": "2026-08-21",
       "popularity": 20.2124
@@ -446,7 +406,6 @@
       "name": "Hokum: La maldición de la bruja",
       "year": "2026",
       "imdb_rating": "6.6",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/thRJXNSUsqSNJALSKmXYNWSijB5.jpg",
       "released": "2026-04-29",
       "popularity": 18.12
@@ -457,7 +416,6 @@
       "name": "Gente que conocemos en vacaciones",
       "year": "2026",
       "imdb_rating": "6.6",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/lCbXqv2NOFoV8L0dYjcSz64zlUs.jpg",
       "released": "2026-01-06",
       "popularity": 8.5123
@@ -468,7 +426,6 @@
       "name": "GOAT: La cabra que cambió el juego",
       "year": "2026",
       "imdb_rating": "6.6",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/3dH7p6eAfzDElYYFKfYWpf9xlsG.jpg",
       "released": "2026-02-11",
       "popularity": 20.3447
@@ -479,7 +436,6 @@
       "name": "Peaky Blinders: El hombre inmortal",
       "year": "2026",
       "imdb_rating": "6.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/l9S8MLUyi2diTc2Gf3KDAOQTuVx.jpg",
       "released": "2026-03-05",
       "popularity": 12.0883
@@ -490,7 +446,6 @@
       "name": "Boda sangrienta 2",
       "year": "2026",
       "imdb_rating": "6.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/tQV0X354U142Cao8Be6eUt38spS.jpg",
       "released": "2026-03-19",
       "popularity": 12.4048
@@ -501,7 +456,6 @@
       "name": "Atrapando A Un Monstruo",
       "year": "2025",
       "imdb_rating": "6.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/6debIlJbEyPoAfiV3WPXx9rvfHC.jpg",
       "released": "2025-12-11",
       "popularity": 4.8795
@@ -512,7 +466,6 @@
       "name": "Father Mother Sister Brother",
       "year": "2025",
       "imdb_rating": "6.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/r8sQzfQyT6dXqlW49pV16MfuhXj.jpg",
       "released": "2025-12-01",
       "popularity": 4.5417
@@ -523,7 +476,6 @@
       "name": "El día de la revelación",
       "year": "2026",
       "imdb_rating": "6.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/8yQ7RDPPBlHMYdIo4ihPkHkOfnY.jpg",
       "released": "2026-06-10",
       "popularity": 53.2894
@@ -534,7 +486,6 @@
       "name": "Amos del Universo",
       "year": "2026",
       "imdb_rating": "6.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/bY9y1kR336h94xBiNvzkhG8FyP.jpg",
       "released": "2026-06-03",
       "popularity": 21.9998
@@ -545,7 +496,6 @@
       "name": "Equipo Demolición",
       "year": "2026",
       "imdb_rating": "6.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/pG39vgTEhHeYIlcPJtHpxNLdPPM.jpg",
       "released": "2026-01-28",
       "popularity": 19.2985
@@ -556,7 +506,6 @@
       "name": "Jugada Maestra",
       "year": "2026",
       "imdb_rating": "6.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/wpAt80FtHAQySEC8SwsDGhFp8MF.jpg",
       "released": "2026-02-16",
       "popularity": 12.4091
@@ -567,7 +516,6 @@
       "name": "Adolescencia, Sexo y Muerte en Campamento Miasma",
       "year": "2026",
       "imdb_rating": "6.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/uE1V9hrbOHXvTyiYBJkQeJ3twQk.jpg",
       "released": "2026-08-06",
       "popularity": 14.5444
@@ -578,7 +526,6 @@
       "name": "No te olvidaré",
       "year": "2026",
       "imdb_rating": "6.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/a1SB2whRLcf7tveetg9NOP6CYkl.jpg",
       "released": "2026-03-11",
       "popularity": 13.0208
@@ -589,7 +536,6 @@
       "name": "El diablo viste a la moda 2",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/ly9m3Uc947BUPe3dKu8UgWBhIXz.jpg",
       "released": "2026-04-29",
       "popularity": 22.4342
@@ -600,7 +546,6 @@
       "name": "Máquina de guerra",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/aq2vbzxcG5K3SSLReMqO5TettmE.jpg",
       "released": "2026-02-12",
       "popularity": 27.3874
@@ -611,7 +556,6 @@
       "name": "Mortal Kombat II",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/niXSl8jLAZu9fL1ywfNyLGCRXLh.jpg",
       "released": "2026-05-06",
       "popularity": 20.4039
@@ -622,7 +566,6 @@
       "name": "En la zona gris",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/iT2XPcPFhjZPNdLydXYKVJBCvb7.jpg",
       "released": "2026-05-13",
       "popularity": 18.0668
@@ -633,7 +576,6 @@
       "name": "Te Van A Matar",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/jOYxV166K7b7HWnswjoZKxi3sux.jpg",
       "released": "2026-03-25",
       "popularity": 10.2654
@@ -644,7 +586,6 @@
       "name": "Normal",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/rHjnkuwEdfh31X0E0MofBfMUgi1.jpg",
       "released": "2026-04-16",
       "popularity": 10.9827
@@ -655,7 +596,6 @@
       "name": "Sobre tu cadáver",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/yf7PDJZmBWEztHSgkGEdJc0Ptdk.jpg",
       "released": "2026-03-14",
       "popularity": 10.5045
@@ -666,7 +606,6 @@
       "name": "Minions & Monstruos",
       "year": "2026",
       "imdb_rating": "6.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/uNtBRRLNsCiCcqccv3CMWPx5Xz.jpg",
       "released": "2026-06-24",
       "popularity": 50.144
@@ -677,7 +616,6 @@
       "name": "Sin piedad",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/mgqAZeEI5hnAgeVZ0kAdYiPy1Rs.jpg",
       "released": "2026-01-19",
       "popularity": 14.5885
@@ -688,7 +626,6 @@
       "name": "Super Mario Galaxy: La película",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/4Js0gYWxuvTN6b8iAaSF1cSQzBs.jpg",
       "released": "2026-04-01",
       "popularity": 38.2325
@@ -699,7 +636,6 @@
       "name": "Susurran tu nombre",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/pBooYCjOyHUY1UFBrrXfEa6VvwZ.jpg",
       "released": "2026-08-27",
       "popularity": 14.1271
@@ -710,7 +646,6 @@
       "name": "Evil Dead: En llamas",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/p6Fe34oDVmyE4LYp6sRQr8lZ45N.jpg",
       "released": "2026-07-07",
       "popularity": 22.0647
@@ -721,7 +656,6 @@
       "name": "La guerra de los últimos",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/flipeYd0sa4y4kpIc7Pn59JeBIj.jpg",
       "released": "2026-08-26",
       "popularity": 65.9315
@@ -732,7 +666,6 @@
       "name": "Mike & Nick & Nick & Alice",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/k6PSvLUs84QJsWLt0Zlkoa8ih6V.jpg",
       "released": "2026-03-14",
       "popularity": 8.1143
@@ -743,7 +676,6 @@
       "name": "Entrega al límite",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/gxrGVQdFmc3xxVn6UyY31ZjqM0s.jpg",
       "released": "2026-09-07",
       "popularity": 47.0538
@@ -754,7 +686,6 @@
       "name": "El hombre que desafió al rey",
       "year": "2026",
       "imdb_rating": "6.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/f2qc3mE7V8R7yAXBBB822mVZblo.jpg",
       "released": "2026-09-10",
       "popularity": 20.4664
@@ -765,7 +696,6 @@
       "name": "Ápex",
       "year": "2026",
       "imdb_rating": "6.1",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/e4P0lkcHgsBJgWSvLV3ezGZYDUU.jpg",
       "released": "2026-04-24",
       "popularity": 15.4483
@@ -776,7 +706,6 @@
       "name": "El final de la Calle Oak",
       "year": "2026",
       "imdb_rating": "6.1",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/gaW5bvDp1B8gQraGFNSJNSemKwo.jpg",
       "released": "2026-08-12",
       "popularity": 76.0081
@@ -787,7 +716,6 @@
       "name": "“Cumbres Borrascosas”",
       "year": "2026",
       "imdb_rating": "6.1",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/kCb3QJNLi0alrk7i5aCphkkuoFl.jpg",
       "released": "2026-02-11",
       "popularity": 14.5348
@@ -798,7 +726,6 @@
       "name": "La posesión de la momia",
       "year": "2026",
       "imdb_rating": "6.1",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/5RhY8eHWzvjw32449pHdUkOeDCN.jpg",
       "released": "2026-04-15",
       "popularity": 17.9763
@@ -809,7 +736,6 @@
       "name": "El Guardián: Último refugio",
       "year": "2026",
       "imdb_rating": "6.1",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/buPFnHZ3xQy6vZEHxbHgL1Pc6CR.jpg",
       "released": "2026-01-28",
       "popularity": 28.0441
@@ -820,7 +746,6 @@
       "name": "Verity: La sombra de un engaño",
       "year": "2026",
       "imdb_rating": "6.0",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/5j1YUuamobLACkzlkzvWfNuzFNg.jpg",
       "released": "2026-09-30",
       "popularity": 88.77
@@ -831,7 +756,6 @@
       "name": "Alerta Extinción",
       "year": "2026",
       "imdb_rating": "6.0",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/hi7VXGRX4KTiW4Ynt75MALwOfxa.jpg",
       "released": "2026-01-22",
       "popularity": 8.1104
@@ -842,7 +766,6 @@
       "name": "La noche del demonio: Están entre nosotros",
       "year": "2026",
       "imdb_rating": "6.0",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/icc5Tjg14CZH94b0CDBQ2PP8YjH.jpg",
       "released": "2026-08-19",
       "popularity": 70.2065
@@ -853,7 +776,6 @@
       "name": "Hechizo de amor: La magia continúa",
       "year": "2026",
       "imdb_rating": "6.0",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/eNdtnb2Ga4H9fl4hEGhOLrgdKqq.jpg",
       "released": "2026-09-09",
       "popularity": 30.9918
@@ -864,7 +786,6 @@
       "name": "Undertone: Frecuencia maldita",
       "year": "2026",
       "imdb_rating": "5.9",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/85OfcPsWIpERIr7yRWOUr7S1g8b.jpg",
       "released": "2026-03-12",
       "popularity": 8.2924
@@ -875,7 +796,6 @@
       "name": "Temporada de Sangre",
       "year": "2025",
       "imdb_rating": "5.9",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/lZZu0UEPtEeZ90fkX6i1pmEHOs8.jpg",
       "released": "2025-12-05",
       "popularity": 15.6351
@@ -886,7 +806,6 @@
       "name": "Supergirl",
       "year": "2026",
       "imdb_rating": "5.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/xhei2GX9L2H1eQlrHeFw44VNLd1.jpg",
       "released": "2026-06-24",
       "popularity": 27.5703
@@ -897,7 +816,6 @@
       "name": "Primate",
       "year": "2026",
       "imdb_rating": "5.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/sx1OuafE2h0ADOX4gKRA02ki1li.jpg",
       "released": "2026-01-01",
       "popularity": 7.7562
@@ -908,7 +826,6 @@
       "name": "Turbulencia En La Oficina",
       "year": "2026",
       "imdb_rating": "5.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/tTGToWluGxIsQJzRJCkCqhfjVtd.jpg",
       "released": "2026-06-04",
       "popularity": 6.9945
@@ -919,7 +836,6 @@
       "name": "Moana",
       "year": "2026",
       "imdb_rating": "5.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/uJNKHZLgnvWqveB4uai0kaWom6M.jpg",
       "released": "2026-07-08",
       "popularity": 54.2128
@@ -930,7 +846,6 @@
       "name": "Citizen Vigilante",
       "year": "2026",
       "imdb_rating": "5.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/6LmJD3Wohe0g4U62wgi7RyJqfE4.jpg",
       "released": "2026-06-19",
       "popularity": 13.4869
@@ -941,7 +856,6 @@
       "name": "Animales",
       "year": "2026",
       "imdb_rating": "5.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/hhycOr6ji35RMGHnstHN4UKAvR4.jpg",
       "released": "2026-10-09",
       "popularity": 27.7693
@@ -952,7 +866,6 @@
       "name": "Jack Ryan de Tom Clancy: Guerra fantasma",
       "year": "2026",
       "imdb_rating": "5.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/r7qAQ7bhhD3phlU3dJ7bGJA1xCr.jpg",
       "released": "2026-05-20",
       "popularity": 14.0817
@@ -963,7 +876,6 @@
       "name": "Enola Holmes 3",
       "year": "2026",
       "imdb_rating": "5.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/cepT0wSQPvynDDYAM8tHjxa1Quk.jpg",
       "released": "2026-06-30",
       "popularity": 9.4943
@@ -974,7 +886,6 @@
       "name": "Iron Lung: Océano de sangre",
       "year": "2026",
       "imdb_rating": "5.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/sHil0Vof2k4TV0kB9iS8lMqnAm9.jpg",
       "released": "2026-01-30",
       "popularity": 7.5867
@@ -985,7 +896,6 @@
       "name": "Código: Venganza",
       "year": "2026",
       "imdb_rating": "5.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/iHPYm59D7kF8yQr03hewusoyNET.jpg",
       "released": "2026-08-19",
       "popularity": 86.3462
@@ -996,7 +906,6 @@
       "name": "Bob Esponja: En busca de los pantalones cuadrados",
       "year": "2025",
       "imdb_rating": "5.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/s19EZefg4g1EOWx0zA11tQJjHe2.jpg",
       "released": "2025-12-16",
       "popularity": 10.3792
@@ -1007,7 +916,6 @@
       "name": "¡La novia!",
       "year": "2026",
       "imdb_rating": "5.6",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/jRFCTTdj9M2hukPKOU3vVNcDnDD.jpg",
       "released": "2026-03-04",
       "popularity": 10.5796
@@ -1018,7 +926,6 @@
       "name": "Enterramos a los Muertos",
       "year": "2026",
       "imdb_rating": "5.6",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/cwUGHWaazG1nwsxsa7EEmvJa6lF.jpg",
       "released": "2026-01-01",
       "popularity": 5.1639
@@ -1029,7 +936,6 @@
       "name": "Anaconda",
       "year": "2025",
       "imdb_rating": "5.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/9PBECvTohqOnh9nYr6huoA7UQ4J.jpg",
       "released": "2025-12-24",
       "popularity": 12.4318
@@ -1040,7 +946,6 @@
       "name": "La Última Casa",
       "year": "2026",
       "imdb_rating": "5.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/we7cyd4WZrXlAa5vEU0RZ9vX5DU.jpg",
       "released": "2026-08-06",
       "popularity": 13.529
@@ -1051,7 +956,6 @@
       "name": "El pasajero del diablo",
       "year": "2026",
       "imdb_rating": "5.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/Ab8hV0VchllOiDbxbclAR8FwC77.jpg",
       "released": "2026-05-20",
       "popularity": 11.3296
@@ -1062,7 +966,6 @@
       "name": "Hermanito",
       "year": "2026",
       "imdb_rating": "5.5",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/s8mudAYQcHmVoFSamqyv1Ron527.jpg",
       "released": "2026-06-18",
       "popularity": 5.9519
@@ -1073,7 +976,6 @@
       "name": "Scream 7",
       "year": "2026",
       "imdb_rating": "5.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/iUdLnidOSYJMals9AmOgCa0Qz6K.jpg",
       "released": "2026-02-25",
       "popularity": 19.0271
@@ -1084,7 +986,6 @@
       "name": "72 horas",
       "year": "2026",
       "imdb_rating": "5.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/uxUrEaqf7WnDj7UcEWcIE3Xo8hY.jpg",
       "released": "2026-07-20",
       "popularity": 7.8458
@@ -1095,7 +996,6 @@
       "name": "Impacto mortal",
       "year": "2026",
       "imdb_rating": "5.4",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/A0kR1btRg3aa6bphfD9BnB66fL9.jpg",
       "released": "2026-04-30",
       "popularity": 12.6715
@@ -1106,7 +1006,6 @@
       "name": "Vértigo 2: Punto muerto",
       "year": "2026",
       "imdb_rating": "5.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/xQlESgkDM7rczAWySdB0WBomh39.jpg",
       "released": "2026-09-01",
       "popularity": 104.5338
@@ -1117,7 +1016,6 @@
       "name": "El día del fin del mundo: Migración",
       "year": "2026",
       "imdb_rating": "5.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/uoFJ6nGGvf8moZGpharm8Qyrpzm.jpg",
       "released": "2026-01-07",
       "popularity": 22.1271
@@ -1128,7 +1026,6 @@
       "name": "El sonido de la muerte",
       "year": "2026",
       "imdb_rating": "5.2",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/5H6F0xICMYHkRp9RzZZdXeLXpRq.jpg",
       "released": "2026-01-20",
       "popularity": 9.2317
@@ -1139,7 +1036,6 @@
       "name": "Five Nights at Freddy's 2",
       "year": "2025",
       "imdb_rating": "5.1",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/bYdANgEjbb3L1k1KpprAeZ6a5HN.jpg",
       "released": "2025-12-03",
       "popularity": 11.8428
@@ -1150,7 +1046,6 @@
       "name": "Embestida",
       "year": "2026",
       "imdb_rating": "5.0",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/9rNJ7Jtyd20NzJozvZU2uyzHoTW.jpg",
       "released": "2026-04-09",
       "popularity": 7.0533
@@ -1161,7 +1056,6 @@
       "name": "Scary Movie: Terroríficamente incorrecta",
       "year": "2026",
       "imdb_rating": "4.8",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/cAvdDPtiuVCauhjCwqK4EX2woHL.jpg",
       "released": "2026-06-03",
       "popularity": 32.7431
@@ -1172,7 +1066,6 @@
       "name": "Nunca debimos entrar",
       "year": "2026",
       "imdb_rating": "4.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/f4UDphdrM9qwvI6VPKoqTeJd9Yz.jpg",
       "released": "2026-07-29",
       "popularity": 9.5343
@@ -1183,7 +1076,6 @@
       "name": "Bolas arriba",
       "year": "2026",
       "imdb_rating": "4.7",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/uVybc3pLqHSoMC73kElu93oJBRQ.jpg",
       "released": "2026-04-15",
       "popularity": 7.3804
@@ -1194,7 +1086,6 @@
       "name": "Carrera contra el tiempo",
       "year": "2026",
       "imdb_rating": "4.3",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/kYjHS43tFzPfRfm9PjwbSwg0bTz.jpg",
       "released": "2026-09-03",
       "popularity": 15.3172
@@ -1205,7 +1096,6 @@
       "name": "Terror en Silent Hill: Regreso al infierno",
       "year": "2026",
       "imdb_rating": "4.0",
-      "excluded": false,
       "poster": "https://image.tmdb.org/t/p/w500/8JcaYXZYlT2nYlsgo1Uv7RH9FP.jpg",
       "released": "2026-01-21",
       "popularity": 15.0903

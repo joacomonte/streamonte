@@ -26,7 +26,7 @@
 	const byId = (id: string | undefined): Animal | undefined => ANIMALS.find((a) => a.id === id);
 	const cards = $derived(order.map(byId).filter((a): a is Animal => !!a));
 	let dlg = $state<HTMLDialogElement>();
-	let phase = $state<'warn' | 'pick' | 'done'>((() => (mode === 'nuevo' ? 'warn' : 'pick'))());
+	let phase = $state<'warn' | 'pick' | 'done' | 'confirm'>((() => (mode === 'nuevo' ? 'warn' : 'pick'))());
 	let picks = $state<string[]>([]);
 	let status = $state<'' | 'ok' | 'err'>('');
 	let msg = $state('');
@@ -70,6 +70,12 @@
 		const at = picks.indexOf(id);
 		if (at >= 0) picks = picks.filter((p) => p !== id);
 		else if (picks.length < CODE_LEN) picks = [...picks, id];
+		// Login: con las 2 elegidas pasa solo a confirmarlas (sin scrollear hasta el dock).
+		if (mode === 'login' && at < 0 && picks.length === CODE_LEN) later(() => {
+			if (phase !== 'pick' || picks.length !== CODE_LEN) return;
+			phase = 'confirm';
+			dlg?.scrollTo({ top: 0 });
+		}, still() ? 0 : 450);
 	}
 
 	function pickAgain() {
@@ -95,6 +101,7 @@
 		later(() => {
 			picks = [];
 			status = '';
+			phase = 'pick';
 		}, 900);
 	}
 
@@ -162,6 +169,14 @@
 				<button id="animal-done-ok" class="cta" class:ok={status === 'ok'} type="button" disabled={busy || status === 'ok'} onclick={send}>{t('Listo')}</button>
 				<button id="animal-redo" class="ghost" type="button" disabled={busy || status === 'ok'} onclick={pickAgain}>{t('Elegir otros')}</button>
 				<p id="animal-done-msg" class="msg err" role="alert">{msg}</p>
+			</section>
+		{:else if phase === 'confirm'}
+			<section class="warn">
+				{@render trio(picks, 'big')}
+				<h1 class="big remember">{t('Tus 2 animales')}</h1>
+				<button id="animal-confirm-ok" class="cta" class:ok={status === 'ok'} type="button" disabled={busy || status !== '' || !!waitLeft} onclick={send}>{label}</button>
+				<button id="animal-confirm-redo" class="ghost" type="button" disabled={busy || status !== ''} onclick={pickAgain}>{t('Elegir otros')}</button>
+				<p id="animal-confirm-msg" class="msg" class:err={!!msg} role="alert">{msg}</p>
 			</section>
 		{:else}
 			{#if mode === 'nuevo'}

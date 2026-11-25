@@ -159,12 +159,3 @@ test('persona elegida: muestra lo suyo; escribir de nuevo la saca', async () => 
 	assert.equal(st.person, null);
 });
 
-test('evento "excluded": la tarjeta deja de verse sin recargar', async () => {
-	const { api, emit } = fakeApi();
-	const { store, st } = make(api);
-	store.connect();
-	await store.loadMore();
-	const before = store.visible().length;
-	emit({ type: 'excluded', id: st.items[0]?.id ?? '' });
-	assert.equal(store.visible().length, before - 1);
-});

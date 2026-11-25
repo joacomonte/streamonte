@@ -6,7 +6,7 @@ import type {
   DetailsView, EpisodeText, Equalizer, IncomingCheck, InfoHash, InterestExample, LanguageConfig, LibraryRow, LibraryView, MagnetStatus,
   MediaKind, Meta, PlaybackAction, PlaybackId, PlaybackRow, PlayerKind, PlayersStatus, PremiumPick, PremiumQuota, SavedTest, SearchPerson,
   SeasonRatings, Similar, SpeedResult, SubtitleFound, SubtitleLanguage, SubtitlePicks, SwarmCount, TempUsage, TitleAwards, EpisodeScore, TorboxCached,
-  TorboxMagnetView, VideoKey,
+  TorboxMagnetView, VideoKey, NickAsk, NickEnter, NickStatus,
 } from './types.ts';
 
 const invoke = <T>(cmd: string, args?: Record<string, unknown>): Promise<T> => window.__TAURI__.core.invoke<T>(cmd, args);
@@ -55,6 +55,15 @@ export const onClose = (choice: 'stop-all'|'leave-running') => invoke<void>('on_
 // API keys de servicios en el almacén seguro del sistema (NFR-16). Nunca se leen de vuelta.
 /** `service`: 'opensubtitles' | 'wyzie' | 'tmdb' | 'torbox' | 'latteam'. `key`: vacía = borrar. */
 export const setApiKey = (service: string, key: string) => invoke<void>('api_key_set', { service, key });
+/** Código de 3 dígitos de la web, al almacén seguro (vacío = borrar). */
+export const webCodeSet = (code: string) => invoke<void>('web_code_set', { code });
+/** Código cargado y apodo de la sesión (nunca el código ni la cookie). */
+export const nickStatus = () => invoke<NickStatus>('nick_status');
+export const nickAsk = (nick: string) => invoke<NickAsk>('nick_ask', { nick });
+export const nickEnter = (nick: string, code: string[], mode: 'nuevo' | 'login') => invoke<NickEnter>('nick_enter', { nick, code, mode });
+export const nickLogout = () => invoke<void>('nick_logout');
+/** Los 2 animales (ids) de la sesión; null si todavía no se guardaron. */
+export const nickAnimals = () => invoke<string[] | null>('nick_animals');
 export const apiKeys = () => invoke<ApiKeyStatus[]>('api_keys');
 /** Abre en el navegador la página para pedir la key. */
 export const openKeyPage = (service: string) => invoke<void>('open_key_page', { service });
@@ -142,8 +151,6 @@ export const catalogAddAddon = (url: string) => invoke<AddonView>('catalog_add_a
 export const catalogRemoveAddon = (id: string) => invoke<void>('catalog_remove_addon', { id });
 export const catalogSetAddonEnabled = (id: string, enabled: boolean) => invoke<void>('catalog_set_addon_enabled', { id, enabled });
 export const catalogResetAddons = () => invoke<AddonView[]>('catalog_reset_addons');
-/** Filtro "Sin anime" (FR-40). */
-export const catalogSetExcludeJapanese = (exclude: boolean) => invoke<void>('catalog_set_exclude_japanese', { exclude });
 
 // Limpieza (FR-18–20)
 export const tempUsage = () => invoke<TempUsage>('temp_usage');
@@ -181,7 +188,7 @@ export const setNetwork = (incoming: boolean, upnp: boolean, announceEarly: bool
 /**
  * Suscripción a eventos del núcleo (ver crates/core/src/events.rs). Único canal: `core://event`.
  * Tipos: library-entry-updated · library-entry-removed · clipboard-history-unavailable · analyzer-progress · analyzer-queue ·
- * playback-updated · playback-removed · playback-log · catalog-streams · catalog-excluded · activity · status
+ * playback-updated · playback-removed · playback-log · catalog-streams · activity · status
  */
 export const onCoreEvent = (handler: (event: CoreEvent) => void): Promise<() => void> =>
   window.__TAURI__.event.listen<CoreEvent>('core://event', (e) => handler(e.payload));

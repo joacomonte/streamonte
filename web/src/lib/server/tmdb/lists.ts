@@ -3,7 +3,7 @@ import { Fail } from '../http-route.ts';
 import { imdbOf, ratings } from '../imdb.ts';
 import { titlesLang } from '../lang.ts';
 import { capped, fillDetails } from './cache.ts';
-import { card, keep, scored, tmdb, IMG } from './client.ts';
+import { card, scored, tmdb, IMG } from './client.ts';
 import type { Kind, TmdbItem, TmdbPage } from './client.ts';
 
 /** TMDB tiene ~100 veces menos votos que IMDb: se piden candidatas con un piso 2,5 veces más bajo para no perder ninguna. */
@@ -51,7 +51,7 @@ async function build(f: Filters) {
 	for (const c of cands) {
 		const d = all[`${f.kind}:${c.id}`];
 		const r = d?.imdb ? imdbOf(d.imdb, table) : null;
-		if (!d || !r || d.excluded || r.votes < f.votes || (langs.length && !langs.includes(d.lang ?? '')) || seen.has(d.imdb as number)) continue;
+		if (!d || !r || r.votes < f.votes || (langs.length && !langs.includes(d.lang ?? '')) || seen.has(d.imdb as number)) continue;
 		seen.add(d.imdb as number);
 		hits.push({ ...scored(c, f.kind, r), votes: r.votes, pop: c.popularity ?? 0 });
 	}
@@ -76,7 +76,7 @@ export async function discover(f: Filters) {
 
 export async function search(q: string, page: number) {
 	const j = (await tmdb('/search/multi', { query: q, page, include_adult: false })) as TmdbPage;
-	const found = j.results.filter((r) => (r.media_type === 'movie' || r.media_type === 'tv') && keep(r)) as (TmdbItem & { media_type: Kind })[];
+	const found = j.results.filter((r) => (r.media_type === 'movie' || r.media_type === 'tv')) as (TmdbItem & { media_type: Kind })[];
 	const [table, movies, shows] = await Promise.all([
 		ratings(),
 		fillDetails('movie', found.filter((r) => r.media_type === 'movie').map((r) => r.id)),
@@ -124,7 +124,7 @@ export async function personTitles(id: number, role: 'cast' | 'director') {
 	const seen = new Set<string>();
 	const credits = role === 'director' ? j.crew.filter((r) => r.job === 'Director') : j.cast;
 	const cast = credits
-		.filter((r) => (r.media_type === 'movie' || r.media_type === 'tv') && keep(r) && !r.genre_ids?.some((g) => NOT_ACTING.includes(g)) && (r.media_type === 'movie' || role === 'director' || (r.episode_count ?? 0) >= MIN_EPISODES))
+		.filter((r) => (r.media_type === 'movie' || r.media_type === 'tv') && !r.genre_ids?.some((g) => NOT_ACTING.includes(g)) && (r.media_type === 'movie' || role === 'director' || (r.episode_count ?? 0) >= MIN_EPISODES))
 		.filter((r) => !seen.has(`${r.media_type}${r.id}`) && seen.add(`${r.media_type}${r.id}`))
 		.sort((a, b) => (b.popularity as number) - (a.popularity as number))
 		.slice(0, MAX_CREDITS) as (TmdbItem & { media_type: Kind })[];
@@ -150,7 +150,7 @@ function cardOfImdb(kind: Kind, tt: string, rating: string | null) {
 	if (!hit) {
 		hit = (tmdb(`/find/${tt}`, { external_source: 'imdb_id' }) as Promise<{ movie_results?: TmdbItem[]; tv_results?: TmdbItem[] }>).then((r) => {
 			const m = (kind === 'movie' ? r.movie_results : r.tv_results)?.[0];
-			return m && keep(m) ? { ...card(m, kind), rating } : null;
+			return m ? { ...card(m, kind), rating } : null;
 		});
 		hit.catch(() => found.delete(key));
 		capped(found, key, hit, MAX_FOUND);

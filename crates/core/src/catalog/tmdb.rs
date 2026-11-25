@@ -757,8 +757,6 @@ struct MultiHit {
     release_date: Option<String>,
     first_air_date: Option<String>,
     poster_path: Option<String>,
-    #[serde(default)]
-    original_language: String,
 }
 
 /// Lo que se busca en TMDB por el nombre de un release: título, año y si es de una serie.
@@ -782,7 +780,7 @@ fn name_query(name: &str) -> Option<NameQuery> {
 }
 
 /// De los resultados, el que mejor calza: con temporada o capítulo solo series; si el nombre trae
-/// año, el de ese año; si no, el primero (TMDB ordena por relevancia). Sin anime (FR-40).
+/// año, el de ese año; si no, el primero (TMDB ordena por relevancia).
 fn best_hit(hits: Vec<MultiHit>, q: &NameQuery) -> Option<MultiHit> {
     let fit: Vec<MultiHit> = hits
         .into_iter()
@@ -791,7 +789,6 @@ fn best_hit(hits: Vec<MultiHit>, q: &NameQuery) -> Option<MultiHit> {
             "movie" => q.season.is_none(),
             _ => false,
         })
-        .filter(|h| h.original_language != "ja")
         .collect();
     let year_of = |h: &MultiHit| {
         h.release_date
@@ -876,7 +873,6 @@ mod tests {
             release_date: Some(date.into()),
             first_air_date: None,
             poster_path: None,
-            original_language: "en".into(),
         };
         // Con capítulo, solo series; con año, el de ese año.
         let hits = vec![hit(1, "movie", "2022-01-01"), hit(2, "tv", "2022-06-01")];

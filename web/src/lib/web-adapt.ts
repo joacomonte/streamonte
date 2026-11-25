@@ -19,7 +19,6 @@ export const catalogItem = (c: CardRaw): CatalogItem => ({
 	poster: c.poster,
 	rating: c.rating,
 	released: c.released,
-	excluded: false,
 	// Respuestas guardadas antes de que existiera (`tests/fixtures/web-http`, cachés) no lo traen.
 	documentary: c.documentary ?? false
 });
@@ -49,8 +48,7 @@ export const titleDetails = (raw: Title): TitleDetails => ({
 	networks: [],
 	imdb: raw.imdb,
 	status: showStatus(raw.status, raw.next),
-	seasons: raw.seasons.map((s) => ({ number: s.n, name: s.name || null, episodeCount: s.count, year: s.year })),
-	excluded: false
+	seasons: raw.seasons.map((s) => ({ number: s.n, name: s.name || null, episodeCount: s.count, year: s.year }))
 });
 
 const STATES = ['returning', 'in-production', 'planned', 'ended', 'canceled'] as const;
