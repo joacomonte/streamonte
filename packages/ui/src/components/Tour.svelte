@@ -276,6 +276,11 @@
 								</button>
 							</div>
 							<p id="{id}-nick-error" class="hint" class:err={!!nickError} class:gone={nickTyped && !nickError} role="alert">{nickError || `${step.title} · ${t('obligatorio')}`}</p>
+							<!-- Para qué sirve el apodo: queda visible aunque el hint se oculte al escribir. -->
+							<ul id="{id}-nick-use" class="uses">
+								<li><span class="ic"><Icon name="history" size={18} /></span><span><b>{t('Lo que viste')}</b>{t('Queda guardado con tu apodo: seguís donde dejaste.')}</span></li>
+								<li><span class="ic"><Icon name="sliders" size={18} /></span><span><b>{t('Tus filtros')}</b>{t('Quedan en este dispositivo.')}</span></li>
+							</ul>
 							{/if}
 						</form>
 					{:else}
@@ -444,6 +449,10 @@
 	.hint { min-height: 1.5em; margin-top: calc(14px * var(--k)); font-size: calc(14.5px * (1 + var(--k)) / 2); color: var(--dim); transition: opacity 0.3s var(--ease); }
 	.hint.gone { opacity: 0; }
 	.hint.err { color: var(--red); }
+	.uses { list-style: none; margin: calc(10px * var(--k)) 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+	.uses li { display: flex; align-items: center; gap: 12px; font-size: calc(15px * (1 + var(--k)) / 2); line-height: 1.35; color: var(--dim); }
+	.uses b { display: block; color: var(--text); font-weight: 650; }
+	.ic { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: color-mix(in srgb, var(--accent) 18%, var(--surface)); color: var(--accent-fg); }
 	/* Seguir: flecha pegada al apodo (lo sigue mientras se escribe); entra deslizando, empuja suave mientras espera. */
 	.typed { display: flex; align-items: center; gap: 0.12em; }
 	.field { position: relative; display: inline-block; padding-right: 0.12em; min-width: 1em; }
