@@ -246,14 +246,18 @@
 	.grab { display: none; }
 
 	/* Título → qué hay de nuevo → subgénero, año y puntaje → Ver → sinopsis. Cada línea sube escalonada. */
-	.info { position: absolute; left: 96px; bottom: 262px; z-index: 6; display: flex; flex-direction: column; align-items: flex-start; width: min(520px, 50%); text-shadow: 0 1px 12px rgb(0 0 0 / 0.45); animation: pan-info 0.8s var(--out); }
+	.info { position: absolute; left: 96px; bottom: calc(var(--safe-bottom, 0px) + 262px); z-index: 6; display: flex; flex-direction: column; align-items: flex-start; width: min(520px, 50%); text-shadow: 0 1px 12px rgb(0 0 0 / 0.45); animation: pan-info 0.8s var(--out); }
 	.info > * { animation: rise 0.55s var(--out) both; animation-delay: calc(0.15s + var(--k) * 75ms); }
 	.info h3 { margin: 0; font-size: clamp(40px, 5vw, 60px); font-weight: 850; line-height: 0.96; letter-spacing: -0.035em; text-wrap: balance; }
 	.news { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 12px; font-size: 15px; font-weight: 650; color: rgb(255 255 255 / 0.86); font-variant-numeric: tabular-nums; }
 	.tag { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: var(--r-xs); background: var(--amber); color: #1a1206; font-size: 13.5px; font-weight: 800; letter-spacing: 0.01em; text-shadow: none; animation: tag-in 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) 0.3s both; }
 	.tag.ep { background: var(--accent-fg); color: #07152e; }
-	.facts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; margin-top: 8px; font-size: 14px; color: rgb(255 255 255 / 0.78); font-variant-numeric: tabular-nums; }
-	.facts > * + *::before { content: '·'; margin: 0 8px; color: rgb(255 255 255 / 0.45); }
+	/* Cada dato con su "·" delante y sin cortarse; el "·" que queda al empezar renglón cae en los 20px que se corren a la
+	   izquierda y el recorte (solo de ese lado) lo esconde: al partir la línea no queda un punto suelto. */
+	.facts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; margin: 8px 0 0 -20px; font-size: 14px; color: rgb(255 255 255 / 0.78); font-variant-numeric: tabular-nums; clip-path: inset(-1em -1em -1em 20px); }
+	.facts > * { white-space: nowrap; }
+	.facts > *::before { content: '·'; display: inline-block; width: 20px; text-align: center; color: rgb(255 255 255 / 0.45); font-weight: 400; }
+	.rt::before { margin-right: -4px; }
 	.rt { display: inline-flex; align-items: center; gap: 4px; color: var(--yellow); font-weight: 750; }
 	.vt { color: rgb(255 255 255 / 0.62); font-weight: 500; }
 	.syn { display: -webkit-box; max-width: 44ch; margin: 16px 0 0; overflow: hidden; font-size: 13.5px; line-height: 1.5; color: rgb(255 255 255 / 0.66); -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
@@ -279,12 +283,12 @@
 	.pl :global(svg) { margin-left: 3px; }
 	@media (hover: hover) { .ver:hover .pl { transform: scale(1.1); } }
 
-	/* Rollo de película: perforaciones que corren con la tira; el cuadro activo se levanta y marca el avance. */
-	.reel { position: absolute; left: 0; right: 0; bottom: 84px; z-index: 7; height: 172px; overflow: hidden; -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
-	.track { position: absolute; left: 0; bottom: 8px; display: flex; gap: 6px; padding: 14px 10px; border-radius: 4px; background: #0b0c0f; box-shadow: 0 10px 30px rgb(0 0 0 / 0.5); transform: translateX(var(--tx, 0)); transition: transform 0.8s var(--out); }
-	.track::before, .track::after { content: ''; position: absolute; left: 0; right: 0; height: 6px; border-radius: 1px; background: repeating-linear-gradient(90deg, transparent 0 5px, rgb(232 226 210 / 0.55) 5px 13px, transparent 13px 18px); }
-	.track::before { top: 4px; }
-	.track::after { bottom: 4px; }
+	/* Rollo de película: perforaciones que corren con la tira; el cuadro activo se levanta y marca el avance. La cinta (fondo y
+	   perforaciones) se estira a los dos lados más allá de los cuadros: con el activo centrado en el primero o el último
+	   no quedan huecos y el rollo ocupa todo el ancho. */
+	.reel { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-bottom, 0px) + 84px); z-index: 7; height: 172px; overflow: hidden; -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+	.track { position: absolute; left: 0; bottom: 8px; display: flex; gap: 6px; padding: 14px 10px; transform: translateX(var(--tx, 0)); transition: transform 0.8s var(--out); }
+	.track::before { --holes: repeating-linear-gradient(90deg, transparent 0 5px, rgb(232 226 210 / 0.55) 5px 13px, transparent 13px 18px); content: ''; position: absolute; top: 0; bottom: 0; left: -100vw; right: -100vw; background: var(--holes) 0 4px / 100% 6px no-repeat, var(--holes) 0 calc(100% - 4px) / 100% 6px no-repeat, #0b0c0f; box-shadow: 0 10px 30px rgb(0 0 0 / 0.5); }
 	.frm { position: relative; flex: none; width: 60px; aspect-ratio: 2 / 3; padding: 0; overflow: hidden; border: 0; border-radius: 4px; background: var(--surface-2); opacity: 0.55; cursor: pointer; transition: transform 0.5s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.3s, box-shadow 0.4s; }
 	.frm img { display: block; width: 100%; height: 100%; object-fit: cover; }
 	@media (hover: hover) { .frm:hover { opacity: 0.9; } }
@@ -318,13 +322,14 @@
 		.fp, .side, .syn, kbd { display: none; }
 		.head { padding: calc(var(--safe-top, 0px) + 18px) 18px 18px; }
 		.grab { position: absolute; top: calc(var(--safe-top, 0px) + 7px); left: 50%; z-index: 9; display: block; width: 38px; height: 4px; margin-left: -19px; border-radius: 2px; background: rgb(255 255 255 / 0.35); }
-		.info { left: 20px; right: 20px; bottom: 218px; width: auto; }
+		.info { left: 20px; right: 20px; bottom: calc(var(--safe-bottom, 0px) + 222px); width: auto; }
 		.info h3 { font-size: 38px; }
 		.ver { height: 54px; margin-top: 20px; font-size: 16px; }
-		.reel { bottom: 76px; height: 138px; }
+		/* Cinta y Cerrar separados (~20px), los dos sobre el área segura de abajo. */
+		.reel { bottom: calc(var(--safe-bottom, 0px) + 78px); height: 138px; }
 		.frm { width: 46px; }
 		.frm[aria-current='true'] { transform: translateY(-14px) scale(1.22); }
-		.close-wrap { bottom: calc(var(--safe-bottom, 0px) + 18px); }
+		.close-wrap { bottom: calc(var(--safe-bottom, 0px) + 16px); }
 	}
 
 	/* Movimiento reducido: solo fundidos (fondo, texto y diálogo) y sin avance automático. */

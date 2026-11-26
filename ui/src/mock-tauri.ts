@@ -54,6 +54,12 @@ function newsMock() {
     newsItem('movie', 'tt0137523', 'El club de la pelea', 1999, ['in0000083'], { imdbRating: 8.8, imdbVotes: 2400000 }),
     newsItem('movie', 'tt6710474', 'Todo en todas partes al mismo tiempo', 2022, ['in0000166'], { imdbRating: 7.8 })
   ];
+  // `?news=long`: 12 novedades, la primera con título de 2 renglones y subgéneros largos (cortes de línea y punta del rollo).
+  if (mode === 'long') {
+    const more = ['tt0816692', 'tt0468569', 'tt0133093', 'tt0110912', 'tt0109830', 'tt0120737', 'tt0167260'].map((tt, i) => newsItem('movie', tt, `Título ${i + 6}`, 2020 + i, ['in0000164'], { what: title, date: ago(i + 12) }));
+    fresh.unshift(newsItem('tv', 'tt1856101', 'Blade Runner 2099: la serie extendida', 2026, ['in0000158', 'in0000159'], { what: title, date: ago(2), imdbRating: 5.3, imdbVotes: 841 }));
+    return { fresh: [...fresh, ...more], trending, seenAt: ago(20), updatedAt: ago(0.05), stale: false, refreshing: false };
+  }
   // `?news=seen`: ya vio todo (el diálogo no se abre solo; la pastilla sin número).
   return { fresh, trending, seenAt: mode === 'seen' ? ago(0) : ago(20), updatedAt: ago(mode === 'stale' ? 0.5 : 0.05), stale: mode === 'stale', refreshing: mode === 'refreshing' };
 }
@@ -77,7 +83,7 @@ function mockNick(cmd: string, args?: Record<string, unknown>): Promise<unknown>
     // "Vistos recientemente": con sesión, 3 de ejemplo; con `?nonick`, vacía (la fila no sale). Marcar/sacar no guardan nada.
     case 'vistos_list': return Promise.resolve(nickMock.nick ? vistosMock : []);
     case 'vistos_mark': case 'vistos_restore': case 'vistos_dismiss': return Promise.resolve(null);
-    // "Novedades": `?news` diálogo + Tendencias; `?news=stale` vieja (la UI pide refresh); `?news=refreshing`; `?news=seen`; `?news=empty`.
+    // "Novedades": `?news` diálogo + Tendencias; `?news=stale` vieja (la UI pide refresh); `?news=refreshing`; `?news=seen`; `?news=empty`; `?news=long` (12, título y subgéneros largos).
     // Sin apodo (`?nonick`) vacía, como el núcleo sin sesión. Sin `?news`, vacía (no cambia las capturas de siempre).
     case 'news_list': return Promise.resolve(newsMock());
     case 'news_refresh': case 'news_mark_seen': return Promise.resolve(null);
