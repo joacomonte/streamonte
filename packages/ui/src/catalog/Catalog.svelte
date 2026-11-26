@@ -4,11 +4,16 @@
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import Icon from '../components/Icon.svelte';
+	import { getApi } from '../context.ts';
 	import { t } from '../i18n/runtime.ts';
 	import type { CatalogItem, PersonHit } from '../types.ts';
 	import { KINDS, SORTS, backLabel, votesLabel, type Filters } from './filters.ts';
 	import GenrePicker from './GenrePicker.svelte';
 	import Grid from './Grid.svelte';
+	import { unseenCount, type NewsItem, type NewsList } from './news.ts';
+	import { episodeOf, newsSession, toCatalogItem, toRecentItem } from './news-ui.ts';
+	import NewsDialog from './NewsDialog.svelte';
+	import NewsPill from './NewsPill.svelte';
 	import RecentRow from './RecentRow.svelte';
 	import type { EpisodeRef, RecentItem } from './recent.ts';
 	import Search from './Search.svelte';
@@ -17,6 +22,7 @@
 	import Votes from './Votes.svelte';
 	import type { CatalogStore } from './store.ts';
 	import { categoryOf } from './subgenres.ts';
+	import TrendingRow from './TrendingRow.svelte';
 
 	interface Props {
 		store: CatalogStore;
@@ -43,6 +49,30 @@
 	}
 	let { store, onopen, href, header, top, onmagnet, onlog, onsettings, onneedskey, pinned = false, fade = false, onresume }: Props = $props();
 	const st = $derived(store.st);
+	const api = getApi();
+
+	/** "Novedades" (`news.ts`): el diálogo de lo nuevo, su pastilla y la fila Tendencias. */
+	let news = $state<NewsList | null>(null);
+	let newsOpen = $state(false);
+	const newsUnseen = $derived(news ? unseenCount(news) : 0);
+	function openNews() {
+		newsOpen = true;
+		// Lo visto queda visto ya (la pastilla pierde el número) sin esperar al servidor.
+		if (news) news = { ...news, seenAt: new Date().toISOString() };
+		void api.news.markSeen().catch(() => {});
+	}
+	/** Ver desde el diálogo: un título abre la ficha (como una tarjeta); un capítulo, ese capítulo (como "Vistos"). */
+	function watchNews(item: NewsItem) {
+		const ep = episodeOf(item);
+		if (ep && onresume) onresume(toRecentItem(item), ep);
+		else onopen(toCatalogItem(item));
+	}
+	// Se abre solo una vez por sesión si hay algo sin ver, cuando la bienvenida ya no tapa la home.
+	$effect(() => {
+		if (!news || st.covered || newsSession.autoOpened || !unseenCount(news)) return;
+		newsSession.autoOpened = true;
+		openNews();
+	});
 
 	/** Alto de lo que se va al scrollear (marca, buscador, tipo): la barra de chips queda pegada arriba. */
 	let topH = $state(0);
@@ -118,6 +148,14 @@
 		target.addEventListener('scroll', onScroll, { passive: true });
 		store.start();
 		const off = store.connect();
+		void api.news.list().then((l) => {
+			news = l;
+			// Vieja: se recalcula de fondo (una vez por sesión); se ve en la próxima carga.
+			if (l.stale && !newsSession.refreshed) {
+				newsSession.refreshed = true;
+				void api.news.refresh().catch(() => {});
+			}
+		}).catch(() => {});
 		return () => (off(), target.removeEventListener('scroll', onScroll), clearTimeout(loggedSearch), clearTimeout(loggedFilter));
 	});
 
@@ -195,7 +233,10 @@
 		<div class="inner">
 			<div class="head-top" bind:clientHeight={topH}>
 				{@render header?.()}
-				<Search {store} onclear={clear} {onquery} onpick={pick} {onopen} {href} bind:open={searchOpen} />
+				<div class="search-row">
+					<Search {store} onclear={clear} {onquery} onpick={pick} {onopen} {href} bind:open={searchOpen} />
+					{#if news?.fresh.length}<NewsPill count={newsUnseen} onopen={openNews} />{/if}
+				</div>
 				{#if !searching}
 					<!-- Tipo (2026-11-24: el orden pasó a la fila de géneros, como segmentado). -->
 					<div class="ks">
@@ -234,10 +275,12 @@
 	<div class="body inner">
 		{@render top?.(searching)}
 		{#if onresume && !searching}<RecentRow {onresume} />{/if}
+		{#if !searching && news?.trending.length}<TrendingRow items={news.trending} onopen={(it) => onopen(toCatalogItem(it))} />{/if}
 		<!-- Buscando por texto los resultados van en el desplegable del buscador (2026-11-24): la grilla queda solo de fondo,
 		     desenfocada detrás del desplegable abierto; con el desplegable cerrado no se muestra. -->
 		{#if mode !== 'search' || searchOpen}<Grid {store} {onopen} {href} {onsettings} {fade} bind:sentinel />{/if}
 	</div>
+	{#if news?.fresh.length}<NewsDialog items={news.fresh} open={newsOpen} onclose={() => (newsOpen = false)} onwatch={watchNews} />{/if}
 </div>
 
 <style>
@@ -269,6 +312,9 @@
 	.compact .dot { margin: 0 6px; color: var(--dim, var(--muted)); }
 	.compact .amber { color: var(--amber); font-variant-numeric: tabular-nums; }
 	.inner { max-width: 1200px; margin: 0 auto; }
+	/* Buscador y la pastilla de Novedades en la misma línea. */
+	.search-row { display: flex; align-items: flex-start; gap: 8px; }
+	.search-row > :global(:first-child) { flex: 1; min-width: 0; }
 	.head-top { padding-bottom: 2px; }
 	/* Entrada después de la bienvenida: cada bloque de arriba sube escalonado. */
 	.intro .head-top > * { animation: rise 0.7s var(--out) backwards; }

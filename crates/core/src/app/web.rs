@@ -1,7 +1,7 @@
 //! La web de Streamonte: código de acceso, apodo y su sesión (módulo `crate::web`).
 
 use super::*;
-use crate::web::{NickAsk, NickEnter, NickStatus, Seen, SeenKind};
+use crate::web::{NewsList, NickAsk, NickEnter, NickStatus, Seen, SeenKind};
 
 impl AppCore {
     /// Guarda el código de 3 dígitos de la web (vacío = borrarlo).
@@ -28,6 +28,21 @@ impl AppCore {
 
     pub async fn nick_animals(&self) -> Result<Option<Vec<String>>> {
         crate::web::nick_animals().await
+    }
+
+    /// "Novedades" (vacía sin sesión de apodo).
+    pub async fn news_list(&self) -> Result<NewsList> {
+        crate::web::news_list().await
+    }
+
+    /// Recalcular Novedades en la web (tarda; la UI no lo espera).
+    pub async fn news_refresh(&self) -> Result<()> {
+        crate::web::news_refresh().await
+    }
+
+    /// Abrió el diálogo de Novedades (`seenAt` = ahora, por apodo).
+    pub async fn news_mark_seen(&self) -> Result<()> {
+        crate::web::news_mark_seen().await
     }
 
     /// "Vistos recientemente" del apodo (vacío sin sesión).

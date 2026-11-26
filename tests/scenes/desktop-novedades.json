@@ -1,0 +1,17 @@
+{
+ "app": "desktop",
+ "url": "/?news",
+ "setup": [],
+ "must": [
+  { "sel": "#news-dialog" },
+  { "sel": "#news-title", "text": "Novedades" },
+  { "sel": "#news-watch", "text": "Ver" },
+  { "sel": "#news-close" },
+  { "sel": "#news-prev" },
+  { "sel": "#news-next" },
+  { "sel": "[id^=news-reel-]", "count": 4 },
+  { "sel": "#news-pill" },
+  { "sel": "#trending-row" },
+  { "sel": "[id^=trending-tt]", "count": 3 }
+ ]
+}

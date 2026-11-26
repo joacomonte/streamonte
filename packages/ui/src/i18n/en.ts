@@ -1589,5 +1589,16 @@ const EN: Record<string, string> = {
 	"Entrantes": "Incoming",
 	"Solo salientes": "Outgoing only",
 	"App: {x}": "App: {x}",
+	"Tendencias": "Trending",
+	// Novedades (catalog/NewsDialog, NewsPill, TrendingRow)
+	"Novedades": "New",
+	"Novedades: {n} sin ver": "New: {n} unseen",
+	"{i} de {n}": "{i} of {n}",
+	"Anterior": "Previous",
+	"Puesto {n}: {t}": "No. {n}: {t}",
+	"hace 1 día": "1 day ago",
+	"Nuevo": "New",
+	"Final de temporada": "Season finale",
+	"Ver T{s}·E{e}": "View S{s}·E{e}",
 };
 export default EN;

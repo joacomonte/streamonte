@@ -6,7 +6,7 @@ import type {
   DetailsView, EpisodeText, Equalizer, IncomingCheck, InfoHash, InterestExample, LanguageConfig, LibraryRow, LibraryView, MagnetStatus,
   MediaKind, Meta, PlaybackAction, PlaybackId, PlaybackRow, PlayerKind, PlayersStatus, PremiumPick, PremiumQuota, SavedTest, SearchPerson,
   SeasonRatings, Similar, SpeedResult, SubtitleFound, SubtitleLanguage, SubtitlePicks, SwarmCount, TempUsage, TitleAwards, EpisodeScore, TorboxCached,
-  TorboxMagnetView, VideoKey, NickAsk, NickEnter, NickStatus, VistosSeen,
+  TorboxMagnetView, VideoKey, NickAsk, NickEnter, NickStatus, VistosSeen, NewsListRaw,
 } from './types.ts';
 
 const invoke = <T>(cmd: string, args?: Record<string, unknown>): Promise<T> => window.__TAURI__.core.invoke<T>(cmd, args);
@@ -64,6 +64,12 @@ export const nickEnter = (nick: string, code: string[], mode: 'nuevo' | 'login')
 export const nickLogout = () => invoke<void>('nick_logout');
 /** Los 2 animales (ids) de la sesión; null si todavía no se guardaron. */
 export const nickAnimals = () => invoke<string[] | null>('nick_animals');
+/** "Novedades" (vacía sin sesión de apodo). */
+export const newsList = () => invoke<NewsListRaw>('news_list');
+/** Recalcular Novedades en la web (tarda: no esperarlo). */
+export const newsRefresh = () => invoke<void>('news_refresh');
+/** Abrió el diálogo de Novedades. */
+export const newsMarkSeen = () => invoke<void>('news_mark_seen');
 /** "Vistos recientemente" del apodo (vacío sin sesión). */
 export const vistosList = () => invoke<VistosSeen[]>('vistos_list');
 /** Lo reprodujo ahora (sin sesión no hace nada). */

@@ -3,6 +3,7 @@
 import type { Api } from '../../packages/ui/src/api.ts';
 import type { Lang } from '../../packages/ui/src/i18n/translate.ts';
 import type { ApiEvent, OptionsUpdate, TitleDetails } from '../../packages/ui/src/types.ts';
+import { newsFromWire } from '../../packages/ui/src/catalog/news.ts';
 import * as adapt from './tauri-adapt.ts';
 import * as coreCommands from './core.ts';
 import type * as Raw from './types.ts';
@@ -133,6 +134,12 @@ export function createTauriApi(core: Core): Api {
 			mark: (i) => api.vistosMark({ kind: i.kind, imdb: i.imdb, tmdb: null, title: i.title, poster: i.poster, backdrop: i.backdrop, season: i.season, episode: i.episode, at: '' }),
 			restore: (i) => api.vistosRestore({ kind: i.kind, imdb: i.imdb, tmdb: null, title: i.title, poster: i.poster, backdrop: i.backdrop, season: i.season, episode: i.episode, at: i.at }),
 			dismiss: (kind, imdb, how) => api.vistosDismiss(kind, imdb, how)
+		},
+		// Novedades: de la web (`web.rs`, sesión de apodo). En el desktop el id del título es el tt.
+		news: {
+			list: async () => newsFromWire(await api.newsList(), (i) => i.imdb),
+			refresh: () => api.newsRefresh(),
+			markSeen: () => api.newsMarkSeen()
 		},
 		nick: {
 			ask: (nick) => api.nickAsk(nick),

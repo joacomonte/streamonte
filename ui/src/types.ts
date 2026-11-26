@@ -319,6 +319,8 @@ export type VistosSeen = {
     episode: number | null;
     at: string;
 };
+/** "Novedades" (`web::NewsList`): camelCase, es el JSON de `/api/novedades` tal cual = `NewsListWire` de packages/ui. */
+export type NewsListRaw = import('../../packages/ui/src/catalog/news.ts').NewsListWire;
 export type SpeedResult = {
     mbps: number;
     measured_at: IsoDate;

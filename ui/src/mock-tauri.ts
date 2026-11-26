@@ -34,6 +34,29 @@ function replay(events: unknown, stepMs = 500, startMs = stepMs) {
 const nickMock = { codeSet: !location.search.includes('nonick'), code: '123', nick: location.search.includes('nonick') ? null : 'Joaco' as string | null };
 const reject = (msg: string) => Promise.reject(msg);
 const art = (tt: string) => ({ poster: `https://images.metahub.space/poster/small/${tt}/img`, backdrop: `https://images.metahub.space/background/medium/${tt}/img` });
+// Novedades de ejemplo (forma del cable, `NewsListWire`). Títulos reales con póster de metahub; subgéneros = interests de IMDb.
+const newsItem = (kind: 'movie' | 'tv', imdb: string, title: string, year: number, subgenres: string[], extra: Record<string, unknown> = {}) =>
+  ({ kind, imdb, tmdb: null, title, year, ...art(imdb), subgenres, overview: 'Sinopsis de ejemplo para el mock.', imdbRating: 7.6, imdbVotes: 120000, what: null, date: null, ...extra });
+function newsMock() {
+  const mode = new URLSearchParams(location.search).get('news');
+  const empty = { fresh: [], trending: [], seenAt: null, updatedAt: null, stale: false, refreshing: false };
+  if (mode === null || mode === 'empty' || !nickMock.nick) return empty;
+  const ago = (d: number) => new Date(Date.now() - d * 86400000).toISOString();
+  const title = { type: 'title' };
+  const fresh = [
+    newsItem('tv', 'tt0903747', 'Breaking Bad', 2008, ['in0000086'], { what: { type: 'episode', season: 2, episode: 5, finale: false }, date: ago(1) }),
+    newsItem('movie', 'tt15239678', 'Dune: Parte dos', 2024, ['in0000164'], { what: title, date: ago(3) }),
+    newsItem('movie', 'tt9218128', 'Gladiador II', 2024, ['in0000019'], { what: title, date: ago(6) }),
+    newsItem('tv', 'tt11280740', 'Severance', 2022, ['in0000083'], { what: title, date: ago(10) })
+  ];
+  const trending = [
+    newsItem('movie', 'tt1375666', 'El origen', 2010, ['in0000086']),
+    newsItem('movie', 'tt0137523', 'El club de la pelea', 1999, ['in0000083'], { imdbRating: 8.8, imdbVotes: 2400000 }),
+    newsItem('movie', 'tt6710474', 'Todo en todas partes al mismo tiempo', 2022, ['in0000166'], { imdbRating: 7.8 })
+  ];
+  // `?news=seen`: ya vio todo (el diálogo no se abre solo; la pastilla sin número).
+  return { fresh, trending, seenAt: mode === 'seen' ? ago(0) : ago(20), updatedAt: ago(mode === 'stale' ? 0.5 : 0.05), stale: mode === 'stale', refreshing: mode === 'refreshing' };
+}
 const vistosMock = [
   { kind: 'tv', imdb: 'tt0903747', tmdb: null, title: 'Breaking Bad', ...art('tt0903747'), season: 2, episode: 3, at: '2026-11-23T10:00:00.000Z' },
   { kind: 'movie', imdb: 'tt0137523', tmdb: null, title: 'El club de la pelea', ...art('tt0137523'), season: null, episode: null, at: '2026-11-22T10:00:00.000Z' },
@@ -54,6 +77,10 @@ function mockNick(cmd: string, args?: Record<string, unknown>): Promise<unknown>
     // "Vistos recientemente": con sesión, 3 de ejemplo; con `?nonick`, vacía (la fila no sale). Marcar/sacar no guardan nada.
     case 'vistos_list': return Promise.resolve(nickMock.nick ? vistosMock : []);
     case 'vistos_mark': case 'vistos_restore': case 'vistos_dismiss': return Promise.resolve(null);
+    // "Novedades": `?news` diálogo + Tendencias; `?news=stale` vieja (la UI pide refresh); `?news=refreshing`; `?news=seen`; `?news=empty`.
+    // Sin apodo (`?nonick`) vacía, como el núcleo sin sesión. Sin `?news`, vacía (no cambia las capturas de siempre).
+    case 'news_list': return Promise.resolve(newsMock());
+    case 'news_refresh': case 'news_mark_seen': return Promise.resolve(null);
   }
 }
 

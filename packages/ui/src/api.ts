@@ -5,6 +5,7 @@ import type {
 	OptionsUpdate, PersonHit, PersonRole, PremiumQuota, SeasonRatings, SimilarItem, SubtitleOption, TitleAwards, TitleDetails, TorboxIds, TorrentOption, TorrentTracks, Unsubscribe
 } from './types.ts';
 import type { RecentItem } from './catalog/recent.ts';
+import type { NewsList } from './catalog/news.ts';
 import type { CodeResult } from './animals/animals.ts';
 
 /** `url`: de dónde bajar el subtítulo (web); null si la app ya lo aplicó (desktop). */
@@ -69,6 +70,15 @@ export interface Api {
 		/** "Deshacer" de la X: vuelve con su fecha. */
 		restore(item: RecentItem): Promise<void>;
 		dismiss(kind: Kind, imdb: string, how: 'visto' | 'olvidar'): Promise<void>;
+	};
+	/** "Novedades" (`catalog/news.ts`): el diálogo de lo nuevo y la fila Tendencias. Desktop sin sesión de apodo: vacía. */
+	news: {
+		/** Lee lo guardado (rápido, no recalcula). */
+		list(): Promise<NewsList>;
+		/** Recalcula (puede tardar ~50 s): la UI no lo espera; el resultado se ve en el próximo `list`. */
+		refresh(): Promise<void>;
+		/** Abrió el diálogo: `seenAt` = ahora (por apodo; web sin apodo: en este navegador). */
+		markSeen(): Promise<void>;
 	};
 	/** Apodo de la web (contrato de `/api/nick`): la bienvenida y Ajustes son compartidas. Los errores de red o del
 	 * servidor lanzan con el mensaje; los de código de animales (no son esos, en espera, cambió) vuelven en `enter`. */

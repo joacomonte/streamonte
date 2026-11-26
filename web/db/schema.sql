@@ -55,3 +55,24 @@ CREATE TABLE IF NOT EXISTS apodos (
 -- `codigo_cifrado`: el par de animales en AES-256-GCM (clave HKDF de APODO_SECRET, src/lib/server/apodo-cifrado.ts) para
 -- que Ajustes se lo muestre a su dueño. Null en los códigos anteriores: se completa la próxima vez que el dueño acierta.
 ALTER TABLE apodos ADD COLUMN IF NOT EXISTS codigo_cifrado text;
+
+-- "Novedades" (packages/ui/src/catalog/news.ts; la escribe src/lib/server/novedades.ts, que también la crea sola si falta).
+-- Una fila por (alcance, lista): `alcance` 'global' para 'estrenos' y 'tendencias'; el apodo para 'capitulos'.
+-- `datos`: los ítems ya verificados (NewsItemWire[]). `actualizado`: último refresco completo (> 6 h = vieja).
+-- `refrescando_desde`: traba del refresco (otro pedido no arranca si es de hace < 2 min).
+CREATE TABLE IF NOT EXISTS novedades (
+	alcance text NOT NULL, lista text NOT NULL, datos jsonb NOT NULL DEFAULT '[]', actualizado timestamptz,
+	refrescando_desde timestamptz,
+	PRIMARY KEY (alcance, lista)
+);
+-- Verificación por título (y capítulo), UNA vez: los 3–5 mejores hashes WEB-DL/WEBRip/BluRay/REMUX sin CAM y si alguno
+-- está en caché de TorBox. Un título ya verificado no vuelve a los addons: cada refresco revalida `hashes` de todos con
+-- 1 POST /torrents/checkcached (acepta cientos por pedido) y solo pasa por addons lo nuevo. También la escribe
+-- /api/torrents al abrir una ficha (mismo resultado, sin pedidos extra). Un addon vacío no la pisa. `s`/`e` = 0 en películas.
+CREATE TABLE IF NOT EXISTS novedades_verif (
+	imdb text NOT NULL, s integer NOT NULL DEFAULT 0, e integer NOT NULL DEFAULT 0,
+	hashes text[] NOT NULL DEFAULT '{}', en_cache boolean NOT NULL, verificado_en timestamptz NOT NULL DEFAULT now(),
+	PRIMARY KEY (imdb, s, e)
+);
+-- Cuándo abrió el diálogo cada apodo (`seenAt`): se abre solo si hay algo más nuevo.
+CREATE TABLE IF NOT EXISTS novedades_vistas (apodo text PRIMARY KEY, visto timestamptz NOT NULL DEFAULT now());

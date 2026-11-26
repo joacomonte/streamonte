@@ -687,6 +687,20 @@ pub async fn nick_animals(core: Core<'_>) -> CmdResult<Option<Vec<String>>> {
     Ok(core.nick_animals().await?)
 }
 
+// ----- Novedades (en la web; filas de arriba del catálogo) -----
+#[tauri::command]
+pub async fn news_list(core: Core<'_>) -> CmdResult<streamonte_core::web::NewsList> {
+    Ok(core.news_list().await?)
+}
+#[tauri::command]
+pub async fn news_refresh(core: Core<'_>) -> CmdResult<()> {
+    Ok(core.news_refresh().await?)
+}
+#[tauri::command]
+pub async fn news_mark_seen(core: Core<'_>) -> CmdResult<()> {
+    Ok(core.news_mark_seen().await?)
+}
+
 // ----- Vistos recientemente (en la web, por apodo) -----
 /// La fila; vacía sin sesión de apodo.
 #[tauri::command]

@@ -24,6 +24,8 @@ const COOKIE_ACCOUNT: &str = "streamonte-web-apodo";
 /// El apodo de la sesión (la cookie lo lleva codificado, pero su formato es del servidor).
 const NICK_ACCOUNT: &str = "streamonte-web-nick";
 const TIMEOUT: Duration = Duration::from_secs(15);
+/// Novedades: el refresco recorre IMDb/TMDB en la web y tarda ~50 s.
+const REFRESH_TIMEOUT: Duration = Duration::from_secs(90);
 const MAX_BODY: usize = 64 * 1024;
 
 /// Lo que dice `GET /api/nick?nick=`: si el apodo ya tiene código (`login`) o se crea (`nuevo`), el orden de las
@@ -162,6 +164,17 @@ async fn call(
     query: &[(&str, &str)],
     body: Option<Value>,
 ) -> Result<Reply> {
+    call_within(TIMEOUT, method, path, query, body).await
+}
+
+/// [`call`] con otro plazo (el refresco de Novedades).
+async fn call_within(
+    timeout: Duration,
+    method: Method,
+    path: &str,
+    query: &[(&str, &str)],
+    body: Option<Value>,
+) -> Result<Reply> {
     let Some(code) = crate::secrets::secret(CODE_ACCOUNT) else {
         return Err(user_error("Falta el código de la web."));
     };
@@ -200,7 +213,7 @@ async fn call(
             apodo,
         })
     };
-    let reply = tokio::time::timeout(TIMEOUT, run)
+    let reply = tokio::time::timeout(timeout, run)
         .await
         .map_err(|_| user_error("La web tardó demasiado en responder."))?
         .map_err(network_error)?;
@@ -391,4 +404,98 @@ pub async fn vistos_dismiss(kind: SeenKind, imdb: &str, how: &str) -> Result<()>
         return Err(user_error("Acción inválida."));
     }
     vistos_post(serde_json::json!({ "action": how, "kind": kind, "imdb": imdb })).await
+}
+
+// ----- Novedades (diálogo de lo nuevo + fila Tendencias; `packages/ui/src/catalog/news.ts`) -----
+
+/// Qué tiene de nuevo (`NewsWhat`): `{ type: "title" }` o `{ type: "episode", season, episode, finale }`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum NewsWhat {
+    Title,
+    Episode {
+        season: u32,
+        episode: u32,
+        #[serde(default)]
+        finale: bool,
+    },
+}
+
+/// Un título (`NewsItemWire`). camelCase: es el JSON de `/api/novedades` tal cual.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsItem {
+    pub kind: SeenKind,
+    pub imdb: String,
+    #[serde(default)]
+    pub tmdb: Option<u64>,
+    pub title: String,
+    #[serde(default)]
+    pub year: Option<u32>,
+    #[serde(default)]
+    pub poster: Option<String>,
+    #[serde(default)]
+    pub backdrop: Option<String>,
+    /// Ids de interest de IMDb (`in…`), máx. 2.
+    #[serde(default)]
+    pub subgenres: Vec<String>,
+    #[serde(default)]
+    pub overview: Option<String>,
+    #[serde(default)]
+    pub imdb_rating: Option<f32>,
+    #[serde(default)]
+    pub imdb_votes: Option<u32>,
+    #[serde(default)]
+    pub what: Option<NewsWhat>,
+    #[serde(default)]
+    pub date: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsList {
+    pub fresh: Vec<NewsItem>,
+    pub trending: Vec<NewsItem>,
+    #[serde(default)]
+    pub seen_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub stale: bool,
+    #[serde(default)]
+    pub refreshing: bool,
+}
+
+/// `GET /api/novedades`. Sin sesión de apodo: lista vacía, sin pedir nada.
+pub async fn news_list() -> Result<NewsList> {
+    if !has_session() {
+        return Ok(NewsList::default());
+    }
+    let reply = call(Method::GET, "/api/novedades", &[], None).await?;
+    if reply.status != 200 {
+        return Err(reply.failure());
+    }
+    serde_json::from_slice(&reply.body).map_err(|_| user_error("La web contestó algo inesperado."))
+}
+
+/// `POST /api/novedades { action: 'refresh' }` (tarda: la UI no lo espera). Sin sesión no hace nada.
+pub async fn news_refresh() -> Result<()> {
+    news_post("refresh", REFRESH_TIMEOUT).await
+}
+
+/// `POST /api/novedades { action: 'seen' }`: abrió el diálogo. Sin sesión no hace nada.
+pub async fn news_mark_seen() -> Result<()> {
+    news_post("seen", TIMEOUT).await
+}
+
+async fn news_post(action: &str, timeout: Duration) -> Result<()> {
+    if !has_session() {
+        return Ok(());
+    }
+    let body = serde_json::json!({ "action": action });
+    let reply = call_within(timeout, Method::POST, "/api/novedades", &[], Some(body)).await?;
+    if reply.status != 200 {
+        return Err(reply.failure());
+    }
+    Ok(())
 }

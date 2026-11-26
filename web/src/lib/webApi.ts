@@ -1,6 +1,13 @@
 // `Api` de la web: `fetch` a /api/* (rutas en src/routes/api/) y adaptadores puros de `web-adapt.ts`.
 import type { Api } from '../../../packages/ui/src/api.ts';
 import type { RecentItem } from '../../../packages/ui/src/catalog/recent.ts';
+import { newsFromWire, type NewsListWire } from '../../../packages/ui/src/catalog/news.ts';
+
+/** Web sin apodo: cuándo se vio el diálogo de Novedades en este navegador. */
+const NEWS_SEEN_KEY = 'novedades:visto';
+function localSeen(): string | null {
+	try { return localStorage.getItem(NEWS_SEEN_KEY); } catch { return null; }
+}
 import type { ApiEvent, BrowseFilters, Kind, OptionRef, EpisodeScore, SubtitleOption, TitleAwards, TorrentOption } from '../../../packages/ui/src/types.ts';
 import * as adapt from './web-adapt.ts';
 import type { ApiError, CatalogPageRaw, Episodes, Examples, LinkRaw, MagnetRaw, PeopleRaw, PremiumRaw, QuotaRaw, SeasonScore, Seen, Sub, Title, TracksRaw } from './types.ts';
@@ -90,6 +97,19 @@ export function createWebApi(doFetch: Fetch = fetch): Api {
 			mark: (item) => post({ action: 'mark', item: seenOf(item) }),
 			restore: (item) => post({ action: 'restore', item: seenOf(item) }),
 			dismiss: (kind, imdb, how) => post({ action: how, kind, imdb })
+		},
+		// Novedades: GET /api/novedades (lo guardado en Neon); POST { action: 'refresh' } recalcula (no se espera);
+		// POST { action: 'seen' } marca el diálogo como visto; sin apodo el servidor no guarda nada y vale lo de este navegador.
+		news: {
+			list: async () => {
+				const w = await json<NewsListWire>('/api/novedades');
+				return newsFromWire({ ...w, seenAt: w.seenAt ?? localSeen() }, (i) => (i.tmdb ? String(i.tmdb) : null));
+			},
+			refresh: async () => void (await json<{ ok: true }>('/api/novedades', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'refresh' }) })),
+			markSeen: async () => {
+				try { localStorage.setItem(NEWS_SEEN_KEY, new Date().toISOString()); } catch { /* sin storage: el diálogo vuelve a abrirse */ }
+				await json<{ ok: true }>('/api/novedades', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'seen' }) });
+			}
 		},
 		// Apodo: el contrato de /api/nick (ver apodo.svelte.ts, que arma la pantalla de la web con los mismos pedidos). La sesión
 		// es la cookie `apodo` del navegador; el código de acceso ya pasó el candado.
