@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bestHashes, hashBatches, isRerelease, needsBackup, pickSubgenres, verificationFrom } from './novedades.ts';
+import { bestHashes, castOf, episodeNews, trendingRanks, hashBatches, isRerelease, needsBackup, pickSubgenres, verificationFrom } from './novedades.ts';
 
 const h = (n: number) => n.toString(16).padStart(40, '0');
 const t = (n: number, source: string | null, res: string | null, seeds: number, cam = false) => ({ hash: h(n), source, res, seeds, cam });
@@ -40,4 +40,24 @@ test('verificationFrom: película 0/0, serie con s/e; sin release bueno no hay f
 	assert.deepEqual(verificationFrom('tt1', null, null, [t(1, 'WEB-DL', '1080p', 1)]), { imdb: 'tt1', s: 0, e: 0, hashes: [h(1)], enCache: true });
 	assert.equal(verificationFrom('tt1', '2', '3', [t(1, 'WEB-DL', '1080p', 1)])?.e, 3);
 	assert.equal(verificationFrom('tt1', null, null, [t(1, 'HDTV', '1080p', 1)]), null);
+});
+
+test('castOf: máx. 2 nombres, en orden, sin vacíos', () => {
+	assert.deepEqual(castOf({ cast: [{ name: 'A' }, { name: ' ' }, { name: 'B' }, { name: 'C' }] }), ['A', 'B']);
+	assert.deepEqual(castOf(null), []);
+});
+
+test('trendingRanks: 1-based en el orden dado', () => {
+	assert.equal(trendingRanks(['tt1', 'tt2']).get('tt2'), 2);
+	assert.equal(trendingRanks(['tt1']).get('tt9'), undefined);
+});
+
+test('episodeNews: temporada completa el mismo día → E1 full; E1 suelto; capítulo con último visto', () => {
+	const d = { last_episode_to_air: { air_date: '2026-11-20', season_number: 2, episode_number: 8 }, seasons: [{ season_number: 2, episode_count: 8, air_date: '2026-11-20' }] };
+	assert.deepEqual(episodeNews(d, d.last_episode_to_air, { season: 1, episode: 4 }), { e: 1, reason: { type: 'season', season: 2, full: true, episodes: 8 } });
+	const weekly = { last_episode_to_air: { air_date: '2026-11-20', season_number: 2, episode_number: 3 }, seasons: [{ season_number: 2, episode_count: 8, air_date: '2026-11-06' }] };
+	assert.deepEqual(episodeNews(weekly, weekly.last_episode_to_air, { season: 2, episode: 1 }), { e: 3, reason: { type: 'episode', lastSeen: { season: 2, episode: 1 } } });
+	assert.deepEqual(episodeNews(weekly, weekly.last_episode_to_air, { season: null, episode: null }).reason, { type: 'episode', lastSeen: null });
+	const first = { last_episode_to_air: { air_date: '2026-11-20', season_number: 2, episode_number: 1 }, seasons: [{ season_number: 2, episode_count: 8, air_date: '2026-11-20' }] };
+	assert.deepEqual(episodeNews(first, first.last_episode_to_air, { season: 1, episode: 9 }), { e: 1, reason: { type: 'season', season: 2, full: false, episodes: 8 } });
 });

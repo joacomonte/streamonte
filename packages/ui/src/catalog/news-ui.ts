@@ -12,12 +12,16 @@ export const newsSession = { autoOpened: false, refreshed: false };
 /** Tiempo de un cuadro del rollo antes de pasar solo al siguiente. */
 export const NEWS_SLIDE_MS = 8000;
 
-/** "hoy", "hace 1 día", "hace 3 días" (por día: lo nuevo no necesita horas). */
+/** "hoy", "ayer", "hace 3 días" (por día: lo nuevo no necesita horas). */
 export function newsAgo(iso: string, now: number = Date.now()): string {
 	const days = Math.floor((now - Date.parse(iso)) / 864e5);
 	if (days < 1) return t('hoy');
-	return days === 1 ? t('hace 1 día') : t('hace {a} días', { a: days });
+	return days === 1 ? t('ayer') : t('hace {a} días', { a: days });
 }
+
+/** "24 nov" (es) / "Nov 24" (en): el día de la fecha ISO, sin hora. */
+export const newsDay = (iso: string, locale: string): string =>
+	new Date(Date.parse(iso)).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('.', '');
 
 /** Votos de IMDb compactos: "850", "73k", "2,4M". */
 export function compactVotes(n: number): string {
@@ -29,18 +33,57 @@ export function compactVotes(n: number): string {
 /** El capítulo nuevo; null si es un estreno. */
 export const episodeOf = (i: NewsItem): EpisodeRef | null => (i.what?.type === 'episode' ? { season: i.what.season, episode: i.what.episode } : null);
 
-/** Etiqueta de lo nuevo: "T2 · E5" o "Nuevo". */
-export const newsTag = (i: NewsItem): string => (i.what?.type === 'episode' ? t('T{s} · E{e}', { s: i.what.season, e: i.what.episode }) : t('Nuevo'));
+/** Color del tipo en el kicker: `new` película o serie nueva, `season` temporada nueva, `ep` capítulo nuevo. */
+export type NewsTone = 'new' | 'season' | 'ep';
+/** Arriba del título (diseño A2, docs/mockups/novedades/info.html): TIPO en su color + motivo; `finale` suma la pastilla. */
+export type NewsKicker = { type: string; tone: NewsTone; motive: string; finale: boolean };
 
-/** Al lado de la etiqueta: "Final de temporada · hace 1 día", "Serie · hace 2 días" o "hace 2 días". */
-export function newsWhen(i: NewsItem, now: number = Date.now()): string {
-	const when = i.date ? newsAgo(i.date, now) : '';
-	const pre = i.what?.type === 'episode' ? (i.what.finale ? t('Final de temporada') : '') : i.kind === 'tv' ? t('Serie') : '';
-	return [pre, when].filter(Boolean).join(' · ');
+/** Tipo y motivo desde `reason`; sin `reason` (desktop actual), el tipo sale de `kind`/`what` y el motivo es cuándo salió. */
+export function newsKicker(i: NewsItem, locale: string, now: number = Date.now()): NewsKicker {
+	const finale = i.what?.type === 'episode' && i.what.finale;
+	const r = i.reason;
+	const ago = i.date ? newsAgo(i.date, now) : '';
+	if (r?.type === 'season') {
+		const motive = r.full ? t('Temporada {s} completa disponible', { s: r.season }) : t('Temporada {s} · E1 salió {d}', { s: r.season, d: ago });
+		return { type: t('Temporada nueva'), tone: 'season', motive, finale };
+	}
+	if (i.what?.type === 'episode') {
+		const motive = r?.type === 'episode' ? t('T{s}·E{e} salió {d}', { s: i.what.season, e: i.what.episode, d: ago }) : ago;
+		return { type: t('Capítulo nuevo'), tone: 'ep', motive, finale };
+	}
+	const type = i.kind === 'movie' ? t('Película') : t('Serie nueva');
+	if (r?.type === 'digital') return { type, tone: 'new', motive: t('Estreno digital en EE.UU. · {d}', { d: newsDay(r.date, locale) }), finale };
+	if (r?.type === 'premiere') {
+		const recent = now - Date.parse(r.date) < 7 * 864e5;
+		const motive = recent ? t('Se estrenó {d}', { d: newsAgo(r.date, now) }) : t('Se estrenó el {d}', { d: newsDay(r.date, locale) });
+		return { type, tone: 'new', motive, finale };
+	}
+	if (r?.type === 'trending') return { type, tone: 'new', motive: t('Tendencia #{n} esta semana', { n: r.rank }), finale };
+	return { type, tone: 'new', motive: ago, finale };
 }
 
-/** Texto del botón: "Ver" o "Ver T2·E5". */
-export const watchLabel = (i: NewsItem): string => (i.what?.type === 'episode' ? t('Ver T{s}·E{e}', { s: i.what.season, e: i.what.episode }) : t('Ver'));
+/** Por qué aparece (capítulo o temporada), en lugar de la sinopsis; null: va la sinopsis. */
+export function newsWhy(i: NewsItem): string | null {
+	const r = i.reason;
+	if (r?.type === 'season') return r.full ? t('Salieron los {n} capítulos de la temporada {s} el mismo día.', { n: r.episodes, s: r.season }) : t('Empezó la temporada {s}.', { s: r.season });
+	if (i.what?.type !== 'episode') return null;
+	const last = r?.type === 'episode' ? r.lastSeen : null;
+	const follow = last ? t('Seguís {t}: el último que viste fue T{s}·E{e}.', { t: i.title, s: last.season, e: last.episode }) : t('Seguís {t}.', { t: i.title });
+	return i.what.finale ? `${follow} ${t('Este cierra la temporada.')}` : follow;
+}
+
+/** "Con A y B" / "Con A"; null sin reparto. */
+export function castLine(cast: string[] | undefined): string | null {
+	const [a, b] = cast ?? [];
+	if (!a) return null;
+	return b ? t('Con {a} y {b}', { a, b }) : t('Con {name}', { name: a });
+}
+
+/** Texto del botón: "Ver", "Ver T2·E5" o, temporada nueva, "Ver T4". */
+export function watchLabel(i: NewsItem): string {
+	if (i.reason?.type === 'season') return t('Ver T{s}', { s: i.reason.season });
+	return i.what?.type === 'episode' ? t('Ver T{s}·E{e}', { s: i.what.season, e: i.what.episode }) : t('Ver');
+}
 
 /** Puntaje como en la grilla ("8.4"); null si no hay. */
 export const ratingText = (i: NewsItem): string | null => (i.imdbRating == null ? null : i.imdbRating.toFixed(1));

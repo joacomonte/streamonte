@@ -19,6 +19,20 @@ export type NewsWhat =
 	| { type: 'title' }
 	| { type: 'episode'; season: number; episode: number; /** Último de la temporada ("Final de temporada"). */ finale: boolean };
 
+/** Por qué está en Novedades (kicker + motivo del diálogo A2, docs/mockups/novedades/info.html). Lo arma el servidor web;
+ * el desktop actual no lo recibe (lo descarta `crates/core/src/web.rs`) y la UI cae al texto viejo con `what`/`date`.
+ * - `digital`: película con estreno digital en EE.UU. (`date`, ISO).
+ * - `premiere`: serie nueva, estreno del primer capítulo (`date`).
+ * - `trending`: título nuevo que además está en Tendencias de la semana, puesto `rank` (1 = primero).
+ * - `episode`: capítulo nuevo de una serie que sigue (temporada/capítulo en `what`); `lastSeen`: el último que vio, si se sabe.
+ * - `season`: temporada `season` nueva de una serie que sigue; `full`: salieron sus `episodes` capítulos el mismo día. */
+export type NewsReason =
+	| { type: 'digital'; date: string }
+	| { type: 'premiere'; date: string }
+	| { type: 'trending'; rank: number }
+	| { type: 'episode'; lastSeen: { season: number; episode: number } | null }
+	| { type: 'season'; season: number; full: boolean; episodes: number };
+
 /** Un título. `imdb` es el id común; `id`, el que usa cada app para abrirlo (web: TMDB; desktop: tt). */
 export type NewsItem = {
 	kind: Kind;
@@ -38,6 +52,10 @@ export type NewsItem = {
 	what: NewsWhat | null;
 	/** ISO: estreno digital o salida del capítulo (Novedades); null en Tendencias. */
 	date: string | null;
+	/** Hasta 2 actores principales (TMDB credits, orden de billing). Opcional: el desktop actual no lo manda. */
+	cast?: string[];
+	/** Solo en `fresh`. Opcional: el desktop actual no lo manda (la UI usa `what`/`date`). */
+	reason?: NewsReason | null;
 };
 
 /** Lo que devuelve `Api.news.list()`. */

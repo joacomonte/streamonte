@@ -3,11 +3,13 @@
 	// póster flotante a la derecha (no en celu) y rollo de película abajo para saltar: el cuadro activo se levanta y marca el
 	// avance; pasa solo cada 8 s y se pausa con el mouse (o el dedo) sobre el texto, el rollo o Cerrar. Esc o deslizar hacia
 	// abajo cierra; ←/→ o deslizar de costado pasa. Una sola acción: Ver (título → ficha; capítulo → ese capítulo).
+	// Bloque de info: "A2 · Kicker ajustada" (docs/mockups/novedades/info.html); textos y derivación en `news-ui.ts`.
 	// Con prefers-reduced-motion: solo fundidos y sin avance automático. `<dialog>` nativo: foco atrapado y fondo inerte.
 	import Icon from '../components/Icon.svelte';
 	import { t } from '../i18n/runtime.ts';
+	import { locale } from '../i18n/translate.ts';
 	import type { NewsItem } from './news.ts';
-	import { compactVotes, NEWS_SLIDE_MS, newsTag, newsWhen, ratingText, watchLabel } from './news-ui.ts';
+	import { castLine, NEWS_SLIDE_MS, newsKicker, newsWhy, ratingText, watchLabel } from './news-ui.ts';
 	import { subgenreLabels } from './subgenres.ts';
 
 	interface Props {
@@ -40,6 +42,8 @@
 
 	const it = $derived(items[cur]);
 	const n = $derived(items.length);
+	/** Fechas del motivo en el idioma de la app (las dos apps lo dejan en `<html lang>`). */
+	const uiLocale = () => locale(document.documentElement.lang === 'en' ? 'en' : 'es');
 	/** Solo se cargan las imágenes del cuadro actual y los vecinos. */
 	const near = (k: number) => Math.abs(k - cur) <= 1;
 
@@ -175,23 +179,30 @@
 			{#key cur}
 				{@const rating = ratingText(it)}
 				{@const subs = subgenreLabels(it.subgenres)}
+				{@const kick = newsKicker(it, uiLocale())}
+				{@const why = newsWhy(it)}
+				{@const cast = castLine(it.cast)}
+				<!-- Diseño A2 (docs/mockups/novedades/info.html): TIPO + motivo → título → datos → reparto → sinopsis o por qué → Ver. -->
 				<div class="info">
-					<h3 style:--k={0}>{it.title}</h3>
-					<div class="news" style:--k={1}>
-						<span class="tag" class:ep={it.what?.type === 'episode'}>{newsTag(it)}</span>
-						<span>{newsWhen(it)}</span>
+					<div class="kick tone-{kick.tone}" style:--k={0}>
+						<span class="k-type">{kick.type}</span>
+						{#if kick.motive}<span class="k-mot">{kick.motive}</span>{/if}
+						{#if kick.finale}<span class="finale">{t('Final de temporada')}</span>{/if}
 					</div>
+					<h3 style:--k={1}>{it.title}</h3>
 					{#if subs.length || it.year || rating}
 						<div class="facts" style:--k={2}>
 							{#each subs as s (s)}<span>{s}</span>{/each}
 							{#if it.year}<span>{it.year}</span>{/if}
-							{#if rating}<span class="rt"><Icon name="star" size={13} />{rating}{#if it.imdbVotes}<span class="vt">· {compactVotes(it.imdbVotes)}</span>{/if}</span>{/if}
+							{#if rating}<span class="rt"><Icon name="star" size={13} />{rating}</span>{/if}
 						</div>
 					{/if}
-					<button id="news-watch" type="button" class="glass ver" style:--k={3} aria-label={`${watchLabel(it)} · ${it.title}`} onclick={watch}>
+					{#if cast}<div class="cast" style:--k={3}>{cast}</div>{/if}
+					{#if why}<p class="syn why tone-{kick.tone}" style:--k={4}>{why}</p>
+					{:else if it.overview}<p class="syn" style:--k={4}>{it.overview}</p>{/if}
+					<button id="news-watch" type="button" class="glass ver" style:--k={5} aria-label={`${watchLabel(it)} · ${it.title}`} onclick={watch}>
 						<span class="pl"><Icon name="play" size={16} /></span><span>{watchLabel(it)}</span>
 					</button>
-					{#if it.overview}<p class="syn" style:--k={4}>{it.overview}</p>{/if}
 				</div>
 			{/key}
 
@@ -245,22 +256,31 @@
 	.count { margin-left: auto; color: rgb(255 255 255 / 0.78); font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
 	.grab { display: none; }
 
-	/* Título → qué hay de nuevo → subgénero, año y puntaje → Ver → sinopsis. Cada línea sube escalonada. */
+	/* TIPO + motivo → título → subgénero, año y puntaje → reparto → sinopsis (o por qué) → Ver. Cada línea sube escalonada. */
 	.info { position: absolute; left: 96px; bottom: calc(var(--safe-bottom, 0px) + 262px); z-index: 6; display: flex; flex-direction: column; align-items: flex-start; width: min(520px, 50%); text-shadow: 0 1px 12px rgb(0 0 0 / 0.45); animation: pan-info 0.8s var(--out); }
 	.info > * { animation: rise 0.55s var(--out) both; animation-delay: calc(0.15s + var(--k) * 75ms); }
 	.info h3 { margin: 0; font-size: clamp(40px, 5vw, 60px); font-weight: 850; line-height: 0.96; letter-spacing: -0.035em; text-wrap: balance; }
-	.news { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 12px; font-size: 15px; font-weight: 650; color: rgb(255 255 255 / 0.86); font-variant-numeric: tabular-nums; }
-	.tag { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: var(--r-xs); background: var(--amber); color: #1a1206; font-size: 13.5px; font-weight: 800; letter-spacing: 0.01em; text-shadow: none; animation: tag-in 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) 0.3s both; }
-	.tag.ep { background: var(--accent-fg); color: #07152e; }
+	/* Color del tipo: película o serie nueva dorado, temporada nueva verde, capítulo nuevo azul. */
+	.tone-new { --c: #f5c451; }
+	.tone-season { --c: var(--green); }
+	.tone-ep { --c: var(--accent-fg); }
+	/* Kicker: el motivo sigue en la misma línea y, si no entra, baja entero. */
+	.kick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+	.k-type { display: inline-flex; align-items: center; gap: 6px; color: var(--c); font-size: 13px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+	.k-type::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+	.k-mot { font-size: 16px; font-weight: 750; color: #fff; }
+	.finale { --f: #ff8fa3; display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--f) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--f) 70%, transparent); color: var(--f); font-size: 12px; font-weight: 800; text-shadow: none; white-space: nowrap; }
 	/* Cada dato con su "·" delante y sin cortarse; el "·" que queda al empezar renglón cae en los 20px que se corren a la
 	   izquierda y el recorte (solo de ese lado) lo esconde: al partir la línea no queda un punto suelto. */
-	.facts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; margin: 8px 0 0 -20px; font-size: 14px; color: rgb(255 255 255 / 0.78); font-variant-numeric: tabular-nums; clip-path: inset(-1em -1em -1em 20px); }
+	.facts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; margin: 12px 0 0 -20px; font-size: 14px; color: rgb(255 255 255 / 0.82); font-variant-numeric: tabular-nums; clip-path: inset(-1em -1em -1em 20px); }
 	.facts > * { white-space: nowrap; }
 	.facts > *::before { content: '·'; display: inline-block; width: 20px; text-align: center; color: rgb(255 255 255 / 0.45); font-weight: 400; }
 	.rt::before { margin-right: -4px; }
 	.rt { display: inline-flex; align-items: center; gap: 4px; color: var(--yellow); font-weight: 750; }
-	.vt { color: rgb(255 255 255 / 0.62); font-weight: 500; }
-	.syn { display: -webkit-box; max-width: 44ch; margin: 16px 0 0; overflow: hidden; font-size: 13.5px; line-height: 1.5; color: rgb(255 255 255 / 0.66); -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+	.cast { margin-top: 5px; font-size: 13px; color: rgb(255 255 255 / 0.58); }
+	.syn { display: -webkit-box; max-width: 46ch; margin: 10px 0 0; overflow: hidden; font-size: 13.5px; line-height: 1.5; color: rgb(255 255 255 / 0.66); -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; }
+	/* Por qué: misma caja que la sinopsis, con un filete del color del tipo (se lee como explicación, no como argumento). */
+	.why { padding-left: 10px; border-left: 2px solid var(--c); color: rgb(255 255 255 / 0.74); }
 
 	/* Vidrio esmerilado (Cerrar y Ver): desenfoque del fondo, borde con luz arriba, brillo que sigue al puntero y reflejo que cruza. */
 	.glass { --sx: 50%; --sy: 0%; position: relative; display: inline-flex; align-items: center; overflow: hidden; border: 0; border-radius: var(--r-pill); color: #fff; font: inherit; letter-spacing: 0.01em; text-shadow: none; cursor: pointer; pointer-events: auto;
@@ -275,7 +295,7 @@
 	.glass:active { transform: scale(0.95); }
 	.glass:focus-visible { outline: 2px solid rgb(255 255 255 / 0.75); outline-offset: 3px; }
 	/* Ver: el mismo vidrio, más grande y luminoso, con el play en un círculo sólido: es la acción principal. */
-	.ver { gap: 12px; height: 58px; margin-top: 24px; padding: 0 28px 0 9px; font-size: 17px; font-weight: 800;
+	.ver { gap: 12px; height: 58px; margin-top: 18px; padding: 0 28px 0 9px; font-size: 17px; font-weight: 800;
 		background: linear-gradient(180deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.14));
 		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.3), 0 16px 40px rgb(0 0 0 / 0.45); }
 	.ver::after { animation-delay: 1s; }
@@ -319,12 +339,14 @@
 	/* Celu: texto a todo el ancho, sin póster flotante, flechas, sinopsis ni Esc; manija arriba (deslizar cierra). */
 	@media (max-width: 599px) {
 		.shade { background: linear-gradient(to top, rgb(7 9 12 / 0.97) 12%, rgb(7 9 12 / 0.78) 46%, rgb(7 9 12 / 0.1) 78%); }
-		.fp, .side, .syn, kbd { display: none; }
+		.fp, .side, kbd { display: none; }
 		.head { padding: calc(var(--safe-top, 0px) + 18px) 18px 18px; }
 		.grab { position: absolute; top: calc(var(--safe-top, 0px) + 7px); left: 50%; z-index: 9; display: block; width: 38px; height: 4px; margin-left: -19px; border-radius: 2px; background: rgb(255 255 255 / 0.35); }
 		.info { left: 20px; right: 20px; bottom: calc(var(--safe-bottom, 0px) + 222px); width: auto; }
 		.info h3 { font-size: 38px; }
-		.ver { height: 54px; margin-top: 20px; font-size: 16px; }
+		.k-mot { font-size: 15px; }
+		.syn { font-size: 13px; }
+		.ver { height: 54px; margin-top: 18px; font-size: 16px; }
 		/* Cinta y Cerrar separados (~20px), los dos sobre el área segura de abajo. */
 		.reel { bottom: calc(var(--safe-bottom, 0px) + 78px); height: 138px; }
 		.frm { width: 46px; }
@@ -332,8 +354,12 @@
 		.close-wrap { bottom: calc(var(--safe-bottom, 0px) + 16px); }
 	}
 
+	/* Ventanas bajas: la sinopsis (o el por qué) es lo primero que se achica y después se va. */
+	@media (max-height: 700px) { .syn { -webkit-line-clamp: 2; line-clamp: 2; } }
+	@media (max-height: 620px) { .syn { display: none; } }
+
 	/* Movimiento reducido: solo fundidos (fondo, texto y diálogo) y sin avance automático. */
-	.calm[open], .calm .bg.on, .calm .bg.on img, .calm .fp, .calm .bob, .calm .info, .calm .tag, .calm .glass::after { animation: none; }
+	.calm[open], .calm .bg.on, .calm .bg.on img, .calm .fp, .calm .bob, .calm .info, .calm .glass::after { animation: none; }
 	.calm .info > * { animation: fade 0.3s ease both; }
 	.calm .prog { display: none; }
 	.calm .track, .calm .frm, .calm .stage { transition: none; }
@@ -346,7 +372,6 @@
 	@keyframes fade { from { opacity: 0; } }
 	@keyframes bob { 50% { transform: translateY(-10px); } }
 	@keyframes fillx { to { transform: scaleX(1); } }
-	@keyframes tag-in { from { opacity: 0; transform: scale(0.6); } }
 	@keyframes sheen { 0%, 70% { left: -50%; } 100% { left: 120%; } }
 	@keyframes dlg-in { from { opacity: 0; transform: scale(1.03); } }
 	@keyframes dlg-out { to { opacity: 0; transform: scale(0.98); } }

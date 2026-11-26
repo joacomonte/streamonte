@@ -7,7 +7,7 @@
 // - solo lo nuevo pasa por addons: Torrentio + Comet; Peerflix/TorrentsDB solo si los dos vuelven vacíos (vacío ≠ no hay);
 // - tope ~12 candidatos por lista, concurrencia 2–3 (~3 s por título); /api/torrents también graba lo que verificó.
 // TorBox no tiene búsqueda por IMDb id en su API (api.torbox.app/openapi.json; search-api.torbox.app no resuelve, 2026-11-26).
-import type { NewsItemWire, NewsListWire, NewsWhat } from '../../../../packages/ui/src/catalog/news.ts';
+import type { NewsItemWire, NewsListWire, NewsReason, NewsWhat } from '../../../../packages/ui/src/catalog/news.ts';
 import { NEWS_STALE_MS, NEWS_WINDOW_DAYS, TRENDING_MIN_VOTES } from '../../../../packages/ui/src/catalog/news.ts';
 import { categories } from '../../../../packages/ui/src/catalog/subgenres.ts';
 import { get } from './http.ts';
@@ -74,6 +74,35 @@ export function pickSubgenres(interests: string[], valid: Set<string>): string[]
 export function verificationFrom(imdb: string, s: string | null, e: string | null, inCache: Quality[]): Verification | null {
 	const hashes = bestHashes(inCache);
 	return hashes.length ? { imdb, s: s && e ? Number(s) : 0, e: s && e ? Number(e) : 0, hashes, enCache: true } : null;
+}
+
+/** Hasta 2 actores principales (TMDB ya los trae por orden de billing); solo nombres, para no inflar el cuerpo. */
+export function castOf(credits: { cast?: { name?: string }[] } | null | undefined): string[] {
+	return (credits?.cast ?? []).map((x) => String(x.name ?? '').trim()).filter(Boolean).slice(0, 2);
+}
+
+type AiredEp = { air_date?: string; season_number: number; episode_number: number };
+type EpDetail = { last_episode_to_air?: AiredEp | null; seasons?: { season_number: number; episode_count: number; air_date?: string | null }[] };
+/** Capítulo a mostrar y su motivo. Temporada completa el mismo día (todos los capítulos con la fecha del estreno de la
+ * temporada) → S{s}E1 con `full`; capítulo 1 suelto → temporada nueva sin `full`; el resto → capítulo (con el último visto). */
+export function episodeNews(d: EpDetail, aired: AiredEp, sv: { season: number | null; episode: number | null }): { e: number; reason: NewsReason } {
+	const s = aired.season_number;
+	const season = d.seasons?.find((x) => x.season_number === s);
+	const total = season?.episode_count ?? 0;
+	const last = d.last_episode_to_air;
+	const full = total > 1 && aired.episode_number === total && last?.season_number === s && last.episode_number === total
+		&& !!season?.air_date && !!last.air_date && season.air_date.slice(0, 10) === last.air_date.slice(0, 10);
+	if (full) return { e: 1, reason: { type: 'season', season: s, full: true, episodes: total } };
+	if (aired.episode_number === 1) return { e: 1, reason: { type: 'season', season: s, full: false, episodes: total } };
+	const lastSeen = sv.season != null && sv.episode != null ? { season: sv.season, episode: sv.episode } : null;
+	return { e: aired.episode_number, reason: { type: 'episode', lastSeen } };
+}
+
+/** Puesto (1 = primero) de cada imdb en el orden final de Tendencias. */
+export function trendingRanks(imdbs: string[]): Map<string, number> {
+	const out = new Map<string, number>();
+	imdbs.forEach((x, i) => { if (!out.has(x)) out.set(x, i + 1); });
+	return out;
 }
 
 async function pool<T>(items: T[], n: number, fn: (x: T) => Promise<void>): Promise<void> {
@@ -251,7 +280,7 @@ function baseItem(kind: Kind, r: TmdbTitle, imdb: string, what: NewsWhat | null,
 		year: Number(String(r.release_date ?? r.first_air_date ?? '').slice(0, 4)) || null,
 		poster: r.poster_path ? `${IMG}w342${r.poster_path}` : null,
 		backdrop: r.backdrop_path ? `${IMG}w1280${r.backdrop_path}` : null,
-		subgenres: [], overview: r.overview?.trim() || null,
+		subgenres: [], overview: r.overview?.trim() || null, cast: castOf(r.credits),
 		imdbRating: real?.rating ?? null, imdbVotes: real?.votes ?? null, what, date
 	};
 }
@@ -273,12 +302,14 @@ async function discoverCands(now: number, table: Map<number, number> | null): Pr
 	const out: Cand[] = [];
 	await pool([...keep(movies.results, 8).map((r) => ['movie', r] as const), ...keep(shows.results, 4).map((r) => ['tv', r] as const)], CONCURRENCY, async ([kind, r]) => {
 		try {
-			const d = (await tmdb(`/${kind}/${r.id}`, { append_to_response: kind === 'movie' ? 'external_ids,release_dates' : 'external_ids' })) as MovieDetail;
+			const d = (await tmdb(`/${kind}/${r.id}`, { append_to_response: kind === 'movie' ? 'external_ids,release_dates,credits' : 'external_ids,credits' })) as MovieDetail;
 			const imdb = tmdbId(d);
 			if (!imdb) return;
 			const date = kind === 'movie' ? digitalDate(d, now) : (d.first_air_date ?? null);
 			if (!date) return;
-			out.push({ kind, tmdb: r.id, imdb, s: kind === 'tv' ? 1 : 0, e: kind === 'tv' ? 1 : 0, item: baseItem(kind, d, imdb, { type: 'title' }, iso(date), table) });
+			const item = baseItem(kind, d, imdb, { type: 'title' }, iso(date), table);
+			item.reason = { type: kind === 'movie' ? 'digital' : 'premiere', date: iso(date) };
+			out.push({ kind, tmdb: r.id, imdb, s: kind === 'tv' ? 1 : 0, e: kind === 'tv' ? 1 : 0, item });
 		} catch {
 			// Un título que falla no frena a los demás.
 		}
@@ -292,7 +323,7 @@ async function trendingCands(table: Map<number, number> | null): Promise<Cand[]>
 	const out: (Cand & { pop: number })[] = [];
 	await pool(picked, CONCURRENCY, async ([kind, r]) => {
 		try {
-			const d = (await tmdb(`/${kind}/${r.id}`, { append_to_response: 'external_ids' })) as TmdbTitle;
+			const d = (await tmdb(`/${kind}/${r.id}`, { append_to_response: 'external_ids,credits' })) as TmdbTitle;
 			const imdb = tmdbId(d);
 			const item = imdb ? baseItem(kind, d, imdb, null, null, table) : null;
 			if (!imdb || !item || (item.imdbVotes ?? 0) < TRENDING_MIN_VOTES) return;
@@ -312,7 +343,7 @@ async function episodeCands(apodo: string, now: number, table: Map<number, numbe
 		try {
 			const id = sv.tmdb ?? (await tmdbOf(sv.imdb, 'tv'));
 			if (!id) return;
-			const d = (await tmdb(`/tv/${id}`)) as TvDetail;
+			const d = (await tmdb(`/tv/${id}`, { append_to_response: 'credits' })) as TvDetail;
 			const nxt = d.next_episode_to_air;
 			const aired = nxt?.air_date && Date.parse(nxt.air_date) <= now ? nxt : d.last_episode_to_air;
 			if (!aired?.air_date || Date.parse(aired.air_date) > now || now - Date.parse(aired.air_date) > NEWS_WINDOW_DAYS * DAY) return;
@@ -323,7 +354,11 @@ async function episodeCands(apodo: string, now: number, table: Map<number, numbe
 			if (sv.season != null && sv.episode != null && (sv.season > s || (sv.season === s && sv.episode >= e))) return;
 			const total = d.seasons?.find((x) => x.season_number === s)?.episode_count ?? 0;
 			const finale = e === total || ('episode_type' in aired && aired.episode_type === 'finale');
-			out.push({ kind: 'tv', tmdb: id, imdb: sv.imdb, s, e, item: baseItem('tv', d, sv.imdb, { type: 'episode', season: s, episode: e, finale }, iso(aired.air_date), table) });
+			// Temporada completa el mismo día: se muestra (y verifica) desde el E1.
+			const news = episodeNews(d, aired, sv);
+			const item = baseItem('tv', d, sv.imdb, { type: 'episode', season: s, episode: news.e, finale: news.e === e && finale }, iso(aired.air_date), table);
+			item.reason = news.reason;
+			out.push({ kind: 'tv', tmdb: id, imdb: sv.imdb, s, e: news.e, item });
 		} catch {
 			// Idem.
 		}
@@ -391,8 +426,16 @@ export async function refreshNews(apodo: string | null): Promise<void> {
 		for (const v of fresh) checked.set(keyOf(v), v);
 		const subs = await interestsOf(all.filter((c) => checked.get(keyOf(c))?.enCache).map((c) => c.imdb));
 		const valid = new Set(categories().flatMap((c) => c.subs.map((s) => s.id)));
+		const live = (l: { cands: Cand[] }) => l.cands.filter((c) => checked.get(keyOf(c))?.enCache).slice(0, MAX_CANDIDATES);
+		// Puesto en Tendencias de la lista recién armada (sin pedidos extra); si no se rearmó, no hay puesto.
+		const trending = lists.find((l) => l.lista === 'tendencias');
+		const ranks = trendingRanks(trending ? live(trending).map((c) => c.imdb) : []);
 		for (const l of lists) {
-			const items = l.cands.filter((c) => checked.get(keyOf(c))?.enCache).slice(0, MAX_CANDIDATES).map((c) => ({ ...c.item, subgenres: pickSubgenres(subs.get(c.imdb) ?? [], valid) }));
+			const items = live(l).map((c) => {
+				const rank = l.lista === 'estrenos' ? ranks.get(c.imdb) : undefined;
+				const reason = rank ? ({ type: 'trending', rank } as const) : c.item.reason;
+				return { ...c.item, ...(reason ? { reason } : {}), subgenres: pickSubgenres(subs.get(c.imdb) ?? [], valid) };
+			});
 			await saveList(l.alcance, l.lista, items);
 		}
 	} finally {

@@ -43,11 +43,13 @@ function newsMock() {
   if (mode === null || mode === 'empty' || !nickMock.nick) return empty;
   const ago = (d: number) => new Date(Date.now() - d * 86400000).toISOString();
   const title = { type: 'title' };
+  // Con `cast` y `reason` (diseño A2): capítulo con el último visto + final, película con estreno digital, serie nueva en
+  // tendencia y temporada completa. Los de `?news=long` van sin `reason` (como el desktop actual: la UI cae a `what`/`date`).
   const fresh = [
-    newsItem('tv', 'tt0903747', 'Breaking Bad', 2008, ['in0000086'], { what: { type: 'episode', season: 2, episode: 5, finale: false }, date: ago(1) }),
-    newsItem('movie', 'tt15239678', 'Dune: Parte dos', 2024, ['in0000164'], { what: title, date: ago(3) }),
-    newsItem('movie', 'tt9218128', 'Gladiador II', 2024, ['in0000019'], { what: title, date: ago(6) }),
-    newsItem('tv', 'tt11280740', 'Severance', 2022, ['in0000083'], { what: title, date: ago(10) })
+    newsItem('tv', 'tt0903747', 'Breaking Bad', 2008, ['in0000086'], { what: { type: 'episode', season: 2, episode: 13, finale: true }, date: ago(1), cast: ['Bryan Cranston', 'Aaron Paul'], reason: { type: 'episode', lastSeen: { season: 2, episode: 12 } } }),
+    newsItem('movie', 'tt15239678', 'Dune: Parte dos', 2024, ['in0000164'], { what: title, date: ago(3), cast: ['Timothée Chalamet', 'Zendaya'], reason: { type: 'digital', date: ago(3) } }),
+    newsItem('tv', 'tt11280740', 'Severance', 2022, ['in0000083'], { what: title, date: ago(6), cast: ['Adam Scott', 'Britt Lower'], reason: { type: 'trending', rank: 3 } }),
+    newsItem('tv', 'tt14452776', 'The Bear', 2022, ['in0000035'], { what: { type: 'episode', season: 4, episode: 1, finale: false }, date: ago(10), cast: ['Jeremy Allen White', 'Ayo Edebiri'], reason: { type: 'season', season: 4, full: true, episodes: 10 } })
   ];
   const trending = [
     newsItem('movie', 'tt1375666', 'El origen', 2010, ['in0000086']),
