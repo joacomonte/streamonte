@@ -23,13 +23,14 @@ export type PlayStart = (player: PlayerKind | null, audio: { code: string; aid: 
 // Reproductor → audio → subtítulos (los que no aplican se saltean). Cada paso entra deslizándose; "‹" vuelve al
 // anterior. Elegir en el último cierra el panel y resuelve con lo elegido; cerrar (Esc, clic afuera) cancela.
 // Diseño (2026-11-27, docs/mockups/subs-step/index.html?v=A&ui=neu): neumórfico; arriba ‹, título, qué se va a ver y la
-// barra de pasos con su nombre; el recomendado es una tarjeta elevada de vidrio y el resto una lista gris.
-const pkBack = el('button', { id: 'pk-back', type: 'button', class: 'pk-back', 'aria-label': t('Paso anterior') }, icon('arrow', 14));
+// barra de pasos con su nombre; el recomendado es una tarjeta elevada con el primario sólido ámbar (carbón, variante B
+// 2026-11-27, docs/mockups/carbon-neu/index.html?v=b) y el resto una lista gris. ‹ = botón redondo neu en su aro hundido.
+const pkBack = el('button', { id: 'pk-back', type: 'button', class: 'pk-back nu-round', 'aria-label': t('Paso anterior') }, icon('arrow', 14));
 const pkCtx = el('div', { class: 'pk-ctx' });
 const pkSteps = el('div', { class: 'pk-steps' });
 const pkBody = el('div', { class: 'pk-l' });
 const pk = el('div', { id: 'pk', class: 'pk', role: 'dialog', 'aria-labelledby': 'pkh' },
-  el('div', { class: 'pk-top' }, pkBack, el('h2', { class: 'pk-h', id: 'pkh' }), pkCtx, pkSteps), pkBody);
+  el('div', { class: 'pk-top' }, el('span', { class: 'pk-ring nu-ring' }, pkBack), el('h2', { class: 'pk-h', id: 'pkh' }), pkCtx, pkSteps), pkBody);
 pk.hidden = true;
 document.body.append(pk);
 let pkBtn: HTMLElement | null = null;
@@ -89,12 +90,14 @@ function renderStep(dir: number): void {
   pkSteps.hidden = w.steps.length < 2;
   pkSteps.setAttribute('aria-label', t('Paso {a} de {b}', { a: w.i + 1, b: w.steps.length }));
   pkSteps.replaceChildren(...(w.steps.length > 1 ? w.steps.map((s, i) => el('span', { class: i === w.i ? 'on' : i < w.i ? 'done' : '' }, `${i + 1} · ${s.name ?? s.title}`)) : []));
-  // El primero (recomendado o preseleccionado) es la tarjeta; el resto, filas grises con "Usar" al pasar el mouse.
+  // El primero (recomendado o preseleccionado) es la tarjeta con el primario sólido (▶ en el último paso, › antes); el resto,
+  // filas grises con "Usar" al pasar el mouse.
+  const last = w.i === w.steps.length - 1;
   const content = step.render ? step.render(next) : (step.opts ?? []).map((o, i) => el('button', {
     id: `pk-o-${step.id}-${i}`, class: `pk-o${i ? '' : ' pri'}`, type: 'button', 'data-i': String(i), ...(o.tip ? { 'data-tip': o.tip } : {}),
     onclick: () => next(i),
   }, o.art ?? icon('speaker', 18), el('span', {}, o.eyebrow && !i ? el('em', {}, o.eyebrow) : null, el('b', {}, o.label), o.sub ? el('small', {}, o.sub) : null),
-  i ? el('span', { class: 'pk-end', 'aria-hidden': 'true' }, t('Usar')) : null));
+  i ? el('span', { class: 'pk-end', 'aria-hidden': 'true' }, t('Usar')) : el('span', { class: 'pk-go nu-solid' }, icon(last ? 'play' : 'next', 18))));
   pkBody.replaceChildren(...([content].flat(2).filter(Boolean) as (string | Node)[]));
   pkBody.classList.remove('step-next', 'step-prev');
   if (dir) { void pkBody.offsetWidth; pkBody.classList.add(dir > 0 ? 'step-next' : 'step-prev'); }

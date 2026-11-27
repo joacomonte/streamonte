@@ -156,9 +156,10 @@
 	.cost-btn[aria-disabled='true'] { opacity: 0.45; }
 	.more, .gate { display: grid; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: var(--r-card); color: var(--text); text-align: left; font: inherit; }
 	/* Botón: vidrio esmerilado + relieve neumórfico (al apretar, hundido). */
-	.more { grid-template-columns: 28px minmax(0, 1fr); margin-top: 14px; border: 1px solid var(--nu-frost-border); border-radius: 16px; background: var(--nu-frost-bg); backdrop-filter: var(--nu-frost-blur); -webkit-backdrop-filter: var(--nu-frost-blur); box-shadow: var(--nu-frost-shadow); cursor: pointer; transition: background 0.15s, box-shadow 0.15s, transform 0.15s var(--ease); }
-	@media (hover: hover) { .more:hover { background: var(--nu-frost-bg-hover); } }
-	.more:active { box-shadow: var(--nu-frost-press); transform: scale(0.99); }
+	/* "Buscar más": secundario neu elevado del carbón (variante B); el primario sólido es el sub recomendado. */
+	.more { grid-template-columns: 28px minmax(0, 1fr); margin-top: 14px; border: 0; border-radius: var(--r-card); background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-raise-sm); cursor: pointer; transition: box-shadow 0.25s var(--out), transform 0.25s var(--out); }
+	@media (hover: hover) { .more:hover { box-shadow: var(--nu-raise-hover); transform: translateY(-1px); } }
+	.more:active { box-shadow: var(--nu-press-sm); transform: scale(0.99); }
 	.more:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	.more :global(svg) { justify-self: center; color: var(--text); }
 	.more b, .gate b { display: block; font-size: 14px; }

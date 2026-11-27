@@ -106,7 +106,7 @@
 		<span class="lead" aria-hidden="true">{#if busy}<span class="spin"></span>{:else}<Icon name="search" size={18} />{/if}</span>
 		<input bind:this={input} id="cat-q" type="search" placeholder={t('Título, actor/actriz o director')} autocomplete="off" enterkeyhint="search" role="combobox" aria-expanded={show} aria-controls="cat-q-results" aria-autocomplete="list" value={st.q} {oninput} onfocus={() => typed && (open = true)} onkeydown={key} />
 		{#if st.q || st.person}
-			<button id="cat-q-clear" type="button" class="clear-q" aria-label={t('Limpiar búsqueda')} onpointerdown={(e) => e.preventDefault()} onclick={clear}><Icon name="close" size={14} /></button>
+			<span class="nu-ring ring-q"><button id="cat-q-clear" type="button" class="clear-q nu-round" aria-label={t('Limpiar búsqueda')} onpointerdown={(e) => e.preventDefault()} onclick={clear}><Icon name="close" size={13} /></button></span>
 		{/if}
 		{#if busy}<span class="bar" aria-hidden="true"></span>{/if}
 	</label>
@@ -114,12 +114,15 @@
 	{#if show}
 		<div id="cat-q-results" class="drop" role="listbox" aria-label={t('Resultados')} aria-busy={busy}>
 			<!-- Qué se está buscando: tocar un chip deja solo ese tipo (pointerdown sin foco: el teclado del celu no se cierra). -->
-			<div class="filters" role="radiogroup" aria-label={t('Mostrar')}>
-				{#each chips as f (f.v)}
-					<button id="q-only-{f.v}" type="button" class="filter" role="radio" aria-checked={only === f.v} onpointerdown={(e) => e.preventDefault()} onclick={() => (only = f.v)}>
-						<Icon name={f.icon} size={14} />{t(f.label)}{#if f.v !== 'all' && count[f.v]}<span class="n">{count[f.v]}</span>{/if}
-					</button>
-				{/each}
+			<!-- Segmentado neumórfico: canal hundido, el elegido elevado. -->
+			<div class="filters-bar">
+				<div class="filters" role="radiogroup" aria-label={t('Mostrar')}>
+					{#each chips as f (f.v)}
+						<button id="q-only-{f.v}" type="button" class="filter" role="radio" aria-checked={only === f.v} onpointerdown={(e) => e.preventDefault()} onclick={() => (only = f.v)}>
+							<Icon name={f.icon} size={14} />{t(f.label)}{#if f.v !== 'all' && count[f.v]}<span class="n">{count[f.v]}</span>{/if}
+						</button>
+					{/each}
+				</div>
 			</div>
 			{#if titles.length || people.length}
 				<ul>
@@ -182,40 +185,30 @@
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		margin-top: 6px;
-		padding: 0 12px;
+		gap: 10px;
+		padding: 0 14px 0 16px;
 		height: 48px;
 		overflow: hidden;
-		border-radius: var(--r-card);
-		background: var(--surface-2);
+		/* Hundido en el panel de filtros (C1 2026-11-27); radio de las cards. */
+		border-radius: var(--nu-radius);
+		background: var(--nu-well);
+		box-shadow: var(--nu-press);
 		color: var(--muted);
 		transition: box-shadow 0.3s var(--out), background 0.3s var(--out);
 	}
-	.search:focus-within { background: var(--surface-3, var(--surface-2)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-fg) 55%, transparent), 0 10px 30px rgb(0 0 0 / 0.35); }
+	/* Foco sutil: sigue hundido, se aclara apenas y gana un filo de luz (sin anillo azul). */
+	.search:focus-within { background: rgb(0 0 0 / 0.26); box-shadow: var(--nu-press), var(--nu-well-focus); color: var(--text); }
 	.lead { display: grid; place-items: center; width: 20px; height: 20px; flex: none; }
 	.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--accent-fg) 25%, transparent); border-top-color: var(--accent-fg); animation: spin 0.7s linear infinite; }
 	/* Barrita que corre abajo del buscador mientras busca. */
 	.bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent-fg), transparent); background-size: 40% 100%; background-repeat: no-repeat; animation: run 1.1s ease-in-out infinite; }
 	.search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: var(--text); font-size: 16px; }
-	.search input::placeholder { color: var(--muted); }
+	.search input::placeholder { color: var(--dim); }
 	/* Sin la cruz nativa: va la propia, igual en todos los navegadores. */
 	.search input::-webkit-search-cancel-button { display: none; }
-	.clear-q {
-		position: relative;
-		flex: none;
-		display: grid;
-		place-items: center;
-		width: 24px;
-		height: 24px;
-		margin-right: -2px;
-		padding: 0;
-		border: 0;
-		border-radius: var(--r-pill);
-		background: color-mix(in srgb, var(--muted) var(--tint-4), transparent);
-		color: var(--bg);
-		animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-	}
+	/* Cruz: botón redondo neu (`.nu-round`) chico, en su aro hundido (`.nu-ring`). */
+	.ring-q { margin-right: -6px; padding: 3px; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+	.clear-q { position: relative; width: 24px; height: 24px; }
 	/* Se ve de 24px, se toca en 44px. */
 	.clear-q::after { content: ''; position: absolute; inset: -10px; }
 
@@ -224,40 +217,51 @@
 		position: absolute;
 		top: calc(100% + 8px);
 		left: 0;
-		right: 0;
+		/* Con el buscador angosto (C1) el desplegable no se achica con él: hasta 640 px, sin pasar el borde de la pantalla. */
+		width: max(100%, min(640px, calc(100vw - 48px)));
 		max-height: min(560px, calc(100dvh - 140px));
 		overflow-y: auto;
 		overscroll-behavior: contain;
-		padding: 6px;
-		border-radius: var(--r-card);
-		background: color-mix(in srgb, var(--raised) 94%, transparent);
-		box-shadow: 0 24px 60px rgb(0 0 0 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+		padding: 0 12px 14px;
+		/* Panel del material neumórfico: misma superficie que el panel de filtros; flota sobre el fondo desenfocado. */
+		border-radius: calc(var(--nu-radius) + 4px);
+		background: var(--nu-bg);
+		box-shadow: var(--nu-float);
 		transform-origin: top center;
 		animation: drop 0.32s var(--out);
 		scrollbar-width: thin;
 	}
 	.drop ul { margin: 0; padding: 0; list-style: none; }
-	/* Chips de tipo: fila fija arriba del desplegable (se desliza de costado en celu si no entra). */
-	.filters { position: sticky; top: -6px; z-index: 1; display: flex; gap: 6px; margin: -6px -6px 4px; padding: 10px 10px 8px; overflow-x: auto; scrollbar-width: none; background: color-mix(in srgb, var(--raised) 96%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgb(255 255 255 / 0.06); }
+	/* Chips de tipo: segmentado neumórfico fijo arriba del desplegable. Canal hundido; el elegido sale elevado; el resto ghost
+	   (se desliza de costado en celu si no entra). */
+	.filters-bar { position: sticky; top: 0; z-index: 1; margin: 0 -12px 6px; padding: 12px 12px 10px; background: var(--nu-bg); }
+	.filters { display: flex; gap: 4px; width: max-content; max-width: 100%; padding: 4px; overflow-x: auto; scrollbar-width: none; border-radius: calc(var(--nu-radius) + 4px); background: var(--nu-well); box-shadow: var(--nu-press-sm); }
 	.filters::-webkit-scrollbar { display: none; }
-	.filter { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: rgb(255 255 255 / 0.06); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08); color: var(--muted); font: inherit; font-size: 13px; font-weight: 650; white-space: nowrap; cursor: pointer; animation: rise-in 0.3s var(--out) backwards; transition: background 0.2s, color 0.2s, box-shadow 0.2s, scale 0.15s var(--out); }
-	.filter:hover { color: var(--text); }
+	.filter { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: var(--nu-radius); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 650; white-space: nowrap; cursor: pointer; animation: rise-in 0.3s var(--out) backwards; transition: background 0.2s, color 0.2s, box-shadow 0.2s, scale 0.15s var(--out); }
+	@media (hover: hover) { .filter:hover { color: var(--text); } }
 	.filter:active { scale: 0.95; }
-	.filter[aria-checked='true'] { background: var(--text); color: var(--bg); box-shadow: 0 4px 14px rgb(0 0 0 / 0.3); }
-	.filter .n { min-width: 18px; padding: 0 5px; border-radius: 9px; background: rgb(255 255 255 / 0.1); font-size: 11px; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
-	.filter[aria-checked='true'] .n { background: rgb(0 0 0 / 0.12); }
+	.filter[aria-checked='true'] { background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-raise-sm); color: #fff; }
+	/* Contador: pocito hundido (también en el elegido). */
+	.filter .n { min-width: 18px; padding: 0 5px; border-radius: var(--r-xs); background: var(--nu-well); box-shadow: var(--nu-press-sm); font-size: 11px; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
 	.filter:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	.drop li { animation: rise-in 0.38s var(--out) calc(var(--i) * 30ms) backwards; }
 	/* Cada opción es una tarjeta: el póster (o la foto) desenfocado de fondo con fade a negro de izquierda a derecha. */
 	/* minmax(0, 1fr): sin esto la columna toma el ancho del título más largo (nowrap) y, con el panel lateral abierto,
 	   las filas se salían del desplegable y quedaban cortadas a la derecha. */
-	.drop ul { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-	.row { position: relative; isolation: isolate; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 124px; padding: 12px 16px 12px 12px; overflow: hidden; border: 0; border-radius: 16px; background: #11151a; color: #fff; text-align: left; text-decoration: none; font: inherit; cursor: pointer; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 6px 18px rgb(0 0 0 / 0.35); transition: box-shadow 0.2s, scale 0.2s var(--out); }
-	.row::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to right, rgb(0 0 0 / 0.92) 0%, rgb(0 0 0 / 0.8) 45%, rgb(0 0 0 / 0.5) 100%); }
-	.bg { position: absolute; inset: -20px; z-index: -2; background: #1a1f27 center 30% / cover; filter: blur(16px) saturate(1.4); transform: scale(1.05); transition: transform 0.5s var(--out); }
-	.row:hover, .row:focus-visible { outline: none; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.35), 0 10px 26px rgb(0 0 0 / 0.45); }
-	.row:hover .bg { transform: scale(1.12); }
-	.row:active { scale: 0.985; }
+	.drop ul { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+	/* Tile elevado (--nu-raise) sobre la superficie del panel; el póster desenfocado queda de fondo con fade a oscuro y el
+	   brillo del tile encima. Hover: sube y se ilumina apenas (nada de gris lavado). */
+	.row { position: relative; isolation: isolate; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 124px; padding: 12px 16px 12px 12px; overflow: hidden; border: 0; border-radius: var(--nu-radius); background: var(--nu-bg); color: #fff; text-align: left; text-decoration: none; font: inherit; cursor: pointer; box-shadow: var(--nu-raise); transition: box-shadow 0.25s var(--out), transform 0.25s var(--out); }
+	.row::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--nu-tile), linear-gradient(to right, rgb(12 12 14 / 0.94) 0%, rgb(12 12 14 / 0.84) 45%, rgb(12 12 14 / 0.7) 100%); transition: opacity 0.25s; }
+	.row::after { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--nu-tile); opacity: 0; transition: opacity 0.25s var(--out); pointer-events: none; }
+	.bg { position: absolute; inset: -20px; z-index: -2; background: var(--nu-bg) center 30% / cover; filter: blur(16px) saturate(1.3); transform: scale(1.05); transition: transform 0.5s var(--out); }
+	@media (hover: hover) {
+		.row:hover { box-shadow: var(--nu-raise-hover); transform: translateY(-1px); }
+		.row:hover::after { opacity: 1; }
+		.row:hover .bg { transform: scale(1.1); }
+	}
+	.row:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+	.row:active { box-shadow: var(--nu-press); transform: scale(0.99); }
 	.thumb { flex: none; width: 66px; height: 99px; border-radius: 8px; object-fit: cover; background: var(--surface-3); box-shadow: 0 8px 20px rgb(0 0 0 / 0.55), inset 0 0 0 0.5px rgb(255 255 255 / 0.15); }
 	.face { flex: none; width: 76px; height: 76px; margin: 0 -4px; border-radius: 50%; object-fit: cover; background: var(--surface-3); box-shadow: 0 8px 20px rgb(0 0 0 / 0.55), 0 0 0 2px rgb(255 255 255 / 0.12); }
 	.ph { display: grid; place-items: center; color: var(--muted); }
@@ -265,14 +269,15 @@
 	.who b { overflow: hidden; font-size: 19px; font-weight: 750; letter-spacing: -0.01em; white-space: nowrap; text-overflow: ellipsis; }
 	.who small { overflow: hidden; color: rgb(255 255 255 / 0.65); font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
 	/* Película o serie: etiqueta chica arriba del título. */
-	.kind { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: var(--r-pill); background: rgb(122 176 255 / 0.18); box-shadow: inset 0 0 0 1px rgb(122 176 255 / 0.4); color: #a9cbff; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; backdrop-filter: blur(8px); }
-	.kind.tv { background: rgb(196 161 255 / 0.18); box-shadow: inset 0 0 0 1px rgb(196 161 255 / 0.4); color: #d6c2ff; }
-	.go { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgb(255 255 255 / 0.1); color: rgb(255 255 255 / 0.75); backdrop-filter: blur(8px); transition: background 0.2s, translate 0.2s var(--out); }
-	.row:hover .go { background: rgb(255 255 255 / 0.2); color: #fff; translate: 2px 0; }
+	/* Etiqueta hundida (pocito), neutra: película o serie se distingue por el ícono. */
+	.kind { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: var(--r-xs); background: rgb(0 0 0 / 0.3); box-shadow: var(--nu-press-sm); color: rgb(255 255 255 / 0.78); font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+	/* Chevron: secundario gris (decorativo; toda la fila es el botón); al pasar se corre y se aclara. */
+	.go { flex: none; display: grid; place-items: center; width: 30px; height: 30px; color: var(--muted); transition: color 0.2s, translate 0.2s var(--out); }
+	@media (hover: hover) { .row:hover .go { color: #fff; translate: 2px 0; } }
 	.more { margin: 4px 0 2px; color: var(--muted); font-size: 12.5px; text-align: center; animation: pulse 1.4s ease-in-out infinite; }
 	.none { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0; padding: 22px 16px; color: var(--muted); font-size: 14px; text-align: center; animation: rise-in 0.3s var(--out); }
 	/* Esqueleto mientras llega la primera respuesta. */
-	.sk { display: flex; align-items: center; gap: 14px; min-height: 124px; padding: 12px; border-radius: 16px; background: rgb(255 255 255 / 0.03); }
+	.sk { display: flex; align-items: center; gap: 14px; min-height: 124px; padding: 12px; border-radius: var(--nu-radius); background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-raise-sm); }
 	.sk-thumb { flex: none; width: 66px; height: 99px; border-radius: 8px; }
 	.sk .who { gap: 8px; }
 	.sk-l { width: 60%; }
@@ -298,5 +303,5 @@
 	.person-chip span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-left: 4px; }
 	.chip-x { position: relative; flex: none; display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--accent) 22%, transparent); color: inherit; }
 	.chip-x::after { content: ''; position: absolute; inset: -9px; }
-	@media (prefers-reduced-motion: reduce) { .filter, .blur, .drop, .drop li, .person-chip, .clear-q, .bar, .more, .none { animation: none; } .spin { animation-duration: 2s; } }
+	@media (prefers-reduced-motion: reduce) { .filter, .blur, .drop, .drop li, .person-chip, .ring-q, .bar, .more, .none { animation: none; } .spin { animation-duration: 2s; } }
 </style>

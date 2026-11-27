@@ -1,13 +1,14 @@
 <script lang="ts">
 	// Catálogo compartido (web y desktop): buscador + sugerencias de personas, tipo, orden, "Estrenos desde", votos, géneros y
-	// la grilla con scroll infinito. Los datos y el estado viven en `store` (`catalog.svelte.ts`); abrir un título es `onopen`.
+	// la grilla con scroll infinito. Filtros en un panel neumórfico (C1 2026-11-27, docs/mockups/filtros-neu #vc1): tipo a todo
+	// el ancho, la cinta y abajo el buscador angosto con las pastillas (votos, orden, géneros, limpiar). Los datos y el estado viven en `store` (`catalog.svelte.ts`); abrir un título es `onopen`.
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import Icon from '../components/Icon.svelte';
 	import { getApi } from '../context.ts';
 	import { t } from '../i18n/runtime.ts';
 	import type { CatalogItem, PersonHit } from '../types.ts';
-	import { KINDS, SORTS, backLabel, votesLabel, type Filters } from './filters.ts';
+	import { KINDS, SORTS, VOTE_LEVELS, backLabel, changedCount, nearestLevel, votesLabel, type Filters } from './filters.ts';
 	import GenrePicker from './GenrePicker.svelte';
 	import Grid from './Grid.svelte';
 	import { unseenCount, type NewsItem, type NewsList } from './news.ts';
@@ -15,10 +16,10 @@
 	import NewsDialog from './NewsDialog.svelte';
 	import RecentRow from './RecentRow.svelte';
 	import type { EpisodeRef, RecentItem } from './recent.ts';
+	import PillMenu from './PillMenu.svelte';
 	import Search from './Search.svelte';
 	import Segmented from './Segmented.svelte';
 	import Since from './Since.svelte';
-	import Votes from './Votes.svelte';
 	import type { CatalogStore } from './store.ts';
 	import { categoryOf } from './subgenres.ts';
 	import TrendingRow from './TrendingRow.svelte';
@@ -99,10 +100,11 @@
 		const subs = c.subs.filter((x) => f.subs.includes(x.id)).map((x) => x.label);
 		return subs.length ? `${c.label}: ${subs.join(', ')}` : c.label;
 	};
-	/** Orden elegido y el otro (un solo botón que alterna). */
-	/** Orden como segmentado: nombre corto ("Puntaje" / "Populares") con su ícono. */
-	const SORT_ITEMS = SORTS.map((s) => ({ v: s.v, label: s.short, icon: s.icon }));
-	let sortPopped = $state<Filters['sort'] | ''>('');
+	/** Pastillas de votos y orden: los valores de `filters.ts` y el nivel de votos aplicado (0–2). */
+	const VOTE_VALUES = VOTE_LEVELS.map((l) => l.v);
+	const SORT_VALUES = SORTS.map((s) => s.v);
+	const level = $derived(nearestLevel(st.f.votes));
+	const sortOf = (v: Filters['sort']) => SORTS.find((s) => s.v === v) ?? SORTS[0];
 	/** Desplegable del buscador abierto. */
 	let searchOpen = $state(false);
 	/** Con filtros a la vista (no buscando ni sin key): al scrollear se compactan en una línea (2026-11-23, variante 1A). */
@@ -225,39 +227,52 @@
 	}
 </script>
 
+{#snippet crowd(n: number)}
+	<!-- Votos como nivel: 1, 2 o 3 personitas en ámbar; el resto tenues. -->
+	<span class="crowd" aria-hidden="true">{#each VOTE_LEVELS as _, i (i)}<span class:off={i > n}><Icon name="user" size={13} /></span>{/each}</span>
+{/snippet}
+
 <div bind:this={root} class="catalog-root">
 	{#if expanded}<button id="cat-compact-close" type="button" class="backdrop" aria-label={t('Cerrar filtros')} onclick={() => (expanded = false)}></button>{/if}
 	<header class="head" class:intro class:pinned class:expanded class:stuck={stuck && compactable} style:--hide="{hide}px">
 		<div class="inner">
 			<div class="head-top" bind:clientHeight={topH}>
 				{@render header?.()}
-				<div class="search-row">
-					<Search {store} onclear={clear} {onquery} onpick={pick} {onopen} {href} bind:open={searchOpen} />
-				</div>
-				{#if !searching}
-					<!-- Tipo (2026-11-24: el orden pasó a la fila de géneros, como segmentado). -->
-					<div class="ks">
-						<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} onpick={(v) => ((popped = v), setF({ kind: v }))} />
+				<!-- Panel neumórfico de filtros (C1): tipo, cinta y fila del buscador con las pastillas. Buscando queda solo el buscador. -->
+				<div class="filters-panel">
+					{#if !searching}
+						<div class="ks">
+							<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} onpick={(v) => ((popped = v), setF({ kind: v }))} />
+						</div>
+						{#if !trendingOnly}<Since {store} onset={setF} />{/if}
+					{/if}
+					<div class="srow" class:alone={searching || trendingOnly}>
+						<Search {store} onclear={clear} {onquery} onpick={pick} {onopen} {href} bind:open={searchOpen} />
+						{#if !searching && !trendingOnly}
+							<div class="strip">
+								<PillMenu id="cat-votes" label={t('Votos')} items={VOTE_VALUES} value={VOTE_LEVELS[level].v} onpick={(v) => setF({ votes: v })}>
+									{#snippet face()}{@render crowd(level)}<span id="votes-value">{t(VOTE_LEVELS[level].label)}</span>{/snippet}
+									{#snippet option(v)}{@const i = VOTE_VALUES.indexOf(v)}{@render crowd(i)}<span class="opt-txt">{t(VOTE_LEVELS[i].label)}<small>{votesLabel(v)}</small></span>{/snippet}
+								</PillMenu>
+								<PillMenu id="cat-sort" label={t('Orden')} items={SORT_VALUES} value={st.f.sort} onpick={(v) => setF({ sort: v })}>
+									{#snippet face()}<Icon name={sortOf(st.f.sort).icon} size={16} />{t(sortOf(st.f.sort).label)}{/snippet}
+									{#snippet option(v)}<Icon name={sortOf(v).icon} size={16} />{t(sortOf(v).label)}{/snippet}
+								</PillMenu>
+								<GenrePicker {store} onpick={(genre, subs) => (store.setGenre(genre, subs), afterFilter())} />
+								<!-- Limpiar = `store.resetFilters` (votos y género a su valor por defecto; tipo, orden y fechas quedan). -->
+								<button id="cat-reset" type="button" class="reset" disabled={!changedCount(st.f)} onclick={() => (store.resetFilters(), afterFilter())}>{t('Limpiar')}</button>
+							</div>
+						{/if}
 					</div>
-					{#if trendingOnly}
+					{#if !searching && trendingOnly}
 						<span id="cat-trending" class="trending">{t('En tendencia ahora')}</span>
 						{#if onneedskey}
 							<button id="cat-tmdb-cta" type="button" class="tmdb-cta" onclick={onneedskey}>
 								<Icon name="lock" size={13} />{t('Filtrá por fecha, votos, idioma y géneros')}<span class="tmdb-key">{t('key gratis de TMDB')}</span><Icon name="arrow" size={13} />
 							</button>
 						{/if}
-					{:else}
-						<Since {store} onset={setF} />
-						<Votes {store} onset={setF} />
-						<!-- Orden (segmentado, primero) y géneros en la misma fila. -->
-						<div class="sort-row">
-							<div class="ks ks-sort">
-								<Segmented id="cat-sort" label={t('Orden')} items={SORT_ITEMS} value={st.f.sort} popped={sortPopped} onpick={(v) => ((sortPopped = v), setF({ sort: v }))} />
-							</div>
-							<GenrePicker {store} onpick={(genre, subs) => (store.setGenre(genre, subs), afterFilter())} />
-						</div>
 					{/if}
-				{/if}
+				</div>
 			</div>
 			{#if compactable && stuck && !expanded}
 				<button id="cat-compact" type="button" class="compact" aria-expanded="false" aria-label={t('Filtros aplicados: {f}. Cambiar', { f: compactText.join(', ') })} onclick={() => (expanded = true)}>
@@ -309,11 +324,6 @@
 	.compact .dot { margin: 0 6px; color: var(--dim, var(--muted)); }
 	.compact .amber { color: var(--amber); font-variant-numeric: tabular-nums; }
 	.inner { max-width: 1200px; margin: 0 auto; }
-	/* Fila del buscador. */
-	.search-row { display: flex; align-items: flex-start; gap: 8px; }
-	/* Por clase y no `:first-child`: al abrir el desplegable, Search pone antes su fondo difuminado (`.blur`) y el buscador
-	   se achicaba al ancho de su contenido. */
-	.search-row > :global(.finder) { flex: 1; min-width: 0; }
 	.head-top { padding-bottom: 2px; }
 	/* Entrada después de la bienvenida: cada bloque de arriba sube escalonado. */
 	.intro .head-top > * { animation: rise 0.7s var(--out) backwards; }
@@ -324,17 +334,40 @@
 	.intro .head-top > :nth-child(6) { animation-delay: 300ms; }
 	@keyframes rise { from { opacity: 0; transform: translateY(24px); } }
 
-	/* Cápsula del tipo (ancho completo, 2026-11-24) y la del orden en la fila de géneros: fondo propio y el pulgar que se desliza. */
-	.ks { display: flex; align-items: stretch; gap: 2px; margin-top: 12px; padding: 4px; border-radius: var(--r-pill); background: var(--surface-2); }
-	/* Orden primero y géneros al lado; el orden no se achica por debajo de lo que entra en celu. */
-	.sort-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-	.ks-sort { flex: 0 1 280px; min-width: 168px; margin: 6px 0 10px; padding: 3px; }
-	/* Celu: el orden ocupa lo que sobra y géneros (compacto en GenrePicker) se queda con lo suyo, sin cortarse. */
-	@media (max-width: 479px) { .ks-sort { flex: 1 1 0; min-width: 160px; } }
-
+	/* Panel neumórfico de filtros (C1; flota sobre el carbón, variante B 2026-11-27). `minmax(0, 1fr)`: el contenido (la fila de pastillas) no lo ensancha. */
+	.filters-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 6px 0 22px; padding: 14px; border-radius: calc(var(--nu-radius) + 14px); background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-float); }
+	/* Canal hundido del tipo, a todo el ancho; la pastilla elevada se desliza adentro (`Segmented`). */
+	/* Canal = radio del hijo + su padding, así las curvas quedan paralelas. */
+	.ks { display: flex; padding: 5px; border-radius: calc(var(--nu-radius) + 5px); background: var(--nu-well); box-shadow: var(--nu-press); }
+	/* Buscador angosto + pastillas. Por clase y no `:first-child`: al abrir el desplegable, Search pone antes su fondo
+	   difuminado (`.blur`). */
+	.srow { display: flex; align-items: center; gap: 10px; min-width: 0; }
+	.srow > :global(.finder) { flex: 0 1 290px; min-width: 0; max-width: 290px; }
+	/* Buscando (o sin key): el buscador solo, a todo el ancho; la píldora de la persona abajo. */
+	.srow.alone { flex-wrap: wrap; }
+	.srow.alone > :global(.finder) { flex: 1 1 100%; max-width: none; }
+	.strip { display: flex; align-items: center; gap: 10px; min-width: 0; }
+	.crowd { display: inline-flex; gap: 1px; color: var(--amber); }
+	.crowd > span { display: flex; }
+	.crowd .off { color: rgb(255 255 255 / 0.2); }
+	.opt-txt { display: flex; flex-direction: column; line-height: 1.2; }
+	.opt-txt small { font-size: 11.5px; font-weight: 500; color: var(--dim); font-variant-numeric: tabular-nums; }
+	/* Limpiar: ghost gris tenue (secundario, nunca botón lleno). */
+	.reset { flex: none; height: 40px; padding: 0 10px; border: 0; border-radius: var(--nu-radius); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: color 0.2s; }
+	.reset:disabled { opacity: 0.45; cursor: default; }
+	@media (hover: hover) { .reset:not(:disabled):hover { color: var(--text); } }
+	.reset:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+	/* Celu: buscador arriba a todo el ancho y las pastillas en una fila que se desliza, con fundido a la derecha. */
+	@media (max-width: 720px) {
+		.srow { flex-direction: column; align-items: stretch; }
+		.srow > :global(.finder) { flex: none; max-width: none; }
+		.strip { margin: -8px -14px; padding: 8px 14px; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+		.strip::-webkit-scrollbar { display: none; }
+		.strip > :global(*) { flex: none; }
+	}
 
 	.body { padding: 14px 16px calc(24px + var(--safe-bottom)); }
-	.trending { display: block; margin-top: 12px; font-size: 13px; font-weight: 650; color: var(--muted); }
-	.tmdb-cta { display: inline-flex; align-items: center; gap: 6px; margin: 8px 0 10px; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--accent) var(--tint-3), transparent); border-radius: var(--r-pill); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--text); font-size: 13px; }
+	.trending { display: block; font-size: 13px; font-weight: 650; color: var(--muted); }
+	.tmdb-cta { justify-self: start; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--accent) var(--tint-3), transparent); border-radius: var(--r-pill); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--text); font-size: 13px; }
 	.tmdb-key { color: var(--accent-fg); font-weight: 650; }
 </style>

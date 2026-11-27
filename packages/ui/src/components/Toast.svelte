@@ -35,7 +35,7 @@
 		</span>
 		{#if req.action}
 			{@const action = req.action}
-			<button id={action.id ?? 'toast-action'} type="button" class="toast-btn" onclick={() => { dismissToast(); action.onclick(); }}>{action.label}</button>
+			<button id={action.id ?? 'toast-action'} type="button" class="toast-btn nu-solid" onclick={() => { dismissToast(); action.onclick(); }}>{action.label}</button>
 		{/if}
 	{/if}
 </div>
@@ -50,13 +50,12 @@
 		align-items: center;
 		gap: 12px;
 		padding: 10px 10px 10px 12px;
-		border: 1px solid var(--border);
+		/* Carbón que flota (variante B 2026-11-27); la acción (Deshacer…) es el primario sólido ámbar. */
+		border: 0;
 		border-radius: var(--r-lg);
-		background: color-mix(in srgb, var(--surface) 92%, transparent);
-		backdrop-filter: blur(14px);
-		-webkit-backdrop-filter: blur(14px);
+		background: var(--nu-tile), var(--nu-bg);
 		color: var(--text);
-		box-shadow: 0 10px 30px var(--shadow-lg);
+		box-shadow: var(--nu-float);
 	}
 	.toast:popover-open { display: flex; animation: toast-in 0.32s var(--out); }
 	@keyframes toast-in { from { transform: translateY(24px); opacity: 0; } }
@@ -68,6 +67,6 @@
 	@media (prefers-reduced-motion: reduce) { .toast-mark path { stroke-dashoffset: 0; } }
 	.toast-text { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 13px; color: var(--muted); }
 	.toast-text strong { font-size: 14.5px; color: var(--text); }
-	.toast-btn { flex: none; min-height: 36px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: var(--surface-3); color: var(--text); font-size: 13px; font-weight: 650; position: relative; }
+	.toast-btn { position: relative; height: 36px; padding: 0 14px; font-size: 13px; }
 	.toast-btn::after { content: ''; position: absolute; inset: -4px 0; }
 </style>

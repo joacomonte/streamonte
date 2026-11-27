@@ -115,7 +115,7 @@
 <svelte:head>
 	<link rel="icon" type="image/svg+xml" href={favicon} />
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-	<meta name="theme-color" content="#0d1014" />
+	<meta name="theme-color" content="#151618" />
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 	<title>Streamonte</title>
 </svelte:head>

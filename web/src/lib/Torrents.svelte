@@ -794,9 +794,9 @@
 	.paste-note :global(svg) { flex: none; color: var(--accent-fg); }
 	/* Copiar link / Descargar de un subtítulo: íconos de 40 px en la fila; lleno el recomendado. */
 	.iconbtn.sa { border: 1px solid var(--border-strong); color: var(--text); }
-	/* El recomendado: vidrio esmerilado + relieve neumórfico (nunca azul de fondo). */
-	.iconbtn.sa.rec { border-color: var(--nu-frost-border); background: var(--nu-frost-bg); backdrop-filter: var(--nu-frost-blur); -webkit-backdrop-filter: var(--nu-frost-blur); box-shadow: var(--nu-frost-shadow); color: #fff; }
-	.iconbtn.sa.rec:active { box-shadow: var(--nu-frost-press); }
+	/* El recomendado: primario sólido ámbar (carbón variante B; nunca azul de fondo). */
+	.iconbtn.sa.rec { border-color: transparent; border-radius: var(--nu-solid-radius); background: var(--nu-solid-face), var(--nu-solid); box-shadow: var(--nu-solid-shadow); color: var(--nu-solid-fg); }
+	.iconbtn.sa.rec:active { box-shadow: var(--nu-solid-press); }
 	.iconbtn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--r-md); background: none; color: var(--muted); }
 	.tut { width: 44px; height: 44px; }
 	/* Festejo "¡Link copiado!": tapa la pantalla 1,5 s y se va solo. */

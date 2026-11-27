@@ -9,8 +9,9 @@ Alias `$ui` → `src/` (web: `web/vite.config.ts`; desktop: `ui/vite.config.ts`)
 - CSS → `css/` (abajo).
 
 ## CSS compartido (`css/`)
-- `tokens.css` (`:root`, solo oscuro) · `base.css` · `components.css` (`.btn` `.chip` `.pill` `.badge` `.sheet` `.menu` `.fade-dark`) · `settings.css` (`.st-*`) · `options.css` (`.cat-*`). Lo importan `web/src/app.css` y `ui/src/main.ts`.
-- Botones siempre neumorphism + frosted (sombra como los pósters de `catalog/Grid.svelte`); nunca botones normales ni azul sólido (`--accent` de fondo). Secundario: ghost gris tenue. <!-- mem:streamonte#164 -->
+- `tokens.css` (`:root`, solo oscuro) · `base.css` · `components.css` (`.btn` `.chip` `.pill` `.badge` `.sheet` `.menu` `.fade-dark` `.nu-lift` `.nu-solid` `.nu-ring` `.nu-round`) · `settings.css` (`.st-*`) · `options.css` (`.cat-*`). Lo importan `web/src/app.css` y `ui/src/main.ts`.
+- Botones: primario sólido ámbar de acento (variante B carbón, `.nu-solid`), secundarios neu (`.nu-lift`, `.nu-round` en `.nu-ring`) o ghost gris; nunca azul sólido (`--accent` de fondo) ni botones planos estándar. <!-- mem:streamonte#164 -->
+- UI nueva: seguir `docs/estilo/README.md` (obligatorio: tokens `--nu-*`, radio `--nu-radius`, recetas; referencia visual `docs/estilo/ejemplo.html`).
 - Baldosa/tarjeta con imagen de fondo: fade a oscuro (`--fade-dark`, `.fade-dark`), no tintes. CSS sin prefijo: cuidado con colisiones; el layout de cada pantalla, scoped. Sin test: `scripts/shot.mjs`.
 - `packages/golden/` (vectores Rust ↔ web) → `packages/golden/CLAUDE.md`. Sin build propio.
 

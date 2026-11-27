@@ -1,6 +1,7 @@
 <script lang="ts">
 	// "Estrenos desde → hasta": una tira de película que se arrastra, con el título, el año (pegado al cabezal) y "hoy"
-	// adentro (2026-11-23, variante 3A: sin atajos ni encabezado aparte).
+	// adentro (2026-11-23, variante 3A: sin atajos ni encabezado aparte). C1 2026-11-27: canal hundido del panel neumórfico,
+	// con el año como etiqueta elevada (`.nu-lift`).
 	import { untrack } from 'svelte';
 	import Icon from '../components/Icon.svelte';
 	import { t } from '../i18n/runtime.ts';
@@ -222,7 +223,7 @@
 						{/each}
 						<span class="reel-label" aria-hidden="true">{t('Estrenos desde')}</span>
 						<span class="playhead" aria-hidden="true"></span>
-						{#key shownM}<span id="since-value" class="tag" aria-hidden="true">{valueText(shownM)}</span>{/key}
+						{#key shownM}<span id="since-value" class="tag nu-lift" aria-hidden="true">{valueText(shownM)}</span>{/key}
 						<span
 							id="until-slider"
 							class="playhead until"
@@ -248,8 +249,8 @@
 
 <style>
 	/* Estrenos desde: una tira de película con todo adentro (título, año en el cabezal, "hoy"). */
-	.since { margin-top: 10px; }
-	.reel-label { position: absolute; left: 12px; top: 17px; z-index: 1; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; pointer-events: none; }
+	.since { min-width: 0; }
+	.reel-label { position: absolute; left: 16px; top: 16px; z-index: 1; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; pointer-events: none; }
 	/* El año, pegado al cabezal por la izquierda (2026-11-24); pasa a su derecha cuando el cabezal queda cerca del borde izquierdo. */
 	.tag {
 		position: absolute;
@@ -257,13 +258,11 @@
 		left: var(--at);
 		z-index: 2;
 		translate: calc(-100% - 10px) -50%;
-		padding: 3px 9px;
-		border-radius: var(--r-xs);
-		/* Placa ámbar llena (2026-11-24: la de vidrio tenue no se veía). */
-		background: var(--amber);
-		box-shadow: 0 4px 14px color-mix(in srgb, var(--amber) 40%, transparent), 0 0 0 1px rgb(0 0 0 / 0.25);
-		color: #1a1204;
-		font-size: 15px;
+		padding: 4px 12px;
+		border-radius: var(--nu-radius);
+		/* Elevada del material del panel (`.nu-lift`), con el año en ámbar claro (C1 2026-11-27). */
+		color: #ffd28a;
+		font-size: 17px;
 		font-weight: 800;
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
@@ -298,16 +297,17 @@
 	.to-val { display: inline-block; animation: tick-in 0.25s var(--out); }
 	@keyframes tick-in { from { transform: translateY(40%); opacity: 0; filter: blur(2px); } }
 
-	/* Tira de película: perforaciones arriba y abajo; lo elegido (desde → hoy) queda "revelado" y brilla. */
+	/* Tira de película en un canal hundido del panel: perforaciones arriba y abajo; lo elegido (desde → hoy) queda "revelado" y brilla. */
 	.reel {
 		position: relative;
-		height: 76px;
-		border-radius: var(--r-card);
+		height: 74px;
+		border-radius: 18px;
 		background:
-			radial-gradient(circle at 50% 50%, var(--bg) 2.2px, transparent 2.8px) 0 5px / 14px 8px repeat-x,
-			radial-gradient(circle at 50% 50%, var(--bg) 2.2px, transparent 2.8px) 0 calc(100% - 5px) / 14px 8px repeat-x,
-			repeating-linear-gradient(270deg, color-mix(in srgb, var(--muted) 22%, transparent) 0 1px, transparent 1px var(--tick)),
-			var(--surface-2);
+			radial-gradient(circle at 50% 50%, rgb(0 0 0 / 0.55) 2.2px, transparent 2.8px) 0 5px / 14px 8px repeat-x,
+			radial-gradient(circle at 50% 50%, rgb(0 0 0 / 0.55) 2.2px, transparent 2.8px) 0 calc(100% - 5px) / 14px 8px repeat-x,
+			repeating-linear-gradient(270deg, rgb(255 255 255 / 0.06) 0 1px, transparent 1px var(--tick)),
+			var(--nu-well);
+		box-shadow: var(--nu-press);
 		touch-action: none;
 		cursor: ew-resize;
 		user-select: none;
@@ -360,5 +360,6 @@
 	}
 	.playhead.until.on { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
 	.reel.live .playhead.until.on { transform: scaleY(1.08) scaleX(1.5); }
-
+	/* Celu: sin el título adentro, como el mockup (el año y "hoy" alcanzan). */
+	@media (max-width: 720px) { .reel-label { display: none; } }
 </style>

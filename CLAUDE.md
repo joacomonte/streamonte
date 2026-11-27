@@ -15,6 +15,7 @@ Busca películas/series, mide torrents (velocidad, audio, subs) y los reproduce.
 | Endpoint web | `web/src/routes/api/` + `web/src/lib/server/` |
 | Motor, análisis, reproducción, subs, catálogo | `crates/core/src/<x>/` |
 | Comando Tauri / evento | `src-tauri/` · `crates/core/src/events.rs` |
+| Diseño/estilo visual (tokens, recetas, do/don't) | `docs/estilo/` |
 | Verificar, CI, planes | `scripts/` · `tests/` · `.github/` · `docs/` |
 
 ## Reglas que cruzan apps

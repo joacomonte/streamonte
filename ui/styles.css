@@ -83,25 +83,24 @@ button.danger { color: var(--red); }
 
 @keyframes scan { from { background-position: -40% 0; } to { background-position: 140% 0; } }
 
-/* Selector de audio anclado al botón Ver. Reproducir en pasos (2026-11-18), neumórfico desde 2026-11-27
-   (docs/mockups/subs-step/index.html?v=A&ui=neu): una sola superficie del tono del fondo; elevado = recomendado
-   (vidrio esmerilado + relieve: el botón primario), hundido o gris = lo demás. Sin azul de fondo. */
+/* Selector de audio anclado al botón Ver. Reproducir en pasos (2026-11-18), neumórfico desde 2026-11-27; carbón variante B
+   (docs/mockups/carbon-neu/index.html?v=b): panel que flota (--nu-float); elevado = recomendado (tarjeta neu con el primario
+   sólido ámbar `.nu-solid`), hundido o gris = lo demás. Sin azul de fondo. */
 .pk {
-  position: fixed; z-index: 20; width: 260px; padding: 10px; background: var(--nu-bg); border: 0; border-radius: 22px;
-  box-shadow: -10px -10px 24px rgb(255 255 255 / 0.035), 14px 18px 36px rgb(0 0 0 / 0.65), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  position: fixed; z-index: 20; width: 260px; padding: 10px; background: var(--nu-tile), var(--nu-bg); border: 0; border-radius: 22px;
+  box-shadow: var(--nu-float);
   opacity: 0; transform: scale(.94); clip-path: inset(0 0 100% 0 round 22px);
   transition: opacity .12s ease, transform .14s ease, clip-path .14s ease;
 }
 .pk.up { clip-path: inset(100% 0 0 0 round 22px); }
-.pk.on { opacity: 1; transform: none; clip-path: inset(-40px -40px -60px -40px round 22px); transition: opacity .18s ease, transform .5s var(--out), clip-path .5s var(--out); }
+.pk.on { opacity: 1; transform: none; clip-path: inset(-70px -110px -120px -70px round 22px); transition: opacity .18s ease, transform .5s var(--out), clip-path .5s var(--out); }
 /* Arriba: ‹ (oculto en el primer paso, guarda su lugar), título, qué se va a ver y la barra de pasos con nombre. */
-.pk-top { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; column-gap: 8px; padding: 2px 2px 0; }
+.pk-top { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; column-gap: 8px; padding: 2px 2px 0; }
 .pk-h { margin: 0; min-width: 0; font-size: 13px; font-weight: 700; color: var(--text); padding: 4px 0; }
-.pk-back { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--nu-tile); box-shadow: var(--nu-raise-sm); color: var(--muted); cursor: pointer; transition: color .15s, box-shadow .15s; }
-.pk-back .ico { transform: rotate(180deg); }
-.pk-back:hover { color: var(--text); }
-.pk-back:active { box-shadow: var(--nu-press-sm); }
-.pk-back:disabled { visibility: hidden; }
+.pk-ring { padding: 4px; }
+.pk-back { width: 32px; height: 32px; cursor: pointer; }
+.pk-back .ico { display: grid; transform: rotate(180deg); }
+.pk-ring:has(.pk-back:disabled) { visibility: hidden; }
 .pk-ctx { grid-column: 2; margin-top: -2px; font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pk-steps { grid-column: 1 / -1; display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; gap: 10px; margin-top: 12px; }
 .pk-steps span { display: grid; gap: 6px; font-size: 11px; font-weight: 700; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -126,11 +125,15 @@ button.danger { color: var(--red); }
 .pk-o:hover, .pk-o:focus-visible { background: rgb(255 255 255 / 0.04); color: var(--text); }
 .pk-end { font-size: 12px; color: var(--dim); white-space: nowrap; opacity: 0; transition: opacity .15s; }
 .pk-o:hover .pk-end, .pk-o:focus-visible .pk-end { opacity: 1; }
-/* El recomendado (o preseleccionado): botón primario = vidrio esmerilado + relieve; al apretar, hundido. */
-.pk-o.pri { border: 1px solid var(--nu-frost-border); border-radius: 20px; background: linear-gradient(150deg, rgb(255 255 255 / 0.15), rgb(255 255 255 / 0.1)); backdrop-filter: var(--nu-frost-blur); -webkit-backdrop-filter: var(--nu-frost-blur); box-shadow: var(--nu-frost-shadow); color: var(--text); }
+/* El recomendado (o preseleccionado): tarjeta neu elevada con el primario sólido ámbar a la derecha (`.pk-go.nu-solid`,
+   reacciona al hover/active de la tarjeta, que es el botón); al apretar, hundida. */
+.pk-o.pri { border-radius: var(--r-lg); background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-raise-sm); color: var(--text); transition: box-shadow .25s var(--out), transform .25s var(--out), opacity .2s ease; }
 .pk-o.pri small { color: var(--muted); }
-.pk-o.pri:hover, .pk-o.pri:focus-visible { background: linear-gradient(150deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.13)); }
-.pk-o.pri:active { box-shadow: var(--nu-frost-press); }
+.pk-o.pri:hover, .pk-o.pri:focus-visible { background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-raise-hover); }
+.pk-o.pri:active { box-shadow: var(--nu-press-sm); }
+.pk-go { width: 40px; height: 40px; padding: 0; }
+.pk.big .pk-go { width: 52px; height: 52px; }
+.pk-go .ico { display: grid; }
 .pk-o:focus-visible { outline-offset: 1px; outline-color: rgb(255 255 255 / 0.4); }
 /* Elegir reproductor (2026-11-17) y pasos con tarjeta: más grande y con un dibujito de cada uno. */
 .pk.big { width: min(460px, calc(100vw - 16px)); padding: 16px 18px 18px; border-radius: 28px; }
@@ -138,7 +141,7 @@ button.danger { color: var(--red); }
 .pk.big .pk-o { grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; padding: 9px 14px; border-radius: 16px; }
 .pk.big .pk-o:not(.pri) { background: var(--nu-well); box-shadow: var(--nu-press-sm); }
 .pk.big .pk-o:not(.pri):hover, .pk.big .pk-o:not(.pri):focus-visible { background: rgb(0 0 0 / 0.14); }
-.pk.big .pk-o.pri { grid-template-columns: 48px minmax(0, 1fr); gap: 14px; padding: 14px 16px; }
+.pk.big .pk-o.pri { grid-template-columns: 48px minmax(0, 1fr) auto; gap: 14px; padding: 14px 14px 14px 16px; }
 .pk.big .pk-o b { font-size: 14px; display: inline; margin-right: 8px; }
 .pk.big .pk-o small { display: inline; white-space: normal; line-height: 1.35; }
 .pk.big .pk-o.pri b { display: block; font-size: 16px; font-weight: 750; margin: 0; }

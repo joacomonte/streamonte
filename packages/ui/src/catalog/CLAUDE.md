@@ -2,7 +2,7 @@
 Pantalla de inicio de las dos apps: estado en `store.ts` (sin Svelte) + `catalog.svelte.ts` (`$state`), vista en `Catalog.svelte`.
 
 ## Para X → andá a Y
-- Filtros (tipo, orden, años, votos, idioma) → `filters.ts`, `Segmented`/`Since`/`Votes.svelte`; piso de votos → `votes.ts`.
+- Filtros (tipo, orden, años, votos, idioma) → `filters.ts`, `Segmented`/`Since.svelte`, pastillas con menú (votos, orden) `PillMenu.svelte`; piso de votos → `votes.ts`.
 - Buscador con desplegable → `Search.svelte`. Estado y acciones (buscar, paginar) → `store.ts`. Tarjeta del póster → `Grid.svelte`; hover → `CardInfo.svelte` + `card-info.ts`.
 - Géneros y subgéneros → `GenrePicker.svelte`, `subgenres.ts`, `genre-art.ts`. "Vistos" → `RecentRow.svelte`, `recent.ts`.
 

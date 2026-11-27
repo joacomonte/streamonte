@@ -156,29 +156,29 @@
 							<span class="sub">{epText(i)}{#if busy === k}<span class="dots" aria-hidden="true">···</span>{/if}</span>
 						</span>
 					</button>
-					<button id="recent-more-{k}" type="button" class="x" class:frost={asking !== k} class:neu={asking === k} class:sq={asking === k} aria-label={asking === k ? t('Cancelar') : t('Opciones')} aria-expanded={asking === k} onclick={() => toggle(i)}>{#if asking === k}<Icon name="close" size={14} />{:else}<span class="chev"><Icon name="back" size={15} /></span>{/if}</button>
+					<span class="opt nu-ring"><button id="recent-more-{k}" type="button" class="x nu-round" aria-label={asking === k ? t('Cancelar') : t('Opciones')} aria-expanded={asking === k} onclick={() => toggle(i)}>{#if asking === k}<Icon name="close" size={14} />{:else}<span class="chev"><Icon name="back" size={15} /></span>{/if}</button></span>
 					{#if asking === k}
 						<div class="ask" role="group" aria-label={t('Opciones')}>
-							<button id="recent-next-{k}" type="button" class="play neu" aria-label={primaryText(i)} onclick={() => primary(i)}><Icon name={finished(i) ? 'check' : 'play'} size={22} /></button>
+							<button id="recent-next-{k}" type="button" class="play nu-solid" aria-label={primaryText(i)} onclick={() => primary(i)}><Icon name={finished(i) ? 'check' : 'play'} size={22} /></button>
 							<span class="bt">
 								<span class="b1">{barText(i)}</span>
 								<span class="b2">{i.title}</span>
 							</span>
-							<button id="recent-hide-{k}" type="button" class="sq neu" aria-label={t('Ocultar')} onclick={() => remove(i, 'olvidar')}><Icon name="eye-off" size={17} /></button>
+							<button id="recent-hide-{k}" type="button" class="sq nu-lift" aria-label={t('Ocultar')} onclick={() => remove(i, 'olvidar')}><Icon name="eye-off" size={17} /></button>
 						</div>
 					{/if}
 				</div>
 			{/each}
 		</div>
-		{#if more.left}<button id="recent-prev" type="button" class="nav prev" aria-label={t('Anteriores')} onclick={() => page(-1)}><Icon name="back" size={18} /></button>{/if}
-		{#if more.right}<button id="recent-next" type="button" class="nav next" aria-label={t('Siguientes')} onclick={() => page(1)}><Icon name="back" size={18} /></button>{/if}
+		{#if more.left}<button id="recent-prev" type="button" class="nav prev nu-round" aria-label={t('Anteriores')} onclick={() => page(-1)}><Icon name="back" size={18} /></button>{/if}
+		{#if more.right}<button id="recent-next" type="button" class="nav next nu-round" aria-label={t('Siguientes')} onclick={() => page(1)}><Icon name="back" size={18} /></button>{/if}
 		</div>
 	</section>
 {/if}
 {#if undo}
 	<div id="recent-toast" class="toast" role="status">
 		<span>{undo.how === 'visto' ? t('{t}: marcado como visto', { t: undo.item.title }) : t('Sacaste {t}', { t: undo.item.title })}</span>
-		<button id="recent-undo" type="button" class="frost" onclick={restore}>{t('Deshacer')}</button>
+		<button id="recent-undo" type="button" class="nu-solid" onclick={restore}>{t('Deshacer')}</button>
 	</div>
 {/if}
 
@@ -193,52 +193,46 @@
 <style>
 	.recent { margin: 2px 0 14px; }
 	.recent h2 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
-	.railwrap { position: relative; margin: -12px -16px -18px; }
-	.rail { display: flex; gap: 12px; padding: 14px 16px 24px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 16px; scrollbar-width: none; }
+	/* Padding generoso: la sombra difusa del tile (--nu-raise) no se corta con el scroll; el margen negativo lo compensa. */
+	.railwrap { position: relative; margin: -16px -16px -36px; }
+	.rail { display: flex; gap: 14px; padding: 18px 16px 42px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 16px; scrollbar-width: none; }
 	.rail::-webkit-scrollbar { display: none; }
 	.c { position: relative; flex: none; width: 256px; scroll-snap-align: start; animation: rise 0.45s var(--out) both; }
 	@media (min-width: 760px) { .c { width: 304px; } }
-	.hit { position: relative; display: block; width: 100%; height: 72px; padding: 0; border: 0; border-radius: 14px; overflow: hidden; isolation: isolate; background: #080a0e; box-shadow: 0 10px 24px rgb(0 0 0 / 0.6); text-align: left; transition: transform 0.15s var(--out); }
+	/* Tile que flota sobre el carbón (variante B 2026-11-27): sombra difusa grande, sin borde. */
+	.hit { position: relative; display: block; width: 100%; height: 72px; padding: 0; border: 0; border-radius: var(--r-lg); overflow: hidden; isolation: isolate; background: var(--nu-bg); box-shadow: var(--nu-raise); text-align: left; transition: box-shadow 0.25s var(--out), transform 0.25s var(--out); }
 	@media (min-width: 760px) { .hit { height: 84px; } }
 	.hit:active { transform: scale(0.98); }
 	.hit:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	.art { position: absolute; inset: 0; }
 	.art img { width: 100%; height: 100%; object-fit: cover; object-position: 70% 30%; transition: transform 0.4s var(--out); }
-	@media (hover: hover) { .hit:hover .art img { transform: scale(1.06); } }
+	@media (hover: hover) { .hit:hover { box-shadow: var(--nu-raise-hover); transform: translateY(-2px); } .hit:hover .art img { transform: scale(1.06); } }
 	/* D1: fundido oscuro desde la izquierda (la variante lateral de la convención `--fade-dark`): texto legible, escena nítida a la derecha. */
-	.fade-side::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(8 10 14 / 0.94) 0%, rgb(8 10 14 / 0.78) 38%, rgb(8 10 14 / 0.2) 72%, rgb(8 10 14 / 0.05)); }
+	.fade-side::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(10 10 12 / 0.95) 0%, rgb(10 10 12 / 0.8) 38%, rgb(10 10 12 / 0.2) 72%, rgb(10 10 12 / 0.05)); }
 	.tx { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; justify-content: center; padding: 0 44px 0 14px; color: #fff; }
 	.ttl { max-width: 78%; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; text-shadow: 0 1px 8px rgb(0 0 0 / 0.45); }
 	@media (min-width: 760px) { .ttl { font-size: 15px; } }
 	.sub { display: flex; gap: 4px; margin-top: 3px; font-size: 12px; color: rgb(255 255 255 / 0.8); font-variant-numeric: tabular-nums; }
 	.dots { animation: blink 1s infinite; }
-	/* Botones de la tarjeta y del Deshacer: vidrio esmerilado + relieve neumórfico (la sombra de los pósters de `Grid.svelte`,
-	   10/-8 px, a escala de botón), con brillo interior arriba; al presionar se hunde (sombras inset). Nada de azul sólido. */
-	.frost { border: 1px solid rgb(255 255 255 / 0.22); color: #fff; background: rgb(255 255 255 / 0.15); backdrop-filter: blur(14px) saturate(1.6); -webkit-backdrop-filter: blur(14px) saturate(1.6); box-shadow: 4px 4px 10px rgb(0 0 0 / 0.85), -3px -3px 8px rgb(255 255 255 / 0.07), inset 0 1px 0 rgb(255 255 255 / 0.28); transition: background 0.15s, box-shadow 0.15s, transform 0.15s var(--out); }
-	@media (hover: hover) { .frost:hover { background: rgb(255 255 255 / 0.22); } }
-	.frost:active { background: rgb(255 255 255 / 0.12); box-shadow: inset 3px 3px 6px rgb(0 0 0 / 0.55), inset -2px -2px 5px rgb(255 255 255 / 0.07); transform: scale(0.97); }
-	.frost:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-	.x { position: absolute; top: 50%; right: 8px; z-index: 5; display: grid; place-items: center; width: 28px; height: 28px; margin-top: -14px; padding: 0; border-radius: 50%; }
+	/* Opciones (chevron / cerrar): botón redondo neu (`.nu-round`) en su aro hundido (`.nu-ring`, variante B carbón), sobre la imagen. */
+	.opt { position: absolute; top: 50%; right: 8px; z-index: 5; padding: 3px; background: rgb(0 0 0 / 0.35); transform: translateY(-50%); }
+	.x { width: 28px; height: 28px; }
 	/* Chevron: `back` espejado (como la flecha "Siguientes"), corrido 1 px para quedar ópticamente centrado. */
 	.chev { display: grid; margin-left: 1px; }
 	.chev :global(svg) { transform: scaleX(-1); }
-	/* Opciones abiertas (diseño "4 · Barra hundida, controles elevados"): la barra entera hundida tapa la tarjeta; a la
-	   izquierda el play redondo, el texto en dos líneas y a la derecha ocultar y cerrar, cuadrados. El cerrar es el botón de la
-	   tarjeta (z-index 5, encima): por eso el padding derecho. */
-	.ask { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; gap: 10px; padding: 0 56px 0 10px; border-radius: 14px; background: rgb(8 10 13 / 0.94); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: inset 4px 4px 9px rgb(0 0 0 / 0.85), inset -3px -3px 7px rgb(255 255 255 / 0.07); color: #fff; animation: fade 0.2s var(--out); }
-	/* Controles elevados: vidrio + relieve; hover más elevado y con más luz; al presionar se hunden (inset). */
-	.neu { display: grid; place-items: center; padding: 0; border: 0; color: #fff; background: rgb(255 255 255 / 0.07); backdrop-filter: blur(14px) saturate(1.5); -webkit-backdrop-filter: blur(14px) saturate(1.5); box-shadow: 6px 6px 14px rgb(0 0 0 / 0.85), -4px -4px 10px rgb(255 255 255 / 0.07); transition: background 0.15s, box-shadow 0.15s, transform 0.15s var(--out); }
-	@media (hover: hover) { .neu:hover { background: rgb(255 255 255 / 0.12); box-shadow: 9px 9px 20px rgb(0 0 0 / 0.9), -6px -6px 14px rgb(255 255 255 / 0.1); transform: translateY(-1px); } }
-	.neu:active { background: rgb(255 255 255 / 0.04); box-shadow: inset 4px 4px 9px rgb(0 0 0 / 0.85), inset -3px -3px 7px rgb(255 255 255 / 0.07); transform: none; }
-	.neu:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-	.play { flex: none; width: 52px; height: 52px; border-radius: 50%; }
+	/* Opciones abiertas: la barra entera hundida (sobre el carbón) tapa la tarjeta; a la izquierda el primario sólido ámbar
+	   cuadrado (`.nu-solid`, play), el texto en dos líneas y a la derecha ocultar (neu elevado, `.nu-lift`). El cerrar es el
+	   botón de la tarjeta (z-index 5, encima): por eso el padding derecho. */
+	.ask { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; gap: 10px; padding: 0 52px 0 10px; border-radius: var(--r-lg); background: var(--nu-bg); box-shadow: var(--nu-press), var(--nu-raise); color: #fff; animation: fade 0.2s var(--out); }
+	.play { width: 52px; height: 52px; padding: 0; }
+	@media (max-width: 759px) { .play { width: 48px; height: 48px; } }
 	.play :global(svg) { margin-left: 2px; }
 	.bt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 	.b1, .b2 { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-	.b1 { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+	.b1 { font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
 	.b2 { font-size: 12px; color: var(--muted); }
-	.sq { flex: none; width: 36px; height: 36px; border-radius: 12px; }
-	.x.sq { right: 10px; margin-top: -18px; }
+	.sq { display: grid; place-items: center; flex: none; width: 36px; height: 36px; padding: 0; border-radius: var(--r-card); }
+	.sq:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	/* Escritorio (mouse): flechas y fundidos en los bordes cuando la fila no entra; en el celu se desliza con el dedo. */
 	.nav { display: none; }
 	@media (min-width: 760px) and (hover: hover) and (pointer: fine) {
@@ -246,16 +240,16 @@
 		.railwrap::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
 		.railwrap::after { right: 0; background: linear-gradient(270deg, var(--bg), transparent); }
 		.more-l::before, .more-r::after { opacity: 1; }
-		.nav { position: absolute; top: 27px; z-index: 3; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; color: var(--text); background: var(--surface); box-shadow: 0 0 0 1px var(--border), 0 3px 10px var(--shadow); transition: background 0.15s, transform 0.15s var(--out); }
-		.nav:hover { background: var(--surface-2); transform: scale(1.06); }
-		.nav:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+		/* Flechas: botón redondo neu (`.nu-round`). */
+		.nav { position: absolute; top: 31px; z-index: 3; display: grid; }
 		.prev { left: 22px; }
 		.next { right: 22px; }
 		.next :global(svg) { transform: scaleX(-1); }
 	}
-	.toast { position: fixed; left: 50%; bottom: calc(18px + var(--safe-bottom, 0px)); z-index: 70; display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px); padding: 10px 10px 10px 16px; border-radius: 999px; background: var(--surface-3); color: var(--text); font-size: 13.5px; box-shadow: 0 12px 30px rgb(0 0 0 / 0.35); transform: translateX(-50%); animation: toast-in 0.3s var(--out); }
+	/* Aviso flotante del carbón (--nu-float); Deshacer = primario sólido ámbar. */
+	.toast { position: fixed; left: 50%; bottom: calc(18px + var(--safe-bottom, 0px)); z-index: 70; display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px); padding: 8px 8px 8px 16px; border-radius: var(--r-lg); background: var(--nu-tile), var(--nu-bg); color: var(--text); font-size: 13.5px; box-shadow: var(--nu-float); transform: translateX(-50%); animation: toast-in 0.3s var(--out); }
 	.toast span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.toast button { flex: none; height: 32px; padding: 0 14px; border-radius: 999px; font-weight: 700; }
+	.toast button { height: 36px; padding: 0 14px; font-size: 13px; }
 	@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 	@keyframes fade { from { opacity: 0; } }
 	@keyframes blink { 50% { opacity: 0.3; } }

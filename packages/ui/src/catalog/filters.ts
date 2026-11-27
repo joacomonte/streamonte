@@ -13,14 +13,13 @@ export const KINDS: { v: Kind; label: string; icon: IconName }[] = [
 	{ v: 'movie', label: 'Películas', icon: 'film' },
 	{ v: 'tv', label: 'Series', icon: 'tv' }
 ];
-/** `short`: el nombre en celu angosto. */
-export const SORTS: { v: Sort; label: string; short: string; icon: IconName }[] = [
-	{ v: 'rating', label: 'Mejor puntaje', short: 'Puntaje', icon: 'star' },
-	{ v: 'popular', label: 'Más populares', short: 'Populares', icon: 'flame' }
+export const SORTS: { v: Sort; label: string; icon: IconName }[] = [
+	{ v: 'rating', label: 'Mejor puntaje', icon: 'star' },
+	{ v: 'popular', label: 'Más populares', icon: 'flame' }
 ];
 /** Idioma original del catálogo: fijo en inglés o español (2026-11-23, al sacar la hoja de filtros avanzados). */
 export const LANGUAGES = ['en', 'es'];
-/** Votos de IMDb: las 3 posiciones del slider. */
+/** Votos de IMDb: los 3 niveles (pastilla de votos del catálogo). */
 export const VOTE_LEVELS: { v: number; label: string }[] = [
 	{ v: 1000, label: 'De nicho' },
 	{ v: 10000, label: 'Conocidas' },

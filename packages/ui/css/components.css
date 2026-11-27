@@ -191,3 +191,64 @@
 /* Fila de botones al pie de un diálogo de confirmación. */
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .dialog-actions .danger:not(.btn-primary) { color: var(--red); }
+
+/* Elevado del mismo material que el panel neumórfico (filtros del catálogo, C1; carbón variante B 2026-11-27): sale de la
+   superficie, sin borde duro ni filo de luz; cara del tile y sombra difusa (--nu-raise-sm). Radio --nu-radius. Al tocar se
+   hunde. Lo usan las pastillas de filtros, la pastilla del tipo y la etiqueta del año de la cinta. */
+.nu-lift {
+	border: 0;
+	border-radius: var(--nu-radius);
+	color: #fff;
+	background: var(--nu-tile), var(--nu-bg);
+	box-shadow: var(--nu-raise-sm);
+	transition: box-shadow 0.25s var(--out), transform 0.25s var(--out), background 0.25s;
+}
+@media (hover: hover) {
+	button.nu-lift:hover { box-shadow: var(--nu-raise-hover); transform: translateY(-1px); }
+}
+button.nu-lift:active { transform: translateY(0) scale(0.98); box-shadow: var(--nu-press-sm); }
+
+/* Primario sólido de acento (variante B carbón): ámbar lleno + texto oscuro, radio de card, relieve solo por sombras.
+   Uno por pantalla/tarjeta, para la acción principal. Si la tarjeta entera es el botón, va como <span class="nu-solid"> adentro (reacciona al hover/active del botón). El tamaño lo pone cada pantalla (alto/ancho); cuadrado = solo ícono. */
+.nu-solid {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	flex: none;
+	height: 40px;
+	padding: 0 16px;
+	border: 0;
+	border-radius: var(--nu-solid-radius);
+	background: var(--nu-solid-face), var(--nu-solid);
+	color: var(--nu-solid-fg);
+	font-weight: 750;
+	letter-spacing: -0.005em;
+	box-shadow: var(--nu-solid-shadow);
+	transition: transform 0.2s var(--out), box-shadow 0.2s var(--out), background-color 0.2s;
+}
+@media (hover: hover) {
+	button.nu-solid:hover, button:hover > .nu-solid { --nu-solid: var(--nu-solid-hover); box-shadow: var(--nu-solid-shadow-hover); transform: translateY(-1px); }
+}
+button.nu-solid:active, button:active > .nu-solid { box-shadow: var(--nu-solid-press); transform: translateY(0) scale(0.96); }
+.nu-solid:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 3px; }
+
+/* Control redondo neu (volver, cerrar, flechas): cara del tile + sombra chica; va dentro de un aro hundido `.nu-ring`. */
+.nu-ring { display: inline-grid; place-items: center; flex: none; padding: 4px; border-radius: 50%; background: var(--nu-well); box-shadow: var(--nu-ring); }
+.nu-round {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: var(--nu-tile), var(--nu-bg);
+	box-shadow: var(--nu-raise-sm);
+	color: var(--text);
+	transition: box-shadow 0.2s var(--out), transform 0.2s var(--out), color 0.2s;
+}
+@media (hover: hover) { .nu-round:not(:disabled):hover { box-shadow: var(--nu-raise-hover); color: #fff; } }
+.nu-round:not(:disabled):active { box-shadow: var(--nu-press-sm); transform: scale(0.95); }
+.nu-round:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }

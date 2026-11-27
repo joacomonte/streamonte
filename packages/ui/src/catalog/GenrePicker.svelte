@@ -134,7 +134,7 @@
 <svelte:window onkeydown={onkey} onresize={onmove} onscrollcapture={onmove} />
 
 <div class="pick-row">
-	<button bind:this={btn} id="cat-genre" type="button" class="trigger" class:on={!!applied} aria-haspopup="dialog" aria-expanded={open} onclick={show}>
+	<button bind:this={btn} id="cat-genre" type="button" class="trigger nu-lift" class:on={!!applied} aria-haspopup="dialog" aria-expanded={open} onclick={show}>
 		<span class="stack" aria-hidden="true">
 			{#each stack as src (src)}
 				<span class="mini" style:background-image="url('{src}')"></span>
@@ -144,8 +144,8 @@
 				</span>
 			{/each}
 		</span>
-		<span class="lbl">{applied?.label ?? t('Géneros')}<em>{subText}</em></span>
-		<Icon name="chev" size={14} />
+		<span class="lbl">{applied?.label ?? subText}{#if applied}<em>{subText}</em>{/if}</span>
+		<span class="chev"><Icon name="chev" size={16} /></span>
 	</button>
 	{#if applied}
 		<button id="cat-genre-clear" type="button" class="clear" aria-label={t('Sacar el género')} onclick={() => onpick(null, [])}><Icon name="close" size={14} /></button>
@@ -184,7 +184,7 @@
 					</span>
 				</button>
 				<div class="acts">
-					<button id="genre-{g.key}-all" type="button" class="act" class:cur={all} aria-label={t('Todo {g}', { g: g.label })} onclick={() => pickAll(g.key)}>{#if all}<Icon name="check" size={13} />{/if}{t('Todos')}</button>
+					<button id="genre-{g.key}-all" type="button" class="act nu-solid" class:cur={all} aria-label={t('Todo {g}', { g: g.label })} onclick={() => pickAll(g.key)}>{#if all}<Icon name="check" size={13} />{/if}{t('Todos')}</button>
 					<span class="go" aria-hidden="true"><Icon name="next" size={16} /></span>
 				</div>
 			</div>
@@ -216,10 +216,10 @@
 			{#if !wide}<div class="grab" aria-hidden="true"></div>{/if}
 			<div class="hd">
 				{#if level === 2}
-					<button id="genre-back" type="button" class="round" aria-label={t('Volver a los géneros')} onclick={back}><Icon name="back" size={18} /></button>
+					<span class="nu-ring"><button id="genre-back" type="button" class="round nu-round" aria-label={t('Volver a los géneros')} onclick={back}><Icon name="back" size={18} /></button></span>
 				{/if}
 				<h3>{c && level === 2 ? c.label : t('Géneros')}</h3>
-				<button id="genre-close" type="button" class="round" aria-label={t('Cerrar')} onclick={close}><Icon name="close" size={16} /></button>
+				<span class="nu-ring"><button id="genre-close" type="button" class="round nu-round" aria-label={t('Cerrar')} onclick={close}><Icon name="close" size={16} /></button></span>
 			</div>
 			{#key level}
 				<div class="pane" class:enter={!backwards} class:back={backwards}>
@@ -231,64 +231,58 @@
 {/if}
 
 <style>
-	/* ── Botón ── */
-	/* `min-width: 0`: en la fila del orden se achica (el rótulo se corta con …) en vez de desbordar a 375 px. */
-	.pick-row { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 6px 0 10px; }
-	.trigger { display: inline-flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; height: 44px; padding: 0 14px 0 8px; border: 0; border-radius: 14px; background: linear-gradient(180deg, #1a1e26, #12151b); color: #e7eaee; font-size: 14px; font-weight: 650; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.35); -webkit-tap-highlight-color: transparent; transition: box-shadow 0.25s var(--out), color 0.25s var(--out), scale 0.2s var(--out); }
-	.trigger:active { scale: 0.96; }
-	.trigger.on { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), inset 0 0 0 1px rgb(96 165 250 / 0.5), 0 8px 24px rgb(0 0 0 / 0.35); }
+	/* ── Botón: pastilla elevada como las demás de los filtros (C1 2026-11-27, `.nu-lift`): pósters apilados + rótulo + chevron ── */
+	/* `min-width: 0`: en la fila de pastillas se achica (el rótulo se corta con …) en vez de desbordar. */
+	.pick-row { display: flex; flex: none; align-items: center; gap: 4px; min-width: 0; }
+	.trigger { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 40px; padding: 0 12px 0 10px; border-radius: var(--nu-radius); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+	/* Con género aplicado: el filo del elegido sobre la sombra del elevado (sin azul). */
+	.trigger.on { box-shadow: var(--nu-on-edge), var(--nu-raise); }
 	.stack { display: flex; flex: none; }
-	.mini { flex: none; width: 26px; height: 26px; margin-left: -8px; border-radius: 8px; background: #1a1f27 center / cover; box-shadow: 0 0 0 2px #161a21; }
+	.mini { flex: none; width: 20px; height: 26px; margin-left: -8px; border-radius: 4px; background: var(--nu-bg) center / cover; box-shadow: 0 0 0 1.5px #232428; }
 	.mini:first-child { margin-left: 0; }
-	/* Celu angosto: una sola miniatura, así entra el rótulo. */
-	@media (max-width: 400px) { .mini:nth-child(n + 2) { display: none; } .trigger { gap: 7px; padding-right: 10px; } }
-	.mini.art { display: grid; place-items: center; color: oklch(0.74 0.14 var(--h, 250)); }
-	.lbl { display: flex; flex-direction: column; min-width: 0; overflow: hidden; line-height: 1.1; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
-	.lbl em { overflow: hidden; font-style: normal; font-size: 11px; font-weight: 500; color: #8a939e; text-overflow: ellipsis; }
-
-	/* Celu angosto (2026-11-24): un solo póster, sin la segunda línea y menos aire, para que entre al lado del orden sin desbordar. */
-	.pick-row { min-width: 0; }
-	@media (max-width: 479px) {
-		.trigger { gap: 7px; height: 42px; padding: 0 9px 0 6px; font-size: 13.5px; }
-		.mini:nth-child(n + 2) { display: none; }
-		.lbl em { display: none; }
-	}
-	.clear { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--muted); }
+	.mini.art { display: grid; place-items: center; width: 26px; color: oklch(0.74 0.14 var(--h, 250)); }
+	/* Un renglón: "Todos los géneros", o el género con su subgénero al lado en gris. */
+	.lbl { min-width: 0; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+	.lbl em { margin-left: 6px; font-style: normal; font-weight: 500; color: var(--muted); }
+	.chev { display: flex; flex: none; color: var(--muted); }
+	.clear { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border: 0; border-radius: 50%; background: none; color: var(--muted); }
 	.trigger:focus-visible, .clear:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-	@media (hover: hover) { .trigger:hover, .clear:hover { color: var(--text); } }
+	@media (hover: hover) { .clear:hover { color: var(--text); } }
 
 	/* ── Capa: velo + hoja (celu) o desplegable (PC); mismo contenido ── */
 	.layer { position: fixed; inset: 0; z-index: 60; }
 	.scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgb(0 0 0 / 0.35); cursor: default; animation: fade 0.3s var(--out); }
 	.wide .scrim { background: rgb(0 0 0 / 0.25); }
-	/* Panel negro sólido (las tarjetas son pósters). */
-	.panel { --acc: #2563eb; --acc-fg: #7ab0ff; display: flex; flex-direction: column; color: #e7eaee; background: #0b0d11; box-shadow: 0 30px 80px rgb(0 0 0 / 0.6), inset 0 0 0 1px rgb(255 255 255 / 0.07); }
+	/* Superficie neumórfica carbón que flota (--nu-float, variante B 2026-11-27): las tarjetas salen elevadas de ella. */
+	.panel { display: flex; flex-direction: column; color: var(--text); background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-float); }
 	.sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 92dvh; border-radius: 26px 26px 0 0; padding-bottom: var(--safe-bottom, 0px); animation: sheet-in 0.55s var(--out); }
 	.menu { position: absolute; overflow: hidden; border-radius: 22px; animation: menu-in 0.4s var(--out); transform-origin: 40px 0; }
 	.grab { flex: none; width: 38px; height: 5px; margin: 8px auto 4px; border-radius: 3px; background: rgb(255 255 255 / 0.3); }
 	.hd { display: flex; align-items: center; gap: 12px; padding: 6px 16px 14px; }
 	.menu .hd { padding: 18px 18px 14px; }
 	.hd h3 { flex: 1; margin: 0; font-size: 20px; font-weight: 750; letter-spacing: -0.02em; }
-	.round { display: grid; place-items: center; width: 36px; height: 36px; flex: none; padding: 0; border: 0; border-radius: 50%; background: rgb(255 255 255 / 0.07); color: rgb(255 255 255 / 0.85); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1); transition: background 0.2s, scale 0.2s var(--out); }
+	/* Cerrar y volver: botón redondo neu (`.nu-round`) en su aro hundido (`.nu-ring`). */
+	.round { width: 36px; height: 36px; }
 	.round :global(svg) { display: block; }
-	.round:active { scale: 0.92; }
-	@media (hover: hover) { .round:hover { background: rgb(255 255 255 / 0.14); color: #fff; } }
-	.pane { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 2px 16px 20px; }
+	.pane { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 6px 16px 24px; }
 	.pane::-webkit-scrollbar { display: none; }
 	.pane.enter { animation: push-in 0.5s var(--out); }
 	.pane.back { animation: pop-in 0.5s var(--out); }
 
-	/* ── Tarjetas (una por fila): pósters a la derecha y fade a negro de izquierda a derecha ── */
-	.list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-	.card { position: relative; isolation: isolate; display: block; width: 100%; border: 0; border-radius: 14px; background: #11151a; color: #fff; text-align: left; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12), 0 6px 18px rgb(0 0 0 / 0.35); -webkit-tap-highlight-color: transparent; animation: tile-in 0.6s var(--out) both; animation-delay: calc(var(--k) * 40ms); transition: box-shadow 0.3s, scale 0.2s var(--out); }
-	.card:focus-visible, .g-head:focus-visible, .act:focus-visible, .round:focus-visible { outline: 2px solid var(--acc-fg); outline-offset: 2px; }
+	/* ── Tarjetas (una por fila): tiles elevados (--nu-raise) con pósters a la derecha y fade a oscuro de izquierda a derecha ── */
+	.list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+	.card { position: relative; isolation: isolate; display: block; width: 100%; border: 0; border-radius: var(--nu-radius); background: var(--nu-bg); color: #fff; text-align: left; box-shadow: var(--nu-raise); -webkit-tap-highlight-color: transparent; animation: tile-in 0.6s var(--out) both; animation-delay: calc(var(--k) * 40ms); transition: box-shadow 0.25s var(--out), transform 0.25s var(--out), scale 0.2s var(--out); }
+	/* Hover: el tile sube (la sombra crece). */
+	@media (hover: hover) { .card:hover { box-shadow: var(--nu-raise-hover); transform: translateY(-1px); } }
+	.card:focus-visible, .g-head:focus-visible, .act:focus-visible, .round:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	.art { position: absolute; inset: 0; z-index: -1; isolation: isolate; overflow: hidden; border-radius: inherit; }
+	/* Fondo de pósters con fade a oscuro de izquierda a derecha (la variante lateral de --fade-dark); el tile no le pone nada encima. */
 	.art::after { content: ''; position: absolute; inset: 0; z-index: 2; background: linear-gradient(to right, #000 0%, rgb(0 0 0 / 0.95) 40%, rgb(0 0 0 / 0.75) 65%, rgb(0 0 0 / 0.4) 100%); }
-	.bg { position: absolute; inset: -12px; z-index: 0; background: #11151a center 30% / cover; filter: blur(6px) saturate(1.2); }
+	.bg { position: absolute; inset: -12px; z-index: 0; background: #121315 center 30% / cover; filter: blur(6px) saturate(1.2); }
 	.col { position: absolute; top: -8px; bottom: -8px; right: 8px; z-index: 3; display: flex; flex-direction: row-reverse; align-items: center; gap: 6px; transform: rotate(-5deg); }
-	.p { flex: none; width: 52px; aspect-ratio: 2 / 3; border-radius: 7px; background: #1a1f27 center / cover; box-shadow: 0 6px 16px rgb(0 0 0 / 0.45), inset 0 0 0 0.5px rgb(255 255 255 / 0.1); animation: deal 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both, drift 9s ease-in-out 1s infinite alternate; animation-delay: calc(var(--k) * 40ms + 200ms), 0s; }
+	.p { flex: none; width: 52px; aspect-ratio: 2 / 3; border-radius: 7px; background: var(--nu-bg) center / cover; box-shadow: 0 6px 16px rgb(0 0 0 / 0.45), inset 0 0 0 0.5px rgb(255 255 255 / 0.1); animation: deal 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both, drift 9s ease-in-out 1s infinite alternate; animation-delay: calc(var(--k) * 40ms + 200ms), 0s; }
 	.p:nth-child(even) { margin-top: 18px; }
-	.p.ghost { background: linear-gradient(160deg, #222a35, #151a21); }
+	.p.ghost { background: linear-gradient(160deg, #26272b, #18191c); }
 	/* Pósters por encima del fade (2026-11-24: se veían apagados), con su propio fundido hacia el texto. */
 	.col { mask-image: linear-gradient(to left, #000 0%, #000 55%, rgb(0 0 0 / 0.35) 80%, transparent 100%); }
 	.fr { display: flex; flex-direction: column; min-width: 0; max-width: 68%; }
@@ -297,25 +291,25 @@
 	.fr .d { display: block; overflow: hidden; margin-top: 3px; font-size: 12px; line-height: 1.3; color: rgb(255 255 255 / 0.6); white-space: nowrap; text-overflow: ellipsis; }
 	.fr .ex { display: block; overflow: hidden; margin-top: 4px; font-size: 11.5px; font-weight: 600; line-height: 1.35; color: rgb(255 255 255 / 0.72); white-space: nowrap; text-overflow: ellipsis; }
 
-	/* Nivel 1: género; botones de vidrio a la derecha, sobre los pósters. */
+	/* Nivel 1: género; "Todos" (sólido ámbar) y la flecha a la derecha, sobre los pósters. */
 	.g-card { padding: 0; }
-	.g-card.cur { box-shadow: inset 0 0 0 1.5px rgb(96 165 250 / 0.85), 0 8px 28px rgb(37 99 235 / 0.22); }
+	/* Género aplicado: filo de luz sobre el elevado (sin azul). */
+	.g-card.cur { box-shadow: var(--nu-on-edge), var(--nu-raise); }
 	.g-head { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 72px; padding: 11px 14px; border: 0; border-radius: inherit; background: none; color: inherit; text-align: left; }
 	.g-head:active { scale: 0.99; }
 	.g-head .fr { flex: 1; max-width: none; padding-right: 104px; }
-	.gic { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 10px; background: color-mix(in oklch, oklch(0.7 0.14 var(--h)) 22%, rgb(255 255 255 / 0.06)); color: oklch(0.8 0.14 var(--h)); }
-	/* Tocar la tarjeta = elegir subgénero (flecha a la derecha); "Todos" = el género entero (pastilla de vidrio mínima). */
+	/* Ícono en un pozo hundido; el color del género queda en el trazo. */
+	.gic { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: var(--r-md); background: var(--nu-well); box-shadow: var(--nu-press-sm); color: oklch(0.8 0.14 var(--h)); }
+	/* Tocar la tarjeta = elegir subgénero (flecha a la derecha); "Todos" = el género entero (primario sólido ámbar, `.nu-solid`). */
 	.acts { position: absolute; top: 50%; right: 10px; z-index: 1; display: flex; align-items: center; gap: 6px; translate: 0 -50%; pointer-events: none; }
-	.act { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: rgb(255 255 255 / 0.1); color: #fff; font-size: 12.5px; font-weight: 650; letter-spacing: 0.01em; white-space: nowrap; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22); backdrop-filter: blur(14px) saturate(1.6); -webkit-backdrop-filter: blur(14px) saturate(1.6); pointer-events: auto; transition: scale 0.2s var(--out), background 0.2s, box-shadow 0.2s; }
-	.act.cur { background: rgb(37 99 235 / 0.35); box-shadow: inset 0 0 0 1px rgb(122 176 255 / 0.9); }
-	.act:active { scale: 0.94; }
+	.act { gap: 4px; height: 32px; padding: 0 12px; font-size: 12.5px; white-space: nowrap; pointer-events: auto; }
 	.go { display: grid; place-items: center; width: 24px; height: 24px; color: rgb(255 255 255 / 0.7); }
-	@media (hover: hover) { .act:hover { background: rgb(255 255 255 / 0.2); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.4); } .g-card:hover .go { color: #fff; } }
+	@media (hover: hover) { .g-card:hover .go { color: #fff; } }
 
-	/* Nivel 2: subgénero (uno solo: tocar aplica y cierra); el aplicado lleva borde azul. */
+	/* Nivel 2: subgénero (uno solo: tocar aplica y cierra); el aplicado lleva el filo de luz. */
 	.s-tile { display: flex; flex-direction: column; width: auto; height: 84px; padding: 11px 14px; }
-	.s-tile:active { scale: 0.98; }
-	.s-tile.on { box-shadow: inset 0 0 0 1.5px rgb(96 165 250 / 0.85), 0 8px 28px rgb(37 99 235 / 0.22); }
+	.s-tile:active { box-shadow: var(--nu-press); scale: 0.99; }
+	.s-tile.on { box-shadow: var(--nu-on-edge), var(--nu-raise); }
 
 	@keyframes fade { from { opacity: 0; } }
 	@keyframes sheet-in { from { transform: translateY(100%); } }

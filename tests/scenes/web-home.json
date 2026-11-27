@@ -38,7 +38,7 @@
   },
   {
    "sel": "#votes-value",
-   "text": "votos"
+   "text": "Conocidas"
   },
   {
    "sel": "[id^=cat-card-]",
