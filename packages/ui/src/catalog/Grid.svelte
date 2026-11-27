@@ -179,11 +179,14 @@
 </script>
 
 {#snippet face(it: CatalogItem)}
-	{#if it.poster && !broken.includes(it.id)}
-		<img src={swapped[it.id] ?? it.poster} alt="" loading="lazy" decoding="async" width="342" height="513" referrerpolicy="no-referrer" onerror={() => onbroken(it)} />
-	{:else}
-		<div class="noposter" style:--hue={hue(it.id)}>{it.title}</div>
-	{/if}
+	<!-- Envoltorio del póster: lleva la sombra neumórfica y recorta el brillo (antes lo recortaba la card entera). -->
+	<span class="poster">
+		{#if it.poster && !broken.includes(it.id)}
+			<img src={swapped[it.id] ?? it.poster} alt="" loading="lazy" decoding="async" width="342" height="513" referrerpolicy="no-referrer" onerror={() => onbroken(it)} />
+		{:else}
+			<div class="noposter" style:--hue={hue(it.id)}>{it.title}</div>
+		{/if}
+	</span>
 	{#if asked.includes(it.id)}<CardInfo item={it} />{/if}
 	{#if it.documentary || onlyCinema(it.released)}
 		<span class="tags">
@@ -278,10 +281,14 @@
 		border-radius: var(--r-md);
 		background: var(--surface-2);
 		object-fit: cover;
-		box-shadow: 0 1px 3px var(--shadow);
 	}
-	.card:active img { transform: scale(0.97); }
-	.card img { transition: transform 0.15s var(--ease); }
+	/* Neumorphism estático (raised soft sobre --bg): sombra oscura abajo-derecha y luz muy sutil arriba-izquierda. */
+	.poster, .poster-skel { box-shadow: 10px 10px 24px rgb(0 0 0 / 0.85), -8px -8px 18px rgb(255 255 255 / 0.07); }
+	/* overflow: hidden recorta el brillo de .poster::after; la sombra queda afuera, sin recortar. */
+	.poster { position: relative; display: block; overflow: hidden; border-radius: var(--r-md); }
+	.poster img { display: block; }
+	.card:active .poster { transform: scale(0.97); }
+	.poster { transition: transform 0.15s var(--ease); }
 	.noposter { display: grid; place-items: center; padding: 8px; text-align: center; font-size: 13px; font-weight: 700; color: #fff; text-wrap: balance; background: linear-gradient(160deg, hsl(var(--hue, 220) 45% 32%), hsl(calc(var(--hue, 220) + 40) 50% 14%)); }
 	.meta { display: flex; flex-direction: column; padding: 6px 2px 0; }
 	.title { font-size: 13px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -320,11 +327,11 @@
 	.doc { transition: opacity 0.22s ease-out; }
 	@media (hover: hover) { .card:hover .doc, .card:focus-visible .doc { opacity: 0; } }
 	.cine { display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: var(--r-pill); background: rgb(0 0 0 / 0.72); color: #fff; font-size: 11px; font-weight: 700; }
-	.card { --t: calc(var(--i, 0) * 70ms); position: relative; overflow: hidden; animation: card-in 0.9s cubic-bezier(0.25, 0.8, 0.3, 1) var(--t) backwards var(--play, paused); }
+	.card { --t: calc(var(--i, 0) * 70ms); position: relative; animation: card-in 0.9s cubic-bezier(0.25, 0.8, 0.3, 1) var(--t) backwards var(--play, paused); }
 	/* Las que llegan scrolleando: entrada corta, escalonado mínimo y desde medio visibles (en pausa ya se ven). */
 	.card:global(.late) { --t: calc(min(var(--i, 0), 4) * 35ms); animation-name: card-rise; animation-duration: 0.6s; }
 	/* Brillo que cruza el póster después del giro. */
-	.card::after {
+	.poster::after {
 		content: '';
 		position: absolute;
 		top: 0;
@@ -388,7 +395,7 @@
 		40% { transform: scale(1.12); }
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.card, .card::after, .rate :global(svg), .rate::before, .num { animation: none; }
+		.card, .poster::after, .rate :global(svg), .rate::before, .num { animation: none; }
 	}
 	/* Proyector en loop: dos rollos que giran, la cinta que corre debajo y el haz de luz que titila. */
 	.leader { display: grid; justify-items: center; gap: 18px; padding: 48px 0 24px; }
