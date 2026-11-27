@@ -9,7 +9,7 @@ import * as core from './core.ts';
 import { openSettings } from './dialog-flows.ts';
 import { el, setStatus, type ElChild } from './dom.ts';
 import { t as tr } from './i18n.ts';
-import { closeWizard, openWizard } from './audio-picker.ts';
+import { closeWizard, openWizard, wizardCtx } from './audio-picker.ts';
 import { rowsOf } from './catalog-options.ts';
 import { quickAnalyze, side, sideOf } from './catalog-tests.ts';
 import { showError } from './catalog-state.ts';
@@ -17,6 +17,7 @@ import { mountSubsStep } from './mount-shared.ts';
 import { sxe } from '../../packages/ui/src/format.ts';
 import type { SubtitleOption } from '../../packages/ui/src/types.ts';
 import type { SubtitleFile } from '../../packages/ui/src/api.ts';
+import type { NativeTrack } from '../../packages/ui/src/subs/native-view.ts';
 import type { UiError } from './types.ts';
 
 /** Lo de una opción en el paso de subtítulos (ver `byHash`). `read`: lectura de sus pistas. */
@@ -54,6 +55,20 @@ function subsOf(hash: string): HashSubs {
 }
 /** Los en español que trae esa opción; `null` = todavía no se leyeron sus pistas. */
 const natives = (hash: string) => rowsOf(hash).find((e) => e.native_subs)?.native_subs ?? null;
+/** Los mismos, con lo que lee la regla de orden (`nativeRank`): idioma, nombre, codec y flags de la pista cruda
+ *  (`live.subs`, por `sid` o por nombre de archivo); sin pista cruda, lo que dice el nativo. */
+function nativeTracks(hash: string): NativeTrack[] | null {
+  const row = rowsOf(hash).find((e) => e.native_subs);
+  if (!row?.native_subs) return null;
+  const raws = row.live?.subs ?? [];
+  return row.native_subs.map((n, i) => {
+    const sid = n.key.startsWith('embedded:') ? Number(n.key.slice(9)) : null;
+    const raw = raws.find((r) => (sid != null ? r.sid === sid : !!r.file && r.file.split(/[\\/]/).pop() === n.place));
+    const lang = n.variant === 'latino' ? 'es-419' : n.variant === 'spain' ? 'es-es' : 'spa';
+    const forced = raw?.forced ?? n.kind === 'forzados';
+    return { key: n.key, id: `cat-sub-native-${i}`, sub: { lang, title: raw?.title ?? n.place, codec: raw?.codec ?? (forced ? null : n.kind), forced, sdh: raw?.sdh ?? false, default: raw?.default ?? false } };
+  });
+}
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 /** Lee las pistas (audio y subtítulos) de la opción de donde se va a ver, si todavía no se leyeron: `torbox` = su
@@ -168,7 +183,7 @@ function stepOf(hash: string, playing: boolean): HTMLElement {
   const unmount = mountSubsStep(host, {
     hash, playing,
     ref: { kind: side().kind === 'series' ? 'tv' : 'movie', videoId: side().videoId },
-    read: () => ({ reading: s.read, torbox: s.torbox, natives: natives(hash) }),
+    read: () => ({ reading: s.read, torbox: s.torbox, natives: nativeTracks(hash) }),
     onNoWait: () => { s.read = 'skipped'; },
     onSkip: () => active?.next?.(true),
     onUseNative: (k: string) => useNative(hash, k),
@@ -196,5 +211,6 @@ export function subsStep(hash: string, torbox: boolean, live: number | null = nu
  *  con este paso. */
 export function openSubs(hash: string, torbox: boolean, anchor: HTMLElement, live: number | null = null): void {
   const s = subsStep(hash, torbox, live);
-  openWizard(anchor, [{ id: 'subs', title: live ? tr('Cambiar subtítulo') : tr('Subtítulos'), render: () => s(null) }]).then(() => { active = null; });
+  const row = rowsOf(hash).at(0);
+  openWizard(anchor, [{ id: 'subs', title: live ? tr('Cambiar subtítulo') : tr('Subtítulos'), render: () => s(null) }], row ? wizardCtx(row) : null).then(() => { active = null; });
 }

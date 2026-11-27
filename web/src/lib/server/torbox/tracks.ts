@@ -40,7 +40,8 @@ export function spanishSubs(subtitles: TbSub[] | undefined) {
 			i,
 			forced,
 			label: spanishVariant(x.title ?? '', ''),
-			kind: forced ? 'forzados' : 'del video'
+			kind: forced ? 'forzados' : 'del video',
+			title: x.title ?? ''
 		}));
 }
 

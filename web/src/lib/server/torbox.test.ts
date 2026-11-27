@@ -60,9 +60,9 @@ test('spanishSubs: solo spa, forzados al final, `i` = posición entre todos', ()
 		{ language: 'spa', title: 'Castellano' }
 	]);
 	assert.deepEqual(out, [
-		{ i: 2, forced: false, label: 'Latinoamérica', kind: 'del video' },
-		{ i: 3, forced: false, label: 'España', kind: 'del video' },
-		{ i: 1, forced: true, label: 'Español', kind: 'forzados' }
+		{ i: 2, forced: false, label: 'Latinoamérica', kind: 'del video', title: 'Latino' },
+		{ i: 3, forced: false, label: 'España', kind: 'del video', title: 'Castellano' },
+		{ i: 1, forced: true, label: 'Español', kind: 'forzados', title: 'Spanish [Forced]' }
 	]);
 	assert.deepEqual(spanishSubs(undefined), []);
 });

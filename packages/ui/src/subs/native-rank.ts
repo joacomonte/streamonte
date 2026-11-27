@@ -34,7 +34,7 @@ const langCode = (lang: string): string => {
 };
 
 /** ¿Sub en español, y de qué variante? Igual que `audio::spanish_track` de Rust (región distinta de `es` = latino). */
-function spanishTrack(langRaw: string | null, titleRaw: string | null): SpanishVariant | null {
+export function spanishTrack(langRaw: string | null, titleRaw: string | null): SpanishVariant | null {
 	const lang = (langRaw ?? '').trim().toLowerCase().replace(/_/g, '-');
 	const title = (titleRaw ?? '').toLowerCase();
 	const variant = spanishVariant(title);

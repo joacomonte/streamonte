@@ -10,23 +10,26 @@ import { dismiss } from '$ui/components/dismiss.ts';
 import { t } from './i18n.ts';
 
 /** Una opción de un paso con botones. */
-type WizardOpt = { label: string; sub?: string | null; art?: HTMLElement; tip?: string | null; value?: string };
+type WizardOpt = { label: string; sub?: string | null; art?: HTMLElement; tip?: string | null; value?: string; eyebrow?: string };
 /** Resultados por `id` de paso: índice elegido (paso con `opts`) o lo que pase `next(valor)` un paso propio.
  *  Borde: cada paso propio devuelve lo suyo. */
 export type WizardResults = Record<string, any>;
 /** Un paso: con `opts` (botones; valor = índice) o `render(next)` (dibuja lo suyo y llama `next(valor)`). */
-export type WizardStep = { id: string; title: string; opts?: WizardOpt[]; big?: boolean; render?: (next: (value?: unknown) => void) => ElChild; skip?: (r: WizardResults) => boolean };
-type Wizard = { steps: WizardStep[]; i: number; results: WizardResults; resolve: (r: WizardResults | undefined) => void };
+export type WizardStep = { id: string; title: string; name?: string; opts?: WizardOpt[]; big?: boolean; render?: (next: (value?: unknown) => void) => ElChild; skip?: (r: WizardResults) => boolean };
+type Wizard = { steps: WizardStep[]; i: number; results: WizardResults; resolve: (r: WizardResults | undefined) => void; ctx: string | null };
 export type PlayStart = (player: PlayerKind | null, audio: { code: string; aid: number | null } | null) => Promise<boolean | undefined> | boolean | undefined;
 
 // ---------- Reproducir: un solo panel con pasos, anclado al ▶ (2026-11-18) ----------
 // Reproductor → audio → subtítulos (los que no aplican se saltean). Cada paso entra deslizándose; "‹" vuelve al
 // anterior. Elegir en el último cierra el panel y resuelve con lo elegido; cerrar (Esc, clic afuera) cancela.
-const pkBack = el('button', { id: 'pk-back', type: 'button', class: 'pk-back', 'aria-label': t('Paso anterior'), hidden: true }, icon('arrow', 14));
-const pkDots = el('span', { class: 'pk-dots', 'aria-hidden': 'true' });
+// Diseño (2026-11-27, docs/mockups/subs-step/index.html?v=A&ui=neu): neumórfico; arriba ‹, título, qué se va a ver y la
+// barra de pasos con su nombre; el recomendado es una tarjeta elevada de vidrio y el resto una lista gris.
+const pkBack = el('button', { id: 'pk-back', type: 'button', class: 'pk-back', 'aria-label': t('Paso anterior') }, icon('arrow', 14));
+const pkCtx = el('div', { class: 'pk-ctx' });
+const pkSteps = el('div', { class: 'pk-steps' });
 const pkBody = el('div', { class: 'pk-l' });
 const pk = el('div', { id: 'pk', class: 'pk', role: 'dialog', 'aria-labelledby': 'pkh' },
-  el('div', { class: 'pk-top' }, pkBack, el('div', { class: 'pk-h', id: 'pkh' }), pkDots), pkBody);
+  el('div', { class: 'pk-top' }, pkBack, el('h2', { class: 'pk-h', id: 'pkh' }), pkCtx, pkSteps), pkBody);
 pk.hidden = true;
 document.body.append(pk);
 let pkBtn: HTMLElement | null = null;
@@ -79,13 +82,19 @@ function renderStep(dir: number): void {
   const w = wiz;
   const step = w.steps[w.i];
   pk.querySelector('.pk-h')!.textContent = step.title;
-  pk.classList.toggle('big', !!step.big || !!step.render);
-  pkBack.hidden = w.i === 0;
-  pkDots.replaceChildren(...(w.steps.length > 1 ? w.steps.map((_, i) => el('i', { class: i === w.i ? 'on' : i < w.i ? 'done' : '' })) : []));
+  pk.classList.toggle('big', !!step.big || !!step.render || w.steps.length > 1);
+  pkBack.disabled = w.i === 0;
+  pkCtx.textContent = w.ctx ?? '';
+  pkCtx.hidden = !w.ctx;
+  pkSteps.hidden = w.steps.length < 2;
+  pkSteps.setAttribute('aria-label', t('Paso {a} de {b}', { a: w.i + 1, b: w.steps.length }));
+  pkSteps.replaceChildren(...(w.steps.length > 1 ? w.steps.map((s, i) => el('span', { class: i === w.i ? 'on' : i < w.i ? 'done' : '' }, `${i + 1} · ${s.name ?? s.title}`)) : []));
+  // El primero (recomendado o preseleccionado) es la tarjeta; el resto, filas grises con "Usar" al pasar el mouse.
   const content = step.render ? step.render(next) : (step.opts ?? []).map((o, i) => el('button', {
     id: `pk-o-${step.id}-${i}`, class: `pk-o${i ? '' : ' pri'}`, type: 'button', 'data-i': String(i), ...(o.tip ? { 'data-tip': o.tip } : {}),
     onclick: () => next(i),
-  }, o.art ?? icon('speaker', 18), el('span', {}, el('b', {}, o.label), o.sub ? el('small', {}, o.sub) : null)));
+  }, o.art ?? icon('speaker', 18), el('span', {}, o.eyebrow && !i ? el('em', {}, o.eyebrow) : null, el('b', {}, o.label), o.sub ? el('small', {}, o.sub) : null),
+  i ? el('span', { class: 'pk-end', 'aria-hidden': 'true' }, t('Usar')) : null));
   pkBody.replaceChildren(...([content].flat(2).filter(Boolean) as (string | Node)[]));
   pkBody.classList.remove('step-next', 'step-prev');
   if (dir) { void pkBody.offsetWidth; pkBody.classList.add(dir > 0 ? 'step-next' : 'step-prev'); }
@@ -113,9 +122,10 @@ pkBack.addEventListener('click', () => { const j = wiz ? stepFrom(wiz.i, -1) : -
 document.addEventListener('subs-changed', () => { if (wiz?.steps[wiz.i].render) renderStep(0); });
 
 /** Abre el panel junto a `btn` con sus pasos y resuelve con `{[id]: valor}` o `undefined` (se cerró). Cada paso:
- *  `{id, title, opts: [{label, sub?, art?, tip?}], big?}` (valor = índice elegido) o `{id, title, render(next)}`
- *  (dibuja lo suyo y llama `next(valor)` para seguir); `skip(resultados)`: no aplica con lo elegido antes. */
-export function openWizard(btn: HTMLElement, steps: WizardStep[]): Promise<WizardResults | undefined> {
+ *  `{id, title, name?, opts: [{label, sub?, art?, tip?, eyebrow?}], big?}` (valor = índice elegido) o `{id, title, name?, render(next)}`
+ *  (dibuja lo suyo y llama `next(valor)` para seguir); `skip(resultados)`: no aplica con lo elegido antes. `name`: en la
+ *  barra de pasos. `ctx`: qué se va a ver (título · calidad), debajo del título. */
+export function openWizard(btn: HTMLElement, steps: WizardStep[], ctx: string | null = null): Promise<WizardResults | undefined> {
   const anchor = liveBtn(btn);
   if (pkBtn) closePk(false, true);
   wantTip(null);
@@ -125,7 +135,7 @@ export function openWizard(btn: HTMLElement, steps: WizardStep[]): Promise<Wizar
   pkBtn = anchor;
   blockTips(true);
   anchor.setAttribute('aria-expanded', 'true');
-  const done = new Promise<WizardResults | undefined>((resolve) => { wiz = { steps, i: 0, results: {}, resolve }; });
+  const done = new Promise<WizardResults | undefined>((resolve) => { wiz = { steps, i: 0, results: {}, resolve, ctx }; });
   renderStep(0);
   void pk.offsetWidth; // arranca la transición desde el estado cerrado
   pk.classList.add('on');
@@ -171,14 +181,21 @@ function audioOptions(e: LibraryRow | undefined | null, original: string | null)
   return opts.length < 2 ? null : opts;
 }
 
+/** Qué se va a ver, debajo del título del panel: "Dune · 2160p BluRay REMUX". */
+export function wizardCtx(entry: LibraryRow): string {
+  const r = entry.release;
+  const ep = r?.season != null && r?.episode != null ? ` T${r.season}·E${r.episode}` : '';
+  return [`${r?.title || entry.name}${ep}`, (r?.quality ?? []).join(' ')].filter(Boolean).join(' · ');
+}
+
 /** Con VLC instalado y un mpv que anda (2026-11-17), con cuál: se pregunta en CADA ▶, también al retomar
  *  (2026-11-20, no se recuerda). Con uno solo no hay qué elegir: `null` (el núcleo usa el que haya). mpv primero. */
 async function playerOptions(): Promise<(WizardOpt & { value: PlayerKind })[] | null> {
   const p = await core.playersStatus().catch(() => null);
   if (!p?.vlc || !p.mpv) return null;
   return [
-    { value: 'mpv', label: 'mpv', sub: t('Recomendado: más liviano, subtítulos combinados y ecualizador'), art: playerArt('mpv') },
-    { value: 'vlc', label: 'VLC', sub: t('El clásico: sin subtítulos combinados ni ecualizador'), art: playerArt('vlc') },
+    { value: 'mpv', label: 'mpv', eyebrow: t('Recomendado'), sub: t('Más liviano · combina subtítulos · ecualizador'), art: playerArt('mpv') },
+    { value: 'vlc', label: 'VLC', sub: t('El clásico, sin subtítulos combinados'), art: playerArt('vlc') },
   ];
 }
 /** Dibujito de cada reproductor (inline, sin archivos): mpv, un disco con ▶; VLC, el cono naranja. */
@@ -219,15 +236,15 @@ export async function play(key: string, anchor: HTMLElement | null | undefined, 
     const decided = audios ? preferredAudio(audios, prefer, original) : -1;
     const audioOf = (r: WizardResults): AudioOption | null => audios?.[r.audio ?? decided] ?? null;
     const stepsRaw: (WizardStep | null | false)[] = [
-      players && { id: 'player', title: t('¿Con qué lo abrimos?'), big: true, opts: players },
+      players && { id: 'player', title: t('¿Con qué lo abrimos?'), name: t('Reproductor'), big: true, opts: players },
       // Solo se aclara lo confirmado por el análisis (2026-11-17: "adivinado por el nombre" era ruido).
-      audios && decided < 0 && { id: 'audio', title: t('Elegí el audio'), opts: audios.map((o) => ({ label: o.label, sub: o.confirmed ? t('Pista confirmada') : null,
+      audios && decided < 0 && { id: 'audio', title: t('Elegí el audio'), name: t('Audio'), opts: audios.map((o) => ({ label: o.label, sub: o.confirmed ? t('Pista confirmada') : null,
         tip: SPANISH.has(o.code) ? t('En español: va sin subtítulos (S los muestra).') : null })) },
-      !resuming && subsStep && { id: 'subs', title: t('Subtítulos'), render: subsStep, skip: (r) => SPANISH.has(audioOf(r)?.code ?? '') },
+      !resuming && subsStep && { id: 'subs', title: t('Subtítulos'), name: t('Subtítulos'), render: subsStep, skip: (r) => SPANISH.has(audioOf(r)?.code ?? '') },
     ];
     const steps = stepsRaw.filter(Boolean) as WizardStep[];
     const shown = steps.filter((s) => !s.skip?.({}));
-    const got = shown.length ? await openWizard(anchor ?? $('.topbar'), shown) : {};
+    const got = shown.length ? await openWizard(anchor ?? $('.topbar'), shown, entry ? wizardCtx(entry) : null) : {};
     if (!got) return;
     const player = got.player != null && players ? players[got.player].value : null;
     const a = audioOf(got);

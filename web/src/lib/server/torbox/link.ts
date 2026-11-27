@@ -32,7 +32,8 @@ export async function link(t: Pick & { orig?: string | null }): Promise<{
 	return (await hls(id, file.id, t.name, t.orig ?? null)) ?? { url: await download(id, file), ids: { tid: id, fid: file.id } };
 }
 
-type Native = { label: string; kind: string; track: number; url: string };
+/** `title`: el nombre de la pista (para ver si es para sordos). */
+type Native = { label: string; kind: string; track: number; url: string; title: string };
 
 /** ISO 639-1 (TMDB) → códigos de 3 letras que traen las pistas de audio (bibliográfico y terminológico). */
 const ISO3: Record<string, string[]> = {
@@ -80,9 +81,10 @@ async function hls(id: number, fileId: number, release: string, orig: string | n
 		const video = { fps: Number(v.frame_rate) || null, duration: dur ? Number(dur[1]) * 3600 + Number(dur[2]) * 60 + Number(dur[3]) : null };
 		const { main, lat, byOrig } = pickAudio(audios, orig, release);
 		// shortcut: hasta 4 (un stream por subtítulo, todos se piden ya); si un video trae más, sumar un pedido a demanda.
-		const natives: Native[] = (await Promise.all(spaSubs.slice(0, 4).map(async ({ i, label, kind }) => ({
+		const natives: Native[] = (await Promise.all(spaSubs.slice(0, 4).map(async ({ i, label, kind, title }) => ({
 			label,
 			kind,
+			title,
 			track: i + 1,
 			url: await at(main, i).catch(() => '')
 		})))).filter((n) => n.url.startsWith('https://'));

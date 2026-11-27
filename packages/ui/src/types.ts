@@ -161,7 +161,8 @@ export type OptionLink = { url: string; choices: { key: string; label: string; u
 /** Ids de TorBox de un link ya pedido (torrent y archivo). */
 export type TorboxIds = { tid: number; fid: number };
 /** Subtítulo en español que trae el video (web: link del stream con ese subtítulo puesto). */
-export type NativeSub = { label: string; kind: string; track: number; url: string; sdh?: boolean; default?: boolean };
+/** `title`: nombre de la pista (heurística de para sordos); `sdh`/`default`: flags de la pista, si se saben. */
+export type NativeSub = { label: string; kind: string; track: number; url: string; title?: string; sdh?: boolean; default?: boolean };
 
 // ---------- Subtítulos ----------
 export type MatchLevel = 'exact' | 'release' | 'fps' | 'none';

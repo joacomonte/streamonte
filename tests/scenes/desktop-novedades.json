@@ -10,7 +10,7 @@
   { "sel": "#news-prev" },
   { "sel": "#news-next" },
   { "sel": "[id^=news-reel-]", "count": 4 },
-  { "sel": "#news-pill" },
+  { "sel": "#news-card" },
   { "sel": "#trending-row" },
   { "sel": "[id^=trending-tt]", "count": 3 }
  ]

@@ -1,6 +1,7 @@
 # subs/ — selector de subtítulos (web ↔ desktop)
 ## Para X → andá a Y
 - Pantalla del selector → `SubsPicker.svelte` (props `ref` `option` `file` `match` `lead` `actions` `onUse`); fila → `SubRow.svelte` (badge LAT/EN).
+- Los que trae el video (recomendado en tarjeta + resto gris, tipo completo/sordos/forzados) → `NativeSubs.svelte` + `native-view.ts`; orden → `native-rank.ts` (golden con Rust).
 - Flujo (buscar, bajar, premium) → `subs-flow.ts`. Ranking, fuente, calce, "no calza" → `subs-logic.ts`; nivel/grupo de match → `../sub-match.ts`.
 
 ## Relación

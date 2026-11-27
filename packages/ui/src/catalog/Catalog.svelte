@@ -13,7 +13,6 @@
 	import { unseenCount, type NewsItem, type NewsList } from './news.ts';
 	import { episodeOf, newsSession, toCatalogItem, toRecentItem } from './news-ui.ts';
 	import NewsDialog from './NewsDialog.svelte';
-	import NewsPill from './NewsPill.svelte';
 	import RecentRow from './RecentRow.svelte';
 	import type { EpisodeRef, RecentItem } from './recent.ts';
 	import Search from './Search.svelte';
@@ -51,13 +50,12 @@
 	const st = $derived(store.st);
 	const api = getApi();
 
-	/** "Novedades" (`news.ts`): el diálogo de lo nuevo, su pastilla y la fila Tendencias. */
+	/** "Novedades" (`news.ts`): el diálogo de lo nuevo, su card (en la fila Tendencias) y la fila Tendencias. */
 	let news = $state<NewsList | null>(null);
 	let newsOpen = $state(false);
-	const newsUnseen = $derived(news ? unseenCount(news) : 0);
 	function openNews() {
 		newsOpen = true;
-		// Lo visto queda visto ya (la pastilla pierde el número) sin esperar al servidor.
+		// Lo visto queda visto ya (no se vuelve a abrir solo) sin esperar al servidor.
 		if (news) news = { ...news, seenAt: new Date().toISOString() };
 		void api.news.markSeen().catch(() => {});
 	}
@@ -235,7 +233,6 @@
 				{@render header?.()}
 				<div class="search-row">
 					<Search {store} onclear={clear} {onquery} onpick={pick} {onopen} {href} bind:open={searchOpen} />
-					{#if news?.fresh.length}<NewsPill count={newsUnseen} onopen={openNews} />{/if}
 				</div>
 				{#if !searching}
 					<!-- Tipo (2026-11-24: el orden pasó a la fila de géneros, como segmentado). -->
@@ -275,7 +272,7 @@
 	<div class="body inner">
 		{@render top?.(searching)}
 		{#if onresume && !searching}<RecentRow {onresume} />{/if}
-		{#if !searching && news?.trending.length}<TrendingRow items={news.trending} onopen={(it) => onopen(toCatalogItem(it))} />{/if}
+		{#if !searching && (news?.trending.length || news?.fresh.length)}<TrendingRow items={news.trending} fresh={news.fresh} onnews={openNews} onopen={(it) => onopen(toCatalogItem(it))} />{/if}
 		<!-- Buscando por texto los resultados van en el desplegable del buscador (2026-11-24): la grilla queda solo de fondo,
 		     desenfocada detrás del desplegable abierto; con el desplegable cerrado no se muestra. -->
 		{#if mode !== 'search' || searchOpen}<Grid {store} {onopen} {href} {onsettings} {fade} bind:sentinel />{/if}
@@ -312,7 +309,7 @@
 	.compact .dot { margin: 0 6px; color: var(--dim, var(--muted)); }
 	.compact .amber { color: var(--amber); font-variant-numeric: tabular-nums; }
 	.inner { max-width: 1200px; margin: 0 auto; }
-	/* Buscador y la pastilla de Novedades en la misma línea. */
+	/* Fila del buscador. */
 	.search-row { display: flex; align-items: flex-start; gap: 8px; }
 	/* Por clase y no `:first-child`: al abrir el desplegable, Search pone antes su fondo difuminado (`.blur`) y el buscador
 	   se achicaba al ancho de su contenido. */

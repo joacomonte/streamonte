@@ -32,7 +32,8 @@
 	import OptionsList from '$ui/options/OptionsList.svelte';
 	import { emptyLoad, loadOptions, type OptionsLoad } from '$ui/options/options-load.ts';
 	import { bestText, hdrText, heavyText, langTags, noMatches, qualityOf, readButton, resKey, resLabel, TipBook, type DockButton, type OptionRowView } from '$ui/options/row.ts';
-	import SubRow from '$ui/subs/SubRow.svelte';
+	import NativeSubs from '$ui/subs/NativeSubs.svelte';
+	import type { NativeTrack } from '$ui/subs/native-view.ts';
 	import SubsPicker from '$ui/subs/SubsPicker.svelte';
 	import type { SubsCtx } from '$ui/subs/subs-flow.ts';
 	import { keyOf } from '$ui/subs/subs-logic.ts';
@@ -453,6 +454,12 @@
 			manual = { url, release: name, kind: 'sub' };
 		}
 	}
+	/** Los nativos para la regla de orden: TorBox no da flags (sdh/default ausentes = false); el nombre de la pista suma la heurística. */
+	const nativeTracks = $derived<NativeTrack[]>((match?.natives ?? []).map((n) => ({
+		key: `n${n.track}`,
+		id: `sub-copy-native-${n.track}`,
+		sub: { lang: n.label === 'Latinoamérica' ? 'es-419' : n.label === 'España' ? 'es-es' : 'spa', title: n.title || null, codec: null, forced: n.kind === 'forzados', sdh: n.sdh ?? false, default: n.default ?? false }
+	})));
 	/** Copia un nativo: el video con ese subtítulo puesto. */
 	function copyNative(n: Native, ctx: SubsCtx) {
 		ctx.pick(`n${n.track}`);
@@ -557,13 +564,12 @@
 
 <!-- Subtítulos que trae el video: copiar el video con ese subtítulo puesto. -->
 {#snippet nativeRows(ctx: SubsCtx)}
-	{#each match?.natives ?? [] as n (n.track)}
-		<SubRow head={tr(n.label)} spec={tr('{k} · pista {n}', { k: tr(n.kind), n: n.track })} on={ctx.picked === `n${n.track}`} tried={ctx.picked !== `n${n.track}` && ctx.tried.includes(`n${n.track}`)}>
-			{#snippet actions()}
-				<button id="sub-copy-native-{n.track}" type="button" class="iconbtn copy" aria-label={tr('Copiar el video con este subtítulo')} onclick={() => { track('subtítulo', 'incluido en el video'); copyNative(n, ctx); }}><Icon name="copy" size={18} /></button>
-			{/snippet}
-		</SubRow>
-	{/each}
+	<li class="natives">
+		<NativeSubs tracks={nativeTracks} picked={ctx.picked} tried={ctx.tried} useLabel={tr('Copiar')} onUse={(key) => {
+			const n = match?.natives?.find((x) => `n${x.track}` === key);
+			if (n) { track('subtítulo', 'incluido en el video'); copyNative(n, ctx); }
+		}} />
+	</li>
 {/snippet}
 <!-- Dos íconos en la misma fila; lleno el que va con donde se ve (Web Video Caster: pegar el link). -->
 {#snippet foundActions(sub: SubtitleOption, ctx: SubsCtx)}
@@ -788,9 +794,10 @@
 	.paste-note :global(svg) { flex: none; color: var(--accent-fg); }
 	/* Copiar link / Descargar de un subtítulo: íconos de 40 px en la fila; lleno el recomendado. */
 	.iconbtn.sa { border: 1px solid var(--border-strong); color: var(--text); }
-	.iconbtn.sa.rec { border-color: transparent; background: var(--accent); color: var(--accent-text); }
+	/* El recomendado: vidrio esmerilado + relieve neumórfico (nunca azul de fondo). */
+	.iconbtn.sa.rec { border-color: var(--nu-frost-border); background: var(--nu-frost-bg); backdrop-filter: var(--nu-frost-blur); -webkit-backdrop-filter: var(--nu-frost-blur); box-shadow: var(--nu-frost-shadow); color: #fff; }
+	.iconbtn.sa.rec:active { box-shadow: var(--nu-frost-press); }
 	.iconbtn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--r-md); background: none; color: var(--muted); }
-	.iconbtn.copy { color: var(--accent-fg); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 	.tut { width: 44px; height: 44px; }
 	/* Festejo "¡Link copiado!": tapa la pantalla 1,5 s y se va solo. */
 	.burst { inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: rgb(0 0 0 / 0.7); display: none; place-items: center; pointer-events: none; }

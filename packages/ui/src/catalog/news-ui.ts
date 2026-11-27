@@ -1,4 +1,4 @@
-// "Novedades": reglas de vista (sin DOM) del diálogo (`NewsDialog.svelte`), la pastilla y la fila Tendencias. Datos y
+// "Novedades": reglas de vista (sin DOM) del diálogo (`NewsDialog.svelte`) y de la fila Tendencias (con la card de Novedades). Datos y
 // contrato: `news.ts`. Abrir: un título va a la ficha (como una tarjeta); un capítulo, a ese capítulo (como "Vistos").
 import { nf } from '../format.ts';
 import { t } from '../i18n/runtime.ts';
@@ -11,6 +11,14 @@ export const newsSession = { autoOpened: false, refreshed: false };
 
 /** Tiempo de un cuadro del rollo antes de pasar solo al siguiente. */
 export const NEWS_SLIDE_MS = 8000;
+
+/** Contador de la card de Novedades: "N nuevas esta semana" (`date` en los últimos 7 días); si ninguna es de esta
+ * semana, "N nuevas" con todas las de la lista (no se inventa un recorte que no existe). */
+export function newsCountText(items: NewsItem[], now: number = Date.now()): string {
+	const week = items.filter((i) => i.date != null && now - Date.parse(i.date) < 7 * 864e5).length;
+	if (week) return week === 1 ? t('1 nueva esta semana') : t('{n} nuevas esta semana', { n: week });
+	return items.length === 1 ? t('1 nueva') : t('{n} nuevas', { n: items.length });
+}
 
 /** "hoy", "ayer", "hace 3 días" (por día: lo nuevo no necesita horas). */
 export function newsAgo(iso: string, now: number = Date.now()): string {

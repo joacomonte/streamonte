@@ -89,6 +89,16 @@
 		// Se pide al abrir para que la opción primaria ya diga qué capítulo abre.
 		if (asking && isEpisode(i)) void nextOf(i);
 	}
+	/** Primera línea de la barra (diseño "4 · Barra hundida, controles elevados"): el capítulo que abre el play, sin "Ver". */
+	function barText(i: RecentItem) {
+		if (i.kind === 'movie') return t('Ver de nuevo');
+		const k = keyOf(i);
+		if (!isEpisode(i) || !(k in nexts)) return t('Ver próximo capítulo');
+		const n = nexts[k];
+		return n ? t('T{s} · E{e}', { s: n.season, e: n.episode }) : t('Ya la terminé');
+	}
+	/** Al final de la serie el play solo marca visto: ícono de tilde en vez de play. */
+	const finished = (i: RecentItem) => isEpisode(i) && keyOf(i) in nexts && nexts[keyOf(i)] === null;
 	function primaryText(i: RecentItem) {
 		if (i.kind === 'movie') return t('Ver de nuevo');
 		const k = keyOf(i);
@@ -146,11 +156,15 @@
 							<span class="sub">{epText(i)}{#if busy === k}<span class="dots" aria-hidden="true">···</span>{/if}</span>
 						</span>
 					</button>
-					<button id="recent-more-{k}" type="button" class="x frost" aria-label={asking === k ? t('Cancelar') : t('Opciones')} aria-expanded={asking === k} onclick={() => toggle(i)}>{#if asking === k}<Icon name="close" size={14} />{:else}<span class="chev"><Icon name="back" size={15} /></span>{/if}</button>
+					<button id="recent-more-{k}" type="button" class="x" class:frost={asking !== k} class:neu={asking === k} class:sq={asking === k} aria-label={asking === k ? t('Cancelar') : t('Opciones')} aria-expanded={asking === k} onclick={() => toggle(i)}>{#if asking === k}<Icon name="close" size={14} />{:else}<span class="chev"><Icon name="back" size={15} /></span>{/if}</button>
 					{#if asking === k}
 						<div class="ask" role="group" aria-label={t('Opciones')}>
-							<button id="recent-next-{k}" type="button" class="pill frost" onclick={() => primary(i)}>{primaryText(i)}</button>
-							<button id="recent-hide-{k}" type="button" class="ghost" onclick={() => remove(i, 'olvidar')}>{t('Ocultar')}</button>
+							<button id="recent-next-{k}" type="button" class="play neu" aria-label={primaryText(i)} onclick={() => primary(i)}><Icon name={finished(i) ? 'check' : 'play'} size={22} /></button>
+							<span class="bt">
+								<span class="b1">{barText(i)}</span>
+								<span class="b2">{i.title}</span>
+							</span>
+							<button id="recent-hide-{k}" type="button" class="sq neu" aria-label={t('Ocultar')} onclick={() => remove(i, 'olvidar')}><Icon name="eye-off" size={17} /></button>
 						</div>
 					{/if}
 				</div>
@@ -208,13 +222,23 @@
 	/* Chevron: `back` espejado (como la flecha "Siguientes"), corrido 1 px para quedar ópticamente centrado. */
 	.chev { display: grid; margin-left: 1px; }
 	.chev :global(svg) { transform: scaleX(-1); }
-	/* Las opciones tapan la tarjeta con vidrio oscuro; el botón de la derecha (z-index 5) queda encima y cancela, por eso el padding derecho. */
-	.ask { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; gap: 6px; padding: 0 44px 0 14px; border-radius: 14px; background: rgb(10 12 16 / 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #fff; animation: fade 0.2s var(--out); }
-	.pill { flex: 0 1 auto; min-width: 0; height: 32px; padding: 0 14px; overflow: hidden; border-radius: 999px; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-	/* Secundaria despriorizada: solo texto gris tenue, sin relieve. */
-	.ghost { flex: none; height: 32px; padding: 0 10px; border: 0; border-radius: 999px; background: none; color: rgb(255 255 255 / 0.5); font-size: 13px; font-weight: 600; transition: color 0.15s, background 0.15s; }
-	@media (hover: hover) { .ghost:hover { color: #fff; background: rgb(255 255 255 / 0.08); } }
-	.ghost:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+	/* Opciones abiertas (diseño "4 · Barra hundida, controles elevados"): la barra entera hundida tapa la tarjeta; a la
+	   izquierda el play redondo, el texto en dos líneas y a la derecha ocultar y cerrar, cuadrados. El cerrar es el botón de la
+	   tarjeta (z-index 5, encima): por eso el padding derecho. */
+	.ask { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; gap: 10px; padding: 0 56px 0 10px; border-radius: 14px; background: rgb(8 10 13 / 0.94); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: inset 4px 4px 9px rgb(0 0 0 / 0.85), inset -3px -3px 7px rgb(255 255 255 / 0.07); color: #fff; animation: fade 0.2s var(--out); }
+	/* Controles elevados: vidrio + relieve; hover más elevado y con más luz; al presionar se hunden (inset). */
+	.neu { display: grid; place-items: center; padding: 0; border: 0; color: #fff; background: rgb(255 255 255 / 0.07); backdrop-filter: blur(14px) saturate(1.5); -webkit-backdrop-filter: blur(14px) saturate(1.5); box-shadow: 6px 6px 14px rgb(0 0 0 / 0.85), -4px -4px 10px rgb(255 255 255 / 0.07); transition: background 0.15s, box-shadow 0.15s, transform 0.15s var(--out); }
+	@media (hover: hover) { .neu:hover { background: rgb(255 255 255 / 0.12); box-shadow: 9px 9px 20px rgb(0 0 0 / 0.9), -6px -6px 14px rgb(255 255 255 / 0.1); transform: translateY(-1px); } }
+	.neu:active { background: rgb(255 255 255 / 0.04); box-shadow: inset 4px 4px 9px rgb(0 0 0 / 0.85), inset -3px -3px 7px rgb(255 255 255 / 0.07); transform: none; }
+	.neu:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+	.play { flex: none; width: 52px; height: 52px; border-radius: 50%; }
+	.play :global(svg) { margin-left: 2px; }
+	.bt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+	.b1, .b2 { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+	.b1 { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+	.b2 { font-size: 12px; color: var(--muted); }
+	.sq { flex: none; width: 36px; height: 36px; border-radius: 12px; }
+	.x.sq { right: 10px; margin-top: -18px; }
 	/* Escritorio (mouse): flechas y fundidos en los bordes cuando la fila no entra; en el celu se desliza con el dedo. */
 	.nav { display: none; }
 	@media (min-width: 760px) and (hover: hover) and (pointer: fine) {

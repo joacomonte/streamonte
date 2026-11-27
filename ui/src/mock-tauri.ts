@@ -16,7 +16,8 @@ const defaults: Record<string, unknown> = {
   catalog_census: {}, // sin DHT: la UI lo toma como "no se sabe"
   catalog_swarm_saved: {},
   // Ajustes y "Tu conexión" (desktop).
-  players_status: { mpv: 'bundled', vlc: false, can_install_mpv: false },
+  // Con `?pk` hay VLC también: el panel de Reproducir pregunta con cuál.
+  players_status: { mpv: 'bundled', vlc: new URLSearchParams(location.search).has('pk'), can_install_mpv: false },
   premium_quota: { has_key: false, has_login: false, login_error: null, remaining: null, per_day: null, resets_at: null },
   catalog_addons: [],
   speed_test: { mbps: 240, measured_at: new Date().toISOString(), network: 'mock' },
@@ -133,3 +134,24 @@ if (scenario) {
   const key = fixtures.has(`events__${scenario}`) ? `events__${scenario}` : [...fixtures.keys()].find((k) => k.startsWith(`events__${scenario}__`));
   if (key) replay(fixtures.get(key), 300, 1500); else console.warn('[mock] sin escenario', scenario);
 }
+// `?pk=bluray|one|none`: abre el panel de Reproducir (reproductor → subtítulos) sin catálogo, con un Blu-ray de varias pistas
+// incrustadas (latino completo marcado default, latino para sordos, castellano, latino forzados), una sola o ninguna.
+// El paso 2: `node scripts/shot.mjs '<url>?pk=bluray' --click '#pk-o-player-0'`.
+const pkMock = new URLSearchParams(location.search).get('pk');
+if (pkMock) setTimeout(async () => {
+  const [{ play }, { mountSubsStep }] = await Promise.all([import('./audio-picker.ts'), import('./mount-shared.ts')]);
+  const pgs = 'hdmv_pgs_subtitle';
+  const raw = (sid: number, title: string, codec: string, flags: { forced?: boolean; sdh?: boolean; default?: boolean } = {}) =>
+    ({ key: `embedded:${sid}`, id: `cat-sub-native-${sid}`, sub: { lang: 'spa', title, codec, forced: !!flags.forced, sdh: !!flags.sdh, default: !!flags.default } });
+  const natives = pkMock === 'none' ? [] : pkMock === 'one' ? [raw(3, 'Castellano', 'subrip')]
+    : [raw(3, 'Español Latino', pgs, { default: true }), raw(4, 'Español Latino SDH', pgs, { sdh: true }), raw(6, 'Castellano', pgs), raw(5, 'Latino Forzados', pgs, { forced: true })];
+  const entry = { key: 'mock:0', name: 'Dune.Part.Two.2024.2160p.BluRay.REMUX', audio_options: [], release: { title: 'Dune: Parte Dos', year: 2024, season: null, episode: null, quality: ['2160p', 'Blu-ray', 'Remux'] } };
+  let host: HTMLElement | null = null;
+  void play('mock:0', null, entry as never, null, (next) => {
+    if (host) return host;
+    host = document.createElement('div');
+    mountSubsStep(host, { hash: '40712b59caaee09d17a4337c7f357bb2a57a48d6', ref: { kind: 'movie', videoId: 'tt0137523' }, playing: true, read: () => ({ reading: 'done', torbox: false, natives }),
+      onNoWait: () => {}, onSkip: () => next(true), onUseNative: async () => {}, onUse: async () => {}, onSave: () => {}, onSettings: () => {} });
+    return host;
+  }, () => true);
+}, 1500);
