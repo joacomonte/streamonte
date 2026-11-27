@@ -137,22 +137,26 @@ export function isSample(path: string): boolean {
 	return /^sample([._ -]|$)|[-.]sample$/.test(stem) || parts.some((d) => d === 'sample' || d === 'samples');
 }
 
-/** El archivo del addon; si no, el del episodio (packs de temporada); si no, el más grande. Solo videos, nunca una muestra
- * (`isSample`, como `torbox.rs main_video`). shortcut: sin el mínimo de tamaño del desktop (`MIN_VIDEO`).
+/** Qué archivo reproducir: el del addon (si nombra el episodio, o ningún archivo lo nombra); si no, el del episodio (packs);
+ * sin episodio, el más grande. Con episodio pedido, varios videos y ninguno lo nombra: error (no se adivina en un pack,
+ * 2026-11-27); con un solo video, ese. Solo videos, nunca una muestra (`isSample`). Misma regla que `pick_video` de
+ * `engine/mod.rs` (P2P y TorBox del desktop). shortcut: sin el mínimo de tamaño del desktop (`MIN_VIDEO`).
  * Golden `torbox_pick.json`.
  */
 export function pick(all: TbFile[], t: { file: string | null; s: string | null; e: string | null }): TbFile | null {
 	const files = all.filter((f) => VIDEO.test(f.name ?? '') && !isSample(String(f.name)));
 	const name = (f: TbFile) => String(f.short_name ?? f.name).toLowerCase();
+	const re = t.s && t.e ? episodeRe(t.s, t.e) : null;
+	const largest = (list: TbFile[]) => list.reduce<TbFile | null>((a, b) => (!a || b.size > a.size ? b : a), null);
+	const named = re ? files.filter((x) => re.test(name(x))) : [];
 	if (t.file) {
 		const f = files.find((x) => name(x).endsWith(t.file?.toLowerCase() ?? ''));
-		if (f) return f;
+		if (f && (!re || !named.length || named.includes(f))) return f;
 	}
-	if (t.s && t.e) {
-		const re = episodeRe(t.s, t.e);
-		const f = files.find((x) => re.test(name(x)));
-		if (f) return f;
+	if (re && files.length) {
+		if (named.length) return largest(named);
+		if (files.length > 1) throw new Fail(409, 'Este torrent no trae el episodio pedido. Probá otra opción.');
 	}
-	return files.reduce<TbFile | null>((a, b) => (!a || b.size > a.size ? b : a), null);
+	return largest(files);
 }
 

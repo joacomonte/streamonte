@@ -85,45 +85,88 @@ pub struct FilePick {
 }
 
 impl Metadata {
-    /// El índice pedido solo si es un video y, si se sabe el episodio, si es ese episodio (o ningún
-    /// archivo lo nombra): el `fileIdx` de una fuente a veces apunta a otro archivo del pack (un
-    /// `.txt`, o en un pack de la serie entera un video de entrevistas, 2026-11-16). Si no, el del
-    /// episodio o el video más grande; sin ningún video, [`crate::CoreError::NoVideo`].
+    /// Ver [`pick_video`]: el índice pedido, el episodio o el más grande, con el mismo criterio que TorBox.
     pub fn pick_file(&self, pick: FilePick) -> Result<FileInfo> {
-        let names_it = |f: &FileInfo| {
-            pick.episode
-                .map_or(true, |(s, e)| names_episode(&f.name, s, e))
-        };
-        let any_names_it = self.files.iter().any(|f| is_video(&f.name) && names_it(f));
-        match pick.index.map(|i| (i, self.files.get(i))) {
-            Some((_, Some(f))) if is_video(&f.name) && (names_it(f) || !any_names_it) => {
-                return Ok(f.clone())
-            }
-            Some((i, f)) => tracing::warn!(
-                index = i,
-                file = f.map(|f| f.name.as_str()),
-                "el archivo pedido no es el video del episodio: busco el del episodio"
-            ),
-            None => {}
-        }
-        if let Some((s, e)) = pick.episode {
-            if let Some(f) = self
-                .files
-                .iter()
-                .filter(|f| is_video(&f.name))
-                .filter(|f| names_episode(&f.name, s, e))
-                .max_by_key(|f| f.size)
-            {
-                return Ok(f.clone());
-            }
-            tracing::warn!(
-                season = s,
-                episode = e,
-                "ningún archivo coincide con el episodio: uso el más grande"
-            );
-        }
-        self.largest_video()
+        let files: Vec<(&str, u64)> = self
+            .files
+            .iter()
+            .map(|f| (f.name.as_str(), f.size))
+            .collect();
+        pick_video(&files, pick.index, pick.episode).map(|i| self.files[i].clone())
     }
+}
+
+/// Qué video de `files` (nombre, tamaño) reproducir; devuelve su posición. Una sola regla para el P2P
+/// ([`Metadata::pick_file`]) y para TorBox (`catalog/torbox.rs`); en la web `torbox/client.ts pick`; golden
+/// `torbox_pick.json`. Solo videos que no son muestra. Orden:
+/// 1. `addon` (el archivo que dio la fuente) si es video y, si se sabe el episodio, lo nombra o ningún archivo lo
+///    nombra (el `fileIdx` a veces apunta a otro archivo del pack, 2026-11-16).
+/// 2. El del episodio (el más grande si hay varios).
+/// 3. Sin episodio pedido (película): el más grande. Con episodio, ningún archivo lo nombra y hay un solo video
+///    (torrent de un episodio con nombre raro): ese. Con varios, [`episode_missing`] (no se adivina en un pack,
+///    2026-11-27: se reprodujo el E10 al pedir el E02).
+///
+/// Sin ningún video: [`crate::CoreError::NoVideo`].
+pub fn pick_video(
+    files: &[(&str, u64)],
+    addon: Option<usize>,
+    episode: Option<(u32, u32)>,
+) -> Result<usize> {
+    let videos: Vec<usize> = (0..files.len())
+        .filter(|&i| is_video(files[i].0) && !is_sample(files[i].0))
+        .collect();
+    if videos.is_empty() {
+        return Err(crate::CoreError::NoVideo);
+    }
+    let names_it = |i: usize| episode.is_some_and(|(s, e)| names_episode(files[i].0, s, e));
+    let named = videos
+        .iter()
+        .copied()
+        .filter(|&i| names_it(i))
+        .max_by_key(|&i| files[i].1);
+    if let Some(i) = addon {
+        if videos.contains(&i) && (episode.is_none() || named.is_none() || names_it(i)) {
+            return Ok(i);
+        }
+        tracing::warn!(
+            index = i,
+            "el archivo pedido no es el video del episodio: busco el del episodio"
+        );
+    }
+    match (episode, named) {
+        (_, Some(i)) => Ok(i),
+        (Some(_), None) if videos.len() == 1 => Ok(videos[0]),
+        (Some((s, e)), None) => Err(episode_missing(s, e)),
+        (None, None) => Ok(videos
+            .into_iter()
+            .max_by_key(|&i| files[i].1)
+            .expect("hay videos")),
+    }
+}
+
+/// El torrent es un pack y no trae el episodio pedido.
+pub fn episode_missing(season: u32, episode: u32) -> crate::CoreError {
+    crate::CoreError::Catalog {
+        user: "Este torrent no trae el episodio pedido. Probá otra opción.".into(),
+        detail: format!("ningún video nombra S{season:02}E{episode:02}"),
+    }
+}
+
+/// ¿Es una muestra? El nombre del archivo es `sample` o empieza con `sample` + separador, o termina en `-sample` /
+/// `.sample` antes de la extensión, o una carpeta se llama exactamente `sample` / `samples`. Nunca por una subcadena
+/// (`Resample`). Misma regla en `web/src/lib/server/torbox/client.ts`; golden `torbox_pick.json`.
+pub fn is_sample(path: &str) -> bool {
+    let lower = path.to_ascii_lowercase();
+    let mut parts: Vec<&str> = lower.split(['/', '\\']).collect();
+    let file = parts.pop().unwrap_or("");
+    let stem = file.rsplit_once('.').map_or(file, |(s, _)| s);
+    let named = stem == "sample"
+        || stem.ends_with("-sample")
+        || stem.ends_with(".sample")
+        || stem
+            .strip_prefix("sample")
+            .is_some_and(|rest| rest.starts_with(['.', '-', '_', ' ']));
+    named || parts.iter().any(|d| *d == "sample" || *d == "samples")
 }
 
 /// ¿El nombre trae este episodio? `S01E03`, `s1e03`, `1x03` (sin confundir `S01E030` ni `11x03`).
@@ -527,7 +570,15 @@ mod tests {
             0,
             "sin episodio: se confía en el fileIdx"
         );
-        assert_eq!(pick(None, Some((2, 1))), 2); // sin coincidencia: el más grande
+        assert!(
+            m.pick_file(FilePick {
+                index: None,
+                episode: Some((2, 1))
+            })
+            .is_err(),
+            "pack sin ese episodio: error, no el más grande"
+        );
+        assert_eq!(pick(None, None), 2, "película: el más grande");
         assert_eq!(
             pick(Some(3), Some((1, 3))),
             1,

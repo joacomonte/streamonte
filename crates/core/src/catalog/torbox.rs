@@ -11,6 +11,7 @@ use std::time::Duration;
 use serde::Deserialize;
 
 use super::http::Http;
+use crate::engine::is_sample;
 use crate::magnet::InfoHash;
 use crate::Result;
 
@@ -193,23 +194,6 @@ fn files(entry: &serde_json::Value) -> Option<&Vec<serde_json::Value>> {
     entry.get("files").and_then(|f| f.as_array())
 }
 
-/// ¿Es una muestra? El nombre del archivo es `sample` o empieza con `sample` + separador, o termina en `-sample` /
-/// `.sample` antes de la extensión, o una carpeta se llama exactamente `sample` / `samples`. Nunca por una subcadena
-/// (`Resample`). Misma regla en `web/src/lib/server/torbox/client.ts`; golden `torbox_pick.json`.
-fn is_sample(path: &str) -> bool {
-    let lower = path.to_ascii_lowercase();
-    let mut parts: Vec<&str> = lower.split(['/', '\\']).collect();
-    let file = parts.pop().unwrap_or("");
-    let stem = file.rsplit_once('.').map_or(file, |(s, _)| s);
-    let named = stem == "sample"
-        || stem.ends_with("-sample")
-        || stem.ends_with(".sample")
-        || stem
-            .strip_prefix("sample")
-            .is_some_and(|rest| rest.starts_with(['.', '-', '_', ' ']));
-    named || parts.iter().any(|d| *d == "sample" || *d == "samples")
-}
-
 /// El video más grande que no es una muestra, si pesa al menos `MIN_VIDEO`.
 fn main_video(entry: &serde_json::Value) -> Option<String> {
     files(entry)?
@@ -303,9 +287,38 @@ fn fail(detail: impl Into<String>) -> crate::CoreError {
     }
 }
 
-/// El torrent en la cuenta de TorBox y su archivo de video más grande (2026-11-17): lo agrega solo si ya está en
-/// caché (si no, TorBox empezaría a bajarlo y no estaría al instante). Devuelve a quién pedir, el id y el archivo.
-async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Api, u64, TbFile)> {
+/// Qué archivo del torrent se quiere: el episodio pedido (`temporada, episodio`; `None` = película) y el nombre
+/// de archivo que dio el addon. Sin esto un pack de varias temporadas daba el video más grande (2026-11-27).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Target<'a> {
+    pub episode: Option<(u32, u32)>,
+    pub file: Option<&'a str>,
+}
+
+/// El archivo de `files` que se reproduce: ver [`crate::engine::pick_video`] (misma regla que el P2P y la web).
+fn pick_file(files: Vec<TbFile>, target: Target<'_>) -> Result<TbFile> {
+    let names: Vec<(&str, u64)> = files.iter().map(|f| (f.name.as_str(), f.size)).collect();
+    // El del addon: el primer video que termina con ese nombre (los de TorBox traen la ruta completa).
+    let addon = target.file.map(str::to_lowercase).and_then(|want| {
+        (0..names.len()).find(|&i| {
+            crate::engine::is_video(names[i].0)
+                && !is_sample(names[i].0)
+                && names[i].0.to_lowercase().ends_with(&want)
+        })
+    });
+    let i = crate::engine::pick_video(&names, addon, target.episode)?;
+    Ok(files.into_iter().nth(i).expect("índice de pick_video"))
+}
+
+/// El torrent en la cuenta de TorBox y su archivo de video (2026-11-17; el del episodio pedido, 2026-11-27): lo
+/// agrega solo si ya está en caché (si no, TorBox empezaría a bajarlo y no estaría al instante). Devuelve a quién
+/// pedir, el id y el archivo.
+async fn video_file(
+    http: &Http,
+    magnet: &str,
+    target: Target<'_>,
+    timeout: Duration,
+) -> Result<(Api, u64, TbFile)> {
     let api = api().ok_or_else(|| fail("sin key de TorBox"))?;
     let created: Created = api
         .post_multipart(
@@ -337,11 +350,7 @@ async fn video_file(http: &Http, magnet: &str, timeout: Duration) -> Result<(Api
     if files.is_empty() {
         return Err(fail("sin archivos (¿todavía no está listo?)"));
     }
-    let file = files
-        .into_iter()
-        .filter(|f| crate::engine::is_video(&f.name) && !is_sample(&f.name))
-        .max_by_key(|f| f.size)
-        .ok_or(crate::CoreError::NoVideo)?;
+    let file = pick_file(files, target)?;
     Ok((api, id, file))
 }
 /// Link de descarga del archivo. `requestdl` pide la key en la URL (así lo documenta TorBox); no se loguea.
@@ -374,10 +383,11 @@ async fn download_url(
 pub async fn header_tracks(
     http: &Http,
     magnet: &str,
+    target: Target<'_>,
     timeout: Duration,
 ) -> Result<(Option<Vec<super::mkv::Track>>, Option<String>)> {
     const HEADER_TIMEOUT: Duration = Duration::from_secs(25);
-    let (api, id, file) = video_file(http, magnet, timeout).await?;
+    let (api, id, file) = video_file(http, magnet, target, timeout).await?;
     tracing::info!(
         torrent_id = id,
         file_id = file.id,
@@ -394,8 +404,13 @@ pub async fn header_tracks(
 }
 
 /// Link directo del video de ese torrent en TorBox (2026-11-17), que mpv reproduce como cualquier video en línea.
-pub async fn stream_url(http: &Http, magnet: &str, timeout: Duration) -> Result<String> {
-    let (api, id, file) = video_file(http, magnet, timeout).await?;
+pub async fn stream_url(
+    http: &Http,
+    magnet: &str,
+    target: Target<'_>,
+    timeout: Duration,
+) -> Result<String> {
+    let (api, id, file) = video_file(http, magnet, target, timeout).await?;
     download_url(http, &api, id, &file, timeout).await
 }
 
@@ -429,11 +444,12 @@ struct StreamAudio {
 pub async fn cast_url(
     http: &Http,
     magnet: &str,
+    target: Target<'_>,
     orig: Option<&str>,
     latino: bool,
     timeout: Duration,
 ) -> Result<String> {
-    let (api, id, file) = video_file(http, magnet, timeout).await?;
+    let (api, id, file) = video_file(http, magnet, target, timeout).await?;
     let release = crate::magnet::Magnet::parse(magnet)
         .ok()
         .and_then(|m| m.display_name)
@@ -859,13 +875,47 @@ mod tests {
         for case in cases {
             let input = &case["in"];
             if let Some(files) = input.get("files") {
-                let entry = serde_json::json!({ "files": files });
-                assert_eq!(
-                    serde_json::json!(main_video(&entry)),
-                    case["out"],
-                    "{}",
-                    case["nota"]
-                );
+                let list: Vec<TbFile> = files
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .enumerate()
+                    .map(|(id, f)| TbFile {
+                        id: id as u64,
+                        name: f["name"].as_str().unwrap().into(),
+                        size: f["size"].as_u64().unwrap(),
+                    })
+                    .collect();
+                let episode = input["season"]
+                    .as_u64()
+                    .zip(input["episode"].as_u64())
+                    .map(|(s, e)| (s as u32, e as u32));
+                let target = Target {
+                    episode,
+                    file: input["file"].as_str(),
+                };
+                // Sin `diverge`: el archivo que se elige (la web tampoco exige el tamaño mínimo).
+                if case.get("diverge").is_none() {
+                    let out = match pick_file(list, target) {
+                        Ok(f) => serde_json::json!(f.name.rsplit('/').next().unwrap()),
+                        Err(crate::CoreError::NoVideo) => serde_json::Value::Null,
+                        Err(crate::CoreError::Catalog { .. }) => {
+                            serde_json::json!({ "error": "episode" })
+                        }
+                        Err(e) => panic!("{e}"),
+                    };
+                    assert_eq!(out, case["out"], "{}", case["nota"]);
+                }
+                // La lista de "en caché" (sin episodio) sigue pidiendo el tamaño mínimo.
+                if episode.is_none() && input.get("file").is_none() {
+                    let entry = serde_json::json!({ "files": files });
+                    assert_eq!(
+                        serde_json::json!(main_video(&entry)),
+                        case["out"],
+                        "{}",
+                        case["nota"]
+                    );
+                }
                 continue;
             }
             let audios: Vec<StreamAudio> = input["audios"]

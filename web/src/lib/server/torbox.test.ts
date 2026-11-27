@@ -34,7 +34,8 @@ test('pick: el del addon, si no el del capítulo, si no el más grande', () => {
 	assert.equal(pick(files, { file: 'no-esta.mkv', s: '1', e: '2' })?.size, 50);
 	assert.equal(pick(files, { file: null, s: '1', e: '2' })?.size, 50);
 	assert.equal(pick(files, { file: null, s: null, e: null })?.size, 900);
-	assert.equal(pick(files, { file: null, s: '1', e: '9' })?.size, 900);
+	assert.throws(() => pick(files, { file: null, s: '1', e: '9' }), { status: 409 }); // pack sin ese capítulo: no se adivina
+	assert.equal(pick([file('raro.mkv', 7)], { file: null, s: '1', e: '9' })?.size, 7); // un solo video: ese
 	assert.equal(pick([], { file: null, s: null, e: null }), null);
 });
 

@@ -774,6 +774,7 @@ const EN: Record<string, string> = {
 	"Esta fuente viene con la app: no se quita, apagala.": "This source comes with the app: it can't be removed, turn it off.",
 	"Este addon no ofrece streams.": "This addon doesn't offer streams.",
 	"Este addon no tiene películas ni series.": "This addon has no movies or series.",
+	"Este torrent no trae el episodio pedido. Probá otra opción.": "This torrent doesn’t include the requested episode. Try another option.",
 	"Este torrent no tiene video (trae solo audio u otros archivos). Elegí otra fuente.": "This torrent has no video (only audio or other files). Choose another source.",
 	"No es un addon de Stremio.": "It's not a Stremio addon.",
 	"No hay fuentes habilitadas: activá alguna en Fuentes.": "No sources enabled: turn one on in Sources.",

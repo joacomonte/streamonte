@@ -9,7 +9,7 @@
 - `show_status` — `seasons.rs` ↔ `tmdb/title.ts`. `awards` — `catalog/awards.rs` ↔ `server/awards.ts`. `episode_ratings` — `catalog/episode_ratings.rs` ↔ `server/episode-ratings.ts`.
 - `sub_lang` — `subtitles/providers/lang.rs` ↔ `torbox/client.ts isSpanishSub`. `mkv` — `catalog/mkv.rs` ↔ `server/mkv.ts`.
 - `interests`, `small_poster` — `catalog/interests.rs` ↔ `server/interests.ts`. `opensubs_org` — `opensubtitles_org.rs` ↔ `server/subs.ts`.
-- `sub_match` — `subtitles/golden.rs` (`release_match`, `fit_by_timing`, `rank_order`) ↔ `packages/ui/src/sub-match.ts`. `torbox_pick` — `catalog/torbox.rs main_video`/`pick_audio` ↔ `torbox/client.ts pick`, `torbox/link.ts pickAudio`. `addons` — `config.rs default_addons` ↔ `server/torrents.ts ADDONS` (solo verificada). `show_status_cinemeta` — `seasons.rs cinemeta_status` ↔ `ui/src/tauri-adapt.ts STATES` (`ui/src/golden-status.test.ts`).
+- `sub_match` — `subtitles/golden.rs` (`release_match`, `fit_by_timing`, `rank_order`) ↔ `packages/ui/src/sub-match.ts`. `torbox_pick` — `engine/mod.rs pick_video` (vía `catalog/torbox.rs pick_file`; `main_video` sin episodio)/`pick_audio` ↔ `torbox/client.ts pick`, `torbox/link.ts pickAudio`. `addons` — `config.rs default_addons` ↔ `server/torrents.ts ADDONS` (solo verificada). `show_status_cinemeta` — `seasons.rs cinemeta_status` ↔ `ui/src/tauri-adapt.ts STATES` (`ui/src/golden-status.test.ts`).
 - Lector web: `web/src/lib/server/golden.test.ts` y `golden-rules.test.ts`. Los pares exactos: `rg -n '<nombre>.json'`.
 
 ## Agregar o cambiar uno

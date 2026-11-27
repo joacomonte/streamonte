@@ -828,6 +828,18 @@ impl Catalog {
         Ok(Some(found))
     }
 
+    /// Qué archivo pedir a TorBox de esa opción de la lista vigente: el episodio de la lista (`None` = película) y
+    /// el nombre de archivo del addon. Reproducir, copiar link y pistas eligen igual (2026-11-27).
+    fn torbox_target(&self, hash: InfoHash) -> (Option<(u32, u32)>, Option<String>) {
+        let latest = self.latest.lock().expect("latest");
+        let file = latest
+            .candidates
+            .iter()
+            .find(|c| c.info_hash == hash)
+            .and_then(|c| c.file_name.clone());
+        (latest.video.as_ref().and_then(VideoId::episode), file)
+    }
+
     /// Link directo de TorBox para esa opción de la lista vigente, y su nombre (2026-11-17).
     pub async fn torbox_stream(
         &self,
@@ -839,7 +851,12 @@ impl Catalog {
             .into_iter()
             .next()
             .ok_or_else(|| CoreError::NotFound("esa opción ya no está en la lista".into()))?;
-        let url = torbox::stream_url(&self.http, &magnet.to_uri(), timeout).await?;
+        let (episode, file) = self.torbox_target(hash);
+        let target = torbox::Target {
+            episode,
+            file: file.as_deref(),
+        };
+        let url = torbox::stream_url(&self.http, &magnet.to_uri(), target, timeout).await?;
         Ok((url, magnet.display_name.unwrap_or_else(|| hash.to_hex())))
     }
 
@@ -854,7 +871,13 @@ impl Catalog {
             .into_iter()
             .next()
             .ok_or_else(|| CoreError::NotFound("esa opción ya no está en la lista".into()))?;
-        let (tracks, url) = torbox::header_tracks(&self.http, &magnet.to_uri(), timeout).await?;
+        let (episode, file) = self.torbox_target(hash);
+        let target = torbox::Target {
+            episode,
+            file: file.as_deref(),
+        };
+        let (tracks, url) =
+            torbox::header_tracks(&self.http, &magnet.to_uri(), target, timeout).await?;
         Ok((
             tracks,
             url,
@@ -876,9 +899,15 @@ impl Catalog {
             .into_iter()
             .next()
             .ok_or_else(|| CoreError::NotFound("esa opción ya no está en la lista".into()))?;
+        let (episode, file) = self.torbox_target(hash);
+        let target = torbox::Target {
+            episode,
+            file: file.as_deref(),
+        };
         torbox::cast_url(
             &self.http,
             &magnet.to_uri(),
+            target,
             orig.and_then(torbox::iso3),
             latino,
             timeout,

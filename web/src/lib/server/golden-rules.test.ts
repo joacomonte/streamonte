@@ -16,6 +16,7 @@ process.env.TMDB_KEY = 'x';
 delete process.env.VERCEL;
 const { ADDONS } = await import('./torrents.ts');
 const { pick } = await import('./torbox/client.ts');
+const { Fail } = await import('./http-route.ts');
 const { pickAudio } = await import('./torbox/link.ts');
 const { rank } = await import('../../../../packages/ui/src/sub-match.ts');
 after(() => {
@@ -41,10 +42,16 @@ golden('sub_match', ({ video, sub, subs }) => {
 	return rank([subOf({ latino: false, downloads: 0, ...sub })], match)[0].level;
 });
 
-golden('torbox_pick', ({ files, audios, orig, release }) => {
+golden('torbox_pick', ({ files, season, episode, file, audios, orig, release }) => {
 	if (files) {
-		const f = pick(files.map((x: any, id: number) => ({ id, ...x })), { file: null, s: null, e: null });
-		return f ? f.name.split('/').pop() : null;
+		const t = { file: file ?? null, s: season ? String(season) : null, e: episode ? String(episode) : null };
+		try {
+			const f = pick(files.map((x: any, id: number) => ({ id, ...x })), t);
+			return f ? f.name.split('/').pop() : null;
+		} catch (e) {
+			if (e instanceof Fail) return { error: 'episode' };
+			throw e;
+		}
 	}
 	const { main, lat } = pickAudio(audios, orig, release);
 	return { main, lat: lat !== main ? lat : null };

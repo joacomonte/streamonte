@@ -32,7 +32,7 @@ async fn reproducir_por_torbox_con_key_propia() {
     );
 
     let magnet = format!("magnet:?xt=urn:btih:{SINTEL}");
-    let url = torbox::stream_url(&http, &magnet, T)
+    let url = torbox::stream_url(&http, &magnet, torbox::Target::default(), T)
         .await
         .expect("createtorrent / mylist / requestdl");
     assert!(url.starts_with("https://"));

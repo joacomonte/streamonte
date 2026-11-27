@@ -440,5 +440,220 @@
    "main": 0,
    "lat": 1
   }
+ },
+ {
+  "nota": "pack S01-S04: pide S03E02 y el más grande es S03E10 (y S04E02 es más grande aún)",
+  "in": {
+   "files": [
+    {
+     "name": "Game.Of.Thrones.S01-S04.BluRay.4K.UHD.H265/Season 3/Game.Of.Thrones.S03E01.2160p.mkv",
+     "size": 5368709120
+    },
+    {
+     "name": "Game.Of.Thrones.S01-S04.BluRay.4K.UHD.H265/Season 3/Game.Of.Thrones.S03E02.2160p.mkv",
+     "size": 5905580032
+    },
+    {
+     "name": "Game.Of.Thrones.S01-S04.BluRay.4K.UHD.H265/Season 3/Game.Of.Thrones.S03E10.2160p.mkv",
+     "size": 9663676416
+    },
+    {
+     "name": "Game.Of.Thrones.S01-S04.BluRay.4K.UHD.H265/Season 4/Game.Of.Thrones.S04E02.2160p.mkv",
+     "size": 12884901888
+    }
+   ],
+   "season": 3,
+   "episode": 2
+  },
+  "out": "Game.Of.Thrones.S03E02.2160p.mkv"
+ },
+ {
+  "nota": "pack sin el episodio pedido (S03E07): error, no el más grande",
+  "in": {
+   "files": [
+    {
+     "name": "Game.Of.Thrones.S01-S04.BluRay.4K.UHD.H265/Season 3/Game.Of.Thrones.S03E01.2160p.mkv",
+     "size": 5368709120
+    },
+    {
+     "name": "Game.Of.Thrones.S01-S04.BluRay.4K.UHD.H265/Season 3/Game.Of.Thrones.S03E02.2160p.mkv",
+     "size": 5905580032
+    },
+    {
+     "name": "Game.Of.Thrones.S01-S04.BluRay.4K.UHD.H265/Season 3/Game.Of.Thrones.S03E10.2160p.mkv",
+     "size": 9663676416
+    },
+    {
+     "name": "Game.Of.Thrones.S01-S04.BluRay.4K.UHD.H265/Season 4/Game.Of.Thrones.S04E02.2160p.mkv",
+     "size": 12884901888
+    }
+   ],
+   "season": 3,
+   "episode": 7
+  },
+  "out": {
+   "error": "episode"
+  }
+ },
+ {
+  "nota": "un solo video sin SxxEyy y se pide un episodio: ese video",
+  "in": {
+   "files": [
+    {
+     "name": "Peli.rara.nombre/chapter two.mkv",
+     "size": 1610612736
+    },
+    {
+     "name": "Peli.rara.nombre/poster.jpg",
+     "size": 10737418
+    }
+   ],
+   "season": 3,
+   "episode": 2
+  },
+  "out": "chapter two.mkv"
+ },
+ {
+  "nota": "formato 3x02 y carpeta Season 3",
+  "in": {
+   "files": [
+    {
+     "name": "Serie/Season 3/Serie 3x01.mkv",
+     "size": 1073741824
+    },
+    {
+     "name": "Serie/Season 3/Serie 3x02.mkv",
+     "size": 858993459
+    },
+    {
+     "name": "Serie/Season 3/Serie 3x20.mkv",
+     "size": 3221225472
+    }
+   ],
+   "season": 3,
+   "episode": 2
+  },
+  "out": "Serie 3x02.mkv"
+ },
+ {
+  "nota": "3x02 no se confunde con 13x02 ni con 3x020",
+  "in": {
+   "files": [
+    {
+     "name": "Serie/Serie 13x02.mkv",
+     "size": 3221225472
+    },
+    {
+     "name": "Serie/Serie 3x020.mkv",
+     "size": 3221225472
+    },
+    {
+     "name": "Serie/Serie 3x02.mkv",
+     "size": 1073741824
+    }
+   ],
+   "season": 3,
+   "episode": 2
+  },
+  "out": "Serie 3x02.mkv"
+ },
+ {
+  "nota": "el archivo del addon, si nombra el episodio",
+  "in": {
+   "files": [
+    {
+     "name": "Pack/Serie.S01E01.mkv",
+     "size": 1073741824
+    },
+    {
+     "name": "Pack/Serie.S01E02.v2.mkv",
+     "size": 1073741824
+    },
+    {
+     "name": "Pack/Serie.S01E02.mkv",
+     "size": 2147483648
+    }
+   ],
+   "season": 1,
+   "episode": 2,
+   "file": "Serie.S01E02.v2.mkv"
+  },
+  "out": "Serie.S01E02.v2.mkv"
+ },
+ {
+  "nota": "el archivo del addon apunta a otro episodio: el del episodio pedido",
+  "in": {
+   "files": [
+    {
+     "name": "Pack/Serie.S01E01.mkv",
+     "size": 1073741824
+    },
+    {
+     "name": "Pack/Serie.S01E02.mkv",
+     "size": 1073741824
+    },
+    {
+     "name": "Pack/Serie.S01E03.mkv",
+     "size": 2147483648
+    }
+   ],
+   "season": 1,
+   "episode": 2,
+   "file": "Serie.S01E03.mkv"
+  },
+  "out": "Serie.S01E02.mkv"
+ },
+ {
+  "nota": "el archivo del addon cuando ningún archivo nombra el episodio: se confía en el addon",
+  "in": {
+   "files": [
+    {
+     "name": "Pack/uno.mkv",
+     "size": 3221225472
+    },
+    {
+     "name": "Pack/dos.mkv",
+     "size": 1073741824
+    }
+   ],
+   "season": 1,
+   "episode": 2,
+   "file": "dos.mkv"
+  },
+  "out": "dos.mkv"
+ },
+ {
+  "nota": "película (sin episodio): el más grande aunque haya SxxEyy",
+  "in": {
+   "files": [
+    {
+     "name": "Peli/Peli.S01E01.mkv",
+     "size": 1073741824
+    },
+    {
+     "name": "Peli/Peli.mkv",
+     "size": 3221225472
+    }
+   ]
+  },
+  "out": "Peli.mkv"
+ },
+ {
+  "nota": "el episodio solo está en una muestra: no cuenta (un solo video real)",
+  "in": {
+   "files": [
+    {
+     "name": "Serie/Sample/Serie.S01E02.sample.mkv",
+     "size": 214748364
+    },
+    {
+     "name": "Serie/raro.mkv",
+     "size": 1073741824
+    }
+   ],
+   "season": 1,
+   "episode": 2
+  },
+  "out": "raro.mkv"
  }
 ]
