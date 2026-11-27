@@ -1,9 +1,10 @@
 <script lang="ts">
 	// "Vistos recientemente" (2026-11-23, variante D1 de docs/mockups/vistos-recientes): fila arriba de la grilla con lo
 	// último que el apodo copió (web) o reprodujo (desktop), de lo más nuevo a lo más viejo. Tarjetas apaisadas con la escena
-	// de fondo y un fundido oscuro desde la izquierda. Tocar una pregunta "¿Lo terminaste?": en series, Sí abre el capítulo
-	// siguiente y No el mismo; en películas abre la ficha (Sí además la saca de la fila). La X ofrece "Ya lo vi" (sale como
-	// terminado) o "No lo vi" (se borra), con Deshacer. Datos: `getApi().recent`; siguiente capítulo: `recent.ts`.
+	// de fondo y un fundido oscuro desde la izquierda. Tocar la tarjeta (o su chevron) abre dos opciones: la primaria en series
+	// es "Ver T3 · E4" (marca visto y abre el capítulo siguiente; en el final de la serie, "Ya la terminé": solo marca visto,
+	// con Deshacer) y en películas "Ver de nuevo" (abre la ficha); la secundaria, "Ocultar", la borra de la fila (con
+	// Deshacer). Datos: `getApi().recent`; siguiente capítulo: `recent.ts`.
 	import { onMount } from 'svelte';
 	import Icon from '../components/Icon.svelte';
 	import { getApi } from '../context.ts';
@@ -18,8 +19,11 @@
 	const api = getApi();
 
 	let items = $state<RecentItem[]>([]);
-	/** Tarjeta con la pregunta abierta: qué pregunta. */
-	let asking = $state<{ key: string; what: 'done' | 'x' } | null>(null);
+	/** Tarjeta con las opciones abiertas. */
+	let asking = $state<string | null>(null);
+	/** Series: el capítulo siguiente de cada tarjeta (null = era el último; sin clave = cargando o no se pudo saber). */
+	let nexts = $state<Record<string, EpisodeRef | null>>({});
+	const pending = new Map<string, Promise<EpisodeRef | null | undefined>>();
 	let busy = $state<string | null>(null);
 	/** Lo último que se sacó, para Deshacer. */
 	let undo = $state<{ item: RecentItem; how: 'visto' | 'olvidar' } | null>(null);
@@ -65,20 +69,44 @@
 		if (e instanceof KeyboardEvent ? e.key === 'Escape' : !(e.target instanceof Element && e.target.closest('.c.open'))) asking = null;
 	}
 
-	async function answer(i: RecentItem, finished: boolean) {
-		asking = null;
-		if (i.kind === 'movie') {
-			if (finished) remove(i, 'visto', false);
-			onresume(i, null);
-			return;
+	const isEpisode = (i: RecentItem) => i.kind === 'tv' && !!i.season && !!i.episode;
+	/** El capítulo que sigue (undefined si la ficha no cargó; se reintenta al volver a abrir). */
+	function nextOf(i: RecentItem): Promise<EpisodeRef | null | undefined> {
+		const k = keyOf(i);
+		let p = pending.get(k);
+		if (!p) {
+			p = api.title
+				.details(i.kind, i.id)
+				.then((d) => (nexts[k] = nextEpisode(d.seasons, i.season ?? 0, i.episode ?? 0)))
+				.catch(() => (pending.delete(k), undefined));
+			pending.set(k, p);
 		}
-		if (!i.season || !i.episode) return onresume(i, null);
-		if (!finished) return onresume(i, { season: i.season, episode: i.episode });
+		return p;
+	}
+	function toggle(i: RecentItem) {
+		const k = keyOf(i);
+		asking = asking === k ? null : k;
+		// Se pide al abrir para que la opción primaria ya diga qué capítulo abre.
+		if (asking && isEpisode(i)) void nextOf(i);
+	}
+	function primaryText(i: RecentItem) {
+		if (i.kind === 'movie') return t('Ver de nuevo');
+		const k = keyOf(i);
+		if (!isEpisode(i) || !(k in nexts)) return t('Ver próximo capítulo');
+		const n = nexts[k];
+		return n ? t('Ver T{s} · E{e}', { s: n.season, e: n.episode }) : t('Ya la terminé');
+	}
+
+	/** Primaria: en series marca visto el capítulo actual y abre el siguiente (si era el último, solo lo marca); en películas abre la ficha. */
+	async function primary(i: RecentItem) {
+		asking = null;
+		if (!isEpisode(i)) return onresume(i, null);
 		busy = keyOf(i);
-		const next = await api.title.details(i.kind, i.id).then((d) => nextEpisode(d.seasons, i.season ?? 0, i.episode ?? 0)).catch(() => null);
+		const next = await nextOf(i);
 		busy = null;
-		// Último capítulo de todo: la serie terminó, sale de la fila y abre la ficha.
-		if (!next) remove(i, 'visto', false);
+		if (next === undefined) return onresume(i, null);
+		if (!next) return remove(i, 'visto');
+		remove(i, 'visto', false);
 		onresume(i, next);
 	}
 
@@ -110,25 +138,19 @@
 			{#each items as i (keyOf(i))}
 				{@const k = keyOf(i)}
 				{@const img = i.backdrop ?? i.poster}
-				<div class="c" class:open={asking?.key === k} animate:slide out:leave>
-					<button id="recent-{k}" type="button" class="hit" aria-label={`${i.title} · ${epText(i)}`} onclick={() => (asking = asking?.key === k ? null : { key: k, what: 'done' })}>
+				<div class="c" class:open={asking === k} animate:slide out:leave>
+					<button id="recent-{k}" type="button" class="hit" aria-label={`${i.title} · ${epText(i)}`} aria-expanded={asking === k} onclick={() => toggle(i)}>
 						<span class="art fade-side">{#if img}<img src={img} alt="" loading="lazy" draggable="false" />{/if}</span>
 						<span class="tx">
 							<span class="ttl">{i.title}</span>
 							<span class="sub">{epText(i)}{#if busy === k}<span class="dots" aria-hidden="true">···</span>{/if}</span>
 						</span>
 					</button>
-					<button id="recent-x-{k}" type="button" class="x" aria-label={asking?.key === k ? t('Cancelar') : t('Sacar de vistos')} onclick={() => (asking = asking?.key === k ? null : { key: k, what: 'x' })}><Icon name="close" size={14} /></button>
-					{#if asking?.key === k}
-						<div class="ask" role="group" aria-label={asking.what === 'x' ? t('Sacar de vistos') : t('¿Lo terminaste?')}>
-							{#if asking.what === 'done'}
-								<span class="q">{i.kind === 'tv' ? t('¿Terminaste el {e}?', { e: `E${i.episode}` }) : t('¿La terminaste?')}</span>
-								<button id="recent-yes-{k}" type="button" class="pill go" onclick={() => answer(i, true)}>{t('Sí')}</button>
-								<button id="recent-no-{k}" type="button" class="pill" onclick={() => answer(i, false)}>{t('No')}</button>
-							{:else}
-								<button id="recent-seen-{k}" type="button" class="pill go" onclick={() => remove(i, 'visto')}>{t('Ya lo vi')}</button>
-								<button id="recent-forget-{k}" type="button" class="pill" onclick={() => remove(i, 'olvidar')}>{t('No lo vi')}</button>
-							{/if}
+					<button id="recent-more-{k}" type="button" class="x frost" aria-label={asking === k ? t('Cancelar') : t('Opciones')} aria-expanded={asking === k} onclick={() => toggle(i)}>{#if asking === k}<Icon name="close" size={14} />{:else}<span class="chev"><Icon name="back" size={15} /></span>{/if}</button>
+					{#if asking === k}
+						<div class="ask" role="group" aria-label={t('Opciones')}>
+							<button id="recent-next-{k}" type="button" class="pill frost" onclick={() => primary(i)}>{primaryText(i)}</button>
+							<button id="recent-hide-{k}" type="button" class="ghost" onclick={() => remove(i, 'olvidar')}>{t('Ocultar')}</button>
 						</div>
 					{/if}
 				</div>
@@ -142,7 +164,7 @@
 {#if undo}
 	<div id="recent-toast" class="toast" role="status">
 		<span>{undo.how === 'visto' ? t('{t}: marcado como visto', { t: undo.item.title }) : t('Sacaste {t}', { t: undo.item.title })}</span>
-		<button id="recent-undo" type="button" onclick={restore}>{t('Deshacer')}</button>
+		<button id="recent-undo" type="button" class="frost" onclick={restore}>{t('Deshacer')}</button>
 	</div>
 {/if}
 
@@ -176,15 +198,23 @@
 	@media (min-width: 760px) { .ttl { font-size: 15px; } }
 	.sub { display: flex; gap: 4px; margin-top: 3px; font-size: 12px; color: rgb(255 255 255 / 0.8); font-variant-numeric: tabular-nums; }
 	.dots { animation: blink 1s infinite; }
-	.x { position: absolute; top: 50%; right: 8px; z-index: 5; display: grid; place-items: center; width: 28px; height: 28px; margin-top: -14px; padding: 0; border: 0; border-radius: 50%; color: #fff; background: rgb(10 12 16 / 0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.22); transition: background 0.15s, transform 0.15s var(--out); }
-	@media (hover: hover) { .x:hover { background: rgb(10 12 16 / 0.7); transform: scale(1.08); } }
-	.x:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-	/* La pregunta tapa la tarjeta con vidrio oscuro; la X (z-index 5) queda encima y cancela, por eso el padding derecho. */
+	/* Botones de la tarjeta y del Deshacer: vidrio esmerilado + relieve neumórfico (la sombra de los pósters de `Grid.svelte`,
+	   10/-8 px, a escala de botón), con brillo interior arriba; al presionar se hunde (sombras inset). Nada de azul sólido. */
+	.frost { border: 1px solid rgb(255 255 255 / 0.22); color: #fff; background: rgb(255 255 255 / 0.15); backdrop-filter: blur(14px) saturate(1.6); -webkit-backdrop-filter: blur(14px) saturate(1.6); box-shadow: 4px 4px 10px rgb(0 0 0 / 0.85), -3px -3px 8px rgb(255 255 255 / 0.07), inset 0 1px 0 rgb(255 255 255 / 0.28); transition: background 0.15s, box-shadow 0.15s, transform 0.15s var(--out); }
+	@media (hover: hover) { .frost:hover { background: rgb(255 255 255 / 0.22); } }
+	.frost:active { background: rgb(255 255 255 / 0.12); box-shadow: inset 3px 3px 6px rgb(0 0 0 / 0.55), inset -2px -2px 5px rgb(255 255 255 / 0.07); transform: scale(0.97); }
+	.frost:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+	.x { position: absolute; top: 50%; right: 8px; z-index: 5; display: grid; place-items: center; width: 28px; height: 28px; margin-top: -14px; padding: 0; border-radius: 50%; }
+	/* Chevron: `back` espejado (como la flecha "Siguientes"), corrido 1 px para quedar ópticamente centrado. */
+	.chev { display: grid; margin-left: 1px; }
+	.chev :global(svg) { transform: scaleX(-1); }
+	/* Las opciones tapan la tarjeta con vidrio oscuro; el botón de la derecha (z-index 5) queda encima y cancela, por eso el padding derecho. */
 	.ask { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; gap: 6px; padding: 0 44px 0 14px; border-radius: 14px; background: rgb(10 12 16 / 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #fff; animation: fade 0.2s var(--out); }
-	.q { flex: 1; min-width: 0; overflow: hidden; font-size: 13px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-	.pill { flex: none; height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: rgb(255 255 255 / 0.14); color: #fff; font-size: 13px; font-weight: 700; }
-	.pill.go { background: var(--accent); }
-	.pill:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+	.pill { flex: 0 1 auto; min-width: 0; height: 32px; padding: 0 14px; overflow: hidden; border-radius: 999px; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+	/* Secundaria despriorizada: solo texto gris tenue, sin relieve. */
+	.ghost { flex: none; height: 32px; padding: 0 10px; border: 0; border-radius: 999px; background: none; color: rgb(255 255 255 / 0.5); font-size: 13px; font-weight: 600; transition: color 0.15s, background 0.15s; }
+	@media (hover: hover) { .ghost:hover { color: #fff; background: rgb(255 255 255 / 0.08); } }
+	.ghost:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	/* Escritorio (mouse): flechas y fundidos en los bordes cuando la fila no entra; en el celu se desliza con el dedo. */
 	.nav { display: none; }
 	@media (min-width: 760px) and (hover: hover) and (pointer: fine) {
@@ -201,7 +231,7 @@
 	}
 	.toast { position: fixed; left: 50%; bottom: calc(18px + var(--safe-bottom, 0px)); z-index: 70; display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px); padding: 10px 10px 10px 16px; border-radius: 999px; background: var(--surface-3); color: var(--text); font-size: 13.5px; box-shadow: 0 12px 30px rgb(0 0 0 / 0.35); transform: translateX(-50%); animation: toast-in 0.3s var(--out); }
 	.toast span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.toast button { flex: none; height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; }
+	.toast button { flex: none; height: 32px; padding: 0 14px; border-radius: 999px; font-weight: 700; }
 	@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 	@keyframes fade { from { opacity: 0; } }
 	@keyframes blink { 50% { opacity: 0.3; } }
