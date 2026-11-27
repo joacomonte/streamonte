@@ -56,7 +56,6 @@
 							<span class="stack">
 								{#each fan as it (it.imdb)}<span class="card-p"><img src={it.poster} alt="" draggable="false" /></span>{/each}
 							</span>
-							<span class="ic" aria-hidden="true"><Icon name="expand" size={14} /></span>
 						</span>
 						<span class="cnt">{newsCount}</span>
 					</button>
@@ -97,8 +96,8 @@
 <style>
 	.trend { margin: 2px 0 18px; }
 	.trend h2 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
-	.railwrap { position: relative; margin: 0 -16px; }
-	.rail { display: flex; align-items: flex-start; gap: 12px; padding: 2px 16px 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 16px; scrollbar-width: none; }
+	.railwrap { position: relative; margin: -12px -16px -18px; }
+	.rail { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 24px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 16px; scrollbar-width: none; }
 	.rail::-webkit-scrollbar { display: none; }
 	/* Grupos del rail: "Novedades" (la card) y "Tendencias", cada uno con su título encima. */
 	.grp { flex: none; display: flex; flex-direction: column; }
@@ -109,25 +108,23 @@
 	.nc { --ph: 156px; flex: none; display: block; width: 132px; margin-right: 6px; padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start; -webkit-tap-highlight-color: transparent; animation: rise 0.45s var(--out) both; }
 	@media (min-width: 760px) { .nc { --ph: 198px; width: 168px; } }
 	.nc:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 3px; border-radius: var(--r-card); }
-	.box { position: relative; display: block; height: var(--ph); border-radius: var(--r-card); overflow: hidden; isolation: isolate; background: radial-gradient(90% 70% at 50% 100%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%), var(--surface); box-shadow: inset 0 0 0 1px var(--border-strong), 6px 6px 14px rgb(0 0 0 / 0.85), -4px -4px 10px rgb(255 255 255 / 0.06); transition: transform 0.25s var(--out), box-shadow 0.35s var(--out), background-color 0.35s; }
+	.box { position: relative; display: block; height: var(--ph); border-radius: var(--r-card); overflow: visible; isolation: isolate; background: none; transition: transform 0.25s var(--out), box-shadow 0.35s var(--out), background-color 0.35s; }
 	.stack { position: absolute; inset: 0; }
-	.card-p { position: absolute; left: 27%; bottom: 12%; width: 46%; aspect-ratio: 2 / 3; border-radius: 7px; overflow: hidden; background: var(--surface-3); box-shadow: 0 6px 16px rgb(0 0 0 / 0.55); transform-origin: 50% 150%; transition: transform 0.45s var(--out); }
+	.card-p { position: absolute; left: 19%; bottom: 4%; width: 62%; aspect-ratio: 2 / 3; border-radius: 7px; overflow: hidden; background: var(--surface-3); box-shadow: 0 6px 16px rgb(0 0 0 / 0.55); transform-origin: 50% 110%; transition: transform 0.45s var(--out); }
 	.card-p img { width: 100%; height: 100%; object-fit: cover; }
-	.card-p:nth-child(1) { transform: rotate(-12deg); }
-	.card-p:nth-child(2) { transform: rotate(-4deg); }
-	.card-p:nth-child(3) { transform: rotate(4deg); }
-	.card-p:nth-child(4) { transform: rotate(12deg); }
-	.ic { position: absolute; top: 8px; right: 8px; z-index: 5; display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgb(255 255 255 / 0.2); border-radius: 50%; color: #fff; background: rgb(255 255 255 / 0.12); backdrop-filter: blur(12px) saturate(1.5); -webkit-backdrop-filter: blur(12px) saturate(1.5); box-shadow: 3px 3px 8px rgb(0 0 0 / 0.75), -2px -2px 6px rgb(255 255 255 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.25); transition: transform 0.3s var(--out), background 0.2s, box-shadow 0.2s; }
+	.card-p:nth-child(1) { transform: rotate(-9deg); }
+	.card-p:nth-child(2) { transform: rotate(-3deg); }
+	.card-p:nth-child(3) { transform: rotate(3deg); }
+	.card-p:nth-child(4) { transform: rotate(9deg); }
 	.cnt { display: block; padding: 7px 2px 0; font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 	@media (hover: hover) {
-		.nc:hover .box { transform: translateY(-3px); background-color: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border-strong), 10px 10px 24px rgb(0 0 0 / 0.9), -8px -8px 18px rgb(255 255 255 / 0.1); }
-		.nc:hover .card-p:nth-child(1) { transform: rotate(-21deg) translateY(-4%); }
-		.nc:hover .card-p:nth-child(2) { transform: rotate(-7deg) translateY(-7%); }
-		.nc:hover .card-p:nth-child(3) { transform: rotate(7deg) translateY(-7%); }
-		.nc:hover .card-p:nth-child(4) { transform: rotate(21deg) translateY(-4%); }
-		.nc:hover .ic { transform: scale(1.12); background: rgb(255 255 255 / 0.22); box-shadow: 4px 4px 10px rgb(0 0 0 / 0.85), -3px -3px 8px rgb(255 255 255 / 0.1), inset 0 1px 0 rgb(255 255 255 / 0.35); }
+		.nc:hover .box { transform: translateY(-3px); }
+		.nc:hover .card-p:nth-child(1) { transform: rotate(-14deg) translateY(-4%); }
+		.nc:hover .card-p:nth-child(2) { transform: rotate(-5deg) translateY(-7%); }
+		.nc:hover .card-p:nth-child(3) { transform: rotate(5deg) translateY(-7%); }
+		.nc:hover .card-p:nth-child(4) { transform: rotate(14deg) translateY(-4%); }
 	}
-	.nc:active .box { transform: scale(0.98); box-shadow: inset 0 0 0 1px var(--border-strong), inset 4px 4px 9px rgb(0 0 0 / 0.6), inset -3px -3px 7px rgb(255 255 255 / 0.05); }
+	.nc:active .box { transform: scale(0.98); }
 	.rk { flex: none; display: flex; align-items: flex-start; padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start; animation: rise 0.45s var(--out) both; animation-delay: calc(min(var(--i), 8) * 40ms); }
 	.rk:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 3px; border-radius: var(--r-md); }
 	/* El número detrás, hueco (solo el trazo), asomando por la izquierda del póster. */
@@ -163,5 +160,5 @@
 		.next :global(svg) { transform: scaleX(-1); }
 	}
 	@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
-	@media (prefers-reduced-motion: reduce) { .rk, .nc { animation: none; } .pst, .box, .card-p, .ic { transition: none; } }
+	@media (prefers-reduced-motion: reduce) { .rk, .nc { animation: none; } .pst, .box, .card-p { transition: none; } }
 </style>

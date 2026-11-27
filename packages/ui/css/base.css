@@ -1,4 +1,14 @@
 /* Reset y reglas globales comunes. Importar después de tokens.css. */
+
+/* Plus Jakarta Sans variable (200–800, OFL: ../fonts/OFL.txt). Origen: github.com/tokotype/PlusJakartaSans fonts/webfonts/PlusJakartaSans[wght].woff2 */
+@font-face {
+	font-family: 'Plus Jakarta Sans';
+	font-style: normal;
+	font-weight: 200 800;
+	font-display: swap;
+	src: url('../fonts/PlusJakartaSans-Variable.woff2') format('woff2');
+}
+
 * { box-sizing: border-box; }
 ::selection { background: color-mix(in srgb, var(--accent) var(--tint-3), transparent); }
 :focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }

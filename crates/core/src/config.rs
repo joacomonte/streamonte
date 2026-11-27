@@ -82,6 +82,14 @@ pub enum Lang {
 }
 
 impl Lang {
+    /// Código corto (`es`/`en`), el que entiende `?l=<títulos>.<app>` de la web.
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::Es => "es",
+            Self::En => "en",
+        }
+    }
+
     /// Parámetro `language` de TMDB (el español de TMDB más cercano al rioplatense es el de México).
     pub fn tmdb(self) -> &'static str {
         match self {

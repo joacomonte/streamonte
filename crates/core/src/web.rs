@@ -466,12 +466,14 @@ pub struct NewsList {
     pub refreshing: bool,
 }
 
-/// `GET /api/novedades`. Sin sesión de apodo: lista vacía, sin pedir nada.
-pub async fn news_list() -> Result<NewsList> {
+/// `GET /api/novedades?l=<títulos>.<app>`: títulos y sinopsis en los idiomas del desktop. Sin sesión de apodo: lista
+/// vacía, sin pedir nada.
+pub async fn news_list(langs: crate::config::LanguageConfig) -> Result<NewsList> {
     if !has_session() {
         return Ok(NewsList::default());
     }
-    let reply = call(Method::GET, "/api/novedades", &[], None).await?;
+    let l = format!("{}.{}", langs.titles.code(), langs.app.code());
+    let reply = call(Method::GET, "/api/novedades", &[("l", &l)], None).await?;
     if reply.status != 200 {
         return Err(reply.failure());
     }

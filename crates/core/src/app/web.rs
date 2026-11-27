@@ -32,7 +32,7 @@ impl AppCore {
 
     /// "Novedades" (vacía sin sesión de apodo).
     pub async fn news_list(&self) -> Result<NewsList> {
-        crate::web::news_list().await
+        crate::web::news_list(self.languages().await).await
     }
 
     /// Recalcular Novedades en la web (tarda; la UI no lo espera).

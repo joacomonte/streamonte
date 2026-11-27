@@ -6,6 +6,8 @@
 // - cada refresco revalida los hashes guardados de TODOS en 1 POST /torrents/checkcached (TorBox: cientos por pedido);
 // - solo lo nuevo pasa por addons: Torrentio + Comet; Peerflix/TorrentsDB solo si los dos vuelven vacíos (vacío ≠ no hay);
 // - tope ~12 candidatos por lista, concurrencia 2–3 (~3 s por título); /api/torrents también graba lo que verificó.
+// Idioma: lo guardado lleva título y sinopsis en es (`title`/`overview`) y en en (`titleEn`/`overviewEn`); `listNews` elige
+// según el pedido (`titlesLang()` título, `lang()` sinopsis). Filas viejas sin `titleEn`: se sirven como están.
 // TorBox no tiene búsqueda por IMDb id en su API (api.torbox.app/openapi.json; search-api.torbox.app no resuelve, 2026-11-26).
 import type { NewsItemWire, NewsListWire, NewsReason, NewsWhat } from '../../../../packages/ui/src/catalog/news.ts';
 import { NEWS_STALE_MS, NEWS_WINDOW_DAYS, TRENDING_MIN_VOTES } from '../../../../packages/ui/src/catalog/news.ts';
@@ -14,6 +16,8 @@ import { get } from './http.ts';
 import { sql } from './track.ts';
 import { ratings, imdbOf } from './imdb.ts';
 import { tmdb, IMG } from './tmdb/client.ts';
+import { lang, titlesLang } from './lang.ts';
+import type { Lang } from '../i18n/translate.ts';
 import type { Kind, TmdbItem, TmdbPage, TmdbTitle } from './tmdb/client.ts';
 import { namesOf, tmdbOf } from './tmdb.ts';
 import { ADDONS, parse, merge } from './torrents.ts';
@@ -124,8 +128,17 @@ function db() {
 	return { q, ready };
 }
 
-type ListRow = { alcance: string; lista: string; datos: NewsItemWire[]; actualizado: string | Date | null; refrescando_desde: string | Date | null };
+type ListRow = { alcance: string; lista: string; datos: StoredItem[]; actualizado: string | Date | null; refrescando_desde: string | Date | null };
 const ms = (d: string | Date | null): number | null => (d ? new Date(d).getTime() : null);
+
+/** Lo que se guarda: el ítem del cable (en es) más título y sinopsis en inglés. */
+type StoredItem = NewsItemWire & { titleEn?: string; overviewEn?: string };
+
+/** Ítem del cable en los idiomas del pedido: título según `titles`, sinopsis según `ui`; sin versión en inglés, lo guardado. */
+export function localized(item: StoredItem, titles: Lang, ui: Lang): NewsItemWire {
+	const { titleEn, overviewEn, ...wire } = item;
+	return { ...wire, title: titles === 'en' && titleEn ? titleEn : item.title, overview: ui === 'en' && overviewEn ? overviewEn : item.overview };
+}
 
 export async function listNews(apodo: string | null): Promise<NewsListWire> {
 	const d = db();
@@ -142,9 +155,10 @@ export async function listNews(apodo: string | null): Promise<NewsListWire> {
 	const oldest = stamps.some((x) => x == null) ? null : Math.min(...(stamps as number[]));
 	const lock = ms(estrenos?.refrescando_desde ?? null);
 	const dateOf = (i: NewsItemWire) => (i.date ? Date.parse(i.date) : 0);
+	const out = (items: StoredItem[] | undefined) => (items ?? []).map((i) => localized(i, titlesLang(), lang()));
 	return {
-		fresh: [...(estrenos?.datos ?? []), ...(capitulos?.datos ?? [])].sort((a, b) => dateOf(b) - dateOf(a)),
-		trending: tendencias?.datos ?? [],
+		fresh: out([...(estrenos?.datos ?? []), ...(capitulos?.datos ?? [])]).sort((a, b) => dateOf(b) - dateOf(a)),
+		trending: out(tendencias?.datos),
 		seenAt: seen ? new Date(seen.visto).toISOString() : null,
 		updatedAt: oldest == null ? null : new Date(oldest).toISOString(),
 		stale: oldest == null || Date.now() - oldest > NEWS_STALE_MS,
@@ -261,7 +275,7 @@ export async function recordVerification(v: Verification): Promise<void> {
 type MovieDetail = TmdbTitle & { release_dates?: { results?: { iso_3166_1: string; release_dates: { type: number; release_date: string }[] }[] } };
 type TvDetail = TmdbTitle & { last_episode_to_air?: { air_date?: string; season_number: number; episode_number: number; episode_type?: string } | null };
 /** Un título con lo necesario para armar su ítem; `s`/`e` = lo que se verifica (películas 0/0, series nuevas 1×1). */
-type Cand = { kind: Kind; tmdb: number; imdb: string; s: number; e: number; item: NewsItemWire };
+type Cand = { kind: Kind; tmdb: number; imdb: string; s: number; e: number; item: StoredItem };
 
 const iso = (d: string): string => new Date(d).toISOString();
 const dayStr = (t: number): string => new Date(t).toISOString().slice(0, 10);
@@ -273,7 +287,17 @@ function digitalDate(r: MovieDetail, now: number): string | null {
 	return out.at(-1) ?? null;
 }
 
-function baseItem(kind: Kind, r: TmdbTitle, imdb: string, what: NewsWhat | null, date: string | null, table: Map<number, number> | null): NewsItemWire {
+/** Detalle en es (con `append`) + título y sinopsis en en (pedido liviano, sin append): 1 request extra por título. */
+async function detailBoth<T extends TmdbTitle>(path: string, append: string): Promise<{ d: T; en: English | null }> {
+	const [d, en] = await Promise.all([
+		tmdb(path, { append_to_response: append }, 'es') as Promise<T>,
+		(tmdb(path, {}, 'en') as Promise<TmdbTitle>).then((x) => ({ title: String(x.title ?? x.name ?? ''), overview: x.overview?.trim() || null })).catch(() => null)
+	]);
+	return { d, en };
+}
+type English = { title: string; overview: string | null };
+
+function baseItem(kind: Kind, r: TmdbTitle, imdb: string, what: NewsWhat | null, date: string | null, table: Map<number, number> | null, en: English | null): StoredItem {
 	const real = table ? imdbOf(imdb, table) : null;
 	return {
 		kind, imdb, tmdb: r.id, title: String(r.title ?? r.name ?? ''),
@@ -281,7 +305,8 @@ function baseItem(kind: Kind, r: TmdbTitle, imdb: string, what: NewsWhat | null,
 		poster: r.poster_path ? `${IMG}w342${r.poster_path}` : null,
 		backdrop: r.backdrop_path ? `${IMG}w1280${r.backdrop_path}` : null,
 		subgenres: [], overview: r.overview?.trim() || null, cast: castOf(r.credits),
-		imdbRating: real?.rating ?? null, imdbVotes: real?.votes ?? null, what, date
+		imdbRating: real?.rating ?? null, imdbVotes: real?.votes ?? null, what, date,
+		...(en?.title ? { titleEn: en.title } : {}), ...(en?.overview ? { overviewEn: en.overview } : {})
 	};
 }
 
@@ -302,12 +327,12 @@ async function discoverCands(now: number, table: Map<number, number> | null): Pr
 	const out: Cand[] = [];
 	await pool([...keep(movies.results, 8).map((r) => ['movie', r] as const), ...keep(shows.results, 4).map((r) => ['tv', r] as const)], CONCURRENCY, async ([kind, r]) => {
 		try {
-			const d = (await tmdb(`/${kind}/${r.id}`, { append_to_response: kind === 'movie' ? 'external_ids,release_dates,credits' : 'external_ids,credits' })) as MovieDetail;
+			const { d, en } = await detailBoth<MovieDetail>(`/${kind}/${r.id}`, kind === 'movie' ? 'external_ids,release_dates,credits' : 'external_ids,credits');
 			const imdb = tmdbId(d);
 			if (!imdb) return;
 			const date = kind === 'movie' ? digitalDate(d, now) : (d.first_air_date ?? null);
 			if (!date) return;
-			const item = baseItem(kind, d, imdb, { type: 'title' }, iso(date), table);
+			const item = baseItem(kind, d, imdb, { type: 'title' }, iso(date), table, en);
 			item.reason = { type: kind === 'movie' ? 'digital' : 'premiere', date: iso(date) };
 			out.push({ kind, tmdb: r.id, imdb, s: kind === 'tv' ? 1 : 0, e: kind === 'tv' ? 1 : 0, item });
 		} catch {
@@ -323,9 +348,9 @@ async function trendingCands(table: Map<number, number> | null): Promise<Cand[]>
 	const out: (Cand & { pop: number })[] = [];
 	await pool(picked, CONCURRENCY, async ([kind, r]) => {
 		try {
-			const d = (await tmdb(`/${kind}/${r.id}`, { append_to_response: 'external_ids,credits' })) as TmdbTitle;
+			const { d, en } = await detailBoth<TmdbTitle>(`/${kind}/${r.id}`, 'external_ids,credits');
 			const imdb = tmdbId(d);
-			const item = imdb ? baseItem(kind, d, imdb, null, null, table) : null;
+			const item = imdb ? baseItem(kind, d, imdb, null, null, table, en) : null;
 			if (!imdb || !item || (item.imdbVotes ?? 0) < TRENDING_MIN_VOTES) return;
 			out.push({ kind, tmdb: r.id, imdb, s: kind === 'tv' ? 1 : 0, e: kind === 'tv' ? 1 : 0, item, pop: r.popularity ?? 0 });
 		} catch {
@@ -343,7 +368,7 @@ async function episodeCands(apodo: string, now: number, table: Map<number, numbe
 		try {
 			const id = sv.tmdb ?? (await tmdbOf(sv.imdb, 'tv'));
 			if (!id) return;
-			const d = (await tmdb(`/tv/${id}`, { append_to_response: 'credits' })) as TvDetail;
+			const { d, en } = await detailBoth<TvDetail>(`/tv/${id}`, 'credits');
 			const nxt = d.next_episode_to_air;
 			const aired = nxt?.air_date && Date.parse(nxt.air_date) <= now ? nxt : d.last_episode_to_air;
 			if (!aired?.air_date || Date.parse(aired.air_date) > now || now - Date.parse(aired.air_date) > NEWS_WINDOW_DAYS * DAY) return;
@@ -356,7 +381,7 @@ async function episodeCands(apodo: string, now: number, table: Map<number, numbe
 			const finale = e === total || ('episode_type' in aired && aired.episode_type === 'finale');
 			// Temporada completa el mismo día: se muestra (y verifica) desde el E1.
 			const news = episodeNews(d, aired, sv);
-			const item = baseItem('tv', d, sv.imdb, { type: 'episode', season: s, episode: news.e, finale: news.e === e && finale }, iso(aired.air_date), table);
+			const item = baseItem('tv', d, sv.imdb, { type: 'episode', season: s, episode: news.e, finale: news.e === e && finale }, iso(aired.air_date), table, en);
 			item.reason = news.reason;
 			out.push({ kind: 'tv', tmdb: id, imdb: sv.imdb, s, e: news.e, item });
 		} catch {
@@ -408,8 +433,13 @@ export async function refreshNews(apodo: string | null): Promise<void> {
 	try {
 		const now = Date.now();
 		const table = await ratings().catch(() => null);
-		const stamps = (await d.q`SELECT lista, actualizado FROM novedades WHERE alcance = 'global'`) as { lista: string; actualizado: string | Date | null }[];
-		const globalFresh = ['estrenos', 'tendencias'].every((l) => { const t = ms(stamps.find((x) => x.lista === l)?.actualizado ?? null); return t != null && now - t < GLOBAL_FRESH_MS; });
+		const stamps = (await d.q`SELECT lista, actualizado, datos FROM novedades WHERE alcance = 'global'`) as { lista: string; actualizado: string | Date | null; datos: StoredItem[] }[];
+		// Filas guardadas antes del bilingüe (sin `titleEn`): se rearman aunque sean recientes.
+		const globalFresh = ['estrenos', 'tendencias'].every((l) => {
+			const row = stamps.find((x) => x.lista === l);
+			const t = ms(row?.actualizado ?? null);
+			return t != null && now - t < GLOBAL_FRESH_MS && (row?.datos ?? []).every((i) => i.titleEn);
+		});
 		const lists: { alcance: string; lista: string; cands: Cand[] }[] = [];
 		if (!globalFresh) {
 			lists.push({ alcance: 'global', lista: 'estrenos', cands: await discoverCands(now, table) });

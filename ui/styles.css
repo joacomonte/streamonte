@@ -10,7 +10,7 @@ body {
   grid-template-columns: minmax(0, 1fr);
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 14px/1.4 'Plus Jakarta Sans', system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 .topbar {

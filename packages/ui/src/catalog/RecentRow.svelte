@@ -193,12 +193,12 @@
 <style>
 	.recent { margin: 2px 0 14px; }
 	.recent h2 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
-	.railwrap { position: relative; margin: 0 -16px; }
-	.rail { display: flex; gap: 8px; padding: 2px 16px 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 16px; scrollbar-width: none; }
+	.railwrap { position: relative; margin: -12px -16px -18px; }
+	.rail { display: flex; gap: 12px; padding: 14px 16px 24px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 16px; scrollbar-width: none; }
 	.rail::-webkit-scrollbar { display: none; }
 	.c { position: relative; flex: none; width: 256px; scroll-snap-align: start; animation: rise 0.45s var(--out) both; }
 	@media (min-width: 760px) { .c { width: 304px; } }
-	.hit { position: relative; display: block; width: 100%; height: 72px; padding: 0; border: 0; border-radius: 14px; overflow: hidden; isolation: isolate; background: #11151a; box-shadow: 0 0 0 1px var(--border), 0 3px 10px var(--shadow, rgb(0 0 0 / 0.2)); text-align: left; transition: transform 0.15s var(--out); }
+	.hit { position: relative; display: block; width: 100%; height: 72px; padding: 0; border: 0; border-radius: 14px; overflow: hidden; isolation: isolate; background: #080a0e; box-shadow: 0 10px 24px rgb(0 0 0 / 0.6); text-align: left; transition: transform 0.15s var(--out); }
 	@media (min-width: 760px) { .hit { height: 84px; } }
 	.hit:active { transform: scale(0.98); }
 	.hit:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }

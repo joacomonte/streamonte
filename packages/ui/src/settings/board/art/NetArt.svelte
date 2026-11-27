@@ -15,5 +15,5 @@
 	<g class="mark m-ok"><circle cx="91" cy="44" r="9" fill="#1f4d33" stroke="#4ade80" stroke-width="1.4" /><path d="M87 44.5 l3 3 l5.5 -6" fill="none" stroke="#b7f5cd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></g>
 	<g class="mark m-bad"><circle cx="91" cy="44" r="9" fill="#4d1f22" stroke="#f87171" stroke-width="1.4" /><path d="M87.5 40.5 l7 7 M94.5 40.5 l-7 7" stroke="#ffd0d0" stroke-width="2" stroke-linecap="round" /></g>
 	<g class="mark m-idle"><circle cx="91" cy="44" r="9" fill="var(--hole)" stroke="var(--ill)" stroke-width="1.2" /><text x="91" y="48.5" text-anchor="middle">?</text></g>
-	<g fill="var(--dim)" font-size="10.5" font-family="system-ui, sans-serif" text-anchor="middle"><text x="36" y="84">Internet</text><text x="151" y="84">Router</text><text x="257" y="84">{t('Esta PC')}</text></g>
+	<g fill="var(--dim)" font-size="10.5" font-family="'Plus Jakarta Sans', system-ui, sans-serif" text-anchor="middle"><text x="36" y="84">Internet</text><text x="151" y="84">Router</text><text x="257" y="84">{t('Esta PC')}</text></g>
 </svg>

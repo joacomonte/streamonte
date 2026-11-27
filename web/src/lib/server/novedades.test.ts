@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bestHashes, castOf, episodeNews, trendingRanks, hashBatches, isRerelease, needsBackup, pickSubgenres, verificationFrom } from './novedades.ts';
+import { bestHashes, castOf, episodeNews, trendingRanks, hashBatches, isRerelease, needsBackup, localized, pickSubgenres, verificationFrom } from './novedades.ts';
 
 const h = (n: number) => n.toString(16).padStart(40, '0');
 const t = (n: number, source: string | null, res: string | null, seeds: number, cam = false) => ({ hash: h(n), source, res, seeds, cam });
@@ -60,4 +60,16 @@ test('episodeNews: temporada completa el mismo día → E1 full; E1 suelto; cap�
 	assert.deepEqual(episodeNews(weekly, weekly.last_episode_to_air, { season: null, episode: null }).reason, { type: 'episode', lastSeen: null });
 	const first = { last_episode_to_air: { air_date: '2026-11-20', season_number: 2, episode_number: 1 }, seasons: [{ season_number: 2, episode_count: 8, air_date: '2026-11-20' }] };
 	assert.deepEqual(episodeNews(first, first.last_episode_to_air, { season: 1, episode: 9 }), { e: 1, reason: { type: 'season', season: 2, full: false, episodes: 8 } });
+});
+
+test('localized: título según títulos, sinopsis según app, sin campos extra; fila vieja → lo guardado', () => {
+	const item: Parameters<typeof localized>[0] = { kind: 'movie', imdb: 'tt1', tmdb: 1, title: 'Tierra de Mafia', titleEn: 'MobLand', overview: 'Sinopsis', overviewEn: 'Synopsis', year: 2025, poster: null, backdrop: null, subgenres: [], imdbRating: null, imdbVotes: null, what: null, date: null };
+	const a = localized(item, 'en', 'es');
+	assert.equal(a.title, 'MobLand');
+	assert.equal(a.overview, 'Sinopsis');
+	assert.equal('titleEn' in a, false);
+	assert.equal(localized(item, 'es', 'en').title, 'Tierra de Mafia');
+	assert.equal(localized(item, 'es', 'en').overview, 'Synopsis');
+	const { titleEn: _t, overviewEn: _o, ...old } = item;
+	assert.equal(localized(old, 'en', 'en').title, 'Tierra de Mafia');
 });
