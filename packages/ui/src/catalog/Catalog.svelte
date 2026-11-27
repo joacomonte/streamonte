@@ -341,12 +341,17 @@
 	.ks { display: flex; padding: 5px; border-radius: calc(var(--nu-radius) + 5px); background: var(--nu-well); box-shadow: var(--nu-press); }
 	/* Buscador angosto + pastillas. Por clase y no `:first-child`: al abrir el desplegable, Search pone antes su fondo
 	   difuminado (`.blur`). */
-	.srow { display: flex; align-items: center; gap: 10px; min-width: 0; }
-	.srow > :global(.finder) { flex: 0 1 290px; min-width: 0; max-width: 290px; }
+	/* Sin breakpoint (2026-11-27): si buscador + pastillas no entran en una línea (ventana angosta o panel lateral abierto),
+	   la tira baja a su propia línea a todo el ancho y se desliza; el buscador ocupa la de arriba. `max-width: 100%` acota la
+	   base de la tira para que el salto de línea la calcule bien. */
+	.srow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+	.srow > :global(.finder) { flex: 1 1 290px; min-width: 0; }
 	/* Buscando (o sin key): el buscador solo, a todo el ancho; la píldora de la persona abajo. */
 	.srow.alone { flex-wrap: wrap; }
 	.srow.alone > :global(.finder) { flex: 1 1 100%; max-width: none; }
-	.strip { display: flex; align-items: center; gap: 10px; min-width: 0; }
+	.strip { display: flex; flex: 0 1 auto; align-items: center; gap: 10px; min-width: 0; max-width: calc(100% + 28px); margin: -8px -14px; padding: 8px 14px; overflow-x: auto; scrollbar-width: none; }
+	.strip::-webkit-scrollbar { display: none; }
+	.strip > :global(*) { flex: none; }
 	.crowd { display: inline-flex; gap: 1px; color: var(--amber); }
 	.crowd > span { display: flex; }
 	.crowd .off { color: rgb(255 255 255 / 0.2); }
@@ -361,9 +366,7 @@
 	@media (max-width: 720px) {
 		.srow { flex-direction: column; align-items: stretch; }
 		.srow > :global(.finder) { flex: none; max-width: none; }
-		.strip { margin: -8px -14px; padding: 8px 14px; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
-		.strip::-webkit-scrollbar { display: none; }
-		.strip > :global(*) { flex: none; }
+		.strip { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
 	}
 
 	.body { padding: 14px 16px calc(24px + var(--safe-bottom)); }
