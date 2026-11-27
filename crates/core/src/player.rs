@@ -499,6 +499,11 @@ fn sub_tracks(list: &serde_json::Value) -> Vec<crate::subtitles::NativeSub> {
                 title: str_of(t, "title"),
                 codec: str_of(t, "codec"),
                 forced: t.get("forced").and_then(|v| v.as_bool()).unwrap_or(false),
+                sdh: t
+                    .get("hearing-impaired")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
+                default: t.get("default").and_then(|v| v.as_bool()).unwrap_or(false),
             })
         })
         .collect()

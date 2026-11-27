@@ -24,11 +24,13 @@ mod fetch;
 #[cfg(test)]
 mod golden;
 mod merge;
+mod native_rank;
 pub mod providers;
 pub mod secrets;
 pub mod session;
 
 pub use merge::merge_ass;
+pub use native_rank::{native_rank, NativeRank};
 
 /// Cuántos subtítulos se cargan a la vez (FR-24/25: "al menos 5, o los que encuentre hasta 5").
 pub const MAX_SUBTITLES: usize = 5;
@@ -227,6 +229,12 @@ pub struct NativeSub {
     pub codec: Option<String>,
     #[serde(default)]
     pub forced: bool,
+    /// Para sordos (SDH/HI): el flag de la pista; el nombre lo infiere `native_rank`.
+    #[serde(default)]
+    pub sdh: bool,
+    /// Pista marcada como default en el contenedor.
+    #[serde(default)]
+    pub default: bool,
 }
 
 /// Un nativo en español, como lo muestra la UI.
@@ -841,6 +849,8 @@ mod tests {
                 title: None,
                 codec: codec.map(String::from),
                 forced,
+                sdh: false,
+                default: false,
             };
         let subs = [
             sub(Some(1), None, Some("spa"), Some("subrip"), true), // forzados: al final

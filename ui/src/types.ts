@@ -51,6 +51,8 @@ export type NativeSub = {
     title: string | null;
     codec: string | null;
     forced: boolean;
+    sdh: boolean;
+    default: boolean;
 };
 export type NativeSpanish = {
     key: string;

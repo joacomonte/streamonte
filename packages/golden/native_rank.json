@@ -1,0 +1,649 @@
+[
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": true,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "forzados al fondo aunque vengan primero"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": true,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "completo antes que SDH (flag)"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": "Español SDH",
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": "Español",
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "completo antes que SDH (nombre)"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "hdmv_pgs_subtitle",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "texto antes que imagen (PGS)"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": "latino",
+   "subs": [
+    {
+     "lang": "es-ES",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "es-419",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "latino preferido: es-419 antes que es-ES"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": "spain",
+   "subs": [
+    {
+     "lang": "es-ES",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "es-419",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    0,
+    1
+   ],
+   "recommended": 0
+  },
+  "nota": "castellano preferido: es-ES antes que es-419"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "es-ES",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "es-419",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    0,
+    1
+   ],
+   "recommended": 0
+  },
+  "nota": "sin variante preferida: orden original"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": "latino",
+   "subs": [
+    {
+     "lang": "es-ES",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "es-419",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    2,
+    1,
+    0
+   ],
+   "recommended": 2
+  },
+  "nota": "variante: preferida, sin variante, la otra"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": "latino",
+   "subs": [
+    {
+     "lang": "es-419",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": true,
+     "default": false
+    },
+    {
+     "lang": "es-ES",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    0,
+    1
+   ],
+   "recommended": 0
+  },
+  "nota": "la variante pesa más que SDH"
+ },
+ {
+  "in": {
+   "lang": "",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "eng",
+     "title": null,
+     "codec": "hdmv_pgs_subtitle",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": null
+  },
+  "nota": "sin idioma preferido: no hay recomendado y manda texto/default"
+ },
+ {
+  "in": {
+   "lang": "ja",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "eng",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    0,
+    1
+   ],
+   "recommended": null
+  },
+  "nota": "idioma preferido ausente: nada recomendado, orden original"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "eng",
+     "title": null,
+     "codec": "subrip",
+     "forced": true,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": true,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": null
+  },
+  "nota": "todos forzados: ninguno recomendado, el idioma ordena"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": "Forzados",
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": "Español",
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "forzado por nombre"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": true
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "default desempata"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "dvd_subtitle",
+     "forced": false,
+     "sdh": false,
+     "default": true
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "texto pesa más que default"
+ },
+ {
+  "in": {
+   "lang": "en",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "eng",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "idioma preferido inglés (código de 3 letras)"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": null,
+     "title": "English",
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": null,
+     "title": "Spanish",
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    1,
+    0
+   ],
+   "recommended": 1
+  },
+  "nota": "español detectado por el título sin idioma"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": []
+  },
+  "out": {
+   "order": [],
+   "recommended": null
+  },
+  "nota": "sin subs"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    0,
+    1,
+    2
+   ],
+   "recommended": 0
+  },
+  "nota": "orden original como último desempate"
+ },
+ {
+  "in": {
+   "lang": "es",
+   "variant": null,
+   "subs": [
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": true,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "eng",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": false,
+     "default": false
+    },
+    {
+     "lang": "spa",
+     "title": null,
+     "codec": "subrip",
+     "forced": false,
+     "sdh": true,
+     "default": false
+    }
+   ]
+  },
+  "out": {
+   "order": [
+    2,
+    1,
+    0
+   ],
+   "recommended": 2
+  },
+  "nota": "recomendado salta forzados y toma el idioma"
+ }
+]

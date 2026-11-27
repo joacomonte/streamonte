@@ -7,14 +7,18 @@
     "lang": "spa",
     "name": "Latino",
     "forced": false,
-    "codec": "A_AC3"
+    "codec": "A_AC3",
+    "sdh": false,
+    "default": true
    },
    {
     "type": 17,
     "lang": "es-419",
     "name": "",
     "forced": true,
-    "codec": "S_TEXT/UTF8"
+    "codec": "S_TEXT/UTF8",
+    "sdh": false,
+    "default": true
    }
   ],
   "nota": "BCP47 pisa al ISO; el \\0 final del idioma se saca"
@@ -27,7 +31,9 @@
     "lang": "eng",
     "name": "",
     "forced": false,
-    "codec": ""
+    "codec": "",
+    "sdh": false,
+    "default": true
    }
   ],
   "nota": "pista sin idioma queda en eng"
@@ -54,16 +60,53 @@
     "lang": "spa",
     "name": "Latino",
     "forced": false,
-    "codec": "A_AC3"
+    "codec": "A_AC3",
+    "sdh": false,
+    "default": true
    },
    {
     "type": 17,
     "lang": "es-419",
     "name": "",
     "forced": true,
-    "codec": "S_TEXT/UTF8"
+    "codec": "S_TEXT/UTF8",
+    "sdh": false,
+    "default": true
    }
   ],
   "nota": "Segment de tamaño desconocido"
+ },
+ {
+  "in": "1a45dfa340074282847765626d18538067404a1654ae6b4044ae40158340011122b59c400373706155ab40010188400100ae400c8340011122b59c4003737061ae401a8340011122b59c400373706155ab4001008840010155aa400101",
+  "out": [
+   {
+    "type": 17,
+    "lang": "spa",
+    "name": "",
+    "forced": false,
+    "sdh": true,
+    "default": false,
+    "codec": ""
+   },
+   {
+    "type": 17,
+    "lang": "spa",
+    "name": "",
+    "forced": false,
+    "sdh": false,
+    "default": true,
+    "codec": ""
+   },
+   {
+    "type": 17,
+    "lang": "spa",
+    "name": "",
+    "forced": true,
+    "sdh": false,
+    "default": true,
+    "codec": ""
+   }
+  ],
+  "nota": "FlagHearingImpaired (0x55AB) y FlagDefault (0x88): default vale true si falta"
  }
 ]

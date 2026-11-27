@@ -11,6 +11,8 @@ const ENTRY: u64 = 0xae;
 const TYPE: u64 = 0x83;
 const CODEC: u64 = 0x86;
 const FORCED: u64 = 0x55aa;
+const HEARING_IMPAIRED: u64 = 0x55ab;
+const DEFAULT: u64 = 0x88;
 const NAME: u64 = 0x536e;
 const LANG: u64 = 0x0022_b59c;
 const BCP47: u64 = 0x0022_b59d;
@@ -27,6 +29,10 @@ pub struct Track {
     /// CodecID de Matroska (`S_TEXT/UTF8`, `A_AC3`…).
     pub codec: String,
     pub forced: bool,
+    /// FlagHearingImpaired (para sordos / SDH).
+    pub sdh: bool,
+    /// FlagDefault: según la spec de Matroska vale 1 si el elemento falta.
+    pub default: bool,
 }
 
 /// Entero de largo variable de EBML: (valor, largo, tamaño desconocido). `keep_marker`: ids (con el bit marcador).
@@ -107,6 +113,8 @@ pub fn parse_tracks(b: &[u8]) -> Option<Vec<Track>> {
                 name: String::new(),
                 codec: String::new(),
                 forced: false,
+                sdh: false,
+                default: true,
             };
             let mut bcp = String::new();
             for (id, start, stop) in children(b, body, end) {
@@ -114,6 +122,8 @@ pub fn parse_tracks(b: &[u8]) -> Option<Vec<Track>> {
                 match id {
                     TYPE => t.kind = uint(raw),
                     FORCED => t.forced = uint(raw) == 1,
+                    HEARING_IMPAIRED => t.sdh = uint(raw) == 1,
+                    DEFAULT => t.default = uint(raw) == 1,
                     NAME => t.name = text(raw),
                     CODEC => t.codec = text(raw),
                     LANG => t.lang = text(raw),
@@ -177,6 +187,8 @@ pub fn probe_of(tracks: &[Track]) -> Probe {
             title: named(&t.name),
             codec: named(mpv_sub_codec(&t.codec)),
             forced: t.forced,
+            sdh: t.sdh,
+            default: t.default,
         })
         .collect();
     (None, audio, subs, None)
@@ -198,6 +210,8 @@ mod tests {
     const ENTRY_ID: &[u8] = &[0xae];
     const TYPE_ID: &[u8] = &[0x83];
     const FORCED_ID: &[u8] = &[0x55, 0xaa];
+    const HI_ID: &[u8] = &[0x55, 0xab];
+    const DEFAULT_ID: &[u8] = &[0x88];
     const NAME_ID: &[u8] = &[0x53, 0x6e];
     const CODEC_ID: &[u8] = &[0x86];
     const LANG_ID: &[u8] = &[0x22, 0xb5, 0x9c];
@@ -258,6 +272,24 @@ mod tests {
             ),
             (17, "es-419", true, "S_TEXT/UTF8")
         );
+    }
+
+    #[test]
+    fn lee_sordos_y_default_con_default_1_si_falta() {
+        let sub = |extra: &[&[u8]]| {
+            let mut parts: Vec<&[u8]> = vec![];
+            let ty = el(TYPE_ID, &[&[17]]);
+            parts.push(&ty);
+            parts.extend_from_slice(extra);
+            el(ENTRY_ID, &parts)
+        };
+        let hi = el(HI_ID, &[&[1]]);
+        let no_default = el(DEFAULT_ID, &[&[0]]);
+        let tracks = el(TRACKS_ID, &[&sub(&[]), &sub(&[&hi, &no_default])]);
+        let mkv = [el(EBML_ID, &[&[0]]), el(SEGMENT_ID, &[&tracks])].concat();
+        let t = parse_tracks(&mkv).unwrap();
+        assert_eq!((t[0].sdh, t[0].default), (false, true));
+        assert_eq!((t[1].sdh, t[1].default), (true, false));
     }
 
     #[test]

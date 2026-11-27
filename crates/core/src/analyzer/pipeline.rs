@@ -146,6 +146,8 @@ async fn probe(
                     title: None,
                     codec: None,
                     forced: false,
+                    sdh: false,
+                    default: false,
                 }));
             Ok(Some(p))
         }

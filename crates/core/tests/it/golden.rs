@@ -88,6 +88,8 @@ fn mkv() {
                     "lang": t.lang,
                     "name": t.name,
                     "forced": t.forced,
+                    "sdh": t.sdh,
+                    "default": t.default,
                     "codec": t.codec,
                 }))
                 .collect::<Vec<_>>()),
