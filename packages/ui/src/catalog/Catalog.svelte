@@ -314,7 +314,9 @@
 	.inner { max-width: 1200px; margin: 0 auto; }
 	/* Buscador y la pastilla de Novedades en la misma línea. */
 	.search-row { display: flex; align-items: flex-start; gap: 8px; }
-	.search-row > :global(:first-child) { flex: 1; min-width: 0; }
+	/* Por clase y no `:first-child`: al abrir el desplegable, Search pone antes su fondo difuminado (`.blur`) y el buscador
+	   se achicaba al ancho de su contenido. */
+	.search-row > :global(.finder) { flex: 1; min-width: 0; }
 	.head-top { padding-bottom: 2px; }
 	/* Entrada después de la bienvenida: cada bloque de arriba sube escalonado. */
 	.intro .head-top > * { animation: rise 0.7s var(--out) backwards; }

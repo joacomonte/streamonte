@@ -75,6 +75,9 @@
 	let episodes = $state<Episode[] | null>(null);
 	/** Puntaje de IMDb por capítulo de la temporada abierta (número → puntaje). */
 	let epScores = $state<Map<number, number>>(new Map());
+	/** Fotos de capítulo que no cargaron (TMDB a veces da una ruta que todavía no existe en capítulos recién salidos):
+	 *  van al recuadro vacío en vez del ícono de imagen rota. */
+	let brokenStills = $state<Set<string>>(new Set());
 	/** Anti spoiler: prendido siempre al abrir la ficha (pedido 2026-11-24); no se recuerda. */
 	let antiSpoiler = $state(true);
 	let lastSeen = $state<LastSeen>(null);
@@ -234,7 +237,7 @@
 
 {#snippet epRow(ep: Episode, future: boolean)}
 	{@const score = epScores.get(ep.number)}
-	{#if ep.still}<img src={ep.still} alt="" loading="lazy" width="300" height="169" referrerpolicy="no-referrer" />{:else}<span class="still-empty"></span>{/if}
+	{#if ep.still && !brokenStills.has(ep.still)}<img src={ep.still} alt="" loading="lazy" width="300" height="169" referrerpolicy="no-referrer" onerror={() => (brokenStills = new Set(brokenStills).add(ep.still ?? ''))} />{:else}<span class="still-empty"></span>{/if}
 	<span class="ep-text">
 		<span class="ep-name">{ep.number}. <span>{ep.title || t('Episodio {n}', { n: ep.number })}</span></span>
 		<span class="ep-meta muted small">
@@ -650,6 +653,9 @@
 	/* Anti spoiler: el capítulo entero se difumina, sin bordes (2026-11-24: sin textos sueltos a la vista). */
 	.ep > * { transition: filter 0.3s var(--ease), opacity 0.3s var(--ease); }
 	.ep.spoiler > * { filter: blur(2.5px) saturate(0.85); opacity: 0.85; user-select: none; }
+	/* Al pasar el mouse (o con foco de teclado) se ve ese capítulo; en táctil no, para no destaparlo al scrollear. */
+	@media (hover: hover) { .ep.spoiler:hover > * { filter: none; opacity: 1; } }
+	.ep.spoiler:focus-visible > * { filter: none; opacity: 1; }
 	.spoil { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; margin: 4px 0 6px; padding: 0 6px 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer; }
 	.spoil .knob { position: relative; width: 34px; height: 20px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 40%, transparent); transition: background 0.2s var(--ease); }
 	.spoil .knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.2s var(--ease); }

@@ -249,7 +249,9 @@
 	.filter:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 	.drop li { animation: rise-in 0.38s var(--out) calc(var(--i) * 30ms) backwards; }
 	/* Cada opción es una tarjeta: el póster (o la foto) desenfocado de fondo con fade a negro de izquierda a derecha. */
-	.drop ul { display: grid; gap: 8px; }
+	/* minmax(0, 1fr): sin esto la columna toma el ancho del título más largo (nowrap) y, con el panel lateral abierto,
+	   las filas se salían del desplegable y quedaban cortadas a la derecha. */
+	.drop ul { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 	.row { position: relative; isolation: isolate; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 124px; padding: 12px 16px 12px 12px; overflow: hidden; border: 0; border-radius: 16px; background: #11151a; color: #fff; text-align: left; text-decoration: none; font: inherit; cursor: pointer; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 6px 18px rgb(0 0 0 / 0.35); transition: box-shadow 0.2s, scale 0.2s var(--out); }
 	.row::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to right, rgb(0 0 0 / 0.92) 0%, rgb(0 0 0 / 0.8) 45%, rgb(0 0 0 / 0.5) 100%); }
 	.bg { position: absolute; inset: -20px; z-index: -2; background: #1a1f27 center 30% / cover; filter: blur(16px) saturate(1.4); transform: scale(1.05); transition: transform 0.5s var(--out); }
