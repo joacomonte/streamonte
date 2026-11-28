@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Animación de menús</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #17181b; --panel: #1f2024; --tile: #24252a; --tile-hi: #2a2b31; --sunk: #141517;
+    --text: #f2f2f4; --muted: #8d8f97; --amber: #f5b041;
+    --raise: 6px 8px 18px rgb(0 0 0 / .55), -3px -3px 10px rgb(255 255 255 / .035), inset 0 1px 0 rgb(255 255 255 / .05);
+    --inset: inset 4px 5px 10px rgb(0 0 0 / .6), inset -2px -2px 6px rgb(255 255 255 / .03);
+    --spring: cubic-bezier(.34, 1.56, .64, 1);
+    --out: cubic-bezier(.22, 1, .36, 1);
+    --in: cubic-bezier(.55, 0, .75, .3);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; padding: 32px 16px 80px; }
+  header { max-width: 1100px; margin: 0 auto 24px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+  h1 { margin: 0; font-size: 22px; font-weight: 800; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+  .ctl { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ctl button { font: inherit; font-size: 14px; font-weight: 700; color: var(--text); background: var(--tile); border: 0; border-radius: 12px; padding: 10px 16px; box-shadow: var(--raise); cursor: pointer; }
+  .ctl button.solid { background: var(--amber); color: #1a1407; }
+  .ctl label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+
+  .grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+  .card { position: relative; background: var(--panel); border-radius: 22px; padding: 18px 18px 190px; box-shadow: var(--raise); overflow: visible;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E"); }
+  .card h2 { margin: 0 0 2px; font-size: 15px; font-weight: 800; }
+  .card h2 b { color: var(--amber); margin-right: 6px; }
+  .card .desc { margin: 0 0 18px; font-size: 12.5px; line-height: 1.45; color: var(--muted); min-height: 54px; }
+
+  .dd { position: relative; display: inline-block; }
+  .trig { display: inline-flex; align-items: center; gap: 12px; height: 56px; padding: 0 22px; border: 0; border-radius: 16px; background: var(--tile); color: var(--text); font: inherit; font-size: 16px; font-weight: 700; box-shadow: var(--raise); cursor: pointer; transition: box-shadow .25s var(--out), transform .25s var(--out); }
+  .trig:active { transform: scale(.98); box-shadow: var(--inset); }
+  .trig svg { width: 18px; height: 18px; flex: none; }
+  .menu { position: absolute; left: 0; top: calc(100% + 10px); min-width: 230px; padding: 8px; border-radius: 18px; background: var(--tile); box-shadow: var(--raise); z-index: 5; }
+  .opt { display: flex; align-items: center; gap: 12px; height: 50px; padding: 0 14px; border-radius: 12px; font-size: 16px; font-weight: 700; color: var(--muted); }
+  .opt svg { width: 18px; height: 18px; flex: none; }
+  .opt.on { color: var(--text); background: var(--sunk); box-shadow: var(--inset); }
+  .opt .ck { margin-left: auto; color: var(--amber); }
+
+  /* ---------- A · Brota del botón ---------- */
+  .a .menu { transform-origin: 30px -10px; opacity: 0; transform: scale(.35, .2) translateY(-30px); visibility: hidden;
+    transition: transform .22s var(--in), opacity .18s linear, visibility 0s .22s; }
+  .a.open .menu { opacity: 1; transform: none; visibility: visible; transition: transform .55s var(--spring), opacity .15s linear, visibility 0s; }
+  .a .opt { opacity: 0; transform: translateY(-8px); transition: opacity .12s, transform .12s; }
+  .a.open .opt { opacity: 1; transform: none; transition: opacity .3s var(--out), transform .45s var(--spring); transition-delay: calc(.12s + var(--i) * .06s); }
+
+  /* ---------- B · Sale de la superficie ---------- */
+  .b .menu { background: var(--panel); box-shadow: none; opacity: 0; transform: translateY(-6px) scale(.97); visibility: hidden;
+    transition: opacity .2s, transform .25s var(--in), visibility 0s .25s; }
+  .b .menu::before, .b .menu::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; transition: opacity .35s var(--out); }
+  .b .menu::before { box-shadow: var(--inset); opacity: 1; }
+  .b .menu::after { box-shadow: var(--raise); opacity: 0; }
+  .b.open .menu { opacity: 1; transform: none; visibility: visible; background: var(--tile); transition: opacity .2s, transform .5s var(--out), background-color .5s .15s, visibility 0s; }
+  .b.open .menu::before { opacity: 0; transition: opacity .45s .18s var(--out); }
+  .b.open .menu::after { opacity: 1; transition: opacity .45s .18s var(--out); }
+  .b .opt { opacity: 0; filter: blur(3px); transition: opacity .1s, filter .1s; }
+  .b.open .opt { opacity: 1; filter: none; transition: opacity .35s, filter .35s; transition-delay: calc(.22s + var(--i) * .07s); }
+  .b.open .trig { box-shadow: var(--inset); }
+
+  /* ---------- C · Persiana con brillo ---------- */
+  .c .menu { clip-path: inset(0 0 100% 0 round 18px); visibility: hidden; transition: clip-path .22s var(--in), visibility 0s .22s; }
+  .c.open .menu { clip-path: inset(0 0 0 0 round 18px); visibility: visible; transition: clip-path .5s var(--out), visibility 0s; }
+  .c .menu::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+    background: linear-gradient(180deg, transparent 0%, rgb(245 176 65 / .0) 30%, rgb(245 176 65 / .9) 50%, rgb(245 176 65 / 0) 70%, transparent 100%) 0 -200% / 100% 300% no-repeat;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; }
+  .c.open .menu::after { animation: sweep 1s .1s var(--out) forwards; }
+  @keyframes sweep { 0% { opacity: 1; background-position: 0 -200%; } 80% { opacity: 1; } 100% { opacity: 0; background-position: 0 100%; } }
+  .c .opt { opacity: 0; transform: translateY(-14px); transition: opacity .1s, transform .1s; }
+  .c.open .opt { opacity: 1; transform: none; transition: opacity .3s, transform .5s var(--spring); transition-delay: calc(.08s + var(--i) * .09s); }
+
+  /* ---------- D · Ícono protagonista ---------- */
+  .d .trig .ico { transition: transform .5s var(--spring), color .3s; }
+  .d.open .trig .ico { transform: rotate(144deg) scale(1.25); color: var(--amber); }
+  .d .menu { opacity: 0; transform: scale(.88); transform-origin: 40px 0; visibility: hidden; filter: blur(4px);
+    transition: opacity .18s, transform .2s var(--in), filter .18s, visibility 0s .2s; }
+  .d.open .menu { opacity: 1; transform: none; filter: none; visibility: visible; transition: opacity .25s, transform .45s var(--spring), filter .25s, visibility 0s; }
+  .d .opt svg:first-child { transform: scale(0) rotate(-120deg); transition: transform .15s; }
+  .d.open .opt svg:first-child { transform: none; transition: transform .6s var(--spring); transition-delay: calc(.15s + var(--i) * .1s); }
+  .d.open .opt.on svg:first-child { color: var(--amber); filter: drop-shadow(0 0 6px rgb(245 176 65 / .6)); }
+  .d .opt .ck { transform: scale(0); transition: transform .15s; }
+  .d.open .opt .ck { transform: none; transition: transform .45s .45s var(--spring); }
+
+  /* Sombras en 4 capas (2 inset + 2 afuera) para que hundido ↔ elevado se interpole de verdad. */
+  :root {
+    --z: 0 0 0 transparent; --zi: inset 0 0 0 transparent;
+    --sh-flat: var(--zi), var(--zi), var(--z), var(--z);
+    --sh-up: var(--zi), var(--zi), 6px 8px 18px rgb(0 0 0 / .55), -3px -3px 10px rgb(255 255 255 / .04);
+    --sh-down: inset 4px 5px 10px rgb(0 0 0 / .6), inset -2px -2px 6px rgb(255 255 255 / .035), var(--z), var(--z);
+    --sh-deep: inset 7px 8px 16px rgb(0 0 0 / .7), inset -3px -3px 8px rgb(255 255 255 / .04), var(--z), var(--z);
+  }
+
+  /* ---------- D1 · Se hunde y emerge ---------- */
+  .e .trig { box-shadow: var(--sh-up); transition: box-shadow .45s var(--out), transform .25s var(--out); }
+  .e.open .trig { box-shadow: var(--sh-deep); }
+  .e .trig .ico { transition: transform .55s var(--spring), color .3s, filter .3s; }
+  .e.open .trig .ico { transform: rotate(144deg) scale(1.2); color: var(--amber); filter: drop-shadow(0 0 6px rgb(245 176 65 / .6)); }
+  .e .menu { background: var(--panel); box-shadow: var(--sh-down); opacity: 0; transform: scale(.92); transform-origin: 40px 0; visibility: hidden;
+    transition: box-shadow .25s var(--in), background-color .25s, opacity .2s .05s, transform .25s var(--in), visibility 0s .25s; }
+  .e.open .menu { background: var(--tile); box-shadow: var(--sh-up); opacity: 1; transform: none; visibility: visible;
+    transition: opacity .15s, transform .5s var(--spring), box-shadow .6s .1s var(--out), background-color .5s .1s, visibility 0s; }
+  .e .opt svg:first-child { box-sizing: content-box; padding: 7px; border-radius: 10px; background: var(--panel); box-shadow: var(--sh-down); transform: scale(.6) rotate(-90deg); transition: transform .15s, box-shadow .15s; }
+  .e.open .opt svg:first-child { box-shadow: var(--sh-up); transform: none; transition: transform .6s var(--spring), box-shadow .5s var(--out); transition-delay: calc(.2s + var(--i) * .1s); }
+  .e.open .opt.on svg:first-child { color: var(--amber); }
+  .e .opt.on { box-shadow: var(--sh-flat); background: transparent; transition: box-shadow .1s; }
+  .e.open .opt.on { box-shadow: var(--sh-down); background: var(--sunk); transition: box-shadow .5s .45s var(--out), background-color .5s .45s; }
+  .e .opt .ck { transform: scale(0); transition: transform .15s; }
+  .e.open .opt .ck { transform: none; transition: transform .45s .6s var(--spring); }
+
+  /* ---------- D2 · Relieve que respira ---------- */
+  .f .trig { box-shadow: var(--sh-up); transition: box-shadow .4s var(--out); }
+  .f.open .trig { box-shadow: var(--sh-flat); }
+  .f .trig .ico { transition: transform .55s var(--spring), color .3s; }
+  .f.open .trig .ico { transform: rotate(144deg) scale(1.2); color: var(--amber); }
+  .f .menu { box-shadow: var(--sh-flat); opacity: 0; transform: translateY(-4px); visibility: hidden;
+    transition: box-shadow .25s var(--in), opacity .2s .05s, transform .25s var(--in), visibility 0s .25s; }
+  /* El spring en box-shadow hace que la sombra se pase de largo (más alto) y vuelva: "respira". */
+  .f.open .menu { box-shadow: var(--sh-up); opacity: 1; transform: none; visibility: visible;
+    transition: box-shadow .9s cubic-bezier(.3, 2.2, .5, 1), opacity .2s, transform .5s var(--spring), visibility 0s; }
+  .f .opt { opacity: 0; transition: opacity .1s; }
+  .f.open .opt { opacity: 1; transition: opacity .3s; transition-delay: calc(.12s + var(--i) * .08s); }
+  .f .opt svg:first-child { transform: scale(0) rotate(-120deg); transition: transform .15s; }
+  .f.open .opt svg:first-child { transform: none; transition: transform .6s var(--spring); transition-delay: calc(.15s + var(--i) * .1s); }
+  .f .opt.on { box-shadow: var(--sh-flat); background: transparent; transition: box-shadow .1s; }
+  .f.open .opt.on { box-shadow: var(--sh-down); background: var(--sunk); transition: box-shadow .8s .35s cubic-bezier(.3, 2.2, .5, 1), background-color .4s .35s; }
+  .f.open .opt.on svg:first-child { color: var(--amber); filter: drop-shadow(0 0 6px rgb(245 176 65 / .6)); }
+  .f .opt .ck { transform: scale(0); transition: transform .15s; }
+  .f.open .opt .ck { transform: none; transition: transform .45s .55s var(--spring); }
+
+  /* ---------- D3 · La luz gira con la estrella ---------- */
+  .g .trig .ico { transition: transform .7s var(--spring), color .3s; }
+  .g.open .trig .ico { transform: rotate(216deg) scale(1.2); color: var(--amber); filter: drop-shadow(0 0 6px rgb(245 176 65 / .6)); }
+  .g.open .trig { animation: light-trig .8s var(--out) forwards; }
+  @keyframes light-trig {
+    0% { box-shadow: 6px 8px 18px rgb(0 0 0 / .55), -3px -3px 10px rgb(255 255 255 / .04); }
+    35% { box-shadow: -8px 6px 18px rgb(0 0 0 / .55), 4px -3px 10px rgb(255 255 255 / .05); }
+    70% { box-shadow: -6px -8px 18px rgb(0 0 0 / .5), 3px 4px 10px rgb(255 255 255 / .05); }
+    100% { box-shadow: 2px 3px 6px rgb(0 0 0 / .5), -1px -1px 4px rgb(255 255 255 / .03); }
+  }
+  .g .menu { opacity: 0; transform: scale(.9); transform-origin: 40px 0; visibility: hidden; filter: blur(3px);
+    transition: opacity .18s, transform .2s var(--in), filter .18s, visibility 0s .2s; }
+  .g.open .menu { opacity: 1; transform: none; filter: none; visibility: visible; animation: light-menu 1s var(--out) both;
+    transition: opacity .25s, transform .5s var(--spring), filter .25s, visibility 0s; }
+  @keyframes light-menu {
+    0% { box-shadow: -10px -10px 22px rgb(0 0 0 / .55), 5px 5px 12px rgb(255 255 255 / .05); }
+    40% { box-shadow: 10px -8px 22px rgb(0 0 0 / .55), -5px 4px 12px rgb(255 255 255 / .05); }
+    100% { box-shadow: 6px 8px 18px rgb(0 0 0 / .55), -3px -3px 10px rgb(255 255 255 / .04); }
+  }
+  .g .opt svg:first-child { transform: scale(0) rotate(-180deg); transition: transform .15s; }
+  .g.open .opt svg:first-child { transform: none; transition: transform .7s var(--spring); transition-delay: calc(.15s + var(--i) * .1s); }
+  .g.open .opt.on { animation: light-opt .9s .25s var(--out) both; }
+  @keyframes light-opt {
+    0% { box-shadow: inset -5px -5px 10px rgb(0 0 0 / .6), inset 2px 2px 6px rgb(255 255 255 / .03); }
+    100% { box-shadow: inset 4px 5px 10px rgb(0 0 0 / .6), inset -2px -2px 6px rgb(255 255 255 / .03); }
+  }
+  .g.open .opt.on svg:first-child { color: var(--amber); }
+  .g .opt .ck { transform: scale(0); transition: transform .15s; }
+  .g.open .opt .ck { transform: none; transition: transform .45s .6s var(--spring); }
+
+  /* ---------- D2 + letra e ícono con relieve (sin fondo: la sombra sigue las líneas) ---------- */
+  :root {
+    --tx-flat: 0 0 0 transparent, 0 0 0 transparent;
+    --tx-up: -1px -1px 0 rgb(255 255 255 / .16), 2px 2px 2px rgb(0 0 0 / .8);
+    --tx-in: 1px 1px 0 rgb(255 255 255 / .1), -1px -1px 1px rgb(0 0 0 / .9);
+    --ic-flat: drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent);
+    --ic-up: drop-shadow(-1px -1px 0 rgb(255 255 255 / .16)) drop-shadow(2px 2px 1.5px rgb(0 0 0 / .8)) drop-shadow(0 0 0 transparent);
+    --ic-up-g: drop-shadow(-1px -1px 0 rgb(255 255 255 / .16)) drop-shadow(2px 2px 1.5px rgb(0 0 0 / .8)) drop-shadow(0 0 6px rgb(245 176 65 / .55));
+    --ic-in: drop-shadow(1px 1px 0 rgb(255 255 255 / .1)) drop-shadow(-1px -1px 1px rgb(0 0 0 / .9)) drop-shadow(0 0 0 transparent);
+    --ic-in-g: drop-shadow(1px 1px 0 rgb(255 255 255 / .1)) drop-shadow(-1px -1px 1px rgb(0 0 0 / .9)) drop-shadow(0 0 6px rgb(245 176 65 / .45));
+    --breathe: cubic-bezier(.3, 2.2, .5, 1);
+  }
+  .r-up { --tx: var(--tx-up); --ic: var(--ic-up); --ic-g: var(--ic-up-g); }
+  .r-in { --tx: var(--tx-in); --ic: var(--ic-in); --ic-g: var(--ic-in-g); }
+  .rl .trig { text-shadow: var(--tx); }
+  .rl .trig svg { filter: var(--ic); transition: transform .55s var(--spring), color .3s, filter .5s var(--out); }
+  .rl.open .trig svg { filter: var(--ic-g); }
+  .rl .opt { text-shadow: var(--tx-flat); transition: opacity .1s, text-shadow .15s; }
+  .rl.open .opt { text-shadow: var(--tx); transition: opacity .3s, text-shadow .9s var(--breathe); transition-delay: calc(.2s + var(--i) * .08s); }
+  .rl .opt svg { filter: var(--ic-flat); }
+  .rl.open .opt svg:first-child { filter: var(--ic); transition: transform .6s var(--spring), filter .9s var(--breathe); transition-delay: calc(.15s + var(--i) * .1s); }
+  .rl.open .opt.on svg:first-child { filter: var(--ic-g); }
+  .rl.open .opt .ck { filter: var(--ic); }
+
+  /* ---------- Luz desde adentro: la estrella es un recorte y la luz pasa por ella ---------- */
+  .lt {
+    --f-off: brightness(.32) saturate(.25) drop-shadow(-1px -1px .5px rgb(0 0 0 / .95)) drop-shadow(1px 1px 0 rgb(255 255 255 / .09)) drop-shadow(0 0 0 transparent);
+    --f-dim: brightness(.75) saturate(.85) drop-shadow(-1px -1px .5px rgb(0 0 0 / .6)) drop-shadow(0 0 0 transparent) drop-shadow(0 0 4px rgb(245 176 65 / .3));
+    --f-on: brightness(1.15) saturate(1.1) drop-shadow(-1px -1px .5px rgb(0 0 0 / .4)) drop-shadow(0 0 0 transparent) drop-shadow(0 0 10px rgb(255 190 80 / .85));
+  }
+  .lt .trig { position: relative; isolation: isolate; }
+  /* La luz que se escapa por la estrella tiñe un poco la superficie del botón alrededor. */
+  .lt .trig::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: 0;
+    background: radial-gradient(circle at 31px 50%, rgb(255 196 90 / .3), rgb(245 176 65 / .08) 38px, transparent 80px); transition: opacity .6s var(--out); }
+  .lt .trig .ico path, .lt .opt.on svg:first-child path { fill: url(#lit); }
+  .lt .trig .ico { filter: var(--f-off); transition: transform .55s var(--spring), filter .8s var(--breathe); }
+  .lt .opt.on svg:first-child { filter: var(--f-off); }
+  .lt.open .opt.on svg:first-child { filter: var(--f-on); transition: transform .6s var(--spring), filter .8s .3s var(--out); }
+
+  /* L1 · Ventana encendida: siempre pasa algo de luz; al abrir sube y se derrama. */
+  .l1 .trig .ico { filter: var(--f-dim); }
+  .l1 .trig::before { opacity: .35; }
+  .l1.open .trig .ico { filter: var(--f-on); }
+  .l1.open .trig::before { opacity: 1; }
+
+  /* L2 · Se enciende al abrir: cerrada es un recorte apagado; al abrir parpadea como un tubo y queda prendida. */
+  .l2.open .trig .ico { filter: var(--f-on); animation: ignite .9s linear both; }
+  .l2.open .trig::before { opacity: 1; animation: spill .9s linear both; }
+  @keyframes ignite {
+    0% { filter: var(--f-off); } 12% { filter: var(--f-on); } 22% { filter: var(--f-off); } 34% { filter: var(--f-on); }
+    44% { filter: var(--f-dim); } 100% { filter: var(--f-on); }
+  }
+  @keyframes spill { 0% { opacity: 0; } 12% { opacity: .9; } 22% { opacity: 0; } 34% { opacity: .9; } 44% { opacity: .4; } 100% { opacity: 1; } }
+
+  /* L3 · Luz viva: adentro gira un haz (gradiente animado) que la estrella deja ver; el derrame late. */
+  .l3 .trig .ico path, .l3 .opt.on svg:first-child path { fill: url(#live); }
+  .l3 .trig .ico { filter: var(--f-dim); }
+  .l3 .trig::before { opacity: .3; }
+  .l3.open .trig .ico { filter: var(--f-on); }
+  .l3.open .trig::before { animation: pulse 2.4s ease-in-out .3s infinite alternate; opacity: 1; }
+  @keyframes pulse { from { opacity: 1; } to { opacity: .55; } }
+
+  /* ---------- D2·B grabado + luz detrás, con poco brillo ---------- */
+  .bl {
+    --f-dim: brightness(.6) saturate(.7) drop-shadow(-1px -1px .5px rgb(0 0 0 / .85)) drop-shadow(1px 1px 0 rgb(255 255 255 / .08)) drop-shadow(0 0 0 transparent);
+    --f-on: brightness(1) saturate(1) drop-shadow(-1px -1px .5px rgb(0 0 0 / .8)) drop-shadow(1px 1px 0 rgb(255 255 255 / .08)) drop-shadow(0 0 3px rgb(255 190 80 / .35));
+  }
+  .bl .trig::before { background: radial-gradient(circle at 31px 50%, rgb(255 196 90 / .14), transparent 46px); }
+  .bl .trig .ico { transition: transform .55s var(--spring), filter .7s var(--out); }
+  /* BL1: siempre pasa un poco de luz; al abrir sube. */
+  .bl1 .trig .ico { filter: var(--f-dim); }
+  .bl1.open .trig .ico { filter: var(--f-on); }
+  .bl1.open .trig::before { opacity: 1; }
+  /* BL2: apagada (solo el tallado); al abrir la luz entra suave, sin parpadeo. */
+  .bl2.open .trig .ico { filter: var(--f-on); }
+  .bl2.open .trig::before { opacity: 1; transition: opacity .9s .1s var(--out); }
+  /* BL3: como BL1, y las letras grabadas también dejan pasar una luz tibia. */
+  .bl3 .trig .ico { filter: var(--f-dim); }
+  .bl3.open .trig .ico { filter: var(--f-on); }
+  .bl3.open .trig::before { opacity: 1; }
+  .bl3 .trig { transition: box-shadow .4s var(--out), color .7s var(--out); }
+  .bl3.open .trig { color: #ffe2a6; }
+  .bl3 .opt.on { transition: color .1s; }
+  .bl3.open .opt.on { color: #ffe2a6; transition: opacity .3s, text-shadow .9s var(--breathe), color .7s .3s var(--out); }
+
+  /* ---------- Recorte con acrílico iluminado por detrás: sin glow, solo contraste ---------- */
+  .ac {
+    --a-off: brightness(.28) saturate(.2) drop-shadow(-1px -1px 0 rgb(0 0 0 / .95)) drop-shadow(1px 1px 0 rgb(255 255 255 / .07));
+    --a-dim: brightness(.6) saturate(.7) drop-shadow(-1px -1px 0 rgb(0 0 0 / .95)) drop-shadow(1px 1px 0 rgb(255 255 255 / .07));
+    --a-on: brightness(1) saturate(1) drop-shadow(-1px -1px 0 rgb(0 0 0 / .95)) drop-shadow(1px 1px 0 rgb(255 255 255 / .07));
+    --a-hot: brightness(1.4) saturate(1.15) drop-shadow(-1px -1px 0 rgb(0 0 0 / .95)) drop-shadow(1px 1px 0 rgb(255 255 255 / .07));
+  }
+  /* Sin giro: los íconos quedan quietos y solo se encienden. */
+  .ac .trig .ico, .ac .opt svg:first-child { transform: none !important; }
+  .ac .lbl { background: linear-gradient(180deg, #fff8e6 0%, #ffe0a0 50%, #f4bd5e 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* Mismo ámbar que el tick (--amber). */
+  .ac .trig .ico path, .ac .opt.on svg:first-child path { fill: var(--amber); }
+  .ac .opt:not(.on) svg:first-child path { stroke: var(--amber); }
+  .ac .trig .ico, .ac .trig .lbl, .ac .opt .lbl, .ac .opt svg:first-child { filter: var(--a-off); transition: filter .25s var(--in); }
+  .ac.open .opt:not(.on) .lbl, .ac.open .opt:not(.on) svg:first-child { filter: var(--a-dim); transition: filter .6s .2s var(--out); }
+
+  /* AC1 · Se enciende suave: tenue cerrado, al abrir la luz de atrás sube despacio. */
+  .ac1 .trig .ico, .ac1 .trig .lbl { filter: var(--a-dim); }
+  .ac1.open .trig .ico, .ac1.open .trig .lbl, .ac1.open .opt.on .lbl, .ac1.open .opt.on svg:first-child { filter: var(--a-on); transition: filter .8s .05s var(--out); }
+  .ac1.open .opt.on .lbl, .ac1.open .opt.on svg:first-child { transition-delay: .3s; }
+
+  /* AC2 · Golpe de luz: apagado cerrado; al abrir la luz entra fuerte un instante y se asienta. */
+  .ac2.open .trig .ico, .ac2.open .trig .lbl { filter: var(--a-on); animation: hit .7s var(--out) both; }
+  .ac2.open .opt.on .lbl, .ac2.open .opt.on svg:first-child { filter: var(--a-on); animation: hit .7s .3s var(--out) both; }
+  @keyframes hit { 0% { filter: var(--a-off); } 30% { filter: var(--a-hot); } 100% { filter: var(--a-on); } }
+
+  /* AC3 · La luz sube: el recorte se ilumina de abajo hacia arriba, como si se llenara de luz. */
+  .ac3 .lbl { background-image: linear-gradient(0deg, #f4bd5e 0%, #ffe0a0 25%, #fff8e6 50%, #46433d 50.01%, #34322e 100%); background-size: 100% 200%; background-position: 0 0%;
+    filter: var(--a-on) !important; transition: background-position .3s var(--in) !important; }
+  .ac3.open .trig .lbl, .ac3.open .opt.on .lbl { background-position: 0 100%; transition: background-position .8s var(--out) !important; }
+  .ac3.open .opt.on .lbl { transition-delay: .3s !important; }
+  .ac3.open .opt:not(.on) .lbl { background-position: 0 100%; filter: var(--a-dim) !important; transition: background-position .8s .3s var(--out) !important; }
+  .ac3.open .trig .ico, .ac3.open .opt.on svg:first-child { filter: var(--a-on); transition: filter .8s var(--out); }
+  .ac3.open .opt.on svg:first-child { transition-delay: .3s; }
+
+  /* ---------- AC2 con letras blancas y "le cuesta prender" ---------- */
+  .wh .lbl, .wh .ch { background-image: linear-gradient(180deg, #ffffff 0%, #f3f4f7 50%, #d4d7de 100%); }
+  /* Arranque de tubo viejo: chispazos flojos, se apaga, vuelve, golpe y se asienta. */
+  @keyframes struggle {
+    0% { filter: var(--a-off); } 6% { filter: var(--a-dim); } 9% { filter: var(--a-off); }
+    24% { filter: var(--a-off); } 27% { filter: var(--a-on); } 30% { filter: var(--a-off); } 33% { filter: var(--a-dim); } 37% { filter: var(--a-off); }
+    58% { filter: var(--a-off); } 62% { filter: var(--a-hot); } 68% { filter: var(--a-dim); } 72% { filter: var(--a-hot); } 100% { filter: var(--a-on); }
+  }
+  /* W1 · Tubo que arranca: todo el botón junto. */
+  .w1.open .trig .ico, .w1.open .trig .lbl { filter: var(--a-on); animation: struggle .7s linear both; }
+  .w1.open .opt.on .lbl, .w1.open .opt.on svg:first-child { filter: var(--a-on); animation: struggle .7s .12s linear both; }
+  /* W2 · Letra por letra: cada letra arranca por su cuenta (retraso al azar) y la estrella al final. */
+  .w2 .lbl { background: none; filter: none !important; }
+  .w2 .ch { white-space: pre; -webkit-background-clip: text; background-clip: text; color: transparent; filter: var(--a-off); }
+  .w2.open .trig .ch, .w2.open .opt.on .ch { filter: var(--a-on); animation: struggle 1s var(--d) linear both; }
+  .w2.open .opt.on .ch { animation-delay: calc(var(--d) + .25s); }
+  .w2.open .opt:not(.on) .ch { filter: var(--a-dim); transition: filter .6s .3s var(--out); }
+  .w2.open .trig .ico { filter: var(--a-on); animation: struggle 1.2s .45s linear both; }
+  .w2.open .opt.on svg:first-child { filter: var(--a-on); animation: struggle 1.2s .6s linear both; }
+
+  .slow * { transition-duration: 2.2s !important; animation-duration: 3s !important; }
+  @media (prefers-reduced-motion: reduce) { .menu, .opt, .opt svg, .ico { transition-duration: .01s !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Animación de abrir y cerrar menús</h1>
+    <p>Tocá cada botón, o abrí todos juntos para comparar. Se muestra el menú de ★; el de "De nicho" usaría la misma animación.</p>
+  </div>
+  <div class="ctl">
+    <button id="btn-all" class="solid" type="button">Abrir / cerrar todos</button>
+    <label><input id="chk-slow" type="checkbox" /> Cámara lenta</label>
+  </div>
+</header>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="lit" cx="50%" cy="55%" r="62%">
+      <stop offset="0" stop-color="#fffbe8" /><stop offset=".35" stop-color="#ffd27a" /><stop offset="1" stop-color="#e38f24" />
+    </radialGradient>
+    <linearGradient id="live" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9831c" /><stop offset=".42" stop-color="#ffcf70" /><stop offset=".5" stop-color="#fffbe8" />
+      <stop offset=".58" stop-color="#ffcf70" /><stop offset="1" stop-color="#d9831c" />
+      <animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="3s" repeatCount="indefinite" />
+    </linearGradient>
+    <linearGradient id="acr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff8e6" /><stop offset=".5" stop-color="#ffe0a0" /><stop offset="1" stop-color="#f4bd5e" />
+    </linearGradient>
+  </defs>
+</svg>
+<main class="grid" id="grid"></main>
+
+<template id="tpl">
+  <article class="card">
+    <h2></h2>
+    <p class="desc"></p>
+    <div class="dd">
+      <button class="trig" type="button" aria-haspopup="menu" aria-expanded="false">
+        <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>
+        <span class="lbl">Mejor puntaje</span>
+      </button>
+      <div class="menu" role="menu">
+        <div class="opt on" role="menuitemradio" aria-checked="true" style="--i:0">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>
+          <span class="lbl">Mejor puntaje</span>
+          <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </div>
+        <div class="opt" role="menuitemradio" aria-checked="false" style="--i:1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 7-2.8 7-7 0-3.5-2.2-6-4-8 0 2.5-1.5 4-3 4 0-3.5-1.5-6.5-4-9 .3 3.5-3 6.5-3 11 0 5.2 3 9 7 9z"/></svg>
+          <span class="lbl">Más populares</span>
+        </div>
+      </div>
+    </div>
+  </article>
+</template>
+
+<script>
+  const variants = [
+    ['f ac ac2 wh', 'AC2', 'Golpe de luz (referencia)', 'La que elegiste, con las letras blancas: la luz entra fuerte un instante y se asienta.'],
+    ['f ac wh w1', 'W1', 'Tubo que arranca', 'Al abrir le cuesta prender: chispazos flojos, se apaga, vuelve, y recién ahí el golpe de luz. Letras y estrella juntas.'],
+    ['f ac wh w2', 'W2', 'Letra por letra', 'Cada letra arranca por su cuenta, con chispazos a destiempo, como un cartel viejo; la estrella prende al final.'],
+  ];
+  const grid = document.getElementById('grid');
+  const tpl = document.getElementById('tpl');
+  for (const [cls, letter, name, desc] of variants) {
+    const node = tpl.content.cloneNode(true);
+    const dd = node.querySelector('.dd');
+    dd.classList.add(...cls.split(' '));
+    dd.id = 'dd-' + letter.replace('·', '-').toLowerCase();
+    node.querySelector('h2').innerHTML = `<b>${letter}</b>${name}`;
+    node.querySelector('.desc').textContent = desc;
+    const trig = node.querySelector('.trig');
+    trig.id = 'trig-' + letter.replace('·', '-').toLowerCase();
+    trig.addEventListener('click', () => toggle(dd));
+    if (cls.includes('w2')) {
+      dd.querySelectorAll('.lbl').forEach((lbl) => {
+        lbl.innerHTML = [...lbl.textContent].map((c) => `<span class="ch" style="--d:${(Math.random() * 0.45).toFixed(2)}s">${c}</span>`).join('');
+      });
+    }
+    grid.appendChild(node);
+  }
+  function toggle(dd, force) {
+    const open = force ?? !dd.classList.contains('open');
+    dd.classList.toggle('open', open);
+    dd.querySelector('.trig').setAttribute('aria-expanded', String(open));
+  }
+  let allOpen = false;
+  document.getElementById('btn-all').addEventListener('click', () => {
+    allOpen = !allOpen;
+    document.querySelectorAll('.dd').forEach((dd) => toggle(dd, allOpen));
+  });
+  document.getElementById('chk-slow').addEventListener('change', (e) => document.body.classList.toggle('slow', e.target.checked));
+</script>
+</body>
+</html>

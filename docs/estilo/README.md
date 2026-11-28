@@ -41,7 +41,7 @@ Convención obligatoria para toda UI nueva, en desktop y web. Tokens en `/Users/
 | `--nu-solid-shadow` / `-hover` / `-press` | Relieve del primario (caída + halo ámbar) | Reposo / hover / `:active` |
 | `--fade-dark` | Fade a oscuro vertical | Texto sobre imagen |
 
-Clases compartidas (`/Users/monti/Documents/Dev/streamonte/packages/ui/css/components.css`): `.nu-solid` (primario), `.nu-lift` (elevado neutro), `.nu-ring` + `.nu-round` (control redondo en aro). Si toda la tarjeta es el botón, el primario va como `<span class="nu-solid">` adentro: reacciona al hover/active de la tarjeta.
+Clases compartidas (`/Users/monti/Documents/Dev/streamonte/packages/ui/css/components.css`): `.nu-solid` (primario), `.nu-lift` (elevado neutro), `.nu-ring` + `.nu-round` (control redondo en aro), `.nu-grain` (grano) y `.ac-face` (acrílico). Si toda la tarjeta es el botón, el primario va como `<span class="nu-solid">` adentro: reacciona al hover/active de la tarjeta.
 
 ## Recetas (copiar y renombrar la clase)
 ```css
@@ -102,6 +102,18 @@ Clases compartidas (`/Users/monti/Documents/Dev/streamonte/packages/ui/css/compo
 .x:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
 .x:disabled { opacity: 0.4; box-shadow: none; cursor: default; }
 ```
+
+## Grano y acrílico
+- **Grano** (`.nu-grain`): ruido fractal muy tenue en una capa `::before` detrás del contenido, más presente arriba a la izquierda. Va en superficies grandes que flotan (el panel de filtros del catálogo), no en controles.
+- **Grabado** (relieve local): un contenedor puede redefinir `--nu-well`, `--nu-press`, `--nu-press-sm` y `--nu-raise-sm` para sus hijos (pozo más oscuro con labio de luz abajo-derecha). Ejemplo: `.filters-panel` en `/Users/monti/Documents/Dev/streamonte/packages/ui/src/catalog/Catalog.svelte`.
+- **Sombra de chip** (`--chip-raise`, `--chip-raise-hover`): la define el contenedor y la leen las pastillas (`PillMenu`, `GenrePicker`), con `--nu-raise-sm` de respaldo. Es más corta que la elevada y no mancha el borde del panel.
+- **Acrílico** (`.ac-face`): letra blanca por degradé recortado (`--ac-text`), íconos SVG hijos directos en `--amber`, sin glow. El brillo lo pone el estado, por `filter`:
+  - `--ac-on` prendido (botones en reposo, opción elegida), `--ac-dim` tenue (opciones no elegidas, segmento no elegido), `--ac-off` apagado (personitas fuera del nivel).
+  - Al abrir un menú o elegir un segmento, `ac-struggle` (0,7 s): le cuesta prender y termina prendido. La opción elegida arranca 0,12 s después y las demás pasan a tenue (`ac-dim-in`).
+  - Menú: aparece con `ac-float-in`, una sombra que pasa de plana a flotante con rebote (`--ac-breathe`), y la opción elegida se hunde con `ac-sink`. El botón baja al ras mientras está abierto.
+  - Por partes (`PillMenu split`): la cara no lleva filtro y lo toma cada `.ac-part`; las `.ac-part.flick` parpadean cada una con su retraso `--d` (las personitas de votos). Un hijo con filtro propio no toma el degradé del padre, así que los textos de las partes llevan su `.ac-face`.
+  - Texto solo para lectores dentro de una cara acrílica: `font-size: 0`, porque si no el degradé recortado lo pinta igual.
+  - Alto contraste (`forced-colors`): sin degradé ni filtro, con el texto del sistema.
 
 ## Ejemplos reales
 - Primario sólido cuadrado (▶) en la barra de opciones, controles redondos en aro, Deshacer sólido: `/Users/monti/Documents/Dev/streamonte/packages/ui/src/catalog/RecentRow.svelte`.

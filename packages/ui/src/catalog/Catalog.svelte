@@ -1,14 +1,14 @@
 <script lang="ts">
 	// Catálogo compartido (web y desktop): buscador + sugerencias de personas, tipo, orden, "Estrenos desde", votos, géneros y
-	// la grilla con scroll infinito. Filtros en un panel neumórfico (C1 2026-11-27, docs/mockups/filtros-neu #vc1): tipo a todo
-	// el ancho, la cinta y abajo el buscador angosto con las pastillas (votos, orden, géneros, limpiar). Los datos y el estado viven en `store` (`catalog.svelte.ts`); abrir un título es `onopen`.
+	// la grilla con scroll infinito. Filtros en un panel neumórfico con grano y relieve grabado: buscador, cinta de estrenos,
+	// tipo con orden y votos a la derecha, y géneros. Los datos y el estado viven en `store` (`catalog.svelte.ts`); abrir un título es `onopen`.
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import Icon from '../components/Icon.svelte';
 	import { getApi } from '../context.ts';
 	import { t } from '../i18n/runtime.ts';
 	import type { CatalogItem, PersonHit } from '../types.ts';
-	import { KINDS, SORTS, VOTE_LEVELS, backLabel, changedCount, nearestLevel, votesLabel, type Filters } from './filters.ts';
+	import { KINDS, SORTS, VOTE_LEVELS, backLabel, nearestLevel, votesLabel, type Filters } from './filters.ts';
 	import GenrePicker from './GenrePicker.svelte';
 	import Grid from './Grid.svelte';
 	import { unseenCount, type NewsItem, type NewsList } from './news.ts';
@@ -228,8 +228,9 @@
 </script>
 
 {#snippet crowd(n: number)}
-	<!-- Votos como nivel: 1, 2 o 3 personitas en ámbar; el resto tenues. -->
-	<span class="crowd" aria-hidden="true">{#each VOTE_LEVELS as _, i (i)}<span class:off={i > n}><Icon name="user" size={13} /></span>{/each}</span>
+	<!-- Votos como nivel: 1, 2 o 3 personitas en ámbar; el resto apagadas. Cada prendida parpadea sola al encenderse
+	     (`ac-part flick` de PillMenu `split`), con un retraso fijo desordenado (`--d`). -->
+	<span class="crowd" aria-hidden="true">{#each VOTE_LEVELS as _, i (i)}{#if i > n}<span class="off"><Icon name="user" size={13} /></span>{:else}<span class="ac-part flick" style:--d="{[0, 0.17, 0.09][i]}s"><Icon name="user" size={13} /></span>{/if}{/each}</span>
 {/snippet}
 
 <div bind:this={root} class="catalog-root">
@@ -238,32 +239,31 @@
 		<div class="inner">
 			<div class="head-top" bind:clientHeight={topH}>
 				{@render header?.()}
-				<!-- Panel neumórfico de filtros (C1): tipo, cinta y fila del buscador con las pastillas. Buscando queda solo el buscador. -->
-				<div class="filters-panel">
+				<!-- Panel de filtros: buscador · cinta · tipo con orden y votos · géneros. Buscando queda solo el buscador. Sin
+				     "Limpiar": el género se saca en su selector y los votos se cambian en su menú. -->
+				<div class="filters-panel nu-grain">
+					<Search {store} onclear={clear} {onquery} onpick={pick} {onopen} {href} bind:open={searchOpen} />
+					{#if !searching && !trendingOnly}<Since {store} onset={setF} />{/if}
 					{#if !searching}
-						<div class="ks">
-							<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} onpick={(v) => ((popped = v), setF({ kind: v }))} />
-						</div>
-						{#if !trendingOnly}<Since {store} onset={setF} />{/if}
-					{/if}
-					<div class="srow" class:alone={searching || trendingOnly}>
-						<Search {store} onclear={clear} {onquery} onpick={pick} {onopen} {href} bind:open={searchOpen} />
-						{#if !searching && !trendingOnly}
-							<div class="strip">
-								<PillMenu id="cat-votes" label={t('Votos')} items={VOTE_VALUES} value={VOTE_LEVELS[level].v} onpick={(v) => setF({ votes: v })}>
-									{#snippet face()}{@render crowd(level)}<span id="votes-value">{t(VOTE_LEVELS[level].label)}</span>{/snippet}
-									{#snippet option(v)}{@const i = VOTE_VALUES.indexOf(v)}{@render crowd(i)}<span class="opt-txt">{t(VOTE_LEVELS[i].label)}<small>{votesLabel(v)}</small></span>{/snippet}
-								</PillMenu>
-								<PillMenu id="cat-sort" label={t('Orden')} items={SORT_VALUES} value={st.f.sort} onpick={(v) => setF({ sort: v })}>
-									{#snippet face()}<Icon name={sortOf(st.f.sort).icon} size={16} />{t(sortOf(st.f.sort).label)}{/snippet}
-									{#snippet option(v)}<Icon name={sortOf(v).icon} size={16} />{t(sortOf(v).label)}{/snippet}
-								</PillMenu>
-								<GenrePicker {store} onpick={(genre, subs) => (store.setGenre(genre, subs), afterFilter())} />
-								<!-- Limpiar = `store.resetFilters` (votos y género a su valor por defecto; tipo, orden y fechas quedan). -->
-								<button id="cat-reset" type="button" class="reset" disabled={!changedCount(st.f)} onclick={() => (store.resetFilters(), afterFilter())}>{t('Limpiar')}</button>
+						<div class="kind-row">
+							<div class="ks">
+								<Segmented id="cat-kind" label={t('Tipo')} items={KINDS} value={st.f.kind} {popped} onpick={(v) => ((popped = v), setF({ kind: v }))} />
 							</div>
-						{/if}
-					</div>
+							{#if !trendingOnly}
+								<div class="kind-pills">
+									<PillMenu id="cat-sort" label={t('Orden')} items={SORT_VALUES} value={st.f.sort} onpick={(v) => setF({ sort: v })}>
+										{#snippet face()}<Icon name={sortOf(st.f.sort).icon} size={17} /><span class="lbl">{t(sortOf(st.f.sort).label)}</span>{/snippet}
+										{#snippet option(v)}<Icon name={sortOf(v).icon} size={16} />{t(sortOf(v).label)}{/snippet}
+									</PillMenu>
+									<PillMenu id="cat-votes" label={t('Votos')} items={VOTE_VALUES} value={VOTE_LEVELS[level].v} split onpick={(v) => setF({ votes: v })}>
+										{#snippet face()}{@render crowd(level)}<span id="votes-value" class="lbl ac-face ac-part">{t(VOTE_LEVELS[level].label)}</span>{/snippet}
+										{#snippet option(v)}{@const i = VOTE_VALUES.indexOf(v)}{@render crowd(i)}<span class="opt-txt ac-face ac-part">{t(VOTE_LEVELS[i].label)}<small>{votesLabel(v)}</small></span>{/snippet}
+									</PillMenu>
+								</div>
+							{/if}
+						</div>
+					{/if}
+					{#if !searching && !trendingOnly}<GenrePicker {store} onpick={(genre, subs) => (store.setGenre(genre, subs), afterFilter())} />{/if}
 					{#if !searching && trendingOnly}
 						<span id="cat-trending" class="trending">{t('En tendencia ahora')}</span>
 						{#if onneedskey}
@@ -334,40 +334,54 @@
 	.intro .head-top > :nth-child(6) { animation-delay: 300ms; }
 	@keyframes rise { from { opacity: 0; transform: translateY(24px); } }
 
-	/* Panel neumórfico de filtros (C1; flota sobre el carbón, variante B 2026-11-27). `minmax(0, 1fr)`: el contenido (la fila de pastillas) no lo ensancha. */
-	.filters-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 6px 0 22px; padding: 14px; border-radius: calc(var(--nu-radius) + 14px); background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-float); }
-	/* Canal hundido del tipo, a todo el ancho; la pastilla elevada se desliza adentro (`Segmented`). */
-	/* Canal = radio del hijo + su padding, así las curvas quedan paralelas. */
+	/* Panel de filtros: flota sobre el carbón con grano (`.nu-grain`). `minmax(0, 1fr)`: el contenido no lo ensancha.
+	   Relieve grabado: dentro del panel los pozos son más oscuros, con corte arriba-izquierda y labio de luz abajo-derecha,
+	   y lo elevado lleva un filo de luz arriba. Los chips (`--chip-raise*`, lo leen PillMenu y GenrePicker) tienen una sombra
+	   corta y definida, que no mancha el borde del panel. */
+	.filters-panel {
+		--nu-well: rgb(0 0 0 / 0.3);
+		--nu-press: inset 5px 6px 12px rgb(0 0 0 / 0.7), inset 1px 1px 2px rgb(0 0 0 / 0.6), inset -1px -1px 0 rgb(255 255 255 / 0.06);
+		--nu-press-sm: inset 2px 3px 6px rgb(0 0 0 / 0.65), inset 1px 1px 1px rgb(0 0 0 / 0.5), inset -1px -1px 0 rgb(255 255 255 / 0.05);
+		--nu-raise-sm: inset 1px 1px 0 rgb(255 255 255 / 0.07), inset -1px -1px 0 rgb(0 0 0 / 0.35), 6px 8px 16px rgb(0 0 0 / 0.58), 2px 2px 4px rgb(0 0 0 / 0.36);
+		--chip-raise: inset 0 1px 0 rgb(255 255 255 / 0.06), 3px 4px 8px rgb(0 0 0 / 0.45), 1px 1px 2px rgb(0 0 0 / 0.4), -2px -2px 6px rgb(255 255 255 / 0.025);
+		--chip-raise-hover: inset 0 1px 0 rgb(255 255 255 / 0.08), 4px 6px 11px rgb(0 0 0 / 0.5), 1px 2px 3px rgb(0 0 0 / 0.4), -3px -3px 8px rgb(255 255 255 / 0.03);
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 12px;
+		margin: 6px 0 22px;
+		padding: 14px;
+		border-radius: calc(var(--nu-radius) + 14px);
+		background: var(--nu-tile), var(--nu-bg);
+		box-shadow: var(--nu-float);
+	}
+	/* Canal hundido del tipo; la pastilla elevada se desliza adentro (`Segmented`). Canal = radio del hijo + su padding. */
 	.ks { display: flex; padding: 5px; border-radius: calc(var(--nu-radius) + 5px); background: var(--nu-well); box-shadow: var(--nu-press); }
-	/* Buscador angosto + pastillas. Por clase y no `:first-child`: al abrir el desplegable, Search pone antes su fondo
-	   difuminado (`.blur`). */
-	/* Sin breakpoint (2026-11-27): si buscador + pastillas no entran en una línea (ventana angosta o panel lateral abierto),
-	   la tira baja a su propia línea a todo el ancho y se desliza; el buscador ocupa la de arriba. `max-width: 100%` acota la
-	   base de la tira para que el salto de línea la calcule bien. */
-	.srow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
-	.srow > :global(.finder) { flex: 1 1 290px; min-width: 0; }
-	/* Buscando (o sin key): el buscador solo, a todo el ancho; la píldora de la persona abajo. */
-	.srow.alone { flex-wrap: wrap; }
-	.srow.alone > :global(.finder) { flex: 1 1 100%; max-width: none; }
-	.strip { display: flex; flex: 0 1 auto; align-items: center; gap: 10px; min-width: 0; max-width: calc(100% + 28px); margin: -8px -14px; padding: 8px 14px; overflow-x: auto; scrollbar-width: none; }
-	.strip::-webkit-scrollbar { display: none; }
-	.strip > :global(*) { flex: none; }
+	/* Tipo + orden y votos: los botones del alto del canal (58 + 2×5 = 68 px); el tipo se achica para dejarles lugar. */
+	.kind-row { display: flex; align-items: center; gap: 10px; min-width: 0; container-type: inline-size; }
+	.kind-row > .ks { flex: 1 1 auto; min-width: 0; }
+	.kind-pills { display: flex; flex: none; gap: 10px; }
+	.kind-pills :global(.trig) { justify-content: center; width: 68px; height: 68px; padding: 0; gap: 0; border-radius: calc(var(--nu-radius) + 5px); color: var(--muted); }
+	.kind-pills :global(.trig .chev) { display: none; }
+	.kind-pills :global(#cat-votes .crowd svg) { width: 11px; height: 11px; }
+	/* Rótulo de orden y votos: solo para lectores salvo que la fila tenga lugar (≥ 760 px = tipo cómodo + los dos con
+	   rótulo); antes de cortarse pasa a solo ícono. `font-size: 0`: el degradé recortado de la cara igual lo pintaba. */
+	.lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; font-size: 0; }
+	@container (min-width: 760px) {
+		.kind-pills :global(.trig) { width: auto; gap: 9px; padding: 0 18px; font-size: 14px; color: var(--text); }
+		.lbl { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: inherit; }
+	}
+	/* Angosto: botones de 44 px y el tipo sin íconos, así "Películas"/"Series" entran sin cortarse. */
+	@media (max-width: 720px) {
+		.kind-row, .kind-pills { gap: 8px; }
+		.kind-pills :global(.trig) { width: 44px; }
+		.kind-row :global(.seg-in svg) { display: none; }
+		.kind-row :global(.seg button) { padding: 0 4px; font-size: 15px; }
+	}
 	.crowd { display: inline-flex; gap: 1px; color: var(--amber); }
 	.crowd > span { display: flex; }
-	.crowd .off { color: rgb(255 255 255 / 0.2); }
+	.crowd .off { color: rgb(255 255 255 / 0.2); filter: var(--ac-off); }
 	.opt-txt { display: flex; flex-direction: column; line-height: 1.2; }
 	.opt-txt small { font-size: 11.5px; font-weight: 500; color: var(--dim); font-variant-numeric: tabular-nums; }
-	/* Limpiar: ghost gris tenue (secundario, nunca botón lleno). */
-	.reset { flex: none; height: 40px; padding: 0 10px; border: 0; border-radius: var(--nu-radius); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: color 0.2s; }
-	.reset:disabled { opacity: 0.45; cursor: default; }
-	@media (hover: hover) { .reset:not(:disabled):hover { color: var(--text); } }
-	.reset:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
-	/* Celu: buscador arriba a todo el ancho y las pastillas en una fila que se desliza, con fundido a la derecha. */
-	@media (max-width: 720px) {
-		.srow { flex-direction: column; align-items: stretch; }
-		.srow > :global(.finder) { flex: none; max-width: none; }
-		.strip { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
-	}
 
 	.body { padding: 14px 16px calc(24px + var(--safe-bottom)); }
 	.trending { display: block; font-size: 13px; font-weight: 650; color: var(--muted); }

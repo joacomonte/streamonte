@@ -105,13 +105,13 @@
 	.grp h2 { margin: 0 0 8px; }
 	.grp-items { display: flex; align-items: flex-start; gap: 12px; }
 	/* Card "Novedades" (variante A): mismo alto que los pósters (104×156 / 132×198), abanico de pósters y expandir arriba
-	   a la derecha. Tile del carbón que flota (--nu-raise, variante B 2026-11-27); en hover sube, al tocar se hunde. El margen la separa del "1". */
+	   a la derecha. Sin fondo: solo el abanico de pósters, más grandes; en hover sube, al tocar se achica. El margen la separa del "1". */
 	.nc { --ph: 156px; flex: none; display: block; width: 132px; margin-right: 6px; padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start; -webkit-tap-highlight-color: transparent; animation: rise 0.45s var(--out) both; }
 	@media (min-width: 760px) { .nc { --ph: 198px; width: 168px; } }
 	.nc:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 3px; border-radius: var(--r-card); }
-	.box { position: relative; display: block; height: var(--ph); border-radius: var(--r-card); overflow: visible; isolation: isolate; background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-raise); transition: transform 0.25s var(--out), box-shadow 0.35s var(--out), background-color 0.35s; }
+	.box { position: relative; display: block; height: var(--ph); border-radius: var(--r-card); overflow: visible; isolation: isolate; background: none; transition: transform 0.25s var(--out), box-shadow 0.35s var(--out), background-color 0.35s; }
 	.stack { position: absolute; inset: 0; }
-	.card-p { position: absolute; left: 21%; bottom: 10%; width: 58%; aspect-ratio: 2 / 3; border-radius: 7px; overflow: hidden; background: var(--surface-3); box-shadow: 0 6px 16px rgb(0 0 0 / 0.55); transform-origin: 50% 110%; transition: transform 0.45s var(--out); }
+	.card-p { position: absolute; left: 19%; bottom: 4%; width: 62%; aspect-ratio: 2 / 3; border-radius: 7px; overflow: hidden; background: var(--surface-3); box-shadow: 0 6px 16px rgb(0 0 0 / 0.55); transform-origin: 50% 110%; transition: transform 0.45s var(--out); }
 	.card-p img { width: 100%; height: 100%; object-fit: cover; }
 	.card-p:nth-child(1) { transform: rotate(-9deg); }
 	.card-p:nth-child(2) { transform: rotate(-3deg); }
@@ -119,13 +119,13 @@
 	.card-p:nth-child(4) { transform: rotate(9deg); }
 	.cnt { display: block; padding: 7px 2px 0; font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 	@media (hover: hover) {
-		.nc:hover .box { box-shadow: var(--nu-raise-hover); transform: translateY(-3px); }
+		.nc:hover .box { transform: translateY(-3px); }
 		.nc:hover .card-p:nth-child(1) { transform: rotate(-14deg) translateY(-4%); }
 		.nc:hover .card-p:nth-child(2) { transform: rotate(-5deg) translateY(-7%); }
 		.nc:hover .card-p:nth-child(3) { transform: rotate(5deg) translateY(-7%); }
 		.nc:hover .card-p:nth-child(4) { transform: rotate(14deg) translateY(-4%); }
 	}
-	.nc:active .box { box-shadow: var(--nu-press); transform: scale(0.98); }
+	.nc:active .box { transform: scale(0.98); }
 	.rk { flex: none; display: flex; align-items: flex-start; padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start; animation: rise 0.45s var(--out) both; animation-delay: calc(min(var(--i), 8) * 40ms); }
 	.rk:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 3px; border-radius: var(--r-md); }
 	/* El número detrás, hueco (solo el trazo), asomando por la izquierda del póster. */

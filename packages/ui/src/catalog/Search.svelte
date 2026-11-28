@@ -30,6 +30,7 @@
 	const MAX_PEOPLE = 4;
 
 	let input = $state<HTMLInputElement>();
+	let finder = $state<HTMLElement>();
 	// `open`: se cierra con Esc, tocando el fondo o eligiendo algo; tocar el buscador lo reabre.
 	const typed = $derived(st.q.trim() !== '');
 	/** Filtro del desplegable (chips de arriba): todo, películas y series, actores o directores. */
@@ -94,14 +95,27 @@
 		onclear();
 		input?.focus();
 	}
+	/** Tocar afuera con el desplegable abierto = limpiar (como la X, sin devolver el foco). Afuera = fuera de
+	 *  `.finder` (input, X y desplegable quedan adentro; el fondo desenfocado queda afuera). Por pointerdown y no por blur:
+	 *  los resultados frenan el blur (`preventDefault`) y su click tiene que llegar. Con el desplegable cerrado (Esc, o
+	 *  después de abrir un título) no hace nada: lo que se toque en la ficha o la grilla no borra la búsqueda. */
+	function outside(e: PointerEvent) {
+		if (!show || finder?.contains(e.target as Node)) return;
+		open = false;
+		only = 'all';
+		input?.blur();
+		onclear();
+	}
 </script>
 
+<svelte:window onpointerdown={outside} />
+
 {#if show}
-	<!-- Fondo desenfocado: tocarlo cierra el desplegable (la búsqueda queda escrita). -->
+	<!-- Fondo desenfocado: tocarlo es tocar afuera (limpia la búsqueda, `outside`). -->
 	<button id="cat-q-backdrop" type="button" class="blur" aria-label={t('Cerrar')} onclick={close}></button>
 {/if}
 
-<div class="finder" class:open={show}>
+<div bind:this={finder} class="finder" class:open={show}>
 	<label class="search">
 		<span class="lead" aria-hidden="true">{#if busy}<span class="spin"></span>{:else}<Icon name="search" size={18} />{/if}</span>
 		<input bind:this={input} id="cat-q" type="search" placeholder={t('Título, actor/actriz o director')} autocomplete="off" enterkeyhint="search" role="combobox" aria-expanded={show} aria-controls="cat-q-results" aria-autocomplete="list" value={st.q} {oninput} onfocus={() => typed && (open = true)} onkeydown={key} />

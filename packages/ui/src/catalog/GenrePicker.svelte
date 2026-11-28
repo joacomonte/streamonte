@@ -144,7 +144,7 @@
 				</span>
 			{/each}
 		</span>
-		<span class="lbl">{applied?.label ?? subText}{#if applied}<em>{subText}</em>{/if}</span>
+		<span class="lbl ac-face">{applied?.label ?? subText}{#if applied}<em>{subText}</em>{/if}</span>
 		<span class="chev"><Icon name="chev" size={16} /></span>
 	</button>
 	{#if applied}
@@ -179,7 +179,7 @@
 				<button id="genre-{g.key}" type="button" class="g-head" aria-label="{g.label}: {t('Elegir subgénero')}" onclick={() => enter(g.key)}>
 					<span class="gic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{@html genreArt(g.art).svg}</svg></span>
 					<span class="fr">
-						<b>{g.label}</b>
+						<b class="ac-face">{g.label}</b>
 						{#if list?.[0]}<span class="ex">{list[0].title}</span>{/if}
 					</span>
 				</button>
@@ -200,7 +200,7 @@
 			<button id="sub-{s.id}" type="button" class="card s-tile" class:on aria-pressed={on} style:--k={k} onclick={() => pickSub(s.id)}>
 				{@render art(list)}
 				<span class="fr">
-					<b>{s.label}</b>
+					<b class="ac-face">{s.label}</b>
 					<span class="d">{s.desc}</span>
 					{#if list?.[0]}<span class="ex">{list[0].title}</span>{/if}
 				</span>
@@ -218,7 +218,7 @@
 				{#if level === 2}
 					<span class="nu-ring"><button id="genre-back" type="button" class="round nu-round" aria-label={t('Volver a los géneros')} onclick={back}><Icon name="back" size={18} /></button></span>
 				{/if}
-				<h3>{c && level === 2 ? c.label : t('Géneros')}</h3>
+				<h3 class="ac-face">{c && level === 2 ? c.label : t('Géneros')}</h3>
 				<span class="nu-ring"><button id="genre-close" type="button" class="round nu-round" aria-label={t('Cerrar')} onclick={close}><Icon name="close" size={16} /></button></span>
 			</div>
 			{#key level}
@@ -231,12 +231,17 @@
 {/if}
 
 <style>
-	/* ── Botón: pastilla elevada como las demás de los filtros (C1 2026-11-27, `.nu-lift`): pósters apilados + rótulo + chevron ── */
+	/* ── Botón: pastilla elevada como las demás de los filtros (`.nu-lift`): pósters apilados + rótulo + chevron ── */
 	/* `min-width: 0`: en la fila de pastillas se achica (el rótulo se corta con …) en vez de desbordar. */
 	.pick-row { display: flex; flex: none; align-items: center; gap: 4px; min-width: 0; }
 	.trigger { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 40px; padding: 0 12px 0 10px; border-radius: var(--nu-radius); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-	/* Con género aplicado: el filo del elegido sobre la sombra del elevado (sin azul). */
-	.trigger.on { box-shadow: var(--nu-on-edge), var(--nu-raise); }
+	/* Sombra de chip del contenedor (`--chip-raise*`) o la elevada de siempre; con género aplicado, el filo del elegido
+	   encima (sin azul). Al abrir baja al ras. */
+	.trigger { box-shadow: var(--chip-raise, var(--nu-raise-sm)); transition: box-shadow 0.4s var(--out), transform 0.25s var(--out); }
+	.trigger.on { box-shadow: var(--nu-on-edge), var(--chip-raise, var(--nu-raise)); }
+	@media (hover: hover) { .trigger:not(.on):hover { box-shadow: var(--chip-raise-hover, var(--nu-raise-hover)); transform: translateY(-1px); } }
+	.trigger:active { box-shadow: var(--nu-press-sm); transform: translateY(0) scale(0.98); }
+	.trigger[aria-expanded='true'] { box-shadow: none; transform: none; }
 	.stack { display: flex; flex: none; }
 	.mini { flex: none; width: 20px; height: 26px; margin-left: -8px; border-radius: 4px; background: var(--nu-bg) center / cover; box-shadow: 0 0 0 1.5px #232428; }
 	.mini:first-child { margin-left: 0; }
@@ -244,6 +249,9 @@
 	/* Un renglón: "Todos los géneros", o el género con su subgénero al lado en gris. */
 	.lbl { min-width: 0; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 	.lbl em { margin-left: 6px; font-style: normal; font-weight: 500; color: var(--muted); }
+	/* Rótulo en acrílico, prendido; al abrir le cuesta prender (`ac-struggle`) y termina prendido. */
+	.lbl { filter: var(--ac-on); }
+	.trigger[aria-expanded='true'] .lbl { animation: ac-struggle 0.7s linear backwards; }
 	.chev { display: flex; flex: none; color: var(--muted); }
 	.clear { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border: 0; border-radius: 50%; background: none; color: var(--muted); }
 	.trigger:focus-visible, .clear:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
@@ -255,12 +263,16 @@
 	.wide .scrim { background: rgb(0 0 0 / 0.25); }
 	/* Superficie neumórfica carbón que flota (--nu-float, variante B 2026-11-27): las tarjetas salen elevadas de ella. */
 	.panel { display: flex; flex-direction: column; color: var(--text); background: var(--nu-tile), var(--nu-bg); box-shadow: var(--nu-float); }
-	.sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 92dvh; border-radius: 26px 26px 0 0; padding-bottom: var(--safe-bottom, 0px); animation: sheet-in 0.55s var(--out); }
-	.menu { position: absolute; overflow: hidden; border-radius: 22px; animation: menu-in 0.4s var(--out); transform-origin: 40px 0; }
+	.sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 92dvh; border-radius: 26px 26px 0 0; padding-bottom: var(--safe-bottom, 0px); animation: sheet-in 0.55s var(--out), ac-float-in 0.9s var(--ac-breathe) backwards; }
+	.menu { position: absolute; overflow: hidden; border-radius: 22px; animation: menu-in 0.4s var(--out), ac-float-in 0.9s var(--ac-breathe) backwards; transform-origin: 40px 0; }
 	.grab { flex: none; width: 38px; height: 5px; margin: 8px auto 4px; border-radius: 3px; background: rgb(255 255 255 / 0.3); }
 	.hd { display: flex; align-items: center; gap: 12px; padding: 6px 16px 14px; }
 	.menu .hd { padding: 18px 18px 14px; }
-	.hd h3 { flex: 1; margin: 0; font-size: 20px; font-weight: 750; letter-spacing: -0.02em; }
+	.hd h3 { flex: 1; margin: 0; font-size: 20px; font-weight: 750; letter-spacing: -0.02em; filter: var(--ac-on); animation: ac-struggle 0.7s 0.12s linear backwards; }
+	/* Títulos de las tarjetas: tenues; el género/subgénero aplicado prende como tubo. Hover: prendido. */
+	.fr b.ac-face { filter: var(--ac-dim); animation: ac-dim-in 0.6s 0.2s var(--out) backwards; transition: filter 0.2s; }
+	.cur .fr b.ac-face, .s-tile.on .fr b.ac-face { filter: var(--ac-on); animation: ac-struggle 0.7s 0.12s linear backwards; }
+	@media (hover: hover) { .card:hover .fr b.ac-face { filter: var(--ac-on); } }
 	/* Cerrar y volver: botón redondo neu (`.nu-round`) en su aro hundido (`.nu-ring`). */
 	.round { width: 36px; height: 36px; }
 	.round :global(svg) { display: block; }
